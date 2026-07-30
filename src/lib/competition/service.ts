@@ -441,10 +441,10 @@ export async function recomputeStandings(seasonId: number): Promise<void> {
     }))
     const rows = computeStandings(roster, inputs, season.qualifiersPerGroup)
 
-    await prisma.$transaction([
-      prisma.standing.deleteMany({ where: { groupId: group.id } }),
-      ...rows.map((r) =>
-        prisma.standing.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.standing.deleteMany({ where: { groupId: group.id } })
+      for (const r of rows) {
+        await tx.standing.create({
           data: {
             seasonId,
             groupId: group.id,
@@ -460,9 +460,9 @@ export async function recomputeStandings(seasonId: number): Promise<void> {
             rank: r.rank,
             qualified: r.qualified,
           },
-        }),
-      ),
-    ])
+        })
+      }
+    })
   }
 }
 
@@ -541,10 +541,10 @@ export async function generatePlayoff(
 export async function publishPlayoff(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
   const count = await prisma.playoffMatch.count({ where: { seasonId } })
   if (count === 0) return { ok: false, error: 'Generate the bracket before publishing.' }
-  await prisma.$transaction([
-    prisma.playoffMatch.updateMany({ where: { seasonId }, data: { published: true } }),
-    prisma.season.update({ where: { id: seasonId }, data: { playoffsStatus: 'PUBLISHED' } }),
-  ])
+  await prisma.$transaction(async (tx) => {
+    await tx.playoffMatch.updateMany({ where: { seasonId }, data: { published: true } })
+    await tx.season.update({ where: { id: seasonId }, data: { playoffsStatus: 'PUBLISHED' } })
+  })
   await recordAudit(actor, { action: 'playoff.publish', entity: 'Season', entityId: seasonId, newValue: { published: true } })
   return { ok: true }
 }
