@@ -1,0 +1,1286 @@
+// ============================================================================
+// 8 Ball Revival · Competition data model (Prisma)
+// ----------------------------------------------------------------------------
+// Prisma is the SCHEMA AUTHORITY for the competition / records / identity core.
+// It owns the DEFAULT ("public") PostgreSQL schema. Payload CMS owns a SEPARATE
+// "payload" schema (auth, Users, Media, News, Rules) and never touches these
+// tables. The two layers connect only by application-level IDs (e.g. a *ByUserId
+// string points at a Payload user); there are intentionally NO cross-ORM foreign
+// keys. See DATA_MODEL.md for full documentation, the ER diagram, and rationale.
+//
+// This file defines the schema only. No data (historical or otherwise) is seeded.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ----------------------------------------------------------------------------
+// Enums are used ONLY for dimensions that are conceptually fixed. Genuinely
+// extensible dimensions (competition type, stage format, match format, ranking
+// system) are LOOKUP TABLES instead, so new variants are added as rows — never
+// a migration. This is the primary "future formats without schema redesign"
+// mechanism. See DATA_MODEL.md §Scalability.
+// ============================================================================
+
+/// Distinguishes imported legacy (8BRCAM) records from records created natively
+/// in 8 Ball Revival. Required on every primary entity so the two are always separable.
+enum Provenance {
+  IMPORTED_8BRCAM
+  NATIVE_EGO
+}
+
+/// A Competitor is a Player now; Team support is future. The supertype lets all
+/// competitive references (matches, standings, seeds, championships, rankings,
+/// head-to-head) point at one identity type without a later redesign.
+enum CompetitorType {
+  PLAYER
+  TEAM
+}
+
+/// The kind of raw identifier an alias represents.
+enum AliasType {
+  HANDLE
+  YAHOO_MESSENGER
+  EMAIL
+  FORUM
+  OTHER
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  REGISTRATION_OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+/// Which structural family a stage format belongs to. Drives whether a stage
+/// hangs Groups, Brackets, or a single decisive Match off it. New StageFormat
+/// rows pick one of these families; the app needs no new code paths per format.
+enum StageFormatFamily {
+  GROUP_BASED // round robin, swiss, pools, group stage
+  BRACKET_BASED // single/double elimination
+  SINGLE_MATCH // a one-off final / decider
+  HYBRID // custom combinations, config-driven
+}
+
+enum BracketType {
+  MAIN
+  WINNERS
+  LOSERS
+  CONSOLATION
+  FINALS
+}
+
+/// Lifecycle state of a fixture. HOW a completed match was decided (played,
+/// forfeit, bye, admin decision, ...) is captured separately by MatchResolution
+/// on MatchResult, so status stays a clean lifecycle. Disputes are tracked via
+/// IssueReport (targetType = MATCH / MATCH_RESULT), not a status value.
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  POSTPONED
+  CANCELLED
+  VOID
+}
+
+/// HOW a match result came about. Separates the outcome method from the lifecycle
+/// status and from the score, so forfeits, walkovers, byes, retirements, double
+/// forfeits, and administrative rulings are all first-class and distinguishable.
+enum MatchResolution {
+  PLAYED
+  WALKOVER
+  FORFEIT
+  DOUBLE_FORFEIT
+  BYE
+  RETIREMENT
+  ADMIN_DECISION
+}
+
+/// How a competition admits entrants (POLICY_FRAMEWORK.md §1). OPEN = public
+/// entry (admin confirms unless auto-accept); APPROVAL_REQUIRED = entry requests
+/// admins approve/decline; INVITATIONAL = no public registration, admins add
+/// players; QUALIFICATION_ONLY = entry earned via another competition/ranking.
+enum RegistrationMode {
+  OPEN
+  APPROVAL_REQUIRED
+  INVITATIONAL
+  QUALIFICATION_ONLY
+}
+
+/// How a competitor came to be in a competition — public sign-up, admin invite,
+/// admin add, qualification from a prior stage, or direct seeding.
+enum EntryMethod {
+  PUBLIC_REGISTRATION
+  ADMIN_INVITE
+  ADMIN_ADDED
+  QUALIFIED
+  SEEDED
+}
+
+/// How a competitor's seed position was derived (POLICY_FRAMEWORK.md §2). UNKNOWN
+/// preserves historical seeds whose method/position is undocumented — never inferred.
+enum SeedingMethod {
+  MANUAL
+  RANDOM_DRAW
+  GLOBAL_RANKING
+  COMPETITION_STANDING
+  PREVIOUS_STAGE
+  PREVIOUS_SEASON
+  QUALIFICATION_ORDER
+  HYBRID
+  UNKNOWN
+}
+
+/// State of the link between a Payload user account and a canonical Player. The
+/// account never OWNS the historical identity; it merely claims/links to it.
+/// PENDING = claim submitted; VERIFIED = admin-approved; REJECTED = admin-declined
+/// claim; REVOKED = a previously verified link removed.
+enum PlayerLinkStatus {
+  UNLINKED
+  PENDING
+  VERIFIED
+  REJECTED
+  REVOKED
+}
+
+/// Which outcome of a source match fills a downstream match slot for live-bracket
+/// progression — the winner (advance / grand final) or the loser (losers-bracket
+/// drop). See POLICY_FRAMEWORK.md §11.
+enum MatchSlotSource {
+  WINNER
+  LOSER
+}
+
+enum MatchFormatKind {
+  RACE_TO // first to N racks/games (standard pool)
+  BEST_OF // best of N games
+}
+
+/// How much we trust a recorded result / champion. Mirrors the archive's
+/// confidence signals (explicit label vs heuristic reconstruction).
+enum RecordConfidence {
+  EXPLICIT
+  HEURISTIC_LABEL
+  HEURISTIC_COUNT
+  RECONSTRUCTED
+  UNKNOWN
+}
+
+enum EntryStatus {
+  REGISTERED
+  CONFIRMED
+  DECLINED // admin declined an entry request (distinct from player WITHDRAWN)
+  WAITLISTED
+  WITHDRAWN
+  DISQUALIFIED
+  NO_SHOW
+}
+
+enum CorrectionStatus {
+  PROPOSED
+  APPROVED
+  APPLIED
+  REJECTED
+  REVERTED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum IssueStatus {
+  OPEN
+  TRIAGED
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+  DUPLICATE
+}
+
+enum SourceKind {
+  FILE_ROW // e.g. "playoffs.csv:88"
+  URL
+  WAYBACK
+  MANUAL_REVIEW
+  IMPORT_JOB
+  OTHER
+}
+
+/// Polymorphic target discriminator for cross-cutting entities (SourceReference,
+/// HistoricalCorrection, IssueReport). Relational DBs cannot express a single FK
+/// to "any table", so we pair (targetType, targetId) and enforce integrity in
+/// the application + import layer. New target kinds = new enum value only.
+enum RecordType {
+  PLAYER
+  PLAYER_ALIAS
+  TEAM
+  COMPETITOR
+  COMPETITION
+  DIVISION
+  STAGE
+  GROUP
+  BRACKET
+  MATCH
+  MATCH_RESULT
+  STANDING_ROW
+  SEED
+  COMPETITION_ENTRY
+  CHAMPIONSHIP
+  ACHIEVEMENT
+  RANKING_SNAPSHOT
+  RANKING_SNAPSHOT_ITEM
+  HALL_OF_FAME_ENTRY
+  HEAD_TO_HEAD
+  PLAYER_MERGE
+  PLAYER_SPLIT
+  HISTORICAL_CORRECTION // lets multiple SourceReferences attach to one correction
+}
+
+// ============================================================================
+// IDENTITY & PARTICIPANTS
+// ============================================================================
+
+/// Canonical human competitor. Aliases resolve up to exactly one Player.
+/// Preserves the stable legacy id (e.g. "P1316") for traceability across the
+/// import. A Player is fronted by exactly one Competitor for all competitive refs.
+model Player {
+  id             String           @id @default(cuid())
+  legacyPlayerId String?          @unique // e.g. "P1316" from the 8BRCAM archive
+  primaryName    String
+  country        String?
+  firstYear      Int?
+  lastYear       Int?
+  primaryYm      String? // primary Yahoo Messenger id (identity signal)
+  primaryEmail   String? // primary email (identity signal)
+  // Account linking: a Payload user may CLAIM this canonical identity without
+  // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
+  linkedUserId   String?
+  linkStatus     PlayerLinkStatus @default(UNLINKED)
+  linkedAt       DateTime?
+  provenance     Provenance       @default(NATIVE_EGO)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  competitor        Competitor?
+  aliases           PlayerAlias[]
+  achievements      Achievement[]
+  careerStat        PlayerCareerStat?
+  seasonStats       PlayerSeasonStat[]
+  hallOfFameEntries HallOfFameEntry[]
+  teamMemberships   TeamMembership[]
+  mergesAsCanonical PlayerMerge[]      @relation("MergeCanonical")
+  mergesAsMerged    PlayerMerge[]      @relation("MergeMerged")
+  splitsAsSource    PlayerSplit[]      @relation("SplitSource")
+  splitsAsNew       PlayerSplit[]      @relation("SplitNew")
+
+  @@index([primaryName])
+  @@index([provenance])
+  @@index([linkedUserId])
+}
+
+/// A raw identifier historically used by a player (handle / YM / email / forum).
+/// NOT globally unique: the same raw handle can map to different canonical people
+/// over time (see PlayerSplit). Uniqueness is only per (player, alias, type) to
+/// prevent duplicate rows for the same player.
+model PlayerAlias {
+  id         String     @id @default(cuid())
+  playerId   String
+  alias      String
+  aliasType  AliasType  @default(HANDLE)
+  provenance Provenance @default(NATIVE_EGO)
+  createdAt  DateTime   @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, alias, aliasType])
+  @@index([alias])
+  @@index([aliasType])
+}
+
+/// FUTURE: a team identity. Included now so the Competitor supertype and all
+/// competitive references are team-ready without a schema redesign.
+model Team {
+  id         String     @id @default(cuid())
+  legacyId   String?    @unique
+  name       String
+  tag        String?
+  country    String?
+  provenance Provenance @default(NATIVE_EGO)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  competitor  Competitor?
+  memberships TeamMembership[]
+
+  @@index([name])
+}
+
+/// FUTURE: player membership in a team over time.
+model TeamMembership {
+  id       String    @id @default(cuid())
+  teamId   String
+  playerId String
+  role     String?
+  joinedAt DateTime?
+  leftAt   DateTime?
+
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, playerId, joinedAt])
+  @@index([teamId])
+  @@index([playerId])
+}
+
+/// SUPERTYPE that every competitive reference points to. Exactly one of
+/// playerId / teamId is set (enforced by a CHECK added in the constraints
+/// migration + the app layer). This is the key extensibility decision that
+/// makes matches / standings / rankings / head-to-head team-ready today.
+model Competitor {
+  id        String         @id @default(cuid())
+  type      CompetitorType @default(PLAYER)
+  playerId  String?        @unique
+  teamId    String?        @unique
+  createdAt DateTime       @default(now())
+
+  player Player? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  matchesAsA          Match[]               @relation("MatchCompetitorA")
+  matchesAsB          Match[]               @relation("MatchCompetitorB")
+  matchesWon          MatchResult[]         @relation("MatchWinner")
+  standings           StandingRow[]
+  seeds               Seed[]
+  entries             CompetitionEntry[]
+  championshipsWon    Championship[]        @relation("ChampionshipChampion")
+  championshipsRunner Championship[]        @relation("ChampionshipRunnerUp")
+  rankingItems        RankingSnapshotItem[]
+  headToHeadAsLo      HeadToHead[]          @relation("H2HLo")
+  headToHeadAsHi      HeadToHead[]          @relation("H2HHi")
+
+  @@index([type])
+}
+
+// ============================================================================
+// COMPETITION STRUCTURE
+// ----------------------------------------------------------------------------
+// Season / Cup / Tournament are NOT separate tables — they are Competition rows
+// discriminated by CompetitionType. This is the "common underlying competition
+// model" the brief requires. A Competition owns an ordered set of Stages; each
+// Stage has a format and, by that format's family, hangs Groups and/or Brackets.
+// ============================================================================
+
+/// LOOKUP TABLE — the competition category (SEASON, CUP, TOURNAMENT, and any
+/// future kind). A row, not an enum, so new categories need no migration.
+model CompetitionType {
+  id          String  @id @default(cuid())
+  code        String  @unique // SEASON | CUP | TOURNAMENT | ...
+  name        String
+  description String?
+  sortOrder   Int     @default(0)
+
+  competitions Competition[]
+}
+
+/// A single competition instance (one season edition, one cup, one tournament).
+model Competition {
+  id                String            @id @default(cuid())
+  competitionTypeId String
+  legacyId          String?           @unique // e.g. "2010-s1"
+  slug              String            @unique
+  name              String
+  edition           String? // free-form edition label
+  year              Int?
+  period            String? // e.g. "S1" / "Winter"
+  era               String? // legacy era label carried from the archive
+  status            CompetitionStatus @default(UPCOMING)
+  registrationMode  RegistrationMode  @default(OPEN) // open / approval / invitational / qualification
+  startDate         DateTime?
+  endDate           DateTime?
+  rulesRef          String? // slug/id of a Payload Rules doc (app-level ref)
+  metadata          Json? // type-specific attributes without new columns
+  provenance        Provenance        @default(NATIVE_EGO)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  competitionType CompetitionType    @relation(fields: [competitionTypeId], references: [id])
+  divisions       Division[]
+  stages          Stage[]
+  entries         CompetitionEntry[]
+  matches         Match[]
+  championships   Championship[]
+  achievements    Achievement[]
+  seasonStats     PlayerSeasonStat[]
+
+  @@index([competitionTypeId])
+  @@index([status])
+  @@index([year])
+}
+
+/// Optional structural split within a competition (e.g. Division A / B). In the
+/// archive, each season division has its own groups and playoff. Stages/Groups
+/// may be division-scoped or competition-wide (divisionId null).
+model Division {
+  id            String     @id @default(cuid())
+  competitionId String
+  legacyId      String?    @unique
+  code          String // "A", "B", ...
+  name          String?
+  sortOrder     Int        @default(0)
+  provenance    Provenance @default(NATIVE_EGO)
+
+  competition   Competition        @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  stages        Stage[]
+  groups        Group[]
+  entries       CompetitionEntry[]
+  matches       Match[]
+  championships Championship[]
+
+  @@unique([competitionId, code])
+  @@index([competitionId])
+}
+
+/// LOOKUP TABLE — a stage format (GROUP, ROUND_ROBIN, SWISS, SINGLE_ELIM,
+/// DOUBLE_ELIM, POOL, FINALS, ...). Each format declares a family so the app
+/// knows how to render/compute it. New formats = new rows, no migration.
+model StageFormat {
+  id           String            @id @default(cuid())
+  code         String            @unique
+  name         String
+  family       StageFormatFamily
+  description  String?
+  configSchema Json? // optional JSON-schema describing this format's config
+
+  stages Stage[]
+}
+
+/// An ordered phase of a competition. Format-agnostic: a competition can freely
+/// combine stages of different formats (groups, swiss, brackets, finals). The
+/// `config` JSON holds format-specific parameters (swiss rounds, tiebreakers,
+/// bracket size) so new formats need no new columns.
+model Stage {
+  id            String     @id @default(cuid())
+  competitionId String
+  divisionId    String?
+  stageFormatId String
+  legacyId      String?    @unique
+  name          String
+  sequence      Int // ordering within the competition
+  config        Json?
+  provenance    Provenance @default(NATIVE_EGO)
+  createdAt     DateTime   @default(now())
+
+  competition   Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  division      Division?      @relation(fields: [divisionId], references: [id])
+  format        StageFormat    @relation(fields: [stageFormatId], references: [id])
+  groups        Group[]
+  brackets      Bracket[]
+  matches       Match[]
+  seeds         Seed[]
+  championships Championship[]
+
+  @@unique([competitionId, sequence, divisionId])
+  @@index([competitionId])
+  @@index([divisionId])
+  @@index([stageFormatId])
+}
+
+/// A group / pool within a GROUP_BASED stage. Round-robin and swiss both use
+/// Groups (a swiss "group" is the whole field). Standings hang off a Group.
+model Group {
+  id         String     @id @default(cuid())
+  stageId    String
+  divisionId String?
+  legacyId   String?    @unique
+  code       String // "A", "B", ...
+  name       String?
+  scoreModel String? // carried from the archive (points model)
+  sortOrder  Int        @default(0)
+  provenance Provenance @default(NATIVE_EGO)
+
+  stage     Stage         @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  division  Division?     @relation(fields: [divisionId], references: [id])
+  standings StandingRow[]
+  matches   Match[]
+
+  @@index([stageId])
+  @@index([divisionId])
+}
+
+/// A bracket within a BRACKET_BASED stage. Double elimination uses two brackets
+/// (WINNERS + LOSERS) under one stage; single elimination uses one (MAIN).
+model Bracket {
+  id         String      @id @default(cuid())
+  stageId    String
+  legacyId   String?     @unique
+  type       BracketType @default(MAIN)
+  name       String?
+  size       Int?
+  provenance Provenance  @default(NATIVE_EGO)
+
+  stage   Stage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  matches Match[]
+  seeds   Seed[]
+
+  @@index([stageId])
+}
+
+/// A competitor's seeding into a stage/bracket (from the archive's playoff seeds).
+model Seed {
+  id             String        @id @default(cuid())
+  stageId        String
+  bracketId      String?
+  competitorId   String
+  seedNo         Int
+  // How this seed was derived, and — if seedNo is a manual override — the original
+  // calculated/proposed seed (never erased). POLICY_FRAMEWORK.md §2.
+  seedingMethod  SeedingMethod @default(UNKNOWN)
+  proposedSeedNo Int?
+  handle         String? // raw handle recorded in the source, if unresolved
+  provenance     Provenance    @default(NATIVE_EGO)
+
+  stage      Stage      @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  bracket    Bracket?   @relation(fields: [bracketId], references: [id])
+  competitor Competitor @relation(fields: [competitorId], references: [id])
+
+  @@unique([stageId, competitorId])
+  @@index([stageId])
+  @@index([bracketId])
+  @@index([competitorId])
+}
+
+/// A competitor's participation / registration in a competition (also powers
+/// per-competition tournament registration for live 8 Ball Revival events).
+model CompetitionEntry {
+  id            String      @id @default(cuid())
+  competitionId String
+  divisionId    String?
+  competitorId  String
+  seed          Int?
+  status        EntryStatus @default(REGISTERED)
+  entryMethod   EntryMethod @default(PUBLIC_REGISTRATION) // how they got in
+  statusReason  String? // e.g. reason for withdrawal / disqualification
+  registeredAt  DateTime?
+  provenance    Provenance  @default(NATIVE_EGO)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  division    Division?   @relation(fields: [divisionId], references: [id])
+  competitor  Competitor  @relation(fields: [competitorId], references: [id])
+
+  @@unique([competitionId, competitorId, divisionId])
+  @@index([competitionId])
+  @@index([competitorId])
+  @@index([status])
+}
+
+// ============================================================================
+// MATCHES, RESULTS & FORMAT
+// ============================================================================
+
+/// LOOKUP TABLE — the match format, encapsulating race length. "Race Length" is
+/// represented as `raceLength` here rather than a separate table: it is a simple
+/// integer attribute of a format, and normalizing it further would add joins
+/// without value. New formats (Race to 9, Best of 11) = new rows.
+model MatchFormat {
+  id          String          @id @default(cuid())
+  code        String          @unique // e.g. "RACE_TO_7"
+  name        String // e.g. "Race to 7"
+  kind        MatchFormatKind @default(RACE_TO)
+  raceLength  Int // target games (race to N) or series length (best of N)
+  description String?
+
+  matches Match[]
+}
+
+/// The central competitive event: a contest between two competitors within a
+/// stage, optionally located in a Group (group play) or Bracket (elimination).
+/// `competitionId` and `divisionId` are DENORMALIZED from the stage for fast,
+/// index-friendly filtering on the read-heavy public site.
+model Match {
+  id                 String           @id @default(cuid())
+  legacyMatchId      String?          @unique
+  competitionId      String
+  divisionId         String?
+  stageId            String
+  groupId            String?
+  bracketId          String?
+  matchFormatId      String?
+  bracketType        BracketType? // for double-elim disambiguation
+  round              Int?
+  roundName          String?
+  matchNo            Int?
+  // Competitor slots are NULLABLE to support byes (one side empty) and not-yet-
+  // determined bracket fixtures (both empty until feeders resolve).
+  competitorAId      String?
+  competitorBId      String?
+  // Raw handle/alias each competitor appeared under IN THIS match — preserves the
+  // source display and ties alias usage to a specific historical match.
+  competitorAHandle  String?
+  competitorBHandle  String?
+  // Live-bracket progression (POLICY_FRAMEWORK.md §11): which prior match's outcome
+  // fills each slot. slotASource = WINNER/LOSER of slotASourceMatch, etc. NULL for
+  // imported static brackets (competitors set directly). A grand-final reset is a
+  // second finals match sourced from the first (WINNER + LOSER).
+  slotASourceMatchId String?
+  slotASource        MatchSlotSource?
+  slotBSourceMatchId String?
+  slotBSource        MatchSlotSource?
+  status             MatchStatus      @default(SCHEDULED)
+  scheduledAt        DateTime?
+  provenance         Provenance       @default(NATIVE_EGO)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  competition          Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  division             Division?      @relation(fields: [divisionId], references: [id])
+  stage                Stage          @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  group                Group?         @relation(fields: [groupId], references: [id])
+  bracket              Bracket?       @relation(fields: [bracketId], references: [id])
+  matchFormat          MatchFormat?   @relation(fields: [matchFormatId], references: [id])
+  competitorA          Competitor?    @relation("MatchCompetitorA", fields: [competitorAId], references: [id])
+  competitorB          Competitor?    @relation("MatchCompetitorB", fields: [competitorBId], references: [id])
+  slotASourceMatch     Match?         @relation("MatchSlotASource", fields: [slotASourceMatchId], references: [id])
+  slotBSourceMatch     Match?         @relation("MatchSlotBSource", fields: [slotBSourceMatchId], references: [id])
+  feedsAsSlotASource   Match[]        @relation("MatchSlotASource")
+  feedsAsSlotBSource   Match[]        @relation("MatchSlotBSource")
+  result               MatchResult?
+  championshipsDecided Championship[] @relation("ChampionshipDecidingMatch")
+
+  @@index([competitionId])
+  @@index([stageId])
+  @@index([groupId])
+  @@index([bracketId])
+  @@index([competitorAId])
+  @@index([competitorBId])
+  @@index([competitionId, round])
+  @@index([status])
+  @@index([slotASourceMatchId])
+  @@index([slotBSourceMatchId])
+}
+
+/// The OUTCOME of a match, split from Match so a fixture can exist before it is
+/// played (upcoming events) and so the result carries its own audit/provenance/
+/// confidence independently of the pairing.
+model MatchResult {
+  id                 String           @id @default(cuid())
+  matchId            String           @unique
+  // NULLABLE so a known result with an UNKNOWN score (common in the archive) is
+  // distinct from a genuine 0-0. Pair a null score with confidence = UNKNOWN.
+  scoreA             Int?
+  scoreB             Int?
+  isDraw             Boolean          @default(false)
+  resolution         MatchResolution  @default(PLAYED) // played / forfeit / bye / admin ...
+  winnerCompetitorId String?
+  scoreModel         String? // carried from archive
+  confidence         RecordConfidence @default(EXPLICIT)
+  enteredByUserId    String? // app-level ref to a Payload user
+  verifiedByUserId   String?
+  verifiedAt         DateTime?
+  provenance         Provenance       @default(NATIVE_EGO)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  match  Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  winner Competitor? @relation("MatchWinner", fields: [winnerCompetitorId], references: [id])
+
+  @@index([winnerCompetitorId])
+  @@index([confidence])
+}
+
+// ============================================================================
+// STANDINGS & HEAD-TO-HEAD (derived / recomputed)
+// ============================================================================
+
+/// A competitor's row within a group's standings. Derived — regenerated from
+/// matches so corrections propagate; never hand-edited.
+model StandingRow {
+  id           String     @id @default(cuid())
+  groupId      String
+  competitorId String
+  slot         Int?
+  played       Int        @default(0)
+  wins         Int        @default(0)
+  losses       Int        @default(0)
+  draws        Int        @default(0)
+  gamesFor     Int        @default(0)
+  gamesAgainst Int        @default(0)
+  winPct       Float?
+  points       Float?
+  bonus        Float?
+  total        Float?
+  rank         Int?
+  provenance   Provenance @default(NATIVE_EGO)
+
+  group      Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  competitor Competitor @relation(fields: [competitorId], references: [id])
+
+  @@unique([groupId, competitorId])
+  @@index([groupId])
+  @@index([competitorId])
+}
+
+/// Pairwise all-time record between two competitors. Stored with a canonical
+/// ordering (lo < hi) so each pair has exactly one row. Derived / recomputed.
+model HeadToHead {
+  id                String  @id @default(cuid())
+  competitorLoId    String
+  competitorHiId    String
+  matches           Int     @default(0)
+  loWins            Int     @default(0)
+  hiWins            Int     @default(0)
+  draws             Int     @default(0)
+  loGames           Int     @default(0)
+  hiGames           Int     @default(0)
+  groupMatches      Int     @default(0)
+  playoffMatches    Int     @default(0)
+  lastCompetitionId String?
+
+  competitorLo Competitor @relation("H2HLo", fields: [competitorLoId], references: [id])
+  competitorHi Competitor @relation("H2HHi", fields: [competitorHiId], references: [id])
+
+  @@unique([competitorLoId, competitorHiId])
+  @@index([competitorLoId])
+  @@index([competitorHiId])
+}
+
+// ============================================================================
+// RECORDS, ACCOMPLISHMENTS, RANKINGS
+// ============================================================================
+
+/// A competition/division championship result (champion + runner-up), carrying
+/// the archive's confidence and reconstruction flags.
+model Championship {
+  id                   String           @id @default(cuid())
+  legacyId             String?          @unique
+  competitionId        String
+  divisionId           String?
+  stageId              String? // the stage that decided the title
+  decidedByMatchId     String? // the specific championship-deciding match
+  championCompetitorId String?
+  runnerUpCompetitorId String?
+  championHandle       String? // raw handle if identity unresolved
+  confidence           RecordConfidence @default(EXPLICIT)
+  bracketReconstructed Boolean          @default(false)
+  note                 String?
+  provenance           Provenance       @default(NATIVE_EGO)
+  createdAt            DateTime         @default(now())
+
+  competition    Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  division       Division?   @relation(fields: [divisionId], references: [id])
+  stage          Stage?      @relation(fields: [stageId], references: [id])
+  decidedByMatch Match?      @relation("ChampionshipDecidingMatch", fields: [decidedByMatchId], references: [id])
+  champion       Competitor? @relation("ChampionshipChampion", fields: [championCompetitorId], references: [id])
+  runnerUp       Competitor? @relation("ChampionshipRunnerUp", fields: [runnerUpCompetitorId], references: [id])
+
+  @@index([competitionId])
+  @@index([championCompetitorId])
+  @@index([stageId])
+  @@index([decidedByMatchId])
+}
+
+/// A notable accomplishment attached to a player (from the archive's coded
+/// achievements). Kept at the Player level (identity), optionally scoped to a
+/// competition/division.
+model Achievement {
+  id            String     @id @default(cuid())
+  legacyId      String?    @unique
+  playerId      String
+  code          String
+  label         String
+  competitionId String?
+  divisionCode  String?
+  value         String?
+  provenance    Provenance @default(NATIVE_EGO)
+  createdAt     DateTime   @default(now())
+
+  player      Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  competition Competition? @relation(fields: [competitionId], references: [id])
+
+  @@index([playerId])
+  @@index([code])
+}
+
+/// LOOKUP TABLE — a defined ranking methodology (all-time wins, ELO, season
+/// points, ...). `config` holds algorithm parameters. New systems = new rows.
+model RankingSystem {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  description String?
+  config      Json?
+
+  snapshots RankingSnapshot[]
+}
+
+/// A point-in-time ranking under a system (header row).
+model RankingSnapshot {
+  id              String     @id @default(cuid())
+  rankingSystemId String
+  label           String
+  asOf            DateTime
+  scope           String? // e.g. "all-time", a competition slug, a category
+  note            String?
+  provenance      Provenance @default(NATIVE_EGO)
+  createdAt       DateTime   @default(now())
+
+  rankingSystem RankingSystem         @relation(fields: [rankingSystemId], references: [id], onDelete: Cascade)
+  items         RankingSnapshotItem[]
+
+  @@index([rankingSystemId])
+  @@index([asOf])
+}
+
+/// A competitor's placement within a ranking snapshot.
+model RankingSnapshotItem {
+  id           String @id @default(cuid())
+  snapshotId   String
+  competitorId String
+  rank         Int
+  value        Float?
+  movement     Int? // change vs previous snapshot
+  detail       Json?
+
+  snapshot   RankingSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  competitor Competitor      @relation(fields: [competitorId], references: [id])
+
+  @@unique([snapshotId, competitorId])
+  @@index([snapshotId, rank])
+  @@index([competitorId])
+}
+
+/// A Hall of Fame entry — a curated induction or an all-time leaderboard row
+/// (category + rank + value), inducting a player.
+model HallOfFameEntry {
+  id           String     @id @default(cuid())
+  playerId     String
+  category     String? // null = general induction; else leaderboard category
+  rank         Int?
+  value        String?
+  citation     String?
+  inductedYear Int?
+  provenance   Provenance @default(NATIVE_EGO)
+  createdAt    DateTime   @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([category])
+}
+
+// ============================================================================
+// PER-PLAYER AGGREGATE STATS (derived / recomputed)
+// ============================================================================
+
+/// Per-competition (season) stat line for a player. Derived / recomputed.
+model PlayerSeasonStat {
+  id            String     @id @default(cuid())
+  playerId      String
+  competitionId String
+  divisionCode  String?
+  groupPlayed   Int        @default(0)
+  groupWins     Int        @default(0)
+  groupLosses   Int        @default(0)
+  groupPoints   Float?
+  groupWinPct   Float?
+  madePlayoffs  Boolean    @default(false)
+  playoffSeed   Int?
+  result        String? // e.g. "champion", "runner-up", "SF"
+  provenance    Provenance @default(NATIVE_EGO)
+
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, competitionId, divisionCode])
+  @@index([playerId])
+  @@index([competitionId])
+}
+
+/// Whole-career aggregate for a player (one row per player). Derived / recomputed.
+model PlayerCareerStat {
+  id                 String     @id @default(cuid())
+  playerId           String     @unique
+  seasonsPlayed      Int        @default(0)
+  totalMatches       Int        @default(0)
+  totalWins          Int        @default(0)
+  totalLosses        Int        @default(0)
+  totalWinPct        Float?
+  championships      Int        @default(0)
+  runnerUps          Int        @default(0)
+  finalsAppearances  Int        @default(0)
+  semifinals         Int        @default(0)
+  playoffAppearances Int        @default(0)
+  longestTitleStreak Int        @default(0)
+  longestPlayoffRun  Int        @default(0)
+  provenance         Provenance @default(NATIVE_EGO)
+  updatedAt          DateTime   @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================================
+// IDENTITY CORRECTIONS (traceable)
+// ============================================================================
+
+/// A traceable merge of two canonical players into one (identity de-dup).
+model PlayerMerge {
+  id                String       @id @default(cuid())
+  canonicalPlayerId String
+  mergedPlayerId    String
+  note              String?
+  status            ReviewStatus @default(APPROVED)
+  reviewedByUserId  String?
+  reviewedAt        DateTime?
+  createdAt         DateTime     @default(now())
+
+  canonicalPlayer Player @relation("MergeCanonical", fields: [canonicalPlayerId], references: [id])
+  mergedPlayer    Player @relation("MergeMerged", fields: [mergedPlayerId], references: [id])
+
+  @@unique([canonicalPlayerId, mergedPlayerId])
+  @@index([canonicalPlayerId])
+  @@index([mergedPlayerId])
+}
+
+/// A traceable split — a shared identifier was actually two people; a new
+/// canonical player is carved out (optionally scoped to a competition/division).
+model PlayerSplit {
+  id               String       @id @default(cuid())
+  sourcePlayerId   String
+  newPlayerId      String
+  competitionId    String?
+  divisionCode     String?
+  newPrimaryName   String?
+  note             String?
+  status           ReviewStatus @default(APPROVED)
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime     @default(now())
+
+  sourcePlayer Player @relation("SplitSource", fields: [sourcePlayerId], references: [id])
+  newPlayer    Player @relation("SplitNew", fields: [newPlayerId], references: [id])
+
+  @@index([sourcePlayerId])
+  @@index([newPlayerId])
+}
+
+// ============================================================================
+// PROVENANCE, CORRECTIONS & DISPUTES (cross-cutting, polymorphic)
+// ============================================================================
+
+/// A citation for any record — a source file:row, a Wayback URL, or a manual
+/// review note. Polymorphic (targetType, targetId). Satisfies "historical
+/// source references must remain traceable".
+model SourceReference {
+  id            String           @id @default(cuid())
+  targetType    RecordType
+  targetId      String
+  kind          SourceKind
+  locator       String // "playoffs.csv:88", a URL, etc.
+  // Optional structured claim: which field this source speaks to and what value
+  // it asserts. Two sources asserting different values for the same (target,field)
+  // = a detectable conflict, resolved via a HistoricalCorrection.
+  field         String?
+  assertedValue String?
+  note          String?
+  confidence    RecordConfidence @default(UNKNOWN)
+  createdAt     DateTime         @default(now())
+
+  @@index([targetType, targetId])
+  @@index([targetType, targetId, field])
+  @@index([kind])
+}
+
+/// A traceable change to a historical record: what was changed, from/to, why,
+/// by whom, and its review state. Polymorphic target. Payload versioning covers
+/// edits to Payload content; this covers the Prisma-owned competition domain.
+model HistoricalCorrection {
+  id                String           @id @default(cuid())
+  targetType        RecordType
+  targetId          String
+  field             String?
+  beforeValue       Json?
+  afterValue        Json?
+  reason            String
+  status            CorrectionStatus @default(PROPOSED)
+  proposedByUserId  String?
+  reviewedByUserId  String?
+  appliedAt         DateTime?
+  sourceReferenceId String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+/// A user-submitted dispute about a record (the public issue-reporting system).
+model IssueReport {
+  id                  String      @id @default(cuid())
+  targetType          RecordType
+  targetId            String
+  description         String
+  suggestedCorrection String?
+  reportedByUserId    String? // null for anonymous submissions
+  reporterContact     String?
+  status              IssueStatus @default(OPEN)
+  resolution          String?
+  resolvedByUserId    String?
+  resolvedAt          DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+// ============================================================================
+// LIVE COMPETITION OPERATIONS  (8 Ball Revival Season 2+, operated through the website)
+// ----------------------------------------------------------------------------
+// A SEPARATE, self-contained domain from the historical archive models above.
+// These tables are staff-operated in real time (registration -> groups -> matches
+// -> standings -> playoffs) and are the source the PUBLIC site consumes once
+// published. Tables are prefixed `comp_` so they never collide with the archive.
+// Users live in Payload; we store the Payload user id + a username snapshot
+// (app-level reference only -- NO cross-ORM foreign key). No historical import.
+// ============================================================================
+
+enum SeasonState {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+enum RegistrationState {
+  NOT_OPEN
+  OPEN
+  CLOSED
+}
+
+enum StageState {
+  PENDING
+  PUBLISHED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+/// Lifecycle of a single competition match (group or playoff).
+enum LiveMatchStatus {
+  SCHEDULED
+  COMPLETED
+  FORFEIT
+  NO_SHOW
+  DISPUTED
+}
+
+enum VerificationState {
+  UNVERIFIED
+  VERIFIED
+}
+
+/// The live season. One row per 8 Ball Revival season; `slug` is the public identifier.
+model Season {
+  id                   Int               @id @default(autoincrement())
+  slug                 String            @unique
+  name                 String
+  seasonStatus         SeasonState       @default(UPCOMING)
+  registrationStatus   RegistrationState @default(NOT_OPEN)
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  groupsStatus         StageState        @default(PENDING)
+  playoffsStatus       StageState        @default(PENDING)
+  raceLength           Int               @default(5)
+  qualifiersPerGroup   Int               @default(2)
+  formatSummary        String            @default("Group stage into single-elimination playoffs")
+  eligibilitySummary   String            @default("Open to all registered 8 Ball Revival account holders.")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  registrations  Registration[]
+  groups         SeasonGroup[]
+  matches        SeasonMatch[]
+  playoffMatches PlayoffMatch[]
+  standings      Standing[]
+
+  @@map("comp_season")
+}
+
+/// A player entry into a season. Distinct from account creation.
+model Registration {
+  id               Int                @id @default(autoincrement())
+  seasonId         Int
+  season           Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  userId           Int
+  username         String
+  status           RegistrationStatus @default(PENDING)
+  seed             Int?
+  note             String?
+  createdAt        DateTime           @default(now())
+  approvedAt       DateTime?
+  withdrawnAt      DateTime?
+  approvedByUserId Int?
+
+  groupPlayers GroupPlayer[]
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, status])
+  @@map("comp_registration")
+}
+
+/// A group in the group stage. `published` gates public visibility + edit locking.
+model SeasonGroup {
+  id             Int      @id @default(autoincrement())
+  seasonId       Int
+  season         Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  code           String
+  name           String
+  ordinal        Int
+  published      Boolean  @default(false)
+  generationSeed String?
+  createdAt      DateTime @default(now())
+
+  players   GroupPlayer[]
+  matches   SeasonMatch[]
+  standings Standing[]
+
+  @@unique([seasonId, code])
+  @@index([seasonId])
+  @@map("comp_group")
+}
+
+/// A registration placed into a group, with its in-group seed.
+model GroupPlayer {
+  id             Int          @id @default(autoincrement())
+  groupId        Int
+  group          SeasonGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  registrationId Int
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  seed           Int
+
+  @@unique([groupId, registrationId])
+  @@index([groupId])
+  @@map("comp_group_player")
+}
+
+/// A round-robin group match.
+model SeasonMatch {
+  id                   Int               @id @default(autoincrement())
+  seasonId             Int
+  season               Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  groupId              Int
+  group                SeasonGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  round                Int
+  homeRegistrationId   Int
+  awayRegistrationId   Int
+  homeUsername         String
+  awayUsername         String
+  status               LiveMatchStatus   @default(SCHEDULED)
+  homeGames            Int?
+  awayGames            Int?
+  winnerRegistrationId Int?
+  loserRegistrationId  Int?
+  verification         VerificationState @default(UNVERIFIED)
+  scheduledAt          DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@index([groupId])
+  @@index([seasonId, verification])
+  @@index([seasonId, status])
+  @@map("comp_match")
+}
+
+/// A single-elimination playoff match. Participants may be undetermined until
+/// feeding matches resolve. `feedsMatchId`/`feedsSlot` wire the bracket together.
+model PlayoffMatch {
+  id                   Int               @id @default(autoincrement())
+  seasonId             Int
+  season               Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  round                Int
+  slot                 Int
+  label                String?
+  homeRegistrationId   Int?
+  awayRegistrationId   Int?
+  homeUsername         String?
+  awayUsername         String?
+  homeSeed             Int?
+  awaySeed             Int?
+  homeGames            Int?
+  awayGames            Int?
+  status               LiveMatchStatus   @default(SCHEDULED)
+  winnerRegistrationId Int?
+  verification         VerificationState @default(UNVERIFIED)
+  feedsMatchId         Int?
+  feedsSlot            Int?
+  published            Boolean           @default(false)
+  completedAt          DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@index([seasonId, round, slot])
+  @@map("comp_playoff_match")
+}
+
+/// A materialized group standings row. Recomputed (upserted) whenever a verified
+/// result changes -- one deterministic compute path, persisted for simple reads.
+model Standing {
+  id             Int         @id @default(autoincrement())
+  seasonId       Int
+  season         Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  groupId        Int
+  group          SeasonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  registrationId Int
+  username       String
+  played         Int         @default(0)
+  wins           Int         @default(0)
+  losses         Int         @default(0)
+  gamesWon       Int         @default(0)
+  gamesLost      Int         @default(0)
+  gameDiff       Int         @default(0)
+  points         Int         @default(0)
+  rank           Int         @default(0)
+  qualified      Boolean     @default(false)
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([groupId, registrationId])
+  @@index([seasonId])
+  @@map("comp_standing")
+}
+
+/// Append-only audit trail for every staff action.
+model AuditLog {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  actorUserId   Int
+  actorUsername String
+  action        String
+  entity        String
+  entityId      String?
+  oldValue      Json?
+  newValue      Json?
+  reason        String?
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@map("comp_audit_log")
+}

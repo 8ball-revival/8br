@@ -1,0 +1,3239 @@
+[
+  {
+    "slug": "2005-season-2",
+    "competitionId": "2005-s2-single",
+    "seasonId": "2005-s2",
+    "division": "single",
+    "name": "2005 · Season 2",
+    "legacyName": "8BRCAM 2005 Season 2",
+    "type": "Season",
+    "chronology": "archive",
+    "status": "completed",
+    "year": 2005,
+    "dateLabel": "2005",
+    "datesPending": true,
+    "organizer": "8BRCAM (archived)",
+    "formatSummary": "Group stage → single-elimination playoffs",
+    "participantsCount": 42,
+    "confidence": "incomplete",
+    "champion": {
+      "name": "joey",
+      "playerId": "P0081",
+      "slug": null,
+      "confidence": "explicit",
+      "inferred": false
+    },
+    "runnerUp": {
+      "name": "Tyler",
+      "playerId": "P0018",
+      "slug": null
+    },
+    "overviewNote": null,
+    "participants": [
+      "adnan",
+      "Tyler",
+      "joker",
+      "llkula",
+      "unique",
+      "cubz",
+      "elite",
+      "luis",
+      "adam",
+      "tyler",
+      "taylor",
+      "trace",
+      "Pete",
+      "mike",
+      "coma",
+      "under",
+      "Brandon",
+      "ross",
+      "aldo",
+      "matt",
+      "Scott",
+      "ryan",
+      "Kevin",
+      "tanz",
+      "crime",
+      "joe",
+      "jj",
+      "Jason",
+      "Matt",
+      "mirk",
+      "master",
+      "run",
+      "mike",
+      "crazy",
+      "cole",
+      "Gus",
+      "keith",
+      "adam",
+      "king",
+      "navin",
+      "james",
+      "joey"
+    ],
+    "stages": [
+      {
+        "name": "Group stage",
+        "format": "Round-robin groups",
+        "confidence": "verified",
+        "note": null
+      },
+      {
+        "name": "Playoffs",
+        "format": "Single Elimination",
+        "confidence": "incomplete",
+        "note": "Seedings / first-round pairings survive; individual match results were not recorded in the archive."
+      }
+    ],
+    "groups": [
+      {
+        "code": "A",
+        "name": "Group A",
+        "roster": [
+          "adnan",
+          "Tyler",
+          "joker",
+          "llkula",
+          "unique",
+          "cubz",
+          "elite"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "adnan",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 16
+          },
+          {
+            "pos": 2,
+            "name": "Tyler",
+            "played": 5,
+            "wins": 5,
+            "losses": 0,
+            "points": 15,
+            "diff": 28
+          },
+          {
+            "pos": 3,
+            "name": "joker",
+            "played": 4,
+            "wins": 3,
+            "losses": 1,
+            "points": 9,
+            "diff": 10
+          },
+          {
+            "pos": 4,
+            "name": "llkula",
+            "played": 3,
+            "wins": 1,
+            "losses": 2,
+            "points": 3,
+            "diff": 0
+          },
+          {
+            "pos": 5,
+            "name": "unique",
+            "played": 6,
+            "wins": 0,
+            "losses": 6,
+            "points": 0,
+            "diff": -60
+          },
+          {
+            "pos": 6,
+            "name": "cubz",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": 0
+          },
+          {
+            "pos": 7,
+            "name": "elite",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 12,
+            "diff": 6
+          }
+        ],
+        "matches": [
+          {
+            "a": "adnan",
+            "b": "Tyler",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "joker",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "llkula",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "unique",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "cubz",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "elite",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "B",
+        "name": "Group B",
+        "roster": [
+          "luis",
+          "adam",
+          "tyler",
+          "taylor",
+          "trace",
+          "Pete",
+          "mike"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "luis",
+            "played": 6,
+            "wins": 5,
+            "losses": 0,
+            "points": 17,
+            "diff": 28
+          },
+          {
+            "pos": 2,
+            "name": "adam",
+            "played": 3,
+            "wins": 1,
+            "losses": 2,
+            "points": 3,
+            "diff": 4
+          },
+          {
+            "pos": 3,
+            "name": "tyler",
+            "played": 6,
+            "wins": 5,
+            "losses": 1,
+            "points": 16,
+            "diff": 22
+          },
+          {
+            "pos": 4,
+            "name": "taylor",
+            "played": 4,
+            "wins": 2,
+            "losses": 2,
+            "points": 6,
+            "diff": 0
+          },
+          {
+            "pos": 5,
+            "name": "trace",
+            "played": 3,
+            "wins": 1,
+            "losses": 2,
+            "points": 3,
+            "diff": 0
+          },
+          {
+            "pos": 6,
+            "name": "Pete",
+            "played": 3,
+            "wins": 1,
+            "losses": 1,
+            "points": 4,
+            "diff": 8
+          },
+          {
+            "pos": 7,
+            "name": "mike",
+            "played": 0,
+            "wins": null,
+            "losses": null,
+            "points": null,
+            "diff": null
+          }
+        ],
+        "matches": [
+          {
+            "a": "luis",
+            "b": "adam",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "tyler",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "taylor",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "trace",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "Pete",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "mike",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "C",
+        "name": "Group C",
+        "roster": [
+          "coma",
+          "under",
+          "Brandon",
+          "ross",
+          "aldo",
+          "matt",
+          "Scott"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "coma",
+            "played": 3,
+            "wins": 2,
+            "losses": 1,
+            "points": 6,
+            "diff": 12
+          },
+          {
+            "pos": 2,
+            "name": "under",
+            "played": 5,
+            "wins": 4,
+            "losses": 0,
+            "points": 13,
+            "diff": 20
+          },
+          {
+            "pos": 3,
+            "name": "Brandon",
+            "played": 4,
+            "wins": 1,
+            "losses": 2,
+            "points": 4,
+            "diff": -6
+          },
+          {
+            "pos": 4,
+            "name": "ross",
+            "played": 0,
+            "wins": null,
+            "losses": null,
+            "points": null,
+            "diff": null
+          },
+          {
+            "pos": 5,
+            "name": "aldo",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 14
+          },
+          {
+            "pos": 6,
+            "name": "matt",
+            "played": 5,
+            "wins": 1,
+            "losses": 3,
+            "points": 5,
+            "diff": -4
+          },
+          {
+            "pos": 7,
+            "name": "Scott",
+            "played": 6,
+            "wins": 4,
+            "losses": 1,
+            "points": 14,
+            "diff": 24
+          }
+        ],
+        "matches": [
+          {
+            "a": "coma",
+            "b": "ross",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "coma",
+            "b": "aldo",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "coma",
+            "b": "Scott",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "under",
+            "b": "Brandon",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "under",
+            "b": "ross",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "under",
+            "b": "aldo",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "D",
+        "name": "Group D",
+        "roster": [
+          "ryan",
+          "Kevin",
+          "tanz",
+          "crime",
+          "joe",
+          "jj",
+          "Jason"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "ryan",
+            "played": 2,
+            "wins": 1,
+            "losses": 1,
+            "points": 3,
+            "diff": 6
+          },
+          {
+            "pos": 2,
+            "name": "Kevin",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 22
+          },
+          {
+            "pos": 3,
+            "name": "tanz",
+            "played": 5,
+            "wins": 3,
+            "losses": 1,
+            "points": 10,
+            "diff": 12
+          },
+          {
+            "pos": 4,
+            "name": "crime",
+            "played": 5,
+            "wins": 2,
+            "losses": 3,
+            "points": 6,
+            "diff": 0
+          },
+          {
+            "pos": 5,
+            "name": "joe",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 16
+          },
+          {
+            "pos": 6,
+            "name": "jj",
+            "played": 0,
+            "wins": null,
+            "losses": null,
+            "points": null,
+            "diff": null
+          },
+          {
+            "pos": 7,
+            "name": "Jason",
+            "played": 5,
+            "wins": 3,
+            "losses": 1,
+            "points": 10,
+            "diff": 10
+          }
+        ],
+        "matches": [
+          {
+            "a": "ryan",
+            "b": "joe",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "ryan",
+            "b": "jj",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "Kevin",
+            "b": "tanz",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "Kevin",
+            "b": "crime",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "Kevin",
+            "b": "joe",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "Kevin",
+            "b": "jj",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "E",
+        "name": "Group E",
+        "roster": [
+          "Matt",
+          "mirk",
+          "master",
+          "run",
+          "mike",
+          "crazy",
+          "cole"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "Matt",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 4
+          },
+          {
+            "pos": 2,
+            "name": "mirk",
+            "played": 6,
+            "wins": 6,
+            "losses": 0,
+            "points": 19,
+            "diff": 41
+          },
+          {
+            "pos": 3,
+            "name": "master",
+            "played": 6,
+            "wins": 2,
+            "losses": 3,
+            "points": 8,
+            "diff": 6
+          },
+          {
+            "pos": 4,
+            "name": "run",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 5,
+            "diff": -14
+          },
+          {
+            "pos": 5,
+            "name": "mike",
+            "played": 0,
+            "wins": null,
+            "losses": null,
+            "points": null,
+            "diff": null
+          },
+          {
+            "pos": 6,
+            "name": "crazy",
+            "played": 6,
+            "wins": 1,
+            "losses": 4,
+            "points": 5,
+            "diff": -8
+          },
+          {
+            "pos": 7,
+            "name": "cole",
+            "played": 6,
+            "wins": 5,
+            "losses": 1,
+            "points": 16,
+            "diff": 30
+          }
+        ],
+        "matches": [
+          {
+            "a": "Matt",
+            "b": "mirk",
+            "scoreA": 0,
+            "scoreB": 10,
+            "resolution": "played"
+          },
+          {
+            "a": "Matt",
+            "b": "master",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "Matt",
+            "b": "run",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "Matt",
+            "b": "mike",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "Matt",
+            "b": "crazy",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "Matt",
+            "b": "cole",
+            "scoreA": 1,
+            "scoreB": 9,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "F",
+        "name": "Group F",
+        "roster": [
+          "Gus",
+          "keith",
+          "adam",
+          "king",
+          "navin",
+          "james",
+          "joey"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "Gus",
+            "played": 4,
+            "wins": 0,
+            "losses": 3,
+            "points": 1,
+            "diff": -22
+          },
+          {
+            "pos": 2,
+            "name": "keith",
+            "played": 5,
+            "wins": 3,
+            "losses": 1,
+            "points": 11,
+            "diff": 14
+          },
+          {
+            "pos": 3,
+            "name": "adam",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": 10
+          },
+          {
+            "pos": 4,
+            "name": "king",
+            "played": 6,
+            "wins": 1,
+            "losses": 2,
+            "points": 7,
+            "diff": -8
+          },
+          {
+            "pos": 5,
+            "name": "navin",
+            "played": 5,
+            "wins": 0,
+            "losses": 4,
+            "points": 1,
+            "diff": -20
+          },
+          {
+            "pos": 6,
+            "name": "james",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": null,
+            "diff": 0
+          },
+          {
+            "pos": 7,
+            "name": "joey",
+            "played": 5,
+            "wins": 5,
+            "losses": 0,
+            "points": 19,
+            "diff": 38
+          }
+        ],
+        "matches": [
+          {
+            "a": "Gus",
+            "b": "keith",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "Gus",
+            "b": "adam",
+            "scoreA": 1,
+            "scoreB": 9,
+            "resolution": "played"
+          },
+          {
+            "a": "Gus",
+            "b": "king",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "Gus",
+            "b": "james",
+            "scoreA": 0,
+            "scoreB": 10,
+            "resolution": "played"
+          },
+          {
+            "a": "keith",
+            "b": "adam",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "keith",
+            "b": "king",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          }
+        ]
+      }
+    ],
+    "totalGroupMatches": 100,
+    "shownGroupMatches": 36,
+    "playoff": {
+      "state": "sample",
+      "format": "Single Elimination",
+      "rounds": [
+        {
+          "name": "Round 1",
+          "matches": [
+            {
+              "a": "joey",
+              "b": "adnan",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "x0_adnan_x0",
+              "b": "Scott",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Jason",
+              "b": "luis",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "adam",
+              "b": "cole",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Kevin",
+              "b": "Tyler",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "mirk",
+              "b": "aldo",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "tyler",
+              "b": "tanz",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Joker69696",
+              "b": "under",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "keith",
+              "b": "joe",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Matt",
+              "b": "elite",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "label": "8BRCAM archive (imported snapshot)",
+        "locator": "2005-s2-single",
+        "kind": "wayback"
+      }
+    ],
+    "historicalNotes": [
+      "Playoff match results are not recorded in the 8BRCAM archive — only seedings and first-round pairings survive."
+    ]
+  },
+  {
+    "slug": "2005-season-4",
+    "competitionId": "2005-s4-single",
+    "seasonId": "2005-s4",
+    "division": "single",
+    "name": "2005 · Season 4",
+    "legacyName": "8BRCAM 2005 Season 4",
+    "type": "Season",
+    "chronology": "archive",
+    "status": "completed",
+    "year": 2005,
+    "dateLabel": "2005",
+    "datesPending": true,
+    "organizer": "8BRCAM (archived)",
+    "formatSummary": "Group stage → single-elimination playoffs",
+    "participantsCount": 77,
+    "confidence": "incomplete",
+    "champion": {
+      "name": "mj",
+      "playerId": "P0104",
+      "slug": null,
+      "confidence": "heuristic",
+      "inferred": true
+    },
+    "runnerUp": {
+      "name": "chris",
+      "playerId": "P0034",
+      "slug": null
+    },
+    "overviewNote": null,
+    "participants": [
+      "rob",
+      "scotty",
+      "Nelson",
+      "willie",
+      "tanz",
+      "Allen",
+      "justin",
+      "Jamie",
+      "chris",
+      "vaugh",
+      "Matt",
+      "jamie",
+      "ron",
+      "prak",
+      "luis",
+      "sonia",
+      "ogga",
+      "mike",
+      "Gus",
+      "tony",
+      "mike",
+      "Gary",
+      "don",
+      "Ross",
+      "Jim",
+      "king",
+      "Chris",
+      "monika",
+      "scott",
+      "nick",
+      "Stu",
+      "sporty",
+      "ketan",
+      "paul",
+      "Jerm",
+      "adnan",
+      "eddie",
+      "danny",
+      "jammy",
+      "aaron",
+      "matt",
+      "bran",
+      "mjong",
+      "Steve",
+      "mj",
+      "Jesse",
+      "Tim",
+      "Tino",
+      "navin",
+      "dec",
+      "joe",
+      "bran",
+      "Jason",
+      "blade",
+      "Nay",
+      "Anil",
+      "chris",
+      "chris",
+      "Candi",
+      "kyle",
+      "sam",
+      "james",
+      "will",
+      "daniel",
+      "l3am",
+      "hyst",
+      "Ugur",
+      "Andy",
+      "oliver",
+      "king",
+      "sean",
+      "Chirag",
+      "jorey",
+      "Kevin",
+      "cubz",
+      "dustin",
+      "neo"
+    ],
+    "stages": [
+      {
+        "name": "Group stage",
+        "format": "Round-robin groups",
+        "confidence": "verified",
+        "note": null
+      },
+      {
+        "name": "Playoffs",
+        "format": "Single Elimination",
+        "confidence": "incomplete",
+        "note": "Seedings / first-round pairings survive; individual match results were not recorded in the archive."
+      }
+    ],
+    "groups": [
+      {
+        "code": "A",
+        "name": "Group A",
+        "roster": [
+          "rob",
+          "scotty",
+          "Nelson",
+          "willie",
+          "tanz",
+          "Allen",
+          "justin"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "rob",
+            "played": 6,
+            "wins": 5,
+            "losses": 1,
+            "points": 16,
+            "diff": 20
+          },
+          {
+            "pos": 2,
+            "name": "scotty",
+            "played": 6,
+            "wins": 5,
+            "losses": 1,
+            "points": 16,
+            "diff": 20
+          },
+          {
+            "pos": 3,
+            "name": "Nelson",
+            "played": 6,
+            "wins": 2,
+            "losses": 3,
+            "points": 8,
+            "diff": -6
+          },
+          {
+            "pos": 4,
+            "name": "willie",
+            "played": 6,
+            "wins": 0,
+            "losses": 6,
+            "points": 1,
+            "diff": -28
+          },
+          {
+            "pos": 5,
+            "name": "tanz",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": 0
+          },
+          {
+            "pos": 6,
+            "name": "Allen",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": 2
+          },
+          {
+            "pos": 7,
+            "name": "justin",
+            "played": 6,
+            "wins": 1,
+            "losses": 4,
+            "points": 5,
+            "diff": -4
+          }
+        ],
+        "matches": [
+          {
+            "a": "rob",
+            "b": "scotty",
+            "scoreA": 1,
+            "scoreB": 9,
+            "resolution": "played"
+          },
+          {
+            "a": "rob",
+            "b": "Nelson",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "rob",
+            "b": "willie",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "rob",
+            "b": "tanz",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "rob",
+            "b": "Allen",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "rob",
+            "b": "justin",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "B",
+        "name": "Group B",
+        "roster": [
+          "Jamie",
+          "chris",
+          "vaugh",
+          "Matt",
+          "jamie",
+          "ron",
+          "prak"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "Jamie",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 12
+          },
+          {
+            "pos": 2,
+            "name": "chris",
+            "played": 6,
+            "wins": 6,
+            "losses": 0,
+            "points": 19,
+            "diff": 38
+          },
+          {
+            "pos": 3,
+            "name": "vaugh",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": -28
+          },
+          {
+            "pos": 4,
+            "name": "Matt",
+            "played": 6,
+            "wins": 3,
+            "losses": 3,
+            "points": 10,
+            "diff": 6
+          },
+          {
+            "pos": 5,
+            "name": "jamie",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": -6
+          },
+          {
+            "pos": 6,
+            "name": "ron",
+            "played": 6,
+            "wins": 3,
+            "losses": 3,
+            "points": 10,
+            "diff": -4
+          },
+          {
+            "pos": 7,
+            "name": "prak",
+            "played": 5,
+            "wins": 1,
+            "losses": 4,
+            "points": 3,
+            "diff": -16
+          }
+        ],
+        "matches": [
+          {
+            "a": "Jamie",
+            "b": "chris",
+            "scoreA": 1,
+            "scoreB": 9,
+            "resolution": "played"
+          },
+          {
+            "a": "Jamie",
+            "b": "vaugh",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "Jamie",
+            "b": "Matt",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "Jamie",
+            "b": "jamie",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "Jamie",
+            "b": "ron",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "Jamie",
+            "b": "prak",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "C",
+        "name": "Group C",
+        "roster": [
+          "luis",
+          "sonia",
+          "ogga",
+          "mike",
+          "Gus",
+          "tony",
+          "mike"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "luis",
+            "played": 6,
+            "wins": 6,
+            "losses": 0,
+            "points": 19,
+            "diff": 34
+          },
+          {
+            "pos": 2,
+            "name": "sonia",
+            "played": 6,
+            "wins": 5,
+            "losses": 1,
+            "points": 15,
+            "diff": 32
+          },
+          {
+            "pos": 3,
+            "name": "ogga",
+            "played": 5,
+            "wins": 1,
+            "losses": 4,
+            "points": 3,
+            "diff": -22
+          },
+          {
+            "pos": 4,
+            "name": "mike",
+            "played": 5,
+            "wins": 0,
+            "losses": 5,
+            "points": 0,
+            "diff": -50
+          },
+          {
+            "pos": 5,
+            "name": "Gus",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 12
+          },
+          {
+            "pos": 6,
+            "name": "tony",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": -12
+          },
+          {
+            "pos": 7,
+            "name": "mike",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": 6
+          }
+        ],
+        "matches": [
+          {
+            "a": "luis",
+            "b": "sonia",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "ogga",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "mike",
+            "scoreA": 0,
+            "scoreB": 10,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "Gus",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "tony",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "mike",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "D",
+        "name": "Group D",
+        "roster": [
+          "Gary",
+          "don",
+          "Ross",
+          "Jim",
+          "king",
+          "Chris",
+          "monika"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "Gary",
+            "played": 4,
+            "wins": 2,
+            "losses": 1,
+            "points": 7,
+            "diff": 10
+          },
+          {
+            "pos": 2,
+            "name": "don",
+            "played": 4,
+            "wins": 3,
+            "losses": 0,
+            "points": 10,
+            "diff": 8
+          },
+          {
+            "pos": 3,
+            "name": "Ross",
+            "played": 6,
+            "wins": 1,
+            "losses": 3,
+            "points": 6,
+            "diff": -18
+          },
+          {
+            "pos": 4,
+            "name": "Jim",
+            "played": 5,
+            "wins": 4,
+            "losses": 1,
+            "points": 12,
+            "diff": 16
+          },
+          {
+            "pos": 5,
+            "name": "king",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": 0
+          },
+          {
+            "pos": 6,
+            "name": "Chris",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 10
+          },
+          {
+            "pos": 7,
+            "name": "monika",
+            "played": 6,
+            "wins": 1,
+            "losses": 5,
+            "points": 4,
+            "diff": -24
+          }
+        ],
+        "matches": [
+          {
+            "a": "Gary",
+            "b": "Ross",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "Gary",
+            "b": "king",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "Gary",
+            "b": "Chris",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "Gary",
+            "b": "monika",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "don",
+            "b": "Ross",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "don",
+            "b": "king",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "E",
+        "name": "Group E",
+        "roster": [
+          "scott",
+          "nick",
+          "Stu",
+          "sporty",
+          "ketan",
+          "paul",
+          "Jerm"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "scott",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": -4
+          },
+          {
+            "pos": 2,
+            "name": "nick",
+            "played": 6,
+            "wins": 2,
+            "losses": 3,
+            "points": 8,
+            "diff": 10
+          },
+          {
+            "pos": 3,
+            "name": "Stu",
+            "played": 6,
+            "wins": 5,
+            "losses": 0,
+            "points": 17,
+            "diff": 14
+          },
+          {
+            "pos": 4,
+            "name": "sporty",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 16
+          },
+          {
+            "pos": 5,
+            "name": "ketan",
+            "played": 6,
+            "wins": 1,
+            "losses": 5,
+            "points": 4,
+            "diff": -22
+          },
+          {
+            "pos": 6,
+            "name": "paul",
+            "played": 6,
+            "wins": 1,
+            "losses": 3,
+            "points": 6,
+            "diff": -6
+          },
+          {
+            "pos": 7,
+            "name": "Jerm",
+            "played": 6,
+            "wins": 2,
+            "losses": 3,
+            "points": 8,
+            "diff": -8
+          }
+        ],
+        "matches": [
+          {
+            "a": "scott",
+            "b": "nick",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "scott",
+            "b": "Stu",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "scott",
+            "b": "sporty",
+            "scoreA": 0,
+            "scoreB": 10,
+            "resolution": "played"
+          },
+          {
+            "a": "scott",
+            "b": "ketan",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "scott",
+            "b": "paul",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "scott",
+            "b": "Jerm",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "F",
+        "name": "Group F",
+        "roster": [
+          "adnan",
+          "eddie",
+          "danny",
+          "jammy",
+          "aaron",
+          "matt",
+          "bran"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "adnan",
+            "played": 6,
+            "wins": 5,
+            "losses": 0,
+            "points": 17,
+            "diff": 26
+          },
+          {
+            "pos": 2,
+            "name": "eddie",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 16
+          },
+          {
+            "pos": 3,
+            "name": "danny",
+            "played": 5,
+            "wins": 2,
+            "losses": 3,
+            "points": 6,
+            "diff": -18
+          },
+          {
+            "pos": 4,
+            "name": "jammy",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": -6
+          },
+          {
+            "pos": 5,
+            "name": "aaron",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": -4
+          },
+          {
+            "pos": 6,
+            "name": "matt",
+            "played": 6,
+            "wins": 0,
+            "losses": 6,
+            "points": 1,
+            "diff": -26
+          },
+          {
+            "pos": 7,
+            "name": "bran",
+            "played": 5,
+            "wins": 3,
+            "losses": 2,
+            "points": 9,
+            "diff": 12
+          }
+        ],
+        "matches": [
+          {
+            "a": "adnan",
+            "b": "eddie",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "danny",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "jammy",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "aaron",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "matt",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "adnan",
+            "b": "bran",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "G",
+        "name": "Group G",
+        "roster": [
+          "mjong",
+          "Steve",
+          "mj",
+          "Jesse",
+          "Tim",
+          "Tino",
+          "navin"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "mjong",
+            "played": 6,
+            "wins": 3,
+            "losses": 3,
+            "points": 10,
+            "diff": -2
+          },
+          {
+            "pos": 2,
+            "name": "Steve",
+            "played": 5,
+            "wins": 3,
+            "losses": 1,
+            "points": 10,
+            "diff": 20
+          },
+          {
+            "pos": 3,
+            "name": "mj",
+            "played": 5,
+            "wins": 4,
+            "losses": 0,
+            "points": 13,
+            "diff": 24
+          },
+          {
+            "pos": 4,
+            "name": "Jesse",
+            "played": 6,
+            "wins": 5,
+            "losses": 0,
+            "points": 17,
+            "diff": 18
+          },
+          {
+            "pos": 5,
+            "name": "Tim",
+            "played": 6,
+            "wins": 1,
+            "losses": 4,
+            "points": 5,
+            "diff": -10
+          },
+          {
+            "pos": 6,
+            "name": "Tino",
+            "played": 6,
+            "wins": 1,
+            "losses": 5,
+            "points": 4,
+            "diff": -24
+          },
+          {
+            "pos": 7,
+            "name": "navin",
+            "played": 6,
+            "wins": 1,
+            "losses": 5,
+            "points": 4,
+            "diff": -26
+          }
+        ],
+        "matches": [
+          {
+            "a": "mjong",
+            "b": "Steve",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "mjong",
+            "b": "mj",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "mjong",
+            "b": "Jesse",
+            "scoreA": 2,
+            "scoreB": 8,
+            "resolution": "played"
+          },
+          {
+            "a": "mjong",
+            "b": "Tim",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "mjong",
+            "b": "Tino",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "mjong",
+            "b": "navin",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "H",
+        "name": "Group H",
+        "roster": [
+          "dec",
+          "joe",
+          "bran",
+          "Jason",
+          "blade",
+          "Nay",
+          "Anil"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "dec",
+            "played": 3,
+            "wins": 2,
+            "losses": 0,
+            "points": 7,
+            "diff": 10
+          },
+          {
+            "pos": 2,
+            "name": "joe",
+            "played": 3,
+            "wins": 3,
+            "losses": 0,
+            "points": 9,
+            "diff": 16
+          },
+          {
+            "pos": 3,
+            "name": "bran",
+            "played": 4,
+            "wins": 1,
+            "losses": 2,
+            "points": 4,
+            "diff": -6
+          },
+          {
+            "pos": 4,
+            "name": "Jason",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": -10
+          },
+          {
+            "pos": 5,
+            "name": "blade",
+            "played": 5,
+            "wins": 4,
+            "losses": 1,
+            "points": 12,
+            "diff": 10
+          },
+          {
+            "pos": 6,
+            "name": "Nay",
+            "played": 6,
+            "wins": 2,
+            "losses": 2,
+            "points": 9,
+            "diff": 2
+          },
+          {
+            "pos": 7,
+            "name": "Anil",
+            "played": 5,
+            "wins": 0,
+            "losses": 5,
+            "points": 0,
+            "diff": -22
+          }
+        ],
+        "matches": [
+          {
+            "a": "dec",
+            "b": "Jason",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "dec",
+            "b": "Nay",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "dec",
+            "b": "Anil",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "joe",
+            "b": "Jason",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "joe",
+            "b": "blade",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "joe",
+            "b": "Nay",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "I",
+        "name": "Group I",
+        "roster": [
+          "chris",
+          "chris",
+          "Candi",
+          "kyle",
+          "sam",
+          "james",
+          "will"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "chris",
+            "played": 6,
+            "wins": 4,
+            "losses": 1,
+            "points": 14,
+            "diff": 20
+          },
+          {
+            "pos": 2,
+            "name": "chris",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": 4
+          },
+          {
+            "pos": 3,
+            "name": "Candi",
+            "played": 6,
+            "wins": 4,
+            "losses": 1,
+            "points": 14,
+            "diff": 26
+          },
+          {
+            "pos": 4,
+            "name": "kyle",
+            "played": 6,
+            "wins": 0,
+            "losses": 5,
+            "points": 2,
+            "diff": -28
+          },
+          {
+            "pos": 5,
+            "name": "sam",
+            "played": 5,
+            "wins": 1,
+            "losses": 3,
+            "points": 4,
+            "diff": -24
+          },
+          {
+            "pos": 6,
+            "name": "james",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 13,
+            "diff": 16
+          },
+          {
+            "pos": 7,
+            "name": "will",
+            "played": 5,
+            "wins": 1,
+            "losses": 3,
+            "points": 4,
+            "diff": -14
+          }
+        ],
+        "matches": [
+          {
+            "a": "chris",
+            "b": "chris",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "chris",
+            "b": "Candi",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "chris",
+            "b": "kyle",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "chris",
+            "b": "sam",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "chris",
+            "b": "james",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "chris",
+            "b": "will",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "J",
+        "name": "Group J",
+        "roster": [
+          "daniel",
+          "l3am",
+          "hyst",
+          "Ugur",
+          "Andy",
+          "oliver",
+          "king"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "daniel",
+            "played": 5,
+            "wins": 4,
+            "losses": 1,
+            "points": 12,
+            "diff": 16
+          },
+          {
+            "pos": 2,
+            "name": "l3am",
+            "played": 4,
+            "wins": 2,
+            "losses": 1,
+            "points": 7,
+            "diff": 10
+          },
+          {
+            "pos": 3,
+            "name": "hyst",
+            "played": 6,
+            "wins": 0,
+            "losses": 6,
+            "points": 1,
+            "diff": -36
+          },
+          {
+            "pos": 4,
+            "name": "Ugur",
+            "played": 6,
+            "wins": 1,
+            "losses": 4,
+            "points": 5,
+            "diff": -8
+          },
+          {
+            "pos": 5,
+            "name": "Andy",
+            "played": 6,
+            "wins": 6,
+            "losses": 0,
+            "points": 19,
+            "diff": 28
+          },
+          {
+            "pos": 6,
+            "name": "oliver",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": -22
+          },
+          {
+            "pos": 7,
+            "name": "king",
+            "played": 5,
+            "wins": 3,
+            "losses": 2,
+            "points": 9,
+            "diff": 12
+          }
+        ],
+        "matches": [
+          {
+            "a": "daniel",
+            "b": "hyst",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "daniel",
+            "b": "Ugur",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "daniel",
+            "b": "Andy",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "daniel",
+            "b": "oliver",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "daniel",
+            "b": "king",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "l3am",
+            "b": "hyst",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "K",
+        "name": "Group K",
+        "roster": [
+          "sean",
+          "Chirag",
+          "jorey",
+          "Kevin",
+          "cubz",
+          "dustin",
+          "neo"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "sean",
+            "played": 6,
+            "wins": 3,
+            "losses": 2,
+            "points": 11,
+            "diff": 6
+          },
+          {
+            "pos": 2,
+            "name": "Chirag",
+            "played": 6,
+            "wins": 5,
+            "losses": 1,
+            "points": 16,
+            "diff": 28
+          },
+          {
+            "pos": 3,
+            "name": "jorey",
+            "played": 6,
+            "wins": 1,
+            "losses": 4,
+            "points": 5,
+            "diff": -8
+          },
+          {
+            "pos": 4,
+            "name": "Kevin",
+            "played": 5,
+            "wins": 5,
+            "losses": 0,
+            "points": 12,
+            "diff": 20
+          },
+          {
+            "pos": 5,
+            "name": "cubz",
+            "played": 6,
+            "wins": 0,
+            "losses": 6,
+            "points": 1,
+            "diff": -30
+          },
+          {
+            "pos": 6,
+            "name": "dustin",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 7,
+            "diff": -26
+          },
+          {
+            "pos": 7,
+            "name": "neo",
+            "played": 5,
+            "wins": 2,
+            "losses": 1,
+            "points": 8,
+            "diff": 10
+          }
+        ],
+        "matches": [
+          {
+            "a": "sean",
+            "b": "Chirag",
+            "scoreA": 2,
+            "scoreB": 8,
+            "resolution": "played"
+          },
+          {
+            "a": "sean",
+            "b": "jorey",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "sean",
+            "b": "Kevin",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "sean",
+            "b": "cubz",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "sean",
+            "b": "dustin",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "sean",
+            "b": "neo",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          }
+        ]
+      }
+    ],
+    "totalGroupMatches": 214,
+    "shownGroupMatches": 66,
+    "playoff": {
+      "state": "sample",
+      "format": "Single Elimination",
+      "rounds": [
+        {
+          "name": "Round 1",
+          "matches": [
+            {
+              "a": "chris",
+              "b": "king",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Jason",
+              "b": "mj",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "sporty",
+              "b": "scotty",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "sean",
+              "b": "Jerm",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Candi",
+              "b": "Gus",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "king",
+              "b": "adnan",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Matt",
+              "b": "Steve",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "sonia_oberoi2k5",
+              "b": "Jim",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Jesse",
+              "b": "jammy",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "mjong",
+              "b": "rob",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "daniel",
+              "b": "luis",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "ron",
+              "b": "chris",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Jamie",
+              "b": "eddie",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Chirag",
+              "b": "Allen",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "firewolf87",
+              "b": "james",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Chris",
+              "b": "aaron",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "chris",
+              "b": "Andy",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "scott",
+              "b": "tanz",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "Kevin",
+              "b": "Stu",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "don",
+              "b": "Nelson",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "blade",
+              "b": "Nay",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "label": "8BRCAM archive (imported snapshot)",
+        "locator": "2005-s4-single",
+        "kind": "wayback"
+      }
+    ],
+    "historicalNotes": [
+      "Playoff match results are not recorded in the 8BRCAM archive — only seedings and first-round pairings survive.",
+      "The champion is inferred from surviving records (occurrence-count heuristic), not an explicit archived result."
+    ]
+  },
+  {
+    "slug": "2005-season-1",
+    "competitionId": "2005-s1-single",
+    "seasonId": "2005-s1",
+    "division": "single",
+    "name": "2005 · Season 1",
+    "legacyName": "8BRCAM 2005 Season 1",
+    "type": "Season",
+    "chronology": "archive",
+    "status": "completed",
+    "year": 2005,
+    "dateLabel": "2005",
+    "datesPending": true,
+    "organizer": "8BRCAM (archived)",
+    "formatSummary": "Group stage → single-elimination playoffs",
+    "participantsCount": 32,
+    "confidence": "incomplete",
+    "champion": {
+      "name": "luis",
+      "playerId": "P0027",
+      "slug": "luis-p0027",
+      "confidence": "heuristic",
+      "inferred": true
+    },
+    "runnerUp": {
+      "name": "indian",
+      "playerId": "P0067",
+      "slug": null
+    },
+    "overviewNote": null,
+    "participants": [
+      "luis",
+      "stuart",
+      "joker",
+      "Scott",
+      "bammy",
+      "mike",
+      "Mike",
+      "zero",
+      "Tyler",
+      "chris",
+      "alexander",
+      "southern",
+      "navin",
+      "aaron",
+      "tanz",
+      "o7o",
+      "elite",
+      "mspool",
+      "da_leo",
+      "indian",
+      "yup",
+      "sober",
+      "disco",
+      "propooler",
+      "clutch",
+      "dark",
+      "rob",
+      "under",
+      "baseball",
+      "quit",
+      "aldo",
+      "llkula"
+    ],
+    "stages": [
+      {
+        "name": "Group stage",
+        "format": "Round-robin groups",
+        "confidence": "verified",
+        "note": null
+      },
+      {
+        "name": "Playoffs",
+        "format": "Single Elimination",
+        "confidence": "incomplete",
+        "note": "Seedings / first-round pairings survive; individual match results were not recorded in the archive."
+      }
+    ],
+    "groups": [
+      {
+        "code": "A",
+        "name": "Group A",
+        "roster": [
+          "luis",
+          "stuart",
+          "joker",
+          "Scott",
+          "bammy",
+          "mike",
+          "Mike",
+          "zero"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "luis",
+            "played": 7,
+            "wins": 7,
+            "losses": 0,
+            "points": 21,
+            "diff": 36
+          },
+          {
+            "pos": 2,
+            "name": "stuart",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": -14
+          },
+          {
+            "pos": 3,
+            "name": "joker",
+            "played": 7,
+            "wins": 4,
+            "losses": 3,
+            "points": 12,
+            "diff": 12
+          },
+          {
+            "pos": 4,
+            "name": "Scott",
+            "played": 6,
+            "wins": 2,
+            "losses": 4,
+            "points": 6,
+            "diff": -14
+          },
+          {
+            "pos": 5,
+            "name": "bammy",
+            "played": 7,
+            "wins": 5,
+            "losses": 2,
+            "points": 15,
+            "diff": 14
+          },
+          {
+            "pos": 6,
+            "name": "mike",
+            "played": 6,
+            "wins": 1,
+            "losses": 5,
+            "points": 3,
+            "diff": -14
+          },
+          {
+            "pos": 7,
+            "name": "Mike",
+            "played": 6,
+            "wins": 3,
+            "losses": 3,
+            "points": 9,
+            "diff": 0
+          },
+          {
+            "pos": 8,
+            "name": "zero",
+            "played": 5,
+            "wins": 1,
+            "losses": 4,
+            "points": 3,
+            "diff": -20
+          }
+        ],
+        "matches": [
+          {
+            "a": "luis",
+            "b": "stuart",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "joker",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "Scott",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "bammy",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "mike",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "luis",
+            "b": "Mike",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "B",
+        "name": "Group B",
+        "roster": [
+          "Tyler",
+          "chris",
+          "alexander",
+          "southern",
+          "navin",
+          "aaron",
+          "tanz",
+          "o7o"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "Tyler",
+            "played": 7,
+            "wins": 6,
+            "losses": 1,
+            "points": 18,
+            "diff": 26
+          },
+          {
+            "pos": 2,
+            "name": "chris",
+            "played": 7,
+            "wins": 5,
+            "losses": 2,
+            "points": 15,
+            "diff": 10
+          },
+          {
+            "pos": 3,
+            "name": "alexander",
+            "played": 5,
+            "wins": 4,
+            "losses": 0,
+            "points": 13,
+            "diff": 16
+          },
+          {
+            "pos": 4,
+            "name": "southern",
+            "played": 3,
+            "wins": 0,
+            "losses": 3,
+            "points": 0,
+            "diff": -10
+          },
+          {
+            "pos": 5,
+            "name": "navin",
+            "played": 4,
+            "wins": 0,
+            "losses": 4,
+            "points": 0,
+            "diff": -24
+          },
+          {
+            "pos": 6,
+            "name": "aaron",
+            "played": 7,
+            "wins": 3,
+            "losses": 3,
+            "points": 10,
+            "diff": 4
+          },
+          {
+            "pos": 7,
+            "name": "tanz",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": -10
+          },
+          {
+            "pos": 8,
+            "name": "o7o",
+            "played": 3,
+            "wins": 0,
+            "losses": 3,
+            "points": 0,
+            "diff": -12
+          }
+        ],
+        "matches": [
+          {
+            "a": "Tyler",
+            "b": "chris",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "Tyler",
+            "b": "alexander",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          },
+          {
+            "a": "Tyler",
+            "b": "southern",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "Tyler",
+            "b": "navin",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          },
+          {
+            "a": "Tyler",
+            "b": "aaron",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "Tyler",
+            "b": "tanz",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "C",
+        "name": "Group C",
+        "roster": [
+          "elite",
+          "mspool",
+          "da_leo",
+          "indian",
+          "yup",
+          "sober",
+          "disco",
+          "propooler"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "elite",
+            "played": 4,
+            "wins": 2,
+            "losses": 2,
+            "points": 6,
+            "diff": 8
+          },
+          {
+            "pos": 2,
+            "name": "mspool",
+            "played": 6,
+            "wins": 4,
+            "losses": 2,
+            "points": 12,
+            "diff": 12
+          },
+          {
+            "pos": 3,
+            "name": "da_leo",
+            "played": 1,
+            "wins": 0,
+            "losses": 1,
+            "points": 0,
+            "diff": -6
+          },
+          {
+            "pos": 4,
+            "name": "indian",
+            "played": 5,
+            "wins": 4,
+            "losses": 0,
+            "points": 13,
+            "diff": 14
+          },
+          {
+            "pos": 5,
+            "name": "yup",
+            "played": 4,
+            "wins": 0,
+            "losses": 4,
+            "points": 0,
+            "diff": -26
+          },
+          {
+            "pos": 6,
+            "name": "sober",
+            "played": 2,
+            "wins": 0,
+            "losses": 2,
+            "points": 0,
+            "diff": -12
+          },
+          {
+            "pos": 7,
+            "name": "disco",
+            "played": 4,
+            "wins": null,
+            "losses": 3,
+            "points": 60,
+            "diff": null
+          },
+          {
+            "pos": 8,
+            "name": "propooler",
+            "played": 5,
+            "wins": 2,
+            "losses": 2,
+            "points": 7,
+            "diff": 6
+          }
+        ],
+        "matches": [
+          {
+            "a": "elite",
+            "b": "mspool",
+            "scoreA": 7,
+            "scoreB": 3,
+            "resolution": "played"
+          },
+          {
+            "a": "elite",
+            "b": "indian",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "elite",
+            "b": "yup",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "elite",
+            "b": "propooler",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "mspool",
+            "b": "da_leo",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "mspool",
+            "b": "indian",
+            "scoreA": 3,
+            "scoreB": 7,
+            "resolution": "played"
+          }
+        ]
+      },
+      {
+        "code": "D",
+        "name": "Group D",
+        "roster": [
+          "clutch",
+          "dark",
+          "rob",
+          "under",
+          "baseball",
+          "quit",
+          "aldo",
+          "llkula"
+        ],
+        "standings": [
+          {
+            "pos": 1,
+            "name": "clutch",
+            "played": 5,
+            "wins": 3,
+            "losses": 1,
+            "points": 10,
+            "diff": 14
+          },
+          {
+            "pos": 2,
+            "name": "dark",
+            "played": 7,
+            "wins": 5,
+            "losses": 0,
+            "points": 17,
+            "diff": 24
+          },
+          {
+            "pos": 3,
+            "name": "rob",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": -22
+          },
+          {
+            "pos": 4,
+            "name": "under",
+            "played": 6,
+            "wins": 2,
+            "losses": 2,
+            "points": 8,
+            "diff": 16
+          },
+          {
+            "pos": 5,
+            "name": "baseball",
+            "played": 3,
+            "wins": 2,
+            "losses": 1,
+            "points": 6,
+            "diff": 0
+          },
+          {
+            "pos": 6,
+            "name": "quit",
+            "played": 7,
+            "wins": 1,
+            "losses": 5,
+            "points": 4,
+            "diff": -18
+          },
+          {
+            "pos": 7,
+            "name": "aldo",
+            "played": 6,
+            "wins": 2,
+            "losses": 2,
+            "points": 8,
+            "diff": -4
+          },
+          {
+            "pos": 8,
+            "name": "llkula",
+            "played": 4,
+            "wins": 1,
+            "losses": 3,
+            "points": 3,
+            "diff": -10
+          }
+        ],
+        "matches": [
+          {
+            "a": "clutch",
+            "b": "dark",
+            "scoreA": 4,
+            "scoreB": 6,
+            "resolution": "played"
+          },
+          {
+            "a": "clutch",
+            "b": "rob",
+            "scoreA": 9,
+            "scoreB": 1,
+            "resolution": "played"
+          },
+          {
+            "a": "clutch",
+            "b": "under",
+            "scoreA": 6,
+            "scoreB": 4,
+            "resolution": "played"
+          },
+          {
+            "a": "clutch",
+            "b": "quit",
+            "scoreA": 8,
+            "scoreB": 2,
+            "resolution": "played"
+          },
+          {
+            "a": "clutch",
+            "b": "aldo",
+            "scoreA": 5,
+            "scoreB": 5,
+            "resolution": "played"
+          },
+          {
+            "a": "dark",
+            "b": "rob",
+            "scoreA": 10,
+            "scoreB": 0,
+            "resolution": "played"
+          }
+        ]
+      }
+    ],
+    "totalGroupMatches": 80,
+    "shownGroupMatches": 24,
+    "playoff": {
+      "state": "sample",
+      "format": "Single Elimination",
+      "rounds": [
+        {
+          "name": "Round 1",
+          "matches": [
+            {
+              "a": "luis",
+              "b": "aldo",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "chris",
+              "b": "propooler",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "dark",
+              "b": "Mike",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "mspool",
+              "b": "indian",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "aaron",
+              "b": "clutch",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "joker",
+              "b": "Tyler",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            },
+            {
+              "a": "elite",
+              "b": "bammy",
+              "scoreA": null,
+              "scoreB": null,
+              "resolution": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "label": "8BRCAM archive (imported snapshot)",
+        "locator": "2005-s1-single",
+        "kind": "wayback"
+      }
+    ],
+    "historicalNotes": [
+      "Playoff match results are not recorded in the 8BRCAM archive — only seedings and first-round pairings survive.",
+      "The champion is inferred from surviving records (occurrence-count heuristic), not an explicit archived result."
+    ]
+  }
+]

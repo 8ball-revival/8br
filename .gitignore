@@ -1,0 +1,55 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+
+# env files (never commit real secrets/connection strings)
+# Ignore every .env variant, but keep the committed placeholder template.
+.env
+.env.*
+!.env.example
+
+# local databases (bundled pgserver data dir + any local db files — never commit)
+/.pgdata/
+*.sqlite
+*.sqlite3
+*.db
+
+# archive pipeline data & generated reports — contains scraped historical PII
+# (thousands of real email addresses / handles). Regenerated locally by the
+# scripts/archive tools; never commit to the repository.
+/data/
+/reports/
+
+# media / uploads (Payload local uploads — not versioned)
+/media
+/uploads
+
+# vercel
+.vercel
+
+# logs & temporary files
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.tmp
+*.temp
+.cache/
+
+# generated
+*.tsbuildinfo
+
+# misc / OS
+.DS_Store
+Thumbs.db
+*.pem

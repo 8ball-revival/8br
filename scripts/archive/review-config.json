@@ -1,0 +1,90 @@
+{
+  "note": "Single source of truth for review categories, resolutions, and statuses. Imported by both the dashboard (TS) and the pipeline scripts (mjs).",
+  "statuses": ["pending", "approved", "rejected", "deferred", "needs_evidence", "resolved"],
+  "appliedStatuses": ["approved", "resolved"],
+  "categories": {
+    "shared-alias": {
+      "label": "Shared aliases",
+      "hint": "One alias resolves to more than one player. Never auto-merge.",
+      "resolutions": [
+        "belongs_to_player_a",
+        "belongs_to_player_b",
+        "belongs_to_multiple",
+        "remains_ambiguous",
+        "recommend_merge",
+        "recommend_split",
+        "needs_evidence"
+      ]
+    },
+    "merge-candidate": {
+      "label": "Merge candidates",
+      "hint": "Distinct players share a messenger id / email. Review before any merge.",
+      "resolutions": ["recommend_merge", "keep_separate", "needs_evidence", "defer"]
+    },
+    "name-duplicate": {
+      "label": "Name-only duplicates",
+      "hint": "Matching names alone are LOW-confidence evidence.",
+      "resolutions": [
+        "same_person",
+        "different_people",
+        "probable_match",
+        "insufficient_evidence",
+        "defer"
+      ]
+    },
+    "match": {
+      "label": "Match issues",
+      "hint": "Impossible/missing scores, missing competitors, forfeits/walkovers/byes/admin.",
+      "resolutions": [
+        "preserve_as_archived",
+        "mark_score_disputed",
+        "mark_score_unavailable",
+        "correct_with_source",
+        "resolution_forfeit",
+        "resolution_walkover",
+        "resolution_bye",
+        "resolution_admin_decision",
+        "needs_evidence"
+      ],
+      "correctionResolutions": ["correct_with_source"]
+    },
+    "championship": {
+      "label": "Championships",
+      "hint": "Do not auto-promote heuristic champions to verified.",
+      "resolutions": [
+        "approve_current_confidence",
+        "upgrade_with_evidence",
+        "downgrade_confidence",
+        "mark_disputed",
+        "exclude_from_official_totals",
+        "include_historical_unofficial",
+        "needs_evidence"
+      ],
+      "evidenceResolutions": ["upgrade_with_evidence"]
+    },
+    "historical-note": {
+      "label": "Historical notes",
+      "hint": "Administrative annotations (e.g. EGO Season 1 seeding). Do not rewrite brackets.",
+      "resolutions": [
+        "publish_annotation",
+        "keep_internal_only",
+        "needs_evidence",
+        "mark_disputed",
+        "resolve_with_source",
+        "leave_unresolved"
+      ]
+    },
+    "entry-method": {
+      "label": "Entry method",
+      "hint": "Default historical CompetitionEntry method. Do not infer modern registration.",
+      "resolutions": [
+        "historical_import",
+        "unknown",
+        "invited",
+        "qualified",
+        "registered",
+        "administrative_entry"
+      ]
+    }
+  }
+}
