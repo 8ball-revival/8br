@@ -1,7 +1,15 @@
 import 'server-only'
-import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import { readDecisions, readHistory, type Decision } from './decisions'
+
+// Load `fs` via createRequire rather than a static `import fs from 'node:fs'`.
+// A static fs import + fs.X() calls makes the Turbopack production build emit the
+// consuming pages as ESM, which breaks Vercel's CommonJS serverless launcher
+// (ERR_REQUIRE_ESM). See Next.js discussion #91663. This keeps the sync fs API
+// while removing the trigger. (These files are read only by the local-only
+// archive-review tool; the data lives in gitignored dirs not deployed to Vercel.)
+const fs = createRequire(import.meta.url)('node:fs') as typeof import('node:fs')
 
 const ROOT = process.cwd()
 const readJson = <T = unknown>(rel: string): T => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8')) as T

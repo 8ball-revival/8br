@@ -1,7 +1,12 @@
 import 'server-only'
-import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import type { ReviewStatus } from './config'
+
+// `fs` via createRequire (not a static `import fs from 'node:fs'`): a static fs
+// import + fs.X() calls makes the Turbopack production build emit consuming pages
+// as ESM, breaking Vercel's CommonJS launcher (ERR_REQUIRE_ESM, Next.js #91663).
+const fs = createRequire(import.meta.url)('node:fs') as typeof import('node:fs')
 
 const DECISIONS_DIR = path.join(process.cwd(), 'data', 'review-decisions')
 const DECISIONS_FILE = path.join(DECISIONS_DIR, 'decisions.json')
