@@ -71,6 +71,39 @@ Run everything from the project root: `C:\Users\Cerebro\Documents\8BR`
 | `npm run typecheck` | TypeScript type check (no emit) |
 | `npm run generate:types` | Regenerate `src/payload-types.ts` from the Payload config |
 | `npm run generate:importmap` | Regenerate the Payload admin import map |
+| `npm run vercel-build` | Apply DB migrations (Prisma + Payload), then build — used by Vercel |
+| `npm run db:deploy` | `prisma migrate deploy` (public schema only) |
+
+## Deploying to production (Vercel + Neon)
+
+A first deploy to a **brand-new Neon database requires zero manual database work** —
+migrations run automatically during the Vercel build.
+
+**1. Create the Neon database** and copy its connection strings.
+
+**2. Set Vercel Environment Variables** (Production):
+
+| Variable | Required | Value |
+|---|---|---|
+| `DATABASE_URL` | ✅ | Neon **pooled** connection string, incl. `?sslmode=require`. Used at runtime by Prisma + Payload. |
+| `DIRECT_URL` | recommended | Neon **direct/unpooled** connection string. Used only for migrations (Prisma's migrate engine needs advisory locks a pooler can't provide). Falls back to `DATABASE_URL` if unset. |
+| `PAYLOAD_SECRET` | ✅ | A long random string (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`). |
+| `NEXT_PUBLIC_SITE_URL` | recommended | Your production origin, e.g. `https://your-domain.com`. Drives canonical/OG/sitemap URLs and Payload admin cookies/CORS/CSRF. |
+| `BLOB_READ_WRITE_TOKEN` | optional | Set automatically when you create a **Vercel Blob** store. Enables media uploads (Vercel's filesystem is read-only, so uploads go to Blob). Without it the app still builds/runs; media uploads are simply unavailable. |
+
+**3. Deploy.** Vercel runs `npm run vercel-build` (from `vercel.json`), which:
+1. `scripts/deploy-migrate.mjs` → `prisma migrate deploy` (public schema) + `payload migrate` (payload schema) over `DIRECT_URL`, then
+2. `next build`.
+
+Both migration steps are **idempotent**, so redeploys are safe.
+
+**4. Create the first admin.** Open `https://your-domain.com/admin` and complete the
+create-first-user form. The first account created on a fresh database is automatically
+granted the **admin** role; every later account defaults to `member`.
+
+> The whole flow (empty DB → migrate → build → `/admin`, first-user, login,
+> registration, homepage, account) is verified end-to-end against a fresh empty
+> database in `COMPETITION_ADMIN.md` / `SEASON2_LAUNCH.md`.
 
 ## Project layout
 

@@ -39,6 +39,7 @@ const eslintConfig = [
       'reports/**',
       'src/payload-types.ts',
       'src/payload-generated-schema.ts',
+      'src/migrations/**', // Payload-generated migration artifacts
     ],
   },
 ]

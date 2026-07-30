@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -13,7 +14,13 @@ import { Rules } from './collections/Rules'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+// Public site origin (also used for canonical/OG URLs). Optional in dev.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+
 export default buildConfig({
+  // In production, set NEXT_PUBLIC_SITE_URL so admin cookies / CORS / CSRF use the
+  // real origin. Omitted in dev → Payload infers from the request.
+  ...(siteUrl ? { serverURL: siteUrl, cors: [siteUrl], csrf: [siteUrl] } : {}),
   admin: {
     user: Users.slug,
     importMap: {
@@ -30,10 +37,23 @@ export default buildConfig({
     // Payload owns a SEPARATE Postgres schema so it never collides with the
     // Prisma-owned competition/records tables in the default "public" schema.
     schemaName: 'payload',
+    // Production runs generated migrations (see src/migrations). `push` stays on
+    // only in dev, where it auto-syncs the schema for fast iteration.
+    push: process.env.NODE_ENV !== 'production',
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
   }),
   sharp,
-  plugins: [],
+  plugins: [
+    // Media storage. On Vercel the filesystem is read-only/ephemeral, so uploads
+    // go to Vercel Blob. Enabled automatically once BLOB_READ_WRITE_TOKEN exists
+    // (set for you when you create a Vercel Blob store); a no-op otherwise, so a
+    // first deploy without Blob still builds and runs.
+    vercelBlobStorage({
+      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      collections: { media: true },
+      token: process.env.BLOB_READ_WRITE_TOKEN || '',
+    }),
+  ],
 })

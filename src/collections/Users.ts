@@ -26,6 +26,23 @@ export const Users: CollectionConfig = {
     update: ({ req }) => (isStaffUser(req?.user) ? true : { id: { equals: req?.user?.id } }),
     delete: ({ req }) => isStaffUser(req?.user),
   },
+  hooks: {
+    beforeChange: [
+      // Bootstrap: the very first user created on a fresh database becomes an
+      // admin, so a brand-new deployment has a usable admin without manual DB work.
+      // (The `roles` field is admin-gated, so first-register would otherwise produce
+      // a locked-out member.) Every subsequent account defaults to `member`.
+      async ({ operation, data, req }) => {
+        if (operation === 'create') {
+          const { totalDocs } = await req.payload.count({ collection: 'users' })
+          if (totalDocs === 0) {
+            data.roles = ['admin']
+          }
+        }
+        return data
+      },
+    ],
+  },
   fields: [
     // `username` (User ID) + `email` + auth fields are added by Payload auth.
     {
