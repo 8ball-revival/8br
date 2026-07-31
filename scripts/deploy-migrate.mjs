@@ -13,6 +13,7 @@
  * Idempotent: both tools skip already-applied migrations, so re-deploys are safe.
  */
 import { execSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 
 const runtimeUrl = process.env.DATABASE_URL
 if (!runtimeUrl) {
@@ -29,9 +30,31 @@ function run(label, cmd) {
   execSync(cmd, { stdio: 'inherit', env })
 }
 
+/**
+ * The Payload migrate CLI `require()`s the config, which uses top-level await, so
+ * it must be loaded as an ES module. But the app's `package.json` has NO `"type"`
+ * field (CommonJS) on purpose: it makes Next/Turbopack emit the `.next/server`
+ * JS bundles as CommonJS so Vercel's `___next_launcher.cjs` can `require()` them
+ * without ERR_REQUIRE_ESM. So we flip `type` to `module` for ONLY the payload
+ * migrate command, then restore the original file verbatim. `next build` runs
+ * afterwards under CommonJS.
+ */
+const pkgUrl = new URL('../package.json', import.meta.url)
+function withEsmPackage(fn) {
+  const original = readFileSync(pkgUrl, 'utf8')
+  const pkg = JSON.parse(original)
+  pkg.type = 'module'
+  writeFileSync(pkgUrl, JSON.stringify(pkg, null, 2) + '\n')
+  try {
+    fn()
+  } finally {
+    writeFileSync(pkgUrl, original)
+  }
+}
+
 try {
   run('Prisma: applying migrations (public schema)', 'npx prisma migrate deploy')
-  run('Payload: applying migrations (payload schema)', 'npx payload migrate')
+  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate'))
   console.log('\n✓ All database migrations applied.')
 } catch (err) {
   console.error('\n✗ Migration step failed. Aborting build.')

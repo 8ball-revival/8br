@@ -4,7 +4,6 @@
   "description": "8 Ball Revival — the next chapter of competitive online 8-ball. Formerly known as 8BRCAM.",
   "license": "UNLICENSED",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build && node scripts/postbuild-cjs.mjs",
