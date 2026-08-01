@@ -13,7 +13,7 @@ export const organizationName = '8 Ball Revival'
 /** Default document title (home / root). */
 export const SITE_TITLE_DEFAULT = '8 Ball Revival | Formerly 8BRCAM'
 export const SITE_DESCRIPTION =
-  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Register for Season 2, follow the group stage and playoffs, and explore the archive.'
+  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Register for Season 1, follow the group stage and playoffs, and explore the archive.'
 
 // Back-compat aliases (metadata helpers reference these).
 export const SITE_NAME = brandName

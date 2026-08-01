@@ -1,13 +1,13 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
 import { brandName, brandTagline } from '@/lib/site'
 
 /**
- * 8 Ball Revival wordmark — TEMPORARY typographic placeholder (gold diamond accent
- * + brand text). Designed so a future SVG logo can drop in: replace the `mark`
- * contents below with an <svg>/<Image> and keep the same wrapper + `showTagline`.
- * `showTagline` adds the "Formerly known as 8BRCAM" eyebrow (footer/hero use).
+ * 8 Ball Revival logo: the 8BR shield emblem (dark-bg badge, works in both themes)
+ * + the brand wordmark. `showTagline` adds the "Formerly known as 8BRCAM" eyebrow.
+ * Emblem lives at public/logo/8br-emblem.png (cropped from the full logo).
  */
 export function Logo({
   className,
@@ -20,10 +20,14 @@ export function Logo({
 }) {
   const mark = (
     <span className="flex items-center gap-2.5">
-      {/* Placeholder mark — swap for the brand SVG when available. */}
-      <span
-        aria-hidden
-        className="inline-block size-4 rotate-45 rounded-[3px] bg-gradient-to-br from-gold-soft to-gold-dim"
+      <Image
+        src="/logo/8br-emblem.png"
+        alt=""
+        width={400}
+        height={438}
+        unoptimized
+        priority
+        className="h-10 w-auto rounded-md ring-1 ring-gold/20"
       />
       <span className="flex flex-col leading-none">
         <span className="font-display text-xl font-bold tracking-tight">{brandName}</span>

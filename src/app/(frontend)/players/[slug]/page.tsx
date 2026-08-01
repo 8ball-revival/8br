@@ -1,20 +1,20 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
 import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
-import { SectionNav } from '@/components/section-nav'
-import { PlayerHero } from '@/components/player/player-hero'
-import { AliasList } from '@/components/player/alias-list'
+import { PlayerLegacyHero } from '@/components/player/player-legacy-hero'
+import { ProfileSectionNav } from '@/components/profile-section-nav'
+import { LegacySnapshot } from '@/components/player/legacy-snapshot'
+import { ChampionshipShowcase } from '@/components/player/championship-showcase'
+import { CareerHighlights } from '@/components/player/career-highlights'
 import { CareerStats } from '@/components/player/career-stats'
-import { ChampionshipHistory } from '@/components/player/championship-history'
 import { CompetitionHistory } from '@/components/player/competition-history'
 import { MatchHistory } from '@/components/player/match-history'
-import { RankingHistory } from '@/components/player/ranking-history'
 import { HallOfFamePanel } from '@/components/player/hall-of-fame-panel'
+import { AliasList } from '@/components/player/alias-list'
 import { SourcePanel } from '@/components/player/source-panel'
-import { HistoricalNotes } from '@/components/player/historical-notes'
 import { getPlayerPreview, getPlayerPreviewSlugs } from '@/lib/preview-players'
-import { notFound } from 'next/navigation'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -31,19 +31,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!player) return { title: 'Player not found' }
   return {
     title: player.primaryName,
-    description: `${player.primaryName} — 8 Ball Revival player profile (archive preview). Canonical identity ${player.playerId} with ${player.aliases.length} known aliases.`,
+    description: `${player.primaryName} — 8 Ball Revival player legacy profile (archive preview). Canonical identity ${player.playerId} with ${player.aliases.length} known aliases.`,
   }
 }
 
+// Primary in-page nav. Aliases & Sources are secondary (below), not in the nav.
 const NAV = [
   { id: 'overview', label: 'Overview' },
-  { id: 'career', label: 'Career' },
   { id: 'championships', label: 'Championships' },
-  { id: 'competitions', label: 'Competitions' },
-  { id: 'matches', label: 'Match Record' },
-  { id: 'rankings', label: 'Rankings' },
-  { id: 'hall-of-fame', label: 'Hall of Fame' },
-  { id: 'sources', label: 'Sources' },
+  { id: 'highlights', label: 'Highlights' },
+  { id: 'statistics', label: 'Statistics' },
+  { id: 'career', label: 'Career' },
+  { id: 'head-to-head', label: 'Head-to-Head' },
+  { id: 'historical-standing', label: 'Historical Standing' },
 ]
 
 function Section({
@@ -74,48 +74,52 @@ export default async function PlayerDetailPage({ params }: Params) {
 
   return (
     <>
-      <PlayerHero player={player} />
-      <SectionNav sections={NAV} ariaLabel="Player sections" />
+      <PlayerLegacyHero player={player} />
+      <ProfileSectionNav sections={NAV} />
 
-      {/* Overview: aliases + historical notes */}
-      <Section id="overview" title="Overview">
-        <div className="space-y-8">
-          <div>
-            <h3 className="mb-3 font-display text-lg font-semibold">Known aliases</h3>
-            <AliasList aliases={player.aliases} primaryName={player.primaryName} />
-          </div>
-          <div>
-            <h3 className="mb-3 font-display text-lg font-semibold">Historical notes</h3>
-            <HistoricalNotes notes={player.historicalNotes} />
-          </div>
-        </div>
+      <Section id="overview" title="Legacy Snapshot">
+        <LegacySnapshot player={player} />
       </Section>
 
-      <Section id="career" title="Career summary">
+      <Section id="championships" title="Championship Legacy">
+        <ChampionshipShowcase player={player} />
+      </Section>
+
+      <Section id="highlights" title="Career Highlights">
+        <CareerHighlights player={player} />
+      </Section>
+
+      <Section id="statistics" title="Career Statistics">
         <CareerStats career={player.career} />
       </Section>
 
-      <Section id="championships" title="Championship history">
-        <ChampionshipHistory championships={player.championships} />
-      </Section>
-
-      <Section id="competitions" title="Competition history">
+      <Section
+        id="career"
+        title="Career History"
+        description="Historical archive seasons (8BRCAM) — distinct from the 8 Ball Revival chronology."
+      >
         <CompetitionHistory seasons={player.seasonHistory} />
       </Section>
 
-      <Section id="matches" title="Match record">
+      <Section id="head-to-head" title="Head-to-Head">
         <MatchHistory career={player.career} headToHead={player.headToHead} />
       </Section>
 
-      <Section id="rankings" title="Ranking history">
-        <RankingHistory />
+      <Section id="historical-standing" title="Historical Standing">
+        <div className="space-y-4">
+          <HallOfFamePanel entries={player.hof} />
+          <p className="rounded-md border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+            Time-series ranking snapshots aren&apos;t part of the archive; the all-time placements above
+            reflect final standings.
+          </p>
+        </div>
       </Section>
 
-      <Section id="hall-of-fame" title="Hall of Fame">
-        <HallOfFamePanel entries={player.hof} />
+      <Section id="aliases" title="Aliases & Identity History">
+        <AliasList aliases={player.aliases} primaryName={player.primaryName} />
       </Section>
 
-      <Section id="sources" title="Sources">
+      <Section id="sources" title="Sources & Record Details">
         <SourcePanel playerId={player.playerId} />
       </Section>
     </>

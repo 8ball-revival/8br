@@ -206,4 +206,24 @@
     letter-spacing: 0.18em;
     font-size: 0.72rem;
   }
+
+  /* Black-track, gold-thumb scrollbar for scrollable panels */
+  .scrollbar-gold {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) #000000;
+  }
+  .scrollbar-gold::-webkit-scrollbar {
+    width: 8px;
+  }
+  .scrollbar-gold::-webkit-scrollbar-track {
+    background: #000000;
+  }
+  .scrollbar-gold::-webkit-scrollbar-thumb {
+    background: var(--gold);
+    border-radius: 9999px;
+    border: 2px solid #000000;
+  }
+  .scrollbar-gold::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-soft);
+  }
 }

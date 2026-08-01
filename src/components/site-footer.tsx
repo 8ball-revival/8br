@@ -1,76 +1,53 @@
 import Link from 'next/link'
+import { MessageCircle, AtSign, Video, Camera, type LucideIcon } from 'lucide-react'
 
-import { Container } from '@/components/ui/container'
-import { Logo } from '@/components/brand'
-import { PRIMARY_NAV, SECONDARY_NAV } from '@/lib/nav'
+import { FOOTER_LINKS } from '@/lib/nav'
 
-const ACCOUNT = [
-  { label: 'Register for Season 2', href: '/register' },
-  { label: 'Sign In', href: '/login' },
-  { label: 'Your Account', href: '/account' },
+// Placeholder social icons (lucide dropped brand logos; real links added later).
+const SOCIAL: Array<{ label: string; href: string; icon: LucideIcon }> = [
+  { label: 'Discord', href: '#', icon: MessageCircle },
+  { label: 'X', href: '#', icon: AtSign },
+  { label: 'YouTube', href: '#', icon: Video },
+  { label: 'Instagram', href: '#', icon: Camera },
 ]
 
-/** Public site footer: brand + legacy line, compete/archive/account nav, small print. */
+/** Slim dark footer: copyright, placeholder legal/links, social icons. */
 export function SiteFooter() {
   const year = new Date().getFullYear()
-
   return (
-    <footer className="mt-24 border-t border-border bg-card/30">
-      <Container className="grid gap-10 py-14 md:grid-cols-4">
-        <div>
-          <Logo href="/" showTagline />
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            The next chapter of competitive online 8-ball — preserving over two decades of history
-            while building the future of the game.
-          </p>
-          <p className="mt-4 text-xs text-muted-foreground">Formerly known as 8BRCAM</p>
+    <footer className="mt-16 border-t border-border bg-card/40">
+      <div className="mx-auto flex w-full max-w-[96rem] flex-col items-center gap-4 px-4 py-6 text-sm sm:px-6 lg:flex-row lg:justify-between lg:gap-6 lg:px-8">
+        <p className="text-xs text-muted-foreground">
+          © {year} 8 Ball Revival. All rights reserved.
+        </p>
+
+        <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          {FOOTER_LINKS.map((l) => (
+            <Link
+              key={l.label}
+              href={l.href}
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1">
+          {SOCIAL.map((s) => {
+            const Icon = s.icon
+            return (
+              <Link
+                key={s.label}
+                href={s.href}
+                aria-label={s.label}
+                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <Icon className="size-4" />
+              </Link>
+            )
+          })}
         </div>
-
-        <nav aria-label="Compete">
-          <h3 className="eyebrow mb-4 text-muted-foreground">Compete</h3>
-          <ul className="space-y-2.5 text-sm">
-            {PRIMARY_NAV.filter((i) => i.href !== '/').map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="text-muted-foreground transition-colors hover:text-foreground">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <nav aria-label="Account">
-          <h3 className="eyebrow mb-4 text-muted-foreground">Account</h3>
-          <ul className="space-y-2.5 text-sm">
-            {ACCOUNT.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="text-muted-foreground transition-colors hover:text-foreground">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <nav aria-label="Archive">
-          <h3 className="eyebrow mb-4 text-muted-foreground">Archive &amp; Records</h3>
-          <ul className="space-y-2.5 text-sm">
-            {SECONDARY_NAV.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="text-muted-foreground transition-colors hover:text-foreground">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </Container>
-
-      <div className="border-t border-border">
-        <Container className="flex flex-col items-center justify-between gap-2 py-5 text-xs text-muted-foreground sm:flex-row">
-          <p>© {year} 8 Ball Revival</p>
-          <p>Formerly known as 8BRCAM</p>
-        </Container>
       </div>
     </footer>
   )
