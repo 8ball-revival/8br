@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { Wide } from '@/components/home/primitives'
 import { Hero, HeroBackdrop } from '@/components/home/hero'
-import { RegisteredPlayers } from '@/components/home/registered-players'
+import { CompetitionsPanel, type CompetitionItem } from '@/components/home/competitions-panel'
 import { Top10Panel } from '@/components/home/top10-panel'
 import { CurrentCupBox } from '@/components/home/current-cup-box'
 import { NewsPanel } from '@/components/home/news-panel'
@@ -12,7 +12,7 @@ import { OnThisDay } from '@/components/home/on-this-day'
 import { getHomeData, type HeroData } from '@/lib/home/fixtures'
 import { getSeasonTop, getSeasonRankings } from '@/lib/stats/season-stats'
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
-import { getPublicRegistrations, getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
+import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { getSpotlightPlayers } from '@/lib/spotlight/fixtures'
 import { getCups } from '@/lib/cups/service'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
@@ -40,7 +40,6 @@ export default async function HomePage() {
   // Most homepage panels are still fixture-driven (see lib/home/fixtures); the
   // Registered Players panel is now live from the database.
   const data = getHomeData()
-  const registrations = await getPublicRegistrations()
   const currentCup = getCups().find((c) => c.status === 'live')
 
   // Registration state on the hero is DB-driven (the manual staff status is
@@ -63,6 +62,25 @@ export default async function HomePage() {
         : 'Registration will open soon.',
   }
 
+  // Current & upcoming competitions for the hero side panel (existing data only).
+  const competitions: CompetitionItem[] = []
+  if (season) {
+    competitions.push({
+      title: season.name,
+      meta: open ? 'Group stage → playoffs' : 'Season in progress',
+      href: open ? '/register' : '/groups',
+      status: open ? 'open' : 'closed',
+    })
+  }
+  for (const c of getCups().filter((c) => c.status === 'live')) {
+    competitions.push({
+      title: c.name,
+      meta: `Cup ${c.number}${c.currentRound ? ` · ${c.currentRound}` : ''}`,
+      href: `/cups/${c.number}`,
+      status: 'live',
+    })
+  }
+
   // Championship + season counters derived from the canonical Seasons source (the
   // remaining by-the-numbers tiles are decorative site-level counters, not player stats).
   const champions = getSeasonRankings().filter((p) => p.championships > 0).length
@@ -82,7 +100,7 @@ export default async function HomePage() {
         <HeroBackdrop />
         <Wide className="relative grid items-start gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-14">
           <Hero data={hero} registrationOpen={open} />
-          <RegisteredPlayers players={registrations} />
+          <CompetitionsPanel items={competitions} />
         </Wide>
       </section>
 

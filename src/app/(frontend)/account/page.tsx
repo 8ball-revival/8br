@@ -13,7 +13,8 @@ import { WithdrawButton } from '@/components/account/withdraw-button'
 import { SignOutButton } from '@/components/account/sign-out-button'
 import { getCurrentUser, getSeason2Registration } from '@/lib/account/auth'
 import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
-import { getProfileByUserId } from '@/lib/players/service'
+import { getProfileByUserId, cueverseCooldownState } from '@/lib/players/service'
+import { CueverseIdForm } from '@/components/account/cueverse-id-form'
 import { getCareerStatById } from '@/lib/stats/career-stats'
 import { getPlayerRankingProfile } from '@/lib/stats/rankings'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
@@ -147,7 +148,15 @@ export default async function AccountPage() {
             <Row label="User ID" value={user.username} />
             <Row label="Email" value={user.email} hint="Private — never shown publicly." />
             {user.createdAt && <Row label="Member since" value={formatDate(user.createdAt)} />}
-            <Row label="Player profile" value={profile ? `${profile.primaryName}${profile.cueverseId ? ` (${profile.cueverseId})` : ''}` : 'Not linked yet'} />
+            <Row label="Player profile" value={profile ? `${profile.primaryName}${profile.cueverseId ? ` (${profile.cueverseId})` : ''}` : 'Not linked yet'} hint={profile ? 'Your real name is shown only here, never in competitions.' : undefined} />
+            {profile && (
+              <div className="border-t border-border pt-4">
+                {(() => {
+                  const cd = cueverseCooldownState(profile.cueverseIdChangedAt)
+                  return <CueverseIdForm current={profile.cueverseId} canChange={cd.canChange} nextAvailableAt={cd.nextAvailableAt} />
+                })()}
+              </div>
+            )}
           </CardContent>
         </Card>
 

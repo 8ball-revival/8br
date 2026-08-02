@@ -25,6 +25,7 @@
  */
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
 import { getCups, type BracketRound, type Cup } from '@/lib/cups/service'
+import { currentCupRevision } from '@/lib/cups/context'
 import { resolveIdentity } from './identity'
 
 // ---- Glicko-2 constants -----------------------------------------------------
@@ -478,8 +479,14 @@ function runGlicko(periods: Period[], trackYearEnd: boolean): RatingTimeline {
 }
 
 let _periods: Period[] | null = null
+let _periodsRev = -1
 function allPeriods(): Period[] {
-  return (_periods ??= buildPeriods())
+  const rev = currentCupRevision()
+  if (!_periods || _periodsRev !== rev) {
+    _periodsRev = rev
+    _periods = buildPeriods()
+  }
+  return _periods
 }
 
 /** True if a period falls inside the trailing 365-day window ending at `now`. */
@@ -494,20 +501,26 @@ function periodInCurrentWindow(p: Period, now: Date): boolean {
 }
 
 let _cache: RatingTimeline | null = null
+let _cacheRev = -1
 
 /** The full persistent Glicko-2 timeline — used ONLY for All-Time (peaks) + provenance. */
 export function getRatingTimeline(): RatingTimeline {
-  return (_cache ??= runGlicko(allPeriods(), true))
+  const rev = currentCupRevision()
+  if (!_cache || _cacheRev !== rev) {
+    _cacheRev = rev
+    _cache = runGlicko(allPeriods(), true)
+  }
+  return _cache
 }
 
-const _current = new Map<number, RatingTimeline>()
+const _current = new Map<string, RatingTimeline>()
 /**
  * CURRENT view — an independent Glicko-2 calculation from a 1500 baseline over ONLY
  * the matches inside the trailing 365-day window. No lifetime carryover; matches older
  * than the window contribute nothing. (Answers: who performed best in the last year.)
  */
 export function getCurrentTimeline(now: Date): RatingTimeline {
-  const key = now.getFullYear()
+  const key = `${currentCupRevision()}:${now.getFullYear()}`
   let tl = _current.get(key)
   if (!tl) {
     tl = runGlicko(allPeriods().filter((p) => periodInCurrentWindow(p, now)), false)

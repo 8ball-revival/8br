@@ -18,7 +18,11 @@ export async function syncLiveCupToSnapshot(seasonId: number): Promise<void> {
   if (!season || season.competitionType !== 'CUP') return
   if (season.importedFromFixture) return // never rewrite an imported historical cup
 
-  if (season.cupStatus === 'completed') {
+  // Materialise the bracket into the snapshot when the cup is completed OR has a published
+  // bracket (a live/converted cup whose completed rounds already feed rankings). Draft
+  // (unpublished) cups are intentionally kept out of the snapshot until published.
+  const publishedCount = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+  if (season.cupStatus === 'completed' || publishedCount > 0) {
     await materialiseBracket(seasonId)
   }
   await regenerateCupSnapshot()
@@ -32,6 +36,11 @@ async function materialiseBracket(seasonId: number): Promise<void> {
   if (!rows.length) return
   const totalRounds = Math.max(...rows.map((r) => r.round))
 
+  // Carry each entrant's public handle (cueverseId) into the snapshot slots so the
+  // ranking engine's identity resolver can match the exact profile, not just the name.
+  const regs = await prisma.registration.findMany({ where: { seasonId }, select: { id: true, cueverseId: true } })
+  const handleByReg = new Map(regs.map((r) => [r.id, r.cueverseId]))
+
   await prisma.$transaction(async (tx) => {
     await tx.cupBracketMatch.deleteMany({ where: { competitionId: seasonId, bracketKind: 'MAIN' } })
     for (const r of rows) {
@@ -44,12 +53,12 @@ async function materialiseBracket(seasonId: number): Promise<void> {
           matchOrder: r.slot,
           aPresent: r.homeUsername != null,
           aName: r.homeUsername,
-          aHandle: null,
+          aHandle: r.homeRegistrationId != null ? handleByReg.get(r.homeRegistrationId) ?? null : null,
           aSeed: r.homeSeed,
           aScore: r.homeGames,
           bPresent: r.awayUsername != null,
           bName: r.awayUsername,
-          bHandle: null,
+          bHandle: r.awayRegistrationId != null ? handleByReg.get(r.awayRegistrationId) ?? null : null,
           bSeed: r.awaySeed,
           bScore: r.awayGames,
           winner: r.winnerRegistrationId == null ? null : r.winnerRegistrationId === r.homeRegistrationId ? 'a' : 'b',

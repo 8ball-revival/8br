@@ -11,6 +11,7 @@ export interface CreateCupConfig {
   participantFormat: ParticipantFormat // INDIVIDUAL | TEAM
   teamSize?: number | null // members per team when TEAM (2 for 2v2)
   tournamentFormat: TournamentFormat
+  raceLength: number // games required to win a match (any positive integer)
   entryMode: 'PUBLIC' | 'MANUAL'
   camRequirement?: CamRequirement
   fieldSize?: number | null // informational target field/bracket size
@@ -52,6 +53,9 @@ export async function createCup(
   if (cfg.participantFormat === 'TEAM' && (!cfg.teamSize || cfg.teamSize < 2)) {
     return { ok: false, error: 'Team cups need a team size of at least 2.' }
   }
+  if (!Number.isInteger(cfg.raceLength) || cfg.raceLength < 1) {
+    return { ok: false, error: 'Race length must be a positive whole number.' }
+  }
 
   try {
     const created = await prisma.$transaction(async (tx) => {
@@ -80,9 +84,13 @@ export async function createCup(
           participantFormat: cfg.participantFormat,
           teamSize: cfg.participantFormat === 'TEAM' ? cfg.teamSize ?? null : null,
           tournamentFormat: cfg.tournamentFormat,
+          raceLength: cfg.raceLength,
           cupFormatBadge: formatBadge(cfg),
           cupStatus: 'live', // editable/live cup (distinguished from imported historical)
-          cupYear: null,
+          // Stamp the year + start date NOW so the cup falls inside the rolling ranking
+          // window and its champion title is credited once results are recorded/completed.
+          cupYear: new Date().getFullYear(),
+          cupDate: new Date().toISOString().slice(0, 10),
           seasonStatus: cfg.initialState === 'UPCOMING' ? 'UPCOMING' : 'UPCOMING',
           registrationStatus: cfg.entryMode === 'PUBLIC' ? 'OPEN' : 'NOT_OPEN',
           playoffsStatus: 'PENDING',

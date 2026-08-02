@@ -31,7 +31,7 @@ export function RegisteredPlayers({ players }: { players: PublicRegistrant[] }) 
               <PlayerAvatar name={p.displayName} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{p.displayName}</p>
-                {p.cueverseId && (
+                {p.cueverseId && p.cueverseId !== p.displayName && (
                   <p className="truncate text-[0.7rem] text-muted-foreground">{p.cueverseId}</p>
                 )}
               </div>

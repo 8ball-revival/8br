@@ -8,6 +8,7 @@ import { PlayerAvatar } from '@/components/home/primitives'
 import { Bracket } from '@/components/cups/bracket'
 import { TeamTies } from '@/components/cups/team-ties'
 import { CupWorkspace } from '@/components/cups/cup-workspace'
+import { ConvertLegacyBanner } from '@/components/cups/convert-legacy-banner'
 import { getCup, getCups, cupBracket } from '@/lib/cups/service'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { getCupWorkspace, type CupWorkspaceData } from '@/lib/cups/live'
@@ -218,7 +219,10 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
         </section>
       )}
 
-      {canManage && ws && (
+      {canManage && ws && ws.isLegacyConvertible && (
+        <ConvertLegacyBanner seasonId={ws.season.id} />
+      )}
+      {canManage && ws && !ws.isLegacyConvertible && (
         <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} />
       )}
     </Container>

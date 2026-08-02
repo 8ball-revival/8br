@@ -17,6 +17,7 @@
  *    ll_chex_ll, trustneo) keep their own archive ids — no override touches them.
  */
 import aliasData from './player-aliases.json'
+import { buildIdentityOverrides, CONFIRMED_ID_REMAPS } from '@/lib/identity/roster-map'
 
 const RAW_H2ID = aliasData.handleToId as Record<string, string>
 const RAW_ID2NAME = aliasData.idToName as Record<string, string>
@@ -40,12 +41,11 @@ for (const h of ['mynameiseskimo', 'eskimo']) FORCE[key(h)] = 'peter'
 for (const h of ['sixohtwo', 'havok']) FORCE[key(h)] = 'P0969' // Kevin
 for (const h of ['deep.cerebro', 'real_creampuff', 'xlx_cerebro_xlx']) FORCE[key(h)] = 'luis'
 for (const h of ['mvp_sicc', 'good-faith', 'manutd_', 'underdogg_']) FORCE[key(h)] = 'ant'
-// Derrick's stylized current-era cup gamertag → his canonical id P1256, which the
-// plain "derrick" handle already maps to and which carries his current (2025–2026)
-// and 2009 play. This keeps one person from rating as two. The other historical
-// "Derrick" archive ids (P0325/P1021/P1022/P1255) are NOT merged — that would be a
-// guess. key() normalises the fancy glyphs to a stable key.
-FORCE[key('GØĐⱠłKɆ.÷')] = 'P1256'
+// Derrick's stylized current-era cup gamertag. Owner-confirmed (2026-08-02): this handle,
+// its P1256 archive id, and the roster canonical P1022 ("poolist") are all ONE Derrick, so
+// it resolves straight to P1022 and P1256 is folded in via CONFIRMED_ID_REMAPS below.
+// key() normalises the fancy glyphs to a stable key.
+FORCE[key('GØĐⱠłKɆ.÷')] = 'P1022'
 // l_Mr_CC_l and xlx_CC_xlx are Craig (owner-confirmed) → his current, established id
 // P1567 (the #2-ranked Craig, active through 2026). Other historical "Craig" archive
 // ids are NOT merged (that would be a guess).
@@ -68,6 +68,8 @@ for (const id of GARY_IDS) ID_REMAP[id] = 'gary'
 // Owner-confirmed: Serena / _ladyluck_ (P1860 — ladyluck, safeties, serena, xserenax, …)
 // is the current player Travis (P1853). Travis replaces all mention of Serena.
 ID_REMAP.P1860 = 'P1853'
+// Owner-confirmed archive-id merges from the authoritative roster (e.g. P1256 → Derrick).
+for (const [from, to] of Object.entries(CONFIRMED_ID_REMAPS)) ID_REMAP[from] = to
 // Canonical display names for corrected/canonical ids.
 // P1183 = cue.ball: owner-confirmed his name is James (the archive idToName had "JD").
 const NAME: Record<string, string> = { neo: 'Neo', P1791: 'MJ', peter: 'Peter', craig: 'Craig', P1256: 'Derrick', gary: 'Gary', P1183: 'James' }
@@ -75,6 +77,28 @@ const NAME: Record<string, string> = { neo: 'Neo', P1791: 'MJ', peter: 'Peter', 
 const SHARED = new Set([key('i_am_almost_god')])
 // Handles the owner has explicitly flagged as unresolved (excluded until reviewed).
 const FLAGGED = new Set<string>()
+
+// ---------------------------------------------------------------------------
+// AUTHORITATIVE ROSTER MAPPING → career aggregation (owner-provided). Every SAFE alias
+// key resolves to the person's canonical id so their whole CAREER aggregates to one
+// profile; ambiguous handles (unicode / very short / placeholder / shared) are skipped and
+// surfaced for manual confirmation. This affects ONLY career/rankings resolution — it never
+// changes historical competition PRESENTATION (brackets/standings render stored, as-played
+// names). Display name = the person's current CueVerse ID.
+// ---------------------------------------------------------------------------
+// Exact-raw (lowercased, trimmed) handle → canonical id, for owner-confirmed UNICODE handles
+// that normalize to an empty key (e.g. Missy's ℳ𝒾𝓼𝓈𝓎♥︎, Derrick's ₲ØĐⱠł₭Ɇ₊⊹ / 💎).
+const RAW_FORCE: Record<string, string> = {}
+{
+  const ov = buildIdentityOverrides()
+  for (const [k, id] of Object.entries(ov.force)) {
+    FORCE[k] = id
+    const archiveId = RAW_H2ID[k]
+    if (archiveId && archiveId !== id) ID_REMAP[archiveId] = id // fold that archive id into the person
+  }
+  for (const [raw, id] of Object.entries(ov.rawForce)) RAW_FORCE[raw] = id
+  Object.assign(NAME, ov.name)
+}
 
 export interface Identity {
   id: string
@@ -111,6 +135,12 @@ export function resolveIdentity(
   // Owner-flagged unresolved handles.
   const kh = key(handle)
   if (kh && FLAGGED.has(kh)) return { id: `unresolved:${kh}`, name: name ?? handle ?? kh, ok: false }
+
+  // Owner-confirmed unicode handles (empty normalized key) — match the exact raw string.
+  for (const raw of [handle, name]) {
+    const rk = (raw ?? '').trim().toLowerCase()
+    if (rk && RAW_FORCE[rk]) return { id: RAW_FORCE[rk], name: nameFor(RAW_FORCE[rk], raw as string), ok: true }
+  }
 
   for (const raw of [handle, name]) {
     const k = key(raw)

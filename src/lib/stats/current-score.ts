@@ -1,45 +1,59 @@
 /**
- * 8 Ball Revival — CURRENT RANKINGS: transparent hybrid performance score.
+ * 8 Ball Revival — CURRENT RANKINGS: stage-weighted performance score.
  *
- * Current is NOT the Glicko ladder. It is a points model over official results in the
- * trailing 365-day window, weighted so that: Season Playoffs > Season Group Stage >
- * Cups, later playoff rounds are worth progressively more, and losses + opponent
- * quality both matter. Every value lives in CONFIG so it can be tuned without touching
- * the engine. Pure function of official Seasons + Cups — nothing stored.
+ * Philosophy: the IMPORTANCE OF THE MATCH determines its value, not the number of matches
+ * played. A single geometric ladder ranks every stage exactly:
+ *   Season Final > Cup Final > Season SF > Season QF > Cup SF > Cup QF >
+ *   Season playoff (other rounds) > Group match = early Cup round.
+ * Points are earned by WINNING matches at their stage value. The group stage is a CAPPED,
+ * match-count-INDEPENDENT qualifier (placement + win rate) so a long round-robin can never
+ * overpower playoff success. Opponent quality is a moderate, hard-capped multiplier that
+ * can never outweigh the stage. Every value lives in CONFIG. Pure function of official
+ * Seasons + Cups. Seasons are single-elimination (legacy double-elim data still reads).
  *
  * (All-Time and Historical keep the Glicko engine; this drives ONLY the Current view.)
  */
 import { getAllArchiveSeasons, type ArchiveSeason } from '@/lib/seasons/archive'
 import { getCups, type Cup } from '@/lib/cups/service'
+import { currentCupRevision } from '@/lib/cups/context'
 import { resolveIdentity } from './identity'
 import type { MatchResult } from './rating-engine'
 
 // ---- Tunable configuration --------------------------------------------------
 export const CONFIG = {
-  cup: {
-    win: { early: 10, quarterfinal: 10, semifinal: 12, final: 15 },
-    loss: { early: -4, quarterfinal: -4, semifinal: -5, final: -6 },
-    finish: { champion: 35, runnerUp: 20, semifinal: 10, quarterfinal: 5 },
-  },
+  // Stage ladder: value(tier) = base * ratio^rank. One knob controls the whole hierarchy.
+  base: 100,
+  ratio: 0.72,
   group: {
-    win: 15,
-    draw: 5,
-    loss: -6,
-    placement: [25, 18, 10, 5, 0], // 1st..4th, then 0 for 5th+
+    cap: 30, // max total group-stage contribution per season (a qualifier, not the event)
+    placementWeight: 0.6,
+    winRateWeight: 0.4,
   },
-  playoff: {
-    win: { early: 20, quarterfinal: 25, semifinal: 32, final: 40 },
-    loss: { early: -8, quarterfinal: -9, semifinal: -10, final: -10 },
-    finish: { champion: 60, runnerUp: 35, semifinal: 18, quarterfinal: 8 },
-  },
+  loss: { base: 8 }, // flat per-loss penalty, scaled ONLY by opponent quality
+  finalist: { season: 35, cup: 25 }, // reached the final but lost (softens champ↔runner-up)
   quality: {
-    beatSeasonChampion: 8,
-    beatCupChampion: 5,
-    lossToSeasonChampionFactor: 0.5, // keep 50% of the (negative) penalty
-    lossToCupChampionFactor: 0.75, // keep 75% of the penalty
+    k: 0.25, // ±25% max swing — moderate; never overtakes the stage
+    winMin: 0.85,
+    winMax: 1.25,
+    lossMin: 0.75,
+    lossMax: 1.25,
+    reigningChampWinFloor: 0.15, // beating a reigning champion is worth at least +15%
   },
   windowDays: 365,
   formLength: 5,
+} as const
+
+// Stage ladder derived from base + ratio (rank 0 = most important).
+const V = (rank: number) => CONFIG.base * Math.pow(CONFIG.ratio, rank)
+export const STAGE = {
+  seasonFinal: V(0),
+  cupFinal: V(1),
+  seasonSemifinal: V(2),
+  seasonQuarterfinal: V(3),
+  cupSemifinal: V(4),
+  cupQuarterfinal: V(5),
+  seasonPlayoffOther: V(6),
+  floor: V(7), // group match = early cup round
 } as const
 
 type Tier = 'early' | 'quarterfinal' | 'semifinal' | 'final'
@@ -47,18 +61,30 @@ const TIER_RANK: Record<Tier, number> = { early: 0, quarterfinal: 1, semifinal: 
 
 function roundTier(name: string): Tier {
   const n = name.toLowerCase()
+  if (n.includes('final') || n.includes('grand')) return 'final'
   if (n.includes('semi')) return 'semifinal'
   if (n.includes('quarter')) return 'quarterfinal'
-  if (n.includes('final') || n.includes('grand')) return 'final'
   return 'early'
 }
+/** Points a WIN at this stage is worth. */
+function stageValue(kind: 'season' | 'cup', tier: Tier): number {
+  if (kind === 'season') {
+    if (tier === 'final') return STAGE.seasonFinal
+    if (tier === 'semifinal') return STAGE.seasonSemifinal
+    if (tier === 'quarterfinal') return STAGE.seasonQuarterfinal
+    return STAGE.seasonPlayoffOther
+  }
+  if (tier === 'final') return STAGE.cupFinal
+  if (tier === 'semifinal') return STAGE.cupSemifinal
+  if (tier === 'quarterfinal') return STAGE.cupQuarterfinal
+  return STAGE.floor
+}
 
-// ---- Public shapes ----------------------------------------------------------
+// ---- Public shapes (unchanged — consumers depend on these) ------------------
 export interface ScoreLine {
   label: string
   points: number
 }
-
 export interface CurrentScoreRow {
   rank: number
   id: string
@@ -80,11 +106,10 @@ export interface CurrentScoreRow {
   cupTitles: number
   qualityWins: number
   recentForm: MatchResult[]
-  trend: number // net of recent form (wins − losses over last 5), for ▲/▼
-  breakdown: ScoreLine[] // sums to `score`
-  seasonPlayoffWins: number // tiebreaker
+  trend: number
+  breakdown: ScoreLine[]
+  seasonPlayoffWins: number
 }
-
 export interface CurrentScoreView {
   rows: CurrentScoreRow[]
   warnings: string[]
@@ -114,10 +139,10 @@ interface Acc {
   id: string
   name: string
   resolved: boolean
-  lines: Map<string, number> // positive contribution lines (label → points)
+  lines: Map<string, number> // base positive lines (label → points), quality-free
   qualityWinPts: number
   qualityWins: number
-  lossPenalties: number // negative
+  lossPenalties: number // negative (quality-adjusted)
   groupW: number; groupL: number; groupD: number
   playoffW: number; playoffL: number
   cupW: number; cupL: number
@@ -126,19 +151,29 @@ interface Acc {
   form: { order: number; result: MatchResult }[]
   h2h: Map<string, { w: number; l: number }>
 }
-
 interface EventMeta {
-  id: string
-  label: string
-  order: number
+  id: string; label: string; order: number
   kind: 'season' | 'cup'
-  champId: string | null
-  ruId: string | null
-  completed: boolean
+  champId: string | null; ruId: string | null; completed: boolean
+}
+// A single decided match, collected in pass 1 and re-scored for quality in pass 2.
+interface MatchRec {
+  winId: string; loseId: string
+  kind: 'season' | 'cup'; value: number; label: string; order: number; eventId: string
 }
 
-// In-window when the exact date falls in the trailing 365 days; otherwise fall back to
-// the current-calendar-year proxy (no fabricated dates for undated events).
+/**
+ * Finish-based Cup stage points — a function of HOW FAR a player advanced, NOT how many
+ * matches the format required. Single- and double-elimination runs to the same finish
+ * score identically, so extra losers-bracket matches can never inflate a ranking.
+ */
+function cupFinishStage(deepestTier: Tier, isChampion: boolean): number {
+  if (isChampion) return STAGE.floor + STAGE.cupQuarterfinal + STAGE.cupSemifinal + STAGE.cupFinal
+  if (deepestTier === 'final' || deepestTier === 'semifinal') return STAGE.floor + STAGE.cupQuarterfinal + STAGE.cupSemifinal
+  if (deepestTier === 'quarterfinal') return STAGE.floor + STAGE.cupQuarterfinal
+  return STAGE.floor
+}
+
 const withinWindow = (now: Date, year: number | undefined, date?: string): boolean => {
   if (date) {
     const d = new Date(date).getTime()
@@ -151,7 +186,7 @@ const cupOrder = (c: Cup) => (c.year ?? 0) * 1000 + 900 + c.number
 
 const _cache = new Map<string, CurrentScoreView>()
 export function getCurrentScoreRankings(now: Date = new Date()): CurrentScoreView {
-  const cacheKey = now.toDateString()
+  const cacheKey = `${currentCupRevision()}:${now.toDateString()}`
   const cached = _cache.get(cacheKey)
   if (cached) return cached
   const view = computeCurrentScore(now)
@@ -164,15 +199,14 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   const seasons = getAllArchiveSeasons().filter((s) => !s.pending && withinWindow(now, s.year))
   const cups = getCups().filter((c) => withinWindow(now, c.year, c.date))
 
-  // Pass A — titles earned inside the window (with the order of the winning event).
+  // Reigning-champion index (earliest order at which a player became champion in-window).
   const seasonChampAt = new Map<string, number>()
   const cupChampAt = new Map<string, number>()
-  for (const s of seasons) {
+  for (const s of seasons)
     for (const d of s.divisions) {
       const ch = ident(d.champion)
       if (ch) seasonChampAt.set(ch.id, Math.min(seasonChampAt.get(ch.id) ?? Infinity, seasonOrder(s) + 1))
     }
-  }
   for (const c of cups) {
     if (c.status !== 'completed') continue
     const ch = ident(c.champion)
@@ -191,109 +225,87 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     return e
   }
   const addLine = (e: Acc, label: string, pts: number) => e.lines.set(label, (e.lines.get(label) ?? 0) + pts)
-  const deepest = new Map<string, Map<string, Tier>>() // playerId → eventId → deepest tier
+  const events: EventMeta[] = []
+  const matches: MatchRec[] = []
+  const deepest = new Map<string, Map<string, Tier>>()
   const setDeepest = (id: string, eventId: string, t: Tier) => {
     const m = deepest.get(id) ?? new Map<string, Tier>()
     if (!m.has(eventId) || TIER_RANK[t] > TIER_RANK[m.get(eventId)!]) m.set(eventId, t)
     deepest.set(id, m)
   }
-  const events: EventMeta[] = []
 
-  // qualityAdjustedLoss: opp is the winner of the match the player lost.
-  const qualityFactor = (oppId: string, order: number): number => {
-    if ((seasonChampAt.get(oppId) ?? Infinity) < order) return CONFIG.quality.lossToSeasonChampionFactor
-    if ((cupChampAt.get(oppId) ?? Infinity) < order) return CONFIG.quality.lossToCupChampionFactor
-    return 1
-  }
-  const qualityWinBonus = (oppId: string, order: number): number => {
-    if ((seasonChampAt.get(oppId) ?? Infinity) < order) return CONFIG.quality.beatSeasonChampion
-    if ((cupChampAt.get(oppId) ?? Infinity) < order) return CONFIG.quality.beatCupChampion
-    return 0
+  // ---- PASS 1: base points (stage wins + capped group + finalist), collect matches ----
+  const recordMatch = (win: NonNullable<ReturnType<typeof ident>>, los: NonNullable<ReturnType<typeof ident>>, kind: 'season' | 'cup', tier: Tier, label: string, eventId: string, order: number) => {
+    const we = get(win.id, win.name, win.resolved)
+    const le = get(los.id, los.name, los.resolved)
+    setDeepest(win.id, eventId, tier)
+    setDeepest(los.id, eventId, tier)
+    const value = stageValue(kind, tier)
+    // Seasons: per-match stage (single-elim, bounded). Cups: stage is added finish-based
+    // later (format-independent), so we do NOT add per-match cup stage here.
+    if (kind === 'season') addLine(we, label, value)
+    if (kind === 'season') { we.playoffW++; we.seasonPlayoffWins++; le.playoffL++ } else { we.cupW++; le.cupL++ }
+    we.form.push({ order, result: 'W' }); le.form.push({ order, result: 'L' })
+    we.h2h.set(los.id, { w: (we.h2h.get(los.id)?.w ?? 0) + 1, l: we.h2h.get(los.id)?.l ?? 0 })
+    le.h2h.set(win.id, { w: le.h2h.get(win.id)?.w ?? 0, l: (le.h2h.get(win.id)?.l ?? 0) + 1 })
+    matches.push({ winId: win.id, loseId: los.id, kind, value, label, order, eventId })
   }
 
-  // Pass B — Seasons: group standings (aggregate) + playoff matches (per-match).
+  // Seasons: capped group qualifier + per-match playoffs.
   for (const s of seasons) {
     const gLabel = `${s.label} — Group Stage`
-    const pLabel = `${s.label} — Playoffs`
     const order = seasonOrder(s)
     for (const d of s.divisions) {
       const ch = ident(d.champion), ru = ident(d.runnerUp)
-      events.push({ id: `${s.seasonId}:season`, label: s.label, order: order + 1, kind: 'season', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: true })
+      const eventId = `${s.seasonId}:season`
+      events.push({ id: eventId, label: s.label, order: order + 1, kind: 'season', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: true })
 
-      // Group stage — from standings aggregate (works even without pairwise logs).
+      // Group: ONE capped, count-independent number per player (placement + win rate).
       for (const grp of d.groups ?? []) {
+        const N = grp.rows.length
         grp.rows.forEach((row, i) => {
-          if (row.wins + row.losses + row.draws === 0) return
+          const played = row.wins + row.losses + row.draws
+          if (!played) return
           const r = ident(row)
           if (!r) return
           const e = get(r.id, r.name, r.resolved)
-          const place = CONFIG.group.placement[i] ?? 0
-          addLine(e, gLabel, row.wins * CONFIG.group.win + row.draws * CONFIG.group.draw + place)
-          e.lossPenalties += row.losses * CONFIG.group.loss
+          const place01 = N > 1 ? (N - 1 - i) / (N - 1) : 1
+          const winRate = row.wins / played
+          const perf = CONFIG.group.placementWeight * place01 + CONFIG.group.winRateWeight * winRate
+          addLine(e, gLabel, CONFIG.group.cap * perf)
           e.groupW += row.wins; e.groupL += row.losses; e.groupD += row.draws
         })
       }
 
-      // Playoffs — per completed match, by round tier.
-      const rounds = [
-        ...(d.playoff?.rounds ?? []),
-        ...(d.doubleElim ? [...d.doubleElim.winners, ...d.doubleElim.losers] : []),
-      ]
+      // Playoffs (single-elim; legacy double-elim rounds tier by name → seasonPlayoffOther).
+      const rounds = [...(d.playoff?.rounds ?? []), ...(d.doubleElim ? [...d.doubleElim.winners, ...d.doubleElim.losers] : [])]
       for (const rd of rounds) {
         const tier = roundTier(rd.name)
         for (const m of rd.matches) {
           if (!m.winner) continue
           const a = ident(m.a), b = ident(m.b)
           if (!a || !b || a.id === b.id) continue
-          const win = m.winner === 'a' ? a : b
-          const los = m.winner === 'a' ? b : a
-          const we = get(win.id, win.name, win.resolved)
-          const le = get(los.id, los.name, los.resolved)
-          setDeepest(win.id, `${s.seasonId}:season`, tier)
-          setDeepest(los.id, `${s.seasonId}:season`, tier)
-          addLine(we, pLabel, CONFIG.playoff.win[tier])
-          we.playoffW++; we.seasonPlayoffWins++
-          const qb = qualityWinBonus(los.id, order + 1)
-          if (qb) { we.qualityWinPts += qb; we.qualityWins++ }
-          le.lossPenalties += CONFIG.playoff.loss[tier] * qualityFactor(win.id, order + 1)
-          le.playoffL++
-          we.form.push({ order: order + 1, result: 'W' }); le.form.push({ order: order + 1, result: 'L' })
-          we.h2h.set(los.id, { w: (we.h2h.get(los.id)?.w ?? 0) + 1, l: we.h2h.get(los.id)?.l ?? 0 })
-          le.h2h.set(win.id, { w: le.h2h.get(win.id)?.w ?? 0, l: (le.h2h.get(win.id)?.l ?? 0) + 1 })
+          recordMatch(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, 'season', tier, `${s.label} — Playoffs`, eventId, order + 1)
         }
       }
     }
   }
 
-  // Pass B — Cups: bracket + team-tie matches (per-match), finish only if completed.
+  // Cups: per-match bracket + team ties.
   for (const c of cups) {
     const order = cupOrder(c)
     const ch = ident(c.champion), ru = ident(c.runnerUp)
-    events.push({ id: `cup${c.number}`, label: cupLabel(c), order, kind: 'cup', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: c.status === 'completed' })
+    const eventId = `cup${c.number}`
     const label = cupLabel(c)
-    const bracketRounds = [...(c.bracket ?? []), ...(c.winnersBracket ?? []), ...(c.losersBracket ?? []), ...(c.grandFinal ?? [])]
-    const record = (winSlot: ReturnType<typeof ident>, losSlot: ReturnType<typeof ident>, tier: Tier) => {
-      if (!winSlot || !losSlot || winSlot.id === losSlot.id) return
-      const we = get(winSlot.id, winSlot.name, winSlot.resolved)
-      const le = get(losSlot.id, losSlot.name, losSlot.resolved)
-      setDeepest(winSlot.id, `cup${c.number}`, tier)
-      setDeepest(losSlot.id, `cup${c.number}`, tier)
-      addLine(we, label, CONFIG.cup.win[tier])
-      we.cupW++
-      const qb = qualityWinBonus(losSlot.id, order)
-      if (qb) { we.qualityWinPts += qb; we.qualityWins++ }
-      le.lossPenalties += CONFIG.cup.loss[tier] * qualityFactor(winSlot.id, order)
-      le.cupL++
-      we.form.push({ order, result: 'W' }); le.form.push({ order, result: 'L' })
-      we.h2h.set(losSlot.id, { w: (we.h2h.get(losSlot.id)?.w ?? 0) + 1, l: we.h2h.get(losSlot.id)?.l ?? 0 })
-      le.h2h.set(winSlot.id, { w: le.h2h.get(winSlot.id)?.w ?? 0, l: (le.h2h.get(winSlot.id)?.l ?? 0) + 1 })
-    }
-    for (const rd of bracketRounds) {
+    events.push({ id: eventId, label, order, kind: 'cup', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: c.status === 'completed' })
+    const bracket = [...(c.bracket ?? []), ...(c.winnersBracket ?? []), ...(c.losersBracket ?? []), ...(c.grandFinal ?? [])]
+    for (const rd of bracket) {
       const tier = roundTier(rd.name)
       for (const m of rd.matches) {
         if (!m.winner) continue
         const a = ident(m.a), b = ident(m.b)
-        record(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, tier)
+        if (!a || !b || a.id === b.id) continue
+        recordMatch(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, 'cup', tier, label, eventId, order)
       }
     }
     for (const tie of c.teamTies ?? []) {
@@ -302,48 +314,90 @@ function computeCurrentScore(now: Date): CurrentScoreView {
         const w = boardWinner(m.homeScore, m.awayScore)
         if (w == null) continue
         const home = ident(m.home), away = ident(m.away)
-        record(w === 1 ? home : away, w === 1 ? away : home, tier)
+        if (!home || !away || home.id === away.id) continue
+        recordMatch(w === 1 ? home : away, w === 1 ? away : home, 'cup', tier, label, eventId, order)
       }
     }
   }
 
-  // Pass C — finish bonuses (highest reached per event, no stacking).
+  // Season finish (single-elim): title counts (final win already scored) + finalist bonus.
   for (const ev of events) {
-    if (!ev.completed) continue
-    const cfg = ev.kind === 'season' ? CONFIG.playoff.finish : CONFIG.cup.finish
-    for (const [pid, evMap] of deepest) {
-      const tier = evMap.get(ev.id)
-      const e = acc.get(pid)
-      if (!e) continue
-      let bonus = 0
-      if (pid === ev.champId) { bonus = cfg.champion; if (ev.kind === 'season') e.seasonTitles++; else e.cupTitles++ }
-      else if (pid === ev.ruId) bonus = cfg.runnerUp
-      else if (tier === 'semifinal') bonus = cfg.semifinal
-      else if (tier === 'quarterfinal') bonus = cfg.quarterfinal
-      if (bonus) addLine(e, `${ev.label} — Finish`, bonus)
-    }
-    // Champion/RU may not have appeared in a rated match (rare) — still credit them.
-    for (const [pid, isChamp] of [[ev.champId, true], [ev.ruId, false]] as [string | null, boolean][]) {
-      if (!pid) continue
-      const e = acc.get(pid)
-      if (!e) continue
-      const already = (deepest.get(pid)?.has(ev.id)) ?? false
-      if (already) continue
-      const bonus = isChamp ? cfg.champion : cfg.runnerUp
-      if (isChamp) { if (ev.kind === 'season') e.seasonTitles++; else e.cupTitles++ }
-      addLine(e, `${ev.label} — Finish`, bonus)
-    }
+    if (ev.kind !== 'season' || !ev.completed) continue
+    if (ev.champId) { const e = acc.get(ev.champId); if (e) e.seasonTitles++ }
+    if (ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.season) }
   }
 
-  // Finalise rows.
+  // Cup finish (format-independent): stage points by how far each player advanced, so a
+  // double-elim losers-bracket run scores the same as reaching that finish in single-elim.
+  for (const ev of events) {
+    if (ev.kind !== 'cup') continue
+    for (const [pid, evMap] of deepest) {
+      const tier = evMap.get(ev.id)
+      if (!tier) continue
+      const e = acc.get(pid)
+      if (!e) continue
+      const isChampion = ev.completed && pid === ev.champId
+      addLine(e, ev.label, cupFinishStage(tier, isChampion))
+      if (isChampion) e.cupTitles++
+    }
+    if (ev.completed && ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.cup) }
+  }
+
+  // ---- Strength (percentile of base positive contributions) for opponent quality ----
+  const basePositive = new Map<string, number>()
+  for (const e of acc.values()) basePositive.set(e.id, [...e.lines.values()].reduce((s, v) => s + v, 0))
+  const sortedIds = [...basePositive.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => id)
+  const strength = new Map<string, number>() // 0 (weakest) .. 1 (strongest)
+  sortedIds.forEach((id, i) => strength.set(id, sortedIds.length > 1 ? i / (sortedIds.length - 1) : 0.5))
+  const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x))
+
+  // ---- PASS 2: opponent-quality (moderate, capped) ----
+  // Seasons apply quality/loss per match. Cups DEDUPE by event so double-elim volume can't
+  // stack: at most the single best quality win, and one elimination loss, per cup.
+  const cupQualityBest = new Map<string, number>() // `${winId}|${eventId}` → best win bonus
+  const cupLossSeen = new Set<string>() // `${loseId}|${eventId}`
+  for (const m of matches) {
+    const oppStrength = strength.get(m.loseId) ?? 0.5 // winner faced this strength
+    let winMult = clamp(1 + CONFIG.quality.k * (2 * oppStrength - 1), CONFIG.quality.winMin, CONFIG.quality.winMax)
+    const oppIsReigning = (seasonChampAt.get(m.loseId) ?? Infinity) < m.order || (cupChampAt.get(m.loseId) ?? Infinity) < m.order
+    if (oppIsReigning) winMult = Math.max(winMult, 1 + CONFIG.quality.reigningChampWinFloor)
+    const bonus = m.value * (winMult - 1)
+    if (m.kind === 'season') {
+      const we = acc.get(m.winId)
+      if (we && bonus !== 0) { we.qualityWinPts += bonus; if (bonus > 0) we.qualityWins++ }
+    } else {
+      const key = `${m.winId}|${m.eventId}`
+      const cur = cupQualityBest.get(key)
+      if (cur === undefined || bonus > cur) cupQualityBest.set(key, bonus)
+    }
+
+    const winnerStrength = strength.get(m.winId) ?? 0.5 // loser lost to this strength
+    const lossMult = clamp(1 + CONFIG.quality.k * (1 - 2 * winnerStrength), CONFIG.quality.lossMin, CONFIG.quality.lossMax)
+    const pen = -CONFIG.loss.base * lossMult
+    if (m.kind === 'season') {
+      const le = acc.get(m.loseId)
+      if (le) le.lossPenalties += pen
+    } else {
+      const key = `${m.loseId}|${m.eventId}`
+      if (!cupLossSeen.has(key)) { cupLossSeen.add(key); const le = acc.get(m.loseId); if (le) le.lossPenalties += pen }
+    }
+  }
+  // Apply the deduped best cup quality win per player per cup.
+  for (const [key, bonus] of cupQualityBest) {
+    if (bonus === 0) continue
+    const we = acc.get(key.split('|')[0])
+    if (we) { we.qualityWinPts += bonus; if (bonus > 0) we.qualityWins++ }
+  }
+
+  // ---- Finalise rows ----
   const rows: CurrentScoreRow[] = []
   for (const e of acc.values()) {
-    const positives = [...e.lines.entries()].map(([label, points]) => ({ label, points }))
+    const positives = [...e.lines.entries()].map(([label, points]) => ({ label, points: Math.round(points) }))
     positives.sort((a, b) => a.label.localeCompare(b.label))
     const breakdown: ScoreLine[] = [...positives]
-    if (e.qualityWinPts) breakdown.push({ label: 'Quality Wins', points: e.qualityWinPts })
+    if (e.qualityWinPts) breakdown.push({ label: 'Quality Wins', points: Math.round(e.qualityWinPts) })
     if (e.lossPenalties) breakdown.push({ label: 'Loss Penalties', points: Math.round(e.lossPenalties) })
-    const score = Math.round(positives.reduce((s, l) => s + l.points, 0) + e.qualityWinPts + e.lossPenalties)
+    const score = Math.round([...e.lines.values()].reduce((s, v) => s + v, 0) + e.qualityWinPts + e.lossPenalties)
     breakdown.push({ label: 'Total', points: score })
     const wins = e.groupW + e.playoffW + e.cupW
     const losses = e.groupL + e.playoffL + e.cupL
@@ -360,7 +414,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     })
   }
 
-  // Order + tiebreakers.
+  // Order + tiebreakers (unchanged).
   const h2hById = new Map<string, Acc>()
   for (const e of acc.values()) h2hById.set(e.id, e)
   rows.sort((a, b) => {
@@ -371,11 +425,10 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     if (b.qualityWins !== a.qualityWins) return b.qualityWins - a.qualityWins
     const ah = h2hById.get(a.id)?.h2h.get(b.id)
     const net = (ah?.w ?? 0) - (ah?.l ?? 0)
-    if (net !== 0) return -net // a won the h2h → a ranks higher
+    if (net !== 0) return -net
     return a.name.localeCompare(b.name)
   })
   rows.forEach((r, i) => {
-    // Joint rank only when genuinely tied on every ordered criterion.
     const prev = rows[i - 1]
     const tiedWithPrev =
       i > 0 && prev.score === r.score && prev.seasonPlayoffWins === r.seasonPlayoffWins &&
@@ -384,16 +437,9 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   })
 
   const warnings: string[] = []
-  for (const s of seasons) {
-    const gapNoMatches = s.divisions.some(
-      (d) => (d.groups ?? []).some((g) => g.rows.length > 0) && !(d.groups ?? []).some((g) => (g.matches ?? []).length > 0),
-    )
-    if (gapNoMatches)
-      warnings.push(`Group-stage points for ${s.label} are computed from official standings (per-match group logs not yet imported, so group quality-win bonuses are unavailable there).`)
-  }
-  warnings.push('Rolling window approximated by calendar year until events carry exact dates; 2025 events (e.g. the 602 Invitational) are excluded until dated inside the window.')
-
-  return { rows, warnings, provisionalDataset: warnings.length > 0, window: { days: CONFIG.windowDays, approximatedByYear: true, year: currentYear } }
+  warnings.push('Group-stage points are a capped qualifier (placement + win rate), independent of how many group matches a format uses.')
+  warnings.push('Rolling window approximated by calendar year until events carry exact dates.')
+  return { rows, warnings, provisionalDataset: false, window: { days: CONFIG.windowDays, approximatedByYear: true, year: currentYear } }
 }
 
 function cupLabel(c: Cup): string {

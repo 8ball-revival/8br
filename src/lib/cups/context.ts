@@ -14,3 +14,12 @@ export interface CupContext {
 }
 
 export const cupStore = new AsyncLocalStorage<CupContext>()
+
+/**
+ * The cup revision for the CURRENT request (0 when unprimed / build snapshot). Stat
+ * modules that memoise cup-derived results at module scope key their caches on this so a
+ * snapshot change (a cup completed/edited/deleted) is reflected instead of served stale.
+ */
+export function currentCupRevision(): number {
+  return cupStore.getStore()?.revision ?? 0
+}

@@ -22,6 +22,7 @@ export function CreateCupWizard() {
   const [gameType, setGameType] = useState('8-Ball')
   const [participantFormat, setParticipantFormat] = useState<'INDIVIDUAL' | 'TEAM'>('INDIVIDUAL')
   const [teamSize, setTeamSize] = useState(2)
+  const [raceLength, setRaceLength] = useState(7)
   const [entryMode, setEntryMode] = useState<'PUBLIC' | 'MANUAL'>('MANUAL')
   const [cam, setCam] = useState<'REQUIRED' | 'OPTIONAL' | 'NO_CAM'>('OPTIONAL')
   const [initialState, setInitialState] = useState<'DRAFT' | 'UPCOMING'>('UPCOMING')
@@ -34,6 +35,7 @@ export function CreateCupWizard() {
       participantFormat,
       teamSize: participantFormat === 'TEAM' ? teamSize : null,
       tournamentFormat: 'SINGLE_ELIM',
+      raceLength,
       entryMode,
       camRequirement: cam,
       initialState,
@@ -100,6 +102,18 @@ export function CreateCupWizard() {
             <option value="SINGLE_ELIM">Single elimination</option>
           </select>
           <p className="mt-1 text-[0.65rem] text-muted-foreground">Groups, round-robin & double-elim for cups are coming soon.</p>
+        </div>
+
+        <div>
+          <label className={LABEL}>Race length (race to)</label>
+          <input
+            type="number"
+            min={1}
+            value={raceLength}
+            onChange={(e) => setRaceLength(Math.max(1, Number(e.target.value) || 1))}
+            className={`${FIELD} mt-1`}
+          />
+          <p className="mt-1 text-[0.65rem] text-muted-foreground">Games needed to win a match. Any positive number (5, 7, 9, 11…). Editable later.</p>
         </div>
 
         <div>

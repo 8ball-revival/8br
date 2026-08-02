@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ScrollText,
   ShieldAlert,
+  KeyRound,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ export type StaffSection =
   | 'dashboard'
   | 'registrations'
   | 'players'
+  | 'accounts'
   | 'seasons'
   | 'cups'
   | 'matches'
@@ -31,8 +33,9 @@ const NAV: { key: StaffSection; label: string; href: string; icon: typeof Layout
   { key: 'dashboard', label: 'Dashboard', href: '/staff', icon: LayoutDashboard },
   { key: 'registrations', label: 'Registrations', href: '/staff/registrations', icon: ClipboardList, cap: 'manage_registrations' },
   { key: 'players', label: 'Players', href: '/staff/players', icon: Users, cap: 'manage_players' },
+  { key: 'accounts', label: 'Accounts', href: '/staff/accounts', icon: KeyRound, cap: 'manage_players' },
   { key: 'seasons', label: 'Seasons', href: '/staff/seasons', icon: CalendarRange, cap: 'manage_competitions' },
-  { key: 'cups', label: 'Cups', href: '/staff/cups', icon: Trophy, cap: 'manage_competitions' },
+  { key: 'cups', label: 'Cups', href: '/cups', icon: Trophy, cap: 'manage_competitions' },
   { key: 'matches', label: 'Matches', href: '/staff/matches', icon: Swords, cap: 'edit_results' },
   { key: 'staff', label: 'Staff', href: '/staff/staff', icon: ShieldCheck, cap: 'manage_staff' },
   { key: 'audit', label: 'Audit Log', href: '/staff/audit', icon: ScrollText, cap: 'view_audit' },

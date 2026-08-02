@@ -17,6 +17,7 @@ export interface ProfileView {
   legacyPlayerId: string | null
   primaryName: string
   cueverseId: string | null
+  cueverseIdChangedAt: Date | null
   discord: string | null
   timeZone: string | null
   active: boolean
@@ -30,6 +31,7 @@ const toView = (p: Player & { aliases?: { alias: string }[] }): ProfileView => (
   legacyPlayerId: p.legacyPlayerId,
   primaryName: p.primaryName,
   cueverseId: p.cueverseId,
+  cueverseIdChangedAt: p.cueverseIdChangedAt,
   discord: p.discord,
   timeZone: p.timeZone,
   active: p.active,
@@ -134,12 +136,88 @@ export interface ProfilePatch {
 }
 export async function updateProfile(actor: Actor, playerId: string, patch: ProfilePatch): Promise<void> {
   const before = await prisma.player.findUniqueOrThrow({ where: { id: playerId } })
-  await prisma.player.update({ where: { id: playerId }, data: patch })
-  await recordAudit(actor, {
-    action: 'profile.update', entity: 'Player', entityId: playerId,
-    oldValue: { primaryName: before.primaryName, cueverseId: before.cueverseId, discord: before.discord, timeZone: before.timeZone, active: before.active },
-    newValue: patch,
+  // Route CueVerse ID changes through the dedicated path (alias history + audit). Staff
+  // edits here are treated as an override (no cooldown). Other fields update normally.
+  const { cueverseId, ...rest } = patch
+  if (cueverseId !== undefined && (cueverseId ?? null) !== (before.cueverseId ?? null)) {
+    await changeCueverseId(actor, playerId, cueverseId, { override: true })
+  }
+  if (Object.keys(rest).length > 0) {
+    await prisma.player.update({ where: { id: playerId }, data: rest })
+    await recordAudit(actor, {
+      action: 'profile.update', entity: 'Player', entityId: playerId,
+      oldValue: { primaryName: before.primaryName, discord: before.discord, timeZone: before.timeZone, active: before.active },
+      newValue: rest,
+    })
+  }
+}
+
+/** Days a member must wait between self-service CueVerse ID changes. */
+export const CUEVERSE_COOLDOWN_DAYS = 7
+
+export interface CueverseCooldown {
+  canChange: boolean
+  lastChangedAt: string | null
+  nextAvailableAt: string | null // ISO; null when a change is allowed now
+}
+
+/** Cooldown state for a profile's CueVerse ID (for Account Settings display). */
+export function cueverseCooldownState(lastChangedAt: Date | null, now: Date = new Date()): CueverseCooldown {
+  if (!lastChangedAt) return { canChange: true, lastChangedAt: null, nextAvailableAt: null }
+  const next = new Date(lastChangedAt.getTime() + CUEVERSE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
+  const canChange = now.getTime() >= next.getTime()
+  return { canChange, lastChangedAt: lastChangedAt.toISOString(), nextAvailableAt: canChange ? null : next.toISOString() }
+}
+
+/**
+ * Change a profile's CueVerse ID — the site-wide display identity. Enforces the 7-day
+ * cooldown server-side for self-service changes; Owner/Admin pass `override: true` for
+ * corrections. The previous ID is preserved as a searchable alias, the underlying
+ * profile id never changes, and every change/override is audited.
+ */
+export async function changeCueverseId(
+  actor: Actor,
+  playerId: string,
+  newIdRaw: string | null,
+  opts: { override?: boolean } = {},
+): Promise<{ ok: boolean; error?: string; nextAvailableAt?: string }> {
+  const newId = (newIdRaw ?? '').trim() || null
+  const p = await prisma.player.findUniqueOrThrow({ where: { id: playerId } })
+  if ((p.cueverseId ?? null) === newId) return { ok: true } // no change
+
+  if (!opts.override) {
+    const cd = cueverseCooldownState(p.cueverseIdChangedAt)
+    if (!cd.canChange) {
+      return { ok: false, error: `You can change your CueVerse ID again on ${new Date(cd.nextAvailableAt!).toLocaleDateString()}.`, nextAvailableAt: cd.nextAvailableAt ?? undefined }
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Preserve the OLD id as a searchable alias (history never lost).
+    if (p.cueverseId) {
+      const oldKey = nk(p.cueverseId)
+      if (oldKey) {
+        const existing = await tx.playerAlias.findFirst({ where: { playerId, alias: oldKey } })
+        if (!existing) await tx.playerAlias.create({ data: { playerId, alias: oldKey, aliasType: 'HANDLE' } })
+      }
+    }
+    await tx.player.update({ where: { id: playerId }, data: { cueverseId: newId, cueverseIdChangedAt: new Date() } })
+    // Make the new id searchable too.
+    if (newId) {
+      const newKey = nk(newId)
+      if (newKey) {
+        const existing = await tx.playerAlias.findFirst({ where: { playerId, alias: newKey } })
+        if (!existing) await tx.playerAlias.create({ data: { playerId, alias: newKey, aliasType: 'HANDLE' } })
+      }
+    }
+    await recordAudit(actor, {
+      action: opts.override ? 'profile.cueverseChange.override' : 'profile.cueverseChange',
+      entity: 'Player', entityId: playerId,
+      oldValue: { cueverseId: p.cueverseId },
+      newValue: { cueverseId: newId, by: actor.username, override: !!opts.override },
+    }, tx)
   })
+  return { ok: true }
 }
 
 /** Unlinked (unclaimed) profiles, optionally filtered by name / handle / discord / alias. */

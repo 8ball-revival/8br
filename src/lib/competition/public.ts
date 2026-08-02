@@ -44,8 +44,9 @@ export async function getPublicRegistrations(): Promise<PublicRegistrant[]> {
   const pmap = new Map(profiles.map((p) => [p.id, p]))
   return regs.map((r) => {
     const p = r.playerId ? pmap.get(r.playerId) : null
+    // Public identity defaults to the CueVerse ID (never the profile's real name).
     return {
-      displayName: p?.primaryName ?? r.displayName ?? r.username,
+      displayName: p?.cueverseId ?? r.cueverseId ?? r.displayName ?? r.username,
       cueverseId: p?.cueverseId ?? r.cueverseId ?? null,
       registeredAt: r.createdAt.toISOString(),
     }

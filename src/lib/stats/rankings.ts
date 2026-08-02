@@ -24,6 +24,7 @@ import {
 import { getCurrentScoreForId, type ScoreLine } from './current-score'
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
 import { getCups } from '@/lib/cups/service'
+import { currentCupRevision } from '@/lib/cups/context'
 import { resolveIdentity } from './identity'
 
 export const WINDOW_DAYS = 365
@@ -70,8 +71,11 @@ export interface RankingView {
 // ---------- title index (context only; never affects rating) ----------------
 type TitleRec = { year: number; kind: 'season' | 'cup' }
 let _titles: Map<string, TitleRec[]> | null = null
+let _titlesRev = -1
 function titleIndex(): Map<string, TitleRec[]> {
-  if (_titles) return _titles
+  const rev = currentCupRevision()
+  if (_titles && _titlesRev === rev) return _titles
+  _titlesRev = rev
   const m = new Map<string, TitleRec[]>()
   const add = (slot: { name?: string | null; handle?: string | null } | null | undefined, year: number, kind: 'season' | 'cup') => {
     if (!slot || !slot.name) return

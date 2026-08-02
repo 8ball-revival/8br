@@ -17,6 +17,7 @@ import {
   type SeasonMatch,
 } from '@/lib/seasons/archive'
 import { getCups, type BracketRound } from '@/lib/cups/service'
+import { currentCupRevision } from '@/lib/cups/context'
 import { resolveIdentity } from './identity'
 import { getSeasonRankings, resolveCanonicalId } from './season-stats'
 
@@ -328,7 +329,15 @@ function computeCareers(): Map<string, CareerStat> {
 }
 
 let _cache: Map<string, CareerStat> | null = null
-const careers = () => (_cache ??= computeCareers())
+let _cacheRev = -1
+const careers = () => {
+  const rev = currentCupRevision()
+  if (!_cache || _cacheRev !== rev) {
+    _cacheRev = rev
+    _cache = computeCareers()
+  }
+  return _cache
+}
 
 export function getCareerStatById(id: string): CareerStat | undefined {
   return careers().get(id)

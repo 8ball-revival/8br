@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StageComingSoon } from '@/components/stage-coming-soon'
 import { PublicGroupCard } from '@/components/competition/public-group'
+import { EntrantList } from '@/components/competition/entrant-list'
 import { AdminBar } from '@/components/staff/admin-bar'
 import { GroupsDndBuilder } from '@/components/staff/groups-dnd-builder'
 import { pageMetadata } from '@/lib/site'
-import { getPublicSeason, getPublicGroups } from '@/lib/competition/public'
+import { getPublicSeason, getPublicGroups, getPublicRegistrations } from '@/lib/competition/public'
 import { getGroupBuilder } from '@/lib/competition/queries'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
@@ -54,6 +55,8 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
 
   const views = season ? await getPublicGroups(season.id) : []
   const hasGroups = views.length > 0
+  const registrations = await getPublicRegistrations()
+  const entrants = registrations.map((r) => ({ name: r.displayName }))
 
   return (
     <>
@@ -65,6 +68,8 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
       />
       <Container className="py-12">
         <AdminBar surface="groups" seasonId={season?.id} />
+        {/* Season 2 entrant list — expanded before the draw, collapsible once groups are live. */}
+        {entrants.length > 0 && <EntrantList entrants={entrants} collapsible={hasGroups} />}
         {hasGroups ? (
           <div className="space-y-6">
             {views.map((g) => (

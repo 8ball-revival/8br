@@ -43,8 +43,11 @@ export async function resolveEntrants(
   const out = new Map<number, EntrantIdentity>()
   for (const r of regs) {
     const p = r.playerId ? pmap.get(r.playerId) : null
+    // Default competitive identity = the CURRENT CueVerse ID (resolved live from the
+    // linked profile, so an ID change propagates everywhere). A player's real name
+    // (profile.primaryName) is NEVER shown in competitions — only on their profile page.
     out.set(r.id, {
-      displayName: p?.primaryName ?? r.displayName ?? r.username,
+      displayName: p?.cueverseId ?? r.cueverseId ?? r.displayName ?? r.username,
       cueverseId: p?.cueverseId ?? r.cueverseId ?? null,
       discord: p?.discord ?? r.discord ?? null,
     })

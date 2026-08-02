@@ -10,7 +10,8 @@ import { normalizeUsername, validateUsername, validateEmail, validatePassword } 
 import { getCurrentUser } from './auth'
 import { getActiveSeason } from '@/lib/competition/queries'
 import { createPublicRegistration, withdrawPublicRegistration } from '@/lib/competition/service'
-import { getProfileByUserId } from '@/lib/players/service'
+import { getProfileByUserId, changeCueverseId } from '@/lib/players/service'
+import { claimAccount, getClaimTarget } from '@/lib/accounts/provisioning'
 
 export interface FormResult {
   ok?: boolean
@@ -46,6 +47,18 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
   if (err) return { error: err }
 
   const p = await payload()
+
+  // If a pre-created (unclaimed) account already exists for this login id, don't create a
+  // duplicate — direct the player to claim it (preserving their linked history).
+  const existing = await p.find({ collection: 'users', where: { username: { equals: username } }, limit: 1, overrideAccess: true })
+  if (existing.totalDocs > 0) {
+    const { prisma } = await import('@/lib/prisma')
+    const claim = await prisma.accountClaim.findUnique({ where: { userId: Number(existing.docs[0].id) } })
+    if (claim && claim.status === 'UNCLAIMED')
+      return { error: 'An account for that ID already exists and is waiting to be claimed. Use “Claim your account” instead.' }
+    return { error: 'That User ID or email is already in use.' }
+  }
+
   try {
     await p.create({ collection: 'users', data: { username, email, password, roles: ['member'] }, overrideAccess: true })
   } catch (e) {
@@ -64,6 +77,34 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
   redirect('/account')
 }
 
+/** Public: which Player profile a login id would claim (for the confirmation step). */
+export async function lookupClaimTargetAction(loginId: string): Promise<{ ok: boolean; playerName?: string; error?: string }> {
+  if (!loginId.trim()) return { ok: false }
+  return getClaimTarget(loginId)
+}
+
+/** Claim a pre-created account: login id + one-time code → set password + recovery email,
+ *  then sign in. The code is single-use (invalidated on success). */
+export async function claimAccountAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const loginId = String(formData.get('loginId') ?? '').trim()
+  const code = String(formData.get('code') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('confirmPassword') ?? '')
+  const email = String(formData.get('email') ?? '').trim()
+
+  if (!loginId || !code) return { error: 'Enter your login id and claim code.' }
+  const pwErr = validatePassword(password)
+  if (pwErr) return { error: pwErr }
+  if (password !== confirm) return { error: 'Passwords do not match.' }
+  const emErr = validateEmail(email)
+  if (emErr) return { error: emErr }
+
+  const res = await claimAccount(loginId, code, password, email)
+  if (!res.ok) return { error: res.error }
+  if (res.token) await setSessionCookie(res.token, res.exp)
+  redirect('/account')
+}
+
 /** Sign in with User ID or email + password. */
 export async function signIn(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const identifier = String(formData.get('identifier') ?? '').trim()
@@ -75,13 +116,25 @@ export async function signIn(_prev: FormResult, formData: FormData): Promise<For
     : { username: normalizeUsername(identifier), password }
 
   const p = await payload()
+  let token: string | undefined
+  let exp: number | undefined
+  let userId: number | undefined
   try {
     const res = await p.login({ collection: 'users', data })
     if (!res.token) return { error: 'Invalid credentials.' }
-    await setSessionCookie(res.token, res.exp)
+    token = res.token
+    exp = res.exp
+    userId = Number(res.user?.id)
   } catch {
     return { error: 'Invalid User ID/email or password.' }
   }
+  // Block disabled provisioned accounts from signing in.
+  if (userId) {
+    const { prisma } = await import('@/lib/prisma')
+    const claim = await prisma.accountClaim.findUnique({ where: { userId } })
+    if (claim?.disabledAt) return { error: 'This account has been disabled. Contact an administrator.' }
+  }
+  await setSessionCookie(token!, exp)
   redirect('/account')
 }
 
@@ -126,6 +179,26 @@ export async function registerSeason2(_prev: FormResult, formData: FormData): Pr
 }
 
 /** Withdraw the current user from the active season (only while registration is open). */
+/** Self-service: change my own CueVerse ID (the site-wide display identity). Enforces the
+ *  7-day cooldown server-side. Requires a linked Player Profile. */
+export async function changeMyCueverseId(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const profile = await getProfileByUserId(Number(user.id))
+  if (!profile) return { error: 'You need a linked Player Profile before setting a CueVerse ID. Ask staff to link your profile.' }
+
+  const newId = String(formData.get('cueverseId') ?? '').trim()
+  if (!newId) return { error: 'Please enter a CueVerse ID.' }
+  if (newId.length > 40) return { error: 'That CueVerse ID is too long.' }
+
+  const res = await changeCueverseId({ userId: Number(user.id), username: user.username }, profile.id, newId, { override: false })
+  if (!res.ok) return { error: res.error }
+
+  // The display identity appears across the whole site — refresh the derived surfaces.
+  for (const p of ['/account', '/', '/rankings', '/players', '/cups', '/seasons', '/groups', '/playoffs', '/search', '/register']) revalidatePath(p)
+  return { ok: true }
+}
+
 export async function withdrawSeason2(_prev: FormResult, _formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in.' }

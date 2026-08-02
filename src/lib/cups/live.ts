@@ -44,6 +44,10 @@ type MemberInfo = { name: string; handle: string | null; playerId: string | null
 export function playoffToBracketRounds(
   rows: PlayoffRow[],
   membersByRegId?: Map<number, MemberInfo[]>,
+  /** Active cups only: regId → CURRENT CueVerse ID, overriding the seed-time name so a
+   *  live event always shows current identities. Omit for completed cups (they keep the
+   *  frozen, as-played name stored in the bracket). */
+  displayByRegId?: Map<number, string>,
 ): BracketRound[] {
   if (!rows.length) return []
   const totalRounds = Math.max(...rows.map((r) => r.round))
@@ -58,7 +62,10 @@ export function playoffToBracketRounds(
       return isFirstRound ? { name: 'Bye' } : undefined
     }
     const s: BracketSlot = {}
-    if (name != null) s.name = name
+    // Active cups: prefer the CURRENT display identity; fall back to the stored name.
+    const current = regId != null ? displayByRegId?.get(regId) : undefined
+    if (current != null) s.name = current
+    else if (name != null) s.name = name
     if (seed != null) s.seed = seed
     if (score != null) s.score = score
     if (regId != null && membersByRegId?.has(regId)) {
@@ -106,6 +113,7 @@ export interface CupWorkspaceData {
     participantFormat: 'INDIVIDUAL' | 'TEAM'
     teamSize: number | null
     tournamentFormat: string | null
+    raceLength: number
     seasonStatus: string
     playoffsStatus: string
     registrationStatus: string
@@ -119,6 +127,7 @@ export interface CupWorkspaceData {
   isHistorical: boolean
   isEditable: boolean
   isTeam: boolean
+  isLegacyConvertible: boolean // old-format cup that can be migrated into the editable workspace
   entrants: CupEntrantView[]
   teams: TeamView[]
   matches: PlayoffRow[]
@@ -168,9 +177,28 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
     },
   })
 
-  const bracketRounds = playoffToBracketRounds(matches, membersByRegId)
+  // Identity model: an ACTIVE cup always shows the CURRENT CueVerse ID (re-resolved from
+  // the entrant/profile); a COMPLETED cup preserves the ID the player competed under
+  // (the frozen name stored on the bracket). Team cups keep their team name (kept current
+  // on rename), so the live override applies to individual cups only.
+  const isCompleted = season.cupStatus === 'completed' || season.seasonStatus === 'COMPLETED'
+  const displayByRegId =
+    !isCompleted && !isTeam ? new Map(entrants.map((e) => [e.registrationId, e.name])) : undefined
+  const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
+
+  // Legacy = a single-elim individual cup still stored only in the old read-only bracket
+  // (CupBracketMatch, no PlayoffMatch), not locked. It can be migrated to the workspace.
+  let isLegacyConvertible = false
+  if (matches.length === 0 && !season.locked) {
+    const [mainCount, otherCount, tieCount] = await Promise.all([
+      prisma.cupBracketMatch.count({ where: { competitionId: season.id, bracketKind: 'MAIN' } }),
+      prisma.cupBracketMatch.count({ where: { competitionId: season.id, bracketKind: { not: 'MAIN' } } }),
+      prisma.cupTeamTie.count({ where: { competitionId: season.id } }),
+    ])
+    isLegacyConvertible = mainCount > 0 && otherCount === 0 && tieCount === 0
+  }
 
   return {
     season: {
@@ -183,6 +211,7 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
       participantFormat: season.participantFormat,
       teamSize: season.teamSize,
       tournamentFormat: season.tournamentFormat,
+      raceLength: season.raceLength,
       seasonStatus: season.seasonStatus,
       playoffsStatus: season.playoffsStatus,
       registrationStatus: season.registrationStatus,
@@ -196,6 +225,7 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
     isHistorical,
     isEditable,
     isTeam,
+    isLegacyConvertible,
     entrants,
     teams,
     matches,

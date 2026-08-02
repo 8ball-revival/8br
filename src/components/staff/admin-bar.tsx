@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ShieldCheck, LayoutDashboard, Users2, Trophy, Plus } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Users2, Trophy } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -82,8 +82,8 @@ export async function AdminBar({ surface, seasonId }: { surface: Surface; season
 
         {surface === 'cups' && (
           <Button asChild size="sm" variant="outline">
-            <Link href="/staff/cups">
-              <Plus className="size-4" aria-hidden /> Manage Cups
+            <Link href="/cups">
+              <Trophy className="size-4" aria-hidden /> Manage Cups
             </Link>
           </Button>
         )}

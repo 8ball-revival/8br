@@ -360,6 +360,9 @@ function ResultsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run;
   const playable = data.matches.filter((m) => m.homeUsername && m.awayUsername)
   return (
     <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Race to <span className="font-semibold text-foreground">{data.season.raceLength}</span> — the winner must reach {data.season.raceLength} games.
+      </p>
       {playable.length === 0 && <p className="text-sm text-muted-foreground">No playable matches yet. Build and publish the bracket first.</p>}
       {playable.map((m) => (
         <ResultRow key={m.id} m={m} run={run} disabled={disabled} />
@@ -400,10 +403,45 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
 // --------------------------------------------------------------------------- Settings
 
 function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
+  const router = useRouter()
   const [code, setCode] = useState('')
   const [reason, setReason] = useState('')
+  const [race, setRace] = useState(data.season.raceLength)
+  const [delCode, setDelCode] = useState('')
+  const [deleting, startDelete] = useTransition()
+  const [delError, setDelError] = useState<string | null>(null)
+
+  const deleteCup = () => {
+    setDelError(null)
+    startDelete(async () => {
+      const r = await A.deleteCupAction(data.season.id, delCode)
+      if (r.error) return setDelError(r.error)
+      router.push('/cups') // the cup no longer exists — leave the workspace
+      router.refresh()
+    })
+  }
   return (
     <div className="space-y-6">
+      {canManage && !data.isHistorical && (
+        <section>
+          <p className="eyebrow mb-2 text-muted-foreground">Match format</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-sm text-muted-foreground">Race to</label>
+            <input
+              type="number"
+              min={1}
+              value={race}
+              onChange={(e) => setRace(Math.max(1, Number(e.target.value) || 1))}
+              className="w-20 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+            />
+            <Button size="sm" variant="secondary" onClick={() => run(() => A.setCupRaceLengthAction(data.season.id, race))} disabled={race === data.season.raceLength}>
+              Save race length
+            </Button>
+            <span className="text-xs text-muted-foreground">Games to win a match — used by score validation everywhere.</span>
+          </div>
+        </section>
+      )}
+
       {canManage && !data.isHistorical && (
         <section>
           <p className="eyebrow mb-2 text-muted-foreground">Lifecycle</p>
@@ -445,6 +483,28 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.season.formatBadge} · {(data.season.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
         </dl>
       </section>
+
+      {canManage && !data.isHistorical && (
+        <section className="rounded-lg border border-destructive/30 bg-destructive/[0.05] p-4">
+          <p className="text-sm font-semibold text-destructive">Danger zone</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Permanently delete this cup and everything under it (entrants, teams, bracket, results). This cannot be undone. To archive
+            instead (keeps the record), use the Lifecycle controls above.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              value={delCode}
+              onChange={(e) => setDelCode(e.target.value)}
+              placeholder={`Type ${data.season.competitionCode} to confirm`}
+              className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <Button variant="destructive" onClick={deleteCup} disabled={deleting || delCode.trim() !== (data.season.competitionCode ?? '')}>
+              {deleting ? 'Deleting…' : 'Delete cup permanently'}
+            </Button>
+          </div>
+          {delError && <p className="mt-2 text-sm text-destructive">{delError}</p>}
+        </section>
+      )}
     </div>
   )
 }

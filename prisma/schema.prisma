@@ -267,7 +267,8 @@ model Player {
   primaryEmail   String? // primary email (identity signal)
   // Public current-identity fields (safe to display): competitive handle, Discord,
   // and time zone. Email is NEVER stored here (it lives only on the Payload account).
-  cueverseId     String? // public competitive handle (e.g. "sixohtwo")
+  cueverseId     String? // public competitive handle (e.g. "sixohtwo") — the site-wide default display identity
+  cueverseIdChangedAt DateTime? // last time the CueVerse ID changed (enforces the self-service cooldown)
   discord        String? // public contact (community norm — shown publicly)
   timeZone       String?
   active         Boolean          @default(true) // staff can mark a profile inactive
@@ -1162,6 +1163,7 @@ model Season {
   importedFromFixture  Boolean            @default(false) // true = migrated historical cup
   locked               Boolean            @default(false) // archived historical cup: editing requires Owner unlock
   unlockedAt           DateTime?
+  convertedAt          DateTime? // set when a legacy (old-format) cup was migrated into the editable workspace
   // Faithful copies of the cup fixture fields (lossless migration; exact round-trip).
   cupFormatBadge       String? // exact `format` string from the fixture ("5v5","Prize","D/E",…)
   cupYear              Int?
@@ -1294,6 +1296,31 @@ model CupTeamMember {
   @@index([teamId])
   @@index([playerId])
   @@map("comp_cup_team_member")
+}
+
+enum AccountClaimStatus {
+  UNCLAIMED
+  CLAIMED
+}
+
+/// Provisioning sidecar for pre-created player accounts. A bulk-generated account is a
+/// Payload user (username = CueVerse ID, placeholder email + random password) linked to a
+/// Player profile; THIS row holds the claim state so Payload's auth schema is untouched.
+/// The single-use claim code is stored only as a hash; plaintext is shown once at
+/// generation/reset. Claiming sets the real password/email and marks CLAIMED.
+model AccountClaim {
+  id                 Int                @id @default(autoincrement())
+  userId             Int                @unique // Payload user id (users collection)
+  playerId           String // linked canonical Player.id
+  status             AccountClaimStatus @default(UNCLAIMED)
+  claimCodeHash      String? // sha256 of the one-time code; null once claimed
+  claimCodeExpiresAt DateTime?
+  disabledAt         DateTime? // set when an Owner/Admin disables the account
+  createdAt          DateTime           @default(now())
+  claimedAt          DateTime?
+
+  @@index([playerId])
+  @@map("account_claim")
 }
 
 /// A player entry into a season — a TOURNAMENT ENTRANT, independent of any website
