@@ -29,7 +29,7 @@ export async function getUnlinkedAccounts(search = ''): Promise<UnlinkedAccount[
   // Latest submitted identity per user (from their most recent registration).
   const regs = await prisma.registration.findMany({ orderBy: { createdAt: 'desc' }, select: { userId: true, displayName: true, cueverseId: true, discord: true } })
   const regByUser = new Map<number, { displayName: string | null; cueverseId: string | null; discord: string | null }>()
-  for (const r of regs) if (!regByUser.has(r.userId)) regByUser.set(r.userId, { displayName: r.displayName, cueverseId: r.cueverseId, discord: r.discord })
+  for (const r of regs) if (r.userId != null && !regByUser.has(r.userId)) regByUser.set(r.userId, { displayName: r.displayName, cueverseId: r.cueverseId, discord: r.discord })
 
   const q = search.trim().toLowerCase()
   const out: UnlinkedAccount[] = []

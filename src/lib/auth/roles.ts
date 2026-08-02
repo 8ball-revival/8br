@@ -19,11 +19,15 @@ export const MEMBER: Role = 'member'
 /** Roles that may reach the staff admin console (capabilities restrict further). */
 export const STAFF_ROLES: Role[] = [OWNER, ADMIN, EDITOR]
 
-/** Options for the Payload `roles` select field. */
+/**
+ * Options for the Payload `roles` select field. The active role model is
+ * OWNER / ADMIN / MEMBER. EDITOR is retired: it is NOT offered as a selectable
+ * option, but is still normalized/honored if it survives on a legacy account
+ * (treated as ADMIN-minus — staff, edit_results only) until migrated.
+ */
 export const ROLE_OPTIONS: { label: string; value: Role }[] = [
   { label: 'Owner', value: OWNER },
   { label: 'Admin', value: ADMIN },
-  { label: 'Editor', value: EDITOR },
   { label: 'Member', value: MEMBER },
 ]
 

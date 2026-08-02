@@ -16,7 +16,7 @@ import {
   type SeasonDivision,
   type SeasonMatch,
 } from '@/lib/seasons/archive'
-import { getCups, type BracketRound } from '@/lib/cups/fixtures'
+import { getCups, type BracketRound } from '@/lib/cups/service'
 import { resolveIdentity } from './identity'
 import { getSeasonRankings, resolveCanonicalId } from './season-stats'
 

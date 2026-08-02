@@ -16,6 +16,7 @@ import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '
 import { getProfileByUserId } from '@/lib/players/service'
 import { getCareerStatById } from '@/lib/stats/career-stats'
 import { getPlayerRankingProfile } from '@/lib/stats/rankings'
+import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { slugForCanonicalId } from '@/lib/preview-players'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/format'
@@ -32,6 +33,7 @@ export const metadata: Metadata = pageMetadata({
 })
 
 export default async function AccountPage() {
+  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before cup-derived career/rankings
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 

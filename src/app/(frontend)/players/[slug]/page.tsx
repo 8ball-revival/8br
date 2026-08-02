@@ -18,6 +18,7 @@ import { RatingPanel } from '@/components/player/rating-panel'
 import { getPlayerPreview, getPlayerPreviewSlugs } from '@/lib/preview-players'
 import { resolveCanonicalId } from '@/lib/stats/season-stats'
 import { getPlayerRankingProfile } from '@/lib/stats/rankings'
+import { cupStore, loadCupContext } from '@/lib/cups/prime'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -72,6 +73,7 @@ function Section({
 }
 
 export default async function PlayerDetailPage({ params }: Params) {
+  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before cup-derived career/rankings
   const { slug } = await params
   const player = getPlayerPreview(slug)
   if (!player) notFound()

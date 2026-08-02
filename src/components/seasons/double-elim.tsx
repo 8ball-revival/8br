@@ -1,6 +1,6 @@
 import { SeasonBracket } from '@/components/seasons/season-bracket'
 import type { SeasonRound } from '@/lib/seasons/archive'
-import type { BracketRound } from '@/lib/cups/fixtures'
+import type { BracketRound } from '@/lib/cups/service'
 
 function toBracketRounds(rounds: SeasonRound[]): BracketRound[] {
   return rounds.map((r) => ({

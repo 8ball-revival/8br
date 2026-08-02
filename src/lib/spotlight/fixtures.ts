@@ -6,7 +6,7 @@
  */
 import { getTop10 } from '@/lib/hall-of-fame/fixtures'
 import { getHomeData } from '@/lib/home/fixtures'
-import { getCups } from '@/lib/cups/fixtures'
+import { getCups } from '@/lib/cups/service'
 
 export interface SpotlightPlayer {
   slug: string

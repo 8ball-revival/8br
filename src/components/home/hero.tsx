@@ -30,8 +30,10 @@ export function HeroBackdrop() {
   )
 }
 
-/** Hero left content: season label, headline, subtext, countdown, primary actions. */
-export function Hero({ data }: { data: HeroData }) {
+/** Hero left content: season label, headline, subtext, countdown, primary actions.
+ *  Registration state (`registrationOpen`) is DB-driven — the countdown and the
+ *  primary CTA only appear while registration is actually open. */
+export function Hero({ data, registrationOpen = true }: { data: HeroData; registrationOpen?: boolean }) {
   return (
     <div className="flex max-w-xl flex-col justify-center py-4">
       <p className="eyebrow mb-3 text-gold">{data.seasonLabel}</p>
@@ -42,25 +44,46 @@ export function Hero({ data }: { data: HeroData }) {
       <p className="mt-4 max-w-md text-base text-muted-foreground">{data.subtext}</p>
 
       <div className="mt-7">
-        <Countdown target={data.registrationClosesAt} />
+        {registrationOpen && data.registrationClosesAt && <Countdown target={data.registrationClosesAt} />}
         {data.deadlineNote && (
-          <p className="mt-3 text-xs text-muted-foreground">{data.deadlineNote}</p>
+          <p className={data.registrationClosesAt && registrationOpen ? 'mt-3 text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}>
+            {data.deadlineNote}
+          </p>
         )}
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
-        <Button asChild size="xl">
-          <Link href={data.registerHref}>
-            <UserPlus className="size-4" />
-            Register Now
-          </Link>
-        </Button>
-        <Button asChild size="xl" variant="outline">
-          <Link href={data.rulesHref}>
-            <FileText className="size-4" />
-            View Rules
-          </Link>
-        </Button>
+        {registrationOpen ? (
+          <>
+            <Button asChild size="xl">
+              <Link href={data.registerHref}>
+                <UserPlus className="size-4" />
+                Register Now
+              </Link>
+            </Button>
+            <Button asChild size="xl" variant="outline">
+              <Link href={data.rulesHref}>
+                <FileText className="size-4" />
+                View Rules
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button asChild size="xl">
+              <Link href="/groups">
+                <FileText className="size-4" />
+                View Groups
+              </Link>
+            </Button>
+            <Button asChild size="xl" variant="outline">
+              <Link href={data.rulesHref}>
+                <FileText className="size-4" />
+                View Rules
+              </Link>
+            </Button>
+          </>
+        )}
       </div>
     </div>
   )

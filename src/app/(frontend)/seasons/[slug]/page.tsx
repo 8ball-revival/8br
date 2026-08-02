@@ -19,6 +19,7 @@ import { MatchList } from '@/components/season/match-list'
 import { PlayoffBracketShell } from '@/components/season/playoff-bracket-shell'
 import { SourceList } from '@/components/season/source-list'
 import { getSeasonDetail, getSeasonSlugs } from '@/lib/mock-data'
+import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { pageMetadata } from '@/lib/site'
 
 type Params = { params: Promise<{ slug: string }> }
@@ -69,6 +70,7 @@ function Section({
 }
 
 export default async function SeasonDetailPage({ params }: Params) {
+  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision (bracket components read cup data)
   const { slug } = await params
   const season = getSeasonDetail(slug)
   if (!season) notFound()

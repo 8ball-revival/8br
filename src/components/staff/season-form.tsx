@@ -9,8 +9,6 @@ import { updateSeasonAction, type ActionResult } from '@/lib/competition/actions
 interface SeasonData {
   id: number
   seasonStatus: string
-  registrationStatus: string
-  registrationOpensAt: string | null
   registrationClosesAt: string | null
   groupsStatus: string
   playoffsStatus: string
@@ -19,7 +17,6 @@ interface SeasonData {
 }
 
 const SEASON_STATES = ['UPCOMING', 'ACTIVE', 'COMPLETED']
-const REG_STATES = ['NOT_OPEN', 'OPEN', 'CLOSED']
 const STAGE_STATES = ['PENDING', 'PUBLISHED', 'COMPLETED']
 
 function Select({ name, label, value, options }: { name: string; label: string; value: string; options: string[] }) {
@@ -49,15 +46,10 @@ export function SeasonForm({ season }: { season: SeasonData }) {
       <input type="hidden" name="seasonId" value={season.id} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Select name="seasonStatus" label="Season status" value={season.seasonStatus} options={SEASON_STATES} />
-        <Select name="registrationStatus" label="Registration" value={season.registrationStatus} options={REG_STATES} />
         <Select name="groupsStatus" label="Group stage" value={season.groupsStatus} options={STAGE_STATES} />
         <Select name="playoffsStatus" label="Playoffs" value={season.playoffsStatus} options={STAGE_STATES} />
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Registration opens</span>
-          <Input type="date" name="registrationOpensAt" defaultValue={season.registrationOpensAt ?? ''} />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Registration closes (deadline)</span>
+          <span className="text-sm font-medium">Registration deadline (informational only)</span>
           <Input type="date" name="registrationClosesAt" defaultValue={season.registrationClosesAt ?? ''} />
         </label>
         <label className="block space-y-1.5">

@@ -10,7 +10,7 @@
  * (All-Time and Historical keep the Glicko engine; this drives ONLY the Current view.)
  */
 import { getAllArchiveSeasons, type ArchiveSeason } from '@/lib/seasons/archive'
-import { getCups, type Cup } from '@/lib/cups/fixtures'
+import { getCups, type Cup } from '@/lib/cups/service'
 import { resolveIdentity } from './identity'
 import type { MatchResult } from './rating-engine'
 

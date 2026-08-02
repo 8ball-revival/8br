@@ -13,6 +13,7 @@ import {
   getRankingYears,
 } from '@/lib/stats/rankings'
 import { getCurrentScoreRankings } from '@/lib/stats/current-score'
+import { cupStore, loadCupContext } from '@/lib/cups/prime'
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
@@ -50,6 +51,7 @@ function WarningBanner({ warnings }: { warnings: string[] }) {
 }
 
 export default async function RankingsPage({ searchParams }: { searchParams: SP }) {
+  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before cup-derived rankings
   const sp = await searchParams
   const view = sp.view === 'historical' ? 'historical' : sp.view === 'all-time' ? 'all-time' : 'current'
   const years = getRankingYears()

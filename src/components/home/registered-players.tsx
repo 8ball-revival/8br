@@ -5,8 +5,9 @@ import type { PublicRegistrant } from '@/lib/competition/public'
 
 /**
  * Live Season 2 entrant list — driven entirely by the database. Shows ACTIVE entrants
- * only (they appear immediately on registration, no staff approval needed). Only the
- * public User ID is shown; email/Discord are never passed to this component.
+ * only (they appear immediately on registration, no staff approval needed). PUBLIC
+ * IDENTITY ONLY: Display Name + CueVerse ID (+ avatar initials). Email, account User
+ * ID, Discord, and all private account data are never passed to this component.
  */
 export function RegisteredPlayers({ players }: { players: PublicRegistrant[] }) {
   return (
@@ -30,12 +31,8 @@ export function RegisteredPlayers({ players }: { players: PublicRegistrant[] }) 
               <PlayerAvatar name={p.displayName} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{p.displayName}</p>
-                {(p.cueverseId || p.discord) && (
-                  <p className="truncate text-[0.7rem] text-muted-foreground">
-                    {p.cueverseId}
-                    {p.cueverseId && p.discord && <span className="text-muted-foreground/50"> · </span>}
-                    {p.discord && <span title="Discord">💬 {p.discord}</span>}
-                  </p>
+                {p.cueverseId && (
+                  <p className="truncate text-[0.7rem] text-muted-foreground">{p.cueverseId}</p>
                 )}
               </div>
             </li>

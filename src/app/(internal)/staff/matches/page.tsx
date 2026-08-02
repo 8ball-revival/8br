@@ -6,10 +6,12 @@ import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { ScoreForm } from '@/components/staff/score-form'
 import { MatchExtras } from '@/components/staff/match-extras'
+import { MatchNoteForm } from '@/components/staff/match-note-form'
+import { MatchHistory } from '@/components/staff/match-history'
 import { ActionButton } from '@/components/staff/action-button'
-import { recordScoreAction, verifyMatchAction } from '@/lib/competition/actions'
+import { recordScoreAction, verifyMatchAction, undoMatchAction, setMatchNoteAction } from '@/lib/competition/actions'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
-import { getActiveSeason, getAllGroups, getSeasonMatches } from '@/lib/competition/queries'
+import { getActiveSeason, getAllGroups, getSeasonMatches, getMatchHistory } from '@/lib/competition/queries'
 import { MATCH_STATUS_LABEL, VERIFICATION_LABEL } from '@/lib/competition/labels'
 
 export const metadata: Metadata = { title: 'Matches · Admin', robots: { index: false, follow: false } }
@@ -30,6 +32,7 @@ export default async function StaffMatchesPage() {
 
   const [groups, matches] = await Promise.all([getAllGroups(season.id), getSeasonMatches(season.id)])
   const groupName = new Map(groups.map((g) => [g.id, g.name]))
+  const history = await getMatchHistory('Match', matches.map((m) => m.id))
 
   return (
     <StaffShell active="matches" username={access.actor.username} seasonName={season.name}>
@@ -76,6 +79,7 @@ export default async function StaffMatchesPage() {
                           homeGames={m.homeGames}
                           awayGames={m.awayGames}
                           raceLength={season.raceLength}
+                          confirm={decided ? 'Save this edited score? Group standings, rankings, and player statistics will be recalculated.' : 'Save this result? Group standings will update once verified, and rankings recalculate.'}
                         />
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           {decided && !verified && (
@@ -83,6 +87,15 @@ export default async function StaffMatchesPage() {
                           )}
                           {verified && (
                             <ActionButton action={verifyMatchAction} fields={{ matchId: m.id, verified: 'false' }} label="Unverify" variant="ghost" />
+                          )}
+                          {(decided || m.homeGames != null) && (
+                            <ActionButton
+                              action={undoMatchAction}
+                              fields={{ matchId: m.id }}
+                              label="Undo result"
+                              variant="destructive"
+                              confirm="Undo this result? It reverts to unplayed and recalculates group standings, rankings, and player statistics."
+                            />
                           )}
                           <MatchExtras
                             matchId={m.id}
@@ -92,6 +105,10 @@ export default async function StaffMatchesPage() {
                             awayUsername={m.awayUsername}
                           />
                         </div>
+                        <div className="mt-2">
+                          <MatchNoteForm action={setMatchNoteAction} matchId={m.id} note={m.note} />
+                        </div>
+                        <MatchHistory entries={history.get(String(m.id)) ?? []} />
                       </div>
                     )
                   })}

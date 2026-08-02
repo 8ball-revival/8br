@@ -1,0 +1,207 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { BracketRound, BracketMatch, BracketSlot } from './fixtures'
+import { resolveEntrants } from '@/lib/competition/entrants'
+import { getTeamsForSeason, getTeamMembersByRegistration, type TeamView } from '@/lib/competition/teams'
+
+/** Column name for a bracket round: last round = Final, then Semifinals, etc. */
+export function roundColumnName(round: number, totalRounds: number): string {
+  const fromEnd = totalRounds - round
+  if (fromEnd === 0) return 'Final'
+  if (fromEnd === 1) return 'Semifinals'
+  if (fromEnd === 2) return 'Quarterfinals'
+  if (fromEnd === 3) return 'Round of 16'
+  if (fromEnd === 4) return 'Round of 32'
+  if (fromEnd === 5) return 'Round of 64'
+  return `Round ${round}`
+}
+
+export type PlayoffRow = {
+  id: number
+  round: number
+  slot: number
+  label: string | null
+  homeRegistrationId: number | null
+  awayRegistrationId: number | null
+  homeUsername: string | null
+  awayUsername: string | null
+  homeSeed: number | null
+  awaySeed: number | null
+  homeGames: number | null
+  awayGames: number | null
+  winnerRegistrationId: number | null
+  verification: string
+  status: string
+  note: string | null
+  feedsMatchId: number | null
+  feedsSlot: number | null
+  published: boolean
+}
+
+type MemberInfo = { name: string; handle: string | null; playerId: string | null }
+
+/** Convert live PlayoffMatch rows into the shared cup Bracket shape (with team rosters). */
+export function playoffToBracketRounds(
+  rows: PlayoffRow[],
+  membersByRegId?: Map<number, MemberInfo[]>,
+): BracketRound[] {
+  if (!rows.length) return []
+  const totalRounds = Math.max(...rows.map((r) => r.round))
+  const byRound = new Map<number, PlayoffRow[]>()
+  for (const r of rows) {
+    if (!byRound.has(r.round)) byRound.set(r.round, [])
+    byRound.get(r.round)!.push(r)
+  }
+  const slotFor = (regId: number | null, name: string | null, seed: number | null, score: number | null, isFirstRound: boolean): BracketSlot | undefined => {
+    if (name == null && regId == null) {
+      // Empty side: an explicit bye in round 1, otherwise "to be determined".
+      return isFirstRound ? { name: 'Bye' } : undefined
+    }
+    const s: BracketSlot = {}
+    if (name != null) s.name = name
+    if (seed != null) s.seed = seed
+    if (score != null) s.score = score
+    if (regId != null && membersByRegId?.has(regId)) {
+      s.members = membersByRegId.get(regId)!.map((m) => ({ name: m.name, ...(m.handle ? { handle: m.handle } : {}) }))
+    }
+    return s
+  }
+  const out: BracketRound[] = []
+  for (const round of [...byRound.keys()].sort((a, b) => a - b)) {
+    const isFirst = round === 1
+    const ms = byRound.get(round)!.sort((a, b) => a.slot - b.slot)
+    out.push({
+      name: roundColumnName(round, totalRounds),
+      matches: ms.map((r): BracketMatch => {
+        const m: BracketMatch = {}
+        const a = slotFor(r.homeRegistrationId, r.homeUsername, r.homeSeed, r.homeGames, isFirst)
+        const b = slotFor(r.awayRegistrationId, r.awayUsername, r.awaySeed, r.awayGames, isFirst)
+        if (a) m.a = a
+        if (b) m.b = b
+        if (r.winnerRegistrationId != null) m.winner = r.winnerRegistrationId === r.homeRegistrationId ? 'a' : 'b'
+        if (r.note) m.note = r.note
+        return m
+      }),
+    })
+  }
+  return out
+}
+
+export interface CupEntrantView {
+  registrationId: number
+  name: string
+  handle: string | null
+  seed: number | null
+  withdrawn: boolean
+}
+
+export interface CupWorkspaceData {
+  season: {
+    id: number
+    name: string
+    slug: string
+    cupNumber: number | null
+    competitionCode: string | null
+    gameType: string | null
+    participantFormat: 'INDIVIDUAL' | 'TEAM'
+    teamSize: number | null
+    tournamentFormat: string | null
+    seasonStatus: string
+    playoffsStatus: string
+    registrationStatus: string
+    archivedAt: string | null
+    locked: boolean
+    importedFromFixture: boolean
+    cupStatus: string | null
+    formatBadge: string | null
+  }
+  isCup: boolean
+  isHistorical: boolean
+  isEditable: boolean
+  isTeam: boolean
+  entrants: CupEntrantView[]
+  teams: TeamView[]
+  matches: PlayoffRow[]
+  bracketRounds: BracketRound[]
+  hasBracket: boolean
+  hasPublishedBracket: boolean
+  hasResults: boolean
+}
+
+/** Load everything the Cup workspace + public live render need for a cup number. */
+export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceData | null> {
+  const season = await prisma.season.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+  if (!season) return null
+
+  const isTeam = season.participantFormat === 'TEAM'
+  const isHistorical = season.importedFromFixture || season.locked
+  const isEditable = !isHistorical
+
+  // Entrants (individual). Teams are the entrants for team cups.
+  let entrants: CupEntrantView[] = []
+  if (!isTeam) {
+    const regs = await prisma.registration.findMany({
+      where: { seasonId: season.id },
+      select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true, seed: true, status: true },
+      orderBy: [{ seed: 'asc' }, { id: 'asc' }],
+    })
+    const idn = await resolveEntrants(regs)
+    entrants = regs.map((r) => ({
+      registrationId: r.id,
+      name: idn.get(r.id)?.displayName ?? r.username,
+      handle: r.cueverseId ?? null,
+      seed: r.seed,
+      withdrawn: r.status === 'WITHDRAWN',
+    }))
+  }
+  const teams = isTeam ? await getTeamsForSeason(season.id) : []
+  const membersByRegId = isTeam ? await getTeamMembersByRegistration(season.id) : undefined
+
+  const matches: PlayoffRow[] = await prisma.playoffMatch.findMany({
+    where: { seasonId: season.id },
+    orderBy: [{ round: 'asc' }, { slot: 'asc' }],
+    select: {
+      id: true, round: true, slot: true, label: true,
+      homeRegistrationId: true, awayRegistrationId: true, homeUsername: true, awayUsername: true,
+      homeSeed: true, awaySeed: true, homeGames: true, awayGames: true, winnerRegistrationId: true,
+      verification: true, status: true, note: true, feedsMatchId: true, feedsSlot: true, published: true,
+    },
+  })
+
+  const bracketRounds = playoffToBracketRounds(matches, membersByRegId)
+  const hasPublishedBracket = matches.some((m) => m.published)
+  const hasResults = matches.some((m) => m.winnerRegistrationId != null)
+
+  return {
+    season: {
+      id: season.id,
+      name: season.name,
+      slug: season.slug,
+      cupNumber: season.cupNumber,
+      competitionCode: season.competitionCode,
+      gameType: season.gameType,
+      participantFormat: season.participantFormat,
+      teamSize: season.teamSize,
+      tournamentFormat: season.tournamentFormat,
+      seasonStatus: season.seasonStatus,
+      playoffsStatus: season.playoffsStatus,
+      registrationStatus: season.registrationStatus,
+      archivedAt: season.archivedAt ? season.archivedAt.toISOString() : null,
+      locked: season.locked,
+      importedFromFixture: season.importedFromFixture,
+      cupStatus: season.cupStatus,
+      formatBadge: season.cupFormatBadge,
+    },
+    isCup: true,
+    isHistorical,
+    isEditable,
+    isTeam,
+    entrants,
+    teams,
+    matches,
+    bracketRounds,
+    hasBracket: matches.length > 0,
+    hasPublishedBracket,
+    hasResults,
+  }
+}

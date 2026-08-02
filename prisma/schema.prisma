@@ -1104,7 +1104,38 @@ enum VerificationState {
   VERIFIED
 }
 
-/// The live season. One row per 8 Ball Revival season; `slug` is the public identifier.
+/// Whether a live competition row is a Season or a Cup (unified competition model).
+enum CompetitionKind {
+  SEASON
+  CUP
+}
+
+/// Participant unit for a competition.
+enum ParticipantFormat {
+  INDIVIDUAL
+  TEAM
+}
+
+/// Overall competition structure (drives which workspace sections appear).
+enum TournamentFormat {
+  SINGLE_ELIM
+  DOUBLE_ELIM
+  GROUPS_PLAYOFFS
+  ROUND_ROBIN
+  TEAM_KNOCKOUT
+}
+
+/// Which sub-bracket a cup match belongs to (single- or double-elimination).
+enum CupBracketKind {
+  MAIN
+  WINNERS
+  LOSERS
+  GRAND_FINAL
+}
+
+/// The live competition (unified Season + Cup). One row per season edition or cup;
+/// `slug` is the public identifier. Cup-specific columns are all nullable/defaulted so
+/// this stays additive and safe for existing Season rows.
 model Season {
   id                   Int               @id @default(autoincrement())
   slug                 String            @unique
@@ -1119,28 +1150,169 @@ model Season {
   qualifiersPerGroup   Int               @default(2)
   formatSummary        String            @default("Group stage into single-elimination playoffs")
   eligibilitySummary   String            @default("Open to all registered 8 Ball Revival account holders.")
+  archivedAt           DateTime? // set when the competition is archived (read-only history)
+  // --- Unified competition fields (Season + Cup) ---
+  competitionType      CompetitionKind    @default(SEASON)
+  competitionCode      String?            @unique // permanent immutable id, e.g. "S2026-02", "C001"
+  cupNumber            Int?               @unique // preserved cup number (cups only)
+  gameType             String? // e.g. "8-Ball"
+  participantFormat    ParticipantFormat  @default(INDIVIDUAL)
+  teamSize             Int? // members per team when participantFormat = TEAM (2 for 2v2, 5 for 5v5)
+  tournamentFormat     TournamentFormat?
+  importedFromFixture  Boolean            @default(false) // true = migrated historical cup
+  locked               Boolean            @default(false) // archived historical cup: editing requires Owner unlock
+  unlockedAt           DateTime?
+  // Faithful copies of the cup fixture fields (lossless migration; exact round-trip).
+  cupFormatBadge       String? // exact `format` string from the fixture ("5v5","Prize","D/E",…)
+  cupYear              Int?
+  cupDate              String? // exact ISO date string from the fixture, if present
+  cupStatus            String? // exact fixture status ("completed" | "live")
+  entrantsCount        Int?
+  currentRound         String?
+  finalScore           String?
+  championName         String?
+  championHandle       String?
+  runnerUpName         String?
+  runnerUpHandle       String?
+  thirdPlaceName       String?
+  thirdPlaceHandle     String?
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 
-  registrations  Registration[]
-  groups         SeasonGroup[]
-  matches        SeasonMatch[]
-  playoffMatches PlayoffMatch[]
-  standings      Standing[]
+  registrations     Registration[]
+  groups            SeasonGroup[]
+  matches           SeasonMatch[]
+  playoffMatches    PlayoffMatch[]
+  standings         Standing[]
+  cupBracketMatches CupBracketMatch[]
+  cupTeamTies       CupTeamTie[]
+  cupTeams          CupTeam[]
 
+  @@index([competitionType])
   @@map("comp_season")
 }
 
-/// A player entry into a season. Distinct from account creation.
+/// A cup bracket match (single- or double-elimination), faithfully mirroring the
+/// fixture BracketMatch/BracketSlot so a cup can be reconstructed exactly. Slot
+/// presence flags distinguish an empty `{}` slot from an absent slot.
+model CupBracketMatch {
+  id           Int            @id @default(autoincrement())
+  competitionId Int
+  competition  Season         @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  bracketKind  CupBracketKind @default(MAIN)
+  roundName    String
+  roundOrder   Int
+  matchOrder   Int
+  aPresent     Boolean        @default(true)
+  aName        String?
+  aHandle      String?
+  aSeed        Int?
+  aScore       Int?
+  bPresent     Boolean        @default(true)
+  bName        String?
+  bHandle      String?
+  bSeed        Int?
+  bScore       Int?
+  winner       String? // "a" | "b"
+  note         String?
+
+  @@index([competitionId, bracketKind, roundOrder, matchOrder])
+  @@map("comp_cup_bracket_match")
+}
+
+/// A team-format cup tie (5v5 / 2v2), with its per-board individual matches, mirroring
+/// the fixture TeamTie/TieMatch exactly.
+model CupTeamTie {
+  id           Int          @id @default(autoincrement())
+  competitionId Int
+  competition  Season       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  round        String
+  roundOrder   Int
+  homeTeam     String
+  awayTeam     String
+  homeWins     Int
+  awayWins     Int
+  winner       String // "home" | "away"
+  matches      CupTieMatch[]
+
+  @@index([competitionId, roundOrder])
+  @@map("comp_cup_team_tie")
+}
+
+model CupTieMatch {
+  id          Int        @id @default(autoincrement())
+  tieId       Int
+  tie         CupTeamTie @relation(fields: [tieId], references: [id], onDelete: Cascade)
+  matchOrder  Int
+  homeName    String
+  homeHandle  String?
+  homeCaptain Boolean    @default(false)
+  awayName    String
+  awayHandle  String?
+  awayCaptain Boolean    @default(false)
+  homeScore   String? // "5", "W", "DQ", … (kept as string, exactly as the fixture)
+  awayScore   String?
+  note        String?
+
+  @@index([tieId, matchOrder])
+  @@map("comp_cup_tie_match")
+}
+
+/// A team entrant in a team-format LIVE cup (2v2, etc.). The team's bracket entrant is a
+/// Registration (username = team name), so the entire single-elimination engine
+/// (planBracket, PlayoffMatch, advancement, scoring, undo) works unchanged; this row and
+/// its members carry the roster shown beneath the team name in the bracket.
+model CupTeam {
+  id             Int          @id @default(autoincrement())
+  seasonId       Int
+  season         Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  registrationId Int          @unique // the bracket entrant this team maps to
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  name           String
+  seed           Int?
+  placement      Int?
+  withdrawn      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  members        CupTeamMember[]
+
+  @@index([seasonId])
+  @@map("comp_cup_team")
+}
+
+model CupTeamMember {
+  id          Int      @id @default(autoincrement())
+  teamId      Int
+  team        CupTeam  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerId    String? // canonical Player.id when the member is linked to a profile
+  name        String
+  handle      String?
+  memberOrder Int      @default(0)
+  captain     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([teamId])
+  @@index([playerId])
+  @@map("comp_cup_team_member")
+}
+
+/// A player entry into a season — a TOURNAMENT ENTRANT, independent of any website
+/// account. An entrant is normally backed by a canonical Player profile (`playerId`);
+/// a Payload account (`userId`) is OPTIONAL and, when present, links the entrant to a
+/// login. Admins add entrants directly (manual / bulk import); if the player later
+/// creates an account, staff link it to the profile and the account adopts the entry.
 model Registration {
-  id               Int                @id @default(autoincrement())
-  seasonId         Int
-  season           Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  userId           Int
+  id     Int    @id @default(autoincrement())
+  seasonId Int
+  season   Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  // OPTIONAL Payload account link. Null for account-less entrants (admin-added).
+  userId           Int?
   username         String
   status           RegistrationStatus @default(PENDING)
   seed             Int?
   note             String?
+  // How the entrant was added — public self-registration vs. admin add / bulk import.
+  addedByAdmin     Boolean            @default(false)
   // Identity submitted at registration by an UNLINKED account. Shown publicly until
   // the account is linked to a canonical Player profile, after which `playerId`
   // resolves the entrant to that profile (no duplicate entrant is created).
@@ -1148,15 +1320,17 @@ model Registration {
   cueverseId       String?
   discord          String?
   timeZone         String?
-  playerId         String? // resolved canonical Player.id once the account is linked
+  playerId         String? // canonical Player.id — the entrant's competitive identity
   createdAt        DateTime           @default(now())
   approvedAt       DateTime?
   withdrawnAt      DateTime?
   approvedByUserId Int?
 
   groupPlayers GroupPlayer[]
+  cupTeam      CupTeam? // set when this entrant is a team-format cup's team
 
   @@unique([seasonId, userId])
+  @@unique([seasonId, playerId])
   @@index([seasonId, status])
   @@index([playerId])
   @@map("comp_registration")
@@ -1215,6 +1389,7 @@ model SeasonMatch {
   winnerRegistrationId Int?
   loserRegistrationId  Int?
   verification         VerificationState @default(UNVERIFIED)
+  note                 String? // optional admin note attached to the result
   scheduledAt          DateTime?
   completedAt          DateTime?
   createdAt            DateTime          @default(now())
@@ -1246,6 +1421,7 @@ model PlayoffMatch {
   status               LiveMatchStatus   @default(SCHEDULED)
   winnerRegistrationId Int?
   verification         VerificationState @default(UNVERIFIED)
+  note                 String? // optional admin note attached to the result
   feedsMatchId         Int?
   feedsSlot            Int?
   published            Boolean           @default(false)
@@ -1281,6 +1457,20 @@ model Standing {
   @@unique([groupId, registrationId])
   @@index([seasonId])
   @@map("comp_standing")
+}
+
+/// Versioned canonical Cup snapshot (the DB is the source of truth). Singleton row
+/// (id = 1) holding the current `Cup[]` payload + a monotonic revision, regenerated
+/// TRANSACTIONALLY after every successful Cup mutation so every consumer (public Cup
+/// pages, rankings, profiles, homepage, historical/stat services) resolves the same
+/// revision. A failed mutation rolls back and leaves the prior revision intact.
+model CupSnapshot {
+  id        Int      @id @default(1)
+  revision  Int      @default(0)
+  payload   Json
+  updatedAt DateTime @updatedAt
+
+  @@map("comp_cup_snapshot")
 }
 
 /// Append-only audit trail for every staff action.

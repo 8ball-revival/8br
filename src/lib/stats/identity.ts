@@ -69,7 +69,8 @@ for (const id of GARY_IDS) ID_REMAP[id] = 'gary'
 // is the current player Travis (P1853). Travis replaces all mention of Serena.
 ID_REMAP.P1860 = 'P1853'
 // Canonical display names for corrected/canonical ids.
-const NAME: Record<string, string> = { neo: 'Neo', P1791: 'MJ', peter: 'Peter', craig: 'Craig', P1256: 'Derrick', gary: 'Gary' }
+// P1183 = cue.ball: owner-confirmed his name is James (the archive idToName had "JD").
+const NAME: Record<string, string> = { neo: 'Neo', P1791: 'MJ', peter: 'Peter', craig: 'Craig', P1256: 'Derrick', gary: 'Gary', P1183: 'James' }
 // Shared historical accounts — resolved per record by display name, never a global alias.
 const SHARED = new Set([key('i_am_almost_god')])
 // Handles the owner has explicitly flagged as unresolved (excluded until reviewed).

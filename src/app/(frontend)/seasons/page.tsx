@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header'
 import { YearSlider } from '@/components/seasons/year-slider'
 import { SeasonYear } from '@/components/seasons/season-year'
 import { getArchiveYears, getSeasonsByYear } from '@/lib/seasons/archive'
+import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { pageMetadata } from '@/lib/site'
 
 export const metadata: Metadata = pageMetadata({
@@ -16,6 +17,7 @@ export const metadata: Metadata = pageMetadata({
 type Params = { searchParams: Promise<{ year?: string }> }
 
 export default async function SeasonsPage({ searchParams }: Params) {
+  cupStore.enterWith(await loadCupContext()) // season-year panels render cup data — resolve the live revision
   const { year } = await searchParams
   const years = getArchiveYears()
   const selected = year && years.includes(Number(year)) ? Number(year) : years[0]

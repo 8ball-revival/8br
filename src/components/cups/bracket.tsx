@@ -1,8 +1,29 @@
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/cups/fixtures'
+import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/cups/service'
+
+function Members({ members }: { members: NonNullable<BracketSlot['members']> }) {
+  return (
+    <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">
+      {members.map((m, i) => (
+        <span key={i}>
+          {i > 0 && <span className="text-muted-foreground/50"> + </span>}
+          {m.slug ? (
+            <Link href={`/players/${m.slug}`} className="hover:text-gold hover:underline">
+              {m.name}
+            </Link>
+          ) : (
+            m.name
+          )}
+        </span>
+      ))}
+    </span>
+  )
+}
 
 function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boolean }) {
   const label = slot?.name ?? 'TBD'
+  const hasMembers = !!slot?.members?.length
   return (
     <div
       className={cn(
@@ -18,8 +39,12 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
         <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-gold' : dim ? 'text-muted-foreground' : 'text-foreground')}>
           {label}
         </span>
-        {slot?.handle && slot.handle !== slot.name && (
-          <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">{slot.handle}</span>
+        {hasMembers ? (
+          <Members members={slot!.members!} />
+        ) : (
+          slot?.handle && slot.handle !== slot.name && (
+            <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">{slot.handle}</span>
+          )
         )}
       </span>
       {slot?.score != null && (

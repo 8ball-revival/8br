@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { Cup, BracketMatch, BracketSlot } from '@/lib/cups/fixtures'
+import type { Cup, BracketMatch, BracketSlot } from '@/lib/cups/service'
 
 type PendingMatch = BracketMatch & { round: string }
 

@@ -8,7 +8,7 @@ import { DoubleElimBracket } from '@/components/seasons/double-elim'
 import { SeasonBracket } from '@/components/seasons/season-bracket'
 import { cn } from '@/lib/utils'
 import type { ArchiveSeason, SeasonDivision } from '@/lib/seasons/archive'
-import type { BracketRound } from '@/lib/cups/fixtures'
+import type { BracketRound } from '@/lib/cups/service'
 
 function toBracketRounds(div: SeasonDivision): BracketRound[] {
   return (div.playoff?.rounds ?? []).map((r) => ({

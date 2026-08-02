@@ -9,16 +9,17 @@ import { NewsPanel } from '@/components/home/news-panel'
 import { PlayerSpotlight } from '@/components/home/player-spotlight'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
 import { OnThisDay } from '@/components/home/on-this-day'
-import { getHomeData } from '@/lib/home/fixtures'
+import { getHomeData, type HeroData } from '@/lib/home/fixtures'
 import { getSeasonTop, getSeasonRankings } from '@/lib/stats/season-stats'
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
-import { getPublicRegistrations } from '@/lib/competition/public'
+import { getPublicRegistrations, getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { getSpotlightPlayers } from '@/lib/spotlight/fixtures'
-import { getCups } from '@/lib/cups/fixtures'
+import { getCups } from '@/lib/cups/service'
+import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { absoluteUrl } from '@/lib/site'
 
 const DESCRIPTION =
-  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Season 2 registration is now open — compete in the group stage and playoffs and explore two decades of history.'
+  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Compete in Season 2 — the group stage and playoffs — and explore two decades of history.'
 
 export const metadata: Metadata = {
   title: { absolute: '8 Ball Revival | Formerly 8BRCAM' },
@@ -35,11 +36,32 @@ export const metadata: Metadata = {
 }
 
 export default async function HomePage() {
+  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before any cup-derived render
   // Most homepage panels are still fixture-driven (see lib/home/fixtures); the
   // Registered Players panel is now live from the database.
   const data = getHomeData()
   const registrations = await getPublicRegistrations()
   const currentCup = getCups().find((c) => c.status === 'live')
+
+  // Registration state on the hero is DB-driven (the manual staff status is
+  // authoritative) — never a hardcoded label or deadline.
+  const season = await getPublicSeason()
+  const open = isRegistrationOpen(season)
+  const hero: HeroData = {
+    ...data.hero,
+    seasonLabel: season?.name ?? data.hero.seasonLabel,
+    headingTop: 'Registration',
+    headingBottom: open ? 'Now Open' : season?.registrationStatus === 'CLOSED' ? 'Now Closed' : 'Opening Soon',
+    // Countdown only when open AND a deadline is set; otherwise hidden.
+    registrationClosesAt: open && season?.registrationClosesAt ? season.registrationClosesAt.toISOString() : '',
+    deadlineNote: open
+      ? season?.registrationClosesAt
+        ? registrationDeadlineLabel(season)
+        : 'Registration is open — enter Season 2 now.'
+      : season?.registrationStatus === 'CLOSED'
+        ? 'Registration is closed. Follow the group stage and playoffs.'
+        : 'Registration will open soon.',
+  }
 
   // Championship + season counters derived from the canonical Seasons source (the
   // remaining by-the-numbers tiles are decorative site-level counters, not player stats).
@@ -59,7 +81,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden border-b border-border">
         <HeroBackdrop />
         <Wide className="relative grid items-start gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-14">
-          <Hero data={data.hero} />
+          <Hero data={hero} registrationOpen={open} />
           <RegisteredPlayers players={registrations} />
         </Wide>
       </section>

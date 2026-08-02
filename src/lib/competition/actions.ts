@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireCapability } from './staff-auth'
+import { requireCapability, requireStaffActor } from './staff-auth'
 import * as svc from './service'
 import type { RegistrationStatus, LiveMatchStatus } from '@prisma/client'
 
@@ -11,9 +11,12 @@ export interface ActionResult {
   message?: string
 }
 
-/** Revalidate every public + staff surface that consumes competition data. */
+/** Revalidate every public + staff surface that consumes competition data.
+ *  Includes rankings / Hall of Fame / player pages so that editing a result makes
+ *  those derived views recompute on their next read (the ranking engine itself is
+ *  a pure function of the underlying data — nothing is cached server-side). */
 function revalidateAll() {
-  for (const p of ['/', '/groups', '/playoffs', '/seasons', '/account', '/register']) revalidatePath(p)
+  for (const p of ['/', '/groups', '/playoffs', '/seasons', '/account', '/register', '/rankings', '/hall-of-fame', '/players', '/records']) revalidatePath(p)
   for (const p of [
     '/staff',
     '/staff/season',
@@ -55,16 +58,16 @@ export async function createSeasonAction(_prev: ActionResult, fd: FormData): Pro
 export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const seasonId = num(fd, 'seasonId')
-  const opensAt = str(fd, 'registrationOpensAt')
   const closesAt = str(fd, 'registrationClosesAt')
   try {
+    // NOTE: registrationStatus is intentionally NOT set here — it is owned by the
+    // dedicated Open/Close/Reopen controls (setRegistrationStateAction) so the
+    // manual registration status stays the single authoritative source.
     await svc.updateSeason(
       actor,
       seasonId,
       {
         seasonStatus: str(fd, 'seasonStatus') as 'UPCOMING' | 'ACTIVE' | 'COMPLETED',
-        registrationStatus: str(fd, 'registrationStatus') as 'NOT_OPEN' | 'OPEN' | 'CLOSED',
-        registrationOpensAt: opensAt ? new Date(opensAt) : null,
         registrationClosesAt: closesAt ? new Date(closesAt) : null,
         groupsStatus: str(fd, 'groupsStatus') as 'PENDING' | 'PUBLISHED' | 'COMPLETED',
         playoffsStatus: str(fd, 'playoffsStatus') as 'PENDING' | 'PUBLISHED' | 'COMPLETED',
@@ -93,7 +96,171 @@ export async function setRegistrationStatusAction(_prev: ActionResult, fd: FormD
   }
 }
 
+// ---- Registration open / close / reopen -----------------------------------
+
+export async function setRegistrationStateAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const next = str(fd, 'next') as 'NOT_OPEN' | 'OPEN' | 'CLOSED'
+  if (!['NOT_OPEN', 'OPEN', 'CLOSED'].includes(next)) return { error: 'Invalid registration state.' }
+  const res = await svc.setRegistrationState(actor, num(fd, 'seasonId'), next, str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  const label = next === 'OPEN' ? 'Registration is now open.' : next === 'CLOSED' ? 'Registration is now closed.' : 'Registration reset.'
+  return { ok: true, message: label }
+}
+
+// ---- Entrants (admin-added, account-independent) ---------------------------
+
+export interface EntrantCandidate { playerId: string; primaryName: string; cueverseId: string | null; alreadyEntered: boolean }
+
+/** Live search for addable player profiles (for the "add entrant" combobox).
+ *  Already-entered profiles are returned flagged so the UI marks them unavailable. */
+export async function searchEntrantCandidatesAction(seasonId: number, query: string): Promise<EntrantCandidate[]> {
+  await requireCapability('manage_competitions')
+  const { searchEntrantCandidates } = await import('./queries')
+  return searchEntrantCandidates(seasonId, query)
+}
+
+export async function addEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const seasonId = num(fd, 'seasonId')
+  const ids = String(fd.get('playerIds') ?? fd.get('playerId') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  if (ids.length === 0) return { error: 'Select at least one player profile.' }
+  let added = 0
+  let already = 0
+  for (const playerId of ids) {
+    const res = await svc.addEntrantByProfile(actor, seasonId, playerId)
+    if (res.already) already++
+    else if (res.ok) added++
+  }
+  revalidateAll()
+  return { ok: true, message: `Added ${added} entrant(s)${already ? `, ${already} already in` : ''}.` }
+}
+
+export async function removeEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.removeEntrant(actor, num(fd, 'seasonId'), num(fd, 'registrationId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Entrant removed (can be restored).' }
+}
+
+export async function restoreEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.restoreEntrant(actor, num(fd, 'seasonId'), num(fd, 'registrationId'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Entrant restored.' }
+}
+
+export interface BulkImportResult extends ActionResult {
+  report?: { added: string[]; duplicates: string[]; unmatched: string[] }
+}
+
+export async function bulkImportEntrantsAction(_prev: BulkImportResult, fd: FormData): Promise<BulkImportResult> {
+  const actor = await requireCapability('manage_competitions')
+  const lines = String(fd.get('cueverseIds') ?? '').split('\n')
+  const report = await svc.bulkImportEntrants(actor, num(fd, 'seasonId'), lines)
+  revalidateAll()
+  return { ok: true, report: { added: report.added, duplicates: report.duplicates, unmatched: report.unmatched }, message: `Added ${report.added.length}, ${report.duplicates.length} already in, ${report.unmatched.length} unmatched.` }
+}
+
 // ---- Groups ---------------------------------------------------------------
+
+export async function createGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.createGroup(actor, num(fd, 'seasonId'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Group created.' }
+}
+
+export async function setGroupCountAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.setGroupCount(actor, num(fd, 'seasonId'), num(fd, 'count'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Group count updated.' }
+}
+
+export async function swapPlayersAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.swapGroupPlayers(actor, num(fd, 'seasonId'), num(fd, 'regA'), num(fd, 'regB'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true }
+}
+
+export async function addPlayersToGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const ids = String(fd.get('registrationIds') ?? '').split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0)
+  if (ids.length === 0) return { error: 'Select at least one player.' }
+  const res = await svc.addPlayersToGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), ids)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: `Added ${res.added} player(s).` }
+}
+
+export async function renameGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.renameGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), str(fd, 'name'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Group renamed.' }
+}
+
+export async function deleteGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.deleteGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Group deleted.' }
+}
+
+export async function moveGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.moveGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), str(fd, 'direction') as 'up' | 'down')
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true }
+}
+
+export async function addPlayerToGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  if (!fd.get('registrationId')) return { error: 'Select a player to add.' }
+  const res = await svc.addPlayerToGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), num(fd, 'registrationId'), {
+    force: fd.get('force') === 'on',
+  })
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Player added.' }
+}
+
+export async function removePlayerFromGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.removePlayerFromGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), num(fd, 'registrationId'), {
+    force: fd.get('force') === 'on',
+  })
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true }
+}
+
+export async function reorderGroupPlayerAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.reorderGroupPlayer(actor, num(fd, 'seasonId'), num(fd, 'groupId'), num(fd, 'registrationId'), str(fd, 'direction') as 'up' | 'down')
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true }
+}
+
+export async function unpublishGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.unpublishGroups(actor, num(fd, 'seasonId'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Groups unpublished — hidden from the public site.' }
+}
 
 export async function generateGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
@@ -151,6 +318,22 @@ export async function verifyMatchAction(_prev: ActionResult, fd: FormData): Prom
   return { ok: true }
 }
 
+export async function undoMatchAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  const res = await svc.undoMatchResult(actor, num(fd, 'matchId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Result undone. Standings and rankings recalculated.' }
+}
+
+export async function setMatchNoteAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  const res = await svc.setMatchNote(actor, num(fd, 'matchId'), str(fd, 'note'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Note saved.' }
+}
+
 // ---- Playoffs -------------------------------------------------------------
 
 export async function generatePlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -169,6 +352,31 @@ export async function publishPlayoffAction(_prev: ActionResult, fd: FormData): P
   return { ok: true, message: 'Playoffs published.' }
 }
 
+export async function rebuildManualPlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const ids = String(fd.get('registrationIds') ?? '').split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0)
+  const res = await svc.rebuildManualPlayoff(actor, num(fd, 'seasonId'), ids)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true }
+}
+
+export async function returnPlayoffToDraftAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.returnPlayoffToDraft(actor, num(fd, 'seasonId'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Bracket returned to draft.' }
+}
+
+export async function deletePlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.deletePlayoff(actor, num(fd, 'seasonId'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Bracket deleted.' }
+}
+
 export async function recordPlayoffScoreAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('edit_results')
   const res = await svc.recordPlayoffScore(actor, num(fd, 'matchId'), num(fd, 'homeGames'), num(fd, 'awayGames'), str(fd, 'reason') || undefined)
@@ -183,4 +391,70 @@ export async function verifyPlayoffMatchAction(_prev: ActionResult, fd: FormData
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true }
+}
+
+export async function undoPlayoffMatchAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  const res = await svc.undoPlayoffResult(actor, num(fd, 'matchId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Playoff result undone. Bracket advancement reverted.' }
+}
+
+export async function setPlayoffNoteAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  const res = await svc.setPlayoffNote(actor, num(fd, 'matchId'), str(fd, 'note'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Note saved.' }
+}
+
+// ---- Competition lifecycle -------------------------------------------------
+
+export async function completeCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.completeCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Competition marked complete.' }
+}
+
+export async function archiveCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.archiveCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Competition archived.' }
+}
+
+export async function unarchiveCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.unarchiveCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Competition restored from archive.' }
+}
+
+// ---- Historical Cup lock (OWNER only) --------------------------------------
+
+async function requireOwnerActor() {
+  const actor = await requireStaffActor()
+  if (!actor.isOwner) throw new Error('Forbidden: only the Owner can unlock or relock historical competitions.')
+  return actor
+}
+
+export async function unlockCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireOwnerActor()
+  const res = await svc.unlockHistoricalCompetition(actor, num(fd, 'seasonId'), str(fd, 'code'), str(fd, 'reason'))
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Historical competition unlocked for editing.' }
+}
+
+export async function relockCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const actor = await requireOwnerActor()
+  const res = await svc.relockCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  if (!res.ok) return { error: res.error }
+  revalidateAll()
+  return { ok: true, message: 'Competition re-locked.' }
 }

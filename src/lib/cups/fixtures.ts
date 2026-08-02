@@ -16,6 +16,8 @@ export interface BracketSlot {
   handle?: string
   seed?: number
   score?: number
+  /** Team-format cups: the roster shown beneath the team name (name is the team name). */
+  members?: { name: string; handle?: string; slug?: string }[]
 }
 
 export interface BracketMatch {
@@ -174,7 +176,7 @@ const CUPS: Cup[] = [
           { a: { name: 'british-pool_wizard', handle: 'british_pool_wizard', seed: 12, score: 7 }, b: { name: 'Gus', handle: 'XX_APOCALIPSYS_XX', seed: 21, score: 3 }, winner: 'a' },
           { a: { name: 'O.Wnage', handle: 'o.wnage', seed: 2 }, b: { name: 'Bye', seed: 31 }, winner: 'a' },
           { a: { name: 'Chirag', handle: 'jabronni16', seed: 15, score: 6 }, b: { name: 'Brian', handle: 'cubskilla87', seed: 18, score: 8 }, winner: 'b' },
-          { a: { name: 'JD', handle: 'cue.ball', seed: 7 }, b: { name: 'Bye', seed: 26 }, winner: 'a' },
+          { a: { name: 'James', handle: 'cue.ball', seed: 7 }, b: { name: 'Bye', seed: 26 }, winner: 'a' },
           { a: { name: 'Andy', handle: 'pool_warrior2002', seed: 10 }, b: { name: 'Bye', seed: 23 }, winner: 'a' },
           { a: { name: 'Jamie', handle: 'xlx_britishpoolking_xlx', seed: 3 }, b: { name: 'Bye', seed: 30 }, winner: 'a' },
           { a: { name: 'Kevin', handle: 'krazy_kevy', seed: 14 }, b: { name: 'Conor', handle: 'xlx_nub_xlx', seed: 19 }, winner: 'b', note: 'Walkover' },
@@ -190,7 +192,7 @@ const CUPS: Cup[] = [
           { a: { name: 'Craig', handle: 'c_l2_a_i_g', score: 7 }, b: { name: 'Ryan', handle: 'kula.', score: 5 }, winner: 'a' },
           { a: { name: 'Billy', handle: 'MOLSON__CANADIAN', score: 4 }, b: { name: 'british-pool_wizard', handle: 'british_pool_wizard', score: 7 }, winner: 'b' },
           { a: { name: 'O.Wnage', handle: 'o.wnage', score: 3 }, b: { name: 'Brian', handle: 'cubskilla87', score: 7 }, winner: 'b' },
-          { a: { name: 'JD', handle: 'cue.ball', score: 5 }, b: { name: 'Andy', handle: 'pool_warrior2002', score: 7 }, winner: 'b' },
+          { a: { name: 'James', handle: 'cue.ball', score: 5 }, b: { name: 'Andy', handle: 'pool_warrior2002', score: 7 }, winner: 'b' },
           { a: { name: 'Jamie', handle: 'xlx_britishpoolking_xlx', score: 6 }, b: { name: 'Conor', handle: 'xlx_nub_xlx', score: 8 }, winner: 'b' },
           { a: { name: 'Adam', handle: 'owned_ggs', score: 5 }, b: { name: 'Chris', handle: 'chris.dogg', score: 7 }, winner: 'b' },
         ],
@@ -277,7 +279,7 @@ const CUPS: Cup[] = [
           { a: { name: 'Jeremy', handle: 'pro.jeremy', seed: 26, score: 0 }, b: { name: 'Sean', handle: 'lilsparky67', seed: 39, score: 0 }, winner: 'a' },
           { a: { name: 'Craig', handle: 'c_l2_a_i_g', seed: 10 }, b: { name: 'Bye' }, winner: 'a' },
           { a: { name: 'Noobish.Styles', handle: 'noobish.styles', seed: 23, score: 7 }, b: { name: 'Mvp_artist', handle: 'mvp_artist', seed: 42, score: 4 }, winner: 'a' },
-          { a: { name: 'JD', handle: 'cue.ball', seed: 3 }, b: { name: 'Bye' }, winner: 'a' },
+          { a: { name: 'James', handle: 'cue.ball', seed: 3 }, b: { name: 'Bye' }, winner: 'a' },
           { a: { name: 'Todd', handle: 'mvp_todd', seed: 30, score: 7 }, b: { name: 'Ketan', handle: 'll_ketan_ll', seed: 35, score: 0 }, winner: 'a' },
           { a: { name: 'Brian', handle: 'cubskilla87', seed: 14 }, b: { name: 'Bye' }, winner: 'a' },
           { a: { name: 'Jamie', handle: 'xlx_britishpoolking_xlx', seed: 19, score: 1 }, b: { name: 'Andy', handle: 'Pool_Warrior2002', seed: 46, score: 7 }, winner: 'b' },
@@ -302,7 +304,7 @@ const CUPS: Cup[] = [
           { a: { name: 'Chris', handle: 'new.zealand', seed: 15, score: 0 }, b: { name: 'CK', handle: 'Xx_CK_xX', seed: 18, score: 7 }, winner: 'b' },
           { a: { name: 'PC', handle: 'p00l_charlie', seed: 7, score: 0 }, b: { name: 'Jeremy', handle: 'pro.jeremy', seed: 26, score: 0 }, winner: 'b' },
           { a: { name: 'Craig', handle: 'c_l2_a_i_g', seed: 10, score: 0 }, b: { name: 'Noobish.Styles', handle: 'noobish.styles', seed: 23, score: 7 }, winner: 'b' },
-          { a: { name: 'JD', handle: 'cue.ball', seed: 3, score: 0 }, b: { name: 'Todd', handle: 'mvp_todd', seed: 30, score: 7 }, winner: 'b' },
+          { a: { name: 'James', handle: 'cue.ball', seed: 3, score: 0 }, b: { name: 'Todd', handle: 'mvp_todd', seed: 30, score: 7 }, winner: 'b' },
           { a: { name: 'Brian', handle: 'cubskilla87', seed: 14, score: 6 }, b: { name: 'Andy', handle: 'Pool_Warrior2002', seed: 46, score: 8 }, winner: 'b' },
           { a: { name: 'Si', handle: 'xxx_thepower_xxx', seed: 6, score: 7 }, b: { name: 'Josh', handle: 'x_psychopath.unleashed_x', seed: 27, score: 1 }, winner: 'a' },
           { a: { name: 'Stu', handle: 'zl_stu_lz', seed: 11, score: 7 }, b: { name: 'Nelson', handle: 'Diosmaradonaforever', seed: 43, score: 4 }, winner: 'a' },
@@ -644,7 +646,7 @@ const CUPS: Cup[] = [
         name: 'Quarter Finals',
         matches: [
           { a: { name: 'Ogges', score: 3 }, b: { name: 'Starkiller', score: 7 }, winner: 'b' },
-          { a: { name: 'Missy♥' }, b: { name: 'Faisal' } },
+          { a: { name: 'Missy♥', score: 5 }, b: { name: 'Faisal', score: 7 }, winner: 'b' },
           { a: { name: 'sixohtwo', score: 7 }, b: { name: 'Bricycle', score: 2 }, winner: 'a' },
           { a: { name: 'xlx_CC_xlx', score: 0 }, b: { name: 'GØĐⱠłKɆ.÷', score: 7 }, winner: 'b', note: 'Forfeit' },
         ],
@@ -652,7 +654,7 @@ const CUPS: Cup[] = [
       {
         name: 'Semi Finals',
         matches: [
-          { a: { name: 'Starkiller' }, b: {} },
+          { a: { name: 'Starkiller' }, b: { name: 'Faisal' } },
           { a: { name: 'sixohtwo', score: 6 }, b: { name: 'GØĐⱠłKɆ.÷', score: 8 }, winner: 'b' },
         ],
       },

@@ -1,14 +1,19 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Users } from 'lucide-react'
 
 import { Container } from '@/components/ui/container'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { StageComingSoon } from '@/components/stage-coming-soon'
-import { GroupStandings, type GroupView } from '@/components/competition/group-standings'
+import { PublicGroupCard } from '@/components/competition/public-group'
+import { AdminBar } from '@/components/staff/admin-bar'
+import { GroupsDndBuilder } from '@/components/staff/groups-dnd-builder'
 import { pageMetadata } from '@/lib/site'
-import { getPublicSeason } from '@/lib/competition/public'
-import { getPublishedGroups, getGroupMatches } from '@/lib/competition/queries'
+import { getPublicSeason, getPublicGroups } from '@/lib/competition/public'
+import { getGroupBuilder } from '@/lib/competition/queries'
+import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
 export const metadata: Metadata = pageMetadata({
   title: '8 Ball Revival Season 2 Groups',
@@ -16,20 +21,38 @@ export const metadata: Metadata = pageMetadata({
   path: '/groups',
 })
 
-export default async function GroupsPage() {
+export default async function GroupsPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const season = await getPublicSeason()
-  const groups = season ? await getPublishedGroups(season.id) : []
+  const wantsEdit = (await searchParams).edit === 'true'
 
-  const views: GroupView[] = await Promise.all(
-    groups.map(async (g) => ({
-      id: g.id,
-      code: g.code,
-      name: g.name,
-      standings: g.standings,
-      matches: await getGroupMatches(g.id),
-    })),
-  )
+  // INLINE EDIT MODE — Owner/Admin edit the groups on the branded public page itself
+  // (no separate staff site). Members never reach this branch.
+  if (wantsEdit && season) {
+    const access = await resolveStaffAccess()
+    if (access.status === 'ok' && access.actor.can('manage_competitions')) {
+      const { groups, unassigned, approvedCount, published } = await getGroupBuilder(season.id)
+      return (
+        <>
+          <PageHeader
+            breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Groups', href: '/groups' }, { label: 'Edit' }]}
+            title="Edit Groups"
+            description="Build the group stage. Drag entrants from Available Players; drop onto a player to swap; drag out to remove. Draft until published."
+            actions={
+              <div className="flex items-center gap-2">
+                <Badge variant="gold">Edit mode</Badge>
+                <Button asChild variant="outline" size="sm"><Link href="/groups">Done / View public</Link></Button>
+              </div>
+            }
+          />
+          <Container className="py-10">
+            <GroupsDndBuilder seasonId={season.id} groups={groups} unassigned={unassigned} published={published} approvedCount={approvedCount} />
+          </Container>
+        </>
+      )
+    }
+  }
 
+  const views = season ? await getPublicGroups(season.id) : []
   const hasGroups = views.length > 0
 
   return (
@@ -41,10 +64,11 @@ export default async function GroupsPage() {
         actions={<Badge variant={hasGroups ? 'success' : 'muted'}>{hasGroups ? 'Groups live' : 'Not yet drawn'}</Badge>}
       />
       <Container className="py-12">
+        <AdminBar surface="groups" seasonId={season?.id} />
         {hasGroups ? (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
             {views.map((g) => (
-              <GroupStandings key={g.id} group={g} />
+              <PublicGroupCard key={g.id} group={g} />
             ))}
           </div>
         ) : (

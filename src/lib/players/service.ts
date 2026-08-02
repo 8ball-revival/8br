@@ -51,7 +51,10 @@ export async function getProfileById(id: string): Promise<ProfileView | null> {
 
 /**
  * Link an account to a canonical profile (staff action). Enforces 1:1 both ways, then
- * resolves that account's registrations to the profile so the entrant is not duplicated.
+ * the account ADOPTS the profile's tournament history: any admin-added, account-less
+ * entrants for this profile become owned by the account, and the account's own
+ * self-registrations are tagged with the profile. This is how a player who competed
+ * before signing up gains access to their entries/history once linked.
  */
 export async function linkAccountToProfile(actor: Actor, userId: number, playerId: string): Promise<{ ok: boolean; error?: string }> {
   const profile = await prisma.player.findUnique({ where: { id: playerId } })
@@ -64,20 +67,49 @@ export async function linkAccountToProfile(actor: Actor, userId: number, playerI
 
   await prisma.$transaction(async (tx) => {
     await tx.player.update({ where: { id: playerId }, data: { linkedUserId: String(userId), linkStatus: 'VERIFIED', linkedAt: new Date() } })
-    await tx.registration.updateMany({ where: { userId }, data: { playerId } })
+
+    // 1) The account adopts account-less entrants for this profile.
+    const profileEntries = await tx.registration.findMany({ where: { playerId } })
+    for (const pe of profileEntries) {
+      if (pe.userId != null) continue
+      const accountRow = await tx.registration.findUnique({ where: { seasonId_userId: { seasonId: pe.seasonId, userId } } })
+      if (accountRow && accountRow.id !== pe.id) {
+        // Account already self-registered this season: keep the profile entry (it may be
+        // seeded into groups), drop the duplicate account row unless it's in a group.
+        const accInGroup = await tx.groupPlayer.count({ where: { registrationId: accountRow.id } })
+        if (accInGroup === 0) {
+          await tx.registration.delete({ where: { id: accountRow.id } })
+          await tx.registration.update({ where: { id: pe.id }, data: { userId } })
+        }
+      } else {
+        await tx.registration.update({ where: { id: pe.id }, data: { userId } })
+      }
+    }
+
+    // 2) The account's own self-registrations (no profile yet) get tagged with the profile.
+    const accountOwn = await tx.registration.findMany({ where: { userId, playerId: null } })
+    for (const ao of accountOwn) {
+      const dup = await tx.registration.findUnique({ where: { seasonId_playerId: { seasonId: ao.seasonId, playerId } } })
+      if (!dup) await tx.registration.update({ where: { id: ao.id }, data: { playerId } })
+    }
   })
   await recordAudit(actor, { action: 'profile.link', entity: 'Player', entityId: playerId, newValue: { linkedUserId: userId, primaryName: profile.primaryName }, reason: `Linked account ${userId} to ${profile.primaryName}` })
   return { ok: true }
 }
 
-/** Unlink an account from its profile (staff action). Historical data is untouched. */
+/** Unlink an account from its profile (staff action). Entrants remain — admin-added
+ *  entries revert to account-less (they belong to the profile, not the login); the
+ *  account's own self-registrations keep their entry but drop the profile link. */
 export async function unlinkAccount(actor: Actor, playerId: string): Promise<{ ok: boolean; error?: string }> {
   const profile = await prisma.player.findUnique({ where: { id: playerId } })
   if (!profile) return { ok: false, error: 'Profile not found.' }
   const uid = profile.linkedUserId
   await prisma.$transaction(async (tx) => {
     await tx.player.update({ where: { id: playerId }, data: { linkedUserId: null, linkStatus: 'UNLINKED', linkedAt: null } })
-    if (uid) await tx.registration.updateMany({ where: { userId: Number(uid) }, data: { playerId: null } })
+    if (uid) {
+      await tx.registration.updateMany({ where: { userId: Number(uid), addedByAdmin: true }, data: { userId: null } })
+      await tx.registration.updateMany({ where: { userId: Number(uid), addedByAdmin: false }, data: { playerId: null } })
+    }
   })
   await recordAudit(actor, { action: 'profile.unlink', entity: 'Player', entityId: playerId, oldValue: { linkedUserId: uid }, reason: 'Unlinked account' })
   return { ok: true }

@@ -17,6 +17,7 @@ export function ScoreForm({
   homeGames,
   awayGames,
   raceLength,
+  confirm,
 }: {
   action: Action
   matchId: number
@@ -25,10 +26,15 @@ export function ScoreForm({
   homeGames: number | null
   awayGames: number | null
   raceLength: number
+  confirm?: string
 }) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(action, {})
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2">
+    <form
+      action={formAction}
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={confirm ? (e) => { if (!window.confirm(confirm)) e.preventDefault() } : undefined}
+    >
       <input type="hidden" name="matchId" value={matchId} />
       <span className="min-w-24 text-right text-sm">{homeUsername}</span>
       <Input

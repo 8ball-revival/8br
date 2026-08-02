@@ -48,6 +48,38 @@ export const Users: CollectionConfig = {
         }
         return data
       },
+      // OWNER PROTECTION. Ownership is singular and can change ONLY through the
+      // explicit transfer flow (which sets req.context.allowOwnerTransfer). Outside
+      // that flow: the Owner cannot be demoted, and Owner cannot be granted to anyone
+      // else — so no account can silently gain or lose ownership. The first-user
+      // bootstrap above is exempt (there is no Owner yet).
+      async ({ operation, data, req, originalDoc }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((req.context as any)?.allowOwnerTransfer) return data
+        const hadOwner = Array.isArray(originalDoc?.roles) && originalDoc.roles.includes('owner')
+        const willOwner = Array.isArray(data?.roles) && data.roles.includes('owner')
+        if (operation === 'update') {
+          if (hadOwner && !willOwner)
+            throw new Error('The Owner cannot be demoted. Transfer ownership first.')
+          if (!hadOwner && willOwner)
+            throw new Error('Owner can only be granted by transferring ownership.')
+        }
+        if (operation === 'create' && willOwner) {
+          const { totalDocs } = await req.payload.count({ collection: 'users' })
+          if (totalDocs > 0) throw new Error('Owner can only be granted by transferring ownership.')
+        }
+        return data
+      },
+    ],
+    beforeDelete: [
+      // The Owner account can never be deleted (transfer ownership first, which
+      // demotes the former Owner to Admin — an Admin account is deletable).
+      async ({ req, id }) => {
+        const doc = await req.payload.findByID({ collection: 'users', id, overrideAccess: true }).catch(() => null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (doc && Array.isArray((doc as any).roles) && (doc as any).roles.includes('owner'))
+          throw new Error('The Owner account cannot be deleted. Transfer ownership first.')
+      },
     ],
   },
   fields: [

@@ -1,6 +1,6 @@
 import { MatchBox } from '@/components/cups/bracket'
 import { cn } from '@/lib/utils'
-import type { BracketRound } from '@/lib/cups/fixtures'
+import type { BracketRound } from '@/lib/cups/service'
 
 /**
  * Responsive playoff bracket for the season dashboard. Round columns flex to fill

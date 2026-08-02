@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import type { TeamTie, TiePlayer } from '@/lib/cups/fixtures'
+import type { TeamTie, TiePlayer } from '@/lib/cups/service'
 
 /** Which side won an individual match: numeric compare, or W beats DQ. */
 function matchWinner(home?: string, away?: string): 'home' | 'away' | null {
