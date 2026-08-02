@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { GenerateGroupsForm } from '@/components/staff/generate-groups-form'
 import { MovePlayerForm } from '@/components/staff/move-player-form'
@@ -16,11 +16,13 @@ export const metadata: Metadata = { title: 'Groups · Admin', robots: { index: f
 export default async function StaffGroupsPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('manage_competitions'))
+    return <StaffDenied active="seasons" username={access.actor.username} label="Seasons" />
   const season = await getActiveSeason()
 
   if (!season) {
     return (
-      <StaffShell active="groups" username={access.actor.username}>
+      <StaffShell active="seasons" username={access.actor.username}>
         <p className="text-sm text-muted-foreground">No active season. Create one from the dashboard.</p>
       </StaffShell>
     )
@@ -31,7 +33,7 @@ export default async function StaffGroupsPage() {
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
 
   return (
-    <StaffShell active="groups" username={access.actor.username} seasonName={season.name}>
+    <StaffShell active="seasons" username={access.actor.username} seasonName={season.name}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold tracking-tight">Groups</h1>
         {groups.length > 0 &&

@@ -1,37 +1,47 @@
+import Link from 'next/link'
+
 import { Panel, PlayerAvatar } from '@/components/home/primitives'
-import type { Registrant } from '@/lib/home/fixtures'
+import type { PublicRegistrant } from '@/lib/competition/public'
 
-export function RegisteredPlayers({ players }: { players: Registrant[] }) {
-  const timezones = new Set(players.map((p) => p.timezone.trim().toUpperCase())).size
-  const sorted = [...players].sort((a, b) => a.name.localeCompare(b.name))
-
+/**
+ * Live Season 2 entrant list — driven entirely by the database. Shows ACTIVE entrants
+ * only (they appear immediately on registration, no staff approval needed). Only the
+ * public User ID is shown; email/Discord are never passed to this component.
+ */
+export function RegisteredPlayers({ players }: { players: PublicRegistrant[] }) {
   return (
-    <Panel
-      title="Registered Players"
-      actionLabel="Register"
-      actionHref="/register"
-      bodyClassName="flex flex-col p-0"
-    >
+    <Panel title="Registered Players" actionLabel="Register" actionHref="/register" bodyClassName="flex flex-col p-0">
       <div className="flex items-baseline gap-2 border-b border-border px-4 py-2.5">
         <span className="tabular text-xl font-bold leading-none text-gold">{players.length}</span>
-        <span className="text-sm text-muted-foreground">signed up</span>
-        <span className="ml-auto text-xs text-muted-foreground">{timezones} time zones</span>
+        <span className="text-sm text-muted-foreground">{players.length === 1 ? 'player registered' : 'players registered'}</span>
       </div>
 
-      <ul className="scrollbar-gold max-h-[22rem] divide-y divide-border/70 overflow-y-auto">
-        {sorted.map((p) => (
-          <li key={`${p.name}-${p.discord}`} className="flex items-center gap-2.5 px-4 py-2">
-            <PlayerAvatar name={p.name} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
-              <p className="truncate text-[0.7rem] text-muted-foreground">{p.handle}</p>
-            </div>
-            <span className="tabular shrink-0 rounded bg-secondary px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase text-muted-foreground">
-              {p.timezone}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {players.length === 0 ? (
+        <div className="px-4 py-8 text-center">
+          <p className="text-sm text-muted-foreground">No entrants yet.</p>
+          <Link href="/register" className="mt-1 inline-block text-sm font-medium text-gold hover:text-gold-soft">
+            Be the first to register →
+          </Link>
+        </div>
+      ) : (
+        <ul className="scrollbar-gold max-h-[22rem] divide-y divide-border/70 overflow-y-auto">
+          {players.map((p, i) => (
+            <li key={`${p.displayName}-${i}`} className="flex items-center gap-2.5 px-4 py-2">
+              <PlayerAvatar name={p.displayName} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{p.displayName}</p>
+                {(p.cueverseId || p.discord) && (
+                  <p className="truncate text-[0.7rem] text-muted-foreground">
+                    {p.cueverseId}
+                    {p.cueverseId && p.discord && <span className="text-muted-foreground/50"> · </span>}
+                    {p.discord && <span title="Discord">💬 {p.discord}</span>}
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Panel>
   )
 }

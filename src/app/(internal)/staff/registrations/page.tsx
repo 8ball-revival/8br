@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { ActionButton } from '@/components/staff/action-button'
 import { setRegistrationStatusAction } from '@/lib/competition/actions'
@@ -30,6 +30,8 @@ type SP = { searchParams: Promise<{ q?: string; status?: string }> }
 export default async function StaffRegistrationsPage({ searchParams }: SP) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('manage_registrations'))
+    return <StaffDenied active="registrations" username={access.actor.username} label="Registrations" />
   const season = await getActiveSeason()
   const { q = '', status = 'ALL' } = await searchParams
 
@@ -96,17 +98,28 @@ export default async function StaffRegistrationsPage({ searchParams }: SP) {
                   <TableCell className="text-muted-foreground">{formatDate(r.createdAt.toISOString())}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap justify-end gap-2">
+                      {/* Activate: approve a pending entry or restore a withdrawn/rejected one. */}
                       {r.status !== 'APPROVED' && (
-                        <ActionButton action={setRegistrationStatusAction} fields={{ registrationId: r.id, status: 'APPROVED' }} label="Approve" variant="secondary" />
+                        <ActionButton
+                          action={setRegistrationStatusAction}
+                          fields={{ registrationId: r.id, status: 'APPROVED' }}
+                          label={r.status === 'PENDING' ? 'Approve' : 'Restore'}
+                          variant="secondary"
+                        />
                       )}
-                      {r.status === 'PENDING' && (
-                        <ActionButton action={setRegistrationStatusAction} fields={{ registrationId: r.id, status: 'REJECTED' }} label="Reject" variant="outline" />
-                      )}
+                      {/* Remove from the public list. */}
                       {r.status === 'APPROVED' && (
                         <ActionButton action={setRegistrationStatusAction} fields={{ registrationId: r.id, status: 'WITHDRAWN' }} label="Withdraw" variant="outline" confirm="Withdraw this player?" />
                       )}
-                      {(r.status === 'WITHDRAWN' || r.status === 'REJECTED') && (
-                        <ActionButton action={setRegistrationStatusAction} fields={{ registrationId: r.id, status: 'APPROVED' }} label="Restore" variant="ghost" />
+                      {/* Reject an active or pending entry. */}
+                      {(r.status === 'APPROVED' || r.status === 'PENDING') && (
+                        <ActionButton
+                          action={setRegistrationStatusAction}
+                          fields={{ registrationId: r.id, status: 'REJECTED' }}
+                          label="Reject"
+                          variant="outline"
+                          confirm={r.status === 'APPROVED' ? 'Reject this player?' : undefined}
+                        />
                       )}
                     </div>
                   </TableCell>

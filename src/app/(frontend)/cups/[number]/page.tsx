@@ -6,6 +6,7 @@ import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/home/primitives'
 import { Bracket } from '@/components/cups/bracket'
+import { TeamTies } from '@/components/cups/team-ties'
 import { getCup, getCups, cupBracket } from '@/lib/cups/fixtures'
 
 export const dynamicParams = false
@@ -31,7 +32,8 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
   if (!cup) return null // dynamicParams=false → unknown numbers 404 before here
 
   const live = cup.status === 'live'
-  const rounds = cupBracket(cup)
+  const isDoubleElim = !!cup.winnersBracket?.length
+  const rounds = isDoubleElim ? null : cupBracket(cup)
   const shellOnly = !cup.bracket?.length
 
   return (
@@ -71,23 +73,70 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
         </div>
       )}
 
-      <section className="mt-8">
-        <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
-        {rounds ? (
-          <>
-            <Bracket rounds={rounds} currentRound={cup.currentRound} />
-            {shellOnly && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Bracket layout ({cup.entrants} entrants) — matchups and scores will populate as results are added.
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Bracket not on record yet{cup.champion ? ` — ${cup.name} was won by ${cup.champion.name}.` : '.'}
-          </p>
-        )}
-      </section>
+      {!live && (cup.runnerUp || cup.thirdPlace) && (
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          {cup.runnerUp && (
+            <p className="text-muted-foreground">
+              <span className="font-medium text-foreground">Runner-up:</span> {cup.runnerUp.name}
+              {cup.runnerUp.handle && cup.runnerUp.handle !== cup.runnerUp.name && (
+                <span className="ml-1 text-xs">({cup.runnerUp.handle})</span>
+              )}
+            </p>
+          )}
+          {cup.thirdPlace && (
+            <p className="text-muted-foreground">
+              <span className="font-medium text-foreground">Third:</span> {cup.thirdPlace.name}
+              {cup.thirdPlace.handle && cup.thirdPlace.handle !== cup.thirdPlace.name && (
+                <span className="ml-1 text-xs">({cup.thirdPlace.handle})</span>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      {isDoubleElim ? (
+        <>
+          <section className="mt-8">
+            <h2 className="eyebrow mb-4 text-foreground">Winners Bracket</h2>
+            <Bracket rounds={cup.winnersBracket!} />
+          </section>
+          <section className="mt-8">
+            <h2 className="eyebrow mb-4 text-foreground">Losers Bracket</h2>
+            <Bracket rounds={cup.losersBracket ?? []} />
+          </section>
+          {cup.grandFinal && cup.grandFinal.length > 0 && (
+            <section className="mt-8">
+              <h2 className="eyebrow mb-4 text-foreground">Grand Final</h2>
+              <Bracket rounds={cup.grandFinal} />
+            </section>
+          )}
+        </>
+      ) : (
+        <section className="mt-8">
+          <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
+          {rounds ? (
+            <>
+              <Bracket rounds={rounds} currentRound={cup.currentRound} />
+              {shellOnly && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Bracket layout ({cup.entrants} entrants) — matchups and scores will populate as results are added.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Bracket not on record yet{cup.champion ? ` — ${cup.name} was won by ${cup.champion.name}.` : '.'}
+            </p>
+          )}
+        </section>
+      )}
+
+      {cup.teamTies && cup.teamTies.length > 0 && (
+        <section className="mt-10">
+          <h2 className="eyebrow mb-4 text-foreground">Match Results</h2>
+          <TeamTies ties={cup.teamTies} />
+        </section>
+      )}
     </Container>
   )
 }

@@ -14,7 +14,10 @@ import { MatchHistory } from '@/components/player/match-history'
 import { HallOfFamePanel } from '@/components/player/hall-of-fame-panel'
 import { AliasList } from '@/components/player/alias-list'
 import { SourcePanel } from '@/components/player/source-panel'
+import { RatingPanel } from '@/components/player/rating-panel'
 import { getPlayerPreview, getPlayerPreviewSlugs } from '@/lib/preview-players'
+import { resolveCanonicalId } from '@/lib/stats/season-stats'
+import { getPlayerRankingProfile } from '@/lib/stats/rankings'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -38,6 +41,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 // Primary in-page nav. Aliases & Sources are secondary (below), not in the nav.
 const NAV = [
   { id: 'overview', label: 'Overview' },
+  { id: 'rating', label: 'Rating' },
   { id: 'championships', label: 'Championships' },
   { id: 'highlights', label: 'Highlights' },
   { id: 'statistics', label: 'Statistics' },
@@ -72,6 +76,10 @@ export default async function PlayerDetailPage({ params }: Params) {
   const player = getPlayerPreview(slug)
   if (!player) notFound()
 
+  // Competitive rating (Glicko-2) resolved through the shared canonical identity.
+  const ratingId = resolveCanonicalId([player.primaryName, ...player.aliases.map((a) => a.alias)])
+  const rating = ratingId ? getPlayerRankingProfile(ratingId) : null
+
   return (
     <>
       <PlayerLegacyHero player={player} />
@@ -79,6 +87,20 @@ export default async function PlayerDetailPage({ params }: Params) {
 
       <Section id="overview" title="Legacy Snapshot">
         <LegacySnapshot player={player} />
+      </Section>
+
+      <Section
+        id="rating"
+        title="Competitive Rating"
+        description="Live Glicko-2 rating derived from official Season and Cup matches — separate from career accomplishments. This is why the player ranks where they do."
+      >
+        {rating ? (
+          <RatingPanel profile={rating} />
+        ) : (
+          <p className="rounded-md border border-border bg-card/40 px-3 py-2 text-sm text-muted-foreground">
+            No rated official matches yet.
+          </p>
+        )}
       </Section>
 
       <Section id="championships" title="Championship Legacy">

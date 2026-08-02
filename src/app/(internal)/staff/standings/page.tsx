@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { GroupStandings, type GroupView } from '@/components/competition/group-standings'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -11,6 +11,8 @@ export const metadata: Metadata = { title: 'Standings · Admin', robots: { index
 export default async function StaffStandingsPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('manage_competitions'))
+    return <StaffDenied active="seasons" username={access.actor.username} label="Seasons" />
   const season = await getActiveSeason()
   const groups = season ? await getAllGroups(season.id) : []
 
@@ -25,7 +27,7 @@ export default async function StaffStandingsPage() {
   )
 
   return (
-    <StaffShell active="standings" username={access.actor.username} seasonName={season?.name}>
+    <StaffShell active="seasons" username={access.actor.username} seasonName={season?.name}>
       <h1 className="font-display text-2xl font-bold tracking-tight">Standings</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Recomputed automatically from verified results. Top {season?.qualifiersPerGroup ?? 2} per group

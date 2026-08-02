@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireStaffActor } from './staff-auth'
+import { requireCapability } from './staff-auth'
 import * as svc from './service'
 import type { RegistrationStatus, LiveMatchStatus } from '@prisma/client'
 
@@ -37,7 +37,7 @@ function str(fd: FormData, name: string): string {
 // ---- Season ---------------------------------------------------------------
 
 export async function createSeasonAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const slug = str(fd, 'slug').toLowerCase().replace(/[^a-z0-9-]/g, '-')
   const name = str(fd, 'name')
   if (!slug || !name) return { error: 'Provide a season name and slug.' }
@@ -53,7 +53,7 @@ export async function createSeasonAction(_prev: ActionResult, fd: FormData): Pro
 }
 
 export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const seasonId = num(fd, 'seasonId')
   const opensAt = str(fd, 'registrationOpensAt')
   const closesAt = str(fd, 'registrationClosesAt')
@@ -83,7 +83,7 @@ export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Pro
 // ---- Registrations --------------------------------------------------------
 
 export async function setRegistrationStatusAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_registrations')
   try {
     await svc.setRegistrationStatus(actor, num(fd, 'registrationId'), str(fd, 'status') as RegistrationStatus, str(fd, 'reason') || undefined)
     revalidateAll()
@@ -96,7 +96,7 @@ export async function setRegistrationStatusAction(_prev: ActionResult, fd: FormD
 // ---- Groups ---------------------------------------------------------------
 
 export async function generateGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const res = await svc.generateGroups(actor, num(fd, 'seasonId'), num(fd, 'numGroups'), str(fd, 'seed') || undefined, {
     force: fd.get('force') === 'on',
   })
@@ -106,7 +106,7 @@ export async function generateGroupsAction(_prev: ActionResult, fd: FormData): P
 }
 
 export async function movePlayerAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const res = await svc.movePlayer(actor, num(fd, 'seasonId'), num(fd, 'registrationId'), num(fd, 'toGroupId'), {
     force: fd.get('force') === 'on',
   })
@@ -116,7 +116,7 @@ export async function movePlayerAction(_prev: ActionResult, fd: FormData): Promi
 }
 
 export async function publishGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const res = await svc.publishGroups(actor, num(fd, 'seasonId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
@@ -126,7 +126,7 @@ export async function publishGroupsAction(_prev: ActionResult, fd: FormData): Pr
 // ---- Matches --------------------------------------------------------------
 
 export async function recordScoreAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('edit_results')
   const res = await svc.recordScore(actor, num(fd, 'matchId'), num(fd, 'homeGames'), num(fd, 'awayGames'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
@@ -134,7 +134,7 @@ export async function recordScoreAction(_prev: ActionResult, fd: FormData): Prom
 }
 
 export async function setResolutionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('edit_results')
   const kind = str(fd, 'kind') as Extract<LiveMatchStatus, 'FORFEIT' | 'NO_SHOW' | 'DISPUTED'>
   const winner = fd.get('winnerRegistrationId') ? num(fd, 'winnerRegistrationId') : null
   const res = await svc.setMatchResolution(actor, num(fd, 'matchId'), kind, winner, str(fd, 'reason') || undefined)
@@ -144,7 +144,7 @@ export async function setResolutionAction(_prev: ActionResult, fd: FormData): Pr
 }
 
 export async function verifyMatchAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('edit_results')
   const res = await svc.verifyMatch(actor, num(fd, 'matchId'), fd.get('verified') !== 'false', str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
@@ -154,7 +154,7 @@ export async function verifyMatchAction(_prev: ActionResult, fd: FormData): Prom
 // ---- Playoffs -------------------------------------------------------------
 
 export async function generatePlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const res = await svc.generatePlayoff(actor, num(fd, 'seasonId'), { force: fd.get('force') === 'on' })
   if (!res.ok) return { error: res.error }
   revalidateAll()
@@ -162,7 +162,7 @@ export async function generatePlayoffAction(_prev: ActionResult, fd: FormData): 
 }
 
 export async function publishPlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('manage_competitions')
   const res = await svc.publishPlayoff(actor, num(fd, 'seasonId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
@@ -170,7 +170,7 @@ export async function publishPlayoffAction(_prev: ActionResult, fd: FormData): P
 }
 
 export async function recordPlayoffScoreAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('edit_results')
   const res = await svc.recordPlayoffScore(actor, num(fd, 'matchId'), num(fd, 'homeGames'), num(fd, 'awayGames'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
@@ -178,7 +178,7 @@ export async function recordPlayoffScoreAction(_prev: ActionResult, fd: FormData
 }
 
 export async function verifyPlayoffMatchAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  const actor = await requireStaffActor()
+  const actor = await requireCapability('edit_results')
   const res = await svc.verifyPlayoffMatch(actor, num(fd, 'matchId'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()

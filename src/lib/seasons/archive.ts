@@ -8,6 +8,7 @@
 import raw from './data/archive-seasons.json'
 import { CURRENT_SEASONS } from './data/current-seasons'
 import { VERIFIED_PLAYOFFS } from './data/verified-playoffs'
+import { scrubForPublic } from '@/lib/stats/identity'
 
 export interface SeasonSlot {
   name: string
@@ -40,9 +41,18 @@ export interface SeasonStandingRow {
   points: number
 }
 
+export interface SeasonGroupMatch {
+  a: { name: string; handle?: string | null }
+  b: { name: string; handle?: string | null }
+  scoreA: number | null
+  scoreB: number | null
+  winner?: 'a' | 'b' | null // null = draw or unplayed
+}
+
 export interface SeasonGroup {
   letter: string
   rows: SeasonStandingRow[]
+  matches?: SeasonGroupMatch[] // individual group-stage results (for the deep-dive)
 }
 
 export interface SeasonDivision {
@@ -88,6 +98,28 @@ for (const s of ALL) {
       d.doubleElim = null
       d.playoffNote = undefined
     }
+  }
+}
+
+// PUBLIC identity scrub: records belonging to Neo render only as "Neo / Starkiller"
+// (old handles hidden). Applied at the loader so every consumer — pages AND the
+// stats services — sees the canonical identity; source JSON keeps provenance.
+function scrubSlot(s: { name?: string | null; handle?: string | null } | null | undefined) {
+  if (!s || !s.name) return
+  const p = scrubForPublic(s.handle, s.name)
+  s.name = p.name
+  if (p.handle !== undefined) s.handle = p.handle
+  else delete (s as { handle?: string | null }).handle
+}
+for (const s of ALL) {
+  for (const d of s.divisions) {
+    scrubSlot(d.champion)
+    scrubSlot(d.runnerUp)
+    for (const g of d.groups ?? []) for (const r of g.rows) scrubSlot(r)
+    for (const r of d.playoff?.rounds ?? []) for (const m of r.matches) { scrubSlot(m.a); scrubSlot(m.b) }
+    if (d.doubleElim)
+      for (const br of [d.doubleElim.winners, d.doubleElim.losers])
+        for (const r of br) for (const m of r.matches) { scrubSlot(m.a); scrubSlot(m.b) }
   }
 }
 

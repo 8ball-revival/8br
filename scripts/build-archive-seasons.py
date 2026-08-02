@@ -124,15 +124,41 @@ def handle_for(season_id, division, pid):
     return seed_handle.get((season_id, division, pid)) or primary_handle(pid) or None
 
 
+# Individual group-stage match results (for the group deep-dive: H2H, completed/
+# remaining matches, group stats). Keyed by the group's id.
+gmatches_by_gid = defaultdict(list)
+for m in read_csv(os.path.join(ARCHIVE, "group_matches.csv")):
+    gmatches_by_gid[m["group_id"]].append(m)
+
+
 def build_groups(season_id, division):
     rows = standings_by_div.get((season_id, division), [])
     by_letter = defaultdict(list)
+    gid_by_letter = {}
     for r in rows:
         by_letter[r["group_letter"]].append(r)
+        gid_by_letter[r["group_letter"]] = r["group_id"]
     out = []
     for letter in sorted(by_letter):
         grp = by_letter[letter]
         grp.sort(key=lambda r: (-num_or(r["total"]), -num_or(r["wins"]), num_or(r["losses"])))
+
+        matches = []
+        for m in gmatches_by_gid.get(gid_by_letter.get(letter, ""), []):
+            a_id, b_id = m["player_a_id"], m["player_b_id"]
+            if not a_id or not b_id:
+                continue
+            winner = None
+            if m["winner_id"]:
+                winner = "a" if m["winner_id"] == a_id else ("b" if m["winner_id"] == b_id else None)
+            matches.append({
+                "a": {"name": name_for(a_id) or a_id, "handle": handle_for(season_id, division, a_id)},
+                "b": {"name": name_for(b_id) or b_id, "handle": handle_for(season_id, division, b_id)},
+                "scoreA": int_or(m["score_a"], None),
+                "scoreB": int_or(m["score_b"], None),
+                "winner": winner,
+            })
+
         out.append({
             "letter": letter,
             "rows": [{
@@ -145,6 +171,7 @@ def build_groups(season_id, division):
                 "draws": int_or(r["draws"]),
                 "points": num_or(r["total"]),
             } for r in grp],
+            "matches": matches,
         })
     return out
 

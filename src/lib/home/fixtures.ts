@@ -156,7 +156,6 @@ const HOME_FIXTURE: HomeData = {
     { name: 'Jeremy', handle: 'pro_jeremy', discord: 'ogjerbear', timezone: 'CST' },
     { name: 'Cameron', handle: 'Cam', discord: 'cameron.skillz', timezone: 'CST' },
     { name: 'Irfan', handle: 'irfs07', discord: 'irfan091010', timezone: 'EST' },
-    { name: 'Dan', handle: 'SeaM', discord: 'theseam', timezone: 'EST' },
     { name: 'Justin', handle: 'Cue', discord: 'jzillawz', timezone: 'EST' },
     { name: 'Leigh', handle: 'LJ', discord: 'leighjohn__', timezone: 'ACST' },
     { name: 'Faisal', handle: 'Faisal', discord: 'sicc1', timezone: 'PKST' },
@@ -166,6 +165,8 @@ const HOME_FIXTURE: HomeData = {
     { name: 'Stu', handle: 'Stu', discord: 'stu00405', timezone: 'GMT' },
     { name: 'Jefe', handle: 'JEFE', discord: 'amteban9130', timezone: 'CST' },
     { name: 'Nakz', handle: '_1_', discord: 'nakz_2917', timezone: 'GMT' },
+    { name: 'Sean', handle: 'Lilsparky67', discord: 'lilsparky67', timezone: 'EST' },
+    { name: 'Peter', handle: 'eskimo', discord: 'whishy', timezone: 'EST' },
   ],
 
   standings: [

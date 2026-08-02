@@ -1,4 +1,4 @@
-import { Bracket } from '@/components/cups/bracket'
+import { SeasonBracket } from '@/components/seasons/season-bracket'
 import type { SeasonRound } from '@/lib/seasons/archive'
 import type { BracketRound } from '@/lib/cups/fixtures'
 
@@ -15,7 +15,7 @@ function toBracketRounds(rounds: SeasonRound[]): BracketRound[] {
 }
 
 /** Double-elimination playoff: winners bracket over the losers bracket, each drawn
- *  with the shared single-elim Bracket (both scroll horizontally on small screens). */
+ *  with the responsive SeasonBracket (fills width; scrolls only as a last resort). */
 export function DoubleElimBracket({
   winners,
   losers,
@@ -27,11 +27,11 @@ export function DoubleElimBracket({
     <div className="space-y-8">
       <div>
         <p className="eyebrow mb-3 text-gold">Winners Bracket</p>
-        <Bracket rounds={toBracketRounds(winners)} />
+        <SeasonBracket rounds={toBracketRounds(winners)} />
       </div>
       <div>
         <p className="eyebrow mb-3 text-muted-foreground">Losers Bracket</p>
-        <Bracket rounds={toBracketRounds(losers)} />
+        <SeasonBracket rounds={toBracketRounds(losers)} />
       </div>
     </div>
   )

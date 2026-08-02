@@ -1,20 +1,23 @@
 import type { Access, FieldAccess } from 'payload'
-
-const STAFF_ROLES = ['admin', 'senior_editor', 'editor']
+import { isAdmin, isOwner, isStaff } from '@/lib/auth/roles'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function roles(user: any): string[] {
-  return Array.isArray(user?.roles) ? user.roles : []
-}
+const rolesOf = (user: any): string[] => (Array.isArray(user?.roles) ? user.roles : [])
+
 export function isStaffUser(user: any): boolean {
-  return roles(user).some((r) => STAFF_ROLES.includes(r))
+  return isStaff(rolesOf(user))
 }
 export function isAdminUser(user: any): boolean {
-  return roles(user).includes('admin')
+  return isAdmin(rolesOf(user))
+}
+export function isOwnerUser(user: any): boolean {
+  return isOwner(rolesOf(user))
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-/** Collection access: staff (admin/senior_editor/editor) only. */
+/** Collection access: any staff (owner/admin/editor). */
 export const staffOnly: Access = ({ req }) => isStaffUser(req?.user)
-/** Field access: admins only (e.g. changing roles — prevents self-escalation). */
-export const adminFieldOnly: FieldAccess = ({ req }) => isAdminUser(req?.user)
+/** Collection access: owner only (e.g. staff-account management). */
+export const ownerOnly: Access = ({ req }) => isOwnerUser(req?.user)
+/** Field access: only an Owner may set staff roles — prevents privilege escalation. */
+export const ownerFieldOnly: FieldAccess = ({ req }) => isOwnerUser(req?.user)

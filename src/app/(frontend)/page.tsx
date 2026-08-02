@@ -10,7 +10,9 @@ import { PlayerSpotlight } from '@/components/home/player-spotlight'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
 import { OnThisDay } from '@/components/home/on-this-day'
 import { getHomeData } from '@/lib/home/fixtures'
-import { getTop10 } from '@/lib/hall-of-fame/fixtures'
+import { getSeasonTop, getSeasonRankings } from '@/lib/stats/season-stats'
+import { getAllArchiveSeasons } from '@/lib/seasons/archive'
+import { getPublicRegistrations } from '@/lib/competition/public'
 import { getSpotlightPlayers } from '@/lib/spotlight/fixtures'
 import { getCups } from '@/lib/cups/fixtures'
 import { absoluteUrl } from '@/lib/site'
@@ -32,11 +34,24 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: '8 Ball Revival', description: DESCRIPTION },
 }
 
-export default function HomePage() {
-  // Homepage is driven entirely by the fixture seam for now (see lib/home/fixtures).
-  // Swap getHomeData() for real Payload/Prisma queries later — components unchanged.
+export default async function HomePage() {
+  // Most homepage panels are still fixture-driven (see lib/home/fixtures); the
+  // Registered Players panel is now live from the database.
   const data = getHomeData()
+  const registrations = await getPublicRegistrations()
   const currentCup = getCups().find((c) => c.status === 'live')
+
+  // Championship + season counters derived from the canonical Seasons source (the
+  // remaining by-the-numbers tiles are decorative site-level counters, not player stats).
+  const champions = getSeasonRankings().filter((p) => p.championships > 0).length
+  const seasonCount = getAllArchiveSeasons().filter((s) => !s.pending).length
+  const byTheNumbers = data.byTheNumbers.map((s) =>
+    s.icon === 'champions'
+      ? { ...s, value: String(champions) }
+      : s.id === 's2' && s.icon === 'seasons'
+        ? { ...s, value: String(seasonCount) }
+        : s,
+  )
 
   return (
     <>
@@ -45,14 +60,14 @@ export default function HomePage() {
         <HeroBackdrop />
         <Wide className="relative grid items-start gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-14">
           <Hero data={data.hero} />
-          <RegisteredPlayers players={data.registrations} />
+          <RegisteredPlayers players={registrations} />
         </Wide>
       </section>
 
       {/* Live dashboard: five panels */}
       <section className="py-8">
         <Wide className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)]">
-          <Top10Panel players={getTop10()} className="sm:col-span-2 xl:col-span-1" />
+          <Top10Panel players={getSeasonTop(10)} className="sm:col-span-2 xl:col-span-1" />
           {currentCup && <CurrentCupBox cup={currentCup} />}
           <NewsPanel items={data.news} />
           <PlayerSpotlight players={getSpotlightPlayers()} />
@@ -64,7 +79,7 @@ export default function HomePage() {
         <Wide>
           <h2 className="eyebrow mb-5 text-gold">8 Ball Revival by the Numbers</h2>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <ByTheNumbers stats={data.byTheNumbers} />
+            <ByTheNumbers stats={byTheNumbers} />
             <OnThisDay items={data.onThisDay} />
           </div>
         </Wide>

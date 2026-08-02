@@ -20,7 +20,7 @@ export function YearSlider({ years, selected }: { years: number[]; selected: num
   }, [selected])
 
   return (
-    <div className="sticky top-16 z-30 border-b border-border bg-background/85 backdrop-blur">
+    <div className="border-b border-border">
       <Container>
         <nav ref={ref} aria-label="Select season year" className="-mx-1 flex gap-1 overflow-x-auto py-2">
           {years.map((y) => (

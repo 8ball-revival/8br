@@ -9,7 +9,8 @@ import config from '@payload-config'
 import { normalizeUsername, validateUsername, validateEmail, validatePassword } from './validation'
 import { getCurrentUser } from './auth'
 import { getActiveSeason } from '@/lib/competition/queries'
-import { createPublicRegistration } from '@/lib/competition/service'
+import { createPublicRegistration, withdrawPublicRegistration } from '@/lib/competition/service'
+import { getProfileByUserId } from '@/lib/players/service'
 
 export interface FormResult {
   ok?: boolean
@@ -99,10 +100,44 @@ export async function registerSeason2(_prev: FormResult, formData: FormData): Pr
   const season = await getActiveSeason()
   if (!season) return { error: 'There is no active season open for registration.' }
 
-  const res = await createPublicRegistration(season.id, Number(user.id), user.username)
+  // If the account is already linked to a canonical profile, register with that
+  // profile's identity; otherwise capture the submitted identity fields.
+  const profile = await getProfileByUserId(Number(user.id))
+  let identity
+  if (profile) {
+    identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
+  } else {
+    const displayName = String(formData.get('displayName') ?? '').trim()
+    const cueverseId = String(formData.get('cueverseId') ?? '').trim()
+    const discord = String(formData.get('discord') ?? '').trim()
+    const timeZone = String(formData.get('timeZone') ?? '').trim()
+    if (!displayName) return { error: 'Please enter a public display name.' }
+    if (!cueverseId) return { error: 'Please enter your CueVerse ID.' }
+    identity = { displayName, cueverseId, discord: discord || null, timeZone: timeZone || null, playerId: null }
+  }
+
+  const res = await createPublicRegistration(season.id, Number(user.id), user.username, identity)
   if (!res.ok) return { error: res.error }
   revalidatePath('/account')
   revalidatePath('/register')
+  revalidatePath('/')
   revalidatePath('/staff/registrations')
   return { ok: true, already: res.already }
+}
+
+/** Withdraw the current user from the active season (only while registration is open). */
+export async function withdrawSeason2(_prev: FormResult, _formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+
+  const season = await getActiveSeason()
+  if (!season) return { error: 'There is no active season.' }
+
+  const res = await withdrawPublicRegistration(season.id, Number(user.id), user.username)
+  if (!res.ok) return { error: res.error }
+  revalidatePath('/account')
+  revalidatePath('/register')
+  revalidatePath('/')
+  revalidatePath('/staff/registrations')
+  return { ok: true }
 }

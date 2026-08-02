@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { ScoreForm } from '@/components/staff/score-form'
 import { MatchExtras } from '@/components/staff/match-extras'
@@ -17,6 +17,8 @@ export const metadata: Metadata = { title: 'Matches · Admin', robots: { index: 
 export default async function StaffMatchesPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('edit_results'))
+    return <StaffDenied active="matches" username={access.actor.username} label="Matches" />
   const season = await getActiveSeason()
   if (!season) {
     return (

@@ -29,9 +29,9 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
   )
 }
 
-function MatchBox({ match }: { match: BracketMatch }) {
+export function MatchBox({ match }: { match: BracketMatch }) {
   return (
-    <div className="w-52">
+    <div className="w-full">
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <Slot slot={match.a} won={match.winner === 'a'} dim={match.winner === 'b'} />
         <div className="h-px bg-border" />
@@ -49,14 +49,24 @@ function MatchBox({ match }: { match: BracketMatch }) {
  * a column; the number of rounds/matches (and thus the width/height) scales with
  * the entrant count. Scrolls horizontally on small screens.
  */
-export function Bracket({ rounds, currentRound }: { rounds: BracketRound[]; currentRound?: string }) {
+export function Bracket({
+  rounds,
+  currentRound,
+  fluid = false,
+}: {
+  rounds: BracketRound[]
+  currentRound?: string
+  /** Fill the available width (columns flex to fit) instead of fixed-width columns
+   *  that scroll. Used by the wide season Playoffs canvas; Cups keep fixed columns. */
+  fluid?: boolean
+}) {
   return (
     <div className="scrollbar-gold overflow-x-auto pb-2">
-      <div className="flex min-w-max items-stretch gap-8">
+      <div className={cn('flex items-stretch', fluid ? 'min-w-full gap-2 sm:gap-3 xl:gap-4' : 'min-w-max gap-8')}>
         {rounds.map((round, ri) => {
           const active = currentRound && round.name.toLowerCase() === currentRound.toLowerCase()
           return (
-            <div key={ri} className="flex flex-col">
+            <div key={ri} className={cn('flex flex-col', fluid ? 'min-w-[9rem] flex-1' : 'w-52')}>
               <p className={cn('eyebrow mb-3 text-center', active ? 'text-gold' : 'text-muted-foreground')}>
                 {round.name}
               </p>

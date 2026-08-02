@@ -11,6 +11,8 @@
  */
 import archiveData from './preview-data/archive-players.json'
 import type { Player } from './mock-data'
+import { getSeasonStatForAliases, resolveCanonicalId, type TitleEntry } from './stats/season-stats'
+import { getCareerStatById, type CareerStat } from './stats/career-stats'
 
 export interface PreviewAlias {
   alias: string
@@ -91,12 +93,148 @@ const PLAYERS = archiveData as unknown as PlayerPreview[]
 export const PLAYER_PREVIEW_SOURCE =
   '8BRCAM archive (imported snapshot) — pending 8 Ball Revival source verification'
 
+// ---- Canonical public view -------------------------------------------------
+// Everything a profile shows publicly is rebuilt here from the shared Seasons/Cups
+// services (season-stats + career-stats). The stored archive-players.json fields
+// (hand-extracted career totals, championships[], hof[], H2H, seasonHistory) are
+// NOT used for display — they drifted and included unsupported legacy/Division-B
+// data. Three things happen once, so every export (profile, index, search) agrees:
+//  1. IDENTITY SCRUB — a profile that canonically resolves to Neo shows only
+//     "Neo / Starkiller"; historical handles are dropped from the public alias list.
+//  2. DUPLICATE RETIREMENT — profiles that resolve to the same canonical id as an
+//     earlier one are dropped from the public set (e.g. the second Luis profile);
+//     a next.config redirect points the retired slug at the canonical one.
+//  3. CANONICAL STATS — titles, runner-ups, career totals, win %, seasons played,
+//     finals, semifinals, playoff appearances, season history, head-to-head and
+//     all-time standings are all derived from Seasons/Cups.
+const candidateHandles = (p: PlayerPreview): string[] => [
+  p.primaryName,
+  ...p.aliases.map((a) => a.alias),
+]
+
+const titleToPreview = (t: TitleEntry, result: 'champion' | 'runner-up'): PreviewChampionship => ({
+  seasonId: t.seasonId,
+  division: t.division,
+  result,
+  confidence: t.bracketReconstructed
+    ? 'reconstructed'
+    : ((t.confidence as ChampionshipConfidence) ?? 'explicit'),
+  bracketReconstructed: t.bracketReconstructed,
+})
+
+// Canonical id → the public profile slug that represents it (first non-retired wins).
+const ID_TO_SLUG = new Map<string, string>()
+for (const p of PLAYERS) {
+  const id = resolveCanonicalId(candidateHandles(p))
+  if (id && !ID_TO_SLUG.has(id)) ID_TO_SLUG.set(id, p.slug)
+}
+
+/** Public /players/[slug] for a canonical id, if one of the preview profiles maps to it. */
+export function slugForCanonicalId(id: string | null | undefined): string | null {
+  return id ? ID_TO_SLUG.get(id) ?? null : null
+}
+
+/** Career service → the profile's PreviewCareer (null when nothing is derivable). */
+function toPreviewCareer(cs: CareerStat | null): PreviewCareer | null {
+  if (!cs) return null
+  return {
+    seasonsPlayed: cs.seasonsPlayed,
+    totalMatches: cs.totalMatches,
+    totalWins: cs.totalWins,
+    totalLosses: cs.totalLosses,
+    totalWinPct: cs.totalWinPct,
+    championships: cs.seasonTitles,
+    runnerUps: cs.seasonRunnerUps,
+    finals: cs.finals,
+    semifinals: cs.semifinals,
+    playoffAppearances: cs.playoffAppearances,
+    longestTitleStreak: cs.longestTitleStreak,
+    longestPlayoffRun: null, // not reliably derivable from Seasons/Cups
+  }
+}
+
+/** All-time standings derived from canonical ranks (no legacy leaderboard fixture). */
+function toPreviewHof(cs: CareerStat | null): PreviewHof[] {
+  if (!cs) return []
+  const hof: PreviewHof[] = []
+  if (cs.seasonTitles > 0 && cs.titleRank != null)
+    hof.push({ category: 'championships', rank: cs.titleRank, value: `${cs.seasonTitles}` })
+  if (cs.totalWins > 0 && cs.winsRank != null)
+    hof.push({ category: 'total_wins', rank: cs.winsRank, value: `${cs.totalWins}` })
+  return hof
+}
+
+/** Build the public-facing view of a stored preview player. */
+function publicView(p: PlayerPreview): PlayerPreview {
+  const canonId = resolveCanonicalId(candidateHandles(p))
+  const isNeo = canonId === 'neo'
+  const season = getSeasonStatForAliases(candidateHandles(p))
+  const cs = canonId ? getCareerStatById(canonId) ?? null : null
+
+  const identity = isNeo
+    ? { primaryName: 'Neo', aliases: [{ alias: 'Starkiller', type: 'handle' }] as PreviewAlias[] }
+    : { primaryName: p.primaryName, aliases: p.aliases }
+
+  const championships: PreviewChampionship[] = [
+    ...season.championshipDetail.map((t) => titleToPreview(t, 'champion')),
+    ...season.runnerUpDetail.map((t) => titleToPreview(t, 'runner-up')),
+  ]
+
+  const seasonHistory: PreviewSeason[] = (cs?.seasonHistory ?? []).map((h) => ({
+    seasonId: h.seasonId,
+    division: h.division,
+    groupLetter: h.groupLetter,
+    madePlayoffs: h.madePlayoffs,
+    playoffSeed: h.playoffSeed,
+    result: h.result,
+    groupWins: h.groupWins,
+    groupLosses: h.groupLosses,
+  }))
+
+  const headToHead: PreviewH2H[] = (cs?.headToHead ?? []).map((h) => ({
+    opponent: h.opponentName,
+    opponentSlug: ID_TO_SLUG.get(h.opponentId) ?? null,
+    matches: h.matches,
+    wins: h.wins,
+    losses: h.losses,
+    draws: null,
+    lastSeason: h.lastSeason,
+  }))
+
+  return {
+    ...p,
+    ...identity,
+    // Drop the stale legacy "consolidates … Luis records" note from the scrubbed Neo
+    // profile; it asserted an identity the canonical layer has since corrected.
+    historicalNotes: isNeo ? [] : p.historicalNotes,
+    career: toPreviewCareer(cs),
+    championships,
+    seasonHistory,
+    headToHead,
+    hof: toPreviewHof(cs),
+  }
+}
+
+// Precomputed once (PLAYERS is static). Duplicate profiles (same canonical id as an
+// earlier entry) are dropped so only one public profile per real person survives.
+const PUBLIC: PlayerPreview[] = (() => {
+  const seen = new Set<string>()
+  const out: PlayerPreview[] = []
+  for (const p of PLAYERS) {
+    const id = resolveCanonicalId(candidateHandles(p))
+    if (id && seen.has(id)) continue // retired duplicate (e.g. second Luis)
+    if (id) seen.add(id)
+    out.push(publicView(p))
+  }
+  return out
+})()
+
 export function getPlayerPreviewSlugs(): string[] {
-  return PLAYERS.map((p) => p.slug)
+  return PUBLIC.map((p) => p.slug)
 }
 
 export function getPlayerPreview(slug: string): PlayerPreview | undefined {
-  return PLAYERS.find((p) => p.slug === slug)
+  return PUBLIC.find((p) => p.slug === slug)
 }
 
 export interface PlayerSearchHit {
@@ -115,7 +253,7 @@ export function searchPlayers(query: string): PlayerSearchHit[] {
   const q = query.trim().toLowerCase()
   if (!q) return []
   const hits: PlayerSearchHit[] = []
-  for (const p of PLAYERS) {
+  for (const p of PUBLIC) {
     const nameHit = p.primaryName.toLowerCase().includes(q)
     let matchedAlias: string | undefined
     if (!nameHit) {
@@ -137,12 +275,12 @@ export function searchPlayers(query: string): PlayerSearchHit[] {
 
 /** Directory list for /players, mapped to the shared PlayerCard shape (real values). */
 export function getPlayerIndex(): Player[] {
-  return PLAYERS.map((p) => ({
+  return PUBLIC.map((p) => ({
     slug: p.slug,
-    handle: p.primaryName,
+    handle: p.primaryName, // already scrubbed to the canonical public name
     country: p.country ?? undefined,
     seasonsPlayed: p.career?.seasonsPlayed ?? 0,
-    titles: p.career?.championships ?? 0,
+    titles: p.career?.championships ?? 0, // canonical Season titles (same source as Top 10)
     matchWinPct: p.career?.totalWinPct != null ? p.career.totalWinPct / 100 : undefined,
   })).sort((a, b) => b.titles - a.titles || b.seasonsPlayed - a.seasonsPlayed)
 }

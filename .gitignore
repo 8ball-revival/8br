@@ -56,3 +56,14 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Python bytecode (from data-build scripts)
+__pycache__/
+*.pyc
+
+# Editor / local tooling config
+/.claude/
+
+# Raw Wayback HTML scrapes — one-time analysis inputs; the derived bracket data is
+# committed in src/lib/seasons/data/verified-playoffs.json
+/scripts/wayback-*/

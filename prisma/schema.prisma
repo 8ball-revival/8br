@@ -265,9 +265,16 @@ model Player {
   lastYear       Int?
   primaryYm      String? // primary Yahoo Messenger id (identity signal)
   primaryEmail   String? // primary email (identity signal)
+  // Public current-identity fields (safe to display): competitive handle, Discord,
+  // and time zone. Email is NEVER stored here (it lives only on the Payload account).
+  cueverseId     String? // public competitive handle (e.g. "sixohtwo")
+  discord        String? // public contact (community norm — shown publicly)
+  timeZone       String?
+  active         Boolean          @default(true) // staff can mark a profile inactive
   // Account linking: a Payload user may CLAIM this canonical identity without
   // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
-  linkedUserId   String?
+  // @unique enforces one account ↔ at most one profile (both directions).
+  linkedUserId   String?          @unique
   linkStatus     PlayerLinkStatus @default(UNLINKED)
   linkedAt       DateTime?
   provenance     Provenance       @default(NATIVE_EGO)
@@ -1134,6 +1141,14 @@ model Registration {
   status           RegistrationStatus @default(PENDING)
   seed             Int?
   note             String?
+  // Identity submitted at registration by an UNLINKED account. Shown publicly until
+  // the account is linked to a canonical Player profile, after which `playerId`
+  // resolves the entrant to that profile (no duplicate entrant is created).
+  displayName      String?
+  cueverseId       String?
+  discord          String?
+  timeZone         String?
+  playerId         String? // resolved canonical Player.id once the account is linked
   createdAt        DateTime           @default(now())
   approvedAt       DateTime?
   withdrawnAt      DateTime?
@@ -1143,6 +1158,7 @@ model Registration {
 
   @@unique([seasonId, userId])
   @@index([seasonId, status])
+  @@index([playerId])
   @@map("comp_registration")
 }
 

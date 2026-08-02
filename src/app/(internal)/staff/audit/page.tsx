@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getActiveSeason, getRecentAudit } from '@/lib/competition/queries'
@@ -22,6 +22,8 @@ function summarize(v: unknown): string {
 export default async function StaffAuditPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('view_audit'))
+    return <StaffDenied active="audit" username={access.actor.username} label="the Audit Log" />
   const season = await getActiveSeason()
   const entries = await getRecentAudit(100)
 

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { SeasonForm } from '@/components/staff/season-form'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -16,10 +16,12 @@ function toDateInput(d: Date | null): string | null {
 export default async function StaffSeasonPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('manage_competitions'))
+    return <StaffDenied active="seasons" username={access.actor.username} label="Seasons" />
   const season = await getActiveSeason()
 
   return (
-    <StaffShell active="season" username={access.actor.username} seasonName={season?.name}>
+    <StaffShell active="seasons" username={access.actor.username} seasonName={season?.name}>
       <h1 className="font-display text-2xl font-bold tracking-tight">Season settings</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         These control what the public site shows. Changes take effect immediately.

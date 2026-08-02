@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { CreateAccountForm } from '@/components/account/create-account-form'
 import { RegisterForm } from '@/components/account/register-form'
 import { getCurrentUser, getSeason2Registration } from '@/lib/account/auth'
+import { getProfileByUserId } from '@/lib/players/service'
 import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { REGISTRATION_STATE_LABEL } from '@/lib/competition/labels'
 import { pageMetadata } from '@/lib/site'
@@ -32,6 +33,8 @@ export default async function RegisterPage() {
   const formatSummary = season?.formatSummary ?? DEFAULT_FORMAT
   const eligibilitySummary = season?.eligibilitySummary ?? DEFAULT_ELIGIBILITY
   const registration = user ? await getSeason2Registration(user.id) : null
+  const profile = user ? await getProfileByUserId(Number(user.id)) : null
+  const formProfile = profile ? { primaryName: profile.primaryName, cueverseId: profile.cueverseId } : null
 
   return (
     <>
@@ -129,7 +132,7 @@ export default async function RegisterPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RegisterForm />
+                <RegisterForm profile={formProfile} />
               </CardContent>
             </Card>
           )}

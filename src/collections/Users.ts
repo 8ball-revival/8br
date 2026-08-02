@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { isStaffUser, adminFieldOnly } from './access'
+import { isStaffUser, isOwnerUser, ownerFieldOnly } from './access'
+import { ROLE_OPTIONS } from '@/lib/auth/roles'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -19,24 +20,30 @@ export const Users: CollectionConfig = {
   access: {
     // Only staff can reach the admin panel.
     admin: ({ req }) => isStaffUser(req?.user),
-    // Users read their own record; staff read all. (Public signup uses the local API
-    // with overrideAccess, so this does not block account creation.)
+    // Staff read all accounts (needed for the Staff list); members read their own.
     read: ({ req }) => (isStaffUser(req?.user) ? true : { id: { equals: req?.user?.id } }),
-    create: ({ req }) => isStaffUser(req?.user),
-    update: ({ req }) => (isStaffUser(req?.user) ? true : { id: { equals: req?.user?.id } }),
-    delete: ({ req }) => isStaffUser(req?.user),
+    // Staff-account creation via the panel/API is Owner-only. Public member signup
+    // uses the local API with overrideAccess, and Payload's first-user onboarding
+    // bypasses this — so a fresh DB can still bootstrap the first Owner.
+    create: ({ req }) => isOwnerUser(req?.user),
+    // Owners may edit any account; everyone else only their own profile. (The
+    // `roles` field is separately Owner-gated below.)
+    update: ({ req }) => (isOwnerUser(req?.user) ? true : { id: { equals: req?.user?.id } }),
+    // Only an Owner may delete accounts.
+    delete: ({ req }) => isOwnerUser(req?.user),
   },
   hooks: {
     beforeChange: [
-      // Bootstrap: the very first user created on a fresh database becomes an
-      // admin, so a brand-new deployment has a usable admin without manual DB work.
-      // (The `roles` field is admin-gated, so first-register would otherwise produce
-      // a locked-out member.) Every subsequent account defaults to `member`.
+      // Bootstrap: the very first account created on a fresh database becomes the
+      // OWNER, so a brand-new deployment has a usable top-level admin without manual
+      // DB work (created through Payload's secure first-user onboarding — the human
+      // sets the password; it is never hardcoded). Every subsequent account defaults
+      // to `member`, and only an Owner can elevate roles (field access below).
       async ({ operation, data, req }) => {
         if (operation === 'create') {
           const { totalDocs } = await req.payload.count({ collection: 'users' })
           if (totalDocs === 0) {
-            data.roles = ['admin']
+            data.roles = ['owner']
           }
         }
         return data
@@ -50,14 +57,10 @@ export const Users: CollectionConfig = {
       type: 'select',
       hasMany: true,
       defaultValue: ['member'],
-      // Only admins may change roles (prevents self-escalation to staff).
-      access: { create: adminFieldOnly, update: adminFieldOnly },
-      options: [
-        { label: 'Admin', value: 'admin' },
-        { label: 'Senior Editor', value: 'senior_editor' },
-        { label: 'Editor', value: 'editor' },
-        { label: 'Member', value: 'member' },
-      ],
+      // Only an Owner may create/change roles (prevents self-escalation to staff
+      // and blocks anyone below Owner from granting Owner/Admin access).
+      access: { create: ownerFieldOnly, update: ownerFieldOnly },
+      options: ROLE_OPTIONS,
     },
   ],
 }

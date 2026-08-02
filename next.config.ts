@@ -26,6 +26,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(dirname),
   },
+  async redirects() {
+    return [
+      // Retired duplicate player profile → canonical Luis (same real person).
+      { source: '/players/luis-p0027', destination: '/players/luis', permanent: true },
+    ]
+  },
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })

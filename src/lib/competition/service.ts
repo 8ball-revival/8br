@@ -58,29 +58,88 @@ export async function updateSeason(
 // ---------------------------------------------------------------------------
 
 /** Public sign-up: creates a PENDING registration. Enforces open state + dedupe. */
+export interface RegistrationIdentity {
+  displayName?: string | null
+  cueverseId?: string | null
+  discord?: string | null
+  timeZone?: string | null
+  playerId?: string | null // set when the account is already linked to a canonical profile
+}
+
 export async function createPublicRegistration(
   seasonId: number,
   userId: number,
   username: string,
+  identity: RegistrationIdentity = {},
 ): Promise<{ ok: boolean; error?: string; already?: boolean }> {
   const season = await prisma.season.findUnique({ where: { id: seasonId } })
   if (!season) return { ok: false, error: 'Season not found.' }
   if (season.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed.' }
 
+  const idData = {
+    displayName: identity.displayName ?? null,
+    cueverseId: identity.cueverseId ?? null,
+    discord: identity.discord ?? null,
+    timeZone: identity.timeZone ?? null,
+    playerId: identity.playerId ?? null,
+  }
   const existing = await prisma.registration.findUnique({
     where: { seasonId_userId: { seasonId, userId } },
   })
   if (existing) {
+    // Re-registering after withdrawing/being rejected reactivates immediately.
     if (existing.status === 'WITHDRAWN' || existing.status === 'REJECTED') {
       await prisma.registration.update({
         where: { id: existing.id },
-        data: { status: 'PENDING', withdrawnAt: null },
+        data: { status: 'APPROVED', approvedAt: new Date(), withdrawnAt: null, ...idData },
       })
       return { ok: true }
     }
     return { ok: true, already: true }
   }
-  await prisma.registration.create({ data: { seasonId, userId, username, status: 'PENDING' } })
+  // Normal public registration is ACTIVE immediately — no staff approval required.
+  // (Staff retain moderation: withdraw/reject/restore, and PENDING for manual flags.)
+  await prisma.registration.create({
+    data: { seasonId, userId, username, status: 'APPROVED', approvedAt: new Date(), ...idData },
+  })
+  return { ok: true }
+}
+
+/**
+ * Public SELF-withdrawal: a member removes their own entry, allowed ONLY while
+ * registration is still OPEN ("before registration closes"). History is preserved
+ * (status → WITHDRAWN) and the member is recorded as the actor. After close, only
+ * staff can withdraw via setRegistrationStatus.
+ */
+export async function withdrawPublicRegistration(
+  seasonId: number,
+  userId: number,
+  username: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const season = await prisma.season.findUnique({ where: { id: seasonId } })
+  if (!season) return { ok: false, error: 'Season not found.' }
+  if (season.registrationStatus !== 'OPEN')
+    return { ok: false, error: 'Registration has closed — contact staff to withdraw.' }
+  const reg = await prisma.registration.findUnique({
+    where: { seasonId_userId: { seasonId, userId } },
+  })
+  if (!reg || (reg.status !== 'PENDING' && reg.status !== 'APPROVED'))
+    return { ok: false, error: 'You are not currently registered.' }
+  await prisma.registration.update({
+    where: { id: reg.id },
+    data: { status: 'WITHDRAWN', withdrawnAt: new Date() },
+  })
+  await recordAudit(
+    { userId, username },
+    {
+      action: 'registration.withdrawn',
+      entity: 'Registration',
+      entityId: reg.id,
+      oldValue: { status: reg.status },
+      newValue: { status: 'WITHDRAWN' },
+      reason: 'Self-withdrawal by member',
+    },
+  )
   return { ok: true }
 }
 

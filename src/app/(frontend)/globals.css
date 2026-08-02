@@ -191,6 +191,11 @@
     color: transparent;
   }
 
+  /* Warm off-white for alternating ladder rows (pairs with gold, per bracket style) */
+  .text-warm-white {
+    color: oklch(0.93 0.022 85);
+  }
+
   /* Faint grid texture for hero/section backgrounds */
   .bg-grid {
     background-image:
@@ -225,5 +230,96 @@
   }
   .scrollbar-gold::-webkit-scrollbar-thumb:hover {
     background: var(--gold-soft);
+  }
+
+  /* Responsive tournament bracket tree (season playoffs). Round columns flex to fill
+     the canvas; subtle gold elbow connectors show how matches advance. Falls back to
+     horizontal scroll only below the minimum column width. */
+  .bkt-tree {
+    --bkt-gap: 2rem;
+    --bkt-half-gap: calc(var(--bkt-gap) / 2);
+    --bkt-line: color-mix(in oklch, var(--gold) 45%, transparent);
+    --bkt-col-min: 9rem;
+    --bkt-col-max: 20rem;
+    display: flex;
+    gap: var(--bkt-gap);
+    justify-content: safe center;
+    align-items: stretch;
+    min-width: min-content;
+  }
+  .bkt-round {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-width: var(--bkt-col-min);
+    max-width: var(--bkt-col-max);
+  }
+  .bkt-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  .bkt-cell {
+    position: relative;
+    display: flex;
+    /* basis auto + no shrink: cell is always at least as tall as its card, so dense
+       rounds (e.g. 8 matches) never compress/overlap; sparser rounds grow to align. */
+    flex: 1 0 auto;
+    align-items: center;
+    min-height: 3.5rem;
+    padding-block: 0.4rem;
+  }
+  /* feeder elbow: horizontal out of the card, then vertical toward the pair midpoint */
+  .bkt-feeds > .bkt-cell::after {
+    content: '';
+    position: absolute;
+    left: 100%;
+    width: var(--bkt-half-gap);
+    height: 50%;
+    border-right: 1px solid var(--bkt-line);
+    pointer-events: none;
+  }
+  .bkt-feeds > .bkt-cell:nth-child(odd)::after {
+    top: 50%;
+    border-top: 1px solid var(--bkt-line);
+  }
+  .bkt-feeds > .bkt-cell:nth-child(even)::after {
+    bottom: 50%;
+    border-bottom: 1px solid var(--bkt-line);
+  }
+  /* receiver: incoming horizontal tick from the pair midpoint into the card */
+  .bkt-receives > .bkt-cell::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    width: var(--bkt-half-gap);
+    top: 50%;
+    border-top: 1px solid var(--bkt-line);
+    pointer-events: none;
+  }
+  @media (max-width: 640px) {
+    .bkt-tree {
+      --bkt-gap: 1rem;
+    }
+  }
+}
+
+/* Smooth reveal for the expanded group deep-dive */
+@keyframes bkt-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-reveal {
+  animation: bkt-reveal 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-reveal {
+    animation: none;
   }
 }

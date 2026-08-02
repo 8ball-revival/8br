@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { BracketView } from '@/components/competition/bracket-view'
 import { ScoreForm } from '@/components/staff/score-form'
@@ -22,10 +22,12 @@ export const metadata: Metadata = { title: 'Playoffs · Admin', robots: { index:
 export default async function StaffPlayoffsPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
+  if (!access.actor.can('manage_competitions'))
+    return <StaffDenied active="seasons" username={access.actor.username} label="Seasons" />
   const season = await getActiveSeason()
   if (!season) {
     return (
-      <StaffShell active="playoffs" username={access.actor.username}>
+      <StaffShell active="seasons" username={access.actor.username}>
         <p className="text-sm text-muted-foreground">No active season.</p>
       </StaffShell>
     )
@@ -38,7 +40,7 @@ export default async function StaffPlayoffsPage() {
   )
 
   return (
-    <StaffShell active="playoffs" username={access.actor.username} seasonName={season.name}>
+    <StaffShell active="seasons" username={access.actor.username} seasonName={season.name}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold tracking-tight">Playoffs</h1>
         <div className="flex flex-wrap items-center gap-2">

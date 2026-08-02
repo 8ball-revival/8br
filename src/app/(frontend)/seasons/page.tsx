@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 
-import { Container } from '@/components/ui/container'
 import { PageHeader } from '@/components/page-header'
 import { YearSlider } from '@/components/seasons/year-slider'
-import { SeasonRow } from '@/components/seasons/season-row'
+import { SeasonYear } from '@/components/seasons/season-year'
 import { getArchiveYears, getSeasonsByYear } from '@/lib/seasons/archive'
 import { pageMetadata } from '@/lib/site'
 
@@ -31,13 +30,13 @@ export default async function SeasonsPage({ searchParams }: Params) {
         sample
       />
       <YearSlider years={years} selected={selected} />
-      <Container className="py-8">
-        <div className="space-y-4">
-          {seasons.map((s) => (
-            <SeasonRow key={s.seasonId} season={s} />
-          ))}
+      {/* Wider responsive canvas for the season dashboard (header/selector stay
+          in the narrow container above). key=year resets season selection per year. */}
+      <section className="py-8">
+        <div className="mx-auto w-full max-w-[120rem] px-4 sm:px-6 lg:px-8">
+          <SeasonYear key={selected} seasons={seasons} />
         </div>
-      </Container>
+      </section>
     </>
   )
 }
