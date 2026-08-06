@@ -21,8 +21,14 @@ if (!runtimeUrl) {
   process.exit(1)
 }
 
-// Prefer the direct/unpooled connection for migrations when provided.
-const migrateUrl = process.env.DIRECT_URL || runtimeUrl
+// Prefer the direct/unpooled connection for migrations when provided. Neon (via the Vercel
+// Marketplace integration) injects DATABASE_URL_UNPOOLED / POSTGRES_URL_NON_POOLING for this;
+// DIRECT_URL is the manual convention. Fall back to the (possibly pooled) runtime URL.
+const migrateUrl =
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.DIRECT_URL ||
+  runtimeUrl
 const env = { ...process.env, DATABASE_URL: migrateUrl }
 
 function run(label, cmd) {
