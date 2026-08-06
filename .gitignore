@@ -73,3 +73,10 @@ migration-reports/
 
 # Local database + media backups (never commit)
 backups/
+
+.vercel
+.env*
+
+# Claude Code / agent artifacts
+.agents/
+skills-lock.json
