@@ -28,6 +28,13 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Canonical host: send www.8br.gg → apex 8br.gg (matches NEXT_PUBLIC_SITE_URL).
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.8br.gg' }],
+        destination: 'https://8br.gg/:path*',
+        permanent: true,
+      },
       // Retired duplicate player profile → canonical Luis (same real person).
       { source: '/players/luis-p0027', destination: '/players/luis', permanent: true },
     ]
