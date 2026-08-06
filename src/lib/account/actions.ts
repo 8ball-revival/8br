@@ -44,6 +44,11 @@ async function setSessionCookie(token: string, exp?: number) {
     secure: process.env.NODE_ENV === 'production',
     expires: exp ? new Date(exp * 1000) : undefined,
   })
+  // The auth-dependent SiteHeader lives in the shared root layout, which the client Router
+  // Cache persists across navigations. Invalidate the layout so the header reflects the NEW
+  // session immediately after any login (no manual refresh). Every login path routes through
+  // here (signIn / createAccount / claimAccount / resetPassword), so this covers them all.
+  revalidatePath('/', 'layout')
 }
 
 /** Create an account (User ID + email + password). Email verification is DISABLED
@@ -215,6 +220,9 @@ export async function resetPassword(_prev: FormResult, formData: FormData): Prom
 export async function signOut(): Promise<void> {
   const store = await cookies()
   store.delete(COOKIE)
+  // Refresh the shared layout so the header drops the authenticated UI immediately on logout
+  // (same Router-Cache reason as setSessionCookie).
+  revalidatePath('/', 'layout')
   redirect('/')
 }
 
