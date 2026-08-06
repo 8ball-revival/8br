@@ -31,9 +31,11 @@ const migrateUrl =
   runtimeUrl
 const env = { ...process.env, DATABASE_URL: migrateUrl }
 
-function run(label, cmd) {
+function run(label, cmd, { closeStdin = false } = {}) {
   console.log(`\n▶ ${label}`)
-  execSync(cmd, { stdio: 'inherit', env })
+  // closeStdin: give the child an EOF on stdin so an unexpected interactive prompt (e.g. Payload's
+  // "you've run in dev mode" reconciliation prompt) fails fast instead of hanging the build forever.
+  execSync(cmd, { stdio: [closeStdin ? 'ignore' : 'inherit', 'inherit', 'inherit'], env })
 }
 
 /**
@@ -60,7 +62,7 @@ function withEsmPackage(fn) {
 
 try {
   run('Prisma: applying migrations (public schema)', 'npx prisma migrate deploy')
-  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate'))
+  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
   console.log('\n✓ All database migrations applied.')
 } catch (err) {
   console.error('\n✗ Migration step failed. Aborting build.')
