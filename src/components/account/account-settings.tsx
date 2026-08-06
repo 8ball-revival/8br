@@ -68,7 +68,7 @@ function ProfileForm({ profile }: { profile: { preferredName: string; discord: s
       <div className="space-y-1.5">
         <Label htmlFor="timeZone">Time Zone</Label>
         <TimeZoneField defaultValue={profile.timeZone ?? ''} required={false} />
-        <p className="text-xs text-muted-foreground">Optional, used for displaying competition dates and deadlines in your local time.</p>
+        <p className="text-xs text-muted-foreground">Optional. Shown on your public profile — enter it however you like (e.g. MST).</p>
       </div>
       {state.error && <Err>{state.error}</Err>}
       <div className="flex items-center gap-3">

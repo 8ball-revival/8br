@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { getPayload } from 'payload'
+import { getPayload, type Where } from 'payload'
 import config from '@payload-config'
 
 import {
@@ -165,6 +165,50 @@ export async function signIn(_prev: FormResult, formData: FormData): Promise<For
       return { error: status.status === 'BANNED' ? 'This account has been banned.' : 'This account has been deleted.' }
   }
   await setSessionCookie(token!, exp)
+  redirect('/account')
+}
+
+/**
+ * Request a password reset. Accepts a CueVerse ID (User ID) or email, resolves it to the
+ * account's recovery email, and triggers Payload's forgotPassword (which emails a reset link
+ * via the configured adapter). ALWAYS returns a generic success — it never reveals whether an
+ * account exists, and never surfaces email-delivery errors (no account enumeration).
+ */
+export async function requestPasswordReset(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const identifier = String(formData.get('identifier') ?? '').trim()
+  if (!identifier) return { error: 'Enter your CueVerse ID or email.' }
+
+  const p = await payload()
+  const where: Where = identifier.includes('@')
+    ? { email: { equals: identifier.toLowerCase() } }
+    : { username: { equals: normalizeUsername(identifier) } }
+  try {
+    const found = await p.find({ collection: 'users', where, limit: 1, overrideAccess: true })
+    const email = found.docs[0]?.email
+    if (email) await p.forgotPassword({ collection: 'users', data: { email }, disableEmail: false })
+  } catch {
+    // Swallow: never reveal whether the account exists or whether delivery failed.
+  }
+  return { ok: true }
+}
+
+/** Complete a password reset from an emailed token. Sets the new password and signs the user in. */
+export async function resetPassword(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const token = String(formData.get('token') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('confirmPassword') ?? '')
+  if (!token) return { error: 'This reset link is missing its token. Request a new one.' }
+  const perr = validatePassword(password)
+  if (perr) return { error: perr }
+  if (password !== confirm) return { error: 'Passwords do not match.' }
+
+  const p = await payload()
+  try {
+    const res = await p.resetPassword({ collection: 'users', data: { token, password }, overrideAccess: true })
+    if (res?.token) await setSessionCookie(res.token)
+  } catch {
+    return { error: 'This reset link is invalid or has expired. Request a new one.' }
+  }
   redirect('/account')
 }
 

@@ -16,6 +16,32 @@ export const Users: CollectionConfig = {
       allowEmailLogin: true,
       requireEmail: true,
     },
+    // Password recovery: send a link to the public frontend reset page (NOT the admin
+    // panel), so members reset without ever seeing the CMS. Delivery uses the email
+    // adapter configured in payload.config.ts (Resend).
+    forgotPassword: {
+      generateEmailSubject: () => 'Reset your 8 Ball Revival password',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      generateEmailHTML: (args: any) => {
+        const token = (args?.token as string) ?? ''
+        const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        const url = `${base}/reset-password?token=${encodeURIComponent(token)}`
+        return `
+          <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
+            <h1 style="font-size:20px;margin:0 0 12px">Reset your password</h1>
+            <p style="margin:0 0 16px;line-height:1.5;color:#444">
+              We received a request to reset the password for your 8 Ball Revival account. Click the
+              button below to choose a new password. This link expires in 1 hour.
+            </p>
+            <p style="margin:0 0 24px">
+              <a href="${url}" style="display:inline-block;background:#e9c341;color:#111;font-weight:600;text-decoration:none;padding:10px 18px;border-radius:8px">Reset password</a>
+            </p>
+            <p style="margin:0 0 8px;font-size:12px;color:#666">Or paste this link into your browser:</p>
+            <p style="margin:0 0 24px;font-size:12px;word-break:break-all"><a href="${url}" style="color:#0a58ca">${url}</a></p>
+            <p style="margin:0;font-size:12px;color:#666">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+          </div>`
+      },
+    },
   },
   access: {
     // Only staff can reach the admin panel.

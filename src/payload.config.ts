@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { resendAdapter } from '@payloadcms/email-resend'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import path from 'path'
@@ -29,6 +30,19 @@ export default buildConfig({
   },
   collections: [Users, Media, News, Rules],
   editor: lexicalEditor(),
+  // Transactional email (password-reset links). Enabled once RESEND_API_KEY is set;
+  // without it Payload falls back to its console-logging adapter, so dev still works and
+  // a first deploy without the key still builds. RESEND_FROM_EMAIL must be a verified
+  // Resend sender/domain in production.
+  ...(process.env.RESEND_API_KEY
+    ? {
+        email: resendAdapter({
+          defaultFromAddress: process.env.RESEND_FROM_EMAIL || 'noreply@8br.gg',
+          defaultFromName: '8 Ball Revival',
+          apiKey: process.env.RESEND_API_KEY,
+        }),
+      }
+    : {}),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

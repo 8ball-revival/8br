@@ -2,6 +2,14 @@ import 'server-only'
 import type { Player } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
+import { cueverseLoginKey } from '@/lib/account/validation'
+
+/** Lazy Payload client — only loaded when a CueVerse ID change must sync a linked login handle. */
+async function getPayloadClient() {
+  const { getPayload } = await import('payload')
+  const configMod = await import('@payload-config')
+  return getPayload({ config: await configMod.default })
+}
 
 /**
  * Player-profile + account-linking service. A Player row is the permanent competitive
@@ -256,10 +264,19 @@ export function cueverseCooldownState(lastChangedAt: Date | null, now: Date = ne
 }
 
 /**
- * Change a profile's CueVerse ID — the site-wide display identity. Enforces the 7-day
- * cooldown server-side for self-service changes; Owner/Admin pass `override: true` for
- * corrections. The previous ID is preserved as a searchable alias, the underlying
- * profile id never changes, and every change/override is audited.
+ * Change a profile's CueVerse ID — the site-wide display identity AND, for a linked
+ * account, its login handle. Enforces the 7-day cooldown for self-service changes;
+ * Owner/Admin pass `override: true` for corrections. The previous ID is preserved as a
+ * searchable alias (aliases NEVER authenticate), the underlying profile id never changes,
+ * and every change/override is audited.
+ *
+ * Login-key sync: when the profile is linked to a Payload account and the new ID is
+ * non-null, the account's login `username` is updated to the normalized new ID in the SAME
+ * operation — so the new ID immediately becomes the login identifier, the old one stops
+ * working, and email login is untouched. The Payload username lives outside the Prisma
+ * transaction, so it is applied as the FINAL step inside the transaction (a failure rolls
+ * everything back) and reverted if the transaction still fails to commit — Player.cueverseId
+ * and the account login identity can never drift out of sync.
  */
 export async function changeCueverseId(
   actor: Actor,
@@ -278,31 +295,76 @@ export async function changeCueverseId(
     }
   }
 
-  await prisma.$transaction(async (tx) => {
-    // Preserve the OLD id as a searchable alias (history never lost).
-    if (p.cueverseId) {
-      const oldKey = nk(p.cueverseId)
-      if (oldKey) {
-        const existing = await tx.playerAlias.findFirst({ where: { playerId, alias: oldKey } })
-        if (!existing) await tx.playerAlias.create({ data: { playerId, alias: oldKey, aliasType: 'HANDLE' } })
-      }
+  // Login-key sync applies only to a LINKED account moving to a non-null ID (a Payload login
+  // username cannot be null). The login key is the normalized (lower-cased) CueVerse ID.
+  const linkedUserId = p.linkedUserId ? Number(p.linkedUserId) : null
+  const newLoginKey = newId ? cueverseLoginKey(newId) : null
+  const mustSyncLogin = linkedUserId != null && newLoginKey != null
+
+  let pl: Awaited<ReturnType<typeof getPayloadClient>> | null = null
+  let prevUsername: string | null = null
+  if (mustSyncLogin) {
+    pl = await getPayloadClient()
+    // Uniqueness: the new login key must not collide with ANOTHER account's login handle.
+    const clash = await pl.find({
+      collection: 'users',
+      where: { username: { equals: newLoginKey! }, id: { not_equals: linkedUserId! } },
+      limit: 1,
+      overrideAccess: true,
+    })
+    if (clash.totalDocs > 0) return { ok: false, error: 'That CueVerse ID is already in use by another account.' }
+    const current = await pl.findByID({ collection: 'users', id: linkedUserId!, overrideAccess: true }).catch(() => null)
+    prevUsername = ((current?.username as string | undefined) ?? null)
+  }
+
+  let payloadDidUpdate = false
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        // Preserve the OLD id as a searchable alias (history never lost; aliases never log in).
+        if (p.cueverseId) {
+          const oldKey = nk(p.cueverseId)
+          if (oldKey) {
+            const existing = await tx.playerAlias.findFirst({ where: { playerId, alias: oldKey } })
+            if (!existing) await tx.playerAlias.create({ data: { playerId, alias: oldKey, aliasType: 'HANDLE' } })
+          }
+        }
+        await tx.player.update({ where: { id: playerId }, data: { cueverseId: newId, cueverseIdChangedAt: new Date() } })
+        // Make the new id searchable too.
+        if (newId) {
+          const newKey = nk(newId)
+          if (newKey) {
+            const existing = await tx.playerAlias.findFirst({ where: { playerId, alias: newKey } })
+            if (!existing) await tx.playerAlias.create({ data: { playerId, alias: newKey, aliasType: 'HANDLE' } })
+          }
+        }
+        await recordAudit(actor, {
+          action: opts.override ? 'profile.cueverseChange.override' : 'profile.cueverseChange',
+          entity: 'Player', entityId: playerId,
+          oldValue: { cueverseId: p.cueverseId },
+          newValue: { cueverseId: newId, by: actor.username, override: !!opts.override, loginKeySynced: mustSyncLogin },
+        }, tx)
+        // FINAL step: sync the linked account's login handle. If this throws, the whole
+        // transaction rolls back, so display + login identity stay consistent.
+        if (mustSyncLogin && pl) {
+          await pl.update({ collection: 'users', id: linkedUserId!, data: { username: newLoginKey! }, overrideAccess: true })
+          payloadDidUpdate = true
+        }
+      },
+      { timeout: 15000, maxWait: 10000 },
+    )
+  } catch (e) {
+    // The Payload username is outside the Prisma transaction. If it was updated but the
+    // transaction ultimately failed, revert it so the two sides never drift apart.
+    if (payloadDidUpdate && pl && prevUsername != null) {
+      await pl
+        .update({ collection: 'users', id: linkedUserId!, data: { username: prevUsername }, overrideAccess: true })
+        .catch(() => {})
     }
-    await tx.player.update({ where: { id: playerId }, data: { cueverseId: newId, cueverseIdChangedAt: new Date() } })
-    // Make the new id searchable too.
-    if (newId) {
-      const newKey = nk(newId)
-      if (newKey) {
-        const existing = await tx.playerAlias.findFirst({ where: { playerId, alias: newKey } })
-        if (!existing) await tx.playerAlias.create({ data: { playerId, alias: newKey, aliasType: 'HANDLE' } })
-      }
-    }
-    await recordAudit(actor, {
-      action: opts.override ? 'profile.cueverseChange.override' : 'profile.cueverseChange',
-      entity: 'Player', entityId: playerId,
-      oldValue: { cueverseId: p.cueverseId },
-      newValue: { cueverseId: newId, by: actor.username, override: !!opts.override },
-    }, tx)
-  })
+    const msg = e instanceof Error ? e.message : ''
+    if (/unique|already|duplicate/i.test(msg)) return { ok: false, error: 'That CueVerse ID is already in use by another account.' }
+    return { ok: false, error: 'Could not change the CueVerse ID. Please try again.' }
+  }
   return { ok: true }
 }
 

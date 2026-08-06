@@ -67,9 +67,6 @@ export async function SiteHeader() {
                   Signed in as <span className="font-semibold text-foreground">{user.username}</span>
                 </p>
                 <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
-                  View Profile
-                </Link>
-                <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
                   Account Settings
                 </Link>
               </div>

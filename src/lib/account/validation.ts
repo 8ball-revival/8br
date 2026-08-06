@@ -71,11 +71,7 @@ export function validateDiscord(input: string): string | null {
 export function validateTimeZone(input: string): string | null {
   const v = (input ?? '').trim()
   if (!v) return 'Time Zone is required.'
-  // Accept any IANA-style zone the platform's Intl recognises; fall back to a light check.
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: v }).format(0)
-    return null
-  } catch {
-    return 'Enter a valid time zone (e.g. America/New_York).'
-  }
+  // Free-form: the user types whatever they want (e.g. "MST"). Only bound the length.
+  if (v.length > 60) return 'Time zone is too long.'
+  return null
 }
