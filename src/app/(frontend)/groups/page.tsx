@@ -16,6 +16,8 @@ import { getPublicSeason, getPublicGroups, getPublicRegistrations } from '@/lib/
 import { getGroupBuilder } from '@/lib/competition/queries'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
+export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
+
 export const metadata: Metadata = pageMetadata({
   title: '8 Ball Revival Season 2 Groups',
   description: 'Group stage standings and fixtures for 8 Ball Revival Season 2, drawn once registration closes.',

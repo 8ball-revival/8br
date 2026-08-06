@@ -16,6 +16,8 @@ import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '
 import { REGISTRATION_STATE_LABEL } from '@/lib/competition/labels'
 import { pageMetadata } from '@/lib/site'
 
+export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
+
 const DEFAULT_FORMAT = 'Group stage into single-elimination playoffs'
 const DEFAULT_ELIGIBILITY = 'Open to all registered 8 Ball Revival account holders.'
 

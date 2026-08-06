@@ -10,7 +10,7 @@ import { Bracket } from '@/components/cups/bracket'
 import { TeamTies } from '@/components/cups/team-ties'
 import { CupWorkspace } from '@/components/cups/cup-workspace'
 import { ConvertLegacyBanner } from '@/components/cups/convert-legacy-banner'
-import { getCup, getCups, cupBracket } from '@/lib/cups/service'
+import { getCup, cupBracket } from '@/lib/cups/service'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { getCupWorkspace, type CupWorkspaceData } from '@/lib/cups/live'
 import { CUP_STATE_LABEL, getCupHistory, type CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
@@ -26,6 +26,11 @@ import { EntrantList } from '@/components/competition/entrant-list'
 import { CupJoinPanel } from '@/components/cups/cup-join-panel'
 import type { SignupIdentity } from '@/components/account/register-form'
 
+// Cup pages always resolve the signed-in viewer (admin workspace vs public view) via headers/cookies,
+// so they must render per-request. force-dynamic replaces the old generateStaticParams/dynamicParams
+// (which conflicted with the auth read and caused DYNAMIC_SERVER_USAGE 500s).
+export const dynamic = 'force-dynamic'
+
 /** The signed-in viewer's context for the member Join / entrant panel on a live cup. */
 interface MemberCtx {
   cupNumber: number
@@ -35,14 +40,6 @@ interface MemberCtx {
   missing: string[]
   /** The viewer's registration id in this cup (to locate their own active match for self-report). */
   myRegistrationId: number | null
-}
-
-// Live cups may be created after the build snapshot, so render unknown numbers on demand
-// (the page 404s below if neither the snapshot nor the DB has the cup).
-export const dynamicParams = true
-
-export function generateStaticParams() {
-  return getCups().map((c) => ({ number: String(c.number) }))
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {

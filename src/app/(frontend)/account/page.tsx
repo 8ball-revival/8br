@@ -27,6 +27,8 @@ import { formatDate } from '@/lib/format'
 import { pageMetadata } from '@/lib/site'
 import type { MatchResult } from '@/lib/stats/rating-engine'
 
+export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
+
 const DEFAULT_ELIGIBILITY = 'Open to all registered 8 Ball Revival account holders.'
 
 export const metadata: Metadata = pageMetadata({

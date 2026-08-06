@@ -18,6 +18,8 @@ import { getPublicSeason } from '@/lib/competition/public'
 import { getPublishedPlayoff, getAllPlayoffMatches, getPlayoffBuilder, getMatchHistory } from '@/lib/competition/queries'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
+export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
+
 export const metadata: Metadata = pageMetadata({
   title: '8 Ball Revival Season 2 Playoffs',
   description: 'The single-elimination playoff bracket for 8 Ball Revival Season 2, set after the group stage.',

@@ -7,6 +7,8 @@ import { SignInForm } from '@/components/account/sign-in-form'
 import { getCurrentUser } from '@/lib/account/auth'
 import { pageMetadata } from '@/lib/site'
 
+export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
+
 export const metadata: Metadata = pageMetadata({
   title: 'Sign In',
   description: 'Sign in to your 8 Ball Revival account to manage your Season 2 registration.',

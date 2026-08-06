@@ -9,6 +9,8 @@ import { CreateCupWizard } from '@/components/cups/create-cup-wizard'
 import { getCupList } from '@/lib/cups/list'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
+export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
+
 export const metadata: Metadata = {
   title: 'Cups',
   description: 'Variety competitions — prize tournaments, doubles, and special formats, separate from league Seasons.',
