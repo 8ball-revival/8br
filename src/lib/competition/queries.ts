@@ -62,32 +62,48 @@ export async function getEntrants(seasonId: number): Promise<EntrantRow[]> {
   }))
 }
 
-export interface EntrantCandidateRow { playerId: string; primaryName: string; cueverseId: string | null; alreadyEntered: boolean }
+export interface EntrantCandidateRow { playerId: string; primaryName: string; cueverseId: string | null }
 
-/** Player profiles matching a search (name / CueVerse ID / verified alias), for the
- *  admin "add entrant" tool. Already-entered profiles ARE returned but flagged
- *  `alreadyEntered` so the UI can show them as unavailable rather than hiding them. */
-export async function searchEntrantCandidates(seasonId: number, query: string, limit = 15): Promise<EntrantCandidateRow[]> {
+/**
+ * Registered players eligible to be ADDED to a cup, for the "Add Player" dropdown. Returns permanent
+ * player profiles (selected by stable player id), matched case-insensitively on Preferred Name /
+ * CueVerse ID / verified alias (an empty query lists eligible players so the dropdown is browsable).
+ * EXCLUDES: profiles already entered in this cup, inactive profiles, and profiles whose linked
+ * account is soft-deleted or banned. Never returns free-text / account-less entrants.
+ */
+export async function searchEntrantCandidates(seasonId: number, query: string, limit = 50): Promise<EntrantCandidateRow[]> {
   const q = query.trim()
-  if (!q) return []
   const nk = q.toLowerCase().replace(/[^a-z0-9]/g, '')
+  // Players already entered (any non-withdrawn/non-rejected registration) — excluded from results.
   const entered = new Set(
-    (await prisma.registration.findMany({ where: { seasonId, status: 'APPROVED', playerId: { not: null } }, select: { playerId: true } })).map((e) => e.playerId!),
+    (await prisma.registration.findMany({ where: { seasonId, status: { notIn: ['WITHDRAWN', 'REJECTED'] }, playerId: { not: null } }, select: { playerId: true } })).map((e) => e.playerId!),
   )
+  const match = q
+    ? {
+        OR: [
+          { primaryName: { contains: q, mode: 'insensitive' as const } },
+          { cueverseId: { contains: q, mode: 'insensitive' as const } },
+          { aliases: { some: { alias: { contains: nk } } } },
+        ],
+      }
+    : {}
   const rows = await prisma.player.findMany({
-    where: {
-      active: true,
-      OR: [
-        { primaryName: { contains: q, mode: 'insensitive' } },
-        { cueverseId: { contains: q, mode: 'insensitive' } },
-        { aliases: { some: { alias: { contains: nk } } } },
-      ],
-    },
+    where: { active: true, ...match },
     orderBy: { primaryName: 'asc' },
-    take: limit,
-    select: { id: true, primaryName: true, cueverseId: true },
+    take: Math.max(limit, entered.size + limit), // room to drop the already-entered before trimming
+    select: { id: true, primaryName: true, cueverseId: true, linkedUserId: true },
   })
-  return rows.map((r) => ({ playerId: r.id, primaryName: r.primaryName, cueverseId: r.cueverseId, alreadyEntered: entered.has(r.id) }))
+  // Exclude profiles whose linked account is soft-deleted or banned.
+  const linkedIds = rows.map((r) => r.linkedUserId).filter((v): v is string => !!v).map(Number).filter((n) => Number.isFinite(n))
+  const blocked = new Set<number>()
+  if (linkedIds.length) {
+    const mods = await prisma.memberModeration.findMany({ where: { userId: { in: linkedIds }, status: { in: ['DELETED', 'BANNED'] } }, select: { userId: true } })
+    for (const m of mods) blocked.add(m.userId)
+  }
+  return rows
+    .filter((r) => !entered.has(r.id) && !(r.linkedUserId && blocked.has(Number(r.linkedUserId))))
+    .slice(0, limit)
+    .map((r) => ({ playerId: r.id, primaryName: r.primaryName, cueverseId: r.cueverseId }))
 }
 
 /** Published groups with players + standings, for the PUBLIC groups page. */

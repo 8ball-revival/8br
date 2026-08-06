@@ -144,6 +144,13 @@ export async function createPublicRegistration(
   if (!season) return { ok: false, error: 'Season not found.' }
   if (season.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed.' }
 
+  // Moderation gate (single point for every self-signup path — season + cup): a banned,
+  // timed-out or deleted account can never enter, regardless of the form used.
+  const { resolveMemberStatus } = await import('@/lib/moderation/service')
+  const modStatus = await resolveMemberStatus(userId)
+  if (!modStatus.canRegister)
+    return { ok: false, error: modStatus.status === 'BANNED' ? 'This account is banned and cannot register.' : modStatus.status === 'TIMED_OUT' ? 'This account is timed out and cannot register.' : 'This account cannot register.' }
+
   const idData = {
     displayName: identity.displayName ?? null,
     cueverseId: identity.cueverseId ?? null,
@@ -296,17 +303,14 @@ export async function restoreEntrant(actor: Actor, seasonId: number, registratio
 }
 
 /** Add a manual, account-less entrant by display name (temporary / unlinked competitor). */
-export async function addManualEntrant(actor: Actor, seasonId: number, name: string): Promise<{ ok: boolean; error?: string; id?: number }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const clean = name.trim()
-  if (!clean) return { ok: false, error: 'A name is required.' }
-  const dupe = await prisma.registration.findFirst({ where: { seasonId, username: clean } })
-  if (dupe) return { ok: false, error: `"${clean}" is already an entrant.` }
-  const reg = await prisma.registration.create({
-    data: { seasonId, username: clean, displayName: clean, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date() },
-  })
-  await recordAudit(actor, { action: 'entrant.addManual', entity: 'Registration', entityId: reg.id, newValue: { name: clean } })
-  return { ok: true, id: reg.id }
+/**
+ * REMOVED capability — free-text / "temporary" entrants are no longer permitted. Every entrant in a
+ * new cup must reference a permanent registered player (use `addEntrantByProfile`). This backstop
+ * stays so any lingering caller fails loudly on the server instead of silently creating an
+ * account-less, ranking-orphaning entrant. Historical temporary entrants are untouched.
+ */
+export async function addManualEntrant(_actor: Actor, _seasonId: number, _name: string): Promise<{ ok: boolean; error?: string; id?: number }> {
+  return { ok: false, error: 'Temporary entrants are no longer supported. Add a registered player instead.' }
 }
 
 /** Persist the entrant seeding order (Registration.seed = position). Drives the default
@@ -1284,6 +1288,44 @@ export async function recordPlayoffScore(
     newValue: { homeGames, awayGames },
     reason,
   })
+  return { ok: true }
+}
+
+/**
+ * A cup ENTRANT self-reports their OWN LOSS (never a win). Verifies the caller is a participant,
+ * the cup is IN_PROGRESS, and the match is undecided; then records the OPPONENT as the winner
+ * (race length) with the reporter's games, and advances the bracket. Duplicate/conflicting
+ * submissions are rejected. A player can never report themselves as the winner (structural).
+ */
+export async function reportOwnLoss(userId: number, username: string, matchId: number, myGamesWon: number): Promise<{ ok: boolean; error?: string }> {
+  const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { season: true } })
+  if (!match) return { ok: false, error: 'Match not found.' }
+  if (match.season.competitionType !== 'CUP') return { ok: false, error: 'This is not a cup match.' }
+  const { getCupState } = await import('./cup-lifecycle')
+  if (getCupState(match.season) !== 'IN_PROGRESS') return { ok: false, error: 'This cup is not currently in progress.' }
+  if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
+  if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }
+
+  // Resolve the caller's entrant in this cup (by account OR linked profile).
+  const profile = await prisma.player.findUnique({ where: { linkedUserId: String(userId) }, select: { id: true } })
+  const myReg = await prisma.registration.findFirst({
+    where: { seasonId: match.seasonId, OR: [{ userId }, ...(profile ? [{ playerId: profile.id }] : [])] },
+    select: { id: true },
+  })
+  if (!myReg) return { ok: false, error: 'You are not an entrant in this cup.' }
+  const isHome = match.homeRegistrationId === myReg.id
+  const isAway = match.awayRegistrationId === myReg.id
+  if (!isHome && !isAway) return { ok: false, error: 'You can only report a match you are playing in.' }
+
+  const race = match.season.raceLength
+  const mine = Math.max(0, Math.min(Number.isFinite(myGamesWon) ? myGamesWon : 0, race - 1)) // a loss is strictly < race
+  const homeGames = isHome ? mine : race // the OPPONENT (winner) gets the full race
+  const awayGames = isHome ? race : mine
+
+  const actor: Actor = { userId, username }
+  const rec = await recordPlayoffScore(actor, matchId, homeGames, awayGames, 'Self-reported loss')
+  if (!rec.ok) return rec
+  await verifyPlayoffMatch(actor, matchId, 'Self-reported loss')
   return { ok: true }
 }
 

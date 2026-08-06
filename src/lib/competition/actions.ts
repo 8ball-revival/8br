@@ -111,10 +111,10 @@ export async function setRegistrationStateAction(_prev: ActionResult, fd: FormDa
 
 // ---- Entrants (admin-added, account-independent) ---------------------------
 
-export interface EntrantCandidate { playerId: string; primaryName: string; cueverseId: string | null; alreadyEntered: boolean }
+export interface EntrantCandidate { playerId: string; primaryName: string; cueverseId: string | null }
 
 /** Live search for addable player profiles (for the "add entrant" combobox).
- *  Already-entered profiles are returned flagged so the UI marks them unavailable. */
+ *  Already-entered / inactive / deleted / banned profiles are excluded server-side. */
 export async function searchEntrantCandidatesAction(seasonId: number, query: string): Promise<EntrantCandidate[]> {
   await requireCapability('manage_competitions')
   const { searchEntrantCandidates } = await import('./queries')

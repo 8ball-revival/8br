@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@payload-config": ["./src/payload.config.ts"],
+      "server-only": ["./scripts/_empty.ts"],
+      "client-only": ["./scripts/_empty.ts"]
+    }
+  }
+}

@@ -11,6 +11,7 @@ import { CreateAccountForm } from '@/components/account/create-account-form'
 import { RegisterForm } from '@/components/account/register-form'
 import { getCurrentUser, getSeason2Registration } from '@/lib/account/auth'
 import { getProfileByUserId } from '@/lib/players/service'
+import { profileCompleteness } from '@/lib/competition/eligibility'
 import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { REGISTRATION_STATE_LABEL } from '@/lib/competition/labels'
 import { pageMetadata } from '@/lib/site'
@@ -34,7 +35,10 @@ export default async function RegisterPage() {
   const eligibilitySummary = season?.eligibilitySummary ?? DEFAULT_ELIGIBILITY
   const registration = user ? await getSeason2Registration(user.id) : null
   const profile = user ? await getProfileByUserId(Number(user.id)) : null
-  const formProfile = profile ? { primaryName: profile.primaryName, cueverseId: profile.cueverseId } : null
+  const identity = profile
+    ? { preferredName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone }
+    : null
+  const missing = profile ? profileCompleteness(profile).missing : ['your player profile']
 
   return (
     <>
@@ -81,8 +85,7 @@ export default async function RegisterPage() {
               <CardHeader>
                 <CardTitle className="text-2xl">Create your account</CardTitle>
                 <CardDescription>
-                  You need an 8 Ball Revival account to register for Season 2. It takes a User ID, an email, and a
-                  password — no email verification required.
+                  Create your account to register for Season 2. Your CueVerse ID must match your current in-game identity.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -132,7 +135,7 @@ export default async function RegisterPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RegisterForm profile={formProfile} />
+                <RegisterForm identity={identity} missing={missing} />
               </CardContent>
             </Card>
           )}

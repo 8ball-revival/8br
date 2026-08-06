@@ -8,7 +8,7 @@
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "cups:snapshot": "tsx scripts/snapshot-cups.mts",
     "test:cup-isolation": "tsx scripts/test-cup-isolation.mts",
-    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build && node scripts/postbuild-cjs.mjs",
+    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build --webpack && node scripts/postbuild-cjs.mjs",
     "vercel-build": "node scripts/deploy-migrate.mjs && npm run build",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",

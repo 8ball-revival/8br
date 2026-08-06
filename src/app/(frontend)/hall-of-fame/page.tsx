@@ -1,45 +1,60 @@
 import type { Metadata } from 'next'
-import { Trophy } from 'lucide-react'
+import Link from 'next/link'
+import { Trophy, ChevronRight } from 'lucide-react'
 
 import { Container } from '@/components/ui/container'
 import { PageHeader } from '@/components/page-header'
 import { pageMetadata } from '@/lib/site'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { hallOfFame } from '@/lib/mock-data'
+import { EmptyState } from '@/components/ui/empty-state'
+import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
+import { getAllChampions } from '@/lib/hall-of-fame/service'
 
 export const metadata: Metadata = pageMetadata({
   title: 'Hall of Fame',
-  description: 'The most decorated players preserved in the CueVerse competitive archive.',
+  description: 'Every Season champion in 8 Ball Revival history — click a champion for their group-stage and playoff record.',
   path: '/hall-of-fame',
 })
 
 export default function HallOfFamePage() {
+  const champions = getAllChampions()
+
   return (
     <>
       <PageHeader
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Hall of Fame' }]}
         title="Hall of Fame"
-        description="Recognition for sustained excellence. Membership is curated and independent of raw championship totals."
-        sample
+        description="Every Season champion, ranked by titles won (Seasons only — Cups excluded). Select a champion to see their group-stage and playoff wins."
       />
       <Container className="py-12">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {hallOfFame.map((h) => (
-            <Card key={h.slug} className="h-full">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Trophy className="size-4 text-gold" aria-hidden />
-                  <Badge variant="gold">Inducted {h.inductedYear}</Badge>
-                </div>
-                <CardTitle className="text-xl">{h.handle}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{h.citation}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {champions.length === 0 ? (
+          <EmptyState
+            icon={Trophy}
+            title="No inductees yet"
+            description="The Hall of Fame recognises Season champions. Once a season crowns its first champion, they will appear here."
+          />
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+            {champions.map((c, i) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/hall-of-fame/${c.slug}`}
+                  className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/40"
+                >
+                  <span className="tabular w-6 shrink-0 text-center text-sm font-semibold text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  <Trophy className="size-4 shrink-0 text-gold" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">
+                    <PublicPlayerIdentity preferredName={c.name} cueverseId={c.handle !== c.name ? c.handle : null} muted />
+                  </span>
+                  <Badge variant="gold">{c.titles === 1 ? 'Champion' : `${c.titles}× Champion`}</Badge>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </Container>
     </>
   )

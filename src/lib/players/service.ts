@@ -117,6 +117,92 @@ export async function unlinkAccount(actor: Actor, playerId: string): Promise<{ o
   return { ok: true }
 }
 
+export interface AccountProfileFields {
+  preferredName?: string | null // OPTIONAL — falls back to the CueVerse ID for display
+  cueverseId: string
+  discord?: string | null
+  timeZone?: string | null
+}
+
+export type ProvisionOutcome =
+  | { ok: true; playerId: string; linked: boolean }
+  | { ok: false; error: string; needsStaff?: boolean }
+
+/**
+ * ONE ACCOUNT = ONE PLAYER PROFILE. Create-or-link exactly one canonical Player for a new
+ * account, at signup. Never creates a duplicate:
+ *  - a profile already owned by this account → returned as-is (idempotent);
+ *  - an existing UNLINKED profile whose CueVerse ID (or alias) matches → linked via the
+ *    shared linking workflow (adopts prior account-less entries), missing public fields
+ *    backfilled without clobbering historical values;
+ *  - the CueVerse ID already held by ANOTHER account → refused (taken);
+ *  - MULTIPLE unlinked candidates → refused as ambiguous and routed to staff (never guessed);
+ *  - no match → a new NATIVE profile is created and linked.
+ * Email is never stored here — it stays on the private Payload account.
+ */
+export async function createOrLinkAccountProfile(userId: number, username: string, f: AccountProfileFields): Promise<ProvisionOutcome> {
+  const cueverseId = f.cueverseId.trim()
+  if (!cueverseId) return { ok: false, error: 'CueVerse ID is required.' }
+  // Preferred Name is optional — when absent, the profile name defaults to the CueVerse ID so
+  // public pages have a value to show (and the shared formatter collapses "id (id)" to just "id").
+  const preferredName = f.preferredName?.trim() || cueverseId
+  const key = nk(cueverseId)
+
+  // Idempotent: this account already owns a profile.
+  const own = await prisma.player.findUnique({ where: { linkedUserId: String(userId) } })
+  if (own) return { ok: true, playerId: own.id, linked: true }
+
+  // Candidate profiles by CueVerse ID (case-insensitive) or a matching alias.
+  const byId = await prisma.player.findMany({ where: { cueverseId: { equals: cueverseId, mode: 'insensitive' } } })
+  const byAlias = await prisma.playerAlias.findMany({ where: { alias: key }, include: { player: true } })
+  const candidates = new Map<string, Player>()
+  for (const p of byId) candidates.set(p.id, p)
+  for (const a of byAlias) if (a.player) candidates.set(a.player.id, a.player)
+  const list = [...candidates.values()]
+
+  if (list.some((p) => p.linkedUserId && p.linkedUserId !== String(userId)))
+    return { ok: false, error: 'That CueVerse ID is already in use by another account.' }
+
+  const unlinked = list.filter((p) => !p.linkedUserId)
+  if (unlinked.length > 1)
+    return { ok: false, error: 'Multiple existing player profiles match that CueVerse ID — staff must link the correct one. Your account was not created; please contact staff.', needsStaff: true }
+
+  const selfActor: Actor = { userId, username }
+  if (unlinked.length === 1) {
+    const p = unlinked[0]
+    const linkRes = await linkAccountToProfile(selfActor, userId, p.id)
+    if (!linkRes.ok) return { ok: false, error: linkRes.error ?? 'Could not link your profile.' }
+    // Backfill missing public fields only — never overwrite existing historical identity.
+    await prisma.player.update({
+      where: { id: p.id },
+      data: {
+        discord: p.discord ?? (f.discord?.trim() || null),
+        timeZone: p.timeZone ?? (f.timeZone?.trim() || null),
+        cueverseId: p.cueverseId ?? cueverseId,
+      },
+    })
+    return { ok: true, playerId: p.id, linked: true }
+  }
+
+  // No existing profile — create a fresh native one, linked to the account.
+  const created = await prisma.player.create({
+    data: {
+      primaryName: preferredName,
+      cueverseId,
+      discord: f.discord?.trim() || null,
+      timeZone: f.timeZone?.trim() || null,
+      linkedUserId: String(userId),
+      linkStatus: 'VERIFIED',
+      linkedAt: new Date(),
+      active: true,
+      provenance: 'NATIVE_EGO',
+    },
+  })
+  await prisma.playerAlias.create({ data: { playerId: created.id, alias: key, aliasType: 'HANDLE' } })
+  await recordAudit(selfActor, { action: 'profile.createForAccount', entity: 'Player', entityId: created.id, newValue: { preferredName, cueverseId } })
+  return { ok: true, playerId: created.id, linked: false }
+}
+
 /** Manually create a native profile (staff). */
 export async function createProfile(actor: Actor, data: { primaryName: string; cueverseId?: string; discord?: string; timeZone?: string }): Promise<{ id: string }> {
   const p = await prisma.player.create({

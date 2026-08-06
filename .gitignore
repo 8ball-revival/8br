@@ -67,3 +67,9 @@ __pycache__/
 # Raw Wayback HTML scrapes — one-time analysis inputs; the derived bracket data is
 # committed in src/lib/seasons/data/verified-playoffs.json
 /scripts/wayback-*/
+
+# Admin-only migration reports (may contain one-time claim codes) — never commit
+migration-reports/
+
+# Local database + media backups (never commit)
+backups/

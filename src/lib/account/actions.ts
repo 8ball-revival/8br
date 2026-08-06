@@ -6,11 +6,21 @@ import { revalidatePath } from 'next/cache'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
-import { normalizeUsername, validateUsername, validateEmail, validatePassword } from './validation'
+import {
+  normalizeUsername,
+  normalizeCueverseId,
+  cueverseLoginKey,
+  validateEmail,
+  validatePassword,
+  validatePreferredName,
+  validateCueverseId,
+  validateDiscord,
+  validateTimeZone,
+} from './validation'
 import { getCurrentUser } from './auth'
 import { getActiveSeason } from '@/lib/competition/queries'
 import { createPublicRegistration, withdrawPublicRegistration } from '@/lib/competition/service'
-import { getProfileByUserId, changeCueverseId } from '@/lib/players/service'
+import { getProfileByUserId, changeCueverseId, createOrLinkAccountProfile } from '@/lib/players/service'
 import { claimAccount, getClaimTarget } from '@/lib/accounts/provisioning'
 
 export interface FormResult {
@@ -39,39 +49,54 @@ async function setSessionCookie(token: string, exp?: number) {
 /** Create an account (User ID + email + password). Email verification is DISABLED
  *  for launch — the account is usable immediately. Auto-signs-in and redirects. */
 export async function createAccount(_prev: FormResult, formData: FormData): Promise<FormResult> {
-  const username = normalizeUsername(String(formData.get('username') ?? ''))
+  // Signup captures ONLY: CueVerse ID, Email, Password. The CueVerse ID is the account's
+  // public identity AND its login handle. Preferred Name / Discord / Time Zone are OPTIONAL
+  // and are added later in My Account — never required here or to enter a competition.
+  const cueverseId = normalizeCueverseId(String(formData.get('cueverseId') ?? '')) // trimmed, capitalization preserved
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
 
-  const err = validateUsername(username) || validateEmail(email) || validatePassword(password)
+  const err = validateCueverseId(cueverseId) || validateEmail(email) || validatePassword(password)
   if (err) return { error: err }
+
+  // Login handle = case-insensitive CueVerse ID (Payload username uniqueness is the enforcement).
+  const username = cueverseLoginKey(cueverseId)
 
   const p = await payload()
 
-  // If a pre-created (unclaimed) account already exists for this login id, don't create a
-  // duplicate — direct the player to claim it (preserving their linked history).
+  // Reject a duplicate CueVerse ID regardless of capitalization (username is the lowered form),
+  // and direct pre-created/unclaimed accounts to the claim flow.
   const existing = await p.find({ collection: 'users', where: { username: { equals: username } }, limit: 1, overrideAccess: true })
   if (existing.totalDocs > 0) {
     const { prisma } = await import('@/lib/prisma')
     const claim = await prisma.accountClaim.findUnique({ where: { userId: Number(existing.docs[0].id) } })
     if (claim && claim.status === 'UNCLAIMED')
-      return { error: 'An account for that ID already exists and is waiting to be claimed. Use “Claim your account” instead.' }
-    return { error: 'That User ID or email is already in use.' }
+      return { error: 'An account for that CueVerse ID already exists and is waiting to be claimed. Use “Claim your account” instead.' }
+    return { error: 'That CueVerse ID or email is already in use.' }
   }
 
+  let newUserId: number
   try {
-    await p.create({ collection: 'users', data: { username, email, password, roles: ['member'] }, overrideAccess: true })
+    const created = await p.create({ collection: 'users', data: { username, email, password, roles: ['member'] }, overrideAccess: true })
+    newUserId = Number(created.id)
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
-    if (/unique|already|duplicate/i.test(msg)) return { error: 'That User ID or email is already in use.' }
+    if (/unique|already|duplicate/i.test(msg)) return { error: 'That CueVerse ID or email is already in use.' }
     return { error: 'Could not create the account. Please check your details and try again.' }
+  }
+
+  // One account = one Player profile. The display CueVerse ID keeps its original capitalization;
+  // no Preferred Name yet (public pages fall back to the CueVerse ID).
+  const provision = await createOrLinkAccountProfile(newUserId, username, { cueverseId })
+  if (!provision.ok) {
+    await p.delete({ collection: 'users', id: newUserId, overrideAccess: true }).catch(() => {})
+    return { error: provision.error }
   }
 
   try {
     const res = await p.login({ collection: 'users', data: { username, password } })
     if (res.token) await setSessionCookie(res.token, res.exp)
   } catch {
-    // account created but auto-login failed — send them to sign in
     redirect('/login')
   }
   redirect('/account')
@@ -109,7 +134,7 @@ export async function claimAccountAction(_prev: FormResult, formData: FormData):
 export async function signIn(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const identifier = String(formData.get('identifier') ?? '').trim()
   const password = String(formData.get('password') ?? '')
-  if (!identifier || !password) return { error: 'Enter your User ID (or email) and password.' }
+  if (!identifier || !password) return { error: 'Enter your CueVerse ID (or email) and password.' }
 
   const data = identifier.includes('@')
     ? { email: identifier.toLowerCase(), password }
@@ -126,13 +151,18 @@ export async function signIn(_prev: FormResult, formData: FormData): Promise<For
     exp = res.exp
     userId = Number(res.user?.id)
   } catch {
-    return { error: 'Invalid User ID/email or password.' }
+    return { error: 'Invalid CueVerse ID/email or password.' }
   }
   // Block disabled provisioned accounts from signing in.
   if (userId) {
     const { prisma } = await import('@/lib/prisma')
     const claim = await prisma.accountClaim.findUnique({ where: { userId } })
     if (claim?.disabledAt) return { error: 'This account has been disabled. Contact an administrator.' }
+    // Moderation gate: banned or deleted accounts cannot sign in.
+    const { resolveMemberStatus } = await import('@/lib/moderation/service')
+    const status = await resolveMemberStatus(userId)
+    if (!status.canLogin)
+      return { error: status.status === 'BANNED' ? 'This account has been banned.' : 'This account has been deleted.' }
   }
   await setSessionCookie(token!, exp)
   redirect('/account')
@@ -153,22 +183,16 @@ export async function registerSeason2(_prev: FormResult, formData: FormData): Pr
   const season = await getActiveSeason()
   if (!season) return { error: 'There is no active season open for registration.' }
 
-  // If the account is already linked to a canonical profile, register with that
-  // profile's identity; otherwise capture the submitted identity fields.
+  // Identity is NEVER taken from the form. Eligibility (status + complete linked profile +
+  // no duplicate + open window) is checked server-side, then we register using the canonical
+  // profile re-read here.
+  const { checkSelfSignupEligibility } = await import('@/lib/competition/eligibility')
+  const elig = await checkSelfSignupEligibility(Number(user.id), season.id)
+  if (!elig.ok) return { error: elig.reason ?? 'You cannot register right now.' }
   const profile = await getProfileByUserId(Number(user.id))
-  let identity
-  if (profile) {
-    identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
-  } else {
-    const displayName = String(formData.get('displayName') ?? '').trim()
-    const cueverseId = String(formData.get('cueverseId') ?? '').trim()
-    const discord = String(formData.get('discord') ?? '').trim()
-    const timeZone = String(formData.get('timeZone') ?? '').trim()
-    if (!displayName) return { error: 'Please enter a public display name.' }
-    if (!cueverseId) return { error: 'Please enter your CueVerse ID.' }
-    identity = { displayName, cueverseId, discord: discord || null, timeZone: timeZone || null, playerId: null }
-  }
+  if (!profile) return { error: 'Complete your player profile before registering.' }
 
+  const identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
   const res = await createPublicRegistration(season.id, Number(user.id), user.username, identity)
   if (!res.ok) return { error: res.error }
   revalidatePath('/account')
@@ -178,7 +202,69 @@ export async function registerSeason2(_prev: FormResult, formData: FormData): Pr
   return { ok: true, already: res.already }
 }
 
-/** Withdraw the current user from the active season (only while registration is open). */
+/** Self-service: update my public profile fields (Preferred Name, Discord, Time Zone).
+ *  CueVerse ID is intentionally NOT here — it stays on the dedicated 7-day cooldown path. */
+export async function updateMyProfileAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const profile = await getProfileByUserId(Number(user.id))
+  if (!profile) return { error: 'You have no linked player profile yet.' }
+
+  const preferredName = String(formData.get('preferredName') ?? '').trim()
+  const discord = String(formData.get('discord') ?? '').trim()
+  const timeZone = String(formData.get('timeZone') ?? '').trim()
+  // All three are OPTIONAL — validate only what was provided; blanks clear the field.
+  const err =
+    (preferredName ? validatePreferredName(preferredName) : null) ||
+    (discord ? validateDiscord(discord) : null) ||
+    (timeZone ? validateTimeZone(timeZone) : null)
+  if (err) return { error: err }
+
+  const { updateProfile } = await import('@/lib/players/service')
+  await updateProfile({ userId: Number(user.id), username: user.username }, profile.id, {
+    // A blank Preferred Name falls back to the CueVerse ID so public pages always have a value.
+    primaryName: preferredName || profile.cueverseId || profile.primaryName,
+    discord: discord || null,
+    timeZone: timeZone || null,
+  })
+  // Public identity appears across the site — refresh derived surfaces.
+  for (const p of ['/account', '/', '/rankings', '/players', '/cups', '/seasons', '/groups', '/playoffs']) revalidatePath(p)
+  return { ok: true }
+}
+
+/** Self-service: change my private email (never public). */
+export async function changeMyEmailAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const email = String(formData.get('email') ?? '').trim()
+  const err = validateEmail(email)
+  if (err) return { error: err }
+  const p = await payload()
+  try {
+    await p.update({ collection: 'users', id: Number(user.id), data: { email }, overrideAccess: true })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : ''
+    if (/unique|already|duplicate/i.test(msg)) return { error: 'That email is already in use.' }
+    return { error: 'Could not update your email.' }
+  }
+  revalidatePath('/account')
+  return { ok: true }
+}
+
+/** Self-service: change my password. */
+export async function changeMyPasswordAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('confirmPassword') ?? '')
+  const err = validatePassword(password)
+  if (err) return { error: err }
+  if (password !== confirm) return { error: 'Passwords do not match.' }
+  const p = await payload()
+  await p.update({ collection: 'users', id: Number(user.id), data: { password }, overrideAccess: true })
+  return { ok: true }
+}
+
 /** Self-service: change my own CueVerse ID (the site-wide display identity). Enforces the
  *  7-day cooldown server-side. Requires a linked Player Profile. */
 export async function changeMyCueverseId(_prev: FormResult, formData: FormData): Promise<FormResult> {
@@ -212,5 +298,57 @@ export async function withdrawSeason2(_prev: FormResult, _formData: FormData): P
   revalidatePath('/register')
   revalidatePath('/')
   revalidatePath('/staff/registrations')
+  return { ok: true }
+}
+
+/** Resolve a live Cup (a comp_season row of type CUP) by its public cup number. */
+async function cupByNumber(cupNumber: number) {
+  if (!Number.isFinite(cupNumber)) return null
+  const { prisma } = await import('@/lib/prisma')
+  return prisma.season.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+}
+
+/** Enter the current user into a specific live Cup (the same public-registration path as
+ *  seasons — a cup is just a comp_season row). Registration must be OPEN. */
+export async function joinCupAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in to join this cup.' }
+  if (formData.get('rulesAck') !== 'on') return { error: 'Please acknowledge the rules to join.' }
+
+  const cupNumber = Number(formData.get('cupNumber'))
+  const cup = await cupByNumber(cupNumber)
+  if (!cup) return { error: 'Cup not found.' }
+
+  // Identity is NEVER taken from the form — same shared eligibility + canonical-profile path
+  // as Season signup.
+  const { checkSelfSignupEligibility } = await import('@/lib/competition/eligibility')
+  const elig = await checkSelfSignupEligibility(Number(user.id), cup.id)
+  if (!elig.ok) return { error: elig.reason ?? 'You cannot join this cup right now.' }
+  const profile = await getProfileByUserId(Number(user.id))
+  if (!profile) return { error: 'Complete your player profile before joining.' }
+
+  const identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
+  const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity)
+  if (!res.ok) return { error: res.error }
+  revalidatePath(`/cups/${cupNumber}`)
+  revalidatePath('/cups')
+  revalidatePath('/account')
+  return { ok: true, already: res.already }
+}
+
+/** Self-withdraw the current user from a specific live Cup (only while registration is OPEN). */
+export async function withdrawCupAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+
+  const cupNumber = Number(formData.get('cupNumber'))
+  const cup = await cupByNumber(cupNumber)
+  if (!cup) return { error: 'Cup not found.' }
+
+  const res = await withdrawPublicRegistration(cup.id, Number(user.id), user.username)
+  if (!res.ok) return { error: res.error }
+  revalidatePath(`/cups/${cupNumber}`)
+  revalidatePath('/cups')
+  revalidatePath('/account')
   return { ok: true }
 }

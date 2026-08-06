@@ -8,9 +8,13 @@ import { prisma } from '@/lib/prisma'
  * password data, staff notes, or any private account field.
  */
 export interface EntrantIdentity {
+  /** Preferred Name — the public community name (was CueVerse-ID-only before the identity
+   *  redesign). Falls back to the submitted registration name / account id for manual entrants. */
   displayName: string
+  preferredName: string
   cueverseId: string | null
-  discord: string | null // public by community norm
+  discord: string | null // public via the Discord contact affordance only
+  slug: string | null // public profile slug when the entrant resolves to a canonical profile
 }
 
 type ResolvableRegistration = {
@@ -43,13 +47,19 @@ export async function resolveEntrants(
   const out = new Map<number, EntrantIdentity>()
   for (const r of regs) {
     const p = r.playerId ? pmap.get(r.playerId) : null
-    // Default competitive identity = the CURRENT CueVerse ID (resolved live from the
-    // linked profile, so an ID change propagates everywhere). A player's real name
-    // (profile.primaryName) is NEVER shown in competitions — only on their profile page.
+    // CURRENT public identity = Preferred Name (CueVerse ID), resolved live from the linked
+    // profile so a rename/ID change propagates everywhere. Manual (account-less) entrants keep
+    // the identity they submitted until a profile is linked. Never any private field.
+    const preferredName = p?.primaryName ?? r.displayName ?? r.cueverseId ?? r.username
+    const cueverseId = p?.cueverseId ?? r.cueverseId ?? null
     out.set(r.id, {
-      displayName: p?.cueverseId ?? r.cueverseId ?? r.displayName ?? r.username,
-      cueverseId: p?.cueverseId ?? r.cueverseId ?? null,
+      displayName: preferredName,
+      preferredName,
+      cueverseId,
       discord: p?.discord ?? r.discord ?? null,
+      // The public-profile slug is the linked profile's CueVerse ID (URL-safe, resolved by the
+      // live /players/[slug] route). Null for account-less manual entrants (no profile page).
+      slug: p?.cueverseId ?? null,
     })
   }
   return out

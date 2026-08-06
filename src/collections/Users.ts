@@ -80,6 +80,18 @@ export const Users: CollectionConfig = {
         if (doc && Array.isArray((doc as any).roles) && (doc as any).roles.includes('owner'))
           throw new Error('The Owner account cannot be deleted. Transfer ownership first.')
       },
+      // BACKSTOP: a hard delete must never leave the account entered in a live competition.
+      // The shared registration-cleanup withdraws only ACTIVE participation in non-completed
+      // competitions (completed history is preserved). Runs after the owner guard above.
+      async ({ req, id }) => {
+        const uid = Number(id)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const actorId = Number((req?.user as any)?.id) || uid
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const actorName = (req?.user as any)?.username ?? 'system'
+        const { cleanupActiveRegistrations } = await import('@/lib/competition/cleanup')
+        await cleanupActiveRegistrations({ userId: actorId, username: actorName }, uid, 'Account deleted (Payload delete backstop)')
+      },
     ],
   },
   fields: [

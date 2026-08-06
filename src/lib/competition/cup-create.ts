@@ -12,7 +12,6 @@ export interface CreateCupConfig {
   teamSize?: number | null // members per team when TEAM (2 for 2v2)
   tournamentFormat: TournamentFormat
   raceLength: number // games required to win a match (any positive integer)
-  entryMode: 'PUBLIC' | 'MANUAL'
   camRequirement?: CamRequirement
   fieldSize?: number | null // informational target field/bracket size
   initialState?: 'DRAFT' | 'UPCOMING'
@@ -91,8 +90,11 @@ export async function createCup(
           // window and its champion title is credited once results are recorded/completed.
           cupYear: new Date().getFullYear(),
           cupDate: new Date().toISOString().slice(0, 10),
-          seasonStatus: cfg.initialState === 'UPCOMING' ? 'UPCOMING' : 'UPCOMING',
-          registrationStatus: cfg.entryMode === 'PUBLIC' ? 'OPEN' : 'NOT_OPEN',
+          seasonStatus: 'UPCOMING',
+          // Lifecycle: a new cup starts in DRAFT — nothing publicly joinable. An Admin opens
+          // registration explicitly (see cup-lifecycle). registrationStatus stays in sync.
+          cupState: 'DRAFT',
+          registrationStatus: 'NOT_OPEN',
           playoffsStatus: 'PENDING',
           importedFromFixture: false,
           locked: false,
@@ -101,7 +103,7 @@ export async function createCup(
               ? 'Single-elimination bracket'
               : cfg.tournamentFormat.replace('_', ' ').toLowerCase(),
           eligibilitySummary: [
-            cfg.entryMode === 'PUBLIC' ? 'Open registration.' : 'Entrants added by administrators.',
+            'Open to all registered accounts — sign up yourself, or be added by an admin.',
             camLine(cfg.camRequirement),
           ].join(' '),
           ...(cfg.fieldSize ? { entrantsCount: null } : {}),

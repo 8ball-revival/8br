@@ -4,7 +4,6 @@ import React from 'react'
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import { PreviewNotice } from '@/components/preview-notice'
 import { SITE_NAME, SITE_TITLE_DEFAULT, SITE_DESCRIPTION, SITE_URL } from '@/lib/site'
 import './globals.css'
 
@@ -72,7 +71,6 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
-        <PreviewNotice />
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />

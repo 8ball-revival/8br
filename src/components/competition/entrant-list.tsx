@@ -3,22 +3,32 @@
 import { useMemo, useState } from 'react'
 import { Users } from 'lucide-react'
 
+import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
+
+export interface EntrantListItem {
+  name: string
+  cueverseId?: string | null
+  slug?: string | null
+}
+
 /**
- * Public Season entrant list — CueVerse IDs only (never real names, email or Discord).
- * Used on the Groups page: shown expanded before groups are drawn, and inside a
- * collapsible section afterward so the group tables stay the focus.
+ * Public entrant list — renders each entrant as the shared `Preferred Name (CueVerse ID)`
+ * public identity (linking to the profile when available). Never real email or raw Discord.
+ * Used on Groups and Cup pages.
  */
 export function EntrantList({
   entrants,
   collapsible = false,
+  label = 'Season 2 entrants',
 }: {
-  entrants: { name: string }[]
+  entrants: EntrantListItem[]
   collapsible?: boolean
+  label?: string
 }) {
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return s ? entrants.filter((e) => e.name.toLowerCase().includes(s)) : entrants
+    return s ? entrants.filter((e) => `${e.name} ${e.cueverseId ?? ''}`.toLowerCase().includes(s)) : entrants
   }, [q, entrants])
 
   const body = (
@@ -40,7 +50,7 @@ export function EntrantList({
         <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((e, i) => (
             <li key={`${e.name}-${i}`} className="truncate rounded-md border border-border bg-card/40 px-2.5 py-1.5 text-sm">
-              {e.name}
+              <PublicPlayerIdentity preferredName={e.name} cueverseId={e.cueverseId} slug={e.slug} muted />
             </li>
           ))}
         </ul>
@@ -52,7 +62,7 @@ export function EntrantList({
     return (
       <details className="mb-8 rounded-lg border border-border bg-card/30 p-4">
         <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-          <Users className="size-4 text-muted-foreground" /> Season 2 entrants ({entrants.length})
+          <Users className="size-4 text-muted-foreground" /> {label} ({entrants.length})
         </summary>
         <div className="mt-4">{body}</div>
       </details>
@@ -62,7 +72,7 @@ export function EntrantList({
   return (
     <section className="mb-8 rounded-lg border border-border bg-card/30 p-4">
       <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
-        <Users className="size-5 text-gold" /> Season 2 entrants
+        <Users className="size-5 text-gold" /> {label}
       </h2>
       {body}
     </section>

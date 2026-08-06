@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Trophy } from 'lucide-react'
 
@@ -12,7 +13,29 @@ import { ConvertLegacyBanner } from '@/components/cups/convert-legacy-banner'
 import { getCup, getCups, cupBracket } from '@/lib/cups/service'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { getCupWorkspace, type CupWorkspaceData } from '@/lib/cups/live'
+import { CUP_STATE_LABEL, getCupHistory, type CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
+import { CupHistory } from '@/components/cups/cup-history'
+import { CupWinnerSummary, type PodiumIdentity } from '@/components/cups/cup-winner-summary'
+import { CupReportLoss } from '@/components/cups/cup-report-loss'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
+import { getCurrentUser } from '@/lib/account/auth'
+import { getProfileByUserId } from '@/lib/players/service'
+import { getUserRegistration } from '@/lib/competition/queries'
+import { profileCompleteness } from '@/lib/competition/eligibility'
+import { EntrantList } from '@/components/competition/entrant-list'
+import { CupJoinPanel } from '@/components/cups/cup-join-panel'
+import type { SignupIdentity } from '@/components/account/register-form'
+
+/** The signed-in viewer's context for the member Join / entrant panel on a live cup. */
+interface MemberCtx {
+  cupNumber: number
+  isLoggedIn: boolean
+  myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
+  identity: SignupIdentity | null
+  missing: string[]
+  /** The viewer's registration id in this cup (to locate their own active match for self-report). */
+  myRegistrationId: number | null
+}
 
 // Live cups may be created after the build snapshot, so render unknown numbers on demand
 // (the page 404s below if neither the snapshot nor the DB has the cup).
@@ -57,31 +80,182 @@ function CupHeader({
   )
 }
 
-/** Public (member) view of a LIVE cup: published bracket + team rosters. */
-function PublicLiveCup({ data }: { data: CupWorkspaceData }) {
+/** Resolve a registrationId to its current public identity from the cup's entrant list. */
+function entrantIdentity(data: CupWorkspaceData, regId: number | null, fallbackName: string | null): PodiumIdentity | null {
+  if (regId == null && !fallbackName) return null
+  const e = regId != null ? data.entrants.find((x) => x.registrationId === regId) : undefined
+  return {
+    name: e?.name ?? fallbackName ?? 'Unknown',
+    cueverseId: e?.handle ?? null,
+    slug: e?.slug ?? null,
+  }
+}
+
+/**
+ * Champion / runner-up / final score for a COMPLETED cup, resolved from the stored playoff rows
+ * (registration ids → current identities). Returns null if the Final has no confirmed winner, and
+ * never fabricates a runner-up or score that isn't recorded.
+ */
+function resolvePodium(data: CupWorkspaceData): { champion: PodiumIdentity; runnerUp: PodiumIdentity | null; finalScore: string | null } | null {
+  if (data.matches.length === 0) return null
+  const maxRound = Math.max(...data.matches.map((m) => m.round))
+  const finals = data.matches.filter((m) => m.round === maxRound).sort((a, b) => a.slot - b.slot)
+  const finalMatch = finals.find((m) => m.winnerRegistrationId != null) ?? null
+  if (!finalMatch || finalMatch.winnerRegistrationId == null) return null
+  const champIsHome = finalMatch.winnerRegistrationId === finalMatch.homeRegistrationId
+  const champId = champIsHome ? finalMatch.homeRegistrationId : finalMatch.awayRegistrationId
+  const runnerId = champIsHome ? finalMatch.awayRegistrationId : finalMatch.homeRegistrationId
+  const champion = entrantIdentity(data, champId, champIsHome ? finalMatch.homeUsername : finalMatch.awayUsername)
+  if (!champion) return null
+  const runnerUp = entrantIdentity(data, runnerId, champIsHome ? finalMatch.awayUsername : finalMatch.homeUsername)
+  const champGames = champIsHome ? finalMatch.homeGames : finalMatch.awayGames
+  const loseGames = champIsHome ? finalMatch.awayGames : finalMatch.homeGames
+  const finalScore = champGames != null && loseGames != null ? `${champGames}–${loseGames}` : null
+  return { champion, runnerUp, finalScore }
+}
+
+/** The viewer's own unresolved, playable (non-bye) match in an in-progress cup, if any. */
+function findMyActiveMatch(data: CupWorkspaceData, myRegId: number | null): { matchId: number; opponentName: string; matchLabel: string } | null {
+  if (myRegId == null) return null
+  const m = data.matches.find(
+    (x) => x.winnerRegistrationId == null && x.homeRegistrationId != null && x.awayRegistrationId != null && (x.homeRegistrationId === myRegId || x.awayRegistrationId === myRegId),
+  )
+  if (!m) return null
+  const iAmHome = m.homeRegistrationId === myRegId
+  const oppId = iAmHome ? m.awayRegistrationId : m.homeRegistrationId
+  const opp = entrantIdentity(data, oppId, iAmHome ? m.awayUsername : m.homeUsername)
+  return { matchId: m.id, opponentName: opp?.name ?? 'your opponent', matchLabel: m.label ?? `Round ${m.round}` }
+}
+
+/**
+ * Public (member) view of a LIVE cup — driven entirely by the explicit lifecycle state:
+ *  DRAFT               → not publicly joinable
+ *  REGISTRATION_OPEN   → entrant list + join/withdraw controls
+ *  REGISTRATION_CLOSED → entrant list + "Registration Closed"; join/withdraw hidden
+ *  BRACKET_GENERATED   → bracket is the primary focus + "Awaiting Tournament Start"; entrants/join/report hidden
+ *  IN_PROGRESS         → bracket primary + player self-report control; entrants/join hidden
+ *  COMPLETED           → winner summary + read-only bracket; CANCELLED → cancelled notice
+ */
+function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; member: MemberCtx; history: CupHistoryEvent[] }) {
+  const state = data.season.cupState
+  const activeEntrants = data.entrants.filter((e) => !e.withdrawn)
+  const inRegistration = state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_CLOSED'
+  const bracketPrimary = state === 'BRACKET_GENERATED' || state === 'IN_PROGRESS' || state === 'COMPLETED'
+  const podium = state === 'COMPLETED' ? resolvePodium(data) : null
+  const myMatch = state === 'IN_PROGRESS' ? findMyActiveMatch(data, member.myRegistrationId) : null
+  const completedAt = history.find((e) => e.kind === 'tournament_completed')?.at ?? null
+  const completedDate = completedAt ? completedAt.slice(0, 10) : null
+
+  if (state === 'DRAFT') {
+    return (
+      <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
+        This cup isn&apos;t open for registration yet. Check back soon.
+      </p>
+    )
+  }
+  if (state === 'CANCELLED') {
+    return (
+      <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
+        This cup was cancelled.
+      </p>
+    )
+  }
+
   return (
     <>
-      {data.isTeam && data.teams.filter((t) => !t.withdrawn).length > 0 && (
+      {/* Completed: prominent winner summary above the read-only bracket. */}
+      {podium && (
+        <CupWinnerSummary
+          cupName={data.season.name}
+          champion={podium.champion}
+          runnerUp={podium.runnerUp}
+          finalScore={podium.finalScore}
+          completedAt={completedDate}
+        />
+      )}
+
+      {/* Bracket-generated: the bracket is visible but the tournament has NOT begun. */}
+      {state === 'BRACKET_GENERATED' && (
+        <div className="mt-6 rounded-lg border border-sky-500/30 bg-sky-500/[0.06] px-4 py-3">
+          <Badge variant="muted">Awaiting Tournament Start</Badge>
+          <span className="ml-2 text-sm text-muted-foreground">
+            The bracket has been generated and is under review. The tournament hasn&apos;t started yet — results can&apos;t be reported until it begins.
+          </span>
+        </div>
+      )}
+
+      {/* In progress: the viewer's own match self-report control (loss only). */}
+      {myMatch && (
+        <div className="mt-6">
+          <CupReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.season.raceLength} />
+        </div>
+      )}
+
+      {/* Bracket is the primary focus once generated, underway, or complete. */}
+      {bracketPrimary && (
         <section className="mt-8">
-          <h2 className="eyebrow mb-4 text-foreground">Teams</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.teams.filter((t) => !t.withdrawn).map((t) => (
-              <div key={t.id} className="rounded-lg border border-border bg-card/40 p-3">
-                <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{t.members.map((m) => m.name).join(' + ') || 'Roster TBD'}</p>
-              </div>
-            ))}
-          </div>
+          <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
+          {data.bracketRounds.length > 0 ? (
+            <Bracket rounds={data.bracketRounds} />
+          ) : (
+            <p className="text-sm text-muted-foreground">The bracket is being prepared.</p>
+          )}
         </section>
       )}
-      <section className="mt-8">
-        <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
-        {data.hasPublishedBracket && data.bracketRounds.length > 0 ? (
-          <Bracket rounds={data.bracketRounds} />
-        ) : (
-          <p className="text-sm text-muted-foreground">The bracket has not been published yet.</p>
-        )}
-      </section>
+
+      {/* Registration phases: entrant list + (open only) join/withdraw. */}
+      {inRegistration && (
+        <>
+          {data.isTeam && data.teams.filter((t) => !t.withdrawn).length > 0 && (
+            <section className="mt-8">
+              <h2 className="eyebrow mb-4 text-foreground">Teams</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {data.teams.filter((t) => !t.withdrawn).map((t) => (
+                  <div key={t.id} className="rounded-lg border border-border bg-card/40 p-3">
+                    <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{t.members.map((m) => m.name).join(' + ') || 'Roster TBD'}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {!data.isTeam && (
+            <div className="mt-8">
+              {state === 'REGISTRATION_CLOSED' && (
+                <div className="mb-3">
+                  <Badge variant="muted">Registration Closed</Badge>
+                  <span className="ml-2 text-xs text-muted-foreground">The field is set — waiting for the bracket to be generated.</span>
+                </div>
+              )}
+              {activeEntrants.length > 0 ? (
+                <EntrantList entrants={activeEntrants.map((e) => ({ name: e.name, cueverseId: e.handle, slug: e.slug }))} label="Entrants" />
+              ) : (
+                <p className="text-sm text-muted-foreground">No entrants yet{state === 'REGISTRATION_OPEN' ? ' — be the first to join.' : '.'}</p>
+              )}
+            </div>
+          )}
+
+          {!data.isTeam && (
+            <CupJoinPanel
+              cupNumber={member.cupNumber}
+              isLoggedIn={member.isLoggedIn}
+              registrationOpen={state === 'REGISTRATION_OPEN'}
+              myStatus={member.myStatus}
+              identity={member.identity}
+              missing={member.missing}
+            />
+          )}
+        </>
+      )}
+
+      {/* Chronological tournament history (public, non-sensitive events only). */}
+      {history.length > 0 && (
+        <section className="mt-10">
+          <h2 className="eyebrow mb-4 text-foreground">History</h2>
+          <CupHistory events={history} />
+        </section>
+      )}
     </>
   )
 }
@@ -109,16 +283,39 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
 
   // ---- LIVE editable cup: the Cup page IS the management interface ----
   if (ws && ws.isEditable) {
-    const live = ws.season.cupStatus !== 'completed'
-    const statusLabel = ws.season.seasonStatus === 'COMPLETED' ? 'Completed' : live ? 'Live' : 'Completed'
+    // Header status reflects the explicit lifecycle state; "live" (red) only while active.
+    const statusLabel = CUP_STATE_LABEL[ws.season.cupState as keyof typeof CUP_STATE_LABEL] ?? ws.season.cupState
+    const live = ws.season.cupState !== 'COMPLETED' && ws.season.cupState !== 'CANCELLED' && ws.season.cupState !== 'DRAFT'
+
+    // Member view context (only needed when the viewer is not managing): are they signed in,
+    // already entered, and is their identity linked to a profile.
+    let publicView: ReactNode = null
+    if (!canManage) {
+      const user = await getCurrentUser()
+      const profile = user ? await getProfileByUserId(Number(user.id)) : null
+      const myReg = user ? await getUserRegistration(ws.season.id, Number(user.id)) : null
+      const member: MemberCtx = {
+        cupNumber: num,
+        isLoggedIn: !!user,
+        myStatus: (myReg?.status as MemberCtx['myStatus']) ?? null,
+        identity: profile
+          ? { preferredName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone }
+          : null,
+        missing: profile ? profileCompleteness(profile).missing : ['your player profile'],
+        myRegistrationId: myReg?.id ?? null,
+      }
+      const history = await getCupHistory(ws.season.id, { admin: false })
+      publicView = <PublicLiveCup data={ws} member={member} history={history} />
+    }
+
     return (
       <Container className="py-10">
         {backLink}
         <CupHeader name={ws.season.name} number={ws.season.cupNumber} badge={ws.season.formatBadge} statusLabel={statusLabel} live={live} />
         {canManage ? (
-          <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} />
+          <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.season.id, { admin: true })} />
         ) : (
-          <PublicLiveCup data={ws} />
+          publicView
         )}
       </Container>
     )
@@ -223,7 +420,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
         <ConvertLegacyBanner seasonId={ws.season.id} />
       )}
       {canManage && ws && !ws.isLegacyConvertible && (
-        <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} />
+        <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.season.id, { admin: true })} />
       )}
     </Container>
   )

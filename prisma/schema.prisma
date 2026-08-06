@@ -1111,6 +1111,20 @@ enum CompetitionKind {
   CUP
 }
 
+/// Explicit Cup lifecycle state (source of truth — behavior is NEVER inferred from whether a
+/// bracket exists). Valid transitions are enforced by the cup-lifecycle service:
+///   DRAFT → REGISTRATION_OPEN → REGISTRATION_CLOSED → IN_PROGRESS → COMPLETED
+///   (any active state) → CANCELLED. Skips/backwards moves require an audited recovery action.
+enum CupLifecycleState {
+  DRAFT
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  BRACKET_GENERATED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 /// Participant unit for a competition.
 enum ParticipantFormat {
   INDIVIDUAL
@@ -1164,6 +1178,10 @@ model Season {
   locked               Boolean            @default(false) // archived historical cup: editing requires Owner unlock
   unlockedAt           DateTime?
   convertedAt          DateTime? // set when a legacy (old-format) cup was migrated into the editable workspace
+  // EXPLICIT Cup lifecycle state (cups only; null for seasons + not-yet-backfilled rows, which
+  // the lifecycle service derives on read). Source of truth for all cup behavior + gating.
+  cupState             CupLifecycleState?
+  ladderAppliedAt      DateTime? // set once when COMPLETED applies ladder/ranking results (idempotency guard)
   // Faithful copies of the cup fixture fields (lossless migration; exact round-trip).
   cupFormatBadge       String? // exact `format` string from the fixture ("5v5","Prize","D/E",…)
   cupYear              Int?
@@ -1516,4 +1534,103 @@ model AuditLog {
   @@index([createdAt])
   @@index([entity, entityId])
   @@map("comp_audit_log")
+}
+
+// ============================================================================
+// MEMBER MODERATION, PENALTIES & STAFF DESIGNATION
+// ----------------------------------------------------------------------------
+// Account-level moderation for the LIVE platform. All keyed by the Payload user id
+// (app-level reference only — NO cross-ORM foreign key, same pattern as AccountClaim).
+// Additive and self-contained: these tables never alter the historical archive or the
+// competition tables, and moderation NEVER deletes Player/rankings/match/championship
+// history — it withdraws active participation and records an immutable trail.
+// ============================================================================
+
+/// Live account status. ACTIVE is the normal state; the others are set by moderation.
+/// DELETED is a soft delete (the Payload user may be disabled/anonymised) — the canonical
+/// Player and all history are preserved and merely unlinked.
+enum MemberStatus {
+  ACTIVE
+  TIMED_OUT
+  BANNED
+  DELETED
+}
+
+enum PenaltyType {
+  TIMEOUT
+  BAN
+}
+
+/// Moderation status sidecar — exactly one row per Payload user (created lazily the first
+/// time an account is moderated). The single authoritative source for whether an account
+/// may log in / register. `timeoutUntil` drives automatic timeout expiry.
+model MemberModeration {
+  id           Int          @id @default(autoincrement())
+  userId       Int          @unique // Payload user id
+  status       MemberStatus @default(ACTIVE)
+  timeoutUntil DateTime? // set for TIMED_OUT; expiry is evaluated live (status is derived when past)
+  bannedAt     DateTime?
+  deletedAt    DateTime? // soft-delete timestamp
+  anonymizedAt DateTime? // set when the account's private data was anonymised
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([status])
+  @@map("member_moderation")
+}
+
+/// A moderation penalty (timeout or ban). Immutable history: a removal is recorded IN
+/// PLACE (removedBy* / removedReason / removedAt), never by deleting the row.
+model Penalty {
+  id                Int         @id @default(autoincrement())
+  userId            Int // Payload user id the penalty applies to
+  playerId          String? // canonical Player.id when the account is linked
+  type              PenaltyType
+  reason            String
+  startAt           DateTime    @default(now())
+  endAt             DateTime? // timeout expiry; null = indefinite (ban)
+  appliedByUserId   Int
+  appliedByUsername String
+  removedByUserId   Int?
+  removedByUsername String?
+  removedReason     String?
+  removedAt         DateTime?
+  // Ban only: a hashed/normalised IP identifier — a SECONDARY safeguard, never the sole
+  // basis for enforcement. Null when no trustworthy IP was available.
+  ipHash            String?
+  createdAt         DateTime    @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([userId, removedAt])
+  @@map("member_penalty")
+}
+
+/// A moderation warning — history only, NEVER a penalty (no enforcement effect). Staff-visible.
+model Warning {
+  id            Int      @id @default(autoincrement())
+  userId        Int // Payload user id
+  playerId      String? // canonical Player.id when linked
+  reason        String
+  internalNotes String? // staff-only, never public
+  staffUserId   Int
+  staffUsername String
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("member_warning")
+}
+
+/// Staff designation sidecar. Presently carries only the single Head Administrator flag.
+/// Keyed by the Payload user id. The invariant "exactly one headAdmin whenever any
+/// Administrator exists" is enforced in the staff-roles service, not by the schema.
+model StaffDesignation {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique // Payload user id
+  headAdmin Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([headAdmin])
+  @@map("staff_designation")
 }

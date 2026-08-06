@@ -16,14 +16,15 @@ export const ADMIN: Role = 'admin'
 export const EDITOR: Role = 'editor'
 export const MEMBER: Role = 'member'
 
-/** Roles that may reach the staff admin console (capabilities restrict further). */
-export const STAFF_ROLES: Role[] = [OWNER, ADMIN, EDITOR]
+/** Roles that may reach the staff admin console (capabilities restrict further).
+ *  The active model is OWNER / ADMIN / MEMBER — EDITOR is retired (normalized to MEMBER). */
+export const STAFF_ROLES: Role[] = [OWNER, ADMIN]
 
 /**
  * Options for the Payload `roles` select field. The active role model is
- * OWNER / ADMIN / MEMBER. EDITOR is retired: it is NOT offered as a selectable
- * option, but is still normalized/honored if it survives on a legacy account
- * (treated as ADMIN-minus — staff, edit_results only) until migrated.
+ * OWNER / ADMIN / MEMBER. EDITOR is retired and is NOT selectable; any legacy
+ * `editor` (or `senior_editor`) value is normalized to MEMBER (see `normalize`) so
+ * a legacy account safely loses staff access rather than being auto-promoted.
  */
 export const ROLE_OPTIONS: { label: string; value: Role }[] = [
   { label: 'Owner', value: OWNER },
@@ -31,9 +32,12 @@ export const ROLE_OPTIONS: { label: string; value: Role }[] = [
   { label: 'Member', value: MEMBER },
 ]
 
-/** Normalize legacy role values (none expected on a fresh DB, but safe). */
+/** Normalize legacy role values: retired EDITOR tiers collapse to MEMBER (no auto-promotion
+ *  to staff), per the confirmed migration decision. Safe on a fresh DB (no such rows). */
 function normalize(roles: string[] | undefined | null): string[] {
-  return (Array.isArray(roles) ? roles : []).map((r) => (r === 'senior_editor' ? ADMIN : r))
+  return (Array.isArray(roles) ? roles : []).map((r) =>
+    r === 'senior_editor' || r === 'editor' ? MEMBER : r,
+  )
 }
 
 export function hasRole(roles: string[] | null | undefined, role: Role): boolean {
@@ -57,14 +61,22 @@ export function isStaff(roles: string[] | null | undefined): boolean {
  * requires exactly one. This maps the role matrix to concrete permissions.
  */
 export type Capability =
-  | 'manage_staff' // create/edit staff accounts, grant/remove roles — OWNER only
+  | 'manage_staff' // create/edit staff accounts, grant/remove roles — OWNER only (Payload fallback)
   | 'delete_competition' // permanent deletion of a Season/Cup — OWNER only
   | 'manage_competitions' // create/edit/archive/restore Seasons & Cups, groups, brackets, publish — ADMIN+
   | 'manage_registrations' // approve/reject/edit registrations — ADMIN+
   | 'manage_players' // create/edit/merge/deactivate players — ADMIN+
-  | 'edit_results' // enter/correct scores, schedules, verify match details — EDITOR+
+  | 'edit_results' // enter/correct scores, schedules, verify match details — ADMIN+
   | 'view_audit' // view the audit log — ADMIN+
+  | 'moderate_members' // issue/remove Warnings, Timeouts, Bans — ADMIN+
+  | 'delete_account' // soft-delete (status DELETED) + restore an account — OWNER only
+  | 'override_eligibility' // override any competition eligibility decision — OWNER only
+  | 'purge_account' // permanent (hard) account deletion — OWNER only
+  | 'transfer_ownership' // transfer the single Owner designation — OWNER only
 
+// NOTE: `manage_admins` (create/promote/demote/remove Administrators + set Head Admin) is
+// NOT a pure-role capability — it also requires the Head Administrator DESIGNATION (or Owner),
+// which is a StaffDesignation sidecar, not a role. It is resolved on the actor in staff-auth.ts.
 const CAPABILITY_RULES: Record<Capability, (roles: string[]) => boolean> = {
   manage_staff: isOwner,
   delete_competition: isOwner,
@@ -73,6 +85,11 @@ const CAPABILITY_RULES: Record<Capability, (roles: string[]) => boolean> = {
   manage_players: isAdmin,
   edit_results: isStaff,
   view_audit: isAdmin,
+  moderate_members: isAdmin,
+  delete_account: isOwner,
+  override_eligibility: isOwner,
+  purge_account: isOwner,
+  transfer_ownership: isOwner,
 }
 
 /** True if the given roles grant the capability. */
@@ -86,6 +103,9 @@ export function can(roles: string[] | null | undefined, cap: Capability): boolea
  * privilege escalation server-side.
  */
 export function assignableRoles(actorRoles: string[] | null | undefined): Role[] {
-  if (isOwner(actorRoles)) return [OWNER, ADMIN, EDITOR, MEMBER]
-  return [] // only Owner manages staff roles
+  // Payload-layer guard (role field access). The Owner may set any role via the CMS
+  // fallback. In-app Admin/Head-Admin management (which also depends on the Head Admin
+  // DESIGNATION) is enforced in the staff-roles service, not here.
+  if (isOwner(actorRoles)) return [OWNER, ADMIN, MEMBER]
+  return []
 }

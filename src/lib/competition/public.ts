@@ -13,8 +13,9 @@ export async function getPublicSeason(): Promise<PublicSeason | null> {
 }
 
 export interface PublicRegistrant {
-  displayName: string
+  displayName: string // Preferred Name (public community name)
   cueverseId: string | null
+  slug: string | null // linked profile's CueVerse ID → /players/[slug]; null when unlinked
   registeredAt: string
 }
 
@@ -44,10 +45,13 @@ export async function getPublicRegistrations(): Promise<PublicRegistrant[]> {
   const pmap = new Map(profiles.map((p) => [p.id, p]))
   return regs.map((r) => {
     const p = r.playerId ? pmap.get(r.playerId) : null
-    // Public identity defaults to the CueVerse ID (never the profile's real name).
+    // Public identity = Preferred Name (CueVerse ID), resolved live from the linked profile.
+    // Manual/unlinked entrants keep the identity they submitted. Never any private field.
+    const cueverseId = p?.cueverseId ?? r.cueverseId ?? null
     return {
-      displayName: p?.cueverseId ?? r.cueverseId ?? r.displayName ?? r.username,
-      cueverseId: p?.cueverseId ?? r.cueverseId ?? null,
+      displayName: p?.primaryName ?? r.displayName ?? r.cueverseId ?? r.username,
+      cueverseId,
+      slug: p?.cueverseId ?? null,
       registeredAt: r.createdAt.toISOString(),
     }
   })
@@ -58,10 +62,13 @@ export interface PublicGroupPlayer {
   seed: number
   displayName: string
   cueverseId: string | null
+  slug: string | null
 }
 export interface PublicGroupStanding {
   registrationId: number
   displayName: string
+  cueverseId: string | null
+  slug: string | null
   rank: number
   played: number
   wins: number
@@ -129,10 +136,13 @@ export async function getPublicGroups(seasonId: number): Promise<PublicGroupView
       seed: p.seed,
       displayName: nameOf(p.registrationId, p.registration.username),
       cueverseId: identities.get(p.registrationId)?.cueverseId ?? null,
+      slug: identities.get(p.registrationId)?.slug ?? null,
     })),
     standings: g.standings.map((s) => ({
       registrationId: s.registrationId,
       displayName: nameOf(s.registrationId, s.username),
+      cueverseId: identities.get(s.registrationId)?.cueverseId ?? null,
+      slug: identities.get(s.registrationId)?.slug ?? null,
       rank: s.rank,
       played: s.played,
       wins: s.wins,

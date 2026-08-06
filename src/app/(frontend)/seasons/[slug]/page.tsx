@@ -89,7 +89,6 @@ export default async function SeasonDetailPage({ params }: Params) {
         description={
           season.originalName ? `Originally ${season.originalName}.` : `${season.year} season.`
         }
-        sample={season.dataState === 'sample'}
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={season.status} />

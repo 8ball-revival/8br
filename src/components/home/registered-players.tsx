@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { Panel, PlayerAvatar } from '@/components/home/primitives'
+import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
 import type { PublicRegistrant } from '@/lib/competition/public'
 
 /**
@@ -29,11 +30,8 @@ export function RegisteredPlayers({ players }: { players: PublicRegistrant[] }) 
           {players.map((p, i) => (
             <li key={`${p.displayName}-${i}`} className="flex items-center gap-2.5 px-4 py-2">
               <PlayerAvatar name={p.displayName} size="sm" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{p.displayName}</p>
-                {p.cueverseId && p.cueverseId !== p.displayName && (
-                  <p className="truncate text-[0.7rem] text-muted-foreground">{p.cueverseId}</p>
-                )}
+              <div className="min-w-0 flex-1 truncate text-sm">
+                <PublicPlayerIdentity preferredName={p.displayName} cueverseId={p.cueverseId} slug={p.slug} muted />
               </div>
             </li>
           ))}

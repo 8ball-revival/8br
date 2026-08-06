@@ -13,6 +13,7 @@ import {
   getRankingYears,
 } from '@/lib/stats/rankings'
 import { getCurrentScoreRankings } from '@/lib/stats/current-score'
+import { applyLinkedIdentities } from '@/lib/stats/linked-identity'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
 
 export const metadata: Metadata = pageMetadata({
@@ -71,7 +72,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: SP 
         and opponent quality. Click any player to see exactly where every point came from.
       </p>
     )
-    table = <CurrentRankingsTable rows={data.rows} />
+    table = <CurrentRankingsTable rows={await applyLinkedIdentities(data.rows)} />
   } else if (view === 'all-time') {
     const data = getAllTimeRankings()
     intro = (
@@ -84,7 +85,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: SP 
     )
     table = (
       <div className="space-y-4">
-        <RankingsTable rows={data.rows} allTime />
+        <RankingsTable rows={await applyLinkedIdentities(data.rows)} allTime />
         {data.unranked && data.unranked.length > 0 && (
           <p className="text-xs text-muted-foreground">
             {data.unranked.length} further players have competed but never reached an established rating
@@ -106,7 +107,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: SP 
         {year != null && <YearSelector years={years} active={year} />}
       </div>
     )
-    table = <RankingsTable rows={data.rows} />
+    table = <RankingsTable rows={await applyLinkedIdentities(data.rows)} />
   }
 
   return (

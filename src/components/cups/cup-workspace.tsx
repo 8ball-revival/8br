@@ -2,16 +2,19 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trophy, Users, GitBranch, ListChecks, Settings2, Plus, X, ChevronUp, ChevronDown, GripVertical, RotateCcw } from 'lucide-react'
+import { Trophy, Users, GitBranch, ListChecks, Settings2, History, Plus, X, ChevronUp, ChevronDown, GripVertical, RotateCcw } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Bracket } from '@/components/cups/bracket'
+import { CupLifecycleControls } from '@/components/cups/cup-lifecycle-controls'
+import { CupHistory } from '@/components/cups/cup-history'
 import type { CupWorkspaceData, PlayoffRow } from '@/lib/cups/live'
+import type { CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
 import * as A from '@/lib/competition/cup-actions'
 
-type Tab = 'overview' | 'roster' | 'bracket' | 'results' | 'settings'
+type Tab = 'overview' | 'roster' | 'bracket' | 'results' | 'history' | 'settings'
 type ActionResp = { ok?: boolean; error?: string; message?: string } | void
 type Run = (fn: () => Promise<ActionResp>) => void
 
@@ -20,11 +23,14 @@ export function CupWorkspace({
   canManage,
   canEditResults,
   isOwner,
+  history = [],
 }: {
   data: CupWorkspaceData
   canManage: boolean
   canEditResults: boolean
   isOwner: boolean
+  /** Admin (fuller) cup history — actor + reason included. Loaded server-side. */
+  history?: CupHistoryEvent[]
 }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
@@ -49,6 +55,7 @@ export function CupWorkspace({
     { id: 'roster', label: rosterLabel, icon: Users },
     { id: 'bracket', label: 'Bracket', icon: GitBranch },
     { id: 'results', label: 'Results', icon: ListChecks },
+    { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ]
 
@@ -65,6 +72,19 @@ export function CupWorkspace({
         {data.season.locked && <Badge variant="destructive">Locked</Badge>}
         {pending && <span className="ml-auto text-xs text-muted-foreground">Working…</span>}
       </div>
+
+      {/* Lifecycle controls (state machine — server-enforced + audited). */}
+      {canManage && !data.isHistorical && (
+        <div className="px-4 pt-4">
+          <CupLifecycleControls
+            seasonId={data.season.id}
+            state={data.season.cupState as 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'}
+            isOwner={isOwner}
+            bracketStale={data.bracketStale}
+            onNavigate={(t) => setTab(t)}
+          />
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto border-b border-border px-2 py-1.5">
@@ -93,6 +113,12 @@ export function CupWorkspace({
         {tab === 'roster' && (data.isTeam ? <TeamsTab data={data} run={run} disabled={!canManage || data.isHistorical} /> : <EntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />)}
         {tab === 'bracket' && <BracketTab data={data} run={run} disabled={!canManage || data.isHistorical} />}
         {tab === 'results' && <ResultsTab data={data} run={run} disabled={!canEditResults || data.isHistorical} />}
+        {tab === 'history' && (
+          <div>
+            <p className="eyebrow mb-3 text-muted-foreground">Full audit history (admin) — actor and reason included.</p>
+            <CupHistory events={history} admin />
+          </div>
+        )}
         {tab === 'settings' && <SettingsTab data={data} run={run} canManage={canManage} isOwner={isOwner} />}
       </div>
     </div>
@@ -130,60 +156,81 @@ function Overview({ data }: { data: CupWorkspaceData }) {
 
 // --------------------------------------------------------------------------- Entrants (individual)
 
-function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
+/**
+ * "Add Player" — searchable dropdown of eligible REGISTERED players (by Preferred Name / CueVerse ID
+ * / User ID / alias). Selecting one adds it to the cup by its permanent player id. There is no
+ * free-text option: an entrant can only be a real registered account. Already-entered, inactive,
+ * deleted and banned profiles are excluded server-side. An empty query lists eligible players so the
+ * control is browsable.
+ */
+function AddPlayer({ seasonId, run }: { seasonId: number; run: Run }) {
   const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
   const [candidates, setCandidates] = useState<A.EntrantCandidate[]>([])
-  const [manual, setManual] = useState('')
   const [searching, startSearch] = useTransition()
-  const seasonId = data.season.id
 
-  const search = (value: string) => {
+  const load = (value: string) => {
     setQ(value)
-    if (value.trim().length < 2) return setCandidates([])
     startSearch(async () => setCandidates(await A.searchCupPlayersAction(seasonId, value.trim())))
   }
 
+  // Open the dropdown and (re)load the list when there's nothing to show. Bound to BOTH focus and
+  // click: after selecting a player the input keeps focus (the option suppresses blur), so a plain
+  // focus handler wouldn't fire on the next click — click re-opens it without needing to click away.
+  const openList = () => { setOpen(true); if (candidates.length === 0) load('') }
+
+  return (
+    <div className="max-w-md">
+      <label className="eyebrow text-muted-foreground">Add Player</label>
+      <div className="relative mt-1">
+        <input
+          value={q}
+          onChange={(e) => load(e.target.value)}
+          onFocus={openList}
+          onClick={openList}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Search registered players by name, CueVerse ID, or User ID…"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          aria-label="Search registered players"
+        />
+        {open && (
+          <ul className="absolute z-10 mt-1 max-h-64 w-full space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1 shadow-lg">
+            {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
+            {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players found. Create the account first, then add them here.</li>}
+            {candidates.map((c) => (
+              <li key={c.playerId}>
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => run(async () => { const r = await A.addCupEntrantsAction(seasonId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
+                  className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                >
+                  <span>{c.primaryName}{c.cueverseId && c.cueverseId.toLowerCase() !== c.primaryName.toLowerCase() && <span className="ml-1 text-xs text-muted-foreground">({c.cueverseId})</span>}</span>
+                  <Plus className="size-3.5 text-muted-foreground" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">Only registered accounts can be added. No account? Create it first, then it appears here.</p>
+    </div>
+  )
+}
+
+function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
+  const seasonId = data.season.id
+  // Entrants can only be added while registration is open or closed (never once the bracket exists).
+  const canAdd = data.season.cupState === 'REGISTRATION_OPEN' || data.season.cupState === 'REGISTRATION_CLOSED'
+
   return (
     <div className="space-y-5">
-      {!disabled && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="eyebrow text-muted-foreground">Add existing player</label>
-            <input
-              value={q}
-              onChange={(e) => search(e.target.value)}
-              placeholder="Search player profiles…"
-              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            />
-            {searching && <p className="mt-1 text-xs text-muted-foreground">Searching…</p>}
-            {candidates.length > 0 && (
-              <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1">
-                {candidates.map((c) => (
-                  <li key={c.playerId}>
-                    <button
-                      disabled={c.alreadyEntered}
-                      onClick={() => run(async () => { const r = await A.addCupEntrantsAction(seasonId, [c.playerId]); setQ(''); setCandidates([]); return r })}
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-40"
-                    >
-                      <span>{c.primaryName}{c.cueverseId && <span className="ml-1 text-xs text-muted-foreground">{c.cueverseId}</span>}</span>
-                      {c.alreadyEntered && <span className="text-xs text-muted-foreground">added</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div>
-            <label className="eyebrow text-muted-foreground">Add temporary entrant</label>
-            <div className="mt-1 flex gap-2">
-              <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Display name" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              <Button onClick={() => run(async () => { const r = await A.addManualEntrantAction(seasonId, manual); setManual(''); return r })} disabled={!manual.trim()}>
-                <Plus className="size-4" /> Add
-              </Button>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">Unlinked name for testing/placeholder — replace with a real profile anytime.</p>
-          </div>
-        </div>
+      {!disabled && canAdd && <AddPlayer seasonId={seasonId} run={run} />}
+      {!disabled && !canAdd && (
+        <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+          {data.season.cupState === 'DRAFT'
+            ? 'Open registration to add players.'
+            : 'Entrants are locked once the bracket is generated. Re-open registration to change the field.'}
+        </p>
       )}
 
       <div>
@@ -281,10 +328,22 @@ function BracketTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run;
     ? data.teams.filter((t) => !t.withdrawn).map((t) => ({ id: t.registrationId, name: t.name }))
     : data.entrants.filter((e) => !e.withdrawn).map((e) => ({ id: e.registrationId, name: e.name }))
   const poolKey = pool.map((p) => p.id).join(',') // reset the seed builder when the pool changes
+  // Bracket generation/regeneration is only possible after registration closes and before the
+  // tournament begins (server-enforced too). Once In Progress/Completed the bracket is fixed.
+  const canBuild = data.season.cupState === 'REGISTRATION_CLOSED' || data.season.cupState === 'BRACKET_GENERATED'
 
   return (
     <div className="space-y-6">
-      {!disabled && <SeedBuilder key={poolKey} data={data} pool={pool} run={run} />}
+      {!disabled && canBuild && <SeedBuilder key={poolKey} data={data} pool={pool} run={run} />}
+      {!disabled && !canBuild && (
+        <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+          {data.season.cupState === 'IN_PROGRESS'
+            ? 'The tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
+            : data.season.cupState === 'COMPLETED'
+              ? 'This cup is completed — the bracket is read-only.'
+              : 'Close registration to generate the bracket.'}
+        </p>
+      )}
       <div>
         <p className="eyebrow mb-3 text-foreground">Bracket preview</p>
         {data.bracketRounds.length > 0 ? (
@@ -483,6 +542,22 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.season.formatBadge} · {(data.season.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
         </dl>
       </section>
+
+      {canManage && !data.isHistorical && data.season.cupState !== 'COMPLETED' && data.season.cupState !== 'CANCELLED' && (
+        <section className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-4">
+          <p className="text-sm font-semibold text-foreground">Cancel tournament</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cancel this cup. It becomes read-only and cannot be resumed except by an Owner recovery. History is preserved (use Delete below to remove it entirely).
+          </p>
+          <Button
+            className="mt-3"
+            variant="destructive"
+            onClick={() => { if (window.confirm('Cancel this cup? This is terminal (Owner recovery only).')) run(() => A.setCupStateAction(data.season.id, 'CANCELLED', 'Cancelled from Settings')) }}
+          >
+            Cancel tournament
+          </Button>
+        </section>
+      )}
 
       {canManage && !data.isHistorical && (
         <section className="rounded-lg border border-destructive/30 bg-destructive/[0.05] p-4">

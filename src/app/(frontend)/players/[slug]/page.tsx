@@ -18,12 +18,16 @@ import { RatingPanel } from '@/components/player/rating-panel'
 import { getPlayerPreview, getPlayerPreviewSlugs } from '@/lib/preview-players'
 import { resolveCanonicalId } from '@/lib/stats/season-stats'
 import { getPlayerRankingProfile } from '@/lib/stats/rankings'
+import { getCareerStatById } from '@/lib/stats/career-stats'
+import { getLivePublicProfile } from '@/lib/players/public-profile'
+import { LivePlayerProfile } from '@/components/player/live-player-profile'
+import { formatIdentityLabel } from '@/lib/identity/public-identity'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
 
 type Params = { params: Promise<{ slug: string }> }
 
-// Only archive-preview slugs are valid → unknown slugs return a real 404.
-export const dynamicParams = false
+// Archive-preview slugs are pre-rendered; LIVE profiles (by CueVerse ID) render on demand.
+export const dynamicParams = true
 
 export function generateStaticParams() {
   return getPlayerPreviewSlugs().map((slug) => ({ slug }))
@@ -31,6 +35,8 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params
+  const live = await getLivePublicProfile(slug)
+  if (live) return { title: formatIdentityLabel(live.preferredName, live.cueverseId), description: `${live.preferredName} — 8 Ball Revival player profile.` }
   const player = getPlayerPreview(slug)
   if (!player) return { title: 'Player not found' }
   return {
@@ -75,6 +81,21 @@ function Section({
 export default async function PlayerDetailPage({ params }: Params) {
   cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before cup-derived career/rankings
   const { slug } = await params
+
+  // LIVE profile (linked account / native profile) takes precedence over the archive preview.
+  const live = await getLivePublicProfile(slug)
+  if (live) {
+    const rating = live.legacyPlayerId ? getPlayerRankingProfile(live.legacyPlayerId) : null
+    const career = live.legacyPlayerId ? getCareerStatById(live.legacyPlayerId) : null
+    return (
+      <LivePlayerProfile
+        profile={live}
+        ranking={rating ? { currentRank: rating.currentRank, score: rating.score, peakRating: rating.peakRating } : null}
+        career={career ? { seasonTitles: career.seasonTitles, cupTitles: career.cupTitles, totalWins: career.totalWins, totalLosses: career.totalLosses, totalWinPct: career.totalWinPct } : null}
+      />
+    )
+  }
+
   const player = getPlayerPreview(slug)
   if (!player) notFound()
 

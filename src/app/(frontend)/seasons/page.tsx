@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { PageHeader } from '@/components/page-header'
 import { YearSlider } from '@/components/seasons/year-slider'
 import { SeasonYear } from '@/components/seasons/season-year'
-import { getArchiveYears, getSeasonsByYear } from '@/lib/seasons/archive'
+import { getCurrentEraSeasonYears, getCurrentEraSeasonsByYear } from '@/lib/seasons/archive'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { pageMetadata } from '@/lib/site'
 
@@ -19,9 +19,12 @@ type Params = { searchParams: Promise<{ year?: string }> }
 export default async function SeasonsPage({ searchParams }: Params) {
   cupStore.enterWith(await loadCupContext()) // season-year panels render cup data — resolve the live revision
   const { year } = await searchParams
-  const years = getArchiveYears()
+  // Forward-looking surface: current-era seasons only (2026 S1 today; live DB seasons
+  // in Phase 2). The older 2005–2014 archive stays out of the main Seasons page — it
+  // remains available through Rankings, Hall of Fame, and player careers.
+  const years = getCurrentEraSeasonYears()
   const selected = year && years.includes(Number(year)) ? Number(year) : years[0]
-  const seasons = getSeasonsByYear(selected)
+  const seasons = getCurrentEraSeasonsByYear(selected)
 
   return (
     <>
@@ -29,7 +32,6 @@ export default async function SeasonsPage({ searchParams }: Params) {
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Seasons' }]}
         title="Seasons"
         description="Every season, one archive. Pick a year, then open a season's Groups or Playoffs. The current season's live group & playoff action lives on the Groups and Playoffs tabs."
-        sample
       />
       <YearSlider years={years} selected={selected} />
       {/* Wider responsive canvas for the season dashboard (header/selector stay

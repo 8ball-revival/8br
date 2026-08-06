@@ -68,6 +68,22 @@ for (const id of GARY_IDS) ID_REMAP[id] = 'gary'
 // Owner-confirmed: Serena / _ladyluck_ (P1860 — ladyluck, safeties, serena, xserenax, …)
 // is the current player Travis (P1853). Travis replaces all mention of Serena.
 ID_REMAP.P1860 = 'P1853'
+// Owner-confirmed (2026-08-05): the two 1-title "Stu" champions are ONE person —
+// zl_Stu_lz (P0140, 2009 S6) and scotpool (P1713, 2011 S4). Fold P1713 into P0140 so Stu
+// counts as a 2× champion. The other "Stu"-named archive ids (P0922, P1166, P0141) are
+// different players and are intentionally NOT merged.
+ID_REMAP.P1713 = 'P0140'
+// Owner-confirmed (2026-08-05): the two 1-title "CK" champions are ONE person —
+// Xx_CK_xX (P1765) and b0rn.gr3at (P1198). Fold P1198 into P1765 so CK counts as a 2× champion.
+ID_REMAP.P1198 = 'P1765'
+// Owner-confirmed (2026-08-05): two "Chris" champions are ONE person — chris.dogg (P0258,
+// 2 titles) and ll_chris.dogg_ll (P0702, 1 title). Fold P0702 into P0258 → Chris is a 3×
+// champion. The unrelated third Chris (new.zealand, P0261) is intentionally NOT merged.
+ID_REMAP.P0702 = 'P0258'
+// Owner-confirmed (fixed-accounts mapping, rows 23 + 27): the ranked "Brian" (archive id P1757 —
+// handles spcshogun/joosedup/…) and "fsm-brian" (P0975, the roster canonical for Brian) are the SAME
+// person → fold the extra P1757 row into P0975 so they are ONE ranking / one profile.
+ID_REMAP.P1757 = 'P0975'
 // Owner-confirmed archive-id merges from the authoritative roster (e.g. P1256 → Derrick).
 for (const [from, to] of Object.entries(CONFIRMED_ID_REMAPS)) ID_REMAP[from] = to
 // Canonical display names for corrected/canonical ids.

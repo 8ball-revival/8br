@@ -5,12 +5,13 @@ import { ArrowLeft, Trophy } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/home/primitives'
-import { getTop10, getHofPlayer, formatSeasonId } from '@/lib/hall-of-fame/fixtures'
+import { getAllChampions, getHofPlayer, formatSeasonId } from '@/lib/hall-of-fame/service'
+import { getCareerStatById } from '@/lib/stats/career-stats'
 
 export const dynamicParams = false
 
 export function generateStaticParams() {
-  return getTop10().map((p) => ({ slug: p.slug }))
+  return getAllChampions().map((p) => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -26,13 +27,31 @@ function seasonSort(a: string, b: string) {
   return a.localeCompare(b, undefined, { numeric: true })
 }
 
+/** A win–loss stat tile (group stage / playoffs). */
+function RecordTile({ label, wins, losses, note }: { label: string; wins: number; losses: number; note: string }) {
+  const played = wins + losses
+  const pct = played ? Math.round((wins / played) * 1000) / 10 : 0
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <p className="eyebrow text-muted-foreground">{label}</p>
+      <p className="mt-1 tabular text-2xl font-bold text-foreground">
+        {wins}
+        <span className="text-base font-normal text-muted-foreground">–{losses}</span>
+        {played > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground">{pct}%</span>}
+      </p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{note}</p>
+    </div>
+  )
+}
+
 export default async function HofPlayerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const player = getHofPlayer(slug)
   if (!player) return null // dynamicParams=false → unknown slugs 404
 
-  const rank = getTop10().findIndex((p) => p.slug === slug) + 1
+  const rank = getAllChampions().findIndex((p) => p.slug === slug) + 1
   const seasons = [...player.yearsWon].sort(seasonSort)
+  const career = getCareerStatById(player.id)
 
   return (
     <Container className="py-10">
@@ -61,6 +80,22 @@ export default async function HofPlayerPage({ params }: { params: Promise<{ slug
           Season {player.titles === 1 ? 'Title' : 'Titles'} · group + season play only
         </span>
       </div>
+
+      {/* Group-stage and playoff win records (from the archive career-stats service). */}
+      <section className="mt-6 grid gap-3 sm:grid-cols-2">
+        <RecordTile
+          label="Group Stage"
+          wins={career?.groupWins ?? 0}
+          losses={career?.groupLosses ?? 0}
+          note="Wins–losses across all group play"
+        />
+        <RecordTile
+          label="Playoffs"
+          wins={career?.playoffWins ?? 0}
+          losses={career?.playoffLosses ?? 0}
+          note="Wins–losses across all playoff matches"
+        />
+      </section>
 
       <section className="mt-8">
         <h2 className="eyebrow mb-4 text-foreground">Championship History</h2>

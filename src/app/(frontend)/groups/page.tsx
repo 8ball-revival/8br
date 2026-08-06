@@ -56,7 +56,7 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
   const views = season ? await getPublicGroups(season.id) : []
   const hasGroups = views.length > 0
   const registrations = await getPublicRegistrations()
-  const entrants = registrations.map((r) => ({ name: r.displayName }))
+  const entrants = registrations.map((r) => ({ name: r.displayName, cueverseId: r.cueverseId, slug: r.slug }))
 
   return (
     <>

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { GroupCrossTable } from '@/components/competition/group-cross-table'
+import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
 import type { PublicGroupView } from '@/lib/competition/public'
 
 /**
@@ -40,7 +41,7 @@ export function PublicGroupCard({ group }: { group: PublicGroupView }) {
                   <TableCell className="tabular text-muted-foreground">{s.rank}</TableCell>
                   <TableCell className="font-medium">
                     <span className="inline-flex items-center gap-2">
-                      {s.displayName}
+                      <PublicPlayerIdentity preferredName={s.displayName} cueverseId={s.cueverseId} slug={s.slug} muted />
                       {s.qualified && <Badge variant="success">Q</Badge>}
                     </span>
                   </TableCell>
@@ -58,8 +59,7 @@ export function PublicGroupCard({ group }: { group: PublicGroupView }) {
             {group.players.map((p, i) => (
               <li key={p.registrationId} className="flex items-baseline gap-2">
                 <span className="tabular w-5 text-xs text-muted-foreground">{i + 1}.</span>
-                <span className="font-medium text-foreground">{p.displayName}</span>
-                {p.cueverseId && <span className="text-xs text-muted-foreground">({p.cueverseId})</span>}
+                <PublicPlayerIdentity preferredName={p.displayName} cueverseId={p.cueverseId} slug={p.slug} muted />
               </li>
             ))}
           </ol>

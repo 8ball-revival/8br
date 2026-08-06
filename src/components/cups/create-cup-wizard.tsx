@@ -23,7 +23,6 @@ export function CreateCupWizard() {
   const [participantFormat, setParticipantFormat] = useState<'INDIVIDUAL' | 'TEAM'>('INDIVIDUAL')
   const [teamSize, setTeamSize] = useState(2)
   const [raceLength, setRaceLength] = useState(7)
-  const [entryMode, setEntryMode] = useState<'PUBLIC' | 'MANUAL'>('MANUAL')
   const [cam, setCam] = useState<'REQUIRED' | 'OPTIONAL' | 'NO_CAM'>('OPTIONAL')
   const [initialState, setInitialState] = useState<'DRAFT' | 'UPCOMING'>('UPCOMING')
 
@@ -36,7 +35,6 @@ export function CreateCupWizard() {
       teamSize: participantFormat === 'TEAM' ? teamSize : null,
       tournamentFormat: 'SINGLE_ELIM',
       raceLength,
-      entryMode,
       camRequirement: cam,
       initialState,
     }
@@ -114,14 +112,6 @@ export function CreateCupWizard() {
             className={`${FIELD} mt-1`}
           />
           <p className="mt-1 text-[0.65rem] text-muted-foreground">Games needed to win a match. Any positive number (5, 7, 9, 11…). Editable later.</p>
-        </div>
-
-        <div>
-          <label className={LABEL}>Entry mode</label>
-          <select value={entryMode} onChange={(e) => setEntryMode(e.target.value as 'PUBLIC' | 'MANUAL')} className={`${FIELD} mt-1`}>
-            <option value="MANUAL">Manual — admins add entrants</option>
-            <option value="PUBLIC">Public registration</option>
-          </select>
         </div>
 
         <div>

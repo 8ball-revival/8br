@@ -5,21 +5,24 @@ import { CheckCircle2 } from 'lucide-react'
 
 import { registerSeason2, type FormResult } from '@/lib/account/actions'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { RegistrationIdentitySummary } from '@/components/identity/registration-identity-summary'
+import { ProfileCompletionNotice } from '@/components/identity/profile-completion-notice'
 
 const initial: FormResult = {}
 
-export interface RegisterFormProfile {
-  primaryName: string
+export interface SignupIdentity {
+  preferredName: string
   cueverseId: string | null
+  discord: string | null
+  timeZone: string | null
 }
 
 /**
- * Season 2 competition entry. If the account is linked to a canonical profile, that
- * profile's identity is used automatically. Otherwise the entrant supplies their
- * public identity (display name, CueVerse ID, Discord, time zone) — shown publicly.
+ * Season 2 competition entry. A signed-in member never re-enters identity — the linked
+ * profile's `Preferred Name (CueVerse ID)` is shown as confirmation. If the profile is
+ * missing or incomplete, a completion notice replaces the form entirely.
  */
-export function RegisterForm({ profile }: { profile?: RegisterFormProfile | null }) {
+export function RegisterForm({ identity, missing }: { identity: SignupIdentity | null; missing: string[] }) {
   const [state, action, pending] = useActionState(registerSeason2, initial)
 
   if (state.ok) {
@@ -30,35 +33,26 @@ export function RegisterForm({ profile }: { profile?: RegisterFormProfile | null
           <p className="font-medium text-foreground">
             {state.already ? 'You are already registered for 8 Ball Revival Season 2.' : "You're registered for 8 Ball Revival Season 2!"}
           </p>
-          <p className="mt-1 text-muted-foreground">
-            Your entry is active. You appear on the registered-players list immediately.
-          </p>
+          <p className="mt-1 text-muted-foreground">Your entry is active — you appear on the registered-players list immediately.</p>
         </div>
       </div>
     )
   }
 
+  if (!identity || missing.length > 0) return <ProfileCompletionNotice missing={missing} />
+
   return (
     <form action={action} className="space-y-4">
-      {profile ? (
-        <p className="rounded-md border border-border bg-card/50 px-3 py-2 text-sm text-muted-foreground">
-          Registering as <span className="font-medium text-foreground">{profile.primaryName}</span>
-          {profile.cueverseId && <span> ({profile.cueverseId})</span>} — your linked player profile.
-        </p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field name="displayName" label="Public display name" placeholder="Kevin" required />
-          <Field name="cueverseId" label="CueVerse ID" placeholder="your_handle" required />
-          <Field name="discord" label="Discord (public)" placeholder="username" />
-          <Field name="timeZone" label="Time zone" placeholder="EST / GMT / …" />
-        </div>
-      )}
+      <RegistrationIdentitySummary
+        preferredName={identity.preferredName}
+        cueverseId={identity.cueverseId}
+        discord={identity.discord}
+        timeZone={identity.timeZone}
+      />
 
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-gold" />
-        <span className="text-muted-foreground">
-          I have read and agree to the 8 Ball Revival Season 2 rules and format.
-        </span>
+        <span className="text-muted-foreground">I have read and agree to the 8 Ball Revival Season 2 rules and format.</span>
       </label>
 
       {state.error && (
@@ -71,16 +65,5 @@ export function RegisterForm({ profile }: { profile?: RegisterFormProfile | null
         {pending ? 'Registering…' : 'Register for Season 2'}
       </Button>
     </form>
-  )
-}
-
-function Field({ name, label, placeholder, required }: { name: string; label: string; placeholder?: string; required?: boolean }) {
-  return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-foreground">
-        {label} {required && <span className="text-gold">*</span>}
-      </span>
-      <Input name={name} placeholder={placeholder} required={required} />
-    </label>
   )
 }

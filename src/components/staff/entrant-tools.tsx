@@ -72,10 +72,9 @@ export function AddEntrantControl({ seasonId }: { seasonId: number }) {
           ) : (
             results.map((c) => (
               <li key={c.playerId}>
-                <label className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${c.alreadyEntered ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted'}`}>
-                  <input type="checkbox" disabled={c.alreadyEntered || pending} checked={selected.has(c.playerId)} onChange={() => toggle(c.playerId)} className="accent-gold" />
+                <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted">
+                  <input type="checkbox" disabled={pending} checked={selected.has(c.playerId)} onChange={() => toggle(c.playerId)} className="accent-gold" />
                   <span className="min-w-0 flex-1 truncate font-medium">{c.primaryName}{c.cueverseId && <span className="text-xs text-muted-foreground"> ({c.cueverseId})</span>}</span>
-                  {c.alreadyEntered && <span className="shrink-0 text-xs text-muted-foreground">Already entered</span>}
                 </label>
               </li>
             ))

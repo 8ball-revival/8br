@@ -14,7 +14,10 @@ import { SignOutButton } from '@/components/account/sign-out-button'
 import { getCurrentUser, getSeason2Registration } from '@/lib/account/auth'
 import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { getProfileByUserId, cueverseCooldownState } from '@/lib/players/service'
+import { profileCompleteness } from '@/lib/competition/eligibility'
+import { formatIdentityLabel } from '@/lib/identity/public-identity'
 import { CueverseIdForm } from '@/components/account/cueverse-id-form'
+import { AccountSettings } from '@/components/account/account-settings'
 import { getCareerStatById } from '@/lib/stats/career-stats'
 import { getPlayerRankingProfile } from '@/lib/stats/rankings'
 import { cupStore, loadCupContext } from '@/lib/cups/prime'
@@ -50,7 +53,10 @@ export default async function AccountPage() {
   const career = profile?.legacyPlayerId ? getCareerStatById(profile.legacyPlayerId) : null
   const ranking = profile?.legacyPlayerId ? getPlayerRankingProfile(profile.legacyPlayerId) : null
   const publicSlug = profile?.legacyPlayerId ? slugForCanonicalId(profile.legacyPlayerId) : null
-  const formProfile = profile ? { primaryName: profile.primaryName, cueverseId: profile.cueverseId } : null
+  const identity = profile
+    ? { preferredName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone }
+    : null
+  const missing = profile ? profileCompleteness(profile).missing : ['your player profile']
 
   return (
     <>
@@ -145,10 +151,10 @@ export default async function AccountPage() {
             <CardTitle>Account details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <Row label="User ID" value={user.username} />
+            <Row label="CueVerse ID" value={profile?.cueverseId ?? user.username} hint="Your public identity — also used to sign in." />
             <Row label="Email" value={user.email} hint="Private — never shown publicly." />
             {user.createdAt && <Row label="Member since" value={formatDate(user.createdAt)} />}
-            <Row label="Player profile" value={profile ? `${profile.primaryName}${profile.cueverseId ? ` (${profile.cueverseId})` : ''}` : 'Not linked yet'} hint={profile ? 'Your real name is shown only here, never in competitions.' : undefined} />
+            <Row label="Public identity" value={profile ? formatIdentityLabel(profile.primaryName, profile.cueverseId) : 'Not linked yet'} hint={profile ? 'Shown across the site as Preferred Name (CueVerse ID).' : undefined} />
             {profile && (
               <div className="border-t border-border pt-4">
                 {(() => {
@@ -157,6 +163,25 @@ export default async function AccountPage() {
                 })()}
               </div>
             )}
+            <div className="border-t border-border pt-4">
+              <AccountSettings
+                profile={
+                  profile
+                    ? {
+                        // Blank when the name is just the CueVerse-ID fallback, so the OPTIONAL
+                        // Preferred Name field shows empty (not the CueVerse ID) and can be cleared.
+                        preferredName:
+                          profile.cueverseId && profile.primaryName.toLowerCase() === profile.cueverseId.toLowerCase()
+                            ? ''
+                            : profile.primaryName,
+                        discord: profile.discord,
+                        timeZone: profile.timeZone,
+                      }
+                    : null
+                }
+                email={user.email}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -188,7 +213,7 @@ export default async function AccountPage() {
             ) : open ? (
               <>
                 <p className="text-muted-foreground">You have an account but haven&apos;t entered Season 2 yet. {eligibilitySummary}</p>
-                <RegisterForm profile={formProfile} />
+                <RegisterForm identity={identity} missing={missing} />
               </>
             ) : (
               <p className="text-muted-foreground">Season 2 registration is closed. {deadlineLabel}.</p>

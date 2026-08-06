@@ -6,33 +6,32 @@ import Link from 'next/link'
 import { createAccount, type FormResult } from '@/lib/account/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { USERNAME_MIN, USERNAME_MAX, PASSWORD_MIN } from '@/lib/account/validation'
+import { PASSWORD_MIN } from '@/lib/account/validation'
 
 const initial: FormResult = {}
 
-/** Account creation: User ID + email + password only. No email verification. */
+/** Account creation — only CueVerse ID, Email, and Password. The CueVerse ID is the public
+ *  identity and the login handle. Preferred Name / Discord / Time Zone are optional and are
+ *  added later in My Account, never required to sign up or to enter a competition. */
 export function CreateAccountForm() {
   const [state, action, pending] = useActionState(createAccount, initial)
 
   return (
     <form action={action} className="space-y-4">
       <div className="space-y-1.5">
-        <label htmlFor="username" className="text-sm font-medium">
-          User ID
+        <label htmlFor="cueverseId" className="text-sm font-medium">
+          CueVerse ID
         </label>
         <Input
-          id="username"
-          name="username"
+          id="cueverseId"
+          name="cueverseId"
           autoComplete="username"
           required
-          minLength={USERNAME_MIN}
-          maxLength={USERNAME_MAX}
-          placeholder="your_user_id"
-          aria-describedby="username-hint"
+          placeholder="sixohtwo"
+          aria-describedby="cueverseId-hint"
         />
-        <p id="username-hint" className="text-xs text-muted-foreground">
-          {USERNAME_MIN}–{USERNAME_MAX} characters: letters, numbers, underscores, or hyphens. This is
-          how you sign in and how you appear on 8 Ball Revival.
+        <p id="cueverseId-hint" className="text-xs text-muted-foreground">
+          Must exactly match your current CueVerse in-game ID. This will be your public identity and can also be used to sign in.
         </p>
       </div>
 
@@ -50,8 +49,7 @@ export function CreateAccountForm() {
           aria-describedby="email-hint"
         />
         <p id="email-hint" className="text-xs text-muted-foreground">
-          Used for account recovery only. Kept private — never shown publicly. No verification email
-          is required to start competing.
+          Private — never shown publicly. Used for sign-in, recovery, and notifications only.
         </p>
       </div>
 

@@ -51,7 +51,6 @@ export default function CompetitionsPage() {
             eyebrow="8BRCAM"
             title="Historical archive competitions"
             description="Preserved competitions from the 8BRCAM archive. Preview · pending verification — these are historical records and are not 8 Ball Revival chronology seasons."
-            sample
           />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {archive.map((c) => (

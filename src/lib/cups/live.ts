@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { BracketRound, BracketMatch, BracketSlot } from './fixtures'
 import { resolveEntrants } from '@/lib/competition/entrants'
 import { getTeamsForSeason, getTeamMembersByRegistration, type TeamView } from '@/lib/competition/teams'
+import { getCupState, bracketMatchesEntrants } from '@/lib/competition/cup-lifecycle'
 
 /** Column name for a bracket round: last round = Final, then Semifinals, etc. */
 export function roundColumnName(round: number, totalRounds: number): string {
@@ -98,6 +99,7 @@ export interface CupEntrantView {
   registrationId: number
   name: string
   handle: string | null
+  slug: string | null
   seed: number | null
   withdrawn: boolean
 }
@@ -117,6 +119,7 @@ export interface CupWorkspaceData {
     seasonStatus: string
     playoffsStatus: string
     registrationStatus: string
+    cupState: string // explicit lifecycle state (source of truth for the public page + gating)
     archivedAt: string | null
     locked: boolean
     importedFromFixture: boolean
@@ -135,6 +138,9 @@ export interface CupWorkspaceData {
   hasBracket: boolean
   hasPublishedBracket: boolean
   hasResults: boolean
+  /** BRACKET_GENERATED only: the generated bracket no longer matches the current entrant list
+   *  (entrants changed after re-opening) — it must be regenerated before the cup can start. */
+  bracketStale: boolean
 }
 
 /** Load everything the Cup workspace + public live render need for a cup number. */
@@ -158,7 +164,8 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
     entrants = regs.map((r) => ({
       registrationId: r.id,
       name: idn.get(r.id)?.displayName ?? r.username,
-      handle: r.cueverseId ?? null,
+      handle: idn.get(r.id)?.cueverseId ?? r.cueverseId ?? null,
+      slug: idn.get(r.id)?.slug ?? null,
       seed: r.seed,
       withdrawn: r.status === 'WITHDRAWN',
     }))
@@ -187,6 +194,8 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
   const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
+  // Staleness only matters while the bracket is generated but the cup hasn't started.
+  const bracketStale = getCupState(season) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(season.id)).ok : false
 
   // Legacy = a single-elim individual cup still stored only in the old read-only bracket
   // (CupBracketMatch, no PlayoffMatch), not locked. It can be migrated to the workspace.
@@ -215,6 +224,7 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
       seasonStatus: season.seasonStatus,
       playoffsStatus: season.playoffsStatus,
       registrationStatus: season.registrationStatus,
+      cupState: getCupState(season),
       archivedAt: season.archivedAt ? season.archivedAt.toISOString() : null,
       locked: season.locked,
       importedFromFixture: season.importedFromFixture,
@@ -233,5 +243,6 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
     hasBracket: matches.length > 0,
     hasPublishedBracket,
     hasResults,
+    bracketStale,
   }
 }

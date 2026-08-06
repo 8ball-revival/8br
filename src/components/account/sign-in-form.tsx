@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 
 const initial: FormResult = {}
 
-/** Sign in with User ID (or email) + password. */
+/** Sign in with CueVerse ID (or email) + password. */
 export function SignInForm() {
   const [state, action, pending] = useActionState(signIn, initial)
 
@@ -17,14 +17,14 @@ export function SignInForm() {
     <form action={action} className="space-y-4">
       <div className="space-y-1.5">
         <label htmlFor="identifier" className="text-sm font-medium">
-          User ID or email
+          CueVerse ID or email
         </label>
         <Input
           id="identifier"
           name="identifier"
           autoComplete="username"
           required
-          placeholder="your_user_id"
+          placeholder="sixohtwo or you@example.com"
         />
       </div>
 

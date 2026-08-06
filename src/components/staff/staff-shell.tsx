@@ -3,6 +3,8 @@ import {
   LayoutDashboard,
   ClipboardList,
   Users,
+  UserCog,
+  Gavel,
   CalendarRange,
   Trophy,
   Swords,
@@ -19,6 +21,8 @@ import { can, type Capability } from '@/lib/auth/roles'
 export type StaffSection =
   | 'dashboard'
   | 'registrations'
+  | 'members'
+  | 'penalties'
   | 'players'
   | 'accounts'
   | 'seasons'
@@ -32,6 +36,8 @@ export type StaffSection =
 const NAV: { key: StaffSection; label: string; href: string; icon: typeof LayoutDashboard; cap?: Capability }[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/staff', icon: LayoutDashboard },
   { key: 'registrations', label: 'Registrations', href: '/staff/registrations', icon: ClipboardList, cap: 'manage_registrations' },
+  { key: 'members', label: 'Members', href: '/staff/members', icon: UserCog, cap: 'moderate_members' },
+  { key: 'penalties', label: 'Penalties', href: '/staff/penalties', icon: Gavel, cap: 'moderate_members' },
   { key: 'players', label: 'Players', href: '/staff/players', icon: Users, cap: 'manage_players' },
   { key: 'accounts', label: 'Accounts', href: '/staff/accounts', icon: KeyRound, cap: 'manage_players' },
   { key: 'seasons', label: 'Seasons', href: '/staff/seasons', icon: CalendarRange, cap: 'manage_competitions' },

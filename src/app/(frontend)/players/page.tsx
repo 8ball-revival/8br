@@ -21,7 +21,6 @@ export default function PlayersPage() {
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Players' }]}
         title="Players"
         description="Canonical player identities. Preview profiles are drawn from the 8BRCAM archive and are pending 8 Ball Revival verification; aliases resolve to one canonical player."
-        sample
         actions={<SearchBar className="w-56" />}
       />
       <Container className="py-12">

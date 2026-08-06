@@ -21,7 +21,6 @@ export default function NewsPage() {
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'News' }]}
         title="News"
         description="Announcements, competition updates, and notes from the organization."
-        sample
       />
       <Container className="py-12">
         {featured && (
