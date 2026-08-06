@@ -2,6 +2,7 @@ import 'server-only'
 import { getCurrentUser } from '@/lib/account/auth'
 import { prisma } from '@/lib/prisma'
 import { can, isAdmin, isOwner, isStaff, type Capability } from '@/lib/auth/roles'
+import { resolveMemberStatus } from '@/lib/moderation/service'
 import type { Actor } from './audit'
 
 export interface StaffUser extends Actor {
@@ -28,6 +29,13 @@ export async function resolveStaffAccess(): Promise<StaffAccess> {
   const user = await getCurrentUser()
   if (!user) return { status: 'anon' }
   if (!isStaff(user.roles)) return { status: 'forbidden', username: user.username }
+  // Moderation gate (shared boundary): a BANNED or soft-DELETED account loses console access
+  // immediately — even on a still-valid session — via the canonical `canLogin` rule. TIMED_OUT
+  // is a competition-participation restriction only (canLogin stays true), so a timed-out staff
+  // member KEEPS console access, per the moderation architecture. This propagates to server
+  // actions too (requireStaffActor/requireCapability resolve through here).
+  const status = await resolveMemberStatus(Number(user.id))
+  if (!status.canLogin) return { status: 'forbidden', username: user.username }
   const owner = isOwner(user.roles)
   const designation = await prisma.staffDesignation.findUnique({ where: { userId: Number(user.id) }, select: { headAdmin: true } })
   const headAdmin = !!designation?.headAdmin
