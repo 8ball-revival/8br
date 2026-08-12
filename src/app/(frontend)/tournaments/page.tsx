@@ -4,9 +4,9 @@ import { Suspense } from 'react'
 import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
 import { AdminBar } from '@/components/staff/admin-bar'
-import { CupList } from '@/components/cups/cup-list'
-import { CreateCupWizard } from '@/components/cups/create-cup-wizard'
-import { getCupList } from '@/lib/cups/list'
+import { CupList } from '@/components/tournaments/tournament-list'
+import { CreateCupWizard } from '@/components/tournaments/create-tournament-wizard'
+import { getCupList } from '@/lib/tournaments/list'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
 export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)

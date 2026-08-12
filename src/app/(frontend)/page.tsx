@@ -14,8 +14,8 @@ import { getSeasonTop, getSeasonRankings } from '@/lib/stats/tournament-stats'
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
 import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { getSpotlightPlayers } from '@/lib/spotlight/fixtures'
-import { getCups } from '@/lib/cups/service'
-import { cupStore, loadCupContext } from '@/lib/cups/prime'
+import { getCups } from '@/lib/tournaments/service'
+import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
 import { absoluteUrl } from '@/lib/site'
 
 const DESCRIPTION =

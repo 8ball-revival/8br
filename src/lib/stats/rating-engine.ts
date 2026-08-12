@@ -24,8 +24,8 @@
  * per-player provenance are assembled in rankings.ts on top of this.
  */
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
-import { getCups, type BracketRound, type Cup } from '@/lib/cups/service'
-import { currentCupRevision } from '@/lib/cups/context'
+import { getCups, type BracketRound, type Cup } from '@/lib/tournaments/service'
+import { currentCupRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
 
 // ---- Glicko-2 constants -----------------------------------------------------

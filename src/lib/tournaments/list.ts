@@ -39,7 +39,7 @@ export interface CupListItem {
 export async function getCupList(): Promise<CupListItem[]> {
   const comps = await prisma.tournament.findMany({
     where: { competitionType: 'CUP' },
-    orderBy: { cupNumber: 'asc' },
+    orderBy: { number: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
   })
 
@@ -81,13 +81,13 @@ export async function getCupList(): Promise<CupListItem[]> {
 
     const participants = [...byKey.values()]
     const searchBlob = [
-      c.name, `#${c.cupNumber}`, c.competitionCode, c.gameType, c.cupFormatBadge, c.tournamentFormat, c.participantFormat,
+      c.name, `#${c.number}`, c.code, c.gameType, c.cupFormatBadge, c.tournamentFormat, c.participantFormat,
       c.cupYear, c.championName, c.runnerUpName, ...participants.flatMap((p) => [p.display, ...p.keys]),
     ].filter(Boolean).join(' ').toLowerCase()
 
     return {
-      number: c.cupNumber!,
-      code: c.competitionCode!,
+      number: c.number!,
+      code: c.code!,
       name: c.name,
       year: c.cupYear,
       date: c.cupDate,

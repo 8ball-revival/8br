@@ -60,7 +60,7 @@ for (const r of ROSTER) {
   if (!profile) profile = await prisma.player.findFirst({ where: { cueverseId: { equals: r.handle, mode: 'insensitive' } } })
 
   if (profile) {
-    const existing = await prisma.registration.findUnique({ where: { seasonId_playerId: { tournamentId: tournament.id, playerId: profile.id } } })
+    const existing = await prisma.registration.findUnique({ where: { tournamentId_playerId: { tournamentId: tournament.id, playerId: profile.id } } })
     if (existing) { skipped.push(`${r.name} (already: ${profile.primaryName})`); continue }
     await prisma.registration.create({
       data: { tournamentId: tournament.id, userId: null, username: profile.primaryName, status: 'APPROVED', approvedAt: new Date(), addedByAdmin: true, displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id },

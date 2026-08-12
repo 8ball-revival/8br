@@ -67,7 +67,7 @@ export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Pro
       actor,
       tournamentId,
       {
-        seasonStatus: str(fd, 'seasonStatus') as 'UPCOMING' | 'ACTIVE' | 'COMPLETED',
+        status: str(fd, 'status') as 'UPCOMING' | 'ACTIVE' | 'COMPLETED',
         registrationClosesAt: closesAt ? new Date(closesAt) : null,
         groupsStatus: str(fd, 'groupsStatus') as 'PENDING' | 'PUBLISHED' | 'COMPLETED',
         playoffsStatus: str(fd, 'playoffsStatus') as 'PENDING' | 'PUBLISHED' | 'COMPLETED',

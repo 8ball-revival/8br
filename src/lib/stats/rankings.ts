@@ -23,8 +23,8 @@ import {
 } from './rating-engine'
 import { getCurrentScoreForId, type ScoreLine } from './current-score'
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
-import { getCups } from '@/lib/cups/service'
-import { currentCupRevision } from '@/lib/cups/context'
+import { getCups } from '@/lib/tournaments/service'
+import { currentCupRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
 
 export const WINDOW_DAYS = 365

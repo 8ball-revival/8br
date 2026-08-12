@@ -7,7 +7,7 @@ import { Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import type { CupListItem } from '@/lib/cups/list'
+import type { CupListItem } from '@/lib/tournaments/list'
 
 const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 

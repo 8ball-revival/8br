@@ -50,7 +50,7 @@ export async function getSeason2Registration(userId: string): Promise<Season2Reg
   const tournament = await getActiveSeason()
   if (!tournament) return { registered: false, status: null }
   const reg = await prisma.registration.findUnique({
-    where: { seasonId_userId: { tournamentId: tournament.id, userId: Number(userId) } },
+    where: { tournamentId_userId: { tournamentId: tournament.id, userId: Number(userId) } },
   })
   if (!reg) return { registered: false, status: null }
   return {

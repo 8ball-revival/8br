@@ -1,8 +1,8 @@
 import 'server-only'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getCups, type Cup, type BracketRound } from '@/lib/cups/fixtures'
-import { cupsFromCompRows, type CompRow } from '@/lib/cups/adapter'
+import { getCups, type Cup, type BracketRound } from '@/lib/tournaments/fixtures'
+import { cupsFromCompRows, type CompRow } from '@/lib/tournaments/adapter'
 
 type DbClient = typeof prisma | Prisma.TransactionClient
 
@@ -15,7 +15,7 @@ type DbClient = typeof prisma | Prisma.TransactionClient
 export async function regenerateCupSnapshot(client: DbClient = prisma): Promise<number> {
   const comps = await client.tournament.findMany({
     where: { competitionType: 'CUP' },
-    orderBy: { cupNumber: 'asc' },
+    orderBy: { number: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
   })
   const cups = cupsFromCompRows(comps as unknown as CompRow[])
@@ -63,8 +63,8 @@ export async function importCupsFromFixtures(): Promise<ImportResult> {
     const fields = {
       name: c.name,
       competitionType: 'CUP' as const,
-      competitionCode: code,
-      cupNumber: c.number,
+      code: code,
+      number: c.number,
       cupFormatBadge: c.format,
       cupYear: c.year ?? null,
       cupDate: c.date ?? null,
@@ -83,7 +83,7 @@ export async function importCupsFromFixtures(): Promise<ImportResult> {
       tournamentFormat: deriveTournamentFormat(c),
       importedFromFixture: true,
       locked: completed,
-      seasonStatus: (completed ? 'COMPLETED' : 'ACTIVE') as 'COMPLETED' | 'ACTIVE',
+      status: (completed ? 'COMPLETED' : 'ACTIVE') as 'COMPLETED' | 'ACTIVE',
     }
     const comp = await prisma.tournament.upsert({
       where: { slug },
@@ -149,7 +149,7 @@ export async function importCupsFromFixtures(): Promise<ImportResult> {
 export async function getCupsFromDb(): Promise<Cup[]> {
   const comps = await prisma.tournament.findMany({
     where: { competitionType: 'CUP' },
-    orderBy: { cupNumber: 'asc' },
+    orderBy: { number: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
   })
   return cupsFromCompRows(comps as unknown as CompRow[])

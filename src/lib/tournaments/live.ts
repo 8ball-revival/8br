@@ -109,14 +109,14 @@ export interface CupWorkspaceData {
     id: number
     name: string
     slug: string
-    cupNumber: number | null
-    competitionCode: string | null
+    number: number | null
+    code: string | null
     gameType: string | null
     participantFormat: 'INDIVIDUAL' | 'TEAM'
     teamSize: number | null
     tournamentFormat: string | null
     raceLength: number
-    seasonStatus: string
+    status: string
     playoffsStatus: string
     registrationStatus: string
     lifecycleState: string // explicit lifecycle state (source of truth for the public page + gating)
@@ -144,8 +144,8 @@ export interface CupWorkspaceData {
 }
 
 /** Load everything the Cup workspace + public live render need for a cup number. */
-export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceData | null> {
-  const tournament = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+export async function getCupWorkspace(number: number): Promise<CupWorkspaceData | null> {
+  const tournament = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', number } })
   if (!tournament) return null
 
   const isTeam = tournament.participantFormat === 'TEAM'
@@ -188,7 +188,7 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
   // the entrant/profile); a COMPLETED cup preserves the ID the player competed under
   // (the frozen name stored on the bracket). Team cups keep their team name (kept current
   // on rename), so the live override applies to individual cups only.
-  const isCompleted = tournament.cupStatus === 'completed' || tournament.seasonStatus === 'COMPLETED'
+  const isCompleted = tournament.cupStatus === 'completed' || tournament.status === 'COMPLETED'
   const displayByRegId =
     !isCompleted && !isTeam ? new Map(entrants.map((e) => [e.registrationId, e.name])) : undefined
   const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
@@ -214,14 +214,14 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
       id: tournament.id,
       name: tournament.name,
       slug: tournament.slug,
-      cupNumber: tournament.cupNumber,
-      competitionCode: tournament.competitionCode,
+      number: tournament.number,
+      code: tournament.code,
       gameType: tournament.gameType,
       participantFormat: tournament.participantFormat,
       teamSize: tournament.teamSize,
       tournamentFormat: tournament.tournamentFormat,
       raceLength: tournament.raceLength,
-      seasonStatus: tournament.seasonStatus,
+      status: tournament.status,
       playoffsStatus: tournament.playoffsStatus,
       registrationStatus: tournament.registrationStatus,
       lifecycleState: getCupState(tournament),

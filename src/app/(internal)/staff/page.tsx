@@ -38,14 +38,14 @@ export default async function StaffDashboardPage() {
     <StaffShell active="dashboard" username={access.actor.username} seasonName={tournament?.name}>
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl font-bold tracking-tight">Dashboard</h1>
-        {tournament && <Badge variant="gold">{SEASON_STATE_LABEL[tournament.seasonStatus]}</Badge>}
+        {tournament && <Badge variant="gold">{SEASON_STATE_LABEL[tournament.status]}</Badge>}
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Active tournament"
           value={tournament ? tournament.name : 'None'}
-          hint={tournament ? SEASON_STATE_LABEL[tournament.seasonStatus] : 'Create one below'}
+          hint={tournament ? SEASON_STATE_LABEL[tournament.status] : 'Create one below'}
         />
         <StatCard label="Pending registrations" value={String(summary?.registrations.PENDING ?? 0)} />
         <StatCard label="Approved entrants" value={String(summary?.registrations.APPROVED ?? 0)} />

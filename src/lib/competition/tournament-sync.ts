@@ -1,7 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import { regenerateCupSnapshot } from '@/lib/cups/migrate'
-import { roundColumnName } from '@/lib/cups/live'
+import { regenerateCupSnapshot } from '@/lib/tournaments/migrate'
+import { roundColumnName } from '@/lib/tournaments/live'
 
 /**
  * Bridge a LIVE cup (edited via PlayoffMatch) into the snapshot architecture that powers

@@ -37,7 +37,7 @@ function formatBadge(cfg: CreateCupConfig): string {
 /**
  * Create a new LIVE cup. Cup number + competition code are assigned atomically inside a
  * transaction (serializable-safe: derived from the current max under a single tx) so two
- * simultaneous creates cannot collide. Returns the new competition id + cupNumber + code.
+ * simultaneous creates cannot collide. Returns the new competition id + number + code.
  *
  * The cup is a `Tournament` row with competitionType=CUP, rendered/edited through the same
  * unified competition machinery. It is created EMPTY (no results invented); entrants/teams
@@ -46,7 +46,7 @@ function formatBadge(cfg: CreateCupConfig): string {
 export async function createCup(
   actor: Actor,
   cfg: CreateCupConfig,
-): Promise<{ ok: boolean; error?: string; id?: number; cupNumber?: number; competitionCode?: string; slug?: string }> {
+): Promise<{ ok: boolean; error?: string; id?: number; number?: number; code?: string; slug?: string }> {
   const name = cfg.name.trim()
   if (!name) return { ok: false, error: 'A cup name is required.' }
   if (cfg.participantFormat === 'TEAM' && (!cfg.teamSize || cfg.teamSize < 2)) {
@@ -59,15 +59,15 @@ export async function createCup(
   try {
     const created = await prisma.$transaction(async (tx) => {
       // Atomic next-number/code assignment: read the current max cup number under the tx.
-      const agg = await tx.tournament.aggregate({ where: { competitionType: 'CUP' }, _max: { cupNumber: true } })
-      const nextNumber = (agg._max.cupNumber ?? 0) + 1
+      const agg = await tx.tournament.aggregate({ where: { competitionType: 'CUP' }, _max: { number: true } })
+      const nextNumber = (agg._max.number ?? 0) + 1
       const code = `C${String(nextNumber).padStart(3, '0')}`
       const slug = `cup-${nextNumber}`
 
       // Guard against a slug/code/number that somehow already exists (unique columns will
       // also throw, but this yields a clean error).
       const clash = await tx.tournament.findFirst({
-        where: { OR: [{ cupNumber: nextNumber }, { competitionCode: code }, { slug }] },
+        where: { OR: [{ number: nextNumber }, { code: code }, { slug }] },
         select: { id: true },
       })
       if (clash) throw new Error('CUP_NUMBER_TAKEN')
@@ -77,8 +77,8 @@ export async function createCup(
           slug,
           name,
           competitionType: 'CUP',
-          competitionCode: code,
-          cupNumber: nextNumber,
+          code: code,
+          number: nextNumber,
           gameType: cfg.gameType,
           participantFormat: cfg.participantFormat,
           teamSize: cfg.participantFormat === 'TEAM' ? cfg.teamSize ?? null : null,
@@ -90,7 +90,7 @@ export async function createCup(
           // window and its champion title is credited once results are recorded/completed.
           cupYear: new Date().getFullYear(),
           cupDate: new Date().toISOString().slice(0, 10),
-          seasonStatus: 'UPCOMING',
+          status: 'UPCOMING',
           // Lifecycle: a new cup starts in DRAFT — nothing publicly joinable. An Admin opens
           // registration explicitly (see cup-lifecycle). registrationStatus stays in sync.
           lifecycleState: 'DRAFT',
@@ -115,11 +115,11 @@ export async function createCup(
           action: 'cup.create',
           entity: 'Tournament',
           entityId: tournament.id,
-          newValue: { cupNumber: nextNumber, code, name, participantFormat: cfg.participantFormat, tournamentFormat: cfg.tournamentFormat },
+          newValue: { number: nextNumber, code, name, participantFormat: cfg.participantFormat, tournamentFormat: cfg.tournamentFormat },
         },
         tx,
       )
-      return { id: tournament.id, cupNumber: nextNumber, competitionCode: code, slug }
+      return { id: tournament.id, number: nextNumber, code: code, slug }
     })
     return { ok: true, ...created }
   } catch (e) {

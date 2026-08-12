@@ -32,7 +32,7 @@ function fail(msg: string): never {
 try {
   const comps = await prisma.tournament.findMany({
     where: { competitionType: 'CUP' },
-    orderBy: { cupNumber: 'asc' },
+    orderBy: { number: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
   })
   if (comps.length === 0) fail('no cups found in the database (run the cup import first)')

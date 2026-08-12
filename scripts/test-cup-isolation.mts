@@ -10,9 +10,9 @@
  * Run: npx tsx scripts/test-cup-isolation.mts   (or: npm run test:cup-isolation)
  * Exits non-zero on any leak/miss so it can gate CI or a pre-push check.
  */
-import { cupStore, type CupContext } from '@/lib/cups/context'
-import { getCups } from '@/lib/cups/service'
-import type { Cup } from '@/lib/cups/fixtures'
+import { cupStore, type CupContext } from '@/lib/tournaments/context'
+import { getCups } from '@/lib/tournaments/service'
+import type { Cup } from '@/lib/tournaments/fixtures'
 
 // Build a distinct, self-consistent "revision" whose cups all carry the same tag, so any
 // cross-request leak (or a half-applied revision) is immediately detectable.

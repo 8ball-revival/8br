@@ -21,7 +21,7 @@ const tournament = await prisma.tournament.upsert({
   create: {
     slug,
     name: '2026 Tournament 2',
-    seasonStatus: 'UPCOMING',
+    status: 'UPCOMING',
     registrationStatus: 'OPEN',
     registrationOpensAt: opensAt,
     registrationClosesAt: closesAt,

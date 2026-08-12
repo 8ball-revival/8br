@@ -12,12 +12,12 @@
 import { prisma } from '@/lib/prisma'
 import { planBracket, type Qualifier } from '@/lib/competition/bracket'
 
-async function resetLiveCup(cupNumber: number) {
-  const existing = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+async function resetLiveCup(number: number) {
+  const existing = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', number } })
   if (existing) {
-    if (existing.importedFromFixture) throw new Error(`Refusing to reset imported historical cup #${cupNumber}`)
+    if (existing.importedFromFixture) throw new Error(`Refusing to reset imported historical cup #${number}`)
     await prisma.tournament.delete({ where: { id: existing.id } }) // cascades registrations/teams/playoff matches
-    console.log(`  reset existing live cup #${cupNumber}`)
+    console.log(`  reset existing live cup #${number}`)
   }
 }
 
@@ -57,8 +57,8 @@ async function seedCup12() {
       slug: 'cup-12',
       name: '9 Ball Cup',
       competitionType: 'CUP',
-      competitionCode: 'C012',
-      cupNumber: 12,
+      code: 'C012',
+      number: 12,
       gameType: '9-Ball',
       participantFormat: 'INDIVIDUAL',
       tournamentFormat: 'SINGLE_ELIM',
@@ -67,7 +67,7 @@ async function seedCup12() {
       cupYear: new Date().getFullYear(),
       cupDate: new Date().toISOString().slice(0, 10),
       cupStatus: 'live',
-      seasonStatus: 'UPCOMING',
+      status: 'UPCOMING',
       registrationStatus: 'NOT_OPEN',
       playoffsStatus: 'PENDING',
       importedFromFixture: false,
@@ -97,8 +97,8 @@ async function seedCup13() {
       slug: 'cup-13',
       name: 'Sit and Stand 2v2',
       competitionType: 'CUP',
-      competitionCode: 'C013',
-      cupNumber: 13,
+      code: 'C013',
+      number: 13,
       gameType: '8-Ball',
       participantFormat: 'TEAM',
       teamSize: 2,
@@ -108,7 +108,7 @@ async function seedCup13() {
       cupYear: new Date().getFullYear(),
       cupDate: new Date().toISOString().slice(0, 10),
       cupStatus: 'live',
-      seasonStatus: 'UPCOMING',
+      status: 'UPCOMING',
       registrationStatus: 'NOT_OPEN',
       playoffsStatus: 'PENDING',
       importedFromFixture: false,

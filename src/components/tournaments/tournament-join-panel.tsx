@@ -19,14 +19,14 @@ const initial: FormResult = {}
  * completion notice when the profile is missing/incomplete.
  */
 export function CupJoinPanel({
-  cupNumber,
+  number,
   isLoggedIn,
   registrationOpen,
   myStatus,
   identity,
   missing,
 }: {
-  cupNumber: number
+  number: number
   isLoggedIn: boolean
   registrationOpen: boolean
   myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
@@ -47,11 +47,11 @@ export function CupJoinPanel({
           </Button>
         </div>
       ) : entered ? (
-        <EnteredState cupNumber={cupNumber} myStatus={myStatus} registrationOpen={registrationOpen} />
+        <EnteredState number={number} myStatus={myStatus} registrationOpen={registrationOpen} />
       ) : !identity || missing.length > 0 ? (
         <ProfileCompletionNotice missing={missing} />
       ) : registrationOpen ? (
-        <JoinForm cupNumber={cupNumber} identity={identity} />
+        <JoinForm number={number} identity={identity} />
       ) : (
         <div className="flex items-center gap-3">
           <XCircle className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -62,7 +62,7 @@ export function CupJoinPanel({
   )
 }
 
-function JoinForm({ cupNumber, identity }: { cupNumber: number; identity: SignupIdentity }) {
+function JoinForm({ number, identity }: { number: number; identity: SignupIdentity }) {
   const [state, action, pending] = useActionState(joinCupAction, initial)
 
   if (state.ok) {
@@ -78,7 +78,7 @@ function JoinForm({ cupNumber, identity }: { cupNumber: number; identity: Signup
 
   return (
     <form action={action} className="space-y-4">
-      <input type="hidden" name="cupNumber" value={cupNumber} />
+      <input type="hidden" name="number" value={number} />
       <RegistrationIdentitySummary
         preferredName={identity.preferredName}
         cueverseId={identity.cueverseId}
@@ -105,11 +105,11 @@ function JoinForm({ cupNumber, identity }: { cupNumber: number; identity: Signup
 }
 
 function EnteredState({
-  cupNumber,
+  number,
   myStatus,
   registrationOpen,
 }: {
-  cupNumber: number
+  number: number
   myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
   registrationOpen: boolean
 }) {
@@ -125,7 +125,7 @@ function EnteredState({
       </div>
       {registrationOpen && !state.ok && (
         <form action={action}>
-          <input type="hidden" name="cupNumber" value={cupNumber} />
+          <input type="hidden" name="number" value={number} />
           <Button type="submit" variant="outline" size="sm" disabled={pending}>
             {pending ? 'Withdrawing…' : 'Withdraw from cup'}
           </Button>

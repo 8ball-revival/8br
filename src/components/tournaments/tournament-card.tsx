@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/home/primitives'
 import { cn } from '@/lib/utils'
-import type { Cup } from '@/lib/cups/service'
+import type { Cup } from '@/lib/tournaments/service'
 
 export function CupCard({ cup }: { cup: Cup }) {
   const live = cup.status === 'live'

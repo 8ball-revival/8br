@@ -14,7 +14,7 @@ import {
 } from '@/lib/stats/rankings'
 import { getCurrentScoreRankings } from '@/lib/stats/current-score'
 import { applyLinkedIdentities } from '@/lib/stats/linked-identity'
-import { cupStore, loadCupContext } from '@/lib/cups/prime'
+import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',

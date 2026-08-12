@@ -14,8 +14,8 @@
  * (All-Time and Historical keep the Glicko engine; this drives ONLY the Current view.)
  */
 import { getAllArchiveSeasons, type ArchiveSeason } from '@/lib/seasons/archive'
-import { getCups, type Cup } from '@/lib/cups/service'
-import { currentCupRevision } from '@/lib/cups/context'
+import { getCups, type Cup } from '@/lib/tournaments/service'
+import { currentCupRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
 import type { MatchResult } from './rating-engine'
 

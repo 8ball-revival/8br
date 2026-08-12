@@ -23,7 +23,7 @@ export async function createSeason(
 
 export interface TournamentPatch {
   name?: string
-  seasonStatus?: 'UPCOMING' | 'ACTIVE' | 'COMPLETED'
+  status?: 'UPCOMING' | 'ACTIVE' | 'COMPLETED'
   registrationStatus?: 'NOT_OPEN' | 'OPEN' | 'CLOSED'
   registrationOpensAt?: Date | null
   registrationClosesAt?: Date | null
@@ -57,9 +57,9 @@ export async function updateSeason(
 export async function completeCompetition(actor: Actor, tournamentId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
   const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s) return { ok: false, error: 'Competition not found.' }
-  if (s.seasonStatus === 'COMPLETED') return { ok: true }
-  await prisma.tournament.update({ where: { id: tournamentId }, data: { seasonStatus: 'COMPLETED' } })
-  await recordAudit(actor, { action: 'competition.complete', entity: 'Tournament', entityId: tournamentId, oldValue: { seasonStatus: s.seasonStatus }, newValue: { seasonStatus: 'COMPLETED' }, reason })
+  if (s.status === 'COMPLETED') return { ok: true }
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { status: 'COMPLETED' } })
+  await recordAudit(actor, { action: 'competition.complete', entity: 'Tournament', entityId: tournamentId, oldValue: { status: s.status }, newValue: { status: 'COMPLETED' }, reason })
   return { ok: true }
 }
 
@@ -90,8 +90,8 @@ export async function unarchiveCompetition(actor: Actor, tournamentId: number, r
 /** Throws if the competition is a locked historical competition. Every cup-mutating
  *  service path calls this so historical results can never be changed accidentally. */
 export async function assertCompetitionUnlocked(client: Prisma.TransactionClient | typeof prisma, tournamentId: number): Promise<void> {
-  const s = await client.tournament.findUnique({ where: { id: tournamentId }, select: { locked: true, competitionCode: true } })
-  if (s?.locked) throw new Error(`This is a locked historical competition (${s.competitionCode ?? tournamentId}). An Owner must unlock it before editing.`)
+  const s = await client.tournament.findUnique({ where: { id: tournamentId }, select: { locked: true, code: true } })
+  if (s?.locked) throw new Error(`This is a locked historical competition (${s.code ?? tournamentId}). An Owner must unlock it before editing.`)
 }
 
 export async function isCompetitionLocked(tournamentId: number): Promise<boolean> {
@@ -105,9 +105,9 @@ export async function unlockHistoricalCompetition(actor: Actor, tournamentId: nu
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (!s.locked) return { ok: true }
   if (!reason.trim()) return { ok: false, error: 'A reason is required to unlock a historical competition.' }
-  if (typedCode.trim() !== (s.competitionCode ?? '')) return { ok: false, error: `Confirmation code does not match. Type ${s.competitionCode} to confirm.` }
+  if (typedCode.trim() !== (s.code ?? '')) return { ok: false, error: `Confirmation code does not match. Type ${s.code} to confirm.` }
   await prisma.tournament.update({ where: { id: tournamentId }, data: { locked: false, unlockedAt: new Date() } })
-  await recordAudit(actor, { action: 'competition.unlock', entity: 'Tournament', entityId: tournamentId, oldValue: { locked: true }, newValue: { locked: false, unlockedBy: actor.username, code: s.competitionCode }, reason })
+  await recordAudit(actor, { action: 'competition.unlock', entity: 'Tournament', entityId: tournamentId, oldValue: { locked: true }, newValue: { locked: false, unlockedBy: actor.username, code: s.code }, reason })
   return { ok: true }
 }
 
@@ -162,7 +162,7 @@ export async function createPublicRegistration(
   // If this account is linked to a profile that an admin already entered (account-less),
   // ADOPT that existing entrant instead of creating a duplicate — the account takes it over.
   if (idData.playerId) {
-    const byPlayer = await prisma.registration.findUnique({ where: { seasonId_playerId: { tournamentId, playerId: idData.playerId } } })
+    const byPlayer = await prisma.registration.findUnique({ where: { tournamentId_playerId: { tournamentId, playerId: idData.playerId } } })
     if (byPlayer && byPlayer.userId == null) {
       await prisma.registration.update({
         where: { id: byPlayer.id },
@@ -174,7 +174,7 @@ export async function createPublicRegistration(
   }
 
   const existing = await prisma.registration.findUnique({
-    where: { seasonId_userId: { tournamentId, userId } },
+    where: { tournamentId_userId: { tournamentId, userId } },
   })
   if (existing) {
     // Re-registering after withdrawing/being rejected reactivates immediately.
@@ -211,7 +211,7 @@ export async function addEntrantByProfile(actor: Actor, tournamentId: number, pl
   const profile = await prisma.player.findUnique({ where: { id: playerId } })
   if (!profile) return { ok: false, error: 'Player profile not found.' }
 
-  const existing = await prisma.registration.findUnique({ where: { seasonId_playerId: { tournamentId, playerId } } })
+  const existing = await prisma.registration.findUnique({ where: { tournamentId_playerId: { tournamentId, playerId } } })
   if (existing) {
     if (existing.status === 'WITHDRAWN' || existing.status === 'REJECTED') {
       await prisma.registration.update({ where: { id: existing.id }, data: { status: 'APPROVED', approvedAt: new Date(), withdrawnAt: null } })
@@ -345,7 +345,7 @@ export async function withdrawPublicRegistration(
   if (tournament.registrationStatus !== 'OPEN')
     return { ok: false, error: 'Registration has closed — contact staff to withdraw.' }
   const reg = await prisma.registration.findUnique({
-    where: { seasonId_userId: { tournamentId, userId } },
+    where: { tournamentId_userId: { tournamentId, userId } },
   })
   if (!reg || (reg.status !== 'PENDING' && reg.status !== 'APPROVED'))
     return { ok: false, error: 'You are not currently registered.' }
@@ -1301,7 +1301,7 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
   const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { tournament: true } })
   if (!match) return { ok: false, error: 'Match not found.' }
   if (match.tournament.competitionType !== 'CUP') return { ok: false, error: 'This is not a cup match.' }
-  const { getCupState } = await import('./cup-lifecycle')
+  const { getCupState } = await import('./tournament-lifecycle')
   if (getCupState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This cup is not currently in progress.' }
   if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
   if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }

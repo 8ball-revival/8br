@@ -8,7 +8,7 @@ import { resolveEntrants, ENTRANT_SELECT } from './entrants'
  *  never mistaken for the active tournament. */
 export async function getActiveSeason(): Promise<Tournament | null> {
   const live = await prisma.tournament.findFirst({
-    where: { competitionType: 'SEASON', seasonStatus: { not: 'COMPLETED' } },
+    where: { competitionType: 'SEASON', status: { not: 'COMPLETED' } },
     orderBy: { createdAt: 'desc' },
   })
   return live ?? prisma.tournament.findFirst({ where: { competitionType: 'SEASON' }, orderBy: { createdAt: 'desc' } })
@@ -25,7 +25,7 @@ export async function getApprovedCount(tournamentId: number): Promise<number> {
 
 /** A single user's registration for a tournament (public account/register views). */
 export async function getUserRegistration(tournamentId: number, userId: number) {
-  return prisma.registration.findUnique({ where: { seasonId_userId: { tournamentId, userId } } })
+  return prisma.registration.findUnique({ where: { tournamentId_userId: { tournamentId, userId } } })
 }
 
 export interface EntrantRow {

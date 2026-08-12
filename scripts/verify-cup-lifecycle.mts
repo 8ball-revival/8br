@@ -5,7 +5,7 @@ const check=(n:string,c:boolean)=>{ if(c){pass++;console.log('  ✓ '+n)}else{fa
 const actor={userId:990900,username:'cup-verify'}
 
 // Create a synthetic test cup in DRAFT.
-const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', competitionCode:'CVERIFY', cupNumber:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', seasonStatus:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', code:'CVERIFY', number:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', status:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
 const id = cup.id
 try {
   const st = async () => getCupState((await prisma.tournament.findUniqueOrThrow({ where:{id} })))
@@ -28,7 +28,7 @@ try {
   const skip = await transitionCupState(actor, id, 'IN_PROGRESS')
   check('REGISTRATION_CLOSED→IN_PROGRESS rejected (must generate bracket first)', !skip.ok && /Invalid transition/.test(skip.error||''))
   check('REGISTRATION_CLOSED→BRACKET_GENERATED ok', (await transitionCupState(actor,id,'BRACKET_GENERATED')).ok)
-  check('  seasonStatus stays UPCOMING in BRACKET_GENERATED (not started)', (await prisma.tournament.findUniqueOrThrow({where:{id}})).seasonStatus==='UPCOMING')
+  check('  status stays UPCOMING in BRACKET_GENERATED (not started)', (await prisma.tournament.findUniqueOrThrow({where:{id}})).status==='UPCOMING')
   check('  reporting gate: requireCupState IN_PROGRESS rejected while BRACKET_GENERATED', !(await requireCupState(id,['IN_PROGRESS'])).ok)
   check('BRACKET_GENERATED→IN_PROGRESS ok (explicit begin)', (await transitionCupState(actor,id,'IN_PROGRESS')).ok)
 

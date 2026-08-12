@@ -354,10 +354,10 @@ export async function withdrawSeason2(_prev: FormResult, _formData: FormData): P
 }
 
 /** Resolve a live Cup (a comp_season row of type CUP) by its public cup number. */
-async function cupByNumber(cupNumber: number) {
-  if (!Number.isFinite(cupNumber)) return null
+async function cupByNumber(number: number) {
+  if (!Number.isFinite(number)) return null
   const { prisma } = await import('@/lib/prisma')
-  return prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+  return prisma.tournament.findFirst({ where: { competitionType: 'CUP', number } })
 }
 
 /** Enter the current user into a specific live Cup (the same public-registration path as
@@ -367,8 +367,8 @@ export async function joinCupAction(_prev: FormResult, formData: FormData): Prom
   if (!user) return { error: 'Please sign in to join this cup.' }
   if (formData.get('rulesAck') !== 'on') return { error: 'Please acknowledge the rules to join.' }
 
-  const cupNumber = Number(formData.get('cupNumber'))
-  const cup = await cupByNumber(cupNumber)
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
   if (!cup) return { error: 'Cup not found.' }
 
   // Identity is NEVER taken from the form — same shared eligibility + canonical-profile path
@@ -382,7 +382,7 @@ export async function joinCupAction(_prev: FormResult, formData: FormData): Prom
   const identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
   const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/cups/${cupNumber}`)
+  revalidatePath(`/cups/${number}`)
   revalidatePath('/cups')
   revalidatePath('/account')
   return { ok: true, already: res.already }
@@ -393,13 +393,13 @@ export async function withdrawCupAction(_prev: FormResult, formData: FormData): 
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in.' }
 
-  const cupNumber = Number(formData.get('cupNumber'))
-  const cup = await cupByNumber(cupNumber)
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
   if (!cup) return { error: 'Cup not found.' }
 
   const res = await withdrawPublicRegistration(cup.id, Number(user.id), user.username)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/cups/${cupNumber}`)
+  revalidatePath(`/cups/${number}`)
   revalidatePath('/cups')
   revalidatePath('/account')
   return { ok: true }

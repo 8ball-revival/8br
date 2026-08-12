@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/cups/service'
+import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/tournaments/service'
 
 function Members({ members }: { members: NonNullable<BracketSlot['members']> }) {
   return (

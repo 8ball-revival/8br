@@ -12,7 +12,7 @@ check('IN_PROGRESS → REGISTRATION_OPEN REJECTED (permanent lock once live)', !
 check('COMPLETED → REGISTRATION_OPEN REJECTED', !canTransition('COMPLETED', 'REGISTRATION_OPEN'))
 check('REGISTRATION_CLOSED → IN_PROGRESS REJECTED (must generate bracket)', !canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
 
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', competitionCode: 'CWF', cupNumber: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', code: 'CWF', number: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- temporary entrants are refused server-side ---')

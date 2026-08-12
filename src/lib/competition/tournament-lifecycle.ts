@@ -17,7 +17,7 @@ import { recordAudit, type Actor } from './audit'
  * Any other move (skip/backwards, e.g. reopening a completed cup) requires an explicit
  * OWNER recovery (`recovery: true`) and is audited as such.
  *
- * Each transition also syncs the legacy fields (registrationStatus / seasonStatus /
+ * Each transition also syncs the legacy fields (registrationStatus / status /
  * playoffsStatus / cupStatus) so existing readers keep working, and COMPLETED applies the
  * ladder exactly once (idempotent via `ladderAppliedAt`). Every transition is audited.
  */
@@ -56,14 +56,14 @@ export const CUP_STATE_LABEL: Record<CupState, string> = {
   CANCELLED: 'Cancelled',
 }
 
-type TournamentStateFields = Pick<Tournament, 'lifecycleState' | 'cupStatus' | 'seasonStatus' | 'registrationStatus' | 'playoffsStatus'>
+type TournamentStateFields = Pick<Tournament, 'lifecycleState' | 'cupStatus' | 'status' | 'registrationStatus' | 'playoffsStatus'>
 
 /**
  * Derive a lifecycle state for a legacy cup that predates the explicit field (pure).
  *
  * Migration behavior for existing cups (which have `lifecycleState = null`): the value is derived
  * on read from the old status columns and is never written until the cup's next transition.
- *   - completed cup (`cupStatus=completed` or `seasonStatus=COMPLETED`) → COMPLETED
+ *   - completed cup (`cupStatus=completed` or `status=COMPLETED`) → COMPLETED
  *   - published bracket (`playoffsStatus=PUBLISHED`) → IN_PROGRESS
  *   - registration OPEN / CLOSED → REGISTRATION_OPEN / REGISTRATION_CLOSED
  *   - otherwise → DRAFT
@@ -76,7 +76,7 @@ type TournamentStateFields = Pick<Tournament, 'lifecycleState' | 'cupStatus' | '
  */
 export function deriveLegacyState(s: TournamentStateFields): CupState {
   if (s.lifecycleState) return s.lifecycleState
-  if (s.cupStatus === 'completed' || s.seasonStatus === 'COMPLETED') return 'COMPLETED'
+  if (s.cupStatus === 'completed' || s.status === 'COMPLETED') return 'COMPLETED'
   if (s.playoffsStatus === 'PUBLISHED') return 'IN_PROGRESS'
   if (s.registrationStatus === 'OPEN') return 'REGISTRATION_OPEN'
   if (s.registrationStatus === 'CLOSED') return 'REGISTRATION_CLOSED'
@@ -92,20 +92,20 @@ export function getCupState(s: TournamentStateFields): CupState {
 function legacyFieldsFor(to: CupState): Prisma.TournamentUpdateInput {
   switch (to) {
     case 'DRAFT':
-      return { registrationStatus: 'NOT_OPEN', seasonStatus: 'UPCOMING', cupStatus: 'live' }
+      return { registrationStatus: 'NOT_OPEN', status: 'UPCOMING', cupStatus: 'live' }
     case 'REGISTRATION_OPEN':
-      return { registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', cupStatus: 'live' }
+      return { registrationStatus: 'OPEN', status: 'UPCOMING', cupStatus: 'live' }
     case 'REGISTRATION_CLOSED':
-      return { registrationStatus: 'CLOSED', seasonStatus: 'UPCOMING', cupStatus: 'live' }
+      return { registrationStatus: 'CLOSED', status: 'UPCOMING', cupStatus: 'live' }
     case 'BRACKET_GENERATED':
-      // Bracket is visible (PUBLISHED) but the tournament has NOT started (seasonStatus stays UPCOMING).
-      return { registrationStatus: 'CLOSED', seasonStatus: 'UPCOMING', playoffsStatus: 'PUBLISHED', cupStatus: 'live' }
+      // Bracket is visible (PUBLISHED) but the tournament has NOT started (status stays UPCOMING).
+      return { registrationStatus: 'CLOSED', status: 'UPCOMING', playoffsStatus: 'PUBLISHED', cupStatus: 'live' }
     case 'IN_PROGRESS':
-      return { registrationStatus: 'CLOSED', seasonStatus: 'ACTIVE', playoffsStatus: 'PUBLISHED', cupStatus: 'live' }
+      return { registrationStatus: 'CLOSED', status: 'ACTIVE', playoffsStatus: 'PUBLISHED', cupStatus: 'live' }
     case 'COMPLETED':
-      return { registrationStatus: 'CLOSED', seasonStatus: 'COMPLETED', playoffsStatus: 'COMPLETED', cupStatus: 'completed' }
+      return { registrationStatus: 'CLOSED', status: 'COMPLETED', playoffsStatus: 'COMPLETED', cupStatus: 'completed' }
     case 'CANCELLED':
-      return { registrationStatus: 'CLOSED', seasonStatus: 'COMPLETED', cupStatus: 'cancelled' }
+      return { registrationStatus: 'CLOSED', status: 'COMPLETED', cupStatus: 'cancelled' }
   }
 }
 
@@ -202,7 +202,7 @@ export async function transitionCupState(
   })
 
   // Reflect the final bracket/champion into the derived snapshot (rankings/records/list).
-  const { syncLiveCupToSnapshot } = await import('./cup-sync')
+  const { syncLiveCupToSnapshot } = await import('./tournament-sync')
   await syncLiveCupToSnapshot(tournamentId)
   return { ok: true, from, to }
 }
@@ -241,7 +241,7 @@ export async function requireCupState(
 ): Promise<{ ok: true; state: CupState } | { ok: false; error: string }> {
   const s = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { competitionType: true, lifecycleState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true },
+    select: { competitionType: true, lifecycleState: true, cupStatus: true, status: true, registrationStatus: true, playoffsStatus: true },
   })
   if (!s || s.competitionType !== 'CUP') return { ok: false, error: 'Cup not found.' }
   const state = getCupState(s)
@@ -348,7 +348,7 @@ export async function getCupHistory(tournamentId: number, opts: { admin?: boolea
 
 /** Lazily persist a derived state for a legacy cup (safe backfill on first workspace load). */
 export async function backfillCupState(tournamentId: number): Promise<CupState> {
-  const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { lifecycleState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true } })
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { lifecycleState: true, cupStatus: true, status: true, registrationStatus: true, playoffsStatus: true } })
   if (!s) return 'DRAFT'
   if (s.lifecycleState) return s.lifecycleState
   const derived = deriveLegacyState(s)

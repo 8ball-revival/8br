@@ -36,7 +36,7 @@ export type CupTieMatchRow = {
 }
 export type CupTeamTieRow = { round: string; roundOrder: number; homeTeam: string; awayTeam: string; homeWins: number; awayWins: number; winner: string; matches: CupTieMatchRow[] }
 export type CompRow = {
-  cupNumber: number | null
+  number: number | null
   name: string
   cupFormatBadge: string | null
   cupStatus: string | null
@@ -93,9 +93,9 @@ function roundsFrom(rows: CupBracketRow[], kind: string): BracketRound[] {
  *  ordered by cup number. Absent fields are omitted (never emitted as null). */
 export function cupsFromCompRows(comps: CompRow[]): Cup[] {
   return [...comps]
-    .sort((a, b) => (a.cupNumber ?? 0) - (b.cupNumber ?? 0))
+    .sort((a, b) => (a.number ?? 0) - (b.number ?? 0))
     .map((comp) => {
-      const cup: Cup = { number: comp.cupNumber!, name: comp.name, format: comp.cupFormatBadge!, status: comp.cupStatus as 'completed' | 'live' }
+      const cup: Cup = { number: comp.number!, name: comp.name, format: comp.cupFormatBadge!, status: comp.cupStatus as 'completed' | 'live' }
       if (comp.cupYear != null) cup.year = comp.cupYear
       if (comp.cupDate != null) cup.date = comp.cupDate
       if (comp.entrantsCount != null) cup.entrants = comp.entrantsCount

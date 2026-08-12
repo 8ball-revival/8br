@@ -40,8 +40,8 @@ export function CreateCupWizard() {
     }
     start(async () => {
       const r = await createCupAction(cfg)
-      if (r.error || !r.cupNumber) return setError(r.error ?? 'Could not create the cup.')
-      router.push(`/cups/${r.cupNumber}`)
+      if (r.error || !r.number) return setError(r.error ?? 'Could not create the cup.')
+      router.push(`/cups/${r.number}`)
     })
   }
 

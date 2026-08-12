@@ -6,24 +6,24 @@ import { ArrowLeft, Trophy } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/home/primitives'
-import { Bracket } from '@/components/cups/bracket'
-import { TeamTies } from '@/components/cups/team-ties'
-import { CupWorkspace } from '@/components/cups/cup-workspace'
-import { ConvertLegacyBanner } from '@/components/cups/convert-legacy-banner'
-import { getCup, cupBracket } from '@/lib/cups/service'
-import { cupStore, loadCupContext } from '@/lib/cups/prime'
-import { getCupWorkspace, type CupWorkspaceData } from '@/lib/cups/live'
+import { Bracket } from '@/components/tournaments/bracket'
+import { TeamTies } from '@/components/tournaments/team-ties'
+import { CupWorkspace } from '@/components/tournaments/tournament-workspace'
+import { ConvertLegacyBanner } from '@/components/tournaments/convert-legacy-banner'
+import { getCup, cupBracket } from '@/lib/tournaments/service'
+import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
+import { getCupWorkspace, type CupWorkspaceData } from '@/lib/tournaments/live'
 import { CUP_STATE_LABEL, getCupHistory, type CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
-import { CupHistory } from '@/components/cups/cup-history'
-import { CupWinnerSummary, type PodiumIdentity } from '@/components/cups/cup-winner-summary'
-import { CupReportLoss } from '@/components/cups/cup-report-loss'
+import { CupHistory } from '@/components/tournaments/tournament-history'
+import { CupWinnerSummary, type PodiumIdentity } from '@/components/tournaments/tournament-winner-summary'
+import { CupReportLoss } from '@/components/tournaments/tournament-report-loss'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getCurrentUser } from '@/lib/account/auth'
 import { getProfileByUserId } from '@/lib/players/service'
 import { getUserRegistration } from '@/lib/competition/queries'
 import { profileCompleteness } from '@/lib/competition/eligibility'
 import { EntrantList } from '@/components/competition/entrant-list'
-import { CupJoinPanel } from '@/components/cups/cup-join-panel'
+import { CupJoinPanel } from '@/components/tournaments/tournament-join-panel'
 import type { SignupIdentity } from '@/components/account/register-form'
 
 // Cup pages always resolve the signed-in viewer (admin workspace vs public view) via headers/cookies,
@@ -33,7 +33,7 @@ export const dynamic = 'force-dynamic'
 
 /** The signed-in viewer's context for the member Join / entrant panel on a live cup. */
 interface MemberCtx {
-  cupNumber: number
+  number: number
   isLoggedIn: boolean
   myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
   identity: SignupIdentity | null
@@ -235,7 +235,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
 
           {!data.isTeam && (
             <CupJoinPanel
-              cupNumber={member.cupNumber}
+              number={member.number}
               isLoggedIn={member.isLoggedIn}
               registrationOpen={state === 'REGISTRATION_OPEN'}
               myStatus={member.myStatus}
@@ -292,7 +292,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
       const profile = user ? await getProfileByUserId(Number(user.id)) : null
       const myReg = user ? await getUserRegistration(ws.tournament.id, Number(user.id)) : null
       const member: MemberCtx = {
-        cupNumber: num,
+        number: num,
         isLoggedIn: !!user,
         myStatus: (myReg?.status as MemberCtx['myStatus']) ?? null,
         identity: profile
@@ -308,7 +308,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
     return (
       <Container className="py-10">
         {backLink}
-        <CupHeader name={ws.tournament.name} number={ws.tournament.cupNumber} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
+        <CupHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
         {canManage ? (
           <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.tournament.id, { admin: true })} />
         ) : (

@@ -5,10 +5,10 @@ import { prisma } from '@/lib/prisma'
 import { requireCapability, requireStaffActor } from './staff-auth'
 import * as svc from './service'
 import * as teamSvc from './teams'
-import { createCup, type CreateCupConfig } from './cup-create'
+import { createCup, type CreateCupConfig } from './tournament-create'
 import { convertLegacyCup } from './cup-convert'
-import { syncLiveCupToSnapshot } from './cup-sync'
-import { transitionCupState, requireCupState, bracketMatchesEntrants, type CupState } from './cup-lifecycle'
+import { syncLiveCupToSnapshot } from './tournament-sync'
+import { transitionCupState, requireCupState, bracketMatchesEntrants, type CupState } from './tournament-lifecycle'
 import { recordAudit } from './audit'
 import { getCurrentUser } from '@/lib/account/auth'
 
@@ -21,18 +21,18 @@ export interface ActionResult {
 }
 
 /** Revalidate the cup page + every snapshot-derived surface after a cup edit. */
-function revalidateCup(cupNumber?: number | null) {
-  if (cupNumber != null) revalidatePath(`/cups/${cupNumber}`)
+function revalidateCup(number?: number | null) {
+  if (number != null) revalidatePath(`/cups/${number}`)
   for (const p of ['/cups', '/', '/rankings', '/hall-of-fame', '/players', '/records', '/seasons']) revalidatePath(p)
 }
 
 async function cupNumberOfSeason(tournamentId: number): Promise<number | null> {
-  const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { cupNumber: true } })
-  return s?.cupNumber ?? null
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { number: true } })
+  return s?.number ?? null
 }
 async function cupNumberOfMatch(matchId: number): Promise<number | null> {
-  const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { tournament: { select: { cupNumber: true } } } })
-  return m?.tournament.cupNumber ?? null
+  const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { tournament: { select: { number: true } } } })
+  return m?.tournament.number ?? null
 }
 async function seasonIdOfMatch(matchId: number): Promise<number | null> {
   const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } })
@@ -41,13 +41,13 @@ async function seasonIdOfMatch(matchId: number): Promise<number | null> {
 
 // ---- Create ---------------------------------------------------------------
 
-export async function createCupAction(cfg: CreateCupConfig): Promise<ActionResult & { cupNumber?: number }> {
+export async function createCupAction(cfg: CreateCupConfig): Promise<ActionResult & { number?: number }> {
   const actor = await requireCapability('manage_competitions')
   const res = await createCup(actor, cfg)
   if (!res.ok) return { error: res.error }
   await syncLiveCupToSnapshot(res.id!) // make the new cup appear in the snapshot-backed list
-  revalidateCup(res.cupNumber)
-  return { ok: true, cupNumber: res.cupNumber, message: `Created ${res.competitionCode} — Cup ${res.cupNumber}.` }
+  revalidateCup(res.number)
+  return { ok: true, number: res.number, message: `Created ${res.code} — Cup ${res.number}.` }
 }
 
 // ---- Legacy conversion ----------------------------------------------------
@@ -466,17 +466,17 @@ export async function deleteCupAction(tournamentId: number, typedCode: string): 
   const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s || s.competitionType !== 'CUP') return { error: 'Cup not found.' }
   if (s.importedFromFixture || s.locked) return { error: 'Imported historical cups cannot be deleted.' }
-  if (typedCode.trim() !== (s.competitionCode ?? '')) return { error: `Confirmation code does not match. Type ${s.competitionCode} to confirm deletion.` }
+  if (typedCode.trim() !== (s.code ?? '')) return { error: `Confirmation code does not match. Type ${s.code} to confirm deletion.` }
 
-  const code = s.competitionCode
-  const cupNumber = s.cupNumber
+  const code = s.code
+  const number = s.number
   await prisma.tournament.delete({ where: { id: tournamentId } }) // cascades registrations, teams, playoff matches, bracket rows
   const { recordAudit } = await import('./audit')
-  await recordAudit(actor, { action: 'cup.delete', entity: 'Tournament', entityId: tournamentId, oldValue: { name: s.name, code, cupNumber } })
-  const { regenerateCupSnapshot } = await import('@/lib/cups/migrate') // rebuild the snapshot without the deleted cup
+  await recordAudit(actor, { action: 'cup.delete', entity: 'Tournament', entityId: tournamentId, oldValue: { name: s.name, code, number } })
+  const { regenerateCupSnapshot } = await import('@/lib/tournaments/migrate') // rebuild the snapshot without the deleted cup
   await regenerateCupSnapshot()
-  revalidateCup(cupNumber)
-  return { ok: true, message: `Deleted ${code} — Cup ${cupNumber}.` }
+  revalidateCup(number)
+  return { ok: true, message: `Deleted ${code} — Cup ${number}.` }
 }
 
 export async function archiveCupAction(tournamentId: number, reason?: string): Promise<ActionResult> {

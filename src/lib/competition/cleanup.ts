@@ -23,7 +23,7 @@ import { recordAudit, type Actor } from './audit'
 /** Ids of competitions that are COMPLETED (tournament done or cup marked completed). */
 async function completedCompetitionIds(client: Prisma.TransactionClient): Promise<Set<number>> {
   const done = await client.tournament.findMany({
-    where: { OR: [{ seasonStatus: 'COMPLETED' }, { cupStatus: 'completed' }] },
+    where: { OR: [{ status: 'COMPLETED' }, { cupStatus: 'completed' }] },
     select: { id: true },
   })
   return new Set(done.map((s) => s.id))

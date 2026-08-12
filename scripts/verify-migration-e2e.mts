@@ -20,7 +20,7 @@ console.log(`migrated poolist: profile ${migrated.id.slice(0, 8)} legacyId=${mig
 const newbie = await prisma.player.create({ data: { primaryName: 'e2e_newbie', cueverseId: 'e2e_newbie', provenance: 'NATIVE_EGO' } })
 
 const playersBefore = await prisma.player.count()
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', competitionCode: 'CE2EM', cupNumber: 99080, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', code: 'CE2EM', number: 99080, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   // Add both entrants by permanent profile id (no free-text).

@@ -5,7 +5,7 @@ import type { CupContext } from './context'
 import type { Cup } from './fixtures'
 
 // Re-export so a page needs a single import to prime itself:
-//   import { cupStore, loadCupContext } from '@/lib/cups/prime'
+//   import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
 //   cupStore.enterWith(await loadCupContext())
 export { cupStore } from './context'
 
@@ -43,7 +43,7 @@ export const loadCupContext = cache(async (): Promise<CupContext> => {
  * Call this at the TOP of any page that renders Cup-derived data (Cup pages, rankings,
  * profiles, homepage) BEFORE invoking the synchronous stat pipeline:
  *
- *     import { cupStore, loadCupContext } from '@/lib/cups/prime'
+ *     import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
  *     cupStore.enterWith(await loadCupContext())
  *
  * `enterWith` MUST run inline in the page's own async frame — verified: calling it inside

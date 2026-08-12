@@ -7,10 +7,10 @@ import { Trophy, Users, GitBranch, ListChecks, Settings2, History, Plus, X, Chev
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bracket } from '@/components/cups/bracket'
-import { CupLifecycleControls } from '@/components/cups/cup-lifecycle-controls'
-import { CupHistory } from '@/components/cups/cup-history'
-import type { CupWorkspaceData, PlayoffRow } from '@/lib/cups/live'
+import { Bracket } from '@/components/tournaments/bracket'
+import { CupLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
+import { CupHistory } from '@/components/tournaments/tournament-history'
+import type { CupWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
 import type { CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
 import * as A from '@/lib/competition/cup-actions'
 
@@ -66,7 +66,7 @@ export function CupWorkspace({
         <Badge variant="gold">Admin</Badge>
         <span className="text-sm font-medium text-foreground">Competition workspace</span>
         <span className="text-xs text-muted-foreground">
-          {data.tournament.competitionCode} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
+          {data.tournament.code} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
           {(data.tournament.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase()}
         </span>
         {data.tournament.locked && <Badge variant="destructive">Locked</Badge>}
@@ -144,7 +144,7 @@ function Overview({ data }: { data: CupWorkspaceData }) {
   const bracketState = data.hasPublishedBracket ? 'Published' : data.hasBracket ? 'Draft' : 'Not built'
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <StatCard label="Status" value={data.tournament.seasonStatus.toLowerCase()} hint={data.tournament.cupStatus ?? undefined} />
+      <StatCard label="Status" value={data.tournament.status.toLowerCase()} hint={data.tournament.cupStatus ?? undefined} />
       <StatCard label={data.isTeam ? 'Teams' : 'Entrants'} value={String(rosterCount)} />
       <StatCard label="Bracket" value={bracketState} hint={data.hasBracket ? `${data.matches.length} matches` : undefined} />
       <StatCard label="Results" value={`${played}/${playable}`} hint="matches decided" />
@@ -523,7 +523,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
           </p>
           {isOwner && data.tournament.locked && (
             <div className="mt-3 space-y-2">
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={`Type ${data.tournament.competitionCode} to confirm`} className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={`Type ${data.tournament.code} to confirm`} className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
               <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
               <Button variant="destructive" onClick={() => run(() => A.unlockHistoricalCupAction(data.tournament.id, code, reason))} disabled={!code.trim() || !reason.trim()}>Unlock historical cup</Button>
             </div>
@@ -537,8 +537,8 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
       <section>
         <p className="eyebrow mb-2 text-muted-foreground">Identity</p>
         <dl className="grid gap-1 text-sm">
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Code</dt><dd>{data.tournament.competitionCode}</dd></div>
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Cup number</dt><dd>{data.tournament.cupNumber}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Code</dt><dd>{data.tournament.code}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Cup number</dt><dd>{data.tournament.number}</dd></div>
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.tournament.formatBadge} · {(data.tournament.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
         </dl>
       </section>
@@ -570,10 +570,10 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
             <input
               value={delCode}
               onChange={(e) => setDelCode(e.target.value)}
-              placeholder={`Type ${data.tournament.competitionCode} to confirm`}
+              placeholder={`Type ${data.tournament.code} to confirm`}
               className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
-            <Button variant="destructive" onClick={deleteCup} disabled={deleting || delCode.trim() !== (data.tournament.competitionCode ?? '')}>
+            <Button variant="destructive" onClick={deleteCup} disabled={deleting || delCode.trim() !== (data.tournament.code ?? '')}>
               {deleting ? 'Deleting…' : 'Delete cup permanently'}
             </Button>
           </div>
