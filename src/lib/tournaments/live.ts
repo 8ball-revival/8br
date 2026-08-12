@@ -121,9 +121,6 @@ export interface CupWorkspaceData {
     registrationStatus: string
     lifecycleState: string // explicit lifecycle state (source of truth for the public page + gating)
     archivedAt: string | null
-    locked: boolean
-    importedFromFixture: boolean
-    cupStatus: string | null
     formatBadge: string | null
   }
   isCup: boolean
@@ -145,12 +142,22 @@ export interface CupWorkspaceData {
 
 /** Load everything the Cup workspace + public live render need for a cup number. */
 export async function getCupWorkspace(number: number): Promise<CupWorkspaceData | null> {
-  const tournament = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', number } })
+  const tournament = await prisma.tournament.findFirst({ where: { number } })
   if (!tournament) return null
 
   const isTeam = tournament.participantFormat === 'TEAM'
-  const isHistorical = tournament.importedFromFixture || tournament.locked
-  const isEditable = !isHistorical
+  const isHistorical = false
+  const isEditable = true
+  const formatBadge =
+    tournament.participantFormat === 'TEAM'
+      ? tournament.teamSize
+        ? `${tournament.teamSize}v${tournament.teamSize}`
+        : 'Team'
+      : tournament.tournamentFormat === 'DOUBLE_ELIM'
+        ? 'D/E'
+        : tournament.tournamentFormat === 'GROUPS_PLAYOFFS'
+          ? 'Groups'
+          : 'S/E'
 
   // Entrants (individual). Teams are the entrants for team cups.
   let entrants: CupEntrantView[] = []
@@ -188,7 +195,7 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
   // the entrant/profile); a COMPLETED cup preserves the ID the player competed under
   // (the frozen name stored on the bracket). Team cups keep their team name (kept current
   // on rename), so the live override applies to individual cups only.
-  const isCompleted = tournament.cupStatus === 'completed' || tournament.status === 'COMPLETED'
+  const isCompleted = tournament.lifecycleState === 'COMPLETED' || tournament.status === 'COMPLETED'
   const displayByRegId =
     !isCompleted && !isTeam ? new Map(entrants.map((e) => [e.registrationId, e.name])) : undefined
   const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
@@ -197,17 +204,8 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
   // Staleness only matters while the bracket is generated but the cup hasn't started.
   const bracketStale = getCupState(tournament) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(tournament.id)).ok : false
 
-  // Legacy = a single-elim individual cup still stored only in the old read-only bracket
-  // (TournamentBracketMatch, no PlayoffMatch), not locked. It can be migrated to the workspace.
-  let isLegacyConvertible = false
-  if (matches.length === 0 && !tournament.locked) {
-    const [mainCount, otherCount, tieCount] = await Promise.all([
-      prisma.tournamentBracketMatch.count({ where: { competitionId: tournament.id, bracketKind: 'MAIN' } }),
-      prisma.tournamentBracketMatch.count({ where: { competitionId: tournament.id, bracketKind: { not: 'MAIN' } } }),
-      prisma.cupTeamTie.count({ where: { competitionId: tournament.id } }),
-    ])
-    isLegacyConvertible = mainCount > 0 && otherCount === 0 && tieCount === 0
-  }
+  // The legacy old-format-cup conversion feature was removed in the WCC reset.
+  const isLegacyConvertible = false
 
   return {
     tournament: {
@@ -226,10 +224,7 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
       registrationStatus: tournament.registrationStatus,
       lifecycleState: getCupState(tournament),
       archivedAt: tournament.archivedAt ? tournament.archivedAt.toISOString() : null,
-      locked: tournament.locked,
-      importedFromFixture: tournament.importedFromFixture,
-      cupStatus: tournament.cupStatus,
-      formatBadge: tournament.cupFormatBadge,
+      formatBadge,
     },
     isCup: true,
     isHistorical,

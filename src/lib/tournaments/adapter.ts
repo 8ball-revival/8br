@@ -2,7 +2,7 @@
 // type-only import of the Cup shapes, so this module is safe to run from a plain
 // `tsx` script (the snapshot generator) as well as inside Next — no dev server, no
 // path-alias runtime dependency.
-import type { Cup, BracketRound, BracketMatch, BracketSlot, TeamTie, TieMatch } from './fixtures'
+import type { Cup, BracketRound, BracketMatch, BracketSlot } from './fixtures'
 
 export type CupBracketRow = {
   bracketKind: string
@@ -22,26 +22,15 @@ export type CupBracketRow = {
   winner: string | null
   note: string | null
 }
-export type CupTieMatchRow = {
-  matchOrder: number
-  homeName: string
-  homeHandle: string | null
-  homeCaptain: boolean
-  awayName: string
-  awayHandle: string | null
-  awayCaptain: boolean
-  homeScore: string | null
-  awayScore: string | null
-  note: string | null
-}
-export type CupTeamTieRow = { round: string; roundOrder: number; homeTeam: string; awayTeam: string; homeWins: number; awayWins: number; winner: string; matches: CupTieMatchRow[] }
 export type CompRow = {
   number: number | null
   name: string
-  cupFormatBadge: string | null
-  cupStatus: string | null
-  cupYear: number | null
-  cupDate: string | null
+  tournamentFormat: string | null
+  participantFormat: string | null
+  teamSize: number | null
+  lifecycleState: string | null
+  status: string
+  createdAt: Date
   entrantsCount: number | null
   currentRound: string | null
   finalScore: string | null
@@ -51,8 +40,26 @@ export type CompRow = {
   runnerUpHandle: string | null
   thirdPlaceName: string | null
   thirdPlaceHandle: string | null
-  cupBracketMatches: CupBracketRow[]
-  cupTeamTies: CupTeamTieRow[]
+  bracketMatches: CupBracketRow[]
+}
+
+/** Public "format" badge derived from the tournament's structural format. */
+function formatBadgeOf(comp: CompRow): string {
+  if (comp.participantFormat === 'TEAM') return comp.teamSize ? `${comp.teamSize}v${comp.teamSize}` : 'Team'
+  switch (comp.tournamentFormat) {
+    case 'DOUBLE_ELIM':
+      return 'D/E'
+    case 'GROUPS_PLAYOFFS':
+      return 'Groups'
+    case 'SINGLE_ELIM':
+    default:
+      return 'S/E'
+  }
+}
+
+/** Public status ("completed" | "live") derived from the lifecycle/run state. */
+function statusOf(comp: CompRow): 'completed' | 'live' {
+  return comp.lifecycleState === 'COMPLETED' || comp.status === 'COMPLETED' ? 'completed' : 'live'
 }
 
 const slotFromRow = (present: boolean, name: string | null, handle: string | null, seed: number | null, score: number | null): BracketSlot | undefined => {
@@ -89,15 +96,15 @@ function roundsFrom(rows: CupBracketRow[], kind: string): BracketRound[] {
   return out
 }
 
-/** Reconstruct the exact `Cup[]` shape from unified-competition DB rows (cups only),
- *  ordered by cup number. Absent fields are omitted (never emitted as null). */
+/** Reconstruct the `Cup[]` view shape from tournament DB rows, ordered by number.
+ *  Absent fields are omitted (never emitted as null). */
 export function cupsFromCompRows(comps: CompRow[]): Cup[] {
   return [...comps]
     .sort((a, b) => (a.number ?? 0) - (b.number ?? 0))
     .map((comp) => {
-      const cup: Cup = { number: comp.number!, name: comp.name, format: comp.cupFormatBadge!, status: comp.cupStatus as 'completed' | 'live' }
-      if (comp.cupYear != null) cup.year = comp.cupYear
-      if (comp.cupDate != null) cup.date = comp.cupDate
+      const cup: Cup = { number: comp.number ?? 0, name: comp.name, format: formatBadgeOf(comp), status: statusOf(comp) }
+      const year = comp.createdAt.getUTCFullYear()
+      if (Number.isFinite(year)) cup.year = year
       if (comp.entrantsCount != null) cup.entrants = comp.entrantsCount
       if (comp.currentRound != null) cup.currentRound = comp.currentRound
       if (comp.finalScore != null) cup.finalScore = comp.finalScore
@@ -105,24 +112,12 @@ export function cupsFromCompRows(comps: CompRow[]): Cup[] {
       if (comp.runnerUpName != null) cup.runnerUp = { name: comp.runnerUpName, ...(comp.runnerUpHandle != null ? { handle: comp.runnerUpHandle } : {}) }
       if (comp.thirdPlaceName != null) cup.thirdPlace = { name: comp.thirdPlaceName, ...(comp.thirdPlaceHandle != null ? { handle: comp.thirdPlaceHandle } : {}) }
 
-      const rows = comp.cupBracketMatches
+      const rows = comp.bracketMatches
       const main = roundsFrom(rows, 'MAIN'); if (main.length) cup.bracket = main
       const wb = roundsFrom(rows, 'WINNERS'); if (wb.length) cup.winnersBracket = wb
       const lb = roundsFrom(rows, 'LOSERS'); if (lb.length) cup.losersBracket = lb
       const gf = roundsFrom(rows, 'GRAND_FINAL'); if (gf.length) cup.grandFinal = gf
 
-      if (comp.cupTeamTies.length) {
-        cup.teamTies = [...comp.cupTeamTies].sort((a, b) => a.roundOrder - b.roundOrder).map((tie): TeamTie => ({
-          round: tie.round, home: tie.homeTeam, away: tie.awayTeam, homeWins: tie.homeWins, awayWins: tie.awayWins, winner: tie.winner as 'home' | 'away',
-          matches: [...tie.matches].sort((a, b) => a.matchOrder - b.matchOrder).map((tm): TieMatch => ({
-            home: { name: tm.homeName, ...(tm.homeHandle != null ? { handle: tm.homeHandle } : {}), ...(tm.homeCaptain ? { captain: true } : {}) },
-            away: { name: tm.awayName, ...(tm.awayHandle != null ? { handle: tm.awayHandle } : {}), ...(tm.awayCaptain ? { captain: true } : {}) },
-            ...(tm.homeScore != null ? { homeScore: tm.homeScore } : {}),
-            ...(tm.awayScore != null ? { awayScore: tm.awayScore } : {}),
-            ...(tm.note != null ? { note: tm.note } : {}),
-          })),
-        }))
-      }
       return cup
     })
 }

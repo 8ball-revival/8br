@@ -38,9 +38,8 @@ export interface CupListItem {
 
 export async function getCupList(): Promise<CupListItem[]> {
   const comps = await prisma.tournament.findMany({
-    where: { competitionType: 'CUP' },
     orderBy: { number: 'asc' },
-    include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
+    include: { bracketMatches: true },
   })
 
   return comps.map((c) => {
@@ -63,35 +62,29 @@ export async function getCupList(): Promise<CupListItem[]> {
 
     const isTeam = c.participantFormat === 'TEAM'
     // Bracket slot participants.
-    for (const m of c.cupBracketMatches) {
+    for (const m of c.bracketMatches) {
       if (m.aName && m.aName !== 'Bye') add(m.aName, m.aHandle, isTeam ? 'Team' : 'Participant')
       if (m.bName && m.bName !== 'Bye') add(m.bName, m.bHandle, isTeam ? 'Team' : 'Participant')
     }
-    // Team tie players (individuals) + team names.
-    const teamNames = new Set<string>()
-    for (const tie of c.cupTeamTies) {
-      teamNames.add(tie.homeTeam); teamNames.add(tie.awayTeam)
-      for (const tm of tie.matches) { add(tm.homeName, tm.homeHandle, 'Team member'); add(tm.awayName, tm.awayHandle, 'Team member') }
-    }
-    for (const t of teamNames) add(t, null, 'Team')
     // Champion / runner-up / third override the relationship for the matching entry.
     add(c.championName, c.championHandle, 'Champion')
     add(c.runnerUpName, c.runnerUpHandle, 'Runner-up')
     add(c.thirdPlaceName, c.thirdPlaceHandle, 'Third place')
 
     const participants = [...byKey.values()]
+    const year = c.createdAt.getUTCFullYear()
     const searchBlob = [
-      c.name, `#${c.number}`, c.code, c.gameType, c.cupFormatBadge, c.tournamentFormat, c.participantFormat,
-      c.cupYear, c.championName, c.runnerUpName, ...participants.flatMap((p) => [p.display, ...p.keys]),
+      c.name, `#${c.number}`, c.code, c.gameType, c.tournamentFormat, c.participantFormat,
+      year, c.championName, c.runnerUpName, ...participants.flatMap((p) => [p.display, ...p.keys]),
     ].filter(Boolean).join(' ').toLowerCase()
 
     return {
-      number: c.number!,
-      code: c.code!,
+      number: c.number ?? 0,
+      code: c.code ?? '',
       name: c.name,
-      year: c.cupYear,
-      date: c.cupDate,
-      status: c.cupStatus ?? 'completed',
+      year,
+      date: null,
+      status: c.lifecycleState === 'COMPLETED' || c.status === 'COMPLETED' ? 'completed' : 'live',
       gameType: c.gameType,
       participantFormat: c.participantFormat,
       teamSize: c.teamSize,
@@ -100,7 +93,7 @@ export async function getCupList(): Promise<CupListItem[]> {
       currentRound: c.currentRound,
       champion: c.championName ? { name: c.championName, handle: c.championHandle } : null,
       runnerUp: c.runnerUpName ? { name: c.runnerUpName, handle: c.runnerUpHandle } : null,
-      locked: c.locked,
+      locked: false,
       participants,
       searchBlob,
     }
