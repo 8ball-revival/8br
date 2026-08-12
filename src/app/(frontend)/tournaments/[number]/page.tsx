@@ -134,7 +134,7 @@ function findMyActiveMatch(data: CupWorkspaceData, myRegId: number | null): { ma
  *  COMPLETED           → winner summary + read-only bracket; CANCELLED → cancelled notice
  */
 function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; member: MemberCtx; history: CupHistoryEvent[] }) {
-  const state = data.season.cupState
+  const state = data.tournament.lifecycleState
   const activeEntrants = data.entrants.filter((e) => !e.withdrawn)
   const inRegistration = state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_CLOSED'
   const bracketPrimary = state === 'BRACKET_GENERATED' || state === 'IN_PROGRESS' || state === 'COMPLETED'
@@ -163,7 +163,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
       {/* Completed: prominent winner summary above the read-only bracket. */}
       {podium && (
         <CupWinnerSummary
-          cupName={data.season.name}
+          cupName={data.tournament.name}
           champion={podium.champion}
           runnerUp={podium.runnerUp}
           finalScore={podium.finalScore}
@@ -184,7 +184,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
       {/* In progress: the viewer's own match self-report control (loss only). */}
       {myMatch && (
         <div className="mt-6">
-          <CupReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.season.raceLength} />
+          <CupReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} />
         </div>
       )}
 
@@ -281,8 +281,8 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
   // ---- LIVE editable cup: the Cup page IS the management interface ----
   if (ws && ws.isEditable) {
     // Header status reflects the explicit lifecycle state; "live" (red) only while active.
-    const statusLabel = CUP_STATE_LABEL[ws.season.cupState as keyof typeof CUP_STATE_LABEL] ?? ws.season.cupState
-    const live = ws.season.cupState !== 'COMPLETED' && ws.season.cupState !== 'CANCELLED' && ws.season.cupState !== 'DRAFT'
+    const statusLabel = CUP_STATE_LABEL[ws.tournament.lifecycleState as keyof typeof CUP_STATE_LABEL] ?? ws.tournament.lifecycleState
+    const live = ws.tournament.lifecycleState !== 'COMPLETED' && ws.tournament.lifecycleState !== 'CANCELLED' && ws.tournament.lifecycleState !== 'DRAFT'
 
     // Member view context (only needed when the viewer is not managing): are they signed in,
     // already entered, and is their identity linked to a profile.
@@ -290,7 +290,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
     if (!canManage) {
       const user = await getCurrentUser()
       const profile = user ? await getProfileByUserId(Number(user.id)) : null
-      const myReg = user ? await getUserRegistration(ws.season.id, Number(user.id)) : null
+      const myReg = user ? await getUserRegistration(ws.tournament.id, Number(user.id)) : null
       const member: MemberCtx = {
         cupNumber: num,
         isLoggedIn: !!user,
@@ -301,16 +301,16 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
         missing: profile ? profileCompleteness(profile).missing : ['your player profile'],
         myRegistrationId: myReg?.id ?? null,
       }
-      const history = await getCupHistory(ws.season.id, { admin: false })
+      const history = await getCupHistory(ws.tournament.id, { admin: false })
       publicView = <PublicLiveCup data={ws} member={member} history={history} />
     }
 
     return (
       <Container className="py-10">
         {backLink}
-        <CupHeader name={ws.season.name} number={ws.season.cupNumber} badge={ws.season.formatBadge} statusLabel={statusLabel} live={live} />
+        <CupHeader name={ws.tournament.name} number={ws.tournament.cupNumber} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
         {canManage ? (
-          <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.season.id, { admin: true })} />
+          <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.tournament.id, { admin: true })} />
         ) : (
           publicView
         )}
@@ -414,10 +414,10 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
       )}
 
       {canManage && ws && ws.isLegacyConvertible && (
-        <ConvertLegacyBanner seasonId={ws.season.id} />
+        <ConvertLegacyBanner tournamentId={ws.tournament.id} />
       )}
       {canManage && ws && !ws.isLegacyConvertible && (
-        <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.season.id, { admin: true })} />
+        <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.tournament.id, { admin: true })} />
       )}
     </Container>
   )

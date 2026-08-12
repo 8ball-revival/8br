@@ -9,19 +9,19 @@ import { validateScore } from './scoring'
 import { planBracket, orderQualifiers, type GroupQualifiers, type BracketPlan } from './bracket'
 
 // ---------------------------------------------------------------------------
-// Season
+// Tournament
 // ---------------------------------------------------------------------------
 
 export async function createSeason(
   actor: Actor,
   data: { slug: string; name: string },
 ): Promise<{ id: number }> {
-  const season = await prisma.tournament.create({ data: { slug: data.slug, name: data.name } })
-  await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: data })
-  return { id: season.id }
+  const tournament = await prisma.tournament.create({ data: { slug: data.slug, name: data.name } })
+  await recordAudit(actor, { action: 'tournament.create', entity: 'Tournament', entityId: tournament.id, newValue: data })
+  return { id: tournament.id }
 }
 
-export interface SeasonPatch {
+export interface TournamentPatch {
   name?: string
   seasonStatus?: 'UPCOMING' | 'ACTIVE' | 'COMPLETED'
   registrationStatus?: 'NOT_OPEN' | 'OPEN' | 'CLOSED'
@@ -37,16 +37,16 @@ export interface SeasonPatch {
 
 export async function updateSeason(
   actor: Actor,
-  seasonId: number,
-  patch: SeasonPatch,
+  tournamentId: number,
+  patch: TournamentPatch,
   reason?: string,
 ): Promise<void> {
-  const before = await prisma.tournament.findUniqueOrThrow({ where: { id: seasonId } })
-  const after = await prisma.tournament.update({ where: { id: seasonId }, data: patch })
+  const before = await prisma.tournament.findUniqueOrThrow({ where: { id: tournamentId } })
+  const after = await prisma.tournament.update({ where: { id: tournamentId }, data: patch })
   await recordAudit(actor, {
-    action: 'season.update',
-    entity: 'Season',
-    entityId: seasonId,
+    action: 'tournament.update',
+    entity: 'Tournament',
+    entityId: tournamentId,
     oldValue: diffSubset(before, patch),
     newValue: diffSubset(after, patch),
     reason,
@@ -54,31 +54,31 @@ export async function updateSeason(
 }
 
 /** Mark a competition COMPLETED (final; results are locked in). Reversible via updateSeason. */
-export async function completeCompetition(actor: Actor, seasonId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
+export async function completeCompetition(actor: Actor, tournamentId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (s.seasonStatus === 'COMPLETED') return { ok: true }
-  await prisma.tournament.update({ where: { id: seasonId }, data: { seasonStatus: 'COMPLETED' } })
-  await recordAudit(actor, { action: 'competition.complete', entity: 'Season', entityId: seasonId, oldValue: { seasonStatus: s.seasonStatus }, newValue: { seasonStatus: 'COMPLETED' }, reason })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { seasonStatus: 'COMPLETED' } })
+  await recordAudit(actor, { action: 'competition.complete', entity: 'Tournament', entityId: tournamentId, oldValue: { seasonStatus: s.seasonStatus }, newValue: { seasonStatus: 'COMPLETED' }, reason })
   return { ok: true }
 }
 
 /** Archive a competition (moves it to read-only history). Reversible via unarchive. */
-export async function archiveCompetition(actor: Actor, seasonId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
+export async function archiveCompetition(actor: Actor, tournamentId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (s.archivedAt) return { ok: true }
-  await prisma.tournament.update({ where: { id: seasonId }, data: { archivedAt: new Date() } })
-  await recordAudit(actor, { action: 'competition.archive', entity: 'Season', entityId: seasonId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: 'now' }, reason })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { archivedAt: new Date() } })
+  await recordAudit(actor, { action: 'competition.archive', entity: 'Tournament', entityId: tournamentId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: 'now' }, reason })
   return { ok: true }
 }
 
-export async function unarchiveCompetition(actor: Actor, seasonId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
+export async function unarchiveCompetition(actor: Actor, tournamentId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (!s.archivedAt) return { ok: true }
-  await prisma.tournament.update({ where: { id: seasonId }, data: { archivedAt: null } })
-  await recordAudit(actor, { action: 'competition.unarchive', entity: 'Season', entityId: seasonId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: null }, reason })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { archivedAt: null } })
+  await recordAudit(actor, { action: 'competition.unarchive', entity: 'Tournament', entityId: tournamentId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: null }, reason })
   return { ok: true }
 }
 
@@ -89,35 +89,35 @@ export async function unarchiveCompetition(actor: Actor, seasonId: number, reaso
 
 /** Throws if the competition is a locked historical competition. Every cup-mutating
  *  service path calls this so historical results can never be changed accidentally. */
-export async function assertCompetitionUnlocked(client: Prisma.TransactionClient | typeof prisma, seasonId: number): Promise<void> {
-  const s = await client.season.findUnique({ where: { id: seasonId }, select: { locked: true, competitionCode: true } })
-  if (s?.locked) throw new Error(`This is a locked historical competition (${s.competitionCode ?? seasonId}). An Owner must unlock it before editing.`)
+export async function assertCompetitionUnlocked(client: Prisma.TransactionClient | typeof prisma, tournamentId: number): Promise<void> {
+  const s = await client.tournament.findUnique({ where: { id: tournamentId }, select: { locked: true, competitionCode: true } })
+  if (s?.locked) throw new Error(`This is a locked historical competition (${s.competitionCode ?? tournamentId}). An Owner must unlock it before editing.`)
 }
 
-export async function isCompetitionLocked(seasonId: number): Promise<boolean> {
-  return (await prisma.tournament.findUnique({ where: { id: seasonId }, select: { locked: true } }))?.locked ?? false
+export async function isCompetitionLocked(tournamentId: number): Promise<boolean> {
+  return (await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { locked: true } }))?.locked ?? false
 }
 
 /** OWNER-ONLY: unlock a locked historical competition for correction. Requires the
  *  typed competition code + a reason; records who/when in the audit log. */
-export async function unlockHistoricalCompetition(actor: Actor, seasonId: number, typedCode: string, reason: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
+export async function unlockHistoricalCompetition(actor: Actor, tournamentId: number, typedCode: string, reason: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (!s.locked) return { ok: true }
   if (!reason.trim()) return { ok: false, error: 'A reason is required to unlock a historical competition.' }
   if (typedCode.trim() !== (s.competitionCode ?? '')) return { ok: false, error: `Confirmation code does not match. Type ${s.competitionCode} to confirm.` }
-  await prisma.tournament.update({ where: { id: seasonId }, data: { locked: false, unlockedAt: new Date() } })
-  await recordAudit(actor, { action: 'competition.unlock', entity: 'Season', entityId: seasonId, oldValue: { locked: true }, newValue: { locked: false, unlockedBy: actor.username, code: s.competitionCode }, reason })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { locked: false, unlockedAt: new Date() } })
+  await recordAudit(actor, { action: 'competition.unlock', entity: 'Tournament', entityId: tournamentId, oldValue: { locked: true }, newValue: { locked: false, unlockedBy: actor.username, code: s.competitionCode }, reason })
   return { ok: true }
 }
 
 /** OWNER-ONLY: re-lock a competition after corrections. */
-export async function relockCompetition(actor: Actor, seasonId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
+export async function relockCompetition(actor: Actor, tournamentId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (s.locked) return { ok: true }
-  await prisma.tournament.update({ where: { id: seasonId }, data: { locked: true } })
-  await recordAudit(actor, { action: 'competition.relock', entity: 'Season', entityId: seasonId, oldValue: { locked: false }, newValue: { locked: true }, reason })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { locked: true } })
+  await recordAudit(actor, { action: 'competition.relock', entity: 'Tournament', entityId: tournamentId, oldValue: { locked: false }, newValue: { locked: true }, reason })
   return { ok: true }
 }
 
@@ -135,16 +135,16 @@ export interface RegistrationIdentity {
 }
 
 export async function createPublicRegistration(
-  seasonId: number,
+  tournamentId: number,
   userId: number,
   username: string,
   identity: RegistrationIdentity = {},
 ): Promise<{ ok: boolean; error?: string; already?: boolean }> {
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!season) return { ok: false, error: 'Season not found.' }
-  if (season.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed.' }
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
+  if (tournament.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed.' }
 
-  // Moderation gate (single point for every self-signup path — season + cup): a banned,
+  // Moderation gate (single point for every self-signup path — tournament + cup): a banned,
   // timed-out or deleted account can never enter, regardless of the form used.
   const { resolveMemberStatus } = await import('@/lib/moderation/service')
   const modStatus = await resolveMemberStatus(userId)
@@ -162,7 +162,7 @@ export async function createPublicRegistration(
   // If this account is linked to a profile that an admin already entered (account-less),
   // ADOPT that existing entrant instead of creating a duplicate — the account takes it over.
   if (idData.playerId) {
-    const byPlayer = await prisma.registration.findUnique({ where: { seasonId_playerId: { seasonId, playerId: idData.playerId } } })
+    const byPlayer = await prisma.registration.findUnique({ where: { seasonId_playerId: { tournamentId, playerId: idData.playerId } } })
     if (byPlayer && byPlayer.userId == null) {
       await prisma.registration.update({
         where: { id: byPlayer.id },
@@ -174,7 +174,7 @@ export async function createPublicRegistration(
   }
 
   const existing = await prisma.registration.findUnique({
-    where: { seasonId_userId: { seasonId, userId } },
+    where: { seasonId_userId: { tournamentId, userId } },
   })
   if (existing) {
     // Re-registering after withdrawing/being rejected reactivates immediately.
@@ -190,7 +190,7 @@ export async function createPublicRegistration(
   // Normal public registration is ACTIVE immediately — no staff approval required.
   // (Staff retain moderation: withdraw/reject/restore, and PENDING for manual flags.)
   await prisma.registration.create({
-    data: { seasonId, userId, username, status: 'APPROVED', approvedAt: new Date(), ...idData },
+    data: { tournamentId, userId, username, status: 'APPROVED', approvedAt: new Date(), ...idData },
   })
   return { ok: true }
 }
@@ -202,16 +202,16 @@ export async function createPublicRegistration(
 /**
  * Add a tournament entrant from an existing Player profile — NO website account
  * required. The entrant carries the profile's public identity and is APPROVED
- * immediately. A profile can only be entered once per season (unique constraint).
+ * immediately. A profile can only be entered once per tournament (unique constraint).
  */
-export async function addEntrantByProfile(actor: Actor, seasonId: number, playerId: string): Promise<{ ok: boolean; error?: string; already?: boolean }> {
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!season) return { ok: false, error: 'Season not found.' }
-  await assertCompetitionUnlocked(prisma, seasonId)
+export async function addEntrantByProfile(actor: Actor, tournamentId: number, playerId: string): Promise<{ ok: boolean; error?: string; already?: boolean }> {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
+  await assertCompetitionUnlocked(prisma, tournamentId)
   const profile = await prisma.player.findUnique({ where: { id: playerId } })
   if (!profile) return { ok: false, error: 'Player profile not found.' }
 
-  const existing = await prisma.registration.findUnique({ where: { seasonId_playerId: { seasonId, playerId } } })
+  const existing = await prisma.registration.findUnique({ where: { seasonId_playerId: { tournamentId, playerId } } })
   if (existing) {
     if (existing.status === 'WITHDRAWN' || existing.status === 'REJECTED') {
       await prisma.registration.update({ where: { id: existing.id }, data: { status: 'APPROVED', approvedAt: new Date(), withdrawnAt: null } })
@@ -223,7 +223,7 @@ export async function addEntrantByProfile(actor: Actor, seasonId: number, player
 
   const created = await prisma.registration.create({
     data: {
-      seasonId,
+      tournamentId,
       userId: null,
       username: profile.primaryName,
       status: 'APPROVED',
@@ -253,8 +253,8 @@ export interface BulkImportReport {
  * added (already-entered profiles are skipped as duplicates); unmatched lines are
  * reported back so staff can create those profiles first.
  */
-export async function bulkImportEntrants(actor: Actor, seasonId: number, rawLines: string[]): Promise<BulkImportReport> {
-  await assertCompetitionUnlocked(prisma, seasonId)
+export async function bulkImportEntrants(actor: Actor, tournamentId: number, rawLines: string[]): Promise<BulkImportReport> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
   const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
   const lines = [...new Set(rawLines.map((l) => l.trim()).filter(Boolean))]
   const added: string[] = []
@@ -271,19 +271,19 @@ export async function bulkImportEntrants(actor: Actor, seasonId: number, rawLine
       profile = alias?.player ?? null
     }
     if (!profile) { unmatched.push(line); continue }
-    const res = await addEntrantByProfile(actor, seasonId, profile.id)
+    const res = await addEntrantByProfile(actor, tournamentId, profile.id)
     if (res.already) duplicates.push(`${line} (${profile.primaryName})`)
     else if (res.ok) added.push(`${line} → ${profile.primaryName}`)
     else unmatched.push(line)
   }
-  await recordAudit(actor, { action: 'entrant.bulkImport', entity: 'Season', entityId: seasonId, newValue: { added: added.length, duplicates: duplicates.length, unmatched: unmatched.length } })
+  await recordAudit(actor, { action: 'entrant.bulkImport', entity: 'Tournament', entityId: tournamentId, newValue: { added: added.length, duplicates: duplicates.length, unmatched: unmatched.length } })
   return { ok: true, added, duplicates, unmatched }
 }
 
-/** Remove an entrant from a season — reversible (status → WITHDRAWN, history kept). */
-export async function removeEntrant(actor: Actor, seasonId: number, registrationId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const reg = await prisma.registration.findFirst({ where: { id: registrationId, seasonId } })
+/** Remove an entrant from a tournament — reversible (status → WITHDRAWN, history kept). */
+export async function removeEntrant(actor: Actor, tournamentId: number, registrationId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const reg = await prisma.registration.findFirst({ where: { id: registrationId, tournamentId } })
   if (!reg) return { ok: false, error: 'Entrant not found.' }
   const inGroup = await prisma.groupPlayer.count({ where: { registrationId } })
   if (inGroup > 0) return { ok: false, error: 'This entrant is placed in a group — remove them from the group first.' }
@@ -293,9 +293,9 @@ export async function removeEntrant(actor: Actor, seasonId: number, registration
 }
 
 /** Restore a removed entrant (undo). */
-export async function restoreEntrant(actor: Actor, seasonId: number, registrationId: number): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const reg = await prisma.registration.findFirst({ where: { id: registrationId, seasonId } })
+export async function restoreEntrant(actor: Actor, tournamentId: number, registrationId: number): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const reg = await prisma.registration.findFirst({ where: { id: registrationId, tournamentId } })
   if (!reg) return { ok: false, error: 'Entrant not found.' }
   await prisma.registration.update({ where: { id: registrationId }, data: { status: 'APPROVED', approvedAt: new Date(), withdrawnAt: null } })
   await recordAudit(actor, { action: 'entrant.restore', entity: 'Registration', entityId: registrationId, oldValue: { status: reg.status }, newValue: { status: 'APPROVED' } })
@@ -315,16 +315,16 @@ export async function addManualEntrant(_actor: Actor, _seasonId: number, _name: 
 
 /** Persist the entrant seeding order (Registration.seed = position). Drives the default
  *  bracket seed order; blocked while a published bracket exists (return to draft first). */
-export async function reseedEntrants(actor: Actor, seasonId: number, orderedRegistrationIds: number[]): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const published = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+export async function reseedEntrants(actor: Actor, tournamentId: number, orderedRegistrationIds: number[]): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const published = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (published > 0) return { ok: false, error: 'Bracket is published — return it to draft before reseeding.' }
   const ids = [...new Set(orderedRegistrationIds)].filter((n) => Number.isFinite(n))
   await prisma.$transaction(async (tx) => {
     for (let i = 0; i < ids.length; i++) {
-      await tx.registration.updateMany({ where: { id: ids[i], seasonId }, data: { seed: i + 1 } })
+      await tx.registration.updateMany({ where: { id: ids[i], tournamentId }, data: { seed: i + 1 } })
     }
-    await recordAudit(actor, { action: 'entrant.reseed', entity: 'Season', entityId: seasonId, newValue: { order: ids.length } }, tx)
+    await recordAudit(actor, { action: 'entrant.reseed', entity: 'Tournament', entityId: tournamentId, newValue: { order: ids.length } }, tx)
   })
   return { ok: true }
 }
@@ -336,16 +336,16 @@ export async function reseedEntrants(actor: Actor, seasonId: number, orderedRegi
  * staff can withdraw via setRegistrationStatus.
  */
 export async function withdrawPublicRegistration(
-  seasonId: number,
+  tournamentId: number,
   userId: number,
   username: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!season) return { ok: false, error: 'Season not found.' }
-  if (season.registrationStatus !== 'OPEN')
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
+  if (tournament.registrationStatus !== 'OPEN')
     return { ok: false, error: 'Registration has closed — contact staff to withdraw.' }
   const reg = await prisma.registration.findUnique({
-    where: { seasonId_userId: { seasonId, userId } },
+    where: { seasonId_userId: { tournamentId, userId } },
   })
   if (!reg || (reg.status !== 'PENDING' && reg.status !== 'APPROVED'))
     return { ok: false, error: 'You are not currently registered.' }
@@ -396,18 +396,18 @@ export async function setRegistrationStatus(
  * Open / close / reopen registration. This manual staff status is AUTHORITATIVE —
  * registration is allowed if and only if it is OPEN, regardless of any deadline
  * (the deadline is informational only). Records the transition in the audit log
- * (staff member, previous status, new status, timestamp, season id).
+ * (staff member, previous status, new status, timestamp, tournament id).
  */
 export type RegistrationStateValue = 'NOT_OPEN' | 'OPEN' | 'CLOSED'
 
 export async function setRegistrationState(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   next: RegistrationStateValue,
   reason?: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const before = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!before) return { ok: false, error: 'Season not found.' }
+  const before = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!before) return { ok: false, error: 'Tournament not found.' }
   if (before.registrationStatus === next) return { ok: true }
 
   const action =
@@ -419,11 +419,11 @@ export async function setRegistrationState(
         ? 'registration.close'
         : 'registration.reset'
 
-  await prisma.tournament.update({ where: { id: seasonId }, data: { registrationStatus: next } })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { registrationStatus: next } })
   await recordAudit(actor, {
     action,
-    entity: 'Season',
-    entityId: seasonId,
+    entity: 'Tournament',
+    entityId: tournamentId,
     oldValue: { registrationStatus: before.registrationStatus },
     newValue: { registrationStatus: next },
     reason,
@@ -435,9 +435,9 @@ export async function setRegistrationState(
 // Group generation
 // ---------------------------------------------------------------------------
 
-async function approvedSeedables(seasonId: number): Promise<SeedableRegistration[]> {
+async function approvedSeedables(tournamentId: number): Promise<SeedableRegistration[]> {
   const regs = await prisma.registration.findMany({
-    where: { seasonId, status: 'APPROVED' },
+    where: { tournamentId, status: 'APPROVED' },
     select: { id: true, username: true, seed: true },
   })
   return regs.map((r) => ({ id: r.id, username: r.username, seed: r.seed }))
@@ -445,28 +445,28 @@ async function approvedSeedables(seasonId: number): Promise<SeedableRegistration
 
 /** Non-persisting preview of a group draw. */
 export async function previewGroups(
-  seasonId: number,
+  tournamentId: number,
   numGroups: number,
   seed: string,
 ): Promise<GroupPlan> {
-  const regs = await approvedSeedables(seasonId)
+  const regs = await approvedSeedables(tournamentId)
   return planGroups(regs, numGroups, seed)
 }
 
 /** Generate (persist) groups from a deterministic plan. Blocks if already published unless forced. */
 export async function generateGroups(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   numGroups: number,
   seedInput: string | undefined,
   opts: { force?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string; seed?: string }> {
-  const published = await prisma.tournamentGroup.count({ where: { seasonId, published: true } })
+  const published = await prisma.tournamentGroup.count({ where: { tournamentId, published: true } })
   if (published > 0 && !opts.force)
     return { ok: false, error: 'Groups are already published. Confirm to regenerate.' }
 
-  const seed = seedInput?.trim() || `season:${seasonId}:groups:${numGroups}:${Date.now()}`
-  const regs = await approvedSeedables(seasonId)
+  const seed = seedInput?.trim() || `tournament:${tournamentId}:groups:${numGroups}:${Date.now()}`
+  const regs = await approvedSeedables(tournamentId)
   let plan: GroupPlan
   try {
     plan = planGroups(regs, numGroups, seed)
@@ -475,11 +475,11 @@ export async function generateGroups(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.tournamentGroup.deleteMany({ where: { seasonId } }) // cascades players/matches/standings
+    await tx.tournamentGroup.deleteMany({ where: { tournamentId } }) // cascades players/matches/standings
     for (const g of plan.groups) {
       await tx.tournamentGroup.create({
         data: {
-          seasonId,
+          tournamentId,
           code: g.code,
           name: g.name,
           ordinal: g.ordinal,
@@ -494,8 +494,8 @@ export async function generateGroups(
       actor,
       {
         action: 'groups.generate',
-        entity: 'Season',
-        entityId: seasonId,
+        entity: 'Tournament',
+        entityId: tournamentId,
         newValue: { numGroups, seed, players: regs.length },
       },
       tx,
@@ -507,20 +507,20 @@ export async function generateGroups(
 /** Move a player to another group (pre-publish, or with force after publish). Re-seeds affected groups. */
 export async function movePlayer(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   registrationId: number,
   toGroupId: number,
   opts: { force?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   const gp = await prisma.groupPlayer.findFirst({
-    where: { registrationId, group: { seasonId } },
+    where: { registrationId, group: { tournamentId } },
     include: { group: true },
   })
   if (!gp) return { ok: false, error: 'Player is not assigned to a group.' }
-  const toGroup = await prisma.tournamentGroup.findFirst({ where: { id: toGroupId, seasonId } })
+  const toGroup = await prisma.tournamentGroup.findFirst({ where: { id: toGroupId, tournamentId } })
   if (!toGroup) return { ok: false, error: 'Target group not found.' }
   if (gp.groupId === toGroupId) return { ok: true }
-  const anyPublished = await prisma.tournamentGroup.count({ where: { seasonId, published: true } })
+  const anyPublished = await prisma.tournamentGroup.count({ where: { tournamentId, published: true } })
   if (anyPublished > 0 && !opts.force)
     return { ok: false, error: 'Groups are published. Confirm to move players.' }
 
@@ -538,7 +538,7 @@ export async function movePlayer(
     if (anyPublished > 0) {
       for (const gid of [fromGroupId, toGroupId]) {
         await tx.tournamentMatch.deleteMany({ where: { groupId: gid } })
-        await generateMatchesForGroup(tx, seasonId, gid)
+        await generateMatchesForGroup(tx, tournamentId, gid)
       }
     }
     await recordAudit(
@@ -553,13 +553,13 @@ export async function movePlayer(
       tx,
     )
   })
-  await recomputeStandings(seasonId)
+  await recomputeStandings(tournamentId)
   return { ok: true }
 }
 
 /** Publish groups: lock them, generate round-robin matches, seed standings. */
-export async function publishGroups(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
-  const groups = await prisma.tournamentGroup.findMany({ where: { seasonId }, include: { players: true } })
+export async function publishGroups(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
+  const groups = await prisma.tournamentGroup.findMany({ where: { tournamentId }, include: { players: true } })
   if (groups.length === 0) return { ok: false, error: 'Create at least one group before publishing.' }
 
   // Never publish an empty group.
@@ -578,15 +578,15 @@ export async function publishGroups(actor: Actor, seasonId: number): Promise<{ o
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.tournamentGroup.updateMany({ where: { seasonId }, data: { published: true } })
-    await tx.tournament.update({ where: { id: seasonId }, data: { groupsStatus: 'PUBLISHED' } })
+    await tx.tournamentGroup.updateMany({ where: { tournamentId }, data: { published: true } })
+    await tx.tournament.update({ where: { id: tournamentId }, data: { groupsStatus: 'PUBLISHED' } })
     for (const g of groups) {
       const existing = await tx.tournamentMatch.count({ where: { groupId: g.id } })
-      if (existing === 0) await generateMatchesForGroup(tx, seasonId, g.id)
+      if (existing === 0) await generateMatchesForGroup(tx, tournamentId, g.id)
     }
-    await recordAudit(actor, { action: 'groups.publish', entity: 'Season', entityId: seasonId, newValue: { groups: groups.length } }, tx)
+    await recordAudit(actor, { action: 'groups.publish', entity: 'Tournament', entityId: tournamentId, newValue: { groups: groups.length } }, tx)
   })
-  await recomputeStandings(seasonId)
+  await recomputeStandings(tournamentId)
   return { ok: true }
 }
 
@@ -595,56 +595,56 @@ export async function publishGroups(actor: Actor, seasonId: number): Promise<{ o
  * has been recorded; deletes the generated round-robin matches + standings so a
  * later re-publish regenerates them cleanly. The public groups page hides them.
  */
-export async function unpublishGroups(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
-  const withResults = await prisma.tournamentMatch.count({ where: { seasonId, NOT: { winnerRegistrationId: null } } })
+export async function unpublishGroups(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
+  const withResults = await prisma.tournamentMatch.count({ where: { tournamentId, NOT: { winnerRegistrationId: null } } })
   if (withResults > 0)
     return { ok: false, error: 'Results have already been recorded — unpublishing would discard them. Correct the results instead.' }
-  const published = await prisma.tournamentGroup.count({ where: { seasonId, published: true } })
+  const published = await prisma.tournamentGroup.count({ where: { tournamentId, published: true } })
   if (published === 0) return { ok: true }
 
   await prisma.$transaction(async (tx) => {
-    await tx.tournamentMatch.deleteMany({ where: { seasonId } })
-    await tx.standing.deleteMany({ where: { seasonId } })
-    await tx.tournamentGroup.updateMany({ where: { seasonId }, data: { published: false } })
-    await tx.tournament.update({ where: { id: seasonId }, data: { groupsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'groups.unpublish', entity: 'Season', entityId: seasonId, newValue: { published: false } }, tx)
+    await tx.tournamentMatch.deleteMany({ where: { tournamentId } })
+    await tx.standing.deleteMany({ where: { tournamentId } })
+    await tx.tournamentGroup.updateMany({ where: { tournamentId }, data: { published: false } })
+    await tx.tournament.update({ where: { id: tournamentId }, data: { groupsStatus: 'PENDING' } })
+    await recordAudit(actor, { action: 'groups.unpublish', entity: 'Tournament', entityId: tournamentId, newValue: { published: false } }, tx)
   })
   return { ok: true }
 }
 
 // ---------------------------------------------------------------------------
-// Manual group building (staff select the Season 2 groups by hand)
+// Manual group building (staff select the Tournament 2 groups by hand)
 // ---------------------------------------------------------------------------
 
 const GROUP_CODES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-/** True if any group in the season is published (structural edits then need confirm). */
-async function groupsArePublished(seasonId: number): Promise<boolean> {
-  return (await prisma.tournamentGroup.count({ where: { seasonId, published: true } })) > 0
+/** True if any group in the tournament is published (structural edits then need confirm). */
+async function groupsArePublished(tournamentId: number): Promise<boolean> {
+  return (await prisma.tournamentGroup.count({ where: { tournamentId, published: true } })) > 0
 }
 
 /** Create a new empty group with the next free code (Group A, Group B, …). */
-export async function createGroup(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string; id?: number }> {
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!season) return { ok: false, error: 'Season not found.' }
-  const groups = await prisma.tournamentGroup.findMany({ where: { seasonId } })
+export async function createGroup(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string; id?: number }> {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
+  const groups = await prisma.tournamentGroup.findMany({ where: { tournamentId } })
   const used = new Set(groups.map((g) => g.code))
   const code = [...GROUP_CODES].find((c) => !used.has(c))
   if (!code) return { ok: false, error: 'Maximum of 26 groups reached.' }
   const ordinal = groups.reduce((max, g) => Math.max(max, g.ordinal), -1) + 1
-  const g = await prisma.tournamentGroup.create({ data: { seasonId, code, name: `Group ${code}`, ordinal } })
-  await recordAudit(actor, { action: 'groups.createGroup', entity: 'SeasonGroup', entityId: g.id, newValue: { code, name: g.name } })
+  const g = await prisma.tournamentGroup.create({ data: { tournamentId, code, name: `Group ${code}`, ordinal } })
+  await recordAudit(actor, { action: 'groups.createGroup', entity: 'TournamentGroup', entityId: g.id, newValue: { code, name: g.name } })
   return { ok: true, id: g.id }
 }
 
-/** Ensure the season has exactly `count` groups (A..). Adds missing groups; never
+/** Ensure the tournament has exactly `count` groups (A..). Adds missing groups; never
  *  deletes a group that has players. Used by the "choose number of groups" control. */
-export async function setGroupCount(actor: Actor, seasonId: number, count: number): Promise<{ ok: boolean; error?: string }> {
+export async function setGroupCount(actor: Actor, tournamentId: number, count: number): Promise<{ ok: boolean; error?: string }> {
   if (!Number.isFinite(count) || count < 1 || count > 26) return { ok: false, error: 'Choose between 1 and 26 groups.' }
-  if (await groupsArePublished(seasonId)) return { ok: false, error: 'Unpublish groups before changing the group count.' }
-  const groups = await prisma.tournamentGroup.findMany({ where: { seasonId }, orderBy: { ordinal: 'asc' } })
+  if (await groupsArePublished(tournamentId)) return { ok: false, error: 'Unpublish groups before changing the group count.' }
+  const groups = await prisma.tournamentGroup.findMany({ where: { tournamentId }, orderBy: { ordinal: 'asc' } })
   if (groups.length < count) {
-    for (let i = groups.length; i < count; i++) await createGroup(actor, seasonId)
+    for (let i = groups.length; i < count; i++) await createGroup(actor, tournamentId)
   } else if (groups.length > count) {
     // Remove trailing groups only if they are empty.
     const removable = groups.slice(count)
@@ -652,17 +652,17 @@ export async function setGroupCount(actor: Actor, seasonId: number, count: numbe
       const players = await prisma.groupPlayer.count({ where: { groupId: g.id } })
       if (players > 0) return { ok: false, error: `Cannot reduce below ${groups.length} — ${g.name} still has players. Empty it first.` }
     }
-    for (const g of removable) await deleteGroup(actor, seasonId, g.id)
+    for (const g of removable) await deleteGroup(actor, tournamentId, g.id)
   }
   return { ok: true }
 }
 
 /** Swap two players' group memberships (drag one player onto another). Both must be
- *  assigned to a group in this season; their seeds are exchanged too. */
-export async function swapGroupPlayers(actor: Actor, seasonId: number, regA: number, regB: number): Promise<{ ok: boolean; error?: string }> {
+ *  assigned to a group in this tournament; their seeds are exchanged too. */
+export async function swapGroupPlayers(actor: Actor, tournamentId: number, regA: number, regB: number): Promise<{ ok: boolean; error?: string }> {
   if (regA === regB) return { ok: true }
-  const a = await prisma.groupPlayer.findFirst({ where: { registrationId: regA, group: { seasonId } } })
-  const b = await prisma.groupPlayer.findFirst({ where: { registrationId: regB, group: { seasonId } } })
+  const a = await prisma.groupPlayer.findFirst({ where: { registrationId: regA, group: { tournamentId } } })
+  const b = await prisma.groupPlayer.findFirst({ where: { registrationId: regB, group: { tournamentId } } })
   if (!a || !b) return { ok: false, error: 'Both players must already be in a group to swap.' }
   if (a.groupId === b.groupId) {
     // Same group → just exchange seed order.
@@ -671,7 +671,7 @@ export async function swapGroupPlayers(actor: Actor, seasonId: number, regA: num
       await tx.groupPlayer.update({ where: { id: b.id }, data: { seed: a.seed } })
     })
   } else {
-    const published = await groupsArePublished(seasonId)
+    const published = await groupsArePublished(tournamentId)
     await prisma.$transaction(async (tx) => {
       // Move via a temp seed to avoid any (groupId,registrationId) uniqueness churn.
       await tx.groupPlayer.update({ where: { id: a.id }, data: { groupId: b.groupId, seed: b.seed } })
@@ -679,52 +679,52 @@ export async function swapGroupPlayers(actor: Actor, seasonId: number, regA: num
       if (published) {
         for (const gid of [a.groupId, b.groupId]) {
           await tx.tournamentMatch.deleteMany({ where: { groupId: gid } })
-          await generateMatchesForGroup(tx, seasonId, gid)
+          await generateMatchesForGroup(tx, tournamentId, gid)
         }
       }
-      await recordAudit(actor, { action: 'groups.swapPlayers', entity: 'Season', entityId: seasonId, newValue: { a: regA, b: regB } }, tx)
+      await recordAudit(actor, { action: 'groups.swapPlayers', entity: 'Tournament', entityId: tournamentId, newValue: { a: regA, b: regB } }, tx)
     })
-    if (published) await recomputeStandings(seasonId)
+    if (published) await recomputeStandings(tournamentId)
   }
   return { ok: true }
 }
 
 /** Bulk-add several approved entrants to a group in one call (drag-select / bulk). */
-export async function addPlayersToGroup(actor: Actor, seasonId: number, groupId: number, registrationIds: number[]): Promise<{ ok: boolean; error?: string; added: number }> {
+export async function addPlayersToGroup(actor: Actor, tournamentId: number, groupId: number, registrationIds: number[]): Promise<{ ok: boolean; error?: string; added: number }> {
   let added = 0
   for (const rid of registrationIds) {
-    const res = await addPlayerToGroup(actor, seasonId, groupId, rid)
+    const res = await addPlayerToGroup(actor, tournamentId, groupId, rid)
     if (res.ok) added++
   }
   return { ok: true, added }
 }
 
 /** Rename a group's display name (its code is stable). */
-export async function renameGroup(actor: Actor, seasonId: number, groupId: number, name: string): Promise<{ ok: boolean; error?: string }> {
+export async function renameGroup(actor: Actor, tournamentId: number, groupId: number, name: string): Promise<{ ok: boolean; error?: string }> {
   const trimmed = name.trim()
   if (!trimmed) return { ok: false, error: 'Enter a group name.' }
   if (trimmed.length > 60) return { ok: false, error: 'Group name is too long.' }
-  const g = await prisma.tournamentGroup.findFirst({ where: { id: groupId, seasonId } })
+  const g = await prisma.tournamentGroup.findFirst({ where: { id: groupId, tournamentId } })
   if (!g) return { ok: false, error: 'Group not found.' }
   if (g.name === trimmed) return { ok: true }
   await prisma.tournamentGroup.update({ where: { id: groupId }, data: { name: trimmed } })
-  await recordAudit(actor, { action: 'groups.renameGroup', entity: 'SeasonGroup', entityId: groupId, oldValue: { name: g.name }, newValue: { name: trimmed } })
+  await recordAudit(actor, { action: 'groups.renameGroup', entity: 'TournamentGroup', entityId: groupId, oldValue: { name: g.name }, newValue: { name: trimmed } })
   return { ok: true }
 }
 
 /** Delete an EMPTY group. Non-empty groups must be emptied first. */
-export async function deleteGroup(actor: Actor, seasonId: number, groupId: number): Promise<{ ok: boolean; error?: string }> {
-  const g = await prisma.tournamentGroup.findFirst({ where: { id: groupId, seasonId }, include: { _count: { select: { players: true } } } })
+export async function deleteGroup(actor: Actor, tournamentId: number, groupId: number): Promise<{ ok: boolean; error?: string }> {
+  const g = await prisma.tournamentGroup.findFirst({ where: { id: groupId, tournamentId }, include: { _count: { select: { players: true } } } })
   if (!g) return { ok: false, error: 'Group not found.' }
   if (g._count.players > 0) return { ok: false, error: 'Only an empty group can be deleted. Remove or move its players first.' }
   await prisma.tournamentGroup.delete({ where: { id: groupId } })
-  await recordAudit(actor, { action: 'groups.deleteGroup', entity: 'SeasonGroup', entityId: groupId, oldValue: { code: g.code, name: g.name } })
+  await recordAudit(actor, { action: 'groups.deleteGroup', entity: 'TournamentGroup', entityId: groupId, oldValue: { code: g.code, name: g.name } })
   return { ok: true }
 }
 
 /** Reorder a group up or down (swaps ordinal with its neighbour). */
-export async function moveGroup(actor: Actor, seasonId: number, groupId: number, direction: 'up' | 'down'): Promise<{ ok: boolean; error?: string }> {
-  const groups = await prisma.tournamentGroup.findMany({ where: { seasonId }, orderBy: { ordinal: 'asc' } })
+export async function moveGroup(actor: Actor, tournamentId: number, groupId: number, direction: 'up' | 'down'): Promise<{ ok: boolean; error?: string }> {
+  const groups = await prisma.tournamentGroup.findMany({ where: { tournamentId }, orderBy: { ordinal: 'asc' } })
   const idx = groups.findIndex((g) => g.id === groupId)
   if (idx < 0) return { ok: false, error: 'Group not found.' }
   const swapIdx = direction === 'up' ? idx - 1 : idx + 1
@@ -734,32 +734,32 @@ export async function moveGroup(actor: Actor, seasonId: number, groupId: number,
   await prisma.$transaction(async (tx) => {
     await tx.tournamentGroup.update({ where: { id: a.id }, data: { ordinal: b.ordinal } })
     await tx.tournamentGroup.update({ where: { id: b.id }, data: { ordinal: a.ordinal } })
-    await recordAudit(actor, { action: 'groups.reorderGroup', entity: 'SeasonGroup', entityId: groupId, newValue: { direction } }, tx)
+    await recordAudit(actor, { action: 'groups.reorderGroup', entity: 'TournamentGroup', entityId: groupId, newValue: { direction } }, tx)
   })
   return { ok: true }
 }
 
 /**
- * Add an APPROVED entrant to a group. Guards: entrant belongs to the season, is
- * active (APPROVED), and is not already assigned to ANY group of this season (the
+ * Add an APPROVED entrant to a group. Guards: entrant belongs to the tournament, is
+ * active (APPROVED), and is not already assigned to ANY group of this tournament (the
  * @@unique([groupId, registrationId]) covers same-group; this covers cross-group).
  */
 export async function addPlayerToGroup(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   groupId: number,
   registrationId: number,
   opts: { force?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string }> {
-  const group = await prisma.tournamentGroup.findFirst({ where: { id: groupId, seasonId } })
+  const group = await prisma.tournamentGroup.findFirst({ where: { id: groupId, tournamentId } })
   if (!group) return { ok: false, error: 'Group not found.' }
-  const reg = await prisma.registration.findFirst({ where: { id: registrationId, seasonId } })
-  if (!reg) return { ok: false, error: 'That registration is not part of this season.' }
+  const reg = await prisma.registration.findFirst({ where: { id: registrationId, tournamentId } })
+  if (!reg) return { ok: false, error: 'That registration is not part of this tournament.' }
   if (reg.status !== 'APPROVED') return { ok: false, error: 'Only active (approved) registrations can be assigned to a group.' }
-  const existing = await prisma.groupPlayer.findFirst({ where: { registrationId, group: { seasonId } } })
+  const existing = await prisma.groupPlayer.findFirst({ where: { registrationId, group: { tournamentId } } })
   if (existing)
     return { ok: false, error: existing.groupId === groupId ? 'That player is already in this group.' : 'That player is already assigned to another group — move them instead.' }
-  const published = await groupsArePublished(seasonId)
+  const published = await groupsArePublished(tournamentId)
   if (published && !opts.force) return { ok: false, error: 'Groups are published. Confirm to edit them.' }
 
   await prisma.$transaction(async (tx) => {
@@ -767,25 +767,25 @@ export async function addPlayerToGroup(
     await tx.groupPlayer.create({ data: { groupId, registrationId, seed: (maxSeed._max.seed ?? 0) + 1 } })
     if (published) {
       await tx.tournamentMatch.deleteMany({ where: { groupId } })
-      await generateMatchesForGroup(tx, seasonId, groupId)
+      await generateMatchesForGroup(tx, tournamentId, groupId)
     }
-    await recordAudit(actor, { action: 'groups.addPlayer', entity: 'SeasonGroup', entityId: groupId, newValue: { registrationId, username: reg.username } }, tx)
+    await recordAudit(actor, { action: 'groups.addPlayer', entity: 'TournamentGroup', entityId: groupId, newValue: { registrationId, username: reg.username } }, tx)
   })
-  if (published) await recomputeStandings(seasonId)
+  if (published) await recomputeStandings(tournamentId)
   return { ok: true }
 }
 
 /** Remove a player from a group. Re-seeds the remaining players to stay 1..n. */
 export async function removePlayerFromGroup(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   groupId: number,
   registrationId: number,
   opts: { force?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string }> {
-  const gp = await prisma.groupPlayer.findFirst({ where: { groupId, registrationId, group: { seasonId } } })
+  const gp = await prisma.groupPlayer.findFirst({ where: { groupId, registrationId, group: { tournamentId } } })
   if (!gp) return { ok: false, error: 'That player is not in this group.' }
-  const published = await groupsArePublished(seasonId)
+  const published = await groupsArePublished(tournamentId)
   if (published && !opts.force) return { ok: false, error: 'Groups are published. Confirm to edit them.' }
 
   await prisma.$transaction(async (tx) => {
@@ -798,23 +798,23 @@ export async function removePlayerFromGroup(
     }
     if (published) {
       await tx.tournamentMatch.deleteMany({ where: { groupId } })
-      await generateMatchesForGroup(tx, seasonId, groupId)
+      await generateMatchesForGroup(tx, tournamentId, groupId)
     }
-    await recordAudit(actor, { action: 'groups.removePlayer', entity: 'SeasonGroup', entityId: groupId, oldValue: { registrationId } }, tx)
+    await recordAudit(actor, { action: 'groups.removePlayer', entity: 'TournamentGroup', entityId: groupId, oldValue: { registrationId } }, tx)
   })
-  if (published) await recomputeStandings(seasonId)
+  if (published) await recomputeStandings(tournamentId)
   return { ok: true }
 }
 
 /** Reorder a player within their group (swaps seed with the neighbour). */
 export async function reorderGroupPlayer(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   groupId: number,
   registrationId: number,
   direction: 'up' | 'down',
 ): Promise<{ ok: boolean; error?: string }> {
-  const group = await prisma.tournamentGroup.findFirst({ where: { id: groupId, seasonId } })
+  const group = await prisma.tournamentGroup.findFirst({ where: { id: groupId, tournamentId } })
   if (!group) return { ok: false, error: 'Group not found.' }
   const players = await prisma.groupPlayer.findMany({ where: { groupId }, orderBy: { seed: 'asc' } })
   const idx = players.findIndex((p) => p.registrationId === registrationId)
@@ -826,13 +826,13 @@ export async function reorderGroupPlayer(
   await prisma.$transaction(async (tx) => {
     await tx.groupPlayer.update({ where: { id: a.id }, data: { seed: b.seed } })
     await tx.groupPlayer.update({ where: { id: b.id }, data: { seed: a.seed } })
-    await recordAudit(actor, { action: 'groups.reorderPlayer', entity: 'SeasonGroup', entityId: groupId, newValue: { registrationId, direction } }, tx)
+    await recordAudit(actor, { action: 'groups.reorderPlayer', entity: 'TournamentGroup', entityId: groupId, newValue: { registrationId, direction } }, tx)
   })
   return { ok: true }
 }
 
 /** Create round-robin matches for one group from its seeded players. */
-async function generateMatchesForGroup(tx: Prisma.TransactionClient, seasonId: number, groupId: number) {
+async function generateMatchesForGroup(tx: Prisma.TransactionClient, tournamentId: number, groupId: number) {
   const players = await tx.groupPlayer.findMany({
     where: { groupId },
     orderBy: { seed: 'asc' },
@@ -846,7 +846,7 @@ async function generateMatchesForGroup(tx: Prisma.TransactionClient, seasonId: n
   for (const m of matches) {
     await tx.tournamentMatch.create({
       data: {
-        seasonId,
+        tournamentId,
         groupId,
         round: m.round,
         homeRegistrationId: m.home.registrationId,
@@ -871,10 +871,10 @@ export async function recordScore(
 ): Promise<{ ok: boolean; error?: string }> {
   const match = await prisma.tournamentMatch.findUniqueOrThrow({
     where: { id: matchId },
-    include: { season: true },
+    include: { tournament: true },
   })
   const result = validateScore(
-    match.season.raceLength,
+    match.tournament.raceLength,
     match.homeRegistrationId,
     match.awayRegistrationId,
     homeGames,
@@ -902,7 +902,7 @@ export async function recordScore(
     newValue: { homeGames, awayGames, status: 'COMPLETED' },
     reason,
   })
-  await recomputeStandings(match.seasonId)
+  await recomputeStandings(match.tournamentId)
   return { ok: true }
 }
 
@@ -916,9 +916,9 @@ export async function setMatchResolution(
 ): Promise<{ ok: boolean; error?: string }> {
   const match = await prisma.tournamentMatch.findUniqueOrThrow({
     where: { id: matchId },
-    include: { season: true },
+    include: { tournament: true },
   })
-  const data: Prisma.SeasonMatchUpdateInput = { status: kind, verification: 'UNVERIFIED' }
+  const data: Prisma.TournamentMatchUpdateInput = { status: kind, verification: 'UNVERIFIED' }
   if (kind === 'DISPUTED') {
     data.winnerRegistrationId = null
     data.loserRegistrationId = null
@@ -933,8 +933,8 @@ export async function setMatchResolution(
     const winnerIsHome = winnerRegistrationId === match.homeRegistrationId
     data.winnerRegistrationId = winnerRegistrationId
     data.loserRegistrationId = loserId
-    data.homeGames = winnerIsHome ? match.season.raceLength : 0
-    data.awayGames = winnerIsHome ? 0 : match.season.raceLength
+    data.homeGames = winnerIsHome ? match.tournament.raceLength : 0
+    data.awayGames = winnerIsHome ? 0 : match.tournament.raceLength
     data.completedAt = new Date()
   }
   await prisma.tournamentMatch.update({ where: { id: matchId }, data })
@@ -946,7 +946,7 @@ export async function setMatchResolution(
     newValue: { status: kind, winnerRegistrationId },
     reason,
   })
-  await recomputeStandings(match.seasonId)
+  await recomputeStandings(match.tournamentId)
   return { ok: true }
 }
 
@@ -966,7 +966,7 @@ export async function verifyMatch(actor: Actor, matchId: number, verified: boole
     newValue: { verification: verified ? 'VERIFIED' : 'UNVERIFIED' },
     reason,
   })
-  await recomputeStandings(match.seasonId)
+  await recomputeStandings(match.tournamentId)
   return { ok: true }
 }
 
@@ -1005,7 +1005,7 @@ export async function undoMatchResult(actor: Actor, matchId: number, reason?: st
     newValue: { status: 'SCHEDULED' },
     reason,
   })
-  await recomputeStandings(m.seasonId)
+  await recomputeStandings(m.tournamentId)
   return { ok: true }
 }
 
@@ -1023,10 +1023,10 @@ export async function setMatchNote(actor: Actor, matchId: number, note: string):
 // Standings (single deterministic compute path, persisted)
 // ---------------------------------------------------------------------------
 
-export async function recomputeStandings(seasonId: number): Promise<void> {
-  const season = await prisma.tournament.findUniqueOrThrow({ where: { id: seasonId } })
+export async function recomputeStandings(tournamentId: number): Promise<void> {
+  const tournament = await prisma.tournament.findUniqueOrThrow({ where: { id: tournamentId } })
   const groups = await prisma.tournamentGroup.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     include: { players: { include: { registration: true } } },
   })
 
@@ -1052,14 +1052,14 @@ export async function recomputeStandings(seasonId: number): Promise<void> {
       awayGames: m.awayGames ?? 0,
       winnerRegistrationId: m.winnerRegistrationId!,
     }))
-    const rows = computeStandings(roster, inputs, season.qualifiersPerGroup)
+    const rows = computeStandings(roster, inputs, tournament.qualifiersPerGroup)
 
     await prisma.$transaction(async (tx) => {
       await tx.standing.deleteMany({ where: { groupId: group.id } })
       for (const r of rows) {
         await tx.standing.create({
           data: {
-            seasonId,
+            tournamentId,
             groupId: group.id,
             registrationId: r.registrationId,
             username: r.username,
@@ -1083,9 +1083,9 @@ export async function recomputeStandings(seasonId: number): Promise<void> {
 // Playoffs
 // ---------------------------------------------------------------------------
 
-async function buildQualifiers(seasonId: number): Promise<GroupQualifiers[]> {
+async function buildQualifiers(tournamentId: number): Promise<GroupQualifiers[]> {
   const groups = await prisma.tournamentGroup.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: { ordinal: 'asc' },
     include: { standings: { where: { qualified: true }, orderBy: { rank: 'asc' } } },
   })
@@ -1095,8 +1095,8 @@ async function buildQualifiers(seasonId: number): Promise<GroupQualifiers[]> {
   }))
 }
 
-export async function previewPlayoff(seasonId: number): Promise<{ ok: boolean; error?: string; plan?: BracketPlan }> {
-  const qGroups = await buildQualifiers(seasonId)
+export async function previewPlayoff(tournamentId: number): Promise<{ ok: boolean; error?: string; plan?: BracketPlan }> {
+  const qGroups = await buildQualifiers(tournamentId)
   const qualifiers = orderQualifiers(qGroups)
   if (qualifiers.length < 2) return { ok: false, error: 'Need at least 2 qualified players. Finish and verify group results first.' }
   try {
@@ -1108,24 +1108,24 @@ export async function previewPlayoff(seasonId: number): Promise<{ ok: boolean; e
 
 export async function generatePlayoff(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   opts: { force?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const publishedCount = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (publishedCount > 0 && !opts.force) return { ok: false, error: 'Playoffs are published. Confirm to regenerate.' }
 
-  const preview = await previewPlayoff(seasonId)
+  const preview = await previewPlayoff(tournamentId)
   if (!preview.ok || !preview.plan) return { ok: false, error: preview.error }
   const plan = preview.plan
 
   await prisma.$transaction(async (tx) => {
-    await tx.playoffMatch.deleteMany({ where: { seasonId } })
+    await tx.playoffMatch.deleteMany({ where: { tournamentId } })
     const idByIndex: Record<number, number> = {}
     for (const m of plan.matches) {
       const created = await tx.playoffMatch.create({
         data: {
-          seasonId,
+          tournamentId,
           round: m.round,
           slot: m.slot,
           label: m.label,
@@ -1147,20 +1147,20 @@ export async function generatePlayoff(
         })
       }
     }
-    await recordAudit(actor, { action: 'playoff.generate', entity: 'Season', entityId: seasonId, newValue: { matches: plan.matches.length, size: plan.bracketSize } }, tx)
+    await recordAudit(actor, { action: 'playoff.generate', entity: 'Tournament', entityId: tournamentId, newValue: { matches: plan.matches.length, size: plan.bracketSize } }, tx)
   })
   return { ok: true }
 }
 
-export async function publishPlayoff(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const count = await prisma.playoffMatch.count({ where: { seasonId } })
+export async function publishPlayoff(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const count = await prisma.playoffMatch.count({ where: { tournamentId } })
   if (count === 0) return { ok: false, error: 'Generate the bracket before publishing.' }
   await prisma.$transaction(async (tx) => {
-    await tx.playoffMatch.updateMany({ where: { seasonId }, data: { published: true } })
-    await tx.tournament.update({ where: { id: seasonId }, data: { playoffsStatus: 'PUBLISHED' } })
+    await tx.playoffMatch.updateMany({ where: { tournamentId }, data: { published: true } })
+    await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PUBLISHED' } })
   })
-  await recordAudit(actor, { action: 'playoff.publish', entity: 'Season', entityId: seasonId, newValue: { published: true } })
+  await recordAudit(actor, { action: 'playoff.publish', entity: 'Tournament', entityId: tournamentId, newValue: { published: true } })
   return { ok: true }
 }
 
@@ -1175,24 +1175,24 @@ export async function publishPlayoff(actor: Actor, seasonId: number): Promise<{ 
  * rendering as the auto-generator. Blocked while published (return to draft first).
  * Names are the entrants' resolved public display identity.
  */
-export async function rebuildManualPlayoff(actor: Actor, seasonId: number, orderedRegistrationIds: number[]): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const publishedCount = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, orderedRegistrationIds: number[]): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (publishedCount > 0) return { ok: false, error: 'Bracket is published — return it to draft before editing.' }
 
   const ids = [...new Set(orderedRegistrationIds)].filter((n) => Number.isFinite(n))
   if (ids.length < 2) {
     // Not enough seeds to form a bracket yet — clear any draft and keep the seeds in the pool.
-    await prisma.playoffMatch.deleteMany({ where: { seasonId } })
+    await prisma.playoffMatch.deleteMany({ where: { tournamentId } })
     return { ok: true }
   }
 
   const { resolveEntrants } = await import('./entrants')
-  const regs = await prisma.registration.findMany({ where: { id: { in: ids }, seasonId }, select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true } })
+  const regs = await prisma.registration.findMany({ where: { id: { in: ids }, tournamentId }, select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true } })
   const idn = await resolveEntrants(regs)
   const nameById = new Map(regs.map((r) => [r.id, idn.get(r.id)?.displayName ?? r.username]))
   const qualifiers = ids.filter((id) => nameById.has(id)).map((id, i) => ({ registrationId: id, username: nameById.get(id)!, seed: i + 1 }))
-  if (qualifiers.length < 2) return { ok: false, error: 'Selected players are not valid entrants for this season.' }
+  if (qualifiers.length < 2) return { ok: false, error: 'Selected players are not valid entrants for this tournament.' }
 
   let plan: BracketPlan
   try {
@@ -1202,12 +1202,12 @@ export async function rebuildManualPlayoff(actor: Actor, seasonId: number, order
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.playoffMatch.deleteMany({ where: { seasonId } })
+    await tx.playoffMatch.deleteMany({ where: { tournamentId } })
     const idByIndex: Record<number, number> = {}
     for (const m of plan.matches) {
       const created = await tx.playoffMatch.create({
         data: {
-          seasonId,
+          tournamentId,
           round: m.round,
           slot: m.slot,
           label: m.label,
@@ -1226,33 +1226,33 @@ export async function rebuildManualPlayoff(actor: Actor, seasonId: number, order
         await tx.playoffMatch.update({ where: { id: idByIndex[m.index] }, data: { feedsMatchId: idByIndex[m.feedsIndex], feedsSlot: m.feedsSlot } })
       }
     }
-    await tx.tournament.update({ where: { id: seasonId }, data: { playoffsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'playoff.manualBuild', entity: 'Season', entityId: seasonId, newValue: { seeds: qualifiers.length, size: plan.bracketSize } }, tx)
+    await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
+    await recordAudit(actor, { action: 'playoff.manualBuild', entity: 'Tournament', entityId: tournamentId, newValue: { seeds: qualifiers.length, size: plan.bracketSize } }, tx)
   })
   return { ok: true }
 }
 
 /** Return a published bracket to DRAFT so it can be edited again (only before results). */
-export async function returnPlayoffToDraft(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const withResults = await prisma.playoffMatch.count({ where: { seasonId, NOT: { winnerRegistrationId: null } } })
+export async function returnPlayoffToDraft(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const withResults = await prisma.playoffMatch.count({ where: { tournamentId, NOT: { winnerRegistrationId: null } } })
   if (withResults > 0) return { ok: false, error: 'Results have been recorded — cannot return to draft. Undo those results first.' }
   await prisma.$transaction(async (tx) => {
-    await tx.playoffMatch.updateMany({ where: { seasonId }, data: { published: false } })
-    await tx.tournament.update({ where: { id: seasonId }, data: { playoffsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'playoff.returnToDraft', entity: 'Season', entityId: seasonId, newValue: { published: false } }, tx)
+    await tx.playoffMatch.updateMany({ where: { tournamentId }, data: { published: false } })
+    await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
+    await recordAudit(actor, { action: 'playoff.returnToDraft', entity: 'Tournament', entityId: tournamentId, newValue: { published: false } }, tx)
   })
   return { ok: true }
 }
 
 /** Delete the entire playoff bracket (draft only). */
-export async function deletePlayoff(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
-  await assertCompetitionUnlocked(prisma, seasonId)
-  const publishedCount = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+export async function deletePlayoff(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (publishedCount > 0) return { ok: false, error: 'Return the bracket to draft before deleting it.' }
-  await prisma.playoffMatch.deleteMany({ where: { seasonId } })
-  await prisma.tournament.update({ where: { id: seasonId }, data: { playoffsStatus: 'PENDING' } })
-  await recordAudit(actor, { action: 'playoff.delete', entity: 'Season', entityId: seasonId })
+  await prisma.playoffMatch.deleteMany({ where: { tournamentId } })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
+  await recordAudit(actor, { action: 'playoff.delete', entity: 'Tournament', entityId: tournamentId })
   return { ok: true }
 }
 
@@ -1263,11 +1263,11 @@ export async function recordPlayoffScore(
   awayGames: number,
   reason?: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const match = await prisma.playoffMatch.findUniqueOrThrow({ where: { id: matchId }, include: { season: true } })
-  await assertCompetitionUnlocked(prisma, match.seasonId)
+  const match = await prisma.playoffMatch.findUniqueOrThrow({ where: { id: matchId }, include: { tournament: true } })
+  await assertCompetitionUnlocked(prisma, match.tournamentId)
   if (match.homeRegistrationId == null || match.awayRegistrationId == null)
     return { ok: false, error: 'Both players must be determined before entering a score.' }
-  const result = validateScore(match.season.raceLength, match.homeRegistrationId, match.awayRegistrationId, homeGames, awayGames)
+  const result = validateScore(match.tournament.raceLength, match.homeRegistrationId, match.awayRegistrationId, homeGames, awayGames)
   if (!result.ok) return { ok: false, error: result.error }
   await prisma.playoffMatch.update({
     where: { id: matchId },
@@ -1298,18 +1298,18 @@ export async function recordPlayoffScore(
  * submissions are rejected. A player can never report themselves as the winner (structural).
  */
 export async function reportOwnLoss(userId: number, username: string, matchId: number, myGamesWon: number): Promise<{ ok: boolean; error?: string }> {
-  const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { season: true } })
+  const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { tournament: true } })
   if (!match) return { ok: false, error: 'Match not found.' }
-  if (match.season.competitionType !== 'CUP') return { ok: false, error: 'This is not a cup match.' }
+  if (match.tournament.competitionType !== 'CUP') return { ok: false, error: 'This is not a cup match.' }
   const { getCupState } = await import('./cup-lifecycle')
-  if (getCupState(match.season) !== 'IN_PROGRESS') return { ok: false, error: 'This cup is not currently in progress.' }
+  if (getCupState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This cup is not currently in progress.' }
   if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
   if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }
 
   // Resolve the caller's entrant in this cup (by account OR linked profile).
   const profile = await prisma.player.findUnique({ where: { linkedUserId: String(userId) }, select: { id: true } })
   const myReg = await prisma.registration.findFirst({
-    where: { seasonId: match.seasonId, OR: [{ userId }, ...(profile ? [{ playerId: profile.id }] : [])] },
+    where: { tournamentId: match.tournamentId, OR: [{ userId }, ...(profile ? [{ playerId: profile.id }] : [])] },
     select: { id: true },
   })
   if (!myReg) return { ok: false, error: 'You are not an entrant in this cup.' }
@@ -1317,7 +1317,7 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
   const isAway = match.awayRegistrationId === myReg.id
   if (!isHome && !isAway) return { ok: false, error: 'You can only report a match you are playing in.' }
 
-  const race = match.season.raceLength
+  const race = match.tournament.raceLength
   const mine = Math.max(0, Math.min(Number.isFinite(myGamesWon) ? myGamesWon : 0, race - 1)) // a loss is strictly < race
   const homeGames = isHome ? mine : race // the OPPONENT (winner) gets the full race
   const awayGames = isHome ? race : mine
@@ -1332,7 +1332,7 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
 /** Verify a playoff result and advance the winner into the next match. */
 export async function verifyPlayoffMatch(actor: Actor, matchId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
   const match = await prisma.playoffMatch.findUniqueOrThrow({ where: { id: matchId } })
-  await assertCompetitionUnlocked(prisma, match.seasonId)
+  await assertCompetitionUnlocked(prisma, match.tournamentId)
   if (match.winnerRegistrationId == null) return { ok: false, error: 'Record a result before verifying.' }
   await prisma.$transaction(async (tx) => {
     await tx.playoffMatch.update({ where: { id: matchId }, data: { verification: 'VERIFIED' } })
@@ -1359,7 +1359,7 @@ export async function verifyPlayoffMatch(actor: Actor, matchId: number, reason?:
  */
 export async function undoPlayoffResult(actor: Actor, matchId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
   const m = await prisma.playoffMatch.findUniqueOrThrow({ where: { id: matchId } })
-  await assertCompetitionUnlocked(prisma, m.seasonId)
+  await assertCompetitionUnlocked(prisma, m.tournamentId)
   if (m.winnerRegistrationId == null && m.status === 'SCHEDULED' && m.homeGames == null)
     return { ok: false, error: 'This match has no recorded result to undo.' }
   await prisma.$transaction(async (tx) => {
@@ -1394,7 +1394,7 @@ export async function undoPlayoffResult(actor: Actor, matchId: number, reason?: 
 /** Attach / update / clear an optional admin note on a playoff match result. */
 export async function setPlayoffNote(actor: Actor, matchId: number, note: string): Promise<{ ok: boolean; error?: string }> {
   const m = await prisma.playoffMatch.findUniqueOrThrow({ where: { id: matchId } })
-  await assertCompetitionUnlocked(prisma, m.seasonId)
+  await assertCompetitionUnlocked(prisma, m.tournamentId)
   const clean = note.trim() || null
   if (clean === (m.note ?? null)) return { ok: true }
   await prisma.playoffMatch.update({ where: { id: matchId }, data: { note: clean } })

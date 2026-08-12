@@ -8,8 +8,8 @@ export interface Actor {
 }
 
 export interface AuditEntry {
-  action: string // e.g. "season.update"
-  entity: string // e.g. "Season"
+  action: string // e.g. "tournament.update"
+  entity: string // e.g. "Tournament"
   entityId?: string | number | null
   oldValue?: unknown
   newValue?: unknown

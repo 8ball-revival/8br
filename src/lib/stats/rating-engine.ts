@@ -13,7 +13,7 @@
  *  - Batch RATING PERIODS processed chronologically (group stage, playoffs, each cup),
  *    order-independent within a period.
  *  - Weighted games (Glicko-2 fractional-games extension): every match counts, but
- *    playoff/championship matches count more, and Season finals slightly more than Cup
+ *    playoff/championship matches count more, and Tournament finals slightly more than Cup
  *    finals. Prestige is EARNED by winning high-stakes matches, not stamped on.
  *  - Team cups: only the individual board matches are rated — never the team result —
  *    so nobody gains rating from being carried.
@@ -271,9 +271,9 @@ function buildPeriods(): Period[] {
       }
     }
     if (groupGames.length)
-      periods.push({ eventId: `${s.seasonId}:group`, eventLabel: `${s.label} · Group Stage`, year: s.year, kind: 'group', order: base, games: groupGames })
+      periods.push({ eventId: `${s.tournamentId}:group`, eventLabel: `${s.label} · Group Stage`, year: s.year, kind: 'group', order: base, games: groupGames })
     if (playoffGames.length)
-      periods.push({ eventId: `${s.seasonId}:playoff`, eventLabel: `${s.label} · Playoffs`, year: s.year, kind: 'playoff', order: base + 1, games: playoffGames })
+      periods.push({ eventId: `${s.tournamentId}:playoff`, eventLabel: `${s.label} · Playoffs`, year: s.year, kind: 'playoff', order: base + 1, games: playoffGames })
   }
 
   // Cups: one period each (bracket + team ties). Ordered after that year's seasons.

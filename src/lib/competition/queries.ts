@@ -1,12 +1,12 @@
 import 'server-only'
-import type { Season } from '@prisma/client'
+import type { Tournament } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { resolveEntrants, ENTRANT_SELECT } from './entrants'
 
-/** The season the public site and admin default to (most recent, non-completed).
+/** The tournament the public site and admin default to (most recent, non-completed).
  *  Scoped to competitionType SEASON so migrated Cups (also comp_season rows) are
- *  never mistaken for the active season. */
-export async function getActiveSeason(): Promise<Season | null> {
+ *  never mistaken for the active tournament. */
+export async function getActiveSeason(): Promise<Tournament | null> {
   const live = await prisma.tournament.findFirst({
     where: { competitionType: 'SEASON', seasonStatus: { not: 'COMPLETED' } },
     orderBy: { createdAt: 'desc' },
@@ -14,18 +14,18 @@ export async function getActiveSeason(): Promise<Season | null> {
   return live ?? prisma.tournament.findFirst({ where: { competitionType: 'SEASON' }, orderBy: { createdAt: 'desc' } })
 }
 
-export async function getSeasonBySlug(slug: string): Promise<Season | null> {
+export async function getSeasonBySlug(slug: string): Promise<Tournament | null> {
   return prisma.tournament.findUnique({ where: { slug } })
 }
 
-/** Live registered (approved) player count for a season. */
-export async function getApprovedCount(seasonId: number): Promise<number> {
-  return prisma.registration.count({ where: { seasonId, status: 'APPROVED' } })
+/** Live registered (approved) player count for a tournament. */
+export async function getApprovedCount(tournamentId: number): Promise<number> {
+  return prisma.registration.count({ where: { tournamentId, status: 'APPROVED' } })
 }
 
-/** A single user's registration for a season (public account/register views). */
-export async function getUserRegistration(seasonId: number, userId: number) {
-  return prisma.registration.findUnique({ where: { seasonId_userId: { seasonId, userId } } })
+/** A single user's registration for a tournament (public account/register views). */
+export async function getUserRegistration(tournamentId: number, userId: number) {
+  return prisma.registration.findUnique({ where: { seasonId_userId: { tournamentId, userId } } })
 }
 
 export interface EntrantRow {
@@ -39,16 +39,16 @@ export interface EntrantRow {
   playerId: string | null
 }
 
-/** All entrants for a season (any status), resolved to public identity, for admin
+/** All entrants for a tournament (any status), resolved to public identity, for admin
  *  management. Includes account-link + group-placement flags. */
-export async function getEntrants(seasonId: number): Promise<EntrantRow[]> {
+export async function getEntrants(tournamentId: number): Promise<EntrantRow[]> {
   const regs = await prisma.registration.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
     select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true, userId: true, status: true, addedByAdmin: true },
   })
   const identities = await resolveEntrants(regs)
-  const gp = await prisma.groupPlayer.findMany({ where: { group: { seasonId } }, select: { registrationId: true } })
+  const gp = await prisma.groupPlayer.findMany({ where: { group: { tournamentId } }, select: { registrationId: true } })
   const inGroup = new Set(gp.map((g) => g.registrationId))
   return regs.map((r) => ({
     registrationId: r.id,
@@ -71,12 +71,12 @@ export interface EntrantCandidateRow { playerId: string; primaryName: string; cu
  * EXCLUDES: profiles already entered in this cup, inactive profiles, and profiles whose linked
  * account is soft-deleted or banned. Never returns free-text / account-less entrants.
  */
-export async function searchEntrantCandidates(seasonId: number, query: string, limit = 50): Promise<EntrantCandidateRow[]> {
+export async function searchEntrantCandidates(tournamentId: number, query: string, limit = 50): Promise<EntrantCandidateRow[]> {
   const q = query.trim()
   const nk = q.toLowerCase().replace(/[^a-z0-9]/g, '')
   // Players already entered (any non-withdrawn/non-rejected registration) — excluded from results.
   const entered = new Set(
-    (await prisma.registration.findMany({ where: { seasonId, status: { notIn: ['WITHDRAWN', 'REJECTED'] }, playerId: { not: null } }, select: { playerId: true } })).map((e) => e.playerId!),
+    (await prisma.registration.findMany({ where: { tournamentId, status: { notIn: ['WITHDRAWN', 'REJECTED'] }, playerId: { not: null } }, select: { playerId: true } })).map((e) => e.playerId!),
   )
   const match = q
     ? {
@@ -107,9 +107,9 @@ export async function searchEntrantCandidates(seasonId: number, query: string, l
 }
 
 /** Published groups with players + standings, for the PUBLIC groups page. */
-export async function getPublishedGroups(seasonId: number) {
+export async function getPublishedGroups(tournamentId: number) {
   return prisma.tournamentGroup.findMany({
-    where: { seasonId, published: true },
+    where: { tournamentId, published: true },
     orderBy: { ordinal: 'asc' },
     include: {
       players: { orderBy: { seed: 'asc' } },
@@ -145,14 +145,14 @@ export interface GroupBuilderData {
  * (APPROVED) entrant not yet placed into a group. Assigned players never appear in
  * the unassigned pool, so the add dropdown can exclude them. No email is selected.
  */
-export async function getGroupBuilder(seasonId: number): Promise<GroupBuilderData> {
+export async function getGroupBuilder(tournamentId: number): Promise<GroupBuilderData> {
   const [rawGroups, approved] = await Promise.all([
     prisma.tournamentGroup.findMany({
-      where: { seasonId },
+      where: { tournamentId },
       orderBy: { ordinal: 'asc' },
       include: { players: { orderBy: { seed: 'asc' }, include: { registration: { select: ENTRANT_SELECT } } } },
     }),
-    prisma.registration.findMany({ where: { seasonId, status: 'APPROVED' }, orderBy: { createdAt: 'asc' }, select: ENTRANT_SELECT }),
+    prisma.registration.findMany({ where: { tournamentId, status: 'APPROVED' }, orderBy: { createdAt: 'asc' }, select: ENTRANT_SELECT }),
   ])
 
   const allRegs = [...approved, ...rawGroups.flatMap((g) => g.players.map((p) => p.registration))]
@@ -190,8 +190,8 @@ export interface PlayoffBuilderData {
 /** State for the manual playoff builder: the current ordered seed list (reconstructed
  *  from the draft round-1 slots) + the Available Entrants pool (active entrants not
  *  yet seeded). Names are resolved public identities. */
-export async function getPlayoffBuilder(seasonId: number): Promise<PlayoffBuilderData> {
-  const matches = await prisma.playoffMatch.findMany({ where: { seasonId }, orderBy: [{ round: 'asc' }, { slot: 'asc' }] })
+export async function getPlayoffBuilder(tournamentId: number): Promise<PlayoffBuilderData> {
+  const matches = await prisma.playoffMatch.findMany({ where: { tournamentId }, orderBy: [{ round: 'asc' }, { slot: 'asc' }] })
   const published = matches.some((m) => m.published)
   const seededRaw: { registrationId: number; seed: number }[] = []
   for (const m of matches.filter((x) => x.round === 1)) {
@@ -200,7 +200,7 @@ export async function getPlayoffBuilder(seasonId: number): Promise<PlayoffBuilde
   }
   seededRaw.sort((a, b) => a.seed - b.seed)
 
-  const entrants = await getEntrants(seasonId)
+  const entrants = await getEntrants(tournamentId)
   const active = entrants.filter((e) => e.status === 'APPROVED' || e.status === 'PENDING')
   const byReg = new Map(active.map((e) => [e.registrationId, e]))
   const seeds: PlayoffSeed[] = seededRaw.map((s) => ({
@@ -215,9 +215,9 @@ export async function getPlayoffBuilder(seasonId: number): Promise<PlayoffBuilde
 }
 
 /** All groups (published or not) with players (+ registration) + standings, for ADMIN. */
-export async function getAllGroups(seasonId: number) {
+export async function getAllGroups(tournamentId: number) {
   return prisma.tournamentGroup.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: { ordinal: 'asc' },
     include: {
       players: { orderBy: { seed: 'asc' }, include: { registration: true } },
@@ -233,46 +233,46 @@ export async function getGroupMatches(groupId: number) {
   })
 }
 
-export async function getSeasonMatches(seasonId: number) {
+export async function getSeasonMatches(tournamentId: number) {
   return prisma.tournamentMatch.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: [{ groupId: 'asc' }, { round: 'asc' }, { id: 'asc' }],
   })
 }
 
 /** Published playoff matches for the PUBLIC playoffs page (bracket order). */
-export async function getPublishedPlayoff(seasonId: number) {
+export async function getPublishedPlayoff(tournamentId: number) {
   return prisma.playoffMatch.findMany({
-    where: { seasonId, published: true },
+    where: { tournamentId, published: true },
     orderBy: [{ round: 'asc' }, { slot: 'asc' }],
   })
 }
 
-export async function getAllPlayoffMatches(seasonId: number) {
+export async function getAllPlayoffMatches(tournamentId: number) {
   return prisma.playoffMatch.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: [{ round: 'asc' }, { slot: 'asc' }],
   })
 }
 
-export async function listRegistrations(seasonId: number) {
+export async function listRegistrations(tournamentId: number) {
   return prisma.registration.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: [{ status: 'asc' }, { username: 'asc' }],
   })
 }
 
 /** Aggregate counts for the admin dashboard. */
-export async function getDashboardSummary(seasonId: number) {
+export async function getDashboardSummary(tournamentId: number) {
   const [reg, groups, matchesWaiting, unverified, disputes, playoff] = await Promise.all([
-    prisma.registration.groupBy({ by: ['status'], where: { seasonId }, _count: true }),
-    prisma.tournamentGroup.count({ where: { seasonId } }),
-    prisma.tournamentMatch.count({ where: { seasonId, status: 'SCHEDULED' } }),
+    prisma.registration.groupBy({ by: ['status'], where: { tournamentId }, _count: true }),
+    prisma.tournamentGroup.count({ where: { tournamentId } }),
+    prisma.tournamentMatch.count({ where: { tournamentId, status: 'SCHEDULED' } }),
     prisma.tournamentMatch.count({
-      where: { seasonId, status: { not: 'SCHEDULED' }, verification: 'UNVERIFIED' },
+      where: { tournamentId, status: { not: 'SCHEDULED' }, verification: 'UNVERIFIED' },
     }),
-    prisma.tournamentMatch.count({ where: { seasonId, status: 'DISPUTED' } }),
-    prisma.playoffMatch.count({ where: { seasonId } }),
+    prisma.tournamentMatch.count({ where: { tournamentId, status: 'DISPUTED' } }),
+    prisma.playoffMatch.count({ where: { tournamentId } }),
   ])
   const byStatus: Record<string, number> = {}
   for (const r of reg) byStatus[r.status] = r._count

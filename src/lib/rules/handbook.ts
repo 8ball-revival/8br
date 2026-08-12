@@ -247,7 +247,7 @@ export const HANDBOOK: HandbookSection[] = [
           },
           {
             k: 'p',
-            text: 'Tournament staff may deny entry to players who are currently suspended, have unresolved disciplinary investigations, or have previously been removed for cheating or serious misconduct. Returning players may be placed on probation for one season if tournament staff determine additional oversight is appropriate.',
+            text: 'Tournament staff may deny entry to players who are currently suspended, have unresolved disciplinary investigations, or have previously been removed for cheating or serious misconduct. Returning players may be placed on probation for one tournament if tournament staff determine additional oversight is appropriate.',
           },
           {
             k: 'p',
@@ -295,7 +295,7 @@ export const HANDBOOK: HandbookSection[] = [
           },
           {
             k: 'p',
-            text: 'Tournament staff may require a player to change their Player ID before participating. A player wishing to change their Player ID during a season must update it from the myaccount section.',
+            text: 'Tournament staff may require a player to change their Player ID before participating. A player wishing to change their Player ID during a tournament must update it from the myaccount section.',
           },
         ],
       },
@@ -531,7 +531,7 @@ export const HANDBOOK: HandbookSection[] = [
         blocks: [
           {
             k: 'p',
-            text: 'Players are assigned to groups before the season begins. The number of groups, the number of players per group, and the total number of qualifying positions are announced before the competition begins.',
+            text: 'Players are assigned to groups before the tournament begins. The number of groups, the number of players per group, and the total number of qualifying positions are announced before the competition begins.',
           },
           {
             k: 'p',
@@ -555,7 +555,7 @@ export const HANDBOOK: HandbookSection[] = [
         blocks: [
           {
             k: 'p',
-            text: 'Standings are determined using the official point system, which is published before registration opens. Unless otherwise announced before the season begins:',
+            text: 'Standings are determined using the official point system, which is published before registration opens. Unless otherwise announced before the tournament begins:',
           },
           {
             k: 'dl',
@@ -587,7 +587,7 @@ export const HANDBOOK: HandbookSection[] = [
         blocks: [
           {
             k: 'p',
-            text: 'The number of qualifying players from each group is announced before the tournament begins. Qualification may be automatic, by wildcard, or by another method announced before registration. No qualification method may be changed after the season begins.',
+            text: 'The number of qualifying players from each group is announced before the tournament begins. Qualification may be automatic, by wildcard, or by another method announced before registration. No qualification method may be changed after the tournament begins.',
           },
           {
             k: 'p',
@@ -611,14 +611,14 @@ export const HANDBOOK: HandbookSection[] = [
               'Win/loss ratio.',
               'Points earned against higher-placed finishers.',
               'Win/loss ratio against higher-placed finishers.',
-              'Any additional tiebreaker announced before the season begins, if still required.',
+              'Any additional tiebreaker announced before the tournament begins, if still required.',
             ],
           },
           {
             k: 'ol',
             title: 'Three-or-More-Player Ties',
             items: [
-              'Points earned among the tied players or against higher-placed finishers, whichever format is published before the season.',
+              'Points earned among the tied players or against higher-placed finishers, whichever format is published before the tournament.',
               'Win/loss ratio.',
               'Win/loss ratio against higher-placed finishers.',
               'Any additional published tiebreaker.',
@@ -640,7 +640,7 @@ export const HANDBOOK: HandbookSection[] = [
           },
           {
             k: 'p',
-            text: 'A player may not voluntarily withdraw after the season begins without notifying tournament staff. If a player withdraws, tournament staff determine whether previous results stand, and remaining matches are handled under Section 12. Whenever reasonably possible, tournament staff should replace a withdrawn player with a stand-by player.',
+            text: 'A player may not voluntarily withdraw after the tournament begins without notifying tournament staff. If a player withdraws, tournament staff determine whether previous results stand, and remaining matches are handled under Section 12. Whenever reasonably possible, tournament staff should replace a withdrawn player with a stand-by player.',
           },
         ],
       },

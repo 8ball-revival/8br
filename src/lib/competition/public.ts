@@ -1,13 +1,13 @@
 import 'server-only'
-import type { Season } from '@prisma/client'
+import type { Tournament } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { formatDate } from '@/lib/format'
 import { getActiveSeason } from './queries'
 import { resolveEntrants, ENTRANT_SELECT } from './entrants'
 
-export type PublicSeason = Season
+export type PublicSeason = Tournament
 
-/** The season the public site presents (null when none has been created yet). */
+/** The tournament the public site presents (null when none has been created yet). */
 export async function getPublicSeason(): Promise<PublicSeason | null> {
   return getActiveSeason()
 }
@@ -20,7 +20,7 @@ export interface PublicRegistrant {
 }
 
 /**
- * ACTIVE (APPROVED) registrations for the current season — the live public entrant
+ * ACTIVE (APPROVED) registrations for the current tournament — the live public entrant
  * list. Active immediately (no staff approval). When a registration's account has
  * been linked to a canonical profile, the entrant resolves to that profile's public
  * identity; otherwise the submitted registration name + CueVerse ID is shown.
@@ -31,10 +31,10 @@ export interface PublicRegistrant {
  * exposed here at all. Staff surfaces read the raw registration separately.
  */
 export async function getPublicRegistrations(): Promise<PublicRegistrant[]> {
-  const season = await getActiveSeason()
-  if (!season) return []
+  const tournament = await getActiveSeason()
+  if (!tournament) return []
   const regs = await prisma.registration.findMany({
-    where: { seasonId: season.id, status: 'APPROVED' },
+    where: { tournamentId: tournament.id, status: 'APPROVED' },
     orderBy: { createdAt: 'asc' },
     select: { username: true, displayName: true, cueverseId: true, playerId: true, createdAt: true },
   })
@@ -104,15 +104,15 @@ export interface PublicGroupView {
 }
 
 /**
- * PUBLISHED season groups for the public site. Every player, standing row, and
+ * PUBLISHED tournament groups for the public site. Every player, standing row, and
  * fixture is resolved to the entrant's PUBLIC identity (canonical Player profile
  * when linked, else the submitted registration name + CueVerse ID). DRAFT groups
  * are never returned. Account User IDs, email, Discord, and all private account
  * data are never selected or exposed — only display names + CueVerse IDs appear.
  */
-export async function getPublicGroups(seasonId: number): Promise<PublicGroupView[]> {
+export async function getPublicGroups(tournamentId: number): Promise<PublicGroupView[]> {
   const groups = await prisma.tournamentGroup.findMany({
-    where: { seasonId, published: true },
+    where: { tournamentId, published: true },
     orderBy: { ordinal: 'asc' },
     include: {
       players: { orderBy: { seed: 'asc' }, include: { registration: { select: ENTRANT_SELECT } } },
@@ -170,11 +170,11 @@ export async function getPublicGroups(seasonId: number): Promise<PublicGroupView
   }))
 }
 
-export function isRegistrationOpen(s: Pick<Season, 'registrationStatus'> | null): boolean {
+export function isRegistrationOpen(s: Pick<Tournament, 'registrationStatus'> | null): boolean {
   return s?.registrationStatus === 'OPEN'
 }
 
-export function registrationDeadlineLabel(s: Pick<Season, 'registrationClosesAt'> | null): string {
+export function registrationDeadlineLabel(s: Pick<Tournament, 'registrationClosesAt'> | null): string {
   if (s?.registrationClosesAt) return `Registration closes ${formatDate(s.registrationClosesAt.toISOString())}`
   return 'Registration deadline to be announced'
 }

@@ -44,15 +44,15 @@ export async function setAccountDisabledAction(userId: number, disabled: boolean
   return { ok: true, message: disabled ? 'Account disabled.' : 'Account restored.' }
 }
 
-/** Enroll Player profiles into the active season (Season 2). Duplicates are skipped. */
+/** Enroll Player profiles into the active tournament (Tournament 2). Duplicates are skipped. */
 export async function enrollSeason2Action(playerIds: string[]): Promise<ActionResult & { enrolled?: number; already?: number }> {
   const actor = await requireCapability('manage_competitions')
-  const season = await getActiveSeason()
-  if (!season) return { error: 'There is no active season.' }
+  const tournament = await getActiveSeason()
+  if (!tournament) return { error: 'There is no active tournament.' }
   let enrolled = 0
   let already = 0
   for (const playerId of [...new Set(playerIds)]) {
-    const r = await addEntrantByProfile(actor, season.id, playerId)
+    const r = await addEntrantByProfile(actor, tournament.id, playerId)
     if (r.ok && r.already) already++
     else if (r.ok) enrolled++
   }

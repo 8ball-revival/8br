@@ -1,11 +1,11 @@
 import 'server-only'
-import type { CupLifecycleState, Season, Prisma } from '@prisma/client'
+import type { TournamentLifecycleState, Tournament, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 
 /**
  * CUP LIFECYCLE — the single source of truth for a cup's state and the ONLY place cup state
- * transitions happen. Behavior is driven by the explicit stored `Season.cupState`, never
+ * transitions happen. Behavior is driven by the explicit stored `Tournament.lifecycleState`, never
  * inferred from whether a bracket exists.
  *
  * Valid transitions (enforced server-side):
@@ -22,7 +22,7 @@ import { recordAudit, type Actor } from './audit'
  * ladder exactly once (idempotent via `ladderAppliedAt`). Every transition is audited.
  */
 
-export type CupState = CupLifecycleState
+export type CupState = TournamentLifecycleState
 
 const NEXT: Record<CupState, CupState[]> = {
   DRAFT: ['REGISTRATION_OPEN', 'CANCELLED'],
@@ -56,12 +56,12 @@ export const CUP_STATE_LABEL: Record<CupState, string> = {
   CANCELLED: 'Cancelled',
 }
 
-type SeasonStateFields = Pick<Season, 'cupState' | 'cupStatus' | 'seasonStatus' | 'registrationStatus' | 'playoffsStatus'>
+type TournamentStateFields = Pick<Tournament, 'lifecycleState' | 'cupStatus' | 'seasonStatus' | 'registrationStatus' | 'playoffsStatus'>
 
 /**
  * Derive a lifecycle state for a legacy cup that predates the explicit field (pure).
  *
- * Migration behavior for existing cups (which have `cupState = null`): the value is derived
+ * Migration behavior for existing cups (which have `lifecycleState = null`): the value is derived
  * on read from the old status columns and is never written until the cup's next transition.
  *   - completed cup (`cupStatus=completed` or `seasonStatus=COMPLETED`) → COMPLETED
  *   - published bracket (`playoffsStatus=PUBLISHED`) → IN_PROGRESS
@@ -74,8 +74,8 @@ type SeasonStateFields = Pick<Season, 'cupState' | 'cupStatus' | 'seasonStatus' 
  * choice: reporting/scoring stay enabled, exactly as before). BRACKET_GENERATED is only ever
  * reached by cups managed under the new flow, where it is stored explicitly.
  */
-export function deriveLegacyState(s: SeasonStateFields): CupState {
-  if (s.cupState) return s.cupState
+export function deriveLegacyState(s: TournamentStateFields): CupState {
+  if (s.lifecycleState) return s.lifecycleState
   if (s.cupStatus === 'completed' || s.seasonStatus === 'COMPLETED') return 'COMPLETED'
   if (s.playoffsStatus === 'PUBLISHED') return 'IN_PROGRESS'
   if (s.registrationStatus === 'OPEN') return 'REGISTRATION_OPEN'
@@ -84,12 +84,12 @@ export function deriveLegacyState(s: SeasonStateFields): CupState {
 }
 
 /** Read the current state (explicit field, or derived for a not-yet-backfilled cup). */
-export function getCupState(s: SeasonStateFields): CupState {
-  return s.cupState ?? deriveLegacyState(s)
+export function getCupState(s: TournamentStateFields): CupState {
+  return s.lifecycleState ?? deriveLegacyState(s)
 }
 
 /** Legacy-field updates that keep the old status columns consistent with a new state. */
-function legacyFieldsFor(to: CupState): Prisma.SeasonUpdateInput {
+function legacyFieldsFor(to: CupState): Prisma.TournamentUpdateInput {
   switch (to) {
     case 'DRAFT':
       return { registrationStatus: 'NOT_OPEN', seasonStatus: 'UPCOMING', cupStatus: 'live' }
@@ -114,9 +114,9 @@ function legacyFieldsFor(to: CupState): Prisma.SeasonUpdateInput {
  * null when completable. Requires a generated bracket, a Final with a confirmed winner, and no
  * playable (both-sides-known) match left undecided.
  */
-export async function assertCompletable(seasonId: number): Promise<string | null> {
+export async function assertCompletable(tournamentId: number): Promise<string | null> {
   const matches = await prisma.playoffMatch.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     select: { round: true, homeRegistrationId: true, awayRegistrationId: true, winnerRegistrationId: true },
   })
   if (matches.length === 0) return 'No bracket has been generated yet.'
@@ -135,9 +135,9 @@ export async function assertCompletable(seasonId: number): Promise<string | null
  * the cup can start. Returns { ok } plus the two id sets for messaging. Team cups compare team
  * registration ids the same way.
  */
-export async function bracketMatchesEntrants(seasonId: number): Promise<{ ok: boolean; reason?: string }> {
+export async function bracketMatchesEntrants(tournamentId: number): Promise<{ ok: boolean; reason?: string }> {
   const matches = await prisma.playoffMatch.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     select: { round: true, homeRegistrationId: true, awayRegistrationId: true },
   })
   if (matches.length === 0) return { ok: false, reason: 'No bracket has been generated.' }
@@ -148,7 +148,7 @@ export async function bracketMatchesEntrants(seasonId: number): Promise<{ ok: bo
     if (m.awayRegistrationId != null) seeded.add(m.awayRegistrationId)
   }
   // Current active entrants: non-withdrawn registrations, or (team cups) non-withdrawn teams' regs.
-  const regs = await prisma.registration.findMany({ where: { seasonId, status: { not: 'WITHDRAWN' } }, select: { id: true } })
+  const regs = await prisma.registration.findMany({ where: { tournamentId, status: { not: 'WITHDRAWN' } }, select: { id: true } })
   const active = new Set(regs.map((r) => r.id))
   // A seeded id no longer active, or an active entrant missing from the bracket → stale.
   for (const id of seeded) if (!active.has(id)) return { ok: false, reason: 'The bracket includes an entrant who is no longer in the cup.' }
@@ -170,15 +170,15 @@ export interface TransitionResult {
  */
 export async function transitionCupState(
   actor: Actor,
-  seasonId: number,
+  tournamentId: number,
   to: CupState,
   opts: { reason?: string; recovery?: boolean } = {},
 ): Promise<TransitionResult> {
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!season || season.competitionType !== 'CUP') return { ok: false, error: 'Cup not found.' }
-  if (season.locked || season.importedFromFixture) return { ok: false, error: 'Imported/locked historical cups cannot change state.' }
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!tournament || tournament.competitionType !== 'CUP') return { ok: false, error: 'Cup not found.' }
+  if (tournament.locked || tournament.importedFromFixture) return { ok: false, error: 'Imported/locked historical cups cannot change state.' }
 
-  const from = getCupState(season)
+  const from = getCupState(tournament)
   if (from === to) return { ok: true, from, to }
 
   const valid = canTransition(from, to)
@@ -187,23 +187,23 @@ export async function transitionCupState(
 
   // Completion gate — the Final must be decided and no required match left open.
   if (to === 'COMPLETED' && !opts.recovery) {
-    const problem = await assertCompletable(seasonId)
+    const problem = await assertCompletable(tournamentId)
     if (problem) return { ok: false, error: problem }
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.tournament.update({ where: { id: seasonId }, data: { cupState: to, ...legacyFieldsFor(to) } })
+    await tx.tournament.update({ where: { id: tournamentId }, data: { lifecycleState: to, ...legacyFieldsFor(to) } })
     await recordAudit(
       actor,
-      { action: opts.recovery && !valid ? 'cup.state.recovery' : 'cup.state', entity: 'Season', entityId: seasonId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
+      { action: opts.recovery && !valid ? 'cup.state.recovery' : 'cup.state', entity: 'Tournament', entityId: tournamentId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
       tx,
     )
-    if (to === 'COMPLETED') await applyLadder(tx, seasonId, actor)
+    if (to === 'COMPLETED') await applyLadder(tx, tournamentId, actor)
   })
 
   // Reflect the final bracket/champion into the derived snapshot (rankings/records/list).
   const { syncLiveCupToSnapshot } = await import('./cup-sync')
-  await syncLiveCupToSnapshot(seasonId)
+  await syncLiveCupToSnapshot(tournamentId)
   return { ok: true, from, to }
 }
 
@@ -215,11 +215,11 @@ type Tx = Prisma.TransactionClient
  * regenerated snapshot), so re-running is harmless — the timestamp + audit make "applied once"
  * explicit and mean reopening/re-completing never double-applies.
  */
-export async function applyLadder(tx: Tx, seasonId: number, actor: Actor): Promise<void> {
-  const s = await tx.tournament.findUnique({ where: { id: seasonId }, select: { ladderAppliedAt: true, cupYear: true, cupDate: true } })
+export async function applyLadder(tx: Tx, tournamentId: number, actor: Actor): Promise<void> {
+  const s = await tx.tournament.findUnique({ where: { id: tournamentId }, select: { ladderAppliedAt: true, cupYear: true, cupDate: true } })
   if (!s || s.ladderAppliedAt) return // already applied — do not run twice
   await tx.tournament.update({
-    where: { id: seasonId },
+    where: { id: tournamentId },
     data: {
       ladderAppliedAt: new Date(),
       // Ensure the cup carries a year/date so results land in the rolling ranking window.
@@ -227,7 +227,7 @@ export async function applyLadder(tx: Tx, seasonId: number, actor: Actor): Promi
       ...(s.cupDate == null ? { cupDate: new Date().toISOString().slice(0, 10) } : {}),
     },
   })
-  await recordAudit(actor, { action: 'cup.ladder.apply', entity: 'Season', entityId: seasonId, newValue: { appliedAt: new Date().toISOString() } }, tx)
+  await recordAudit(actor, { action: 'cup.ladder.apply', entity: 'Tournament', entityId: tournamentId, newValue: { appliedAt: new Date().toISOString() } }, tx)
 }
 
 /**
@@ -236,12 +236,12 @@ export async function applyLadder(tx: Tx, seasonId: number, actor: Actor): Promi
  * (Completed/Cancelled) get a clear "locked" message so every normal mutation is refused server-side.
  */
 export async function requireCupState(
-  seasonId: number,
+  tournamentId: number,
   allowed: CupState[],
 ): Promise<{ ok: true; state: CupState } | { ok: false; error: string }> {
   const s = await prisma.tournament.findUnique({
-    where: { id: seasonId },
-    select: { competitionType: true, cupState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true },
+    where: { id: tournamentId },
+    select: { competitionType: true, lifecycleState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true },
   })
   if (!s || s.competitionType !== 'CUP') return { ok: false, error: 'Cup not found.' }
   const state = getCupState(s)
@@ -279,9 +279,9 @@ const PUBLIC_KINDS: ReadonlySet<CupHistoryKind> = new Set([
  * with `view_audit`-style access get the fuller version including actor and reason. Private moderation
  * notes, emails, and account internals never appear here — cup audit rows contain none of those.
  */
-export async function getCupHistory(seasonId: number, opts: { admin?: boolean } = {}): Promise<CupHistoryEvent[]> {
+export async function getCupHistory(tournamentId: number, opts: { admin?: boolean } = {}): Promise<CupHistoryEvent[]> {
   const rows = await prisma.auditLog.findMany({
-    where: { entity: 'Season', entityId: String(seasonId) },
+    where: { entity: 'Tournament', entityId: String(tournamentId) },
     orderBy: { createdAt: 'asc' },
     select: { createdAt: true, action: true, actorUsername: true, oldValue: true, newValue: true, reason: true },
   })
@@ -347,11 +347,11 @@ export async function getCupHistory(seasonId: number, opts: { admin?: boolean } 
 }
 
 /** Lazily persist a derived state for a legacy cup (safe backfill on first workspace load). */
-export async function backfillCupState(seasonId: number): Promise<CupState> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId }, select: { cupState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true } })
+export async function backfillCupState(tournamentId: number): Promise<CupState> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { lifecycleState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true } })
   if (!s) return 'DRAFT'
-  if (s.cupState) return s.cupState
+  if (s.lifecycleState) return s.lifecycleState
   const derived = deriveLegacyState(s)
-  await prisma.tournament.update({ where: { id: seasonId }, data: { cupState: derived } })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { lifecycleState: derived } })
   return derived
 }

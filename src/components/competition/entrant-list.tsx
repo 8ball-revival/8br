@@ -19,7 +19,7 @@ export interface EntrantListItem {
 export function EntrantList({
   entrants,
   collapsible = false,
-  label = 'Season 2 entrants',
+  label = 'Tournament 2 entrants',
 }: {
   entrants: EntrantListItem[]
   collapsible?: boolean

@@ -35,7 +35,7 @@ export function MemberModeration({
   status: Status
   activePenaltyId: number | null
   activePenaltyType: 'TIMEOUT' | 'BAN' | null
-  activeRegistrations: { season: string; status: string }[]
+  activeRegistrations: { tournament: string; status: string }[]
   /** Owner-only: soft-delete + restore an account. */
   canDelete: boolean
   canPurge: boolean
@@ -118,12 +118,12 @@ export function MemberModeration({
   )
 }
 
-function WithdrawPreview({ regs }: { regs: { season: string; status: string }[] }) {
+function WithdrawPreview({ regs }: { regs: { tournament: string; status: string }[] }) {
   if (regs.length === 0) return null
   return (
     <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/[0.06] px-3 py-2 text-xs text-muted-foreground">
       <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-      <span>A Timeout, Ban, or Delete will withdraw <strong className="text-foreground">{regs.length}</strong> active registration{regs.length > 1 ? 's' : ''}: {regs.map((r) => r.season).join(', ')}. Completed competitions are never affected.</span>
+      <span>A Timeout, Ban, or Delete will withdraw <strong className="text-foreground">{regs.length}</strong> active registration{regs.length > 1 ? 's' : ''}: {regs.map((r) => r.tournament).join(', ')}. Completed competitions are never affected.</span>
     </div>
   )
 }
@@ -172,7 +172,7 @@ function TimeoutCard({ userId, run, pending }: { userId: number; run: (fn: () =>
   const computeUntil = () => (custom ? new Date(custom) : new Date(Date.now() + hours * 3600_000))
   return (
     <ModCard icon={Clock} title="Apply timeout" tone="warning">
-      <p className="text-xs text-muted-foreground">Blocks Cup + Season signup and withdraws active participation. Expires automatically.</p>
+      <p className="text-xs text-muted-foreground">Blocks Cup + Tournament signup and withdraws active participation. Expires automatically.</p>
       <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((p) => (
           <button key={p.hours} type="button" onClick={() => { setHours(p.hours); setCustom('') }} className={`rounded-md border px-2.5 py-1 text-xs ${!custom && hours === p.hours ? 'border-gold bg-gold/10 text-gold' : 'border-border text-muted-foreground hover:bg-muted'}`}>{p.label}</button>

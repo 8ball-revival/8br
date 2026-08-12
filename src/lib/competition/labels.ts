@@ -1,6 +1,6 @@
 /** Display labels + helpers for competition enums, shared by admin and public. */
 import type {
-  SeasonState,
+  TournamentRunState,
   RegistrationState,
   StageState,
   RegistrationStatus,
@@ -8,7 +8,7 @@ import type {
   VerificationState,
 } from '@prisma/client'
 
-export const SEASON_STATE_LABEL: Record<SeasonState, string> = {
+export const SEASON_STATE_LABEL: Record<TournamentRunState, string> = {
   UPCOMING: 'Upcoming',
   ACTIVE: 'Active',
   COMPLETED: 'Completed',

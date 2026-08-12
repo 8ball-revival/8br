@@ -226,26 +226,26 @@ export async function signOut(): Promise<void> {
   redirect('/')
 }
 
-/** Enter the current user into the active season (distinct from account creation). */
+/** Enter the current user into the active tournament (distinct from account creation). */
 export async function registerSeason2(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in to register.' }
   if (formData.get('rulesAck') !== 'on') return { error: 'Please acknowledge the rules to register.' }
 
-  const season = await getActiveSeason()
-  if (!season) return { error: 'There is no active season open for registration.' }
+  const tournament = await getActiveSeason()
+  if (!tournament) return { error: 'There is no active tournament open for registration.' }
 
   // Identity is NEVER taken from the form. Eligibility (status + complete linked profile +
   // no duplicate + open window) is checked server-side, then we register using the canonical
   // profile re-read here.
   const { checkSelfSignupEligibility } = await import('@/lib/competition/eligibility')
-  const elig = await checkSelfSignupEligibility(Number(user.id), season.id)
+  const elig = await checkSelfSignupEligibility(Number(user.id), tournament.id)
   if (!elig.ok) return { error: elig.reason ?? 'You cannot register right now.' }
   const profile = await getProfileByUserId(Number(user.id))
   if (!profile) return { error: 'Complete your player profile before registering.' }
 
   const identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
-  const res = await createPublicRegistration(season.id, Number(user.id), user.username, identity)
+  const res = await createPublicRegistration(tournament.id, Number(user.id), user.username, identity)
   if (!res.ok) return { error: res.error }
   revalidatePath('/account')
   revalidatePath('/register')
@@ -341,10 +341,10 @@ export async function withdrawSeason2(_prev: FormResult, _formData: FormData): P
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in.' }
 
-  const season = await getActiveSeason()
-  if (!season) return { error: 'There is no active season.' }
+  const tournament = await getActiveSeason()
+  if (!tournament) return { error: 'There is no active tournament.' }
 
-  const res = await withdrawPublicRegistration(season.id, Number(user.id), user.username)
+  const res = await withdrawPublicRegistration(tournament.id, Number(user.id), user.username)
   if (!res.ok) return { error: res.error }
   revalidatePath('/account')
   revalidatePath('/register')
@@ -372,7 +372,7 @@ export async function joinCupAction(_prev: FormResult, formData: FormData): Prom
   if (!cup) return { error: 'Cup not found.' }
 
   // Identity is NEVER taken from the form — same shared eligibility + canonical-profile path
-  // as Season signup.
+  // as Tournament signup.
   const { checkSelfSignupEligibility } = await import('@/lib/competition/eligibility')
   const elig = await checkSelfSignupEligibility(Number(user.id), cup.id)
   if (!elig.ok) return { error: elig.reason ?? 'You cannot join this cup right now.' }

@@ -8,29 +8,29 @@ import { roundColumnName } from '@/lib/cups/live'
  * the cups list, rankings, records, and career history.
  *
  * - Always regenerates the derived-data snapshot so the cup appears/updates in the list.
- * - Only when the cup is COMPLETED do we materialise its bracket into `CupBracketMatch`
+ * - Only when the cup is COMPLETED do we materialise its bracket into `TournamentBracketMatch`
  *   (the snapshot bracket source) and set champion/runner-up, so real results feed the
- *   ranking/records pipeline. Draft/live cups keep `CupBracketMatch` empty — the cup page
+ *   ranking/records pipeline. Draft/live cups keep `TournamentBracketMatch` empty — the cup page
  *   renders them live from PlayoffMatch — so nothing fake ever enters the historical data.
  */
-export async function syncLiveCupToSnapshot(seasonId: number): Promise<void> {
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
-  if (!season || season.competitionType !== 'CUP') return
-  if (season.importedFromFixture) return // never rewrite an imported historical cup
+export async function syncLiveCupToSnapshot(tournamentId: number): Promise<void> {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+  if (!tournament || tournament.competitionType !== 'CUP') return
+  if (tournament.importedFromFixture) return // never rewrite an imported historical cup
 
   // Materialise the bracket into the snapshot when the cup is completed OR has a published
   // bracket (a live/converted cup whose completed rounds already feed rankings). Draft
   // (unpublished) cups are intentionally kept out of the snapshot until published.
-  const publishedCount = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
-  if (season.cupStatus === 'completed' || publishedCount > 0) {
-    await materialiseBracket(seasonId)
+  const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
+  if (tournament.cupStatus === 'completed' || publishedCount > 0) {
+    await materialiseBracket(tournamentId)
   }
   await regenerateCupSnapshot()
 }
 
-async function materialiseBracket(seasonId: number): Promise<void> {
+async function materialiseBracket(tournamentId: number): Promise<void> {
   const rows = await prisma.playoffMatch.findMany({
-    where: { seasonId },
+    where: { tournamentId },
     orderBy: [{ round: 'asc' }, { slot: 'asc' }],
   })
   if (!rows.length) return
@@ -38,15 +38,15 @@ async function materialiseBracket(seasonId: number): Promise<void> {
 
   // Carry each entrant's public handle (cueverseId) into the snapshot slots so the
   // ranking engine's identity resolver can match the exact profile, not just the name.
-  const regs = await prisma.registration.findMany({ where: { seasonId }, select: { id: true, cueverseId: true } })
+  const regs = await prisma.registration.findMany({ where: { tournamentId }, select: { id: true, cueverseId: true } })
   const handleByReg = new Map(regs.map((r) => [r.id, r.cueverseId]))
 
   await prisma.$transaction(async (tx) => {
-    await tx.tournamentBracketMatch.deleteMany({ where: { competitionId: seasonId, bracketKind: 'MAIN' } })
+    await tx.tournamentBracketMatch.deleteMany({ where: { competitionId: tournamentId, bracketKind: 'MAIN' } })
     for (const r of rows) {
       await tx.tournamentBracketMatch.create({
         data: {
-          competitionId: seasonId,
+          competitionId: tournamentId,
           bracketKind: 'MAIN',
           roundName: roundColumnName(r.round, totalRounds),
           roundOrder: r.round,
@@ -76,7 +76,7 @@ async function materialiseBracket(seasonId: number): Promise<void> {
       const cScore = homeWon ? final.homeGames : final.awayGames
       const rScore = homeWon ? final.awayGames : final.homeGames
       await tx.tournament.update({
-        where: { id: seasonId },
+        where: { id: tournamentId },
         data: {
           championName: championName ?? null,
           runnerUpName: runnerUpName ?? null,

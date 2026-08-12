@@ -5,7 +5,7 @@
  *   PROD_DATABASE_URL="postgres://…-unpooled…" npx tsx --tsconfig scripts/tsconfig.verify.json scripts/sanitize-production.mts
  *
  * Removes ONLY clearly-identified disposable test records; preserves all real data (31 migrated
- * players + bridges, 30 accounts + claim hashes, the Owner, Season 2, Payload content, the
+ * players + bridges, 30 accounts + claim hashes, the Owner, Tournament 2, Payload content, the
  * Brian/fsm-brian merge). Idempotent + reports before/after counts.
  */
 import { PrismaClient } from '@prisma/client'

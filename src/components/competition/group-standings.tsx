@@ -1,4 +1,4 @@
-import type { Standing, SeasonMatch } from '@prisma/client'
+import type { Standing, TournamentMatch } from '@prisma/client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,7 +10,7 @@ export interface GroupView {
   code: string
   name: string
   standings: Standing[]
-  matches: SeasonMatch[]
+  matches: TournamentMatch[]
 }
 
 /** Public read-only group panel: ranked standings + fixtures. Consumes published data. */

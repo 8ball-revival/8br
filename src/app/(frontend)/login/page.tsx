@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = pageMetadata({
   title: 'Sign In',
-  description: 'Sign in to your 8 Ball Revival account to manage your Season 2 registration.',
+  description: 'Sign in to your 8 Ball Revival account to manage your Tournament 2 registration.',
   path: '/login',
   index: false,
 })
@@ -27,7 +27,7 @@ export default async function LoginPage() {
           <p className="eyebrow text-gold">8 Ball Revival</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to manage your 8 Ball Revival account and Season 2 registration.
+            Sign in to manage your 8 Ball Revival account and Tournament 2 registration.
           </p>
         </div>
         <Card>

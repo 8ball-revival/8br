@@ -19,7 +19,7 @@ function revalidateAll() {
   for (const p of ['/', '/groups', '/playoffs', '/seasons', '/account', '/register', '/rankings', '/hall-of-fame', '/players', '/records']) revalidatePath(p)
   for (const p of [
     '/staff',
-    '/staff/season',
+    '/staff/tournament',
     '/staff/registrations',
     '/staff/groups',
     '/staff/matches',
@@ -37,27 +37,27 @@ function str(fd: FormData, name: string): string {
   return String(fd.get(name) ?? '').trim()
 }
 
-// ---- Season ---------------------------------------------------------------
+// ---- Tournament ---------------------------------------------------------------
 
 export async function createSeasonAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const slug = str(fd, 'slug').toLowerCase().replace(/[^a-z0-9-]/g, '-')
   const name = str(fd, 'name')
-  if (!slug || !name) return { error: 'Provide a season name and slug.' }
+  if (!slug || !name) return { error: 'Provide a tournament name and slug.' }
   try {
     await svc.createSeason(actor, { slug, name })
     revalidateAll()
-    return { ok: true, message: 'Season created.' }
+    return { ok: true, message: 'Tournament created.' }
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
-    if (/unique|exists/i.test(msg)) return { error: 'A season with that slug already exists.' }
-    return { error: 'Could not create the season.' }
+    if (/unique|exists/i.test(msg)) return { error: 'A tournament with that slug already exists.' }
+    return { error: 'Could not create the tournament.' }
   }
 }
 
 export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const seasonId = num(fd, 'seasonId')
+  const tournamentId = num(fd, 'tournamentId')
   const closesAt = str(fd, 'registrationClosesAt')
   try {
     // NOTE: registrationStatus is intentionally NOT set here — it is owned by the
@@ -65,7 +65,7 @@ export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Pro
     // manual registration status stays the single authoritative source.
     await svc.updateSeason(
       actor,
-      seasonId,
+      tournamentId,
       {
         seasonStatus: str(fd, 'seasonStatus') as 'UPCOMING' | 'ACTIVE' | 'COMPLETED',
         registrationClosesAt: closesAt ? new Date(closesAt) : null,
@@ -77,7 +77,7 @@ export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Pro
       str(fd, 'reason') || undefined,
     )
     revalidateAll()
-    return { ok: true, message: 'Season updated. Public pages refreshed.' }
+    return { ok: true, message: 'Tournament updated. Public pages refreshed.' }
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Update failed.' }
   }
@@ -102,7 +102,7 @@ export async function setRegistrationStateAction(_prev: ActionResult, fd: FormDa
   const actor = await requireCapability('manage_competitions')
   const next = str(fd, 'next') as 'NOT_OPEN' | 'OPEN' | 'CLOSED'
   if (!['NOT_OPEN', 'OPEN', 'CLOSED'].includes(next)) return { error: 'Invalid registration state.' }
-  const res = await svc.setRegistrationState(actor, num(fd, 'seasonId'), next, str(fd, 'reason') || undefined)
+  const res = await svc.setRegistrationState(actor, num(fd, 'tournamentId'), next, str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   const label = next === 'OPEN' ? 'Registration is now open.' : next === 'CLOSED' ? 'Registration is now closed.' : 'Registration reset.'
@@ -115,21 +115,21 @@ export interface EntrantCandidate { playerId: string; primaryName: string; cueve
 
 /** Live search for addable player profiles (for the "add entrant" combobox).
  *  Already-entered / inactive / deleted / banned profiles are excluded server-side. */
-export async function searchEntrantCandidatesAction(seasonId: number, query: string): Promise<EntrantCandidate[]> {
+export async function searchEntrantCandidatesAction(tournamentId: number, query: string): Promise<EntrantCandidate[]> {
   await requireCapability('manage_competitions')
   const { searchEntrantCandidates } = await import('./queries')
-  return searchEntrantCandidates(seasonId, query)
+  return searchEntrantCandidates(tournamentId, query)
 }
 
 export async function addEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const seasonId = num(fd, 'seasonId')
+  const tournamentId = num(fd, 'tournamentId')
   const ids = String(fd.get('playerIds') ?? fd.get('playerId') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   if (ids.length === 0) return { error: 'Select at least one player profile.' }
   let added = 0
   let already = 0
   for (const playerId of ids) {
-    const res = await svc.addEntrantByProfile(actor, seasonId, playerId)
+    const res = await svc.addEntrantByProfile(actor, tournamentId, playerId)
     if (res.already) already++
     else if (res.ok) added++
   }
@@ -139,7 +139,7 @@ export async function addEntrantAction(_prev: ActionResult, fd: FormData): Promi
 
 export async function removeEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.removeEntrant(actor, num(fd, 'seasonId'), num(fd, 'registrationId'), str(fd, 'reason') || undefined)
+  const res = await svc.removeEntrant(actor, num(fd, 'tournamentId'), num(fd, 'registrationId'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Entrant removed (can be restored).' }
@@ -147,7 +147,7 @@ export async function removeEntrantAction(_prev: ActionResult, fd: FormData): Pr
 
 export async function restoreEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.restoreEntrant(actor, num(fd, 'seasonId'), num(fd, 'registrationId'))
+  const res = await svc.restoreEntrant(actor, num(fd, 'tournamentId'), num(fd, 'registrationId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Entrant restored.' }
@@ -160,7 +160,7 @@ export interface BulkImportResult extends ActionResult {
 export async function bulkImportEntrantsAction(_prev: BulkImportResult, fd: FormData): Promise<BulkImportResult> {
   const actor = await requireCapability('manage_competitions')
   const lines = String(fd.get('cueverseIds') ?? '').split('\n')
-  const report = await svc.bulkImportEntrants(actor, num(fd, 'seasonId'), lines)
+  const report = await svc.bulkImportEntrants(actor, num(fd, 'tournamentId'), lines)
   revalidateAll()
   return { ok: true, report: { added: report.added, duplicates: report.duplicates, unmatched: report.unmatched }, message: `Added ${report.added.length}, ${report.duplicates.length} already in, ${report.unmatched.length} unmatched.` }
 }
@@ -169,7 +169,7 @@ export async function bulkImportEntrantsAction(_prev: BulkImportResult, fd: Form
 
 export async function createGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.createGroup(actor, num(fd, 'seasonId'))
+  const res = await svc.createGroup(actor, num(fd, 'tournamentId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Group created.' }
@@ -177,7 +177,7 @@ export async function createGroupAction(_prev: ActionResult, fd: FormData): Prom
 
 export async function setGroupCountAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.setGroupCount(actor, num(fd, 'seasonId'), num(fd, 'count'))
+  const res = await svc.setGroupCount(actor, num(fd, 'tournamentId'), num(fd, 'count'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Group count updated.' }
@@ -185,7 +185,7 @@ export async function setGroupCountAction(_prev: ActionResult, fd: FormData): Pr
 
 export async function swapPlayersAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.swapGroupPlayers(actor, num(fd, 'seasonId'), num(fd, 'regA'), num(fd, 'regB'))
+  const res = await svc.swapGroupPlayers(actor, num(fd, 'tournamentId'), num(fd, 'regA'), num(fd, 'regB'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true }
@@ -195,7 +195,7 @@ export async function addPlayersToGroupAction(_prev: ActionResult, fd: FormData)
   const actor = await requireCapability('manage_competitions')
   const ids = String(fd.get('registrationIds') ?? '').split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0)
   if (ids.length === 0) return { error: 'Select at least one player.' }
-  const res = await svc.addPlayersToGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), ids)
+  const res = await svc.addPlayersToGroup(actor, num(fd, 'tournamentId'), num(fd, 'groupId'), ids)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: `Added ${res.added} player(s).` }
@@ -203,7 +203,7 @@ export async function addPlayersToGroupAction(_prev: ActionResult, fd: FormData)
 
 export async function renameGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.renameGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), str(fd, 'name'))
+  const res = await svc.renameGroup(actor, num(fd, 'tournamentId'), num(fd, 'groupId'), str(fd, 'name'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Group renamed.' }
@@ -211,7 +211,7 @@ export async function renameGroupAction(_prev: ActionResult, fd: FormData): Prom
 
 export async function deleteGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.deleteGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'))
+  const res = await svc.deleteGroup(actor, num(fd, 'tournamentId'), num(fd, 'groupId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Group deleted.' }
@@ -219,7 +219,7 @@ export async function deleteGroupAction(_prev: ActionResult, fd: FormData): Prom
 
 export async function moveGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.moveGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), str(fd, 'direction') as 'up' | 'down')
+  const res = await svc.moveGroup(actor, num(fd, 'tournamentId'), num(fd, 'groupId'), str(fd, 'direction') as 'up' | 'down')
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true }
@@ -228,7 +228,7 @@ export async function moveGroupAction(_prev: ActionResult, fd: FormData): Promis
 export async function addPlayerToGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   if (!fd.get('registrationId')) return { error: 'Select a player to add.' }
-  const res = await svc.addPlayerToGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), num(fd, 'registrationId'), {
+  const res = await svc.addPlayerToGroup(actor, num(fd, 'tournamentId'), num(fd, 'groupId'), num(fd, 'registrationId'), {
     force: fd.get('force') === 'on',
   })
   if (!res.ok) return { error: res.error }
@@ -238,7 +238,7 @@ export async function addPlayerToGroupAction(_prev: ActionResult, fd: FormData):
 
 export async function removePlayerFromGroupAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.removePlayerFromGroup(actor, num(fd, 'seasonId'), num(fd, 'groupId'), num(fd, 'registrationId'), {
+  const res = await svc.removePlayerFromGroup(actor, num(fd, 'tournamentId'), num(fd, 'groupId'), num(fd, 'registrationId'), {
     force: fd.get('force') === 'on',
   })
   if (!res.ok) return { error: res.error }
@@ -248,7 +248,7 @@ export async function removePlayerFromGroupAction(_prev: ActionResult, fd: FormD
 
 export async function reorderGroupPlayerAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.reorderGroupPlayer(actor, num(fd, 'seasonId'), num(fd, 'groupId'), num(fd, 'registrationId'), str(fd, 'direction') as 'up' | 'down')
+  const res = await svc.reorderGroupPlayer(actor, num(fd, 'tournamentId'), num(fd, 'groupId'), num(fd, 'registrationId'), str(fd, 'direction') as 'up' | 'down')
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true }
@@ -256,7 +256,7 @@ export async function reorderGroupPlayerAction(_prev: ActionResult, fd: FormData
 
 export async function unpublishGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.unpublishGroups(actor, num(fd, 'seasonId'))
+  const res = await svc.unpublishGroups(actor, num(fd, 'tournamentId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Groups unpublished — hidden from the public site.' }
@@ -264,7 +264,7 @@ export async function unpublishGroupsAction(_prev: ActionResult, fd: FormData): 
 
 export async function generateGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.generateGroups(actor, num(fd, 'seasonId'), num(fd, 'numGroups'), str(fd, 'seed') || undefined, {
+  const res = await svc.generateGroups(actor, num(fd, 'tournamentId'), num(fd, 'numGroups'), str(fd, 'seed') || undefined, {
     force: fd.get('force') === 'on',
   })
   if (!res.ok) return { error: res.error }
@@ -274,7 +274,7 @@ export async function generateGroupsAction(_prev: ActionResult, fd: FormData): P
 
 export async function movePlayerAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.movePlayer(actor, num(fd, 'seasonId'), num(fd, 'registrationId'), num(fd, 'toGroupId'), {
+  const res = await svc.movePlayer(actor, num(fd, 'tournamentId'), num(fd, 'registrationId'), num(fd, 'toGroupId'), {
     force: fd.get('force') === 'on',
   })
   if (!res.ok) return { error: res.error }
@@ -284,7 +284,7 @@ export async function movePlayerAction(_prev: ActionResult, fd: FormData): Promi
 
 export async function publishGroupsAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.publishGroups(actor, num(fd, 'seasonId'))
+  const res = await svc.publishGroups(actor, num(fd, 'tournamentId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Groups published. Round-robin matches generated.' }
@@ -338,7 +338,7 @@ export async function setMatchNoteAction(_prev: ActionResult, fd: FormData): Pro
 
 export async function generatePlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.generatePlayoff(actor, num(fd, 'seasonId'), { force: fd.get('force') === 'on' })
+  const res = await svc.generatePlayoff(actor, num(fd, 'tournamentId'), { force: fd.get('force') === 'on' })
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Playoff bracket generated.' }
@@ -346,7 +346,7 @@ export async function generatePlayoffAction(_prev: ActionResult, fd: FormData): 
 
 export async function publishPlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.publishPlayoff(actor, num(fd, 'seasonId'))
+  const res = await svc.publishPlayoff(actor, num(fd, 'tournamentId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Playoffs published.' }
@@ -355,7 +355,7 @@ export async function publishPlayoffAction(_prev: ActionResult, fd: FormData): P
 export async function rebuildManualPlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const ids = String(fd.get('registrationIds') ?? '').split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0)
-  const res = await svc.rebuildManualPlayoff(actor, num(fd, 'seasonId'), ids)
+  const res = await svc.rebuildManualPlayoff(actor, num(fd, 'tournamentId'), ids)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true }
@@ -363,7 +363,7 @@ export async function rebuildManualPlayoffAction(_prev: ActionResult, fd: FormDa
 
 export async function returnPlayoffToDraftAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.returnPlayoffToDraft(actor, num(fd, 'seasonId'))
+  const res = await svc.returnPlayoffToDraft(actor, num(fd, 'tournamentId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Bracket returned to draft.' }
@@ -371,7 +371,7 @@ export async function returnPlayoffToDraftAction(_prev: ActionResult, fd: FormDa
 
 export async function deletePlayoffAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.deletePlayoff(actor, num(fd, 'seasonId'))
+  const res = await svc.deletePlayoff(actor, num(fd, 'tournamentId'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Bracket deleted.' }
@@ -413,7 +413,7 @@ export async function setPlayoffNoteAction(_prev: ActionResult, fd: FormData): P
 
 export async function completeCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.completeCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  const res = await svc.completeCompetition(actor, num(fd, 'tournamentId'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Competition marked complete.' }
@@ -421,7 +421,7 @@ export async function completeCompetitionAction(_prev: ActionResult, fd: FormDat
 
 export async function archiveCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.archiveCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  const res = await svc.archiveCompetition(actor, num(fd, 'tournamentId'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Competition archived.' }
@@ -429,7 +429,7 @@ export async function archiveCompetitionAction(_prev: ActionResult, fd: FormData
 
 export async function unarchiveCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const res = await svc.unarchiveCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  const res = await svc.unarchiveCompetition(actor, num(fd, 'tournamentId'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Competition restored from archive.' }
@@ -445,7 +445,7 @@ async function requireOwnerActor() {
 
 export async function unlockCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireOwnerActor()
-  const res = await svc.unlockHistoricalCompetition(actor, num(fd, 'seasonId'), str(fd, 'code'), str(fd, 'reason'))
+  const res = await svc.unlockHistoricalCompetition(actor, num(fd, 'tournamentId'), str(fd, 'code'), str(fd, 'reason'))
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Historical competition unlocked for editing.' }
@@ -453,7 +453,7 @@ export async function unlockCompetitionAction(_prev: ActionResult, fd: FormData)
 
 export async function relockCompetitionAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireOwnerActor()
-  const res = await svc.relockCompetition(actor, num(fd, 'seasonId'), str(fd, 'reason') || undefined)
+  const res = await svc.relockCompetition(actor, num(fd, 'tournamentId'), str(fd, 'reason') || undefined)
   if (!res.ok) return { error: res.error }
   revalidateAll()
   return { ok: true, message: 'Competition re-locked.' }

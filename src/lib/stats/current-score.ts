@@ -3,8 +3,8 @@
  *
  * Philosophy: the IMPORTANCE OF THE MATCH determines its value, not the number of matches
  * played. A single geometric ladder ranks every stage exactly:
- *   Season Final > Cup Final > Season SF > Season QF > Cup SF > Cup QF >
- *   Season playoff (other rounds) > Group match = early Cup round.
+ *   Tournament Final > Cup Final > Tournament SF > Tournament QF > Cup SF > Cup QF >
+ *   Tournament playoff (other rounds) > Group match = early Cup round.
  * Points are earned by WINNING matches at their stage value. The group stage is a CAPPED,
  * match-count-INDEPENDENT qualifier (placement + win rate) so a long round-robin can never
  * overpower playoff success. Opponent quality is a moderate, hard-capped multiplier that
@@ -25,12 +25,12 @@ export const CONFIG = {
   base: 100,
   ratio: 0.72,
   group: {
-    cap: 30, // max total group-stage contribution per season (a qualifier, not the event)
+    cap: 30, // max total group-stage contribution per tournament (a qualifier, not the event)
     placementWeight: 0.6,
     winRateWeight: 0.4,
   },
   loss: { base: 8 }, // flat per-loss penalty, scaled ONLY by opponent quality
-  finalist: { season: 35, cup: 25 }, // reached the final but lost (softens champ↔runner-up)
+  finalist: { tournament: 35, cup: 25 }, // reached the final but lost (softens champ↔runner-up)
   quality: {
     k: 0.25, // ±25% max swing — moderate; never overtakes the stage
     winMin: 0.85,
@@ -67,8 +67,8 @@ function roundTier(name: string): Tier {
   return 'early'
 }
 /** Points a WIN at this stage is worth. */
-function stageValue(kind: 'season' | 'cup', tier: Tier): number {
-  if (kind === 'season') {
+function stageValue(kind: 'tournament' | 'cup', tier: Tier): number {
+  if (kind === 'tournament') {
     if (tier === 'final') return STAGE.seasonFinal
     if (tier === 'semifinal') return STAGE.seasonSemifinal
     if (tier === 'quarterfinal') return STAGE.seasonQuarterfinal
@@ -153,13 +153,13 @@ interface Acc {
 }
 interface EventMeta {
   id: string; label: string; order: number
-  kind: 'season' | 'cup'
+  kind: 'tournament' | 'cup'
   champId: string | null; ruId: string | null; completed: boolean
 }
 // A single decided match, collected in pass 1 and re-scored for quality in pass 2.
 interface MatchRec {
   winId: string; loseId: string
-  kind: 'season' | 'cup'; value: number; label: string; order: number; eventId: string
+  kind: 'tournament' | 'cup'; value: number; label: string; order: number; eventId: string
 }
 
 /**
@@ -235,7 +235,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   }
 
   // ---- PASS 1: base points (stage wins + capped group + finalist), collect matches ----
-  const recordMatch = (win: NonNullable<ReturnType<typeof ident>>, los: NonNullable<ReturnType<typeof ident>>, kind: 'season' | 'cup', tier: Tier, label: string, eventId: string, order: number) => {
+  const recordMatch = (win: NonNullable<ReturnType<typeof ident>>, los: NonNullable<ReturnType<typeof ident>>, kind: 'tournament' | 'cup', tier: Tier, label: string, eventId: string, order: number) => {
     const we = get(win.id, win.name, win.resolved)
     const le = get(los.id, los.name, los.resolved)
     setDeepest(win.id, eventId, tier)
@@ -243,8 +243,8 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     const value = stageValue(kind, tier)
     // Seasons: per-match stage (single-elim, bounded). Cups: stage is added finish-based
     // later (format-independent), so we do NOT add per-match cup stage here.
-    if (kind === 'season') addLine(we, label, value)
-    if (kind === 'season') { we.playoffW++; we.seasonPlayoffWins++; le.playoffL++ } else { we.cupW++; le.cupL++ }
+    if (kind === 'tournament') addLine(we, label, value)
+    if (kind === 'tournament') { we.playoffW++; we.seasonPlayoffWins++; le.playoffL++ } else { we.cupW++; le.cupL++ }
     we.form.push({ order, result: 'W' }); le.form.push({ order, result: 'L' })
     we.h2h.set(los.id, { w: (we.h2h.get(los.id)?.w ?? 0) + 1, l: we.h2h.get(los.id)?.l ?? 0 })
     le.h2h.set(win.id, { w: le.h2h.get(win.id)?.w ?? 0, l: (le.h2h.get(win.id)?.l ?? 0) + 1 })
@@ -257,8 +257,8 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     const order = seasonOrder(s)
     for (const d of s.divisions) {
       const ch = ident(d.champion), ru = ident(d.runnerUp)
-      const eventId = `${s.seasonId}:season`
-      events.push({ id: eventId, label: s.label, order: order + 1, kind: 'season', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: true })
+      const eventId = `${s.tournamentId}:tournament`
+      events.push({ id: eventId, label: s.label, order: order + 1, kind: 'tournament', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: true })
 
       // Group: ONE capped, count-independent number per player (placement + win rate).
       for (const grp of d.groups ?? []) {
@@ -285,7 +285,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
           if (!m.winner) continue
           const a = ident(m.a), b = ident(m.b)
           if (!a || !b || a.id === b.id) continue
-          recordMatch(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, 'season', tier, `${s.label} — Playoffs`, eventId, order + 1)
+          recordMatch(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, 'tournament', tier, `${s.label} — Playoffs`, eventId, order + 1)
         }
       }
     }
@@ -320,11 +320,11 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     }
   }
 
-  // Season finish (single-elim): title counts (final win already scored) + finalist bonus.
+  // Tournament finish (single-elim): title counts (final win already scored) + finalist bonus.
   for (const ev of events) {
-    if (ev.kind !== 'season' || !ev.completed) continue
+    if (ev.kind !== 'tournament' || !ev.completed) continue
     if (ev.champId) { const e = acc.get(ev.champId); if (e) e.seasonTitles++ }
-    if (ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.season) }
+    if (ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.tournament) }
   }
 
   // Cup finish (format-independent): stage points by how far each player advanced, so a
@@ -362,7 +362,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     const oppIsReigning = (seasonChampAt.get(m.loseId) ?? Infinity) < m.order || (cupChampAt.get(m.loseId) ?? Infinity) < m.order
     if (oppIsReigning) winMult = Math.max(winMult, 1 + CONFIG.quality.reigningChampWinFloor)
     const bonus = m.value * (winMult - 1)
-    if (m.kind === 'season') {
+    if (m.kind === 'tournament') {
       const we = acc.get(m.winId)
       if (we && bonus !== 0) { we.qualityWinPts += bonus; if (bonus > 0) we.qualityWins++ }
     } else {
@@ -374,7 +374,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     const winnerStrength = strength.get(m.winId) ?? 0.5 // loser lost to this strength
     const lossMult = clamp(1 + CONFIG.quality.k * (1 - 2 * winnerStrength), CONFIG.quality.lossMin, CONFIG.quality.lossMax)
     const pen = -CONFIG.loss.base * lossMult
-    if (m.kind === 'season') {
+    if (m.kind === 'tournament') {
       const le = acc.get(m.loseId)
       if (le) le.lossPenalties += pen
     } else {

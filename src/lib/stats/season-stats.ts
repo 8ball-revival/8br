@@ -1,7 +1,7 @@
 /**
- * Shared Season-derived statistics service.
+ * Shared Tournament-derived statistics service.
  *
- * SINGLE SOURCE OF TRUTH for player Season statistics. Everything here is computed
+ * SINGLE SOURCE OF TRUTH for player Tournament statistics. Everything here is computed
  * live from the published Seasons archive (`getAllArchiveSeasons()` — 2005–2014 +
  * 2026, with the verified-playoff overlay). CUPS ARE NOT USED and must never affect
  * these numbers. No manual totals, no points, no weighting.
@@ -11,26 +11,26 @@
  * their own distinct player and flagged `resolved: false` — never guess-merged by name.
  *
  * Because it derives from the archive at call time, adding/correcting/removing a
- * Season (or updating the alias map) automatically recalculates every consumer.
+ * Tournament (or updating the alias map) automatically recalculates every consumer.
  */
-import { getAllArchiveSeasons, type SeasonDivision, type SeasonMatch } from '@/lib/seasons/archive'
+import { getAllArchiveSeasons, type TournamentDivision, type TournamentMatch } from '@/lib/seasons/archive'
 import { resolveIdentity } from './identity'
 
 export interface TitleEntry {
-  seasonId: string // e.g. "2009-s4"
+  tournamentId: string // e.g. "2009-s4"
   division: string // "A", "B", or "single"
   confidence: string | null // the division's recorded champion confidence
   bracketReconstructed: boolean
 }
 
-export interface SeasonPlayerStat {
+export interface TournamentPlayerStat {
   rank: number // competition rank; ties share a rank (joint #1 → next is #3)
   id: string
   name: string
   aliases: string[] // distinct handles/names seen in Seasons
   championships: number
-  championshipSeasons: string[] // season ids, e.g. "2006-s1"
-  championshipDetail: TitleEntry[] // per-title season + division + confidence
+  championshipSeasons: string[] // tournament ids, e.g. "2006-s1"
+  championshipDetail: TitleEntry[] // per-title tournament + division + confidence
   runnerUps: number
   runnerUpDetail: TitleEntry[]
   playoffWins: number
@@ -49,8 +49,8 @@ function resolveSlot(slot: { name?: string | null; handle?: string | null } | nu
 }
 
 /** All completed playoff matches for a division — single-elim rounds or double-elim brackets. */
-function playoffMatches(d: SeasonDivision): SeasonMatch[] {
-  const out: SeasonMatch[] = []
+function playoffMatches(d: TournamentDivision): TournamentMatch[] {
+  const out: TournamentMatch[] = []
   if (d.playoff?.rounds) for (const r of d.playoff.rounds) out.push(...r.matches)
   if (d.doubleElim) {
     for (const r of d.doubleElim.winners) out.push(...r.matches)
@@ -73,7 +73,7 @@ interface Acc {
   resolved: boolean
 }
 
-function computeRankings(): SeasonPlayerStat[] {
+function computeRankings(): TournamentPlayerStat[] {
   const acc = new Map<string, Acc>()
   const get = (id: string, resolved: boolean, displayName: string): Acc => {
     let e = acc.get(id)
@@ -85,22 +85,22 @@ function computeRankings(): SeasonPlayerStat[] {
     return e
   }
 
-  for (const season of getAllArchiveSeasons()) {
-    for (const d of season.divisions) {
+  for (const tournament of getAllArchiveSeasons()) {
+    for (const d of tournament.divisions) {
       const titleEntry = (): TitleEntry => ({
-        seasonId: season.seasonId,
+        tournamentId: tournament.tournamentId,
         division: d.division,
         confidence: d.championConfidence,
         bracketReconstructed: d.bracketReconstructed,
       })
-      // Championship — the recorded champion of the season's playoff.
+      // Championship — the recorded champion of the tournament's playoff.
       const ch = d.champion
       if (ch && (ch.handle || ch.name)) {
         const r = resolveSlot(ch)
         if (r) {
           const e = get(r.id, r.ok, r.name)
           e.championships += 1
-          e.championshipSeasons.push(season.seasonId)
+          e.championshipSeasons.push(tournament.tournamentId)
           e.championshipDetail.push(titleEntry())
           e.aliases.add(cleanHandle(ch.handle ?? ch.name))
         }
@@ -139,7 +139,7 @@ function computeRankings(): SeasonPlayerStat[] {
     }
   }
 
-  const rows: SeasonPlayerStat[] = [...acc.values()].map((e) => {
+  const rows: TournamentPlayerStat[] = [...acc.values()].map((e) => {
     const played = e.playoffWins + e.playoffLosses
     return {
       rank: 0,
@@ -148,9 +148,9 @@ function computeRankings(): SeasonPlayerStat[] {
       aliases: [...e.aliases].sort(),
       championships: e.championships,
       championshipSeasons: [...e.championshipSeasons].sort(),
-      championshipDetail: [...e.championshipDetail].sort((a, b) => a.seasonId.localeCompare(b.seasonId)),
+      championshipDetail: [...e.championshipDetail].sort((a, b) => a.tournamentId.localeCompare(b.tournamentId)),
       runnerUps: e.runnerUps,
-      runnerUpDetail: [...e.runnerUpDetail].sort((a, b) => a.seasonId.localeCompare(b.seasonId)),
+      runnerUpDetail: [...e.runnerUpDetail].sort((a, b) => a.tournamentId.localeCompare(b.tournamentId)),
       playoffWins: e.playoffWins,
       playoffLosses: e.playoffLosses,
       playoffWinPct: played ? Math.round((e.playoffWins / played) * 1000) / 10 : 0,
@@ -161,7 +161,7 @@ function computeRankings(): SeasonPlayerStat[] {
   // Ranking formula (exact): championships desc → playoff wins desc → playoff losses
   // asc → playoff win% desc. NO further tiebreaker — players equal on all four are
   // genuinely tied and share a rank (e.g. joint #1; the next player is then #3).
-  const key = (p: SeasonPlayerStat) => `${p.championships}|${p.playoffWins}|${p.playoffLosses}|${p.playoffWinPct}`
+  const key = (p: TournamentPlayerStat) => `${p.championships}|${p.playoffWins}|${p.playoffLosses}|${p.playoffWinPct}`
   rows.sort(
     (x, y) =>
       y.championships - x.championships ||
@@ -176,24 +176,24 @@ function computeRankings(): SeasonPlayerStat[] {
 }
 
 // Memoise for the process lifetime; the underlying archive is static per build.
-let _cache: SeasonPlayerStat[] | null = null
+let _cache: TournamentPlayerStat[] | null = null
 
-/** Full Season-derived ranking, ordered by the ranking formula. */
-export function getSeasonRankings(): SeasonPlayerStat[] {
+/** Full Tournament-derived ranking, ordered by the ranking formula. */
+export function getSeasonRankings(): TournamentPlayerStat[] {
   return (_cache ??= computeRankings())
 }
 
 /** Top N by the ranking formula (default 10). */
-export function getSeasonTop(n = 10): SeasonPlayerStat[] {
+export function getSeasonTop(n = 10): TournamentPlayerStat[] {
   return getSeasonRankings().slice(0, n)
 }
 
-/** Season stats for a single resolved player id (for Hall of Fame / profiles later). */
-export function getSeasonStatById(id: string): SeasonPlayerStat | undefined {
+/** Tournament stats for a single resolved player id (for Hall of Fame / profiles later). */
+export function getSeasonStatById(id: string): TournamentPlayerStat | undefined {
   return getSeasonRankings().find((p) => p.id === id)
 }
 
-const EMPTY_STAT: SeasonPlayerStat = {
+const EMPTY_STAT: TournamentPlayerStat = {
   rank: 0, id: '', name: '', aliases: [], championships: 0, championshipSeasons: [],
   championshipDetail: [], runnerUps: 0, runnerUpDetail: [], playoffWins: 0,
   playoffLosses: 0, playoffWinPct: 0, resolved: false,
@@ -201,7 +201,7 @@ const EMPTY_STAT: SeasonPlayerStat = {
 
 /**
  * CANONICAL BRIDGE. Given a set of handles/aliases (e.g. a profile's identity list),
- * resolve them to a single canonical player and return that player's Season stats.
+ * resolve them to a single canonical player and return that player's Tournament stats.
  *
  * This is how consumers that key players by their own id scheme (player profiles,
  * the /players index) read championship totals from the SAME source as the Top 10.
@@ -218,7 +218,7 @@ const EMPTY_STAT: SeasonPlayerStat = {
  * handle (dedup so a name repeated as primary + alias can't double-count) and break
  * ties by record richness — the canonical id actually carrying the titles/matches
  * wins. Shared by every consumer that keys players by their own id scheme, so the
- * season and career services agree on which canonical player a profile is.
+ * tournament and career services agree on which canonical player a profile is.
  */
 export function resolveCanonicalId(handles: (string | null | undefined)[]): string | null {
   const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -237,7 +237,7 @@ export function resolveCanonicalId(handles: (string | null | undefined)[]): stri
   return scored[0].id
 }
 
-export function getSeasonStatForAliases(handles: (string | null | undefined)[]): SeasonPlayerStat {
+export function getSeasonStatForAliases(handles: (string | null | undefined)[]): TournamentPlayerStat {
   const id = resolveCanonicalId(handles)
   if (!id) return EMPTY_STAT
   return getSeasonStatById(id) ?? { ...EMPTY_STAT, id }

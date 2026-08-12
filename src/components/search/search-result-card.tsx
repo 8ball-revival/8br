@@ -7,7 +7,7 @@ import type { SearchResult, SearchType } from '@/lib/search'
 const TYPE_LABEL: Record<SearchType, string> = {
   player: 'Player',
   competition: 'Competition',
-  season: 'Season',
+  tournament: 'Tournament',
   news: 'News',
 }
 

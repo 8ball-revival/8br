@@ -5,7 +5,7 @@ const check=(n:string,c:boolean)=>{ if(c){pass++;console.log('  ✓ '+n)}else{fa
 const actor={userId:990900,username:'cup-verify'}
 
 // Create a synthetic test cup in DRAFT.
-const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', competitionCode:'CVERIFY', cupNumber:99001, cupState:'DRAFT', registrationStatus:'NOT_OPEN', seasonStatus:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', competitionCode:'CVERIFY', cupNumber:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', seasonStatus:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
 const id = cup.id
 try {
   const st = async () => getCupState((await prisma.tournament.findUniqueOrThrow({ where:{id} })))
@@ -37,9 +37,9 @@ try {
   check('IN_PROGRESS→COMPLETED blocked (no bracket)', !noBracket.ok && /bracket/i.test(noBracket.error||''))
 
   // Build a minimal decided final.
-  const r1 = await prisma.registration.create({ data:{ seasonId:id, username:'A', status:'APPROVED' } })
-  const r2 = await prisma.registration.create({ data:{ seasonId:id, username:'B', status:'APPROVED' } })
-  await prisma.playoffMatch.create({ data:{ seasonId:id, round:1, slot:1, homeRegistrationId:r1.id, awayRegistrationId:r2.id, winnerRegistrationId:r1.id, homeGames:5, awayGames:2, status:'COMPLETED', published:true } })
+  const r1 = await prisma.registration.create({ data:{ tournamentId:id, username:'A', status:'APPROVED' } })
+  const r2 = await prisma.registration.create({ data:{ tournamentId:id, username:'B', status:'APPROVED' } })
+  await prisma.playoffMatch.create({ data:{ tournamentId:id, round:1, slot:1, homeRegistrationId:r1.id, awayRegistrationId:r2.id, winnerRegistrationId:r1.id, homeGames:5, awayGames:2, status:'COMPLETED', published:true } })
   check('assertCompletable passes with decided final', (await assertCompletable(id))===null)
 
   const done = await transitionCupState(actor, id, 'COMPLETED')

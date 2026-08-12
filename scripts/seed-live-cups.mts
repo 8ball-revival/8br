@@ -22,13 +22,13 @@ async function resetLiveCup(cupNumber: number) {
 }
 
 /** Persist a single-elim bracket (DRAFT) from an ordered seed list, exactly like rebuildManualPlayoff. */
-async function buildDraftBracket(seasonId: number, qualifiers: Qualifier[]) {
+async function buildDraftBracket(tournamentId: number, qualifiers: Qualifier[]) {
   const plan = planBracket(qualifiers)
   const idByIndex: Record<number, number> = {}
   for (const m of plan.matches) {
     const created = await prisma.playoffMatch.create({
       data: {
-        seasonId,
+        tournamentId,
         round: m.round,
         slot: m.slot,
         label: m.label,
@@ -52,7 +52,7 @@ async function buildDraftBracket(seasonId: number, qualifiers: Qualifier[]) {
 
 async function seedCup12() {
   await resetLiveCup(12)
-  const season = await prisma.tournament.create({
+  const tournament = await prisma.tournament.create({
     data: {
       slug: 'cup-12',
       name: '9 Ball Cup',
@@ -82,17 +82,17 @@ async function seedCup12() {
   for (let i = 0; i < players.length; i++) {
     const p = players[i]
     const reg = await prisma.registration.create({
-      data: { seasonId: season.id, username: p.primaryName, displayName: p.primaryName, cueverseId: p.cueverseId, playerId: p.id, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date(), seed: i + 1 },
+      data: { tournamentId: tournament.id, username: p.primaryName, displayName: p.primaryName, cueverseId: p.cueverseId, playerId: p.id, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date(), seed: i + 1 },
     })
     qualifiers.push({ registrationId: reg.id, username: p.primaryName, seed: i + 1 })
   }
-  const size = qualifiers.length >= 2 ? await buildDraftBracket(season.id, qualifiers) : 0
+  const size = qualifiers.length >= 2 ? await buildDraftBracket(tournament.id, qualifiers) : 0
   console.log(`  cup #12 "9 Ball Cup" — ${qualifiers.length} entrants, draft bracket size ${size}`)
 }
 
 async function seedCup13() {
   await resetLiveCup(13)
-  const season = await prisma.tournament.create({
+  const tournament = await prisma.tournament.create({
     data: {
       slug: 'cup-13',
       name: 'Sit and Stand 2v2',
@@ -134,15 +134,15 @@ async function seedCup13() {
   for (let i = 0; i < teams.length; i++) {
     const t = teams[i]
     const reg = await prisma.registration.create({
-      data: { seasonId: season.id, username: t.name, displayName: t.name, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date(), seed: i + 1 },
+      data: { tournamentId: tournament.id, username: t.name, displayName: t.name, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date(), seed: i + 1 },
     })
-    const team = await prisma.tournamentTeam.create({ data: { seasonId: season.id, registrationId: reg.id, name: t.name, seed: i + 1 } })
+    const team = await prisma.tournamentTeam.create({ data: { tournamentId: tournament.id, registrationId: reg.id, name: t.name, seed: i + 1 } })
     await prisma.tournamentTeamMember.createMany({
       data: t.members.map((name, mi) => ({ teamId: team.id, name, memberOrder: mi, captain: mi === 0 })),
     })
     qualifiers.push({ registrationId: reg.id, username: t.name, seed: i + 1 })
   }
-  const size = await buildDraftBracket(season.id, qualifiers)
+  const size = await buildDraftBracket(tournament.id, qualifiers)
   console.log(`  cup #13 "Sit and Stand 2v2" — ${teams.length} teams, draft bracket size ${size} (${size - teams.length} byes)`)
 }
 

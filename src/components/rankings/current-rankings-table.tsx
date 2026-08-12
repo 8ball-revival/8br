@@ -78,7 +78,7 @@ export function CurrentRankingsTable({ rows }: { rows: CurrentScoreRow[] }) {
             <Th className="hidden text-center lg:table-cell">Group</Th>
             <Th className="hidden text-center lg:table-cell">Playoff</Th>
             <Th className="hidden text-center lg:table-cell">Cup</Th>
-            <Th className="hidden text-center md:table-cell" title="Season titles">ST</Th>
+            <Th className="hidden text-center md:table-cell" title="Tournament titles">ST</Th>
             <Th className="hidden text-center md:table-cell" title="Cup titles">CT</Th>
             <Th className="hidden text-center xl:table-cell" title="Quality wins">QW</Th>
             <Th className="hidden text-right md:table-cell">Form</Th>

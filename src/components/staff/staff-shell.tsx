@@ -103,7 +103,7 @@ export async function StaffShell({
                 Operating <span className="font-medium text-foreground">{seasonName}</span>
               </>
             ) : (
-              'No active season'
+              'No active tournament'
             )}
           </p>
           <div className="flex items-center gap-3 text-sm">

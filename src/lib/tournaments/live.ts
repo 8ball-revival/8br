@@ -105,7 +105,7 @@ export interface CupEntrantView {
 }
 
 export interface CupWorkspaceData {
-  season: {
+  tournament: {
     id: number
     name: string
     slug: string
@@ -119,7 +119,7 @@ export interface CupWorkspaceData {
     seasonStatus: string
     playoffsStatus: string
     registrationStatus: string
-    cupState: string // explicit lifecycle state (source of truth for the public page + gating)
+    lifecycleState: string // explicit lifecycle state (source of truth for the public page + gating)
     archivedAt: string | null
     locked: boolean
     importedFromFixture: boolean
@@ -145,18 +145,18 @@ export interface CupWorkspaceData {
 
 /** Load everything the Cup workspace + public live render need for a cup number. */
 export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceData | null> {
-  const season = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
-  if (!season) return null
+  const tournament = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+  if (!tournament) return null
 
-  const isTeam = season.participantFormat === 'TEAM'
-  const isHistorical = season.importedFromFixture || season.locked
+  const isTeam = tournament.participantFormat === 'TEAM'
+  const isHistorical = tournament.importedFromFixture || tournament.locked
   const isEditable = !isHistorical
 
   // Entrants (individual). Teams are the entrants for team cups.
   let entrants: CupEntrantView[] = []
   if (!isTeam) {
     const regs = await prisma.registration.findMany({
-      where: { seasonId: season.id },
+      where: { tournamentId: tournament.id },
       select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true, seed: true, status: true },
       orderBy: [{ seed: 'asc' }, { id: 'asc' }],
     })
@@ -170,11 +170,11 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
       withdrawn: r.status === 'WITHDRAWN',
     }))
   }
-  const teams = isTeam ? await getTeamsForSeason(season.id) : []
-  const membersByRegId = isTeam ? await getTeamMembersByRegistration(season.id) : undefined
+  const teams = isTeam ? await getTeamsForSeason(tournament.id) : []
+  const membersByRegId = isTeam ? await getTeamMembersByRegistration(tournament.id) : undefined
 
   const matches: PlayoffRow[] = await prisma.playoffMatch.findMany({
-    where: { seasonId: season.id },
+    where: { tournamentId: tournament.id },
     orderBy: [{ round: 'asc' }, { slot: 'asc' }],
     select: {
       id: true, round: true, slot: true, label: true,
@@ -188,48 +188,48 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
   // the entrant/profile); a COMPLETED cup preserves the ID the player competed under
   // (the frozen name stored on the bracket). Team cups keep their team name (kept current
   // on rename), so the live override applies to individual cups only.
-  const isCompleted = season.cupStatus === 'completed' || season.seasonStatus === 'COMPLETED'
+  const isCompleted = tournament.cupStatus === 'completed' || tournament.seasonStatus === 'COMPLETED'
   const displayByRegId =
     !isCompleted && !isTeam ? new Map(entrants.map((e) => [e.registrationId, e.name])) : undefined
   const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
   // Staleness only matters while the bracket is generated but the cup hasn't started.
-  const bracketStale = getCupState(season) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(season.id)).ok : false
+  const bracketStale = getCupState(tournament) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(tournament.id)).ok : false
 
   // Legacy = a single-elim individual cup still stored only in the old read-only bracket
-  // (CupBracketMatch, no PlayoffMatch), not locked. It can be migrated to the workspace.
+  // (TournamentBracketMatch, no PlayoffMatch), not locked. It can be migrated to the workspace.
   let isLegacyConvertible = false
-  if (matches.length === 0 && !season.locked) {
+  if (matches.length === 0 && !tournament.locked) {
     const [mainCount, otherCount, tieCount] = await Promise.all([
-      prisma.tournamentBracketMatch.count({ where: { competitionId: season.id, bracketKind: 'MAIN' } }),
-      prisma.tournamentBracketMatch.count({ where: { competitionId: season.id, bracketKind: { not: 'MAIN' } } }),
-      prisma.cupTeamTie.count({ where: { competitionId: season.id } }),
+      prisma.tournamentBracketMatch.count({ where: { competitionId: tournament.id, bracketKind: 'MAIN' } }),
+      prisma.tournamentBracketMatch.count({ where: { competitionId: tournament.id, bracketKind: { not: 'MAIN' } } }),
+      prisma.cupTeamTie.count({ where: { competitionId: tournament.id } }),
     ])
     isLegacyConvertible = mainCount > 0 && otherCount === 0 && tieCount === 0
   }
 
   return {
-    season: {
-      id: season.id,
-      name: season.name,
-      slug: season.slug,
-      cupNumber: season.cupNumber,
-      competitionCode: season.competitionCode,
-      gameType: season.gameType,
-      participantFormat: season.participantFormat,
-      teamSize: season.teamSize,
-      tournamentFormat: season.tournamentFormat,
-      raceLength: season.raceLength,
-      seasonStatus: season.seasonStatus,
-      playoffsStatus: season.playoffsStatus,
-      registrationStatus: season.registrationStatus,
-      cupState: getCupState(season),
-      archivedAt: season.archivedAt ? season.archivedAt.toISOString() : null,
-      locked: season.locked,
-      importedFromFixture: season.importedFromFixture,
-      cupStatus: season.cupStatus,
-      formatBadge: season.cupFormatBadge,
+    tournament: {
+      id: tournament.id,
+      name: tournament.name,
+      slug: tournament.slug,
+      cupNumber: tournament.cupNumber,
+      competitionCode: tournament.competitionCode,
+      gameType: tournament.gameType,
+      participantFormat: tournament.participantFormat,
+      teamSize: tournament.teamSize,
+      tournamentFormat: tournament.tournamentFormat,
+      raceLength: tournament.raceLength,
+      seasonStatus: tournament.seasonStatus,
+      playoffsStatus: tournament.playoffsStatus,
+      registrationStatus: tournament.registrationStatus,
+      lifecycleState: getCupState(tournament),
+      archivedAt: tournament.archivedAt ? tournament.archivedAt.toISOString() : null,
+      locked: tournament.locked,
+      importedFromFixture: tournament.importedFromFixture,
+      cupStatus: tournament.cupStatus,
+      formatBadge: tournament.cupFormatBadge,
     },
     isCup: true,
     isHistorical,

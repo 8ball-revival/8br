@@ -20,14 +20,14 @@ console.log(`migrated poolist: profile ${migrated.id.slice(0, 8)} legacyId=${mig
 const newbie = await prisma.player.create({ data: { primaryName: 'e2e_newbie', cueverseId: 'e2e_newbie', provenance: 'NATIVE_EGO' } })
 
 const playersBefore = await prisma.player.count()
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', competitionCode: 'CE2EM', cupNumber: 99080, cupState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', competitionCode: 'CE2EM', cupNumber: 99080, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   // Add both entrants by permanent profile id (no free-text).
   check('add migrated poolist by profile ok', (await addEntrantByProfile(actor, id, migrated.id)).ok)
   check('add new player by profile ok', (await addEntrantByProfile(actor, id, newbie.id)).ok)
 
-  const regs = await prisma.registration.findMany({ where: { seasonId: id }, select: { id: true, playerId: true } })
+  const regs = await prisma.registration.findMany({ where: { tournamentId: id }, select: { id: true, playerId: true } })
   check('exactly 2 entrants', regs.length === 2)
   check('migrated entrant references the EXISTING profile (no duplicate)', regs.some((r) => r.playerId === migrated.id))
   check('no duplicate Player was created for the migrated entrant', (await prisma.player.count({ where: { cueverseId: { equals: 'poolist', mode: 'insensitive' } } })) === 1)
@@ -41,7 +41,7 @@ try {
   await transitionCupState(actor, id, 'IN_PROGRESS')
 
   // poolist wins the final 3–1.
-  const final = await prisma.playoffMatch.findFirstOrThrow({ where: { seasonId: id, round: 1 } })
+  const final = await prisma.playoffMatch.findFirstOrThrow({ where: { tournamentId: id, round: 1 } })
   const poolistReg = regs.find((r) => r.playerId === migrated.id)!
   const poolistIsHome = final.homeRegistrationId === poolistReg.id
   await recordPlayoffScore(actor, final.id, poolistIsHome ? 3 : 1, poolistIsHome ? 1 : 3)

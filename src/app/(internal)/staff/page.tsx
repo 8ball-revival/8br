@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { StaffShell } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
-import { CreateSeasonForm } from '@/components/staff/create-season-form'
+import { CreateSeasonForm } from '@/components/staff/create-tournament-form'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getActiveSeason, getDashboardSummary, getRecentAudit } from '@/lib/competition/queries'
 import { SEASON_STATE_LABEL } from '@/lib/competition/labels'
@@ -27,25 +27,25 @@ export default async function StaffDashboardPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
 
-  const season = await getActiveSeason()
-  const summary = season ? await getDashboardSummary(season.id) : null
+  const tournament = await getActiveSeason()
+  const summary = tournament ? await getDashboardSummary(tournament.id) : null
   const audit = await getRecentAudit(8)
 
   // Cups aren't part of the live-ops (comp_*) model yet — foundation value is 0.
   const activeCups = 0
 
   return (
-    <StaffShell active="dashboard" username={access.actor.username} seasonName={season?.name}>
+    <StaffShell active="dashboard" username={access.actor.username} seasonName={tournament?.name}>
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl font-bold tracking-tight">Dashboard</h1>
-        {season && <Badge variant="gold">{SEASON_STATE_LABEL[season.seasonStatus]}</Badge>}
+        {tournament && <Badge variant="gold">{SEASON_STATE_LABEL[tournament.seasonStatus]}</Badge>}
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
-          label="Active season"
-          value={season ? season.name : 'None'}
-          hint={season ? SEASON_STATE_LABEL[season.seasonStatus] : 'Create one below'}
+          label="Active tournament"
+          value={tournament ? tournament.name : 'None'}
+          hint={tournament ? SEASON_STATE_LABEL[tournament.seasonStatus] : 'Create one below'}
         />
         <StatCard label="Pending registrations" value={String(summary?.registrations.PENDING ?? 0)} />
         <StatCard label="Approved entrants" value={String(summary?.registrations.APPROVED ?? 0)} />
@@ -55,7 +55,7 @@ export default async function StaffDashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        {season ? (
+        {tournament ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Quick actions</CardTitle>
@@ -69,11 +69,11 @@ export default async function StaffDashboardPage() {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">No active season</CardTitle>
+              <CardTitle className="text-base">No active tournament</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Create a season to begin. The public site will show it as the current season and staff
+                Create a tournament to begin. The public site will show it as the current tournament and staff
                 can then open registration, draw groups, and run matches.
               </p>
               <CreateSeasonForm />

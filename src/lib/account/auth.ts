@@ -45,12 +45,12 @@ export interface Season2Registration {
   registeredAt?: string | null
 }
 
-/** The current user's registration for the active season (Prisma-backed). */
+/** The current user's registration for the active tournament (Prisma-backed). */
 export async function getSeason2Registration(userId: string): Promise<Season2Registration> {
-  const season = await getActiveSeason()
-  if (!season) return { registered: false, status: null }
+  const tournament = await getActiveSeason()
+  if (!tournament) return { registered: false, status: null }
   const reg = await prisma.registration.findUnique({
-    where: { seasonId_userId: { seasonId: season.id, userId: Number(userId) } },
+    where: { seasonId_userId: { tournamentId: tournament.id, userId: Number(userId) } },
   })
   if (!reg) return { registered: false, status: null }
   return {
@@ -60,9 +60,9 @@ export async function getSeason2Registration(userId: string): Promise<Season2Reg
   }
 }
 
-/** Live registered-player count (approved) for the active season — honest zero. */
+/** Live registered-player count (approved) for the active tournament — honest zero. */
 export async function getSeason2RegisteredCount(): Promise<number> {
-  const season = await getActiveSeason()
-  if (!season) return 0
-  return prisma.registration.count({ where: { seasonId: season.id, status: 'APPROVED' } })
+  const tournament = await getActiveSeason()
+  if (!tournament) return 0
+  return prisma.registration.count({ where: { tournamentId: tournament.id, status: 'APPROVED' } })
 }

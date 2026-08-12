@@ -2,7 +2,7 @@
  * Shared identity-resolution service.
  *
  * SINGLE place that maps a competition handle/display-name to a canonical player.
- * Both the all-time (season-stats) and annual (annual-rankings) services use this,
+ * Both the all-time (tournament-stats) and annual (annual-rankings) services use this,
  * so every derived statistic resolves identities consistently.
  *
  * Owner-verified corrections encoded here:

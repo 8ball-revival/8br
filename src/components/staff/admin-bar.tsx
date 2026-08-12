@@ -17,17 +17,17 @@ type Surface = 'groups' | 'playoffs' | 'cups'
  * management controls, reusing the existing group/playoff/publish services. All
  * actions are still enforced server-side (`manage_competitions`).
  */
-export async function AdminBar({ surface, seasonId }: { surface: Surface; seasonId?: number }) {
+export async function AdminBar({ surface, tournamentId }: { surface: Surface; tournamentId?: number }) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok' || !access.actor.can('manage_competitions')) return null
 
-  const dashHref = seasonId ? `/staff/competition/${seasonId}` : '/staff'
+  const dashHref = tournamentId ? `/staff/competition/${tournamentId}` : '/staff'
 
   let groupState: { count: number; published: boolean } | null = null
-  if (surface === 'groups' && seasonId != null) {
+  if (surface === 'groups' && tournamentId != null) {
     const [count, publishedCount] = await Promise.all([
-      prisma.tournamentGroup.count({ where: { seasonId } }),
-      prisma.tournamentGroup.count({ where: { seasonId, published: true } }),
+      prisma.tournamentGroup.count({ where: { tournamentId } }),
+      prisma.tournamentGroup.count({ where: { tournamentId, published: true } }),
     ])
     groupState = { count, published: publishedCount > 0 }
   }
@@ -45,7 +45,7 @@ export async function AdminBar({ surface, seasonId }: { surface: Surface; season
           </Link>
         </Button>
 
-        {surface === 'groups' && seasonId != null && (
+        {surface === 'groups' && tournamentId != null && (
           <>
             <Button asChild size="sm">
               <Link href="/groups?edit=true">
@@ -55,7 +55,7 @@ export async function AdminBar({ surface, seasonId }: { surface: Surface; season
             {groupState && groupState.count > 0 && !groupState.published && (
               <ActionButton
                 action={publishGroupsAction}
-                fields={{ seasonId }}
+                fields={{ tournamentId }}
                 label="Publish"
                 confirm="Publish groups? They become public and round-robin fixtures are generated. Empty groups and double-assigned players are blocked."
               />
@@ -63,7 +63,7 @@ export async function AdminBar({ surface, seasonId }: { surface: Surface; season
             {groupState && groupState.published && (
               <ActionButton
                 action={unpublishGroupsAction}
-                fields={{ seasonId }}
+                fields={{ tournamentId }}
                 label="Unpublish"
                 variant="outline"
                 confirm="Unpublish groups? They will be hidden from the public site (only allowed before any result is recorded)."

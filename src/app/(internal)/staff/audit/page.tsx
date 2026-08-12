@@ -24,11 +24,11 @@ export default async function StaffAuditPage() {
   if (access.status !== 'ok') return <StaffGate access={access} />
   if (!access.actor.can('view_audit'))
     return <StaffDenied active="audit" username={access.actor.username} label="the Audit Log" />
-  const season = await getActiveSeason()
+  const tournament = await getActiveSeason()
   const entries = await getRecentAudit(100)
 
   return (
-    <StaffShell active="audit" username={access.actor.username} seasonName={season?.name}>
+    <StaffShell active="audit" username={access.actor.username} seasonName={tournament?.name}>
       <h1 className="font-display text-2xl font-bold tracking-tight">Audit log</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Every staff action — who, when, what changed, and any reason. Append-only.

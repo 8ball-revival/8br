@@ -1,12 +1,12 @@
 /**
- * Seed the ACTUAL 2026 Season 2 entrant list into the live competition DB as
+ * Seed the ACTUAL 2026 Tournament 2 entrant list into the live competition DB as
  * account-independent entrants (comp_registration). Matching is CONSERVATIVE — an
  * entrant is LINKED to an existing Player profile only via an owner-confirmed
  * resolution (FORCE, no broad archive guessing) or an EXACT primary CueVerse ID.
  * Every other roster player becomes a correct UNLINKED entrant carrying their
  * submitted display name + CueVerse ID (no guessed links, no duplicate profiles —
  * staff can link them later on /staff/players). Idempotent: clears prior admin-added
- * entrants first, and never duplicates a profile per season.
+ * entrants first, and never duplicates a profile per tournament.
  *
  *   npx tsx scripts/seed-season2-entrants.mts
  */
@@ -41,11 +41,11 @@ const ROSTER: { name: string; handle: string; discord?: string; timezone?: strin
   { name: 'Peter', handle: 'eskimo', discord: 'whishy', timezone: 'EST' },
 ]
 
-const season = await prisma.tournament.findUnique({ where: { slug: 'ego-season-2' } })
-if (!season) { console.error('No ego-season-2 found.'); process.exit(1) }
+const tournament = await prisma.tournament.findUnique({ where: { slug: 'ego-tournament-2' } })
+if (!tournament) { console.error('No ego-tournament-2 found.'); process.exit(1) }
 
 // Idempotent: clear prior admin-added entrants (keeps account/self-registrations).
-await prisma.registration.deleteMany({ where: { seasonId: season.id, addedByAdmin: true } })
+await prisma.registration.deleteMany({ where: { tournamentId: tournament.id, addedByAdmin: true } })
 
 const linked: string[] = []
 const unlinked: string[] = []
@@ -60,15 +60,15 @@ for (const r of ROSTER) {
   if (!profile) profile = await prisma.player.findFirst({ where: { cueverseId: { equals: r.handle, mode: 'insensitive' } } })
 
   if (profile) {
-    const existing = await prisma.registration.findUnique({ where: { seasonId_playerId: { seasonId: season.id, playerId: profile.id } } })
+    const existing = await prisma.registration.findUnique({ where: { seasonId_playerId: { tournamentId: tournament.id, playerId: profile.id } } })
     if (existing) { skipped.push(`${r.name} (already: ${profile.primaryName})`); continue }
     await prisma.registration.create({
-      data: { seasonId: season.id, userId: null, username: profile.primaryName, status: 'APPROVED', approvedAt: new Date(), addedByAdmin: true, displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id },
+      data: { tournamentId: tournament.id, userId: null, username: profile.primaryName, status: 'APPROVED', approvedAt: new Date(), addedByAdmin: true, displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id },
     })
     linked.push(`${r.name} → ${profile.primaryName}${profile.cueverseId ? ` (${profile.cueverseId})` : ''}`)
   } else {
     await prisma.registration.create({
-      data: { seasonId: season.id, userId: null, username: r.name, status: 'APPROVED', approvedAt: new Date(), addedByAdmin: true, displayName: r.name, cueverseId: r.handle, discord: r.discord ?? null, timeZone: r.timezone ?? null, playerId: null },
+      data: { tournamentId: tournament.id, userId: null, username: r.name, status: 'APPROVED', approvedAt: new Date(), addedByAdmin: true, displayName: r.name, cueverseId: r.handle, discord: r.discord ?? null, timeZone: r.timezone ?? null, playerId: null },
     })
     unlinked.push(`${r.name} (${r.handle})`)
   }
@@ -79,5 +79,5 @@ linked.forEach((m) => console.log('  ' + m))
 console.log(`\nUNLINKED entrants — name + CueVerse ID, staff can link later (${unlinked.length}):`)
 unlinked.forEach((m) => console.log('  ' + m))
 console.log(`\nSkipped (already entered) (${skipped.length}):`, skipped.join(', ') || '—')
-console.log(`\nSeason 2 active entrants now:`, await prisma.registration.count({ where: { seasonId: season.id, status: 'APPROVED' } }))
+console.log(`\nSeason 2 active entrants now:`, await prisma.registration.count({ where: { tournamentId: tournament.id, status: 'APPROVED' } }))
 await prisma.$disconnect()

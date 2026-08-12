@@ -39,7 +39,7 @@ function formatBadge(cfg: CreateCupConfig): string {
  * transaction (serializable-safe: derived from the current max under a single tx) so two
  * simultaneous creates cannot collide. Returns the new competition id + cupNumber + code.
  *
- * The cup is a `Season` row with competitionType=CUP, rendered/edited through the same
+ * The cup is a `Tournament` row with competitionType=CUP, rendered/edited through the same
  * unified competition machinery. It is created EMPTY (no results invented); entrants/teams
  * and the bracket are built afterward through the Cup workspace.
  */
@@ -72,7 +72,7 @@ export async function createCup(
       })
       if (clash) throw new Error('CUP_NUMBER_TAKEN')
 
-      const season = await tx.tournament.create({
+      const tournament = await tx.tournament.create({
         data: {
           slug,
           name,
@@ -93,7 +93,7 @@ export async function createCup(
           seasonStatus: 'UPCOMING',
           // Lifecycle: a new cup starts in DRAFT — nothing publicly joinable. An Admin opens
           // registration explicitly (see cup-lifecycle). registrationStatus stays in sync.
-          cupState: 'DRAFT',
+          lifecycleState: 'DRAFT',
           registrationStatus: 'NOT_OPEN',
           playoffsStatus: 'PENDING',
           importedFromFixture: false,
@@ -113,13 +113,13 @@ export async function createCup(
         actor,
         {
           action: 'cup.create',
-          entity: 'Season',
-          entityId: season.id,
+          entity: 'Tournament',
+          entityId: tournament.id,
           newValue: { cupNumber: nextNumber, code, name, participantFormat: cfg.participantFormat, tournamentFormat: cfg.tournamentFormat },
         },
         tx,
       )
-      return { id: season.id, cupNumber: nextNumber, competitionCode: code, slug }
+      return { id: tournament.id, cupNumber: nextNumber, competitionCode: code, slug }
     })
     return { ok: true, ...created }
   } catch (e) {

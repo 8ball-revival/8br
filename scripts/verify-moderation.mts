@@ -31,11 +31,11 @@ const activeSeason = await prisma.tournament.findFirst({ where: { competitionTyp
 let testRegId: number | null = null
 
 try {
-  // Seed a synthetic ACTIVE registration in the active season to prove cleanup withdraws it.
+  // Seed a synthetic ACTIVE registration in the active tournament to prove cleanup withdraws it.
   if (activeSeason) {
-    const reg = await prisma.registration.create({ data: { seasonId: activeSeason.id, userId: UID, username: 'verify-test-entrant', status: 'APPROVED', approvedAt: new Date() } })
+    const reg = await prisma.registration.create({ data: { tournamentId: activeSeason.id, userId: UID, username: 'verify-test-entrant', status: 'APPROVED', approvedAt: new Date() } })
     testRegId = reg.id
-    log(`seeded synthetic registration ${testRegId} in season ${activeSeason.id}`)
+    log(`seeded synthetic registration ${testRegId} in tournament ${activeSeason.id}`)
   }
 
   // Baseline

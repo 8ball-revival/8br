@@ -13,7 +13,7 @@ export const metadata: Metadata = pageMetadata({
 })
 
 const PLANNED: { icon: typeof Target; title: string; body: string }[] = [
-  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming Season and Cup matchups.' },
+  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming Tournament and Cup matchups.' },
   { icon: Trophy, title: 'Tournament predictions', body: 'Pick group qualifiers, bracket runs, and champions.' },
   { icon: MessagesSquare, title: 'Community analysis', body: 'Share breakdowns, form reads, and upset calls.' },
   { icon: LineChart, title: 'Prediction accuracy tracking', body: 'Build a record — see who actually calls it right.' },

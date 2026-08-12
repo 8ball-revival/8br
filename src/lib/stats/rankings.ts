@@ -69,7 +69,7 @@ export interface RankingView {
 }
 
 // ---------- title index (context only; never affects rating) ----------------
-type TitleRec = { year: number; kind: 'season' | 'cup' }
+type TitleRec = { year: number; kind: 'tournament' | 'cup' }
 let _titles: Map<string, TitleRec[]> | null = null
 let _titlesRev = -1
 function titleIndex(): Map<string, TitleRec[]> {
@@ -77,7 +77,7 @@ function titleIndex(): Map<string, TitleRec[]> {
   if (_titles && _titlesRev === rev) return _titles
   _titlesRev = rev
   const m = new Map<string, TitleRec[]>()
-  const add = (slot: { name?: string | null; handle?: string | null } | null | undefined, year: number, kind: 'season' | 'cup') => {
+  const add = (slot: { name?: string | null; handle?: string | null } | null | undefined, year: number, kind: 'tournament' | 'cup') => {
     if (!slot || !slot.name) return
     const r = resolveIdentity(slot.handle, slot.name, { unknownAsSelf: true })
     if (!r) return
@@ -87,7 +87,7 @@ function titleIndex(): Map<string, TitleRec[]> {
   }
   for (const s of getAllArchiveSeasons()) {
     if (s.pending) continue
-    for (const d of s.divisions) add(d.champion, s.year, 'season')
+    for (const d of s.divisions) add(d.champion, s.year, 'tournament')
   }
   for (const c of getCups()) if (c.year) add(c.champion, c.year, 'cup')
   _titles = m

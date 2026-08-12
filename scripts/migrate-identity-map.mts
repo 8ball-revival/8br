@@ -16,8 +16,8 @@ const nk = (s: string | null | undefined) => (s ?? '').toLowerCase().replace(/[^
 
 async function reassignAndDelete(fromId: string, toId: string) {
   // Move live FKs from a merged profile to the canonical one, then delete it.
-  for (const reg of await prisma.registration.findMany({ where: { playerId: fromId }, select: { id: true, seasonId: true } })) {
-    const clash = await prisma.registration.findFirst({ where: { seasonId: reg.seasonId, playerId: toId } })
+  for (const reg of await prisma.registration.findMany({ where: { playerId: fromId }, select: { id: true, tournamentId: true } })) {
+    const clash = await prisma.registration.findFirst({ where: { tournamentId: reg.tournamentId, playerId: toId } })
     if (clash) await prisma.registration.delete({ where: { id: reg.id } })
     else await prisma.registration.update({ where: { id: reg.id }, data: { playerId: toId } })
   }

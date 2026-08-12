@@ -33,7 +33,7 @@ const DEFAULT_ELIGIBILITY = 'Open to all registered 8 Ball Revival account holde
 
 export const metadata: Metadata = pageMetadata({
   title: 'Your Account',
-  description: 'Your 8 Ball Revival account, competitive dashboard, and Season 2 registration.',
+  description: 'Your 8 Ball Revival account, competitive dashboard, and Tournament 2 registration.',
   path: '/account',
   index: false,
 })
@@ -44,10 +44,10 @@ export default async function AccountPage() {
   if (!user) redirect('/login')
 
   const registration = await getSeason2Registration(user.id)
-  const season = await getPublicSeason()
-  const open = isRegistrationOpen(season)
-  const deadlineLabel = registrationDeadlineLabel(season)
-  const eligibilitySummary = season?.eligibilitySummary ?? DEFAULT_ELIGIBILITY
+  const tournament = await getPublicSeason()
+  const open = isRegistrationOpen(tournament)
+  const deadlineLabel = registrationDeadlineLabel(tournament)
+  const eligibilitySummary = tournament?.eligibilitySummary ?? DEFAULT_ELIGIBILITY
   const isApproved = registration.status === 'APPROVED'
 
   // Linked canonical player profile (historical identity), if staff has linked it.
@@ -93,7 +93,7 @@ export default async function AccountPage() {
                 <Metric label="Current rank" value={ranking?.inCurrentWindow ? ordinal(ranking.currentRank) : '—'} accent />
                 <Metric label="Ranking score" value={ranking?.inCurrentWindow ? ranking.score ?? '—' : '—'} />
                 <Metric label="All-time peak" value={ranking?.peakRating ?? '—'} sub={ranking?.bestYearEndRank ? `best ${ordinal(ranking.bestYearEndRank)}` : undefined} />
-                <Metric label="Season titles" value={career?.seasonTitles ?? 0} accent={(career?.seasonTitles ?? 0) > 0} />
+                <Metric label="Tournament titles" value={career?.seasonTitles ?? 0} accent={(career?.seasonTitles ?? 0) > 0} />
                 <Metric label="Cup titles" value={career?.cupTitles ?? 0} accent={(career?.cupTitles ?? 0) > 0} />
                 <Metric label="Playoff W–L" value={career ? `${career.playoffWins}–${career.playoffLosses}` : '—'} />
                 <Metric label="Career W–L" value={career ? `${career.totalWins}–${career.totalLosses}` : '—'} sub={career ? `${career.totalWinPct}%` : undefined} />
@@ -187,11 +187,11 @@ export default async function AccountPage() {
           </CardContent>
         </Card>
 
-        {/* Season 2 registration */}
+        {/* Tournament 2 registration */}
         <Card className={'order-1 lg:order-2 ' + (registration.registered ? 'border-success/40' : open ? 'border-gold/40' : '')}>
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
-              <CardTitle>8 Ball Revival Season 2</CardTitle>
+              <CardTitle>8 Ball Revival Tournament 2</CardTitle>
               <Badge variant={isApproved ? 'success' : registration.registered ? 'gold' : open ? 'gold' : 'muted'}>
                 {isApproved ? 'Registered' : registration.registered ? 'Pending approval' : open ? 'Registration open' : 'Registration closed'}
               </Badge>
@@ -203,7 +203,7 @@ export default async function AccountPage() {
                 <CheckCircle2 className={'mt-0.5 size-5 shrink-0 ' + (isApproved ? 'text-success' : 'text-gold')} aria-hidden />
                 <div>
                   <p className="font-medium text-foreground">
-                    {isApproved ? "You're entered into Season 2." : 'Your entry is pending staff approval.'}
+                    {isApproved ? "You're entered into Tournament 2." : 'Your entry is pending staff approval.'}
                   </p>
                   {registration.registeredAt && <p className="mt-1 text-muted-foreground">Registered {formatDate(registration.registeredAt)}.</p>}
                   <p className="mt-1 text-muted-foreground">
@@ -214,11 +214,11 @@ export default async function AccountPage() {
               </div>
             ) : open ? (
               <>
-                <p className="text-muted-foreground">You have an account but haven&apos;t entered Season 2 yet. {eligibilitySummary}</p>
+                <p className="text-muted-foreground">You have an account but haven&apos;t entered Tournament 2 yet. {eligibilitySummary}</p>
                 <RegisterForm identity={identity} missing={missing} />
               </>
             ) : (
-              <p className="text-muted-foreground">Season 2 registration is closed. {deadlineLabel}.</p>
+              <p className="text-muted-foreground">Tournament 2 registration is closed. {deadlineLabel}.</p>
             )}
             {registration.registered && open && <WithdrawButton />}
             <div className="border-t border-border pt-4">

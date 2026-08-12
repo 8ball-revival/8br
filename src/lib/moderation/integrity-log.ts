@@ -84,12 +84,12 @@ export async function getIntegrityLog(userId: number, playerId?: string | null):
   // 4) The member's registration changes (entries + self/forced withdrawals) — competition history.
   const regs = await prisma.registration.findMany({
     where: { OR: [{ userId }, ...(playerId ? [{ playerId }] : [])] },
-    include: { season: { select: { name: true } } },
+    include: { tournament: { select: { name: true } } },
     orderBy: { createdAt: 'desc' },
   })
   for (const r of regs) {
-    events.push({ at: r.createdAt.toISOString(), kind: 'registration', summary: `Entered ${r.season.name}`, competition: true })
-    if (r.withdrawnAt) events.push({ at: r.withdrawnAt.toISOString(), kind: 'withdrawal', summary: `Withdrawn from ${r.season.name}`, competition: true })
+    events.push({ at: r.createdAt.toISOString(), kind: 'registration', summary: `Entered ${r.tournament.name}`, competition: true })
+    if (r.withdrawnAt) events.push({ at: r.withdrawnAt.toISOString(), kind: 'withdrawal', summary: `Withdrawn from ${r.tournament.name}`, competition: true })
   }
 
   return events.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))

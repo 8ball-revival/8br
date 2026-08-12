@@ -12,13 +12,13 @@ check('IN_PROGRESS → REGISTRATION_OPEN REJECTED (permanent lock once live)', !
 check('COMPLETED → REGISTRATION_OPEN REJECTED', !canTransition('COMPLETED', 'REGISTRATION_OPEN'))
 check('REGISTRATION_CLOSED → IN_PROGRESS REJECTED (must generate bracket)', !canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
 
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', competitionCode: 'CWF', cupNumber: 99060, cupState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', competitionCode: 'CWF', cupNumber: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- temporary entrants are refused server-side ---')
   const temp = await addManualEntrant(actor, id, 'Some Free Text Name')
   check('addManualEntrant refuses (no free-text entrants)', !temp.ok && /no longer supported/i.test(temp.error || ''))
-  check('no account-less entrant row was created', (await prisma.registration.count({ where: { seasonId: id } })) === 0)
+  check('no account-less entrant row was created', (await prisma.registration.count({ where: { tournamentId: id } })) === 0)
 
   console.log('\n--- close ⇄ re-open registration persists ---')
   check('REGISTRATION_OPEN → REGISTRATION_CLOSED ok', (await transitionCupState(actor, id, 'REGISTRATION_CLOSED')).ok)
@@ -29,7 +29,7 @@ try {
   console.log('\n--- bracket staleness: entrant change after generation ---')
   // Seed 4 registered entrants (permanent player refs simulated by registration ids).
   const regs = []
-  for (const nm of ['A', 'B', 'C', 'D']) regs.push(await prisma.registration.create({ data: { seasonId: id, username: nm, status: 'APPROVED' } }))
+  for (const nm of ['A', 'B', 'C', 'D']) regs.push(await prisma.registration.create({ data: { tournamentId: id, username: nm, status: 'APPROVED' } }))
   await transitionCupState(actor, id, 'REGISTRATION_CLOSED')
   await rebuildManualPlayoff(actor, id, regs.map((r) => r.id))
   await publishPlayoff(actor, id)
@@ -38,7 +38,7 @@ try {
 
   // Re-open, add a 5th entrant → bracket now stale.
   check('BRACKET_GENERATED → REGISTRATION_OPEN ok (re-open)', (await transitionCupState(actor, id, 'REGISTRATION_OPEN')).ok)
-  await prisma.registration.create({ data: { seasonId: id, username: 'E', status: 'APPROVED' } })
+  await prisma.registration.create({ data: { tournamentId: id, username: 'E', status: 'APPROVED' } })
   const stale = await bracketMatchesEntrants(id)
   check('bracket is STALE after an entrant is added', !stale.ok && /added after/i.test(stale.reason || ''))
 

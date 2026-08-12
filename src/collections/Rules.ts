@@ -23,7 +23,7 @@ export const Rules: CollectionConfig = {
       name: 'category',
       type: 'select',
       defaultValue: 'general',
-      options: ['general', 'season', 'cup', 'tournament', 'format', 'conduct'],
+      options: ['general', 'tournament', 'cup', 'tournament', 'format', 'conduct'],
     },
     {
       name: 'appliesToCompetitionType',

@@ -8,7 +8,7 @@ export interface ScoreValidationResult {
 }
 
 /**
- * Validate a completed match score against the season race length.
+ * Validate a completed match score against the tournament race length.
  * Rules: the winner must reach exactly `raceLength`; the loser must be in
  * [0, raceLength); no ties; whole numbers only.
  */

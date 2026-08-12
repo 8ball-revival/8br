@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 const initial: FormResult = {}
 
 /**
- * Member self-withdrawal from the active season. Two-step confirm (no modal needed).
+ * Member self-withdrawal from the active tournament. Two-step confirm (no modal needed).
  * Only rendered while registration is open; after close the option disappears and
  * withdrawal must go through staff. On success the page revalidates and shows the
  * re-register state.
@@ -27,7 +27,7 @@ export function WithdrawButton() {
     return (
       <div className="border-t border-border pt-4">
         <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
-          Withdraw from Season 2
+          Withdraw from Tournament 2
         </Button>
         <p className="mt-1.5 text-xs text-muted-foreground">
           You can withdraw any time before registration closes, and re-register later.
@@ -39,7 +39,7 @@ export function WithdrawButton() {
 
   return (
     <form action={action} className="border-t border-border pt-4">
-      <p className="text-sm text-foreground">Withdraw your Season 2 entry?</p>
+      <p className="text-sm text-foreground">Withdraw your Tournament 2 entry?</p>
       <p className="mt-0.5 text-xs text-muted-foreground">
         You&apos;ll be removed from the entrant list. You can re-register before the deadline.
       </p>

@@ -6,9 +6,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE TYPE "payload"."enum_users_roles" AS ENUM('admin', 'senior_editor', 'editor', 'member');
   CREATE TYPE "payload"."enum_news_status" AS ENUM('draft', 'published');
   CREATE TYPE "payload"."enum__news_v_version_status" AS ENUM('draft', 'published');
-  CREATE TYPE "payload"."enum_rules_category" AS ENUM('general', 'season', 'cup', 'tournament', 'format', 'conduct');
+  CREATE TYPE "payload"."enum_rules_category" AS ENUM('general', 'tournament', 'cup', 'tournament', 'format', 'conduct');
   CREATE TYPE "payload"."enum_rules_status" AS ENUM('draft', 'published');
-  CREATE TYPE "payload"."enum__rules_v_version_category" AS ENUM('general', 'season', 'cup', 'tournament', 'format', 'conduct');
+  CREATE TYPE "payload"."enum__rules_v_version_category" AS ENUM('general', 'tournament', 'cup', 'tournament', 'format', 'conduct');
   CREATE TYPE "payload"."enum__rules_v_version_status" AS ENUM('draft', 'published');
   CREATE TABLE "payload"."users_roles" (
   	"order" integer NOT NULL,

@@ -10,7 +10,7 @@ import { PlayerSpotlight } from '@/components/home/player-spotlight'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
 import { OnThisDay } from '@/components/home/on-this-day'
 import { getHomeData, type HeroData } from '@/lib/home/fixtures'
-import { getSeasonTop, getSeasonRankings } from '@/lib/stats/season-stats'
+import { getSeasonTop, getSeasonRankings } from '@/lib/stats/tournament-stats'
 import { getAllArchiveSeasons } from '@/lib/seasons/archive'
 import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
 import { getSpotlightPlayers } from '@/lib/spotlight/fixtures'
@@ -19,7 +19,7 @@ import { cupStore, loadCupContext } from '@/lib/cups/prime'
 import { absoluteUrl } from '@/lib/site'
 
 const DESCRIPTION =
-  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Compete in Season 2 — the group stage and playoffs — and explore two decades of history.'
+  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Compete in Tournament 2 — the group stage and playoffs — and explore two decades of history.'
 
 export const metadata: Metadata = {
   title: { absolute: '8 Ball Revival | Formerly 8BRCAM' },
@@ -44,30 +44,30 @@ export default async function HomePage() {
 
   // Registration state on the hero is DB-driven (the manual staff status is
   // authoritative) — never a hardcoded label or deadline.
-  const season = await getPublicSeason()
-  const open = isRegistrationOpen(season)
+  const tournament = await getPublicSeason()
+  const open = isRegistrationOpen(tournament)
   const hero: HeroData = {
     ...data.hero,
-    seasonLabel: season?.name ?? data.hero.seasonLabel,
+    seasonLabel: tournament?.name ?? data.hero.seasonLabel,
     headingTop: 'Registration',
-    headingBottom: open ? 'Now Open' : season?.registrationStatus === 'CLOSED' ? 'Now Closed' : 'Opening Soon',
+    headingBottom: open ? 'Now Open' : tournament?.registrationStatus === 'CLOSED' ? 'Now Closed' : 'Opening Soon',
     // Countdown only when open AND a deadline is set; otherwise hidden.
-    registrationClosesAt: open && season?.registrationClosesAt ? season.registrationClosesAt.toISOString() : '',
+    registrationClosesAt: open && tournament?.registrationClosesAt ? tournament.registrationClosesAt.toISOString() : '',
     deadlineNote: open
-      ? season?.registrationClosesAt
-        ? registrationDeadlineLabel(season)
-        : 'Registration is open — enter Season 2 now.'
-      : season?.registrationStatus === 'CLOSED'
+      ? tournament?.registrationClosesAt
+        ? registrationDeadlineLabel(tournament)
+        : 'Registration is open — enter Tournament 2 now.'
+      : tournament?.registrationStatus === 'CLOSED'
         ? 'Registration is closed. Follow the group stage and playoffs.'
         : 'Registration will open soon.',
   }
 
   // Current & upcoming competitions for the hero side panel (existing data only).
   const competitions: CompetitionItem[] = []
-  if (season) {
+  if (tournament) {
     competitions.push({
-      title: season.name,
-      meta: open ? 'Group stage → playoffs' : 'Season in progress',
+      title: tournament.name,
+      meta: open ? 'Group stage → playoffs' : 'Tournament in progress',
       href: open ? '/register' : '/groups',
       status: open ? 'open' : 'closed',
     })
@@ -81,7 +81,7 @@ export default async function HomePage() {
     })
   }
 
-  // Championship + season counters derived from the canonical Seasons source (the
+  // Championship + tournament counters derived from the canonical Seasons source (the
   // remaining by-the-numbers tiles are decorative site-level counters, not player stats).
   const champions = getSeasonRankings().filter((p) => p.championships > 0).length
   const seasonCount = getAllArchiveSeasons().filter((s) => !s.pending).length

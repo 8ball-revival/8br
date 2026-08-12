@@ -66,10 +66,10 @@ export function CupWorkspace({
         <Badge variant="gold">Admin</Badge>
         <span className="text-sm font-medium text-foreground">Competition workspace</span>
         <span className="text-xs text-muted-foreground">
-          {data.season.competitionCode} · {data.isTeam ? `${data.season.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
-          {(data.season.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase()}
+          {data.tournament.competitionCode} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
+          {(data.tournament.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase()}
         </span>
-        {data.season.locked && <Badge variant="destructive">Locked</Badge>}
+        {data.tournament.locked && <Badge variant="destructive">Locked</Badge>}
         {pending && <span className="ml-auto text-xs text-muted-foreground">Working…</span>}
       </div>
 
@@ -77,8 +77,8 @@ export function CupWorkspace({
       {canManage && !data.isHistorical && (
         <div className="px-4 pt-4">
           <CupLifecycleControls
-            seasonId={data.season.id}
-            state={data.season.cupState as 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'}
+            tournamentId={data.tournament.id}
+            state={data.tournament.lifecycleState as 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'}
             isOwner={isOwner}
             bracketStale={data.bracketStale}
             onNavigate={(t) => setTab(t)}
@@ -144,12 +144,12 @@ function Overview({ data }: { data: CupWorkspaceData }) {
   const bracketState = data.hasPublishedBracket ? 'Published' : data.hasBracket ? 'Draft' : 'Not built'
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <StatCard label="Status" value={data.season.seasonStatus.toLowerCase()} hint={data.season.cupStatus ?? undefined} />
+      <StatCard label="Status" value={data.tournament.seasonStatus.toLowerCase()} hint={data.tournament.cupStatus ?? undefined} />
       <StatCard label={data.isTeam ? 'Teams' : 'Entrants'} value={String(rosterCount)} />
       <StatCard label="Bracket" value={bracketState} hint={data.hasBracket ? `${data.matches.length} matches` : undefined} />
       <StatCard label="Results" value={`${played}/${playable}`} hint="matches decided" />
-      <StatCard label="Game" value={data.season.gameType ?? '—'} />
-      <StatCard label="Registration" value={data.season.registrationStatus.replace('_', ' ').toLowerCase()} />
+      <StatCard label="Game" value={data.tournament.gameType ?? '—'} />
+      <StatCard label="Registration" value={data.tournament.registrationStatus.replace('_', ' ').toLowerCase()} />
     </div>
   )
 }
@@ -163,7 +163,7 @@ function Overview({ data }: { data: CupWorkspaceData }) {
  * deleted and banned profiles are excluded server-side. An empty query lists eligible players so the
  * control is browsable.
  */
-function AddPlayer({ seasonId, run }: { seasonId: number; run: Run }) {
+function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [candidates, setCandidates] = useState<A.EntrantCandidate[]>([])
@@ -171,7 +171,7 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: Run }) {
 
   const load = (value: string) => {
     setQ(value)
-    startSearch(async () => setCandidates(await A.searchCupPlayersAction(seasonId, value.trim())))
+    startSearch(async () => setCandidates(await A.searchCupPlayersAction(tournamentId, value.trim())))
   }
 
   // Open the dropdown and (re)load the list when there's nothing to show. Bound to BOTH focus and
@@ -201,7 +201,7 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: Run }) {
               <li key={c.playerId}>
                 <button
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => run(async () => { const r = await A.addCupEntrantsAction(seasonId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
+                  onClick={() => run(async () => { const r = await A.addCupEntrantsAction(tournamentId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
                   className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
                 >
                   <span>{c.primaryName}{c.cueverseId && c.cueverseId.toLowerCase() !== c.primaryName.toLowerCase() && <span className="ml-1 text-xs text-muted-foreground">({c.cueverseId})</span>}</span>
@@ -218,16 +218,16 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: Run }) {
 }
 
 function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
-  const seasonId = data.season.id
+  const tournamentId = data.tournament.id
   // Entrants can only be added while registration is open or closed (never once the bracket exists).
-  const canAdd = data.season.cupState === 'REGISTRATION_OPEN' || data.season.cupState === 'REGISTRATION_CLOSED'
+  const canAdd = data.tournament.lifecycleState === 'REGISTRATION_OPEN' || data.tournament.lifecycleState === 'REGISTRATION_CLOSED'
 
   return (
     <div className="space-y-5">
-      {!disabled && canAdd && <AddPlayer seasonId={seasonId} run={run} />}
+      {!disabled && canAdd && <AddPlayer tournamentId={tournamentId} run={run} />}
       {!disabled && !canAdd && (
         <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
-          {data.season.cupState === 'DRAFT'
+          {data.tournament.lifecycleState === 'DRAFT'
             ? 'Open registration to add players.'
             : 'Entrants are locked once the bracket is generated. Re-open registration to change the field.'}
         </p>
@@ -242,9 +242,9 @@ function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run
               <span className="flex-1">{e.name}{e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}{e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}</span>
               {!disabled && (
                 e.withdrawn ? (
-                  <button onClick={() => run(() => A.restoreCupEntrantAction(data.season.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-gold">restore</button>
+                  <button onClick={() => run(() => A.restoreCupEntrantAction(data.tournament.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-gold">restore</button>
                 ) : (
-                  <button onClick={() => run(() => A.removeCupEntrantAction(data.season.id, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
+                  <button onClick={() => run(() => A.removeCupEntrantAction(data.tournament.id, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
                 )
               )}
             </li>
@@ -265,14 +265,14 @@ function TeamsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; d
       {!disabled && (
         <div className="flex gap-2">
           <input value={newTeam} onChange={(e) => setNewTeam(e.target.value)} placeholder="New team name" className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
-          <Button onClick={() => run(async () => { const r = await A.createTeamAction(data.season.id, newTeam); setNewTeam(''); return r })} disabled={!newTeam.trim()}>
+          <Button onClick={() => run(async () => { const r = await A.createTeamAction(data.tournament.id, newTeam); setNewTeam(''); return r })} disabled={!newTeam.trim()}>
             <Plus className="size-4" /> Create team
           </Button>
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         {data.teams.map((t) => (
-          <TeamCard key={t.id} team={t} teamSize={data.season.teamSize ?? 2} run={run} disabled={disabled} />
+          <TeamCard key={t.id} team={t} teamSize={data.tournament.teamSize ?? 2} run={run} disabled={disabled} />
         ))}
         {data.teams.length === 0 && <p className="text-sm text-muted-foreground">No teams yet.</p>}
       </div>
@@ -330,16 +330,16 @@ function BracketTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run;
   const poolKey = pool.map((p) => p.id).join(',') // reset the seed builder when the pool changes
   // Bracket generation/regeneration is only possible after registration closes and before the
   // tournament begins (server-enforced too). Once In Progress/Completed the bracket is fixed.
-  const canBuild = data.season.cupState === 'REGISTRATION_CLOSED' || data.season.cupState === 'BRACKET_GENERATED'
+  const canBuild = data.tournament.lifecycleState === 'REGISTRATION_CLOSED' || data.tournament.lifecycleState === 'BRACKET_GENERATED'
 
   return (
     <div className="space-y-6">
       {!disabled && canBuild && <SeedBuilder key={poolKey} data={data} pool={pool} run={run} />}
       {!disabled && !canBuild && (
         <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
-          {data.season.cupState === 'IN_PROGRESS'
+          {data.tournament.lifecycleState === 'IN_PROGRESS'
             ? 'The tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
-            : data.season.cupState === 'COMPLETED'
+            : data.tournament.lifecycleState === 'COMPLETED'
               ? 'This cup is completed — the bracket is read-only.'
               : 'Close registration to generate the bracket.'}
         </p>
@@ -400,13 +400,13 @@ function SeedBuilder({ data, pool, run }: { data: CupWorkspaceData; pool: { id: 
       </ol>
       <div className="mt-3 flex flex-wrap gap-2">
         {!published && (
-          <Button onClick={() => run(() => A.buildCupBracketAction(data.season.id, order))} disabled={order.length < 2}>
+          <Button onClick={() => run(() => A.buildCupBracketAction(data.tournament.id, order))} disabled={order.length < 2}>
             {data.hasBracket ? 'Rebuild draft bracket' : 'Build draft bracket'}
           </Button>
         )}
-        {data.hasBracket && !published && <Button onClick={() => run(() => A.publishCupBracketAction(data.season.id))}>Publish bracket</Button>}
-        {published && <Button variant="secondary" onClick={() => run(() => A.returnCupBracketToDraftAction(data.season.id))}><RotateCcw className="size-4" /> Return to draft</Button>}
-        {data.hasBracket && !published && <Button variant="ghost" onClick={() => run(() => A.deleteCupBracketAction(data.season.id))}>Delete bracket</Button>}
+        {data.hasBracket && !published && <Button onClick={() => run(() => A.publishCupBracketAction(data.tournament.id))}>Publish bracket</Button>}
+        {published && <Button variant="secondary" onClick={() => run(() => A.returnCupBracketToDraftAction(data.tournament.id))}><RotateCcw className="size-4" /> Return to draft</Button>}
+        {data.hasBracket && !published && <Button variant="ghost" onClick={() => run(() => A.deleteCupBracketAction(data.tournament.id))}>Delete bracket</Button>}
       </div>
       {order.length > 2 && <p className="mt-2 text-xs text-muted-foreground">Bracket auto-sizes to the next power of two; empty slots become byes.</p>}
     </div>
@@ -420,7 +420,7 @@ function ResultsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run;
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Race to <span className="font-semibold text-foreground">{data.season.raceLength}</span> — the winner must reach {data.season.raceLength} games.
+        Race to <span className="font-semibold text-foreground">{data.tournament.raceLength}</span> — the winner must reach {data.tournament.raceLength} games.
       </p>
       {playable.length === 0 && <p className="text-sm text-muted-foreground">No playable matches yet. Build and publish the bracket first.</p>}
       {playable.map((m) => (
@@ -465,7 +465,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
   const router = useRouter()
   const [code, setCode] = useState('')
   const [reason, setReason] = useState('')
-  const [race, setRace] = useState(data.season.raceLength)
+  const [race, setRace] = useState(data.tournament.raceLength)
   const [delCode, setDelCode] = useState('')
   const [deleting, startDelete] = useTransition()
   const [delError, setDelError] = useState<string | null>(null)
@@ -473,7 +473,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
   const deleteCup = () => {
     setDelError(null)
     startDelete(async () => {
-      const r = await A.deleteCupAction(data.season.id, delCode)
+      const r = await A.deleteCupAction(data.tournament.id, delCode)
       if (r.error) return setDelError(r.error)
       router.push('/cups') // the cup no longer exists — leave the workspace
       router.refresh()
@@ -493,7 +493,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
               onChange={(e) => setRace(Math.max(1, Number(e.target.value) || 1))}
               className="w-20 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             />
-            <Button size="sm" variant="secondary" onClick={() => run(() => A.setCupRaceLengthAction(data.season.id, race))} disabled={race === data.season.raceLength}>
+            <Button size="sm" variant="secondary" onClick={() => run(() => A.setCupRaceLengthAction(data.tournament.id, race))} disabled={race === data.tournament.raceLength}>
               Save race length
             </Button>
             <span className="text-xs text-muted-foreground">Games to win a match — used by score validation everywhere.</span>
@@ -505,11 +505,11 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
         <section>
           <p className="eyebrow mb-2 text-muted-foreground">Lifecycle</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => run(() => A.completeCupAction(data.season.id))}>Mark complete</Button>
-            {data.season.archivedAt ? (
-              <Button variant="secondary" onClick={() => run(() => A.unarchiveCupAction(data.season.id))}>Unarchive</Button>
+            <Button variant="secondary" onClick={() => run(() => A.completeCupAction(data.tournament.id))}>Mark complete</Button>
+            {data.tournament.archivedAt ? (
+              <Button variant="secondary" onClick={() => run(() => A.unarchiveCupAction(data.tournament.id))}>Unarchive</Button>
             ) : (
-              <Button variant="ghost" onClick={() => run(() => A.archiveCupAction(data.season.id))}>Archive</Button>
+              <Button variant="ghost" onClick={() => run(() => A.archiveCupAction(data.tournament.id))}>Archive</Button>
             )}
           </div>
         </section>
@@ -521,15 +521,15 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
           <p className="mt-1 text-xs text-muted-foreground">
             Imported historical cups are read-only to protect the record. {isOwner ? 'As Owner you may unlock it for correction.' : 'Only the Owner can unlock it.'}
           </p>
-          {isOwner && data.season.locked && (
+          {isOwner && data.tournament.locked && (
             <div className="mt-3 space-y-2">
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={`Type ${data.season.competitionCode} to confirm`} className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={`Type ${data.tournament.competitionCode} to confirm`} className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
               <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              <Button variant="destructive" onClick={() => run(() => A.unlockHistoricalCupAction(data.season.id, code, reason))} disabled={!code.trim() || !reason.trim()}>Unlock historical cup</Button>
+              <Button variant="destructive" onClick={() => run(() => A.unlockHistoricalCupAction(data.tournament.id, code, reason))} disabled={!code.trim() || !reason.trim()}>Unlock historical cup</Button>
             </div>
           )}
-          {isOwner && !data.season.locked && data.season.importedFromFixture && (
-            <Button className="mt-3" variant="secondary" onClick={() => run(() => A.relockHistoricalCupAction(data.season.id))}>Re-lock competition</Button>
+          {isOwner && !data.tournament.locked && data.tournament.importedFromFixture && (
+            <Button className="mt-3" variant="secondary" onClick={() => run(() => A.relockHistoricalCupAction(data.tournament.id))}>Re-lock competition</Button>
           )}
         </section>
       )}
@@ -537,13 +537,13 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
       <section>
         <p className="eyebrow mb-2 text-muted-foreground">Identity</p>
         <dl className="grid gap-1 text-sm">
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Code</dt><dd>{data.season.competitionCode}</dd></div>
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Cup number</dt><dd>{data.season.cupNumber}</dd></div>
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.season.formatBadge} · {(data.season.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Code</dt><dd>{data.tournament.competitionCode}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Cup number</dt><dd>{data.tournament.cupNumber}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.tournament.formatBadge} · {(data.tournament.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
         </dl>
       </section>
 
-      {canManage && !data.isHistorical && data.season.cupState !== 'COMPLETED' && data.season.cupState !== 'CANCELLED' && (
+      {canManage && !data.isHistorical && data.tournament.lifecycleState !== 'COMPLETED' && data.tournament.lifecycleState !== 'CANCELLED' && (
         <section className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-4">
           <p className="text-sm font-semibold text-foreground">Cancel tournament</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -552,7 +552,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
           <Button
             className="mt-3"
             variant="destructive"
-            onClick={() => { if (window.confirm('Cancel this cup? This is terminal (Owner recovery only).')) run(() => A.setCupStateAction(data.season.id, 'CANCELLED', 'Cancelled from Settings')) }}
+            onClick={() => { if (window.confirm('Cancel this cup? This is terminal (Owner recovery only).')) run(() => A.setCupStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
           >
             Cancel tournament
           </Button>
@@ -570,10 +570,10 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
             <input
               value={delCode}
               onChange={(e) => setDelCode(e.target.value)}
-              placeholder={`Type ${data.season.competitionCode} to confirm`}
+              placeholder={`Type ${data.tournament.competitionCode} to confirm`}
               className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
-            <Button variant="destructive" onClick={deleteCup} disabled={deleting || delCode.trim() !== (data.season.competitionCode ?? '')}>
+            <Button variant="destructive" onClick={deleteCup} disabled={deleting || delCode.trim() !== (data.tournament.competitionCode ?? '')}>
               {deleting ? 'Deleting…' : 'Delete cup permanently'}
             </Button>
           </div>

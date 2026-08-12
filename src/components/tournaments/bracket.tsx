@@ -82,7 +82,7 @@ export function Bracket({
   rounds: BracketRound[]
   currentRound?: string
   /** Fill the available width (columns flex to fit) instead of fixed-width columns
-   *  that scroll. Used by the wide season Playoffs canvas; Cups keep fixed columns. */
+   *  that scroll. Used by the wide tournament Playoffs canvas; Cups keep fixed columns. */
   fluid?: boolean
 }) {
   return (

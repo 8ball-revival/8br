@@ -20,9 +20,9 @@ import { recordAudit, type Actor } from './audit'
  * profile-backed entry is not left active.
  */
 
-/** Ids of competitions that are COMPLETED (season done or cup marked completed). */
+/** Ids of competitions that are COMPLETED (tournament done or cup marked completed). */
 async function completedCompetitionIds(client: Prisma.TransactionClient): Promise<Set<number>> {
-  const done = await client.season.findMany({
+  const done = await client.tournament.findMany({
     where: { OR: [{ seasonStatus: 'COMPLETED' }, { cupStatus: 'completed' }] },
     select: { id: true },
   })
@@ -52,7 +52,7 @@ export async function cleanupActiveRegistrations(
 
     const regs = await tx.registration.findMany({
       where: { OR: or, status: { in: ['PENDING', 'APPROVED'] } },
-      select: { id: true, seasonId: true, status: true, username: true },
+      select: { id: true, tournamentId: true, status: true, username: true },
     })
     if (regs.length === 0) return { ok: true, withdrawn: 0, skippedCompleted: 0 }
 
@@ -60,7 +60,7 @@ export async function cleanupActiveRegistrations(
     let withdrawn = 0
     let skippedCompleted = 0
     for (const r of regs) {
-      if (completed.has(r.seasonId)) {
+      if (completed.has(r.tournamentId)) {
         skippedCompleted++ // completed competition — leave the historical entry intact
         continue
       }

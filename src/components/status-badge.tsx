@@ -8,7 +8,7 @@ const VARIANT: Record<CompetitionStatus, React.ComponentProps<typeof Badge>['var
   completed: 'outline',
 }
 
-/** Consistent competition/season status pill. */
+/** Consistent competition/tournament status pill. */
 export function StatusBadge({ status }: { status: CompetitionStatus }) {
   return <Badge variant={VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
 }

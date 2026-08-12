@@ -226,7 +226,7 @@ export interface Rule {
   id: number;
   title: string;
   slug: string;
-  category?: ('general' | 'season' | 'cup' | 'tournament' | 'format' | 'conduct') | null;
+  category?: ('general' | 'tournament' | 'cup' | 'tournament' | 'format' | 'conduct') | null;
   /**
    * App-level reference to a CompetitionType code (Prisma), e.g. SEASON. Optional.
    */

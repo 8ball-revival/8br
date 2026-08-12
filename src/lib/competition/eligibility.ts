@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveMemberStatus } from '@/lib/moderation/service'
 
 /**
- * SHARED competition-eligibility service — the single gate used by Cup signup, Season
+ * SHARED competition-eligibility service — the single gate used by Cup signup, Tournament
  * signup, and admin "add registered account". Every eligibility decision is made
  * server-side here so no surface can diverge.
  *
@@ -59,13 +59,13 @@ async function statusGate(userId: number): Promise<EligibilityResult | null> {
  * Can a signed-in member SELF-SIGN-UP for this competition right now? Requires an active
  * account, a complete linked profile, an open registration window, and no existing entry.
  */
-export async function checkSelfSignupEligibility(userId: number, seasonId: number): Promise<EligibilityResult> {
+export async function checkSelfSignupEligibility(userId: number, tournamentId: number): Promise<EligibilityResult> {
   const blocked = await statusGate(userId)
   if (blocked) return blocked
 
-  const season = await prisma.tournament.findUnique({ where: { id: seasonId }, select: { id: true, registrationStatus: true } })
-  if (!season) return { ok: false, code: 'NOT_FOUND', reason: 'Competition not found.' }
-  if (season.registrationStatus !== 'OPEN') return { ok: false, code: 'REGISTRATION_CLOSED', reason: 'Registration for this competition is closed.' }
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { id: true, registrationStatus: true } })
+  if (!tournament) return { ok: false, code: 'NOT_FOUND', reason: 'Competition not found.' }
+  if (tournament.registrationStatus !== 'OPEN') return { ok: false, code: 'REGISTRATION_CLOSED', reason: 'Registration for this competition is closed.' }
 
   const profile = await prisma.player.findUnique({
     where: { linkedUserId: String(userId) },
@@ -76,7 +76,7 @@ export async function checkSelfSignupEligibility(userId: number, seasonId: numbe
   if (!complete) return { ok: false, code: 'INCOMPLETE_PROFILE', reason: `Add the following to your profile before entering: ${missing.join(', ')}.` }
 
   const existing = await prisma.registration.findFirst({
-    where: { seasonId, OR: [{ userId }, { playerId: profile.id }], status: { in: ['PENDING', 'APPROVED'] } },
+    where: { tournamentId, OR: [{ userId }, { playerId: profile.id }], status: { in: ['PENDING', 'APPROVED'] } },
     select: { id: true },
   })
   if (existing) return { ok: false, code: 'ALREADY_REGISTERED', reason: 'You are already entered in this competition.' }
@@ -88,7 +88,7 @@ export async function checkSelfSignupEligibility(userId: number, seasonId: numbe
  * Can an admin ADD this registered account to a competition? Same status + profile checks,
  * but the open-registration window is NOT required (admins add outside the public window).
  */
-export async function checkAdminAddEligibility(userId: number, seasonId: number): Promise<EligibilityResult> {
+export async function checkAdminAddEligibility(userId: number, tournamentId: number): Promise<EligibilityResult> {
   const blocked = await statusGate(userId)
   if (blocked) return blocked
   const profile = await prisma.player.findUnique({
@@ -97,7 +97,7 @@ export async function checkAdminAddEligibility(userId: number, seasonId: number)
   })
   if (!profile) return { ok: false, code: 'NO_PROFILE', reason: 'That account has no linked player profile yet.' }
   const existing = await prisma.registration.findFirst({
-    where: { seasonId, OR: [{ userId }, { playerId: profile.id }], status: { in: ['PENDING', 'APPROVED'] } },
+    where: { tournamentId, OR: [{ userId }, { playerId: profile.id }], status: { in: ['PENDING', 'APPROVED'] } },
     select: { id: true },
   })
   if (existing) return { ok: false, code: 'ALREADY_REGISTERED', reason: 'That account is already entered.' }

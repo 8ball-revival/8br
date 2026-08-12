@@ -46,7 +46,7 @@ export interface FeaturedMatch {
 export interface ResultRow {
   id: string
   competition: string
-  competitionTone: 'season' | 'cup' | 'invitational' | 'special'
+  competitionTone: 'tournament' | 'cup' | 'invitational' | 'special'
   date: string // display date
   a: { name: string; country: string; score: number }
   b: { name: string; country: string; score: number }
@@ -122,7 +122,7 @@ export interface HomeData {
 
 const HOME_FIXTURE: HomeData = {
   hero: {
-    seasonLabel: 'Season 2',
+    seasonLabel: 'Tournament 2',
     headingTop: 'Registration',
     headingBottom: 'Now Open',
     subtext: 'Compete against the best. Chase the title. Make history.',
@@ -134,13 +134,13 @@ const HOME_FIXTURE: HomeData = {
   },
 
   upcomingEvents: [
-    { id: 'e1', title: 'Season 2 Registration', subtitle: 'Registration Closes', days: 28, kind: 'registration' },
-    { id: 'e2', title: 'Season 2 Week 1', subtitle: 'Group Stage Begins', days: 35, kind: 'group' },
-    { id: 'e3', title: 'Season 2 Playoffs', subtitle: 'Top 16 Compete', days: 61, kind: 'playoff' },
-    { id: 'e4', title: 'Season 2 Finals', subtitle: 'Crown the Champion', days: 89, kind: 'final' },
+    { id: 'e1', title: 'Tournament 2 Registration', subtitle: 'Registration Closes', days: 28, kind: 'registration' },
+    { id: 'e2', title: 'Tournament 2 Week 1', subtitle: 'Group Stage Begins', days: 35, kind: 'group' },
+    { id: 'e3', title: 'Tournament 2 Playoffs', subtitle: 'Top 16 Compete', days: 61, kind: 'playoff' },
+    { id: 'e4', title: 'Tournament 2 Finals', subtitle: 'Crown the Champion', days: 89, kind: 'final' },
   ],
 
-  // Real Season 2 entrants (dev fixture). Swap for a Payload/Prisma query later.
+  // Real Tournament 2 entrants (dev fixture). Swap for a Payload/Prisma query later.
   registrations: [
     { name: 'Neo', handle: 'Starkiller', discord: 'stepatdis', timezone: 'MST' },
     { name: 'Kevin', handle: 'sixohtwo', discord: 'draftcat', timezone: 'EST' },
@@ -191,15 +191,15 @@ const HOME_FIXTURE: HomeData = {
   },
 
   recentResults: [
-    { id: 'r1', competition: 'Season 2 · Week 2', competitionTone: 'season', date: 'May 12, 2024', a: { name: 'Sid', country: 'US', score: 9 }, b: { name: 'Travis', country: 'CA', score: 7 }, winner: 'a' },
+    { id: 'r1', competition: 'Tournament 2 · Week 2', competitionTone: 'tournament', date: 'May 12, 2024', a: { name: 'Sid', country: 'US', score: 9 }, b: { name: 'Travis', country: 'CA', score: 7 }, winner: 'a' },
     { id: 'r2', competition: 'Legends Cup · Final', competitionTone: 'cup', date: 'May 18, 2024', a: { name: 'Cerebro', country: 'CA', score: 10 }, b: { name: 'Kevin', country: 'US', score: 8 }, winner: 'a' },
     { id: 'r3', competition: 'Underdog Open · Final', competitionTone: 'special', date: 'May 19, 2024', a: { name: 'Bilal', country: 'GB', score: 8 }, b: { name: 'Marty', country: 'US', score: 6 }, winner: 'a' },
     { id: 'r4', competition: 'Masters Invitational · Semifinals', competitionTone: 'invitational', date: 'May 20, 2024', a: { name: 'James', country: 'GB', score: 9 }, b: { name: 'Iceman', country: 'FI', score: 4 }, winner: 'a' },
   ],
 
   news: [
-    { id: 'n1', title: 'Season 2 Registration Now Open!', blurb: 'Register now to compete in Season 2.', ago: '2 hours ago', kind: 'registration', href: '/news' },
-    { id: 'n2', title: 'Rulebook Update', blurb: 'New rule clarifications for Season 2.', ago: '3 days ago', kind: 'rulebook', href: '/news' },
+    { id: 'n1', title: 'Tournament 2 Registration Now Open!', blurb: 'Register now to compete in Tournament 2.', ago: '2 hours ago', kind: 'registration', href: '/news' },
+    { id: 'n2', title: 'Rulebook Update', blurb: 'New rule clarifications for Tournament 2.', ago: '3 days ago', kind: 'rulebook', href: '/news' },
     { id: 'n3', title: 'Legends Cup Announced', blurb: 'A special invitational featuring the all-time greats.', ago: '5 days ago', kind: 'cup', href: '/news' },
     { id: 'n4', title: 'Hall of Fame Class of 2024', blurb: 'Vote now for this year’s inductees.', ago: '1 week ago', kind: 'hof', href: '/news' },
   ],

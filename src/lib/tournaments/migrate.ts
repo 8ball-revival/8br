@@ -13,7 +13,7 @@ type DbClient = typeof prisma | Prisma.TransactionClient
  * state, prior revision preserved). Returns the new revision.
  */
 export async function regenerateCupSnapshot(client: DbClient = prisma): Promise<number> {
-  const comps = await client.season.findMany({
+  const comps = await client.tournament.findMany({
     where: { competitionType: 'CUP' },
     orderBy: { cupNumber: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },

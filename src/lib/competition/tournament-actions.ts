@@ -26,17 +26,17 @@ function revalidateCup(cupNumber?: number | null) {
   for (const p of ['/cups', '/', '/rankings', '/hall-of-fame', '/players', '/records', '/seasons']) revalidatePath(p)
 }
 
-async function cupNumberOfSeason(seasonId: number): Promise<number | null> {
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId }, select: { cupNumber: true } })
+async function cupNumberOfSeason(tournamentId: number): Promise<number | null> {
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { cupNumber: true } })
   return s?.cupNumber ?? null
 }
 async function cupNumberOfMatch(matchId: number): Promise<number | null> {
-  const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { season: { select: { cupNumber: true } } } })
-  return m?.season.cupNumber ?? null
+  const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { tournament: { select: { cupNumber: true } } } })
+  return m?.tournament.cupNumber ?? null
 }
 async function seasonIdOfMatch(matchId: number): Promise<number | null> {
-  const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { seasonId: true } })
-  return m?.seasonId ?? null
+  const m = await prisma.playoffMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } })
+  return m?.tournamentId ?? null
 }
 
 // ---- Create ---------------------------------------------------------------
@@ -53,11 +53,11 @@ export async function createCupAction(cfg: CreateCupConfig): Promise<ActionResul
 // ---- Legacy conversion ----------------------------------------------------
 
 /** One-time migration of a legacy (old-format) cup into the editable workspace. */
-export async function convertLegacyCupAction(seasonId: number): Promise<ActionResult> {
+export async function convertLegacyCupAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const r = await convertLegacyCup(actor, seasonId)
+  const r = await convertLegacyCup(actor, tournamentId)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Converted to an editable competition — history preserved.' }
 }
 
@@ -65,26 +65,26 @@ export async function convertLegacyCupAction(seasonId: number): Promise<ActionRe
 
 export interface EntrantCandidate { playerId: string; primaryName: string; cueverseId: string | null }
 
-export async function searchCupPlayersAction(seasonId: number, query: string): Promise<EntrantCandidate[]> {
+export async function searchCupPlayersAction(tournamentId: number, query: string): Promise<EntrantCandidate[]> {
   await requireCapability('manage_competitions')
   const { searchEntrantCandidates } = await import('./queries')
-  return searchEntrantCandidates(seasonId, query)
+  return searchEntrantCandidates(tournamentId, query)
 }
 
 /** Entrant management is only permitted while registration is open or closed (never once the
  *  bracket is generated, the tournament is in progress, or the cup is completed/cancelled). */
 const ENTRANT_STATES: CupState[] = ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED']
 
-export async function addCupEntrantsAction(seasonId: number, playerIds: string[]): Promise<ActionResult> {
+export async function addCupEntrantsAction(tournamentId: number, playerIds: string[]): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, ENTRANT_STATES)
+  const gate = await requireCupState(tournamentId, ENTRANT_STATES)
   if (!gate.ok) return { error: gate.error }
   let added = 0
   for (const id of playerIds) {
-    const r = await svc.addEntrantByProfile(actor, seasonId, id)
+    const r = await svc.addEntrantByProfile(actor, tournamentId, id)
     if (r.ok && !r.already) added++
   }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: `Added ${added} entrant${added === 1 ? '' : 's'}.` }
 }
 
@@ -92,23 +92,23 @@ export async function addCupEntrantsAction(seasonId: number, playerIds: string[]
 // must reference a permanent registered player. Use `addCupEntrantsAction` (Add Player) instead.
 // The server-side service (svc.addManualEntrant) now refuses as a defense-in-depth backstop.
 
-export async function removeCupEntrantAction(seasonId: number, registrationId: number): Promise<ActionResult> {
+export async function removeCupEntrantAction(tournamentId: number, registrationId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, ENTRANT_STATES)
+  const gate = await requireCupState(tournamentId, ENTRANT_STATES)
   if (!gate.ok) return { error: gate.error }
-  const r = await svc.removeEntrant(actor, seasonId, registrationId)
+  const r = await svc.removeEntrant(actor, tournamentId, registrationId)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true }
 }
 
-export async function restoreCupEntrantAction(seasonId: number, registrationId: number): Promise<ActionResult> {
+export async function restoreCupEntrantAction(tournamentId: number, registrationId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, ENTRANT_STATES)
+  const gate = await requireCupState(tournamentId, ENTRANT_STATES)
   if (!gate.ok) return { error: gate.error }
-  const r = await svc.restoreEntrant(actor, seasonId, registrationId)
+  const r = await svc.restoreEntrant(actor, tournamentId, registrationId)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true }
 }
 
@@ -116,14 +116,14 @@ export async function restoreCupEntrantAction(seasonId: number, registrationId: 
 
 /** Set the competition race length (games to win a match). Any positive integer; reused
  *  by score validation, standings, and displays across the whole event. */
-export async function setCupRaceLengthAction(seasonId: number, raceLength: number): Promise<ActionResult> {
+export async function setCupRaceLengthAction(tournamentId: number, raceLength: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   if (!Number.isInteger(raceLength) || raceLength < 1) return { error: 'Race length must be a positive whole number.' }
-  const gate = await requireCupState(seasonId, ['DRAFT', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED'])
+  const gate = await requireCupState(tournamentId, ['DRAFT', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED'])
   if (!gate.ok) return { error: gate.error }
-  await svc.assertCompetitionUnlocked(prisma, seasonId)
-  await svc.updateSeason(actor, seasonId, { raceLength })
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  await svc.assertCompetitionUnlocked(prisma, tournamentId)
+  await svc.updateSeason(actor, tournamentId, { raceLength })
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: `Race length set to ${raceLength}.` }
 }
 
@@ -134,9 +134,9 @@ export async function setCupRaceLengthAction(seasonId: number, raceLength: numbe
 const BRACKET_EDIT_STATES: CupState[] = ['REGISTRATION_CLOSED', 'BRACKET_GENERATED']
 
 /** Active (non-withdrawn) entrant registration ids in default seed order (seed asc, then id). */
-async function defaultSeedOrder(seasonId: number): Promise<number[]> {
+async function defaultSeedOrder(tournamentId: number): Promise<number[]> {
   const regs = await prisma.registration.findMany({
-    where: { seasonId, status: { not: 'WITHDRAWN' } },
+    where: { tournamentId, status: { not: 'WITHDRAWN' } },
     select: { id: true },
     orderBy: [{ seed: 'asc' }, { id: 'asc' }],
   })
@@ -150,46 +150,46 @@ async function defaultSeedOrder(seasonId: number): Promise<number[]> {
  * the Bracket tab. Does NOT silently overwrite an up-to-date existing bracket (regeneration of a
  * stale bracket after re-opening is allowed; a matching one is left intact).
  */
-export async function generateCupBracketAction(seasonId: number): Promise<ActionResult> {
+export async function generateCupBracketAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
+  const gate = await requireCupState(tournamentId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
   if (!gate.ok) return { error: gate.error }
 
-  const order = await defaultSeedOrder(seasonId)
+  const order = await defaultSeedOrder(tournamentId)
   if (order.length < 2) return { error: 'Add at least 2 registered entrants before generating the bracket.' }
 
   // Don't silently overwrite: if a bracket already exists and still matches the entrants, keep it.
   if (gate.state === 'BRACKET_GENERATED') {
-    const fresh = await bracketMatchesEntrants(seasonId)
+    const fresh = await bracketMatchesEntrants(tournamentId)
     if (fresh.ok) return { ok: true, message: 'Bracket is already generated and up to date.', navigate: 'bracket' }
     // else: stale (entrants changed after re-opening) → regenerate below.
   }
 
   // Auto-close registration first (persisted) so the bracket is built against a frozen field.
   if (gate.state === 'REGISTRATION_OPEN') {
-    const close = await transitionCupState(actor, seasonId, 'REGISTRATION_CLOSED')
+    const close = await transitionCupState(actor, tournamentId, 'REGISTRATION_CLOSED')
     if (!close.ok) return { error: close.error }
   }
 
   // Replace any prior (stale/published) bracket, then build + publish the new one.
-  const published = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+  const published = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (published > 0) {
-    const rd = await svc.returnPlayoffToDraft(actor, seasonId)
+    const rd = await svc.returnPlayoffToDraft(actor, tournamentId)
     if (!rd.ok) return { error: rd.error }
   }
-  await svc.reseedEntrants(actor, seasonId, order)
-  const built = await svc.rebuildManualPlayoff(actor, seasonId, order)
+  await svc.reseedEntrants(actor, tournamentId, order)
+  const built = await svc.rebuildManualPlayoff(actor, tournamentId, order)
   if (!built.ok) return { error: built.error }
-  const pub = await svc.publishPlayoff(actor, seasonId)
+  const pub = await svc.publishPlayoff(actor, tournamentId)
   if (!pub.ok) return { error: pub.error }
 
-  const cur = await requireCupState(seasonId, ['REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
+  const cur = await requireCupState(tournamentId, ['REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
   if (cur.ok && cur.state === 'REGISTRATION_CLOSED') {
-    const t = await transitionCupState(actor, seasonId, 'BRACKET_GENERATED')
+    const t = await transitionCupState(actor, tournamentId, 'BRACKET_GENERATED')
     if (!t.ok) return { error: t.error }
   }
-  await recordAudit(actor, { action: 'cup.bracket.generate', entity: 'Season', entityId: seasonId, newValue: { entrants: order.length } })
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  await recordAudit(actor, { action: 'cup.bracket.generate', entity: 'Tournament', entityId: tournamentId, newValue: { entrants: order.length } })
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Bracket generated. Review it, then Start Cup.', navigate: 'bracket' }
 }
 
@@ -200,14 +200,14 @@ export async function generateCupBracketAction(seasonId: number): Promise<Action
  * again after a fresh, matching bracket is generated (enforced by Start Cup's staleness check).
  * Once the cup is live, registration is permanently locked and this is refused server-side.
  */
-export async function reopenCupRegistrationAction(seasonId: number): Promise<ActionResult> {
+export async function reopenCupRegistrationAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, ['REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
+  const gate = await requireCupState(tournamentId, ['REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
   if (!gate.ok) return { error: gate.error }
   const hadBracket = gate.state === 'BRACKET_GENERATED'
-  const r = await transitionCupState(actor, seasonId, 'REGISTRATION_OPEN', hadBracket ? { reason: 'Re-opened after bracket generation' } : {})
+  const r = await transitionCupState(actor, tournamentId, 'REGISTRATION_OPEN', hadBracket ? { reason: 'Re-opened after bracket generation' } : {})
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return {
     ok: true,
     message: hadBracket
@@ -223,24 +223,24 @@ export async function reopenCupRegistrationAction(seasonId: number): Promise<Act
  * fields are created and auto-advanced by the bracket planner. Records a distinct
  * generated/regenerated audit event for the cup history.
  */
-export async function buildCupBracketAction(seasonId: number, orderedRegistrationIds: number[]): Promise<ActionResult> {
+export async function buildCupBracketAction(tournamentId: number, orderedRegistrationIds: number[]): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, BRACKET_EDIT_STATES)
+  const gate = await requireCupState(tournamentId, BRACKET_EDIT_STATES)
   if (!gate.ok) return { error: gate.error }
   const regenerated = gate.state === 'BRACKET_GENERATED'
   // Regeneration: the current bracket is published — return it to draft so it can be rebuilt.
   if (regenerated) {
-    const published = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+    const published = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
     if (published > 0) {
-      const rd = await svc.returnPlayoffToDraft(actor, seasonId)
+      const rd = await svc.returnPlayoffToDraft(actor, tournamentId)
       if (!rd.ok) return { error: rd.error }
     }
   }
-  await svc.reseedEntrants(actor, seasonId, orderedRegistrationIds)
-  const r = await svc.rebuildManualPlayoff(actor, seasonId, orderedRegistrationIds)
+  await svc.reseedEntrants(actor, tournamentId, orderedRegistrationIds)
+  const r = await svc.rebuildManualPlayoff(actor, tournamentId, orderedRegistrationIds)
   if (!r.ok) return { error: r.error }
-  await recordAudit(actor, { action: 'cup.bracket.generate', entity: 'Season', entityId: seasonId, newValue: { regenerated } })
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  await recordAudit(actor, { action: 'cup.bracket.generate', entity: 'Tournament', entityId: tournamentId, newValue: { regenerated } })
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: regenerated ? 'Bracket regenerated (draft).' : 'Draft bracket built.' }
 }
 
@@ -249,17 +249,17 @@ export async function buildCupBracketAction(seasonId: number, orderedRegistratio
  * it moves REGISTRATION_CLOSED → BRACKET_GENERATED (bracket visible, reporting/scoring still off;
  * admins may review + regenerate). Re-publishing after a regeneration keeps the state.
  */
-export async function publishCupBracketAction(seasonId: number): Promise<ActionResult> {
+export async function publishCupBracketAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, BRACKET_EDIT_STATES)
+  const gate = await requireCupState(tournamentId, BRACKET_EDIT_STATES)
   if (!gate.ok) return { error: gate.error }
-  const r = await svc.publishPlayoff(actor, seasonId)
+  const r = await svc.publishPlayoff(actor, tournamentId)
   if (!r.ok) return { error: r.error }
   if (gate.state === 'REGISTRATION_CLOSED') {
-    const t = await transitionCupState(actor, seasonId, 'BRACKET_GENERATED')
+    const t = await transitionCupState(actor, tournamentId, 'BRACKET_GENERATED')
     if (!t.ok && t.error) return { error: t.error }
   }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Bracket published. Review it, then Begin Tournament to start play.' }
 }
 
@@ -268,45 +268,45 @@ export async function publishCupBracketAction(seasonId: number): Promise<ActionR
  * bracket. From here registration + withdrawals stay locked, entrant management is gone, and match
  * reporting/scoring are enabled. The UI requires a confirmation before calling this.
  */
-export async function beginCupTournamentAction(seasonId: number): Promise<ActionResult> {
+export async function beginCupTournamentAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, ['BRACKET_GENERATED'])
+  const gate = await requireCupState(tournamentId, ['BRACKET_GENERATED'])
   if (!gate.ok) return { error: gate.error }
-  const published = await prisma.playoffMatch.count({ where: { seasonId, published: true } })
+  const published = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (published === 0) return { error: 'Publish the generated bracket before beginning the tournament.' }
   // Refuse to start on a stale bracket (entrants changed after it was generated).
-  const fresh = await bracketMatchesEntrants(seasonId)
+  const fresh = await bracketMatchesEntrants(tournamentId)
   if (!fresh.ok) return { error: `${fresh.reason} Regenerate the bracket before starting the cup.` }
-  const t = await transitionCupState(actor, seasonId, 'IN_PROGRESS')
+  const t = await transitionCupState(actor, tournamentId, 'IN_PROGRESS')
   if (!t.ok) return { error: t.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   // Cup is live: registration is permanently locked; match reporting is enabled → Results tab.
   return { ok: true, message: 'The cup is live. Registration is locked and results can be reported.', navigate: 'results' }
 }
 
-export async function returnCupBracketToDraftAction(seasonId: number): Promise<ActionResult> {
+export async function returnCupBracketToDraftAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, BRACKET_EDIT_STATES)
+  const gate = await requireCupState(tournamentId, BRACKET_EDIT_STATES)
   if (!gate.ok) return { error: gate.error }
-  const r = await svc.returnPlayoffToDraft(actor, seasonId)
+  const r = await svc.returnPlayoffToDraft(actor, tournamentId)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Bracket returned to draft for editing.' }
 }
 
 /** Delete the (unstarted) bracket. If the cup had advanced to BRACKET_GENERATED, this scraps the
  *  bracket and returns it to REGISTRATION_CLOSED so entrants can be corrected. */
-export async function deleteCupBracketAction(seasonId: number): Promise<ActionResult> {
+export async function deleteCupBracketAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const gate = await requireCupState(seasonId, BRACKET_EDIT_STATES)
+  const gate = await requireCupState(tournamentId, BRACKET_EDIT_STATES)
   if (!gate.ok) return { error: gate.error }
-  const r = await svc.deletePlayoff(actor, seasonId)
+  const r = await svc.deletePlayoff(actor, tournamentId)
   if (!r.ok) return { error: r.error }
   if (gate.state === 'BRACKET_GENERATED') {
     // Backward correction within the pre-start review phase (audited via transitionCupState).
-    await transitionCupState(actor, seasonId, 'REGISTRATION_CLOSED', { recovery: true, reason: 'Bracket deleted before start' })
+    await transitionCupState(actor, tournamentId, 'REGISTRATION_CLOSED', { recovery: true, reason: 'Bracket deleted before start' })
   }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Bracket deleted.' }
 }
 
@@ -320,8 +320,8 @@ export async function recordCupScoreAction(matchId: number, home: number, away: 
   if (!r.ok) return { error: r.error }
   // Auto-verify to advance the winner immediately (admin editor is authoritative).
   await svc.verifyPlayoffMatch(actor, matchId, reason)
-  const seasonId = await seasonIdOfMatch(matchId)
-  if (seasonId) await syncLiveCupToSnapshot(seasonId) // published/converted cups: keep rankings current
+  const tournamentId = await seasonIdOfMatch(matchId)
+  if (tournamentId) await syncLiveCupToSnapshot(tournamentId) // published/converted cups: keep rankings current
   revalidateCup(await cupNumberOfMatch(matchId))
   return { ok: true, message: 'Result saved and winner advanced.' }
 }
@@ -332,8 +332,8 @@ export async function undoCupResultAction(matchId: number, reason?: string): Pro
   if (sid) { const gate = await requireCupState(sid, ['IN_PROGRESS']); if (!gate.ok) return { error: gate.error } }
   const r = await svc.undoPlayoffResult(actor, matchId, reason)
   if (!r.ok) return { error: r.error }
-  const seasonId = await seasonIdOfMatch(matchId)
-  if (seasonId) await syncLiveCupToSnapshot(seasonId) // published/converted cups: keep rankings current
+  const tournamentId = await seasonIdOfMatch(matchId)
+  if (tournamentId) await syncLiveCupToSnapshot(tournamentId) // published/converted cups: keep rankings current
   revalidateCup(await cupNumberOfMatch(matchId))
   return { ok: true, message: 'Result undone.' }
 }
@@ -350,11 +350,11 @@ export async function setCupMatchNoteAction(matchId: number, note: string): Prom
 
 // ---- Teams (2v2 / team cups) ----------------------------------------------
 
-export async function createTeamAction(seasonId: number, name: string): Promise<ActionResult & { teamId?: number }> {
+export async function createTeamAction(tournamentId: number, name: string): Promise<ActionResult & { teamId?: number }> {
   const actor = await requireCapability('manage_competitions')
-  const r = await teamSvc.createTeam(actor, seasonId, name)
+  const r = await teamSvc.createTeam(actor, tournamentId, name)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, teamId: r.teamId }
 }
 
@@ -362,8 +362,8 @@ export async function setTeamMembersAction(teamId: number, members: teamSvc.Team
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.setTeamMembers(actor, teamId, members)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
-  revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { tournamentId: true } })
+  revalidateCup(t ? await cupNumberOfSeason(t.tournamentId) : null)
   return { ok: true, message: 'Roster saved.' }
 }
 
@@ -371,8 +371,8 @@ export async function renameTeamAction(teamId: number, name: string): Promise<Ac
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.renameTeam(actor, teamId, name)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
-  revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { tournamentId: true } })
+  revalidateCup(t ? await cupNumberOfSeason(t.tournamentId) : null)
   return { ok: true }
 }
 
@@ -380,8 +380,8 @@ export async function withdrawTeamAction(teamId: number): Promise<ActionResult> 
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.withdrawTeam(actor, teamId)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
-  revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { tournamentId: true } })
+  revalidateCup(t ? await cupNumberOfSeason(t.tournamentId) : null)
   return { ok: true }
 }
 
@@ -389,17 +389,17 @@ export async function restoreTeamAction(teamId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.restoreTeam(actor, teamId)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
-  revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { tournamentId: true } })
+  revalidateCup(t ? await cupNumberOfSeason(t.tournamentId) : null)
   return { ok: true }
 }
 
 export async function deleteTeamAction(teamId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { tournamentId: true } })
   const r = await teamSvc.deleteTeam(actor, teamId)
   if (!r.ok) return { error: r.error }
-  revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
+  revalidateCup(t ? await cupNumberOfSeason(t.tournamentId) : null)
   return { ok: true }
 }
 
@@ -407,31 +407,31 @@ export async function deleteTeamAction(teamId: number): Promise<ActionResult> {
 
 /** Explicit cup state transition (Admin+). Enforces the valid-transition matrix, completion
  *  gate, legacy-field sync, idempotent ladder, and audit — all in the lifecycle service. */
-export async function setCupStateAction(seasonId: number, to: CupState, reason?: string): Promise<ActionResult> {
+export async function setCupStateAction(tournamentId: number, to: CupState, reason?: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const r = await transitionCupState(actor, seasonId, to, { reason })
+  const r = await transitionCupState(actor, tournamentId, to, { reason })
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: `Cup is now ${to.replace(/_/g, ' ').toLowerCase()}.` }
 }
 
 /** OWNER-only recovery transition (an otherwise-invalid skip/backwards move), audited distinctly. */
-export async function recoverCupStateAction(seasonId: number, to: CupState, reason: string): Promise<ActionResult> {
+export async function recoverCupStateAction(tournamentId: number, to: CupState, reason: string): Promise<ActionResult> {
   const actor = await requireOwnerActor()
   if (!reason?.trim()) return { error: 'A reason is required for a recovery transition.' }
-  const r = await transitionCupState(actor, seasonId, to, { reason, recovery: true })
+  const r = await transitionCupState(actor, tournamentId, to, { reason, recovery: true })
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: `Recovery applied — cup set to ${to.replace(/_/g, ' ').toLowerCase()}.` }
 }
 
 /** Complete the tournament (state → COMPLETED). The lifecycle service validates the Final has a
  *  winner + no required match is open, records placements, applies the ladder once, and audits. */
-export async function completeCupAction(seasonId: number, reason?: string): Promise<ActionResult> {
+export async function completeCupAction(tournamentId: number, reason?: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const r = await transitionCupState(actor, seasonId, 'COMPLETED', { reason })
+  const r = await transitionCupState(actor, tournamentId, 'COMPLETED', { reason })
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Cup completed. Winner recorded; rankings and records updated.' }
 }
 
@@ -449,49 +449,49 @@ export async function reportCupLossAction(matchId: number, myGamesWon: number): 
   const { reportOwnLoss } = await import('./service')
   const r = await reportOwnLoss(Number(user.id), user.username, matchId, myGamesWon)
   if (!r.ok) return { error: r.error }
-  const seasonId = await seasonIdOfMatch(matchId)
-  if (seasonId) await syncLiveCupToSnapshot(seasonId)
+  const tournamentId = await seasonIdOfMatch(matchId)
+  if (tournamentId) await syncLiveCupToSnapshot(tournamentId)
   revalidateCup(await cupNumberOfMatch(matchId))
   return { ok: true, message: 'Your loss was reported and your opponent advanced.' }
 }
 
 /**
  * Permanently delete a LIVE cup and everything under it (entrants, teams, bracket,
- * results) — cascades via the Season row. Blocked for imported historical cups (those
+ * results) — cascades via the Tournament row. Blocked for imported historical cups (those
  * are protected; an Owner must unlock, and even then they are not deletable here).
  * Requires typing the competition code to confirm. Regenerates the snapshot after.
  */
-export async function deleteCupAction(seasonId: number, typedCode: string): Promise<ActionResult> {
+export async function deleteCupAction(tournamentId: number, typedCode: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
+  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!s || s.competitionType !== 'CUP') return { error: 'Cup not found.' }
   if (s.importedFromFixture || s.locked) return { error: 'Imported historical cups cannot be deleted.' }
   if (typedCode.trim() !== (s.competitionCode ?? '')) return { error: `Confirmation code does not match. Type ${s.competitionCode} to confirm deletion.` }
 
   const code = s.competitionCode
   const cupNumber = s.cupNumber
-  await prisma.tournament.delete({ where: { id: seasonId } }) // cascades registrations, teams, playoff matches, bracket rows
+  await prisma.tournament.delete({ where: { id: tournamentId } }) // cascades registrations, teams, playoff matches, bracket rows
   const { recordAudit } = await import('./audit')
-  await recordAudit(actor, { action: 'cup.delete', entity: 'Season', entityId: seasonId, oldValue: { name: s.name, code, cupNumber } })
+  await recordAudit(actor, { action: 'cup.delete', entity: 'Tournament', entityId: tournamentId, oldValue: { name: s.name, code, cupNumber } })
   const { regenerateCupSnapshot } = await import('@/lib/cups/migrate') // rebuild the snapshot without the deleted cup
   await regenerateCupSnapshot()
   revalidateCup(cupNumber)
   return { ok: true, message: `Deleted ${code} — Cup ${cupNumber}.` }
 }
 
-export async function archiveCupAction(seasonId: number, reason?: string): Promise<ActionResult> {
+export async function archiveCupAction(tournamentId: number, reason?: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const r = await svc.archiveCompetition(actor, seasonId, reason)
+  const r = await svc.archiveCompetition(actor, tournamentId, reason)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Cup archived.' }
 }
 
-export async function unarchiveCupAction(seasonId: number, reason?: string): Promise<ActionResult> {
+export async function unarchiveCupAction(tournamentId: number, reason?: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const r = await svc.unarchiveCompetition(actor, seasonId, reason)
+  const r = await svc.unarchiveCompetition(actor, tournamentId, reason)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Cup restored from archive.' }
 }
 
@@ -503,18 +503,18 @@ async function requireOwnerActor() {
   return actor
 }
 
-export async function unlockHistoricalCupAction(seasonId: number, typedCode: string, reason: string): Promise<ActionResult> {
+export async function unlockHistoricalCupAction(tournamentId: number, typedCode: string, reason: string): Promise<ActionResult> {
   const actor = await requireOwnerActor()
-  const r = await svc.unlockHistoricalCompetition(actor, seasonId, typedCode, reason)
+  const r = await svc.unlockHistoricalCompetition(actor, tournamentId, typedCode, reason)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Historical cup unlocked for editing.' }
 }
 
-export async function relockHistoricalCupAction(seasonId: number, reason?: string): Promise<ActionResult> {
+export async function relockHistoricalCupAction(tournamentId: number, reason?: string): Promise<ActionResult> {
   const actor = await requireOwnerActor()
-  const r = await svc.relockCompetition(actor, seasonId, reason)
+  const r = await svc.relockCompetition(actor, tournamentId, reason)
   if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(seasonId))
+  revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Historical cup re-locked.' }
 }

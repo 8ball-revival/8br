@@ -2,7 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 
 /**
- * Public competitive identity for a season entrant. Resolved from the linked
+ * Public competitive identity for a tournament entrant. Resolved from the linked
  * canonical Player profile when the account has been linked; otherwise from the
  * identity the account submitted at registration. NEVER includes email, account
  * password data, staff notes, or any private account field.

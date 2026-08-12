@@ -50,7 +50,7 @@ export interface MemberDetail extends MemberRow {
     removedAt: string | null
     active: boolean
   }[]
-  competitions: { registrationId: number; season: string; status: string; withdrawnAt: string | null }[]
+  competitions: { registrationId: number; tournament: string; status: string; withdrawnAt: string | null }[]
   integrity: IntegrityEvent[]
 }
 
@@ -138,7 +138,7 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
     prisma.staffDesignation.findUnique({ where: { userId }, select: { headAdmin: true } }),
     prisma.warning.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
     prisma.penalty.findMany({ where: { userId }, orderBy: { startAt: 'desc' } }),
-    prisma.registration.findMany({ where: { OR: [{ userId }, ...(await linkedPlayerFilter(userId))] }, include: { season: { select: { name: true } } }, orderBy: { createdAt: 'desc' } }),
+    prisma.registration.findMany({ where: { OR: [{ userId }, ...(await linkedPlayerFilter(userId))] }, include: { tournament: { select: { name: true } } }, orderBy: { createdAt: 'desc' } }),
   ])
   const eff = effectiveStatus(mod ?? undefined)
   const now = Date.now()
@@ -177,7 +177,7 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
       removedAt: pen.removedAt ? pen.removedAt.toISOString() : null,
       active: !pen.removedAt && (pen.type === 'BAN' || !pen.endAt || pen.endAt.getTime() > now),
     })),
-    competitions: regs.map((r) => ({ registrationId: r.id, season: r.season.name, status: r.status, withdrawnAt: r.withdrawnAt ? r.withdrawnAt.toISOString() : null })),
+    competitions: regs.map((r) => ({ registrationId: r.id, tournament: r.tournament.name, status: r.status, withdrawnAt: r.withdrawnAt ? r.withdrawnAt.toISOString() : null })),
     integrity,
   }
 }
@@ -220,9 +220,9 @@ export async function listPenalties(filter: PenaltyFilter = 'ALL'): Promise<Pena
   const profiles = await prisma.player.findMany({ where: { linkedUserId: { in: userIds.map(String) } }, select: { linkedUserId: true, primaryName: true, cueverseId: true } })
   const profByUser = new Map(profiles.map((pr) => [pr.linkedUserId!, pr]))
   // Best-effort "affected competitions": the member's withdrawn registrations.
-  const withdrawn = await prisma.registration.findMany({ where: { userId: { in: userIds }, status: 'WITHDRAWN' }, include: { season: { select: { name: true } } } })
+  const withdrawn = await prisma.registration.findMany({ where: { userId: { in: userIds }, status: 'WITHDRAWN' }, include: { tournament: { select: { name: true } } } })
   const affByUser = new Map<number, string[]>()
-  for (const w of withdrawn) if (w.userId != null) affByUser.set(w.userId, [...(affByUser.get(w.userId) ?? []), w.season.name])
+  for (const w of withdrawn) if (w.userId != null) affByUser.set(w.userId, [...(affByUser.get(w.userId) ?? []), w.tournament.name])
 
   const now = Date.now()
   const rows: PenaltyView[] = penalties.map((pen) => {
@@ -260,11 +260,11 @@ export async function listPenalties(filter: PenaltyFilter = 'ALL'): Promise<Pena
 }
 
 /** Active registrations that a moderation action would withdraw (for the confirm preview). */
-export async function getActiveRegistrations(userId: number): Promise<{ season: string; status: string }[]> {
+export async function getActiveRegistrations(userId: number): Promise<{ tournament: string; status: string }[]> {
   const linked = await linkedPlayerFilter(userId)
   const regs = await prisma.registration.findMany({
-    where: { OR: [{ userId }, ...linked], status: { in: ['PENDING', 'APPROVED'] }, season: { NOT: { OR: [{ seasonStatus: 'COMPLETED' }, { cupStatus: 'completed' }] } } },
-    include: { season: { select: { name: true } } },
+    where: { OR: [{ userId }, ...linked], status: { in: ['PENDING', 'APPROVED'] }, tournament: { NOT: { OR: [{ seasonStatus: 'COMPLETED' }, { cupStatus: 'completed' }] } } },
+    include: { tournament: { select: { name: true } } },
   })
-  return regs.map((r) => ({ season: r.season.name, status: r.status }))
+  return regs.map((r) => ({ tournament: r.tournament.name, status: r.status }))
 }

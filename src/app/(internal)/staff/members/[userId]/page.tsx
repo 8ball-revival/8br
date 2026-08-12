@@ -151,7 +151,7 @@ function Competitions({ m }: { m: any }) {
     <ul className="divide-y divide-border rounded-lg border border-border">
       {m.competitions.map((c: any) => (
         <li key={c.registrationId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-          <span className="font-medium">{c.season}</span>
+          <span className="font-medium">{c.tournament}</span>
           <span className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant={c.status === 'WITHDRAWN' || c.status === 'REJECTED' ? 'muted' : 'success'}>{c.status}</Badge>
             {c.withdrawnAt && <span>withdrawn {new Date(c.withdrawnAt).toLocaleDateString()}</span>}

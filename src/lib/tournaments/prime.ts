@@ -17,7 +17,7 @@ export { cupStore } from './context'
  * request always reads one revision.
  *
  * Live-first platform: the database is the ONLY source. An empty database (no cups,
- * no CupSnapshot row) is a completely valid state and resolves to zero cups SILENTLY —
+ * no TournamentSnapshot row) is a completely valid state and resolves to zero cups SILENTLY —
  * no warning, no checked-in fallback data. (The historical `generated-cups.json` remains
  * in the repo for future restoration but never participates in the runtime.) A genuine
  * DB read FAILURE is different from an empty table: it is logged as an error and also
@@ -32,7 +32,7 @@ export const loadCupContext = cache(async (): Promise<CupContext> => {
     // No snapshot yet — normal for a fresh/empty platform. Zero cups, no noise.
     return { cups: [], revision: 0 }
   } catch (err) {
-    console.error('[cups] FAILED to read the CupSnapshot revision from the database:', err)
+    console.error('[cups] FAILED to read the TournamentSnapshot revision from the database:', err)
     return { cups: [], revision: -1 }
   }
 })

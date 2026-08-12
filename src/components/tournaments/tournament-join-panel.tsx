@@ -14,7 +14,7 @@ const initial: FormResult = {}
 
 /**
  * Member-facing Join / Withdraw control for a LIVE individual cup. Uses the same shared
- * registration-identity path as Season signup: a signed-in member never re-enters identity —
+ * registration-identity path as Tournament signup: a signed-in member never re-enters identity —
  * we show "Registering as: Preferred Name (CueVerse ID)" from their linked profile, or a
  * completion notice when the profile is missing/incomplete.
  */
