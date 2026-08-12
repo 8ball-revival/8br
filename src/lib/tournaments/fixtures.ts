@@ -1,5 +1,5 @@
 /**
- * WCC tournament view shapes. The historical 8BR fixture data was removed in the reset;
+ * WCC tournament view shapes. The historical fixture data was removed in the reset;
  * tournaments now come from the DB snapshot (see @/lib/tournaments/service). These shared
  * types describe the public tournament/bracket view model.
  */

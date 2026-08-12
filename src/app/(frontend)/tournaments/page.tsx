@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = {
   title: 'Tournaments',
-  description: 'Variety competitions — prize tournaments, doubles, and special formats, separate from league Seasons.',
+  description: 'WCC tournaments — bracket and group-stage events. Browse live and completed tournaments.',
   alternates: { canonical: "/tournaments" },
 }
 
@@ -26,8 +26,8 @@ export default async function CupsPage() {
     <Container className="py-10">
       <SectionHeader
         eyebrow="Competitions"
-        title="Cups"
-        description="Variety competitions — prize events, 2v2, and special formats — kept separate from league Seasons. Search by player, alias, team, or champion."
+        title="Tournaments"
+        description="WCC tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
       />
       <AdminBar surface="cups" />
       {canManage && <CreateCupWizard />}

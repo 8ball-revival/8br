@@ -22,10 +22,10 @@ export function Logo({
       <Image
         src="/wcc-logo.png"
         alt=""
-        width={1254}
-        height={1254}
+        width={1024}
+        height={1536}
         priority
-        className="size-10 shrink-0 rounded-md object-contain"
+        className="h-10 w-auto shrink-0 object-contain"
       />
       <span className="flex flex-col leading-none">
         <span className="font-display text-lg font-bold tracking-tight sm:text-xl">{brandName}</span>
