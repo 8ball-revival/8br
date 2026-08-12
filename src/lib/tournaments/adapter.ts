@@ -1,10 +1,10 @@
 // Pure DB→fixture-shape reconstruction for cups. NO 'server-only' and only a
-// type-only import of the Cup shapes, so this module is safe to run from a plain
+// type-only import of the TournamentView shapes, so this module is safe to run from a plain
 // `tsx` script (the snapshot generator) as well as inside Next — no dev server, no
 // path-alias runtime dependency.
-import type { Cup, BracketRound, BracketMatch, BracketSlot } from './fixtures'
+import type { TournamentView, BracketRound, BracketMatch, BracketSlot } from './fixtures'
 
-export type CupBracketRow = {
+export type TournamentBracketRow = {
   bracketKind: string
   roundName: string
   roundOrder: number
@@ -40,7 +40,7 @@ export type CompRow = {
   runnerUpHandle: string | null
   thirdPlaceName: string | null
   thirdPlaceHandle: string | null
-  bracketMatches: CupBracketRow[]
+  bracketMatches: TournamentBracketRow[]
 }
 
 /** Public "format" badge derived from the tournament's structural format. */
@@ -72,9 +72,9 @@ const slotFromRow = (present: boolean, name: string | null, handle: string | nul
   return s
 }
 
-function roundsFrom(rows: CupBracketRow[], kind: string): BracketRound[] {
+function roundsFrom(rows: TournamentBracketRow[], kind: string): BracketRound[] {
   const inKind = rows.filter((r) => r.bracketKind === kind).sort((a, b) => a.roundOrder - b.roundOrder || a.matchOrder - b.matchOrder)
-  const byRound = new Map<number, CupBracketRow[]>()
+  const byRound = new Map<number, TournamentBracketRow[]>()
   for (const r of inKind) { if (!byRound.has(r.roundOrder)) byRound.set(r.roundOrder, []); byRound.get(r.roundOrder)!.push(r) }
   const out: BracketRound[] = []
   for (const ro of [...byRound.keys()].sort((a, b) => a - b)) {
@@ -96,13 +96,13 @@ function roundsFrom(rows: CupBracketRow[], kind: string): BracketRound[] {
   return out
 }
 
-/** Reconstruct the `Cup[]` view shape from tournament DB rows, ordered by number.
+/** Reconstruct the `TournamentView[]` view shape from tournament DB rows, ordered by number.
  *  Absent fields are omitted (never emitted as null). */
-export function cupsFromCompRows(comps: CompRow[]): Cup[] {
+export function tournamentsFromCompRows(comps: CompRow[]): TournamentView[] {
   return [...comps]
     .sort((a, b) => (a.number ?? 0) - (b.number ?? 0))
     .map((comp) => {
-      const cup: Cup = { number: comp.number ?? 0, name: comp.name, format: formatBadgeOf(comp), status: statusOf(comp) }
+      const cup: TournamentView = { number: comp.number ?? 0, name: comp.name, format: formatBadgeOf(comp), status: statusOf(comp) }
       const year = comp.createdAt.getUTCFullYear()
       if (Number.isFinite(year)) cup.year = year
       if (comp.entrantsCount != null) cup.entrants = comp.entrantsCount

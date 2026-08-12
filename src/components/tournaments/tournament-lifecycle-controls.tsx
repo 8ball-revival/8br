@@ -7,11 +7,11 @@ import { Play, Lock, Unlock, CheckCircle2, GitBranch, RefreshCw, AlertTriangle, 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  setCupStateAction,
-  recoverCupStateAction,
-  beginCupTournamentAction,
-  generateCupBracketAction,
-  reopenCupRegistrationAction,
+  setTournamentStateAction,
+  recoverTournamentStateAction,
+  beginTournamentAction,
+  generateTournamentBracketAction,
+  reopenTournamentRegistrationAction,
   startGroupStageAction,
   confirmQualifiersAction,
 } from '@/lib/competition/tournament-actions'
@@ -36,7 +36,7 @@ const LABEL: Record<State, string> = {
  * tournaments the group phase (Start Group Stage → Confirm Qualifiers) is inserted before the
  * bracket; bracket-only tournaments are unchanged.
  */
-export function CupLifecycleControls({
+export function TournamentLifecycleControls({
   tournamentId,
   state,
   isOwner,
@@ -77,7 +77,7 @@ export function CupLifecycleControls({
     if (!reason.trim()) { setMsg({ text: 'A reason is required.' }); return }
     setMsg(null)
     start(async () => {
-      const r = await recoverCupStateAction(tournamentId, to, reason)
+      const r = await recoverTournamentStateAction(tournamentId, to, reason)
       if (r.error) setMsg({ text: r.error })
       else { setMsg({ ok: true, text: r.message ?? 'Recovered.' }); router.refresh() }
     })
@@ -93,20 +93,20 @@ export function CupLifecycleControls({
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {state === 'DRAFT' && (
-            <Button size="sm" disabled={pending} onClick={() => act(() => setCupStateAction(tournamentId, 'REGISTRATION_OPEN'))}>
+            <Button size="sm" disabled={pending} onClick={() => act(() => setTournamentStateAction(tournamentId, 'REGISTRATION_OPEN'))}>
               <Unlock className="size-4" /> Open registration
             </Button>
           )}
 
           {state === 'REGISTRATION_OPEN' && (
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => setCupStateAction(tournamentId, 'REGISTRATION_CLOSED'), 'Close registration? No new sign-ups or self-withdrawals after this.')}>
+            <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => setTournamentStateAction(tournamentId, 'REGISTRATION_CLOSED'), 'Close registration? No new sign-ups or self-withdrawals after this.')}>
               <Lock className="size-4" /> Close Registration
             </Button>
           )}
 
           {state === 'REGISTRATION_CLOSED' && (
             <>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenCupRegistrationAction(tournamentId))}>
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId))}>
                 <Unlock className="size-4" /> Re-Open Registration
               </Button>
               {isGroupStage ? (
@@ -114,7 +114,7 @@ export function CupLifecycleControls({
                   <Users className="size-4" /> Start Group Stage
                 </Button>
               ) : (
-                <Button size="sm" disabled={pending} onClick={() => act(() => generateCupBracketAction(tournamentId))}>
+                <Button size="sm" disabled={pending} onClick={() => act(() => generateTournamentBracketAction(tournamentId))}>
                   <GitBranch className="size-4" /> Generate Brackets
                 </Button>
               )}
@@ -134,15 +134,15 @@ export function CupLifecycleControls({
 
           {state === 'BRACKET_GENERATED' && (
             <>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenCupRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
                 <Unlock className="size-4" /> Re-Open Registration
               </Button>
               {bracketStale && !isGroupStage ? (
-                <Button size="sm" disabled={pending} onClick={() => act(() => generateCupBracketAction(tournamentId))}>
+                <Button size="sm" disabled={pending} onClick={() => act(() => generateTournamentBracketAction(tournamentId))}>
                   <RefreshCw className="size-4" /> Regenerate Bracket
                 </Button>
               ) : (
-                <Button size="sm" disabled={pending} onClick={() => act(() => beginCupTournamentAction(tournamentId), 'Start Tournament?\n\nThis will make the tournament live, permanently lock registration, and enable match reporting.')}>
+                <Button size="sm" disabled={pending} onClick={() => act(() => beginTournamentAction(tournamentId), 'Start Tournament?\n\nThis will make the tournament live, permanently lock registration, and enable match reporting.')}>
                   <Play className="size-4" /> Start Tournament
                 </Button>
               )}
@@ -150,7 +150,7 @@ export function CupLifecycleControls({
           )}
 
           {state === 'IN_PROGRESS' && (
-            <Button size="sm" disabled={pending} onClick={() => act(() => setCupStateAction(tournamentId, 'COMPLETED'), 'Complete this tournament? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
+            <Button size="sm" disabled={pending} onClick={() => act(() => setTournamentStateAction(tournamentId, 'COMPLETED'), 'Complete this tournament? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
               <CheckCircle2 className="size-4" /> Complete tournament
             </Button>
           )}

@@ -14,7 +14,7 @@ import {
 } from '@/lib/stats/rankings'
 import { getCurrentScoreRankings } from '@/lib/stats/current-score'
 import { applyLinkedIdentities } from '@/lib/stats/linked-identity'
-import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
+import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
@@ -52,7 +52,7 @@ function WarningBanner({ warnings }: { warnings: string[] }) {
 }
 
 export default async function RankingsPage({ searchParams }: { searchParams: SP }) {
-  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before cup-derived rankings
+  tournamentStore.enterWith(await loadTournamentContext()) // resolve the live TournamentView revision before cup-derived rankings
   const sp = await searchParams
   const view = sp.view === 'historical' ? 'historical' : sp.view === 'all-time' ? 'all-time' : 'current'
   const years = getRankingYears()

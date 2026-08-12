@@ -62,7 +62,7 @@ export async function createTeam(actor: Actor, tournamentId: number, name: strin
       data: { tournamentId, username: clean, displayName: clean, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date() },
     })
     const team = await tx.tournamentTeam.create({ data: { tournamentId, registrationId: reg.id, name: clean } })
-    await recordAudit(actor, { action: 'cup.team.create', entity: 'CupTeam', entityId: team.id, newValue: { name: clean, tournamentId } }, tx)
+    await recordAudit(actor, { action: 'tournament.team.create', entity: 'TournamentTeam', entityId: team.id, newValue: { name: clean, tournamentId } }, tx)
     return team.id
   })
   return { ok: true, teamId }
@@ -116,7 +116,7 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
       })),
     })
     await tx.tournamentTeam.update({ where: { id: teamId }, data: { updatedAt: new Date() } })
-    await recordAudit(actor, { action: 'cup.team.setMembers', entity: 'CupTeam', entityId: teamId, newValue: { members: cleaned.map((m) => m.name) } }, tx)
+    await recordAudit(actor, { action: 'tournament.team.setMembers', entity: 'TournamentTeam', entityId: teamId, newValue: { members: cleaned.map((m) => m.name) } }, tx)
   })
   return { ok: true }
 }
@@ -136,7 +136,7 @@ export async function renameTeam(actor: Actor, teamId: number, name: string): Pr
     // Keep any already-seeded bracket slots showing the new name.
     await tx.playoffMatch.updateMany({ where: { tournamentId: team.tournamentId, homeRegistrationId: team.registrationId }, data: { homeUsername: clean } })
     await tx.playoffMatch.updateMany({ where: { tournamentId: team.tournamentId, awayRegistrationId: team.registrationId }, data: { awayUsername: clean } })
-    await recordAudit(actor, { action: 'cup.team.rename', entity: 'CupTeam', entityId: teamId, oldValue: { name: team.name }, newValue: { name: clean } }, tx)
+    await recordAudit(actor, { action: 'tournament.team.rename', entity: 'TournamentTeam', entityId: teamId, oldValue: { name: team.name }, newValue: { name: clean } }, tx)
   })
   return { ok: true }
 }
@@ -149,7 +149,7 @@ export async function withdrawTeam(actor: Actor, teamId: number, reason?: string
   await prisma.$transaction(async (tx) => {
     await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: true } })
     await tx.registration.update({ where: { id: team.registrationId }, data: { status: 'WITHDRAWN', withdrawnAt: new Date() } })
-    await recordAudit(actor, { action: 'cup.team.withdraw', entity: 'CupTeam', entityId: teamId, reason }, tx)
+    await recordAudit(actor, { action: 'tournament.team.withdraw', entity: 'TournamentTeam', entityId: teamId, reason }, tx)
   })
   return { ok: true }
 }
@@ -161,7 +161,7 @@ export async function restoreTeam(actor: Actor, teamId: number): Promise<{ ok: b
   await prisma.$transaction(async (tx) => {
     await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: false } })
     await tx.registration.update({ where: { id: team.registrationId }, data: { status: 'APPROVED', withdrawnAt: null } })
-    await recordAudit(actor, { action: 'cup.team.restore', entity: 'CupTeam', entityId: teamId }, tx)
+    await recordAudit(actor, { action: 'tournament.team.restore', entity: 'TournamentTeam', entityId: teamId }, tx)
   })
   return { ok: true }
 }
@@ -178,7 +178,7 @@ export async function deleteTeam(actor: Actor, teamId: number): Promise<{ ok: bo
   await prisma.$transaction(async (tx) => {
     await tx.tournamentTeam.delete({ where: { id: teamId } }) // members cascade
     await tx.registration.delete({ where: { id: team.registrationId } })
-    await recordAudit(actor, { action: 'cup.team.delete', entity: 'CupTeam', entityId: teamId, oldValue: { name: team.name } }, tx)
+    await recordAudit(actor, { action: 'tournament.team.delete', entity: 'TournamentTeam', entityId: teamId, oldValue: { name: team.name } }, tx)
   })
   return { ok: true }
 }

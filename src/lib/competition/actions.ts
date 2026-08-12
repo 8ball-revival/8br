@@ -435,7 +435,7 @@ export async function unarchiveCompetitionAction(_prev: ActionResult, fd: FormDa
   return { ok: true, message: 'Competition restored from archive.' }
 }
 
-// ---- Historical Cup lock (OWNER only) --------------------------------------
+// ---- Historical TournamentView lock (OWNER only) --------------------------------------
 
 async function requireOwnerActor() {
   const actor = await requireStaffActor()

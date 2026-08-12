@@ -8,29 +8,29 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Bracket } from '@/components/tournaments/bracket'
-import { CupLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
-import { CupHistory } from '@/components/tournaments/tournament-history'
-import type { CupWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
-import type { CupHistoryEvent } from '@/lib/competition/tournament-lifecycle'
+import { TournamentLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
+import { TournamentHistory } from '@/components/tournaments/tournament-history'
+import type { TournamentWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
+import type { TournamentHistoryEvent } from '@/lib/competition/tournament-lifecycle'
 import * as A from '@/lib/competition/tournament-actions'
 
 type Tab = 'overview' | 'roster' | 'groups' | 'bracket' | 'results' | 'history' | 'settings'
 type ActionResp = { ok?: boolean; error?: string; message?: string } | void
 type Run = (fn: () => Promise<ActionResp>) => void
 
-export function CupWorkspace({
+export function TournamentWorkspace({
   data,
   canManage,
   canEditResults,
   isOwner,
   history = [],
 }: {
-  data: CupWorkspaceData
+  data: TournamentWorkspaceData
   canManage: boolean
   canEditResults: boolean
   isOwner: boolean
   /** Admin (fuller) cup history — actor + reason included. Loaded server-side. */
-  history?: CupHistoryEvent[]
+  history?: TournamentHistoryEvent[]
 }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
@@ -76,7 +76,7 @@ export function CupWorkspace({
       {/* Lifecycle controls (state machine — server-enforced + audited). */}
       {canManage && !data.isHistorical && (
         <div className="px-4 pt-4">
-          <CupLifecycleControls
+          <TournamentLifecycleControls
             tournamentId={data.tournament.id}
             state={data.tournament.lifecycleState as 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'GROUPS_IN_PROGRESS' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'}
             isOwner={isOwner}
@@ -119,7 +119,7 @@ export function CupWorkspace({
         {tab === 'history' && (
           <div>
             <p className="eyebrow mb-3 text-muted-foreground">Full audit history (admin) — actor and reason included.</p>
-            <CupHistory events={history} admin />
+            <TournamentHistory events={history} admin />
           </div>
         )}
         {tab === 'settings' && <SettingsTab data={data} run={run} canManage={canManage} isOwner={isOwner} />}
@@ -140,7 +140,7 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
   )
 }
 
-function Overview({ data }: { data: CupWorkspaceData }) {
+function Overview({ data }: { data: TournamentWorkspaceData }) {
   const rosterCount = data.isTeam ? data.teams.filter((t) => !t.withdrawn).length : data.entrants.filter((e) => !e.withdrawn).length
   const played = data.matches.filter((m) => m.winnerRegistrationId != null).length
   const playable = data.matches.filter((m) => m.homeUsername && m.awayUsername).length
@@ -174,7 +174,7 @@ function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
 
   const load = (value: string) => {
     setQ(value)
-    startSearch(async () => setCandidates(await A.searchCupPlayersAction(tournamentId, value.trim())))
+    startSearch(async () => setCandidates(await A.searchTournamentPlayersAction(tournamentId, value.trim())))
   }
 
   // Open the dropdown and (re)load the list when there's nothing to show. Bound to BOTH focus and
@@ -204,7 +204,7 @@ function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
               <li key={c.playerId}>
                 <button
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => run(async () => { const r = await A.addCupEntrantsAction(tournamentId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
+                  onClick={() => run(async () => { const r = await A.addTournamentEntrantsAction(tournamentId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
                   className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
                 >
                   <span>{c.primaryName}{c.cueverseId && c.cueverseId.toLowerCase() !== c.primaryName.toLowerCase() && <span className="ml-1 text-xs text-muted-foreground">({c.cueverseId})</span>}</span>
@@ -220,7 +220,7 @@ function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
   )
 }
 
-function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
+function EntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   const tournamentId = data.tournament.id
   // Entrants can only be added while registration is open or closed (never once the bracket exists).
   const canAdd = data.tournament.lifecycleState === 'REGISTRATION_OPEN' || data.tournament.lifecycleState === 'REGISTRATION_CLOSED'
@@ -245,9 +245,9 @@ function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run
               <span className="flex-1">{e.name}{e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}{e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}</span>
               {!disabled && (
                 e.withdrawn ? (
-                  <button onClick={() => run(() => A.restoreCupEntrantAction(data.tournament.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-brand">restore</button>
+                  <button onClick={() => run(() => A.restoreTournamentEntrantAction(data.tournament.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-brand">restore</button>
                 ) : (
-                  <button onClick={() => run(() => A.removeCupEntrantAction(data.tournament.id, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
+                  <button onClick={() => run(() => A.removeTournamentEntrantAction(data.tournament.id, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
                 )
               )}
             </li>
@@ -261,7 +261,7 @@ function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run
 
 // --------------------------------------------------------------------------- Teams (2v2)
 
-function TeamsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
+function TeamsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   const [newTeam, setNewTeam] = useState('')
   return (
     <div className="space-y-5">
@@ -283,7 +283,7 @@ function TeamsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; d
   )
 }
 
-function TeamCard({ team, teamSize, run, disabled }: { team: CupWorkspaceData['teams'][number]; teamSize: number; run: Run; disabled: boolean }) {
+function TeamCard({ team, teamSize, run, disabled }: { team: TournamentWorkspaceData['teams'][number]; teamSize: number; run: Run; disabled: boolean }) {
   const [name, setName] = useState(team.name)
   const [roster, setRoster] = useState(team.members.map((m) => (m.handle ? `${m.name} | ${m.handle}` : m.name)).join('\n'))
   const parse = () =>
@@ -325,7 +325,7 @@ function TeamCard({ team, teamSize, run, disabled }: { team: CupWorkspaceData['t
 
 // --------------------------------------------------------------------------- Bracket
 
-function BracketTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
+function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   // Seedable pool: teams (team cups) or entrants (individual), non-withdrawn.
   const pool = data.isTeam
     ? data.teams.filter((t) => !t.withdrawn).map((t) => ({ id: t.registrationId, name: t.name }))
@@ -361,7 +361,7 @@ function BracketTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run;
 
 /** Seed-order builder. Keyed on the pool so it re-initialises when entrants/teams change
  *  (no effect needed). Drag to reorder, or use the up/down controls. */
-function SeedBuilder({ data, pool, run }: { data: CupWorkspaceData; pool: { id: number; name: string }[]; run: Run }) {
+function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string }[]; run: Run }) {
   const [order, setOrder] = useState<number[]>(() => pool.map((p) => p.id))
   const nameById = useMemo(() => new Map(pool.map((p) => [p.id, p.name])), [pool])
   const dragIndex = useRef<number | null>(null)
@@ -403,13 +403,13 @@ function SeedBuilder({ data, pool, run }: { data: CupWorkspaceData; pool: { id: 
       </ol>
       <div className="mt-3 flex flex-wrap gap-2">
         {!published && (
-          <Button onClick={() => run(() => A.buildCupBracketAction(data.tournament.id, order))} disabled={order.length < 2}>
+          <Button onClick={() => run(() => A.buildTournamentBracketAction(data.tournament.id, order))} disabled={order.length < 2}>
             {data.hasBracket ? 'Rebuild draft bracket' : 'Build draft bracket'}
           </Button>
         )}
-        {data.hasBracket && !published && <Button onClick={() => run(() => A.publishCupBracketAction(data.tournament.id))}>Publish bracket</Button>}
-        {published && <Button variant="secondary" onClick={() => run(() => A.returnCupBracketToDraftAction(data.tournament.id))}><RotateCcw className="size-4" /> Return to draft</Button>}
-        {data.hasBracket && !published && <Button variant="ghost" onClick={() => run(() => A.deleteCupBracketAction(data.tournament.id))}>Delete bracket</Button>}
+        {data.hasBracket && !published && <Button onClick={() => run(() => A.publishTournamentBracketAction(data.tournament.id))}>Publish bracket</Button>}
+        {published && <Button variant="secondary" onClick={() => run(() => A.returnTournamentBracketToDraftAction(data.tournament.id))}><RotateCcw className="size-4" /> Return to draft</Button>}
+        {data.hasBracket && !published && <Button variant="ghost" onClick={() => run(() => A.deleteTournamentBracketAction(data.tournament.id))}>Delete bracket</Button>}
       </div>
       {order.length > 2 && <p className="mt-2 text-xs text-muted-foreground">Bracket auto-sizes to the next power of two; empty slots become byes.</p>}
     </div>
@@ -418,7 +418,7 @@ function SeedBuilder({ data, pool, run }: { data: CupWorkspaceData; pool: { id: 
 
 // --------------------------------------------------------------------------- Results
 
-function ResultsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run; disabled: boolean }) {
+function ResultsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   const playable = data.matches.filter((m) => m.homeUsername && m.awayUsername)
   return (
     <div className="space-y-3">
@@ -450,10 +450,10 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
       </div>
       {!disabled && (
         <div className="mt-2 flex items-center gap-2">
-          <Button size="sm" onClick={() => run(() => A.recordCupScoreAction(m.id, Number(home), Number(away)))} disabled={home === '' || away === ''}>
+          <Button size="sm" onClick={() => run(() => A.recordTournamentScoreAction(m.id, Number(home), Number(away)))} disabled={home === '' || away === ''}>
             {decided ? 'Update result' : 'Save result'}
           </Button>
-          {decided && <Button size="sm" variant="ghost" onClick={() => run(() => A.undoCupResultAction(m.id))}>Undo</Button>}
+          {decided && <Button size="sm" variant="ghost" onClick={() => run(() => A.undoTournamentResultAction(m.id))}>Undo</Button>}
           {decided && <Badge variant={m.verification === 'VERIFIED' ? 'gold' : 'muted'}>{m.verification === 'VERIFIED' ? 'advanced' : 'recorded'}</Badge>}
         </div>
       )}
@@ -464,17 +464,17 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
 
 // --------------------------------------------------------------------------- Settings
 
-function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
+function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
   const router = useRouter()
   const [race, setRace] = useState(data.tournament.raceLength)
   const [delCode, setDelCode] = useState('')
   const [deleting, startDelete] = useTransition()
   const [delError, setDelError] = useState<string | null>(null)
 
-  const deleteCup = () => {
+  const deleteTournament = () => {
     setDelError(null)
     startDelete(async () => {
-      const r = await A.deleteCupAction(data.tournament.id, delCode)
+      const r = await A.deleteTournamentAction(data.tournament.id, delCode)
       if (r.error) return setDelError(r.error)
       router.push("/tournaments") // the tournament no longer exists — leave the workspace
       router.refresh()
@@ -494,7 +494,7 @@ function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Ru
               onChange={(e) => setRace(Math.max(1, Number(e.target.value) || 1))}
               className="w-20 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             />
-            <Button size="sm" variant="secondary" onClick={() => run(() => A.setCupRaceLengthAction(data.tournament.id, race))} disabled={race === data.tournament.raceLength}>
+            <Button size="sm" variant="secondary" onClick={() => run(() => A.setTournamentRaceLengthAction(data.tournament.id, race))} disabled={race === data.tournament.raceLength}>
               Save race length
             </Button>
             <span className="text-xs text-muted-foreground">Games to win a match — used by score validation everywhere.</span>
@@ -506,11 +506,11 @@ function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Ru
         <section>
           <p className="eyebrow mb-2 text-muted-foreground">Lifecycle</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => run(() => A.completeCupAction(data.tournament.id))}>Mark complete</Button>
+            <Button variant="secondary" onClick={() => run(() => A.completeTournamentAction(data.tournament.id))}>Mark complete</Button>
             {data.tournament.archivedAt ? (
-              <Button variant="secondary" onClick={() => run(() => A.unarchiveCupAction(data.tournament.id))}>Unarchive</Button>
+              <Button variant="secondary" onClick={() => run(() => A.unarchiveTournamentAction(data.tournament.id))}>Unarchive</Button>
             ) : (
-              <Button variant="ghost" onClick={() => run(() => A.archiveCupAction(data.tournament.id))}>Archive</Button>
+              <Button variant="ghost" onClick={() => run(() => A.archiveTournamentAction(data.tournament.id))}>Archive</Button>
             )}
           </div>
         </section>
@@ -534,7 +534,7 @@ function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Ru
           <Button
             className="mt-3"
             variant="destructive"
-            onClick={() => { if (window.confirm('Cancel this tournament? This is terminal (Owner recovery only).')) run(() => A.setCupStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
+            onClick={() => { if (window.confirm('Cancel this tournament? This is terminal (Owner recovery only).')) run(() => A.setTournamentStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
           >
             Cancel tournament
           </Button>
@@ -555,7 +555,7 @@ function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Ru
               placeholder={`Type ${data.tournament.code} to confirm`}
               className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
-            <Button variant="destructive" onClick={deleteCup} disabled={deleting || delCode.trim() !== (data.tournament.code ?? '')}>
+            <Button variant="destructive" onClick={deleteTournament} disabled={deleting || delCode.trim() !== (data.tournament.code ?? '')}>
               {deleting ? 'Deleting…' : 'Delete cup permanently'}
             </Button>
           </div>
@@ -568,7 +568,7 @@ function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Ru
 
 // --------------------------------------------------------------------------- Group Stage
 
-function GroupsTab({ data, run, canEditResults }: { data: CupWorkspaceData; run: Run; canEditResults: boolean }) {
+function GroupsTab({ data, run, canEditResults }: { data: TournamentWorkspaceData; run: Run; canEditResults: boolean }) {
   if (data.groups.length === 0) {
     return <p className="text-sm text-muted-foreground">Groups haven&apos;t been generated yet. Close registration, then Start Group Stage.</p>
   }

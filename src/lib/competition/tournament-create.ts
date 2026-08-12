@@ -5,7 +5,7 @@ import { recordAudit, type Actor } from './audit'
 
 export type CamRequirement = 'REQUIRED' | 'OPTIONAL' | 'NO_CAM'
 
-export interface CreateCupConfig {
+export interface CreateTournamentConfig {
   name: string
   gameType: string // "8-Ball" | "9-Ball"
   participantFormat: ParticipantFormat // INDIVIDUAL | TEAM
@@ -41,11 +41,11 @@ function camLine(cam: CamRequirement | undefined): string {
  *
  * The cup is a `Tournament` row with competitionType=CUP, rendered/edited through the same
  * unified competition machinery. It is created EMPTY (no results invented); entrants/teams
- * and the bracket are built afterward through the Cup workspace.
+ * and the bracket are built afterward through the TournamentView workspace.
  */
-export async function createCup(
+export async function createTournament(
   actor: Actor,
-  cfg: CreateCupConfig,
+  cfg: CreateTournamentConfig,
 ): Promise<{ ok: boolean; error?: string; id?: number; number?: number; code?: string; slug?: string }> {
   const name = cfg.name.trim()
   if (!name) return { ok: false, error: 'A cup name is required.' }

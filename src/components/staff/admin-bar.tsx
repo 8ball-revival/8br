@@ -83,7 +83,7 @@ export async function AdminBar({ surface, tournamentId }: { surface: Surface; to
         {surface === 'cups' && (
           <Button asChild size="sm" variant="outline">
             <Link href="/tournaments">
-              <Trophy className="size-4" aria-hidden /> Manage Cups
+              <Trophy className="size-4" aria-hidden /> Manage Tournaments
             </Link>
           </Button>
         )}

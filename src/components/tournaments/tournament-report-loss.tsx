@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Flag } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { reportCupLossAction } from '@/lib/competition/tournament-actions'
+import { reportTournamentLossAction } from '@/lib/competition/tournament-actions'
 
 /**
  * Player self-report control for the viewer's OWN active cup match. A player may ONLY report
@@ -14,7 +14,7 @@ import { reportCupLossAction } from '@/lib/competition/tournament-actions'
  * is not a bye. Requires a confirmation naming the opponent before submitting. The server re-checks
  * every one of these conditions; this UI is a convenience, not the gate.
  */
-export function CupReportLoss({
+export function TournamentReportLoss({
   matchId,
   opponentName,
   matchLabel,
@@ -47,7 +47,7 @@ export function CupReportLoss({
     if (!confirmed) return
     setMsg(null)
     start(async () => {
-      const r = await reportCupLossAction(matchId, myGames)
+      const r = await reportTournamentLossAction(matchId, myGames)
       if (r.error) setMsg({ text: r.error })
       else {
         setDone(true)

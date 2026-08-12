@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { BracketRound, BracketMatch, BracketSlot } from './fixtures'
 import { resolveEntrants } from '@/lib/competition/entrants'
 import { getTeamsForSeason, getTeamMembersByRegistration, type TeamView } from '@/lib/competition/teams'
-import { getCupState, bracketMatchesEntrants } from '@/lib/competition/tournament-lifecycle'
+import { getTournamentState, bracketMatchesEntrants } from '@/lib/competition/tournament-lifecycle'
 
 /** Column name for a bracket round: last round = Final, then Semifinals, etc. */
 export function roundColumnName(round: number, totalRounds: number): string {
@@ -104,7 +104,7 @@ export function playoffToBracketRounds(
   return out
 }
 
-export interface CupEntrantView {
+export interface TournamentEntrantView {
   registrationId: number
   name: string
   handle: string | null
@@ -113,7 +113,7 @@ export interface CupEntrantView {
   withdrawn: boolean
 }
 
-export interface CupWorkspaceData {
+export interface TournamentWorkspaceData {
   tournament: {
     id: number
     name: string
@@ -132,12 +132,12 @@ export interface CupWorkspaceData {
     archivedAt: string | null
     formatBadge: string | null
   }
-  isCup: boolean
+  isTournament: boolean
   isHistorical: boolean
   isEditable: boolean
   isTeam: boolean
   isLegacyConvertible: boolean // old-format cup that can be migrated into the editable workspace
-  entrants: CupEntrantView[]
+  entrants: TournamentEntrantView[]
   teams: TeamView[]
   matches: PlayoffRow[]
   bracketRounds: BracketRound[]
@@ -241,8 +241,8 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
   return { groups, complete: total > 0 && remaining === 0 }
 }
 
-/** Load everything the Cup workspace + public live render need for a tournament number. */
-export async function getCupWorkspace(number: number): Promise<CupWorkspaceData | null> {
+/** Load everything the TournamentView workspace + public live render need for a tournament number. */
+export async function getTournamentWorkspace(number: number): Promise<TournamentWorkspaceData | null> {
   const tournament = await prisma.tournament.findFirst({ where: { number } })
   if (!tournament) return null
 
@@ -261,7 +261,7 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
           : 'S/E'
 
   // Entrants (individual). Teams are the entrants for team cups.
-  let entrants: CupEntrantView[] = []
+  let entrants: TournamentEntrantView[] = []
   if (!isTeam) {
     const regs = await prisma.registration.findMany({
       where: { tournamentId: tournament.id },
@@ -303,7 +303,7 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
   // Staleness only matters while the bracket is generated but the tournament hasn't started.
-  const bracketStale = getCupState(tournament) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(tournament.id)).ok : false
+  const bracketStale = getTournamentState(tournament) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(tournament.id)).ok : false
 
   // The legacy old-format-cup conversion feature was removed in the WCC reset.
   const isLegacyConvertible = false
@@ -327,11 +327,11 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
       status: tournament.status,
       playoffsStatus: tournament.playoffsStatus,
       registrationStatus: tournament.registrationStatus,
-      lifecycleState: getCupState(tournament),
+      lifecycleState: getTournamentState(tournament),
       archivedAt: tournament.archivedAt ? tournament.archivedAt.toISOString() : null,
       formatBadge,
     },
-    isCup: true,
+    isTournament: true,
     isHistorical,
     isEditable,
     isTeam,

@@ -7,15 +7,15 @@ import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { createCupAction } from '@/lib/competition/tournament-actions'
-import type { CreateCupConfig } from '@/lib/competition/tournament-create'
+import { createTournamentAction } from '@/lib/competition/tournament-actions'
+import type { CreateTournamentConfig } from '@/lib/competition/tournament-create'
 
 const FIELD = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm'
 const LABEL = 'eyebrow text-muted-foreground'
 
 type Format = 'BRACKET' | 'GROUPS'
 
-export function CreateCupWizard() {
+export function CreateTournamentWizard() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [pending, start] = useTransition()
@@ -42,7 +42,7 @@ export function CreateCupWizard() {
   const submit = () => {
     setError(null)
     const isGroups = format === 'GROUPS'
-    const cfg: CreateCupConfig = {
+    const cfg: CreateTournamentConfig = {
       name: name.trim(),
       gameType,
       participantFormat,
@@ -61,7 +61,7 @@ export function CreateCupWizard() {
         : {}),
     }
     start(async () => {
-      const r = await createCupAction(cfg)
+      const r = await createTournamentAction(cfg)
       if (r.error || !r.number) return setError(r.error ?? 'Could not create the tournament.')
       router.push(`/tournaments/${r.number}`)
     })

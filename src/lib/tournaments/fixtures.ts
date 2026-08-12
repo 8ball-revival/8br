@@ -4,7 +4,7 @@
  * types describe the public tournament/bracket view model.
  */
 
-export interface CupCompetitor {
+export interface TournamentCompetitor {
   name: string
   handle?: string
 }
@@ -56,7 +56,7 @@ export interface TeamTie {
   matches: TieMatch[]
 }
 
-export interface Cup {
+export interface TournamentView {
   number: number
   name: string
   format: string // category for the badge: Prize, 2v2, 6oh2, dbt, …
@@ -64,8 +64,8 @@ export interface Cup {
   date?: string // exact start date (ISO) when known — enables the true rolling window
   status: 'completed' | 'live'
   entrants?: number
-  champion?: CupCompetitor
-  runnerUp?: CupCompetitor
+  champion?: TournamentCompetitor
+  runnerUp?: TournamentCompetitor
   finalScore?: string
   currentRound?: string // for live cups, e.g. "Semifinals"
   bracket?: BracketRound[] // real round-by-round results when available (single-elim)
@@ -74,18 +74,18 @@ export interface Cup {
   winnersBracket?: BracketRound[]
   losersBracket?: BracketRound[]
   grandFinal?: BracketRound[]
-  thirdPlace?: CupCompetitor
+  thirdPlace?: TournamentCompetitor
 }
 
 
 /** No pre-seeded tournaments — WCC starts empty. Tournaments come from the DB snapshot
  *  (see @/lib/tournaments/service). These fixture types remain the shared view shape. */
-const CUPS: Cup[] = []
-export function getCups(): Cup[] {
+const CUPS: TournamentView[] = []
+export function getTournaments(): TournamentView[] {
   return CUPS
 }
 
-export function getCup(number: number): Cup | undefined {
+export function getTournament(number: number): TournamentView | undefined {
   return CUPS.find((c) => c.number === number)
 }
 
@@ -111,7 +111,7 @@ export function emptyBracket(entrants: number): BracketRound[] {
 }
 
 /** The bracket to render for a tournament: real data if present, else a sized shell. */
-export function cupBracket(cup: Cup): BracketRound[] | null {
+export function tournamentBracket(cup: TournamentView): BracketRound[] | null {
   if (cup.bracket && cup.bracket.length) return cup.bracket
   if (cup.entrants && cup.entrants >= 2) return emptyBracket(cup.entrants)
   return null

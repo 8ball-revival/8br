@@ -1,6 +1,6 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import { regenerateCupSnapshot } from '@/lib/tournaments/migrate'
+import { regenerateTournamentSnapshot } from '@/lib/tournaments/migrate'
 import { roundColumnName } from '@/lib/tournaments/live'
 
 /**
@@ -13,7 +13,7 @@ import { roundColumnName } from '@/lib/tournaments/live'
  *   ranking/records pipeline. Draft/live cups keep `TournamentBracketMatch` empty — the tournament page
  *   renders them live from PlayoffMatch — so nothing fake ever enters the historical data.
  */
-export async function syncLiveCupToSnapshot(tournamentId: number): Promise<void> {
+export async function syncLiveTournamentToSnapshot(tournamentId: number): Promise<void> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!tournament) return
 
@@ -24,7 +24,7 @@ export async function syncLiveCupToSnapshot(tournamentId: number): Promise<void>
   if (tournament.lifecycleState === 'COMPLETED' || publishedCount > 0) {
     await materialiseBracket(tournamentId)
   }
-  await regenerateCupSnapshot()
+  await regenerateTournamentSnapshot()
 }
 
 async function materialiseBracket(tournamentId: number): Promise<void> {

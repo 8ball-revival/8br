@@ -4,9 +4,9 @@ import { Suspense } from 'react'
 import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
 import { AdminBar } from '@/components/staff/admin-bar'
-import { CupList } from '@/components/tournaments/tournament-list'
-import { CreateCupWizard } from '@/components/tournaments/create-tournament-wizard'
-import { getCupList } from '@/lib/tournaments/list'
+import { TournamentList } from '@/components/tournaments/tournament-list'
+import { CreateTournamentWizard } from '@/components/tournaments/create-tournament-wizard'
+import { getTournamentList } from '@/lib/tournaments/list'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
 export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tournaments" },
 }
 
-export default async function CupsPage() {
-  const cups = await getCupList()
+export default async function TournamentsPage() {
+  const cups = await getTournamentList()
   const access = await resolveStaffAccess()
   const canManage = access.status === 'ok' && access.actor.can('manage_competitions')
 
@@ -30,9 +30,9 @@ export default async function CupsPage() {
         description="WCC tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
       />
       <AdminBar surface="cups" />
-      {canManage && <CreateCupWizard />}
+      {canManage && <CreateTournamentWizard />}
       <Suspense fallback={null}>
-        <CupList cups={cups} />
+        <TournamentList cups={cups} />
       </Suspense>
     </Container>
   )

@@ -7,24 +7,24 @@ import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
-import { CupWorkspace } from '@/components/tournaments/tournament-workspace'
-import { getCup, cupBracket } from '@/lib/tournaments/service'
-import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
-import { getCupWorkspace, type CupWorkspaceData } from '@/lib/tournaments/live'
-import { CUP_STATE_LABEL, getCupHistory, type CupHistoryEvent } from '@/lib/competition/tournament-lifecycle'
-import { CupHistory } from '@/components/tournaments/tournament-history'
-import { CupWinnerSummary, type PodiumIdentity } from '@/components/tournaments/tournament-winner-summary'
-import { CupReportLoss } from '@/components/tournaments/tournament-report-loss'
+import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
+import { getTournament, tournamentBracket } from '@/lib/tournaments/service'
+import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
+import { getTournamentWorkspace, type TournamentWorkspaceData } from '@/lib/tournaments/live'
+import { TOURNAMENT_STATE_LABEL, getTournamentHistory, type TournamentHistoryEvent } from '@/lib/competition/tournament-lifecycle'
+import { TournamentHistory } from '@/components/tournaments/tournament-history'
+import { TournamentWinnerSummary, type PodiumIdentity } from '@/components/tournaments/tournament-winner-summary'
+import { TournamentReportLoss } from '@/components/tournaments/tournament-report-loss'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getCurrentUser } from '@/lib/account/auth'
 import { getProfileByUserId } from '@/lib/players/service'
 import { getUserRegistration } from '@/lib/competition/queries'
 import { profileCompleteness } from '@/lib/competition/eligibility'
 import { EntrantList } from '@/components/competition/entrant-list'
-import { CupJoinPanel } from '@/components/tournaments/tournament-join-panel'
+import { TournamentJoinPanel } from '@/components/tournaments/tournament-join-panel'
 import type { SignupIdentity } from '@/components/account/register-form'
 
-// Cup pages always resolve the signed-in viewer (admin workspace vs public view) via headers/cookies,
+// TournamentView pages always resolve the signed-in viewer (admin workspace vs public view) via headers/cookies,
 // so they must render per-request. force-dynamic replaces the old generateStaticParams/dynamicParams
 // (which conflicted with the auth read and caused DYNAMIC_SERVER_USAGE 500s).
 export const dynamic = 'force-dynamic'
@@ -42,12 +42,12 @@ interface MemberCtx {
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params
-  const cup = getCup(Number(number))
-  const title = cup ? `${cup.name} — Tournament ${cup.number}` : `Cup ${number}`
+  const cup = getTournament(Number(number))
+  const title = cup ? `${cup.name} — Tournament ${cup.number}` : `Tournament ${number}`
   return { title, alternates: { canonical: `/tournaments/${number}` } }
 }
 
-function CupHeader({
+function TournamentHeader({
   name,
   number,
   badge,
@@ -76,7 +76,7 @@ function CupHeader({
 }
 
 /** Resolve a registrationId to its current public identity from the tournament's entrant list. */
-function entrantIdentity(data: CupWorkspaceData, regId: number | null, fallbackName: string | null): PodiumIdentity | null {
+function entrantIdentity(data: TournamentWorkspaceData, regId: number | null, fallbackName: string | null): PodiumIdentity | null {
   if (regId == null && !fallbackName) return null
   const e = regId != null ? data.entrants.find((x) => x.registrationId === regId) : undefined
   return {
@@ -91,7 +91,7 @@ function entrantIdentity(data: CupWorkspaceData, regId: number | null, fallbackN
  * (registration ids → current identities). Returns null if the Final has no confirmed winner, and
  * never fabricates a runner-up or score that isn't recorded.
  */
-function resolvePodium(data: CupWorkspaceData): { champion: PodiumIdentity; runnerUp: PodiumIdentity | null; finalScore: string | null } | null {
+function resolvePodium(data: TournamentWorkspaceData): { champion: PodiumIdentity; runnerUp: PodiumIdentity | null; finalScore: string | null } | null {
   if (data.matches.length === 0) return null
   const maxRound = Math.max(...data.matches.map((m) => m.round))
   const finals = data.matches.filter((m) => m.round === maxRound).sort((a, b) => a.slot - b.slot)
@@ -110,7 +110,7 @@ function resolvePodium(data: CupWorkspaceData): { champion: PodiumIdentity; runn
 }
 
 /** The viewer's own unresolved, playable (non-bye) match in an in-progress cup, if any. */
-function findMyActiveMatch(data: CupWorkspaceData, myRegId: number | null): { matchId: number; opponentName: string; matchLabel: string } | null {
+function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null): { matchId: number; opponentName: string; matchLabel: string } | null {
   if (myRegId == null) return null
   const m = data.matches.find(
     (x) => x.winnerRegistrationId == null && x.homeRegistrationId != null && x.awayRegistrationId != null && (x.homeRegistrationId === myRegId || x.awayRegistrationId === myRegId),
@@ -131,7 +131,7 @@ function findMyActiveMatch(data: CupWorkspaceData, myRegId: number | null): { ma
  *  IN_PROGRESS         → bracket primary + player self-report control; entrants/join hidden
  *  COMPLETED           → winner summary + read-only bracket; CANCELLED → cancelled notice
  */
-function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; member: MemberCtx; history: CupHistoryEvent[] }) {
+function PublicLiveTournament({ data, member, history }: { data: TournamentWorkspaceData; member: MemberCtx; history: TournamentHistoryEvent[] }) {
   const state = data.tournament.lifecycleState
   const activeEntrants = data.entrants.filter((e) => !e.withdrawn)
   const inRegistration = state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_CLOSED'
@@ -160,7 +160,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
     <>
       {/* Completed: prominent winner summary above the read-only bracket. */}
       {podium && (
-        <CupWinnerSummary
+        <TournamentWinnerSummary
           cupName={data.tournament.name}
           champion={podium.champion}
           runnerUp={podium.runnerUp}
@@ -182,7 +182,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
       {/* In progress: the viewer's own match self-report control (loss only). */}
       {myMatch && (
         <div className="mt-6">
-          <CupReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} />
+          <TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} />
         </div>
       )}
 
@@ -232,7 +232,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
           )}
 
           {!data.isTeam && (
-            <CupJoinPanel
+            <TournamentJoinPanel
               number={member.number}
               isLoggedIn={member.isLoggedIn}
               registrationOpen={state === 'REGISTRATION_OPEN'}
@@ -248,15 +248,15 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
       {history.length > 0 && (
         <section className="mt-10">
           <h2 className="eyebrow mb-4 text-foreground">History</h2>
-          <CupHistory events={history} />
+          <TournamentHistory events={history} />
         </section>
       )}
     </>
   )
 }
 
-export default async function CupDetailPage({ params }: { params: Promise<{ number: string }> }) {
-  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before rendering the tournament
+export default async function TournamentDetailPage({ params }: { params: Promise<{ number: string }> }) {
+  tournamentStore.enterWith(await loadTournamentContext()) // resolve the live TournamentView revision before rendering the tournament
   const { number } = await params
   const num = Number(number)
 
@@ -266,8 +266,8 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
   const canEditResults = isStaffOk && access.actor.can('edit_results')
   const isOwner = isStaffOk && access.actor.isOwner
 
-  const ws = await getCupWorkspace(num)
-  const cup = getCup(num)
+  const ws = await getTournamentWorkspace(num)
+  const cup = getTournament(num)
   if (!ws && !cup) return null // dynamicParams=true → unknown numbers 404 here
 
   const backLink = (
@@ -276,10 +276,10 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
     </Link>
   )
 
-  // ---- LIVE editable cup: the Cup page IS the management interface ----
+  // ---- LIVE editable cup: the TournamentView page IS the management interface ----
   if (ws && ws.isEditable) {
     // Header status reflects the explicit lifecycle state; "live" (red) only while active.
-    const statusLabel = CUP_STATE_LABEL[ws.tournament.lifecycleState as keyof typeof CUP_STATE_LABEL] ?? ws.tournament.lifecycleState
+    const statusLabel = TOURNAMENT_STATE_LABEL[ws.tournament.lifecycleState as keyof typeof TOURNAMENT_STATE_LABEL] ?? ws.tournament.lifecycleState
     const live = ws.tournament.lifecycleState !== 'COMPLETED' && ws.tournament.lifecycleState !== 'CANCELLED' && ws.tournament.lifecycleState !== 'DRAFT'
 
     // Member view context (only needed when the viewer is not managing): are they signed in,
@@ -299,16 +299,16 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
         missing: profile ? profileCompleteness(profile).missing : ['your player profile'],
         myRegistrationId: myReg?.id ?? null,
       }
-      const history = await getCupHistory(ws.tournament.id, { admin: false })
-      publicView = <PublicLiveCup data={ws} member={member} history={history} />
+      const history = await getTournamentHistory(ws.tournament.id, { admin: false })
+      publicView = <PublicLiveTournament data={ws} member={member} history={history} />
     }
 
     return (
       <Container className="py-10">
         {backLink}
-        <CupHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
+        <TournamentHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
         {canManage ? (
-          <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.tournament.id, { admin: true })} />
+          <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
         ) : (
           publicView
         )}
@@ -320,13 +320,13 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
   if (!cup) return null
   const live = cup.status === 'live'
   const isDoubleElim = !!cup.winnersBracket?.length
-  const rounds = isDoubleElim ? null : cupBracket(cup)
+  const rounds = isDoubleElim ? null : tournamentBracket(cup)
   const shellOnly = !cup.bracket?.length
 
   return (
     <Container className="py-10">
       {backLink}
-      <CupHeader
+      <TournamentHeader
         name={cup.name}
         number={cup.number}
         badge={cup.format}
@@ -405,7 +405,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
       )}
 
       {canManage && ws && (
-        <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.tournament.id, { admin: true })} />
+        <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
       )}
     </Container>
   )

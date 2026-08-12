@@ -4,7 +4,7 @@
  * ONE continuous Glicko-2 timeline over every official match in history. A player
  * enters at 1500 the first time they appear and is NEVER reset again; every match
  * contributes chronologically. This module is a pure, deterministic function of the
- * official competition data (Seasons + Cups) — it stores nothing and is recomputed
+ * official competition data (tournaments) — it stores nothing and is recomputed
  * whenever the underlying data changes.
  *
  * Design (agreed):
@@ -13,7 +13,7 @@
  *  - Batch RATING PERIODS processed chronologically (group stage, playoffs, each cup),
  *    order-independent within a period.
  *  - Weighted games (Glicko-2 fractional-games extension): every match counts, but
- *    playoff/championship matches count more, and Tournament finals slightly more than Cup
+ *    playoff/championship matches count more, and Tournament finals slightly more than TournamentView
  *    finals. Prestige is EARNED by winning high-stakes matches, not stamped on.
  *  - Team cups: only the individual board matches are rated — never the team result —
  *    so nobody gains rating from being carried.
@@ -23,8 +23,8 @@
  * This module produces the raw timeline. Views (Current / Historical / All-Time) and
  * per-player provenance are assembled in rankings.ts on top of this.
  */
-import { getCups, type BracketRound, type Cup } from '@/lib/tournaments/service'
-import { currentCupRevision } from '@/lib/tournaments/context'
+import { getTournaments, type BracketRound, type TournamentView } from '@/lib/tournaments/service'
+import { currentTournamentRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
 
 // ---- Glicko-2 constants -----------------------------------------------------
@@ -235,8 +235,8 @@ function buildPeriods(): Period[] {
   // WCC ranking timeline: one rating period per completed tournament. The historical
   // WCC archive (seasons) was removed in the WCC reset, so the ladder starts empty and
   // rebuilds ONLY from completed WCC tournaments — using the SAME Glicko-2 formula that
-  // previously rated Cups (weights, identity resolution, and math unchanged).
-  for (const c of getCups()) {
+  // previously rated tournaments (weights, identity resolution, and math unchanged).
+  for (const c of getTournaments()) {
     const year = c.year ?? 0
     const games: Game[] = []
     const rounds: BracketRound[] = [
@@ -274,7 +274,7 @@ function buildPeriods(): Period[] {
   return periods
 }
 
-function cupLabel(c: Cup): string {
+function cupLabel(c: TournamentView): string {
   return `${c.name}${c.year ? ` (${c.year})` : ''}`
 }
 
@@ -440,7 +440,7 @@ function runGlicko(periods: Period[], trackYearEnd: boolean): RatingTimeline {
 let _periods: Period[] | null = null
 let _periodsRev = -1
 function allPeriods(): Period[] {
-  const rev = currentCupRevision()
+  const rev = currentTournamentRevision()
   if (!_periods || _periodsRev !== rev) {
     _periodsRev = rev
     _periods = buildPeriods()
@@ -464,7 +464,7 @@ let _cacheRev = -1
 
 /** The full persistent Glicko-2 timeline — used ONLY for All-Time (peaks) + provenance. */
 export function getRatingTimeline(): RatingTimeline {
-  const rev = currentCupRevision()
+  const rev = currentTournamentRevision()
   if (!_cache || _cacheRev !== rev) {
     _cacheRev = rev
     _cache = runGlicko(allPeriods(), true)
@@ -479,7 +479,7 @@ const _current = new Map<string, RatingTimeline>()
  * than the window contribute nothing. (Answers: who performed best in the last year.)
  */
 export function getCurrentTimeline(now: Date): RatingTimeline {
-  const key = `${currentCupRevision()}:${now.getFullYear()}`
+  const key = `${currentTournamentRevision()}:${now.getFullYear()}`
   let tl = _current.get(key)
   if (!tl) {
     tl = runGlicko(allPeriods().filter((p) => periodInCurrentWindow(p, now)), false)

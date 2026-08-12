@@ -1395,8 +1395,8 @@ export async function recordPlayoffScore(
 export async function reportOwnLoss(userId: number, username: string, matchId: number, myGamesWon: number): Promise<{ ok: boolean; error?: string }> {
   const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { tournament: true } })
   if (!match) return { ok: false, error: 'Match not found.' }
-  const { getCupState } = await import('./tournament-lifecycle')
-  if (getCupState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This tournament is not currently in progress.' }
+  const { getTournamentState } = await import('./tournament-lifecycle')
+  if (getTournamentState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This tournament is not currently in progress.' }
   if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
   if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }
 

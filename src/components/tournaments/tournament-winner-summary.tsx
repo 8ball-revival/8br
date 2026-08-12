@@ -15,7 +15,7 @@ export interface PodiumIdentity {
  * a slug exists, plain text otherwise). Runner-up and final score are rendered only when actually
  * stored — never fabricated.
  */
-export function CupWinnerSummary({
+export function TournamentWinnerSummary({
   cupName,
   champion,
   runnerUp,

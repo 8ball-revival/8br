@@ -9,8 +9,8 @@ import { readFileSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { getCurrentScoreRankings } from '../src/lib/stats/current-score.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
-import { cupStore, loadCupContext } from '../src/lib/tournaments/prime.ts'
-cupStore.enterWith(await loadCupContext())
+import { tournamentStore, loadTournamentContext } from '../src/lib/tournaments/prime.ts'
+tournamentStore.enterWith(await loadTournamentContext())
 
 const nk = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 const MAP_FILE = 'C:/Users/Cerebro/Downloads/fixed accounts.txt'

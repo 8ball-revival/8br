@@ -22,8 +22,8 @@ import {
   type PeakInfo,
 } from './rating-engine'
 import { getCurrentScoreForId, type ScoreLine } from './current-score'
-import { getCups } from '@/lib/tournaments/service'
-import { currentCupRevision } from '@/lib/tournaments/context'
+import { getTournaments } from '@/lib/tournaments/service'
+import { currentTournamentRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
 
 export const WINDOW_DAYS = 365
@@ -72,7 +72,7 @@ type TitleRec = { year: number; kind: 'tournament' | 'cup' }
 let _titles: Map<string, TitleRec[]> | null = null
 let _titlesRev = -1
 function titleIndex(): Map<string, TitleRec[]> {
-  const rev = currentCupRevision()
+  const rev = currentTournamentRevision()
   if (_titles && _titlesRev === rev) return _titles
   _titlesRev = rev
   const m = new Map<string, TitleRec[]>()
@@ -84,7 +84,7 @@ function titleIndex(): Map<string, TitleRec[]> {
     arr.push({ year, kind })
     m.set(r.id, arr)
   }
-  for (const c of getCups()) if (c.year) add(c.champion, c.year, 'cup')
+  for (const c of getTournaments()) if (c.year) add(c.champion, c.year, 'cup')
   _titles = m
   return m
 }

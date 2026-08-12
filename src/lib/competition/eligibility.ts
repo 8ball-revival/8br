@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveMemberStatus } from '@/lib/moderation/service'
 
 /**
- * SHARED competition-eligibility service — the single gate used by Cup signup, Tournament
+ * SHARED competition-eligibility service — the single gate used by TournamentView signup, Tournament
  * signup, and admin "add registered account". Every eligibility decision is made
  * server-side here so no surface can diverge.
  *

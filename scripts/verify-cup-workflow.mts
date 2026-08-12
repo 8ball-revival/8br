@@ -1,5 +1,5 @@
 import { prisma } from '../src/lib/prisma.ts'
-import { transitionCupState, getCupState, canTransition, bracketMatchesEntrants } from '../src/lib/competition/tournament-lifecycle.ts'
+import { transitionTournamentState, getTournamentState, canTransition, bracketMatchesEntrants } from '../src/lib/competition/tournament-lifecycle.ts'
 import { addManualEntrant, rebuildManualPlayoff, publishPlayoff } from '../src/lib/competition/service.ts'
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
@@ -21,37 +21,37 @@ try {
   check('no account-less entrant row was created', (await prisma.registration.count({ where: { tournamentId: id } })) === 0)
 
   console.log('\n--- close ⇄ re-open registration persists ---')
-  check('REGISTRATION_OPEN → REGISTRATION_CLOSED ok', (await transitionCupState(actor, id, 'REGISTRATION_CLOSED')).ok)
-  check('  persisted CLOSED', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_CLOSED')
-  check('REGISTRATION_CLOSED → REGISTRATION_OPEN ok (re-open before bracket)', (await transitionCupState(actor, id, 'REGISTRATION_OPEN')).ok)
-  check('  persisted OPEN', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_OPEN')
+  check('REGISTRATION_OPEN → REGISTRATION_CLOSED ok', (await transitionTournamentState(actor, id, 'REGISTRATION_CLOSED')).ok)
+  check('  persisted CLOSED', getTournamentState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_CLOSED')
+  check('REGISTRATION_CLOSED → REGISTRATION_OPEN ok (re-open before bracket)', (await transitionTournamentState(actor, id, 'REGISTRATION_OPEN')).ok)
+  check('  persisted OPEN', getTournamentState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_OPEN')
 
   console.log('\n--- bracket staleness: entrant change after generation ---')
   // Seed 4 registered entrants (permanent player refs simulated by registration ids).
   const regs = []
   for (const nm of ['A', 'B', 'C', 'D']) regs.push(await prisma.registration.create({ data: { tournamentId: id, username: nm, status: 'APPROVED' } }))
-  await transitionCupState(actor, id, 'REGISTRATION_CLOSED')
+  await transitionTournamentState(actor, id, 'REGISTRATION_CLOSED')
   await rebuildManualPlayoff(actor, id, regs.map((r) => r.id))
   await publishPlayoff(actor, id)
-  await transitionCupState(actor, id, 'BRACKET_GENERATED')
+  await transitionTournamentState(actor, id, 'BRACKET_GENERATED')
   check('fresh bracket matches entrants', (await bracketMatchesEntrants(id)).ok)
 
   // Re-open, add a 5th entrant → bracket now stale.
-  check('BRACKET_GENERATED → REGISTRATION_OPEN ok (re-open)', (await transitionCupState(actor, id, 'REGISTRATION_OPEN')).ok)
+  check('BRACKET_GENERATED → REGISTRATION_OPEN ok (re-open)', (await transitionTournamentState(actor, id, 'REGISTRATION_OPEN')).ok)
   await prisma.registration.create({ data: { tournamentId: id, username: 'E', status: 'APPROVED' } })
   const stale = await bracketMatchesEntrants(id)
   check('bracket is STALE after an entrant is added', !stale.ok && /added after/i.test(stale.reason || ''))
 
   // Withdraw a seeded entrant → also stale.
-  await transitionCupState(actor, id, 'REGISTRATION_CLOSED')
+  await transitionTournamentState(actor, id, 'REGISTRATION_CLOSED')
   await prisma.registration.update({ where: { id: regs[0].id }, data: { status: 'WITHDRAWN' } })
   const stale2 = await bracketMatchesEntrants(id)
   check('bracket is STALE after a seeded entrant withdraws', !stale2.ok)
 } finally {
   await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'wf-verify' } })
-  const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
-  await regenerateCupSnapshot().catch(() => {})
+  const { regenerateTournamentSnapshot } = await import('../src/lib/tournaments/migrate.ts')
+  await regenerateTournamentSnapshot().catch(() => {})
   console.log('cleaned up synthetic cup + audit + snapshot')
 }
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

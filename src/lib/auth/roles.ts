@@ -62,8 +62,8 @@ export function isStaff(roles: string[] | null | undefined): boolean {
  */
 export type Capability =
   | 'manage_staff' // create/edit staff accounts, grant/remove roles — OWNER only (Payload fallback)
-  | 'delete_competition' // permanent deletion of a Tournament/Cup — OWNER only
-  | 'manage_competitions' // create/edit/archive/restore Seasons & Cups, groups, brackets, publish — ADMIN+
+  | 'delete_competition' // permanent deletion of a Tournament/TournamentView — OWNER only
+  | 'manage_competitions' // create/edit/archive/restore tournaments, groups, brackets, publish — ADMIN+
   | 'manage_registrations' // approve/reject/edit registrations — ADMIN+
   | 'manage_players' // create/edit/merge/deactivate players — ADMIN+
   | 'edit_results' // enter/correct scores, schedules, verify match details — ADMIN+

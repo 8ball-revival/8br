@@ -384,16 +384,16 @@ export async function withdrawSeason2(_prev: FormResult, _formData: FormData): P
   return { ok: true }
 }
 
-/** Resolve a live Cup (a comp_season row of type CUP) by its public cup number. */
+/** Resolve a live TournamentView (a comp_season row of type CUP) by its public cup number. */
 async function cupByNumber(number: number) {
   if (!Number.isFinite(number)) return null
   const { prisma } = await import('@/lib/prisma')
   return prisma.tournament.findFirst({ where: { number } })
 }
 
-/** Enter the current user into a specific live Cup (the same public-registration path as
+/** Enter the current user into a specific live TournamentView (the same public-registration path as
  *  seasons — a tournament is just a comp_season row). Registration must be OPEN. */
-export async function joinCupAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+export async function joinTournamentAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in to join this tournament.' }
   if (formData.get('rulesAck') !== 'on') return { error: 'Please acknowledge the rules to join.' }
@@ -419,8 +419,8 @@ export async function joinCupAction(_prev: FormResult, formData: FormData): Prom
   return { ok: true, already: res.already }
 }
 
-/** Self-withdraw the current user from a specific live Cup (only while registration is OPEN). */
-export async function withdrawCupAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+/** Self-withdraw the current user from a specific live TournamentView (only while registration is OPEN). */
+export async function withdrawTournamentAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in.' }
 

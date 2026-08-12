@@ -7,7 +7,7 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { startGroupStage, recordGroupResult, groupStageComplete, confirmQualifiersAndSeed } from '../src/lib/competition/group-stage.ts'
 import { recordPlayoffScore, verifyPlayoffMatch } from '../src/lib/competition/service.ts'
-import { transitionCupState, getCupState } from '../src/lib/competition/tournament-lifecycle.ts'
+import { transitionTournamentState, getTournamentState } from '../src/lib/competition/tournament-lifecycle.ts'
 
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
@@ -66,7 +66,7 @@ async function run(number: number, doubleElim: boolean) {
     check('2 groups generated + published', groups === 2)
     const gmatches = await prisma.tournamentMatch.count({ where: { tournamentId: id } })
     check('round-robin schedule generated (12 matches for 2×4)', gmatches === 12)
-    check('state is GROUPS_IN_PROGRESS', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'GROUPS_IN_PROGRESS')
+    check('state is GROUPS_IN_PROGRESS', getTournamentState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'GROUPS_IN_PROGRESS')
 
     // Cannot advance before the group stage is complete.
     const early = await confirmQualifiersAndSeed(actor, id)
@@ -83,7 +83,7 @@ async function run(number: number, doubleElim: boolean) {
 
     const seeded = await confirmQualifiersAndSeed(actor, id)
     check('confirm qualifiers + seed bracket ok', seeded.ok)
-    check('state is BRACKET_GENERATED', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'BRACKET_GENERATED')
+    check('state is BRACKET_GENERATED', getTournamentState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'BRACKET_GENERATED')
     const pm = await prisma.playoffMatch.count({ where: { tournamentId: id } })
     check('playoff bracket created from qualifiers', pm > 0)
     if (doubleElim) {
@@ -93,10 +93,10 @@ async function run(number: number, doubleElim: boolean) {
     }
 
     // Begin, play the bracket, complete.
-    await transitionCupState(actor, id, 'IN_PROGRESS')
+    await transitionTournamentState(actor, id, 'IN_PROGRESS')
     const champ = await playBracket(id)
     check('bracket plays to a single champion', champ > 0)
-    const done = await transitionCupState(actor, id, 'COMPLETED')
+    const done = await transitionTournamentState(actor, id, 'COMPLETED')
     check('tournament completes', done.ok)
     const t = await prisma.tournament.findUniqueOrThrow({ where: { id } })
     check('ranking ladder applied on completion', t.ladderAppliedAt != null)
@@ -109,8 +109,8 @@ async function run(number: number, doubleElim: boolean) {
 
 await run(99201, false)
 await run(99202, true)
-const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
-await regenerateCupSnapshot().catch(() => {})
+const { regenerateTournamentSnapshot } = await import('../src/lib/tournaments/migrate.ts')
+await regenerateTournamentSnapshot().catch(() => {})
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 await prisma.$disconnect()
 process.exit(fail === 0 ? 0 : 1)

@@ -1,5 +1,5 @@
 import { getAllArchiveSeasons } from '../src/lib/seasons/archive.ts'
-import { getCups } from '../src/lib/tournaments/fixtures.ts'
+import { getTournaments } from '../src/lib/tournaments/fixtures.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
 import { prisma } from '../src/lib/prisma.ts'
 
@@ -16,7 +16,7 @@ for (const s of getAllArchiveSeasons()) { if (s.pending) continue; for (const d 
   for (const g of d.groups ?? []) for (const row of g.rows) add(row)
   for (const rd of [...(d.playoff?.rounds ?? []), ...(d.doubleElim ? [...d.doubleElim.winners, ...d.doubleElim.losers] : [])]) for (const m of rd.matches) { add(m.a); add(m.b) }
 } }
-for (const c of getCups()) {
+for (const c of getTournaments()) {
   add(c.champion); add(c.runnerUp)
   for (const rd of [...(c.bracket??[]), ...(c.winnersBracket??[]), ...(c.losersBracket??[]), ...(c.grandFinal??[])]) for (const m of rd.matches) { add(m.a); add(m.b) }
   for (const t of c.teamTies ?? []) for (const m of t.matches) { add(m.home); add(m.away) }

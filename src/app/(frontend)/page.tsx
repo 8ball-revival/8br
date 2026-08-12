@@ -3,8 +3,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { Wide } from '@/components/primitives'
-import { getCupList } from '@/lib/tournaments/list'
-import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
+import { getTournamentList } from '@/lib/tournaments/list'
+import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
 import { pageMetadata, brandName } from '@/lib/site'
 
 export const metadata: Metadata = pageMetadata({
@@ -16,9 +16,9 @@ export const metadata: Metadata = pageMetadata({
 
 export default async function HomePage() {
   // Resolve the live tournament revision before any tournament-derived render.
-  cupStore.enterWith(await loadCupContext())
+  tournamentStore.enterWith(await loadTournamentContext())
 
-  const tournaments = await getCupList()
+  const tournaments = await getTournamentList()
   const live = tournaments.filter((t) => t.status === 'live')
   const recent = tournaments.filter((t) => t.status === 'completed').slice(-6).reverse()
   const featured = [...live, ...recent].slice(0, 6)

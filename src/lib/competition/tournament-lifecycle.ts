@@ -22,9 +22,9 @@ import { recordAudit, type Actor } from './audit'
  * ladder exactly once (idempotent via `ladderAppliedAt`). Every transition is audited.
  */
 
-export type CupState = TournamentLifecycleState // internal alias (kept to limit churn; not user-facing)
+export type TournamentState = TournamentLifecycleState // internal alias (kept to limit churn; not user-facing)
 
-const NEXT: Record<CupState, CupState[]> = {
+const NEXT: Record<TournamentState, TournamentState[]> = {
   DRAFT: ['REGISTRATION_OPEN', 'CANCELLED'],
   REGISTRATION_OPEN: ['REGISTRATION_CLOSED', 'CANCELLED'],
   // Registration may be RE-OPENED (a first-class toggle, not a recovery) any time before the
@@ -40,16 +40,16 @@ const NEXT: Record<CupState, CupState[]> = {
 }
 
 /** Terminal states — no normal mutation of any kind is permitted (Owner recovery only). */
-const TERMINAL: readonly CupState[] = ['COMPLETED', 'CANCELLED']
-export function isTerminal(state: CupState): boolean {
+const TERMINAL: readonly TournamentState[] = ['COMPLETED', 'CANCELLED']
+export function isTerminal(state: TournamentState): boolean {
   return TERMINAL.includes(state)
 }
 
-export function canTransition(from: CupState, to: CupState): boolean {
+export function canTransition(from: TournamentState, to: TournamentState): boolean {
   return NEXT[from].includes(to)
 }
 
-export const CUP_STATE_LABEL: Record<CupState, string> = {
+export const TOURNAMENT_STATE_LABEL: Record<TournamentState, string> = {
   DRAFT: 'Draft',
   REGISTRATION_OPEN: 'Registration Open',
   REGISTRATION_CLOSED: 'Registration Closed',
@@ -78,7 +78,7 @@ type TournamentStateFields = Pick<Tournament, 'lifecycleState' | 'status' | 'reg
  * choice: reporting/scoring stay enabled, exactly as before). BRACKET_GENERATED is only ever
  * reached by cups managed under the new flow, where it is stored explicitly.
  */
-export function deriveLegacyState(s: TournamentStateFields): CupState {
+export function deriveLegacyState(s: TournamentStateFields): TournamentState {
   if (s.lifecycleState) return s.lifecycleState
   if (s.status === 'COMPLETED') return 'COMPLETED'
   if (s.playoffsStatus === 'PUBLISHED') return 'IN_PROGRESS'
@@ -88,12 +88,12 @@ export function deriveLegacyState(s: TournamentStateFields): CupState {
 }
 
 /** Read the current state (explicit field, or derived for a not-yet-backfilled cup). */
-export function getCupState(s: TournamentStateFields): CupState {
+export function getTournamentState(s: TournamentStateFields): TournamentState {
   return s.lifecycleState ?? deriveLegacyState(s)
 }
 
 /** Legacy-field updates that keep the old status columns consistent with a new state. */
-function legacyFieldsFor(to: CupState): Prisma.TournamentUpdateInput {
+function legacyFieldsFor(to: TournamentState): Prisma.TournamentUpdateInput {
   switch (to) {
     case 'DRAFT':
       return { registrationStatus: 'NOT_OPEN', status: 'UPCOMING' }
@@ -166,8 +166,8 @@ export async function bracketMatchesEntrants(tournamentId: number): Promise<{ ok
 export interface TransitionResult {
   ok: boolean
   error?: string
-  from?: CupState
-  to?: CupState
+  from?: TournamentState
+  to?: TournamentState
 }
 
 /**
@@ -175,21 +175,21 @@ export interface TransitionResult {
  * invalid move and is audited distinctly. Applies legacy-field sync, completion validation on
  * COMPLETED (unless recovery), and the idempotent ladder update, all transactionally + audited.
  */
-export async function transitionCupState(
+export async function transitionTournamentState(
   actor: Actor,
   tournamentId: number,
-  to: CupState,
+  to: TournamentState,
   opts: { reason?: string; recovery?: boolean } = {},
 ): Promise<TransitionResult> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!tournament) return { ok: false, error: 'Tournament not found.' }
 
-  const from = getCupState(tournament)
+  const from = getTournamentState(tournament)
   if (from === to) return { ok: true, from, to }
 
   const valid = canTransition(from, to)
   if (!valid && !opts.recovery)
-    return { ok: false, error: `Invalid transition: ${CUP_STATE_LABEL[from]} → ${CUP_STATE_LABEL[to]}. Use a recovery action if this is intentional.` }
+    return { ok: false, error: `Invalid transition: ${TOURNAMENT_STATE_LABEL[from]} → ${TOURNAMENT_STATE_LABEL[to]}. Use a recovery action if this is intentional.` }
 
   // Completion gate — the Final must be decided and no required match left open.
   if (to === 'COMPLETED' && !opts.recovery) {
@@ -201,15 +201,15 @@ export async function transitionCupState(
     await tx.tournament.update({ where: { id: tournamentId }, data: { lifecycleState: to, ...legacyFieldsFor(to) } })
     await recordAudit(
       actor,
-      { action: opts.recovery && !valid ? 'cup.state.recovery' : 'cup.state', entity: 'Tournament', entityId: tournamentId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
+      { action: opts.recovery && !valid ? 'tournament.state.recovery' : 'tournament.state', entity: 'Tournament', entityId: tournamentId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
       tx,
     )
     if (to === 'COMPLETED') await applyLadder(tx, tournamentId, actor)
   })
 
   // Reflect the final bracket/champion into the derived snapshot (rankings/records/list).
-  const { syncLiveCupToSnapshot } = await import('./tournament-sync')
-  await syncLiveCupToSnapshot(tournamentId)
+  const { syncLiveTournamentToSnapshot } = await import('./tournament-sync')
+  await syncLiveTournamentToSnapshot(tournamentId)
   return { ok: true, from, to }
 }
 
@@ -233,39 +233,39 @@ export async function applyLadder(tx: Tx, tournamentId: number, actor: Actor): P
  * This is the authoritative check — the UI hiding a control is never relied upon. Terminal states
  * (Completed/Cancelled) get a clear "locked" message so every normal mutation is refused server-side.
  */
-export async function requireCupState(
+export async function requireTournamentState(
   tournamentId: number,
-  allowed: CupState[],
-): Promise<{ ok: true; state: CupState } | { ok: false; error: string }> {
+  allowed: TournamentState[],
+): Promise<{ ok: true; state: TournamentState } | { ok: false; error: string }> {
   const s = await prisma.tournament.findUnique({
     where: { id: tournamentId },
     select: { lifecycleState: true, status: true, registrationStatus: true, playoffsStatus: true },
   })
   if (!s) return { ok: false, error: 'Tournament not found.' }
-  const state = getCupState(s)
+  const state = getTournamentState(s)
   if (allowed.includes(state)) return { ok: true, state }
   if (state === 'COMPLETED') return { ok: false, error: 'This tournament is completed and locked — no further changes are allowed (Owner recovery only).' }
   if (state === 'CANCELLED') return { ok: false, error: 'This tournament has been cancelled.' }
-  return { ok: false, error: `Not allowed while the tournament is "${CUP_STATE_LABEL[state]}".` }
+  return { ok: false, error: `Not allowed while the tournament is "${TOURNAMENT_STATE_LABEL[state]}".` }
 }
 
-// ---- Cup history (derived from the audit log) -----------------------------
+// ---- TournamentView history (derived from the audit log) -----------------------------
 
-export type CupHistoryKind =
+export type TournamentHistoryKind =
   | 'created' | 'registration_open' | 'registration_closed'
   | 'bracket_generated' | 'bracket_regenerated' | 'tournament_started'
   | 'match_result' | 'entrant_added' | 'entrant_removed' | 'ladder_applied'
   | 'tournament_completed' | 'tournament_cancelled' | 'recovery' | 'other'
 
-export interface CupHistoryEvent {
+export interface TournamentHistoryEvent {
   at: string // ISO timestamp
-  kind: CupHistoryKind
+  kind: TournamentHistoryKind
   label: string // public-safe description
   actor?: string // admin view only
   detail?: string // admin view only (e.g. recovery reason)
 }
 
-const PUBLIC_KINDS: ReadonlySet<CupHistoryKind> = new Set([
+const PUBLIC_KINDS: ReadonlySet<TournamentHistoryKind> = new Set([
   'created', 'registration_open', 'registration_closed', 'bracket_generated', 'bracket_regenerated',
   'tournament_started', 'match_result', 'tournament_completed', 'tournament_cancelled', 'recovery',
 ])
@@ -277,32 +277,31 @@ const PUBLIC_KINDS: ReadonlySet<CupHistoryKind> = new Set([
  * with `view_audit`-style access get the fuller version including actor and reason. Private moderation
  * notes, emails, and account internals never appear here — cup audit rows contain none of those.
  */
-export async function getCupHistory(tournamentId: number, opts: { admin?: boolean } = {}): Promise<CupHistoryEvent[]> {
+export async function getTournamentHistory(tournamentId: number, opts: { admin?: boolean } = {}): Promise<TournamentHistoryEvent[]> {
   const rows = await prisma.auditLog.findMany({
     where: { entity: 'Tournament', entityId: String(tournamentId) },
     orderBy: { createdAt: 'asc' },
     select: { createdAt: true, action: true, actorUsername: true, oldValue: true, newValue: true, reason: true },
   })
 
-  const events: CupHistoryEvent[] = []
+  const events: TournamentHistoryEvent[] = []
   let sawBracketGenerated = false
-  const stateOf = (v: unknown): CupState | null => {
+  const stateOf = (v: unknown): TournamentState | null => {
     const s = v && typeof v === 'object' ? (v as Record<string, unknown>).state : null
-    return typeof s === 'string' ? (s as CupState) : null
+    return typeof s === 'string' ? (s as TournamentState) : null
   }
 
   for (const r of rows) {
     const at = r.createdAt.toISOString()
     const actor = r.actorUsername
     const reason = r.reason ?? undefined
-    const push = (kind: CupHistoryKind, label: string, detail?: string) => events.push({ at, kind, label, actor, detail })
+    const push = (kind: TournamentHistoryKind, label: string, detail?: string) => events.push({ at, kind, label, actor, detail })
 
     switch (r.action) {
-      case 'cup.create':
       case 'tournament.create':
         push('created', 'Tournament created')
         break
-      case 'cup.state': {
+      case 'tournament.state': {
         const to = stateOf(r.newValue)
         if (to === 'REGISTRATION_OPEN') push('registration_open', 'Registration opened')
         else if (to === 'REGISTRATION_CLOSED') push('registration_closed', 'Registration closed')
@@ -312,9 +311,9 @@ export async function getCupHistory(tournamentId: number, opts: { admin?: boolea
         else if (to === 'CANCELLED') push('tournament_cancelled', 'Tournament cancelled')
         break
       }
-      case 'cup.state.recovery': {
+      case 'tournament.state.recovery': {
         const to = stateOf(r.newValue)
-        push('recovery', `Recovery action${to ? ` → ${CUP_STATE_LABEL[to] ?? to}` : ''}`, reason)
+        push('recovery', `Recovery action${to ? ` → ${TOURNAMENT_STATE_LABEL[to] ?? to}` : ''}`, reason)
         break
       }
       case 'playoff.manualBuild':
@@ -325,7 +324,7 @@ export async function getCupHistory(tournamentId: number, opts: { admin?: boolea
       case 'playoff.verify':
         push('match_result', 'Match result recorded')
         break
-      case 'cup.ladder.apply':
+      case 'tournament.ladder.apply':
         push('ladder_applied', 'Ladder results applied', reason)
         break
       case 'entrant.add':
@@ -346,7 +345,7 @@ export async function getCupHistory(tournamentId: number, opts: { admin?: boolea
 }
 
 /** Lazily persist a derived state for a legacy cup (safe backfill on first workspace load). */
-export async function backfillCupState(tournamentId: number): Promise<CupState> {
+export async function backfillTournamentState(tournamentId: number): Promise<TournamentState> {
   const s = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { lifecycleState: true, status: true, registrationStatus: true, playoffsStatus: true } })
   if (!s) return 'DRAFT'
   if (s.lifecycleState) return s.lifecycleState

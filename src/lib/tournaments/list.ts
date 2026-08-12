@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { resolveIdentity } from '@/lib/stats/identity'
 
 /**
- * Enriched Cup list + structured search index, read from the DATABASE (source of
- * truth). Powers the searchable public Cups page: each row's metadata plus a
+ * Enriched TournamentView list + structured search index, read from the DATABASE (source of
+ * truth). Powers the searchable public tournaments page: each row's metadata plus a
  * de-duplicated participant index (resolved via the identity resolver) so a search
- * for a player / alias / team / champion returns every Cup they were part of, with
+ * for a player / alias / team / champion returns every TournamentView they were part of, with
  * the relationship. No private/account data is included.
  */
 
@@ -15,8 +15,8 @@ const nk = (s?: string | null) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, 
 export type Relationship = 'Champion' | 'Runner-up' | 'Third place' | 'Team member' | 'Participant' | 'Team'
 const RANK: Record<Relationship, number> = { Champion: 5, 'Runner-up': 4, 'Third place': 3, 'Team member': 2, Participant: 1, Team: 1 }
 
-export interface CupParticipant { display: string; keys: string[]; relationship: Relationship }
-export interface CupListItem {
+export interface TournamentParticipant { display: string; keys: string[]; relationship: Relationship }
+export interface TournamentListItem {
   number: number
   code: string
   name: string
@@ -32,11 +32,11 @@ export interface CupListItem {
   champion: { name: string; handle: string | null } | null
   runnerUp: { name: string; handle: string | null } | null
   locked: boolean
-  participants: CupParticipant[]
+  participants: TournamentParticipant[]
   searchBlob: string
 }
 
-export async function getCupList(): Promise<CupListItem[]> {
+export async function getTournamentList(): Promise<TournamentListItem[]> {
   const comps = await prisma.tournament.findMany({
     orderBy: { number: 'asc' },
     include: { bracketMatches: true },
@@ -44,7 +44,7 @@ export async function getCupList(): Promise<CupListItem[]> {
 
   return comps.map((c) => {
     // Build the de-duplicated participant index (by canonical identity).
-    const byKey = new Map<string, CupParticipant>()
+    const byKey = new Map<string, TournamentParticipant>()
     const add = (name?: string | null, handle?: string | null, rel: Relationship = 'Participant') => {
       if (!name && !handle) return
       const id = resolveIdentity(handle ?? undefined, name ?? undefined, { useArchiveMap: false })

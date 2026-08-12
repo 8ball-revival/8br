@@ -7,7 +7,7 @@ import { Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import type { CupListItem } from '@/lib/tournaments/list'
+import type { TournamentListItem } from '@/lib/tournaments/list'
 
 const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
@@ -17,8 +17,8 @@ const TFMT: Record<string, string> = {
 }
 const isActive = (s: string) => s === 'live' || s === 'upcoming'
 
-/** Searchable, filterable, URL-stateful Cup list (Active & Upcoming + Archive). */
-export function CupList({ cups }: { cups: CupListItem[] }) {
+/** Searchable, filterable, URL-stateful TournamentView list (Active & Upcoming + Archive). */
+export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
   const router = useRouter()
   const pathname = usePathname()
   const sp = useSearchParams()
@@ -60,7 +60,7 @@ export function CupList({ cups }: { cups: CupListItem[] }) {
   const archive = matches.filter((c) => !isActive(c.status)).sort((a, b) => b.number - a.number)
 
   // Relationship annotation for the current query (how the searched entity relates).
-  const relFor = (c: CupListItem): { display: string; relationship: string } | null => {
+  const relFor = (c: TournamentListItem): { display: string; relationship: string } | null => {
     if (!nkq) return null
     const p = c.participants.find((pp) => pp.keys.some((k) => k.includes(nkq)))
     return p ? { display: p.display, relationship: p.relationship } : null
@@ -112,7 +112,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
   )
 }
 
-function Row({ c, rel }: { c: CupListItem; rel: { display: string; relationship: string } | null }) {
+function Row({ c, rel }: { c: TournamentListItem; rel: { display: string; relationship: string } | null }) {
   const completed = !isActive(c.status)
   return (
     <li>

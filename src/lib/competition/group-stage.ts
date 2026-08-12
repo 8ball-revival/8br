@@ -11,7 +11,7 @@ import {
   rebuildManualPlayoff,
   publishPlayoff,
 } from './service'
-import { transitionCupState } from './tournament-lifecycle'
+import { transitionTournamentState } from './tournament-lifecycle'
 import { orderQualifiers, type GroupQualifiers } from './bracket'
 import { seededShuffle } from './prng'
 
@@ -44,7 +44,7 @@ export async function startGroupStage(actor: Actor, tournamentId: number): Promi
   if (!pub.ok) return pub
   await recomputeStandings(tournamentId)
 
-  const tr = await transitionCupState(actor, tournamentId, 'GROUPS_IN_PROGRESS')
+  const tr = await transitionTournamentState(actor, tournamentId, 'GROUPS_IN_PROGRESS')
   if (!tr.ok) return { ok: false, error: tr.error }
   return { ok: true }
 }
@@ -130,7 +130,7 @@ export async function confirmQualifiersAndSeed(actor: Actor, tournamentId: numbe
   const pub = await publishPlayoff(actor, tournamentId)
   if (!pub.ok) return pub
 
-  const tr = await transitionCupState(actor, tournamentId, 'BRACKET_GENERATED')
+  const tr = await transitionTournamentState(actor, tournamentId, 'BRACKET_GENERATED')
   if (!tr.ok) return { ok: false, error: tr.error }
   return { ok: true }
 }

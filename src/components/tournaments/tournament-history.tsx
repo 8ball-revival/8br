@@ -1,4 +1,4 @@
-import type { CupHistoryEvent } from '@/lib/competition/tournament-lifecycle'
+import type { TournamentHistoryEvent } from '@/lib/competition/tournament-lifecycle'
 
 const DOT: Record<string, string> = {
   created: 'bg-muted-foreground',
@@ -27,9 +27,9 @@ function fmt(iso: string): string {
 /**
  * Chronological cup history derived from the audit log. Admins pass `admin` to see the fuller
  * version (actor + reason); public callers get the simplified, non-sensitive projection. The events
- * are already filtered/redacted server-side by getCupHistory — this only renders them.
+ * are already filtered/redacted server-side by getTournamentHistory — this only renders them.
  */
-export function CupHistory({ events, admin = false }: { events: CupHistoryEvent[]; admin?: boolean }) {
+export function TournamentHistory({ events, admin = false }: { events: TournamentHistoryEvent[]; admin?: boolean }) {
   if (!events.length) return <p className="text-sm text-muted-foreground">No history recorded yet.</p>
   // Most recent first for display.
   const ordered = [...events].reverse()

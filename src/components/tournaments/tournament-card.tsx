@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { cn } from '@/lib/utils'
-import type { Cup } from '@/lib/tournaments/service'
+import type { TournamentView } from '@/lib/tournaments/service'
 
-export function CupCard({ cup }: { cup: Cup }) {
+export function TournamentCard({ cup }: { cup: TournamentView }) {
   const live = cup.status === 'live'
   return (
     <Link href={`/tournaments/${cup.number}`} className="group block">

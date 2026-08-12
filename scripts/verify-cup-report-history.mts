@@ -1,6 +1,6 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { reportOwnLoss } from '../src/lib/competition/service.ts'
-import { getCupHistory, deriveLegacyState } from '../src/lib/competition/tournament-lifecycle.ts'
+import { getTournamentHistory, deriveLegacyState } from '../src/lib/competition/tournament-lifecycle.ts'
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
 const UID_A = 990911, UID_B = 990912, UID_X = 990913
@@ -48,8 +48,8 @@ try {
     A('cup.state.recovery', { newValue: { state: 'IN_PROGRESS' }, reason: 'SENSITIVE ADMIN NOTE' }),
   ].map((d) => ({ ...d, entityId: String(id) })) })
 
-  const admin = await getCupHistory(id, { admin: true })
-  const pub = await getCupHistory(id, { admin: false })
+  const admin = await getTournamentHistory(id, { admin: true })
+  const pub = await getTournamentHistory(id, { admin: false })
   const kinds = (evs: typeof admin) => new Set(evs.map((e) => e.kind))
   const ak = kinds(admin), pk = kinds(pub)
 
@@ -66,8 +66,8 @@ try {
 } finally {
   await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'cup-rh' } })
-  const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
-  await regenerateCupSnapshot().catch(() => {})
+  const { regenerateTournamentSnapshot } = await import('../src/lib/tournaments/migrate.ts')
+  await regenerateTournamentSnapshot().catch(() => {})
   console.log('cleaned up synthetic cup + audit + snapshot')
 }
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

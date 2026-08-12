@@ -3,18 +3,18 @@
  *
  * Philosophy: the IMPORTANCE OF THE MATCH determines its value, not the number of matches
  * played. A single geometric ladder ranks every stage exactly:
- *   Tournament Final > Cup Final > Tournament SF > Tournament QF > Cup SF > Cup QF >
- *   Tournament playoff (other rounds) > Group match = early Cup round.
+ *   Tournament Final > TournamentView Final > Tournament SF > Tournament QF > TournamentView SF > TournamentView QF >
+ *   Tournament playoff (other rounds) > Group match = early TournamentView round.
  * Points are earned by WINNING matches at their stage value. The group stage is a CAPPED,
  * match-count-INDEPENDENT qualifier (placement + win rate) so a long round-robin can never
  * overpower playoff success. Opponent quality is a moderate, hard-capped multiplier that
  * can never outweigh the stage. Every value lives in CONFIG. Pure function of official
- * Seasons + Cups. Seasons are single-elimination (legacy double-elim data still reads).
+ * tournaments. Seasons are single-elimination (legacy double-elim data still reads).
  *
  * (All-Time and Historical keep the Glicko engine; this drives ONLY the Current view.)
  */
-import { getCups, type Cup } from '@/lib/tournaments/service'
-import { currentCupRevision } from '@/lib/tournaments/context'
+import { getTournaments, type TournamentView } from '@/lib/tournaments/service'
+import { currentTournamentRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
 import type { MatchResult } from './rating-engine'
 
@@ -162,7 +162,7 @@ interface MatchRec {
 }
 
 /**
- * Finish-based Cup stage points — a function of HOW FAR a player advanced, NOT how many
+ * Finish-based TournamentView stage points — a function of HOW FAR a player advanced, NOT how many
  * matches the format required. Single- and double-elimination runs to the same finish
  * score identically, so extra losers-bracket matches can never inflate a ranking.
  */
@@ -180,11 +180,11 @@ const withinWindow = (now: Date, year: number | undefined, date?: string): boole
   }
   return year === now.getFullYear()
 }
-const cupOrder = (c: Cup) => (c.year ?? 0) * 1000 + 900 + c.number
+const cupOrder = (c: TournamentView) => (c.year ?? 0) * 1000 + 900 + c.number
 
 const _cache = new Map<string, CurrentScoreView>()
 export function getCurrentScoreRankings(now: Date = new Date()): CurrentScoreView {
-  const cacheKey = `${currentCupRevision()}:${now.toDateString()}`
+  const cacheKey = `${currentTournamentRevision()}:${now.toDateString()}`
   const cached = _cache.get(cacheKey)
   if (cached) return cached
   const view = computeCurrentScore(now)
@@ -194,7 +194,7 @@ export function getCurrentScoreRankings(now: Date = new Date()): CurrentScoreVie
 
 function computeCurrentScore(now: Date): CurrentScoreView {
   const currentYear = now.getFullYear()
-  const cups = getCups().filter((c) => withinWindow(now, c.year, c.date))
+  const cups = getTournaments().filter((c) => withinWindow(now, c.year, c.date))
 
   // Reigning-champion index (earliest order at which a player became champion in-window).
   // The historical-season archive was removed in the WCC reset, so seasonChampAt stays empty
@@ -235,7 +235,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     setDeepest(win.id, eventId, tier)
     setDeepest(los.id, eventId, tier)
     const value = stageValue(kind, tier)
-    // Seasons: per-match stage (single-elim, bounded). Cups: stage is added finish-based
+    // Group stage: per-match stage (single-elim, bounded). Tournaments: stage is added finish-based
     // later (format-independent), so we do NOT add per-match cup stage here.
     if (kind === 'tournament') addLine(we, label, value)
     if (kind === 'tournament') { we.playoffW++; we.seasonPlayoffWins++; le.playoffL++ } else { we.cupW++; le.cupL++ }
@@ -245,7 +245,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     matches.push({ winId: win.id, loseId: los.id, kind, value, label, order, eventId })
   }
 
-  // Cups: per-match bracket + team ties.
+  // Tournaments: per-match bracket + team ties.
   for (const c of cups) {
     const order = cupOrder(c)
     const ch = ident(c.champion), ru = ident(c.runnerUp)
@@ -281,7 +281,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     if (ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.tournament) }
   }
 
-  // Cup finish (format-independent): stage points by how far each player advanced, so a
+  // TournamentView finish (format-independent): stage points by how far each player advanced, so a
   // double-elim losers-bracket run scores the same as reaching that finish in single-elim.
   for (const ev of events) {
     if (ev.kind !== 'cup') continue
@@ -306,7 +306,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x))
 
   // ---- PASS 2: opponent-quality (moderate, capped) ----
-  // Seasons apply quality/loss per match. Cups DEDUPE by event so double-elim volume can't
+  // Seasons apply quality/loss per match. Tournaments dedupe by event so double-elim volume can't
   // stack: at most the single best quality win, and one elimination loss, per cup.
   const cupQualityBest = new Map<string, number>() // `${winId}|${eventId}` → best win bonus
   const cupLossSeen = new Set<string>() // `${loseId}|${eventId}`
@@ -396,7 +396,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   return { rows, warnings, provisionalDataset: false, window: { days: CONFIG.windowDays, approximatedByYear: true, year: currentYear } }
 }
 
-function cupLabel(c: Cup): string {
+function cupLabel(c: TournamentView): string {
   return `${c.name}${c.year ? ` (${c.year})` : ''}`
 }
 

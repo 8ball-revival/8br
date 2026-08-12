@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { CheckCircle2, Lock, XCircle } from 'lucide-react'
 
-import { joinCupAction, withdrawCupAction, type FormResult } from '@/lib/account/actions'
+import { joinTournamentAction, withdrawTournamentAction, type FormResult } from '@/lib/account/actions'
 import { Button } from '@/components/ui/button'
 import { RegistrationIdentitySummary } from '@/components/identity/registration-identity-summary'
 import { ProfileCompletionNotice } from '@/components/identity/profile-completion-notice'
@@ -18,7 +18,7 @@ const initial: FormResult = {}
  * we show "Registering as: Preferred Name (CueVerse ID)" from their linked profile, or a
  * completion notice when the profile is missing/incomplete.
  */
-export function CupJoinPanel({
+export function TournamentJoinPanel({
   number,
   isLoggedIn,
   registrationOpen,
@@ -63,7 +63,7 @@ export function CupJoinPanel({
 }
 
 function JoinForm({ number, identity }: { number: number; identity: SignupIdentity }) {
-  const [state, action, pending] = useActionState(joinCupAction, initial)
+  const [state, action, pending] = useActionState(joinTournamentAction, initial)
 
   if (state.ok) {
     return (
@@ -113,7 +113,7 @@ function EnteredState({
   myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
   registrationOpen: boolean
 }) {
-  const [state, action, pending] = useActionState(withdrawCupAction, initial)
+  const [state, action, pending] = useActionState(withdrawTournamentAction, initial)
 
   return (
     <div className="space-y-3">
