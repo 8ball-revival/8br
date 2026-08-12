@@ -6,7 +6,7 @@ import { TimeZoneLabel } from './time-zone'
 
 /**
  * RegistrationIdentitySummary — the shared "Registering as: Preferred Name (CueVerse ID)"
- * confirmation shown on BOTH Cup and Tournament signup. A signed-in member never re-enters
+ * confirmation shown on tournament signup. A signed-in member never re-enters
  * identity; this reads from their linked profile. Discord/time zone are read-only context.
  */
 export function RegistrationIdentitySummary({

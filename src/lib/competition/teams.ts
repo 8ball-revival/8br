@@ -55,7 +55,7 @@ export async function createTeam(actor: Actor, tournamentId: number, name: strin
   if (!clean) return { ok: false, error: 'A team name is required.' }
   await assertCompetitionUnlocked(prisma, tournamentId)
   const dupe = await prisma.tournamentTeam.findFirst({ where: { tournamentId, name: clean } })
-  if (dupe) return { ok: false, error: `A team named "${clean}" already exists in this cup.` }
+  if (dupe) return { ok: false, error: `A team named "${clean}" already exists in this tournament.` }
 
   const teamId = await prisma.$transaction(async (tx) => {
     const reg = await tx.registration.create({
@@ -69,7 +69,7 @@ export async function createTeam(actor: Actor, tournamentId: number, name: strin
 }
 
 /** Replace a team's roster. Enforces: no duplicate player within the team, one player on
- *  only one active team per cup, and (soft) the cup's team size as a maximum. */
+ *  only one active team per cup, and (soft) the tournament's team size as a maximum. */
 export async function setTeamMembers(actor: Actor, teamId: number, members: TeamMemberInput[]): Promise<{ ok: boolean; error?: string }> {
   const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, include: { tournament: true } })
   if (!team) return { ok: false, error: 'Team not found.' }
@@ -99,7 +99,7 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
     })
     if (conflicts.length) {
       const c = conflicts[0]
-      return { ok: false, error: `${c.name} is already on team "${c.team.name}" in this cup.` }
+      return { ok: false, error: `${c.name} is already on team "${c.team.name}" in this tournament.` }
     }
   }
 

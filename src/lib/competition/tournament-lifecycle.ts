@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 
 /**
- * CUP LIFECYCLE — the single source of truth for a cup's state and the ONLY place cup state
+ * CUP LIFECYCLE — the single source of truth for a tournament's state and the ONLY place cup state
  * transitions happen. Behavior is driven by the explicit stored `Tournament.lifecycleState`, never
  * inferred from whether a bracket exists.
  *
@@ -66,7 +66,7 @@ type TournamentStateFields = Pick<Tournament, 'lifecycleState' | 'status' | 'reg
  * Derive a lifecycle state for a legacy cup that predates the explicit field (pure).
  *
  * Migration behavior for existing cups (which have `lifecycleState = null`): the value is derived
- * on read from the old status columns and is never written until the cup's next transition.
+ * on read from the old status columns and is never written until the tournament's next transition.
  *   - completed cup (`cupStatus=completed` or `status=COMPLETED`) → COMPLETED
  *   - published bracket (`playoffsStatus=PUBLISHED`) → IN_PROGRESS
  *   - registration OPEN / CLOSED → REGISTRATION_OPEN / REGISTRATION_CLOSED
@@ -117,7 +117,7 @@ function legacyFieldsFor(to: CupState): Prisma.TournamentUpdateInput {
 }
 
 /**
- * Are all required matches resolved so the cup can be COMPLETED? Returns an error string, or
+ * Are all required matches resolved so the tournament can be COMPLETED? Returns an error string, or
  * null when completable. Requires a generated bracket, a Final with a confirmed winner, and no
  * playable (both-sides-known) match left undecided.
  */
@@ -136,10 +136,10 @@ export async function assertCompletable(tournamentId: number): Promise<string | 
 }
 
 /**
- * Does the generated bracket still match the cup's current active entrants? A bracket is built from
+ * Does the generated bracket still match the tournament's current active entrants? A bracket is built from
  * a fixed set of registration ids (byes fill the rest); if entrants are added/removed after it was
  * generated (e.g. registration was re-opened), the bracket is stale and must be regenerated before
- * the cup can start. Returns { ok } plus the two id sets for messaging. Team cups compare team
+ * the tournament can start. Returns { ok } plus the two id sets for messaging. Team cups compare team
  * registration ids the same way.
  */
 export async function bracketMatchesEntrants(tournamentId: number): Promise<{ ok: boolean; reason?: string }> {
@@ -158,7 +158,7 @@ export async function bracketMatchesEntrants(tournamentId: number): Promise<{ ok
   const regs = await prisma.registration.findMany({ where: { tournamentId, status: { not: 'WITHDRAWN' } }, select: { id: true } })
   const active = new Set(regs.map((r) => r.id))
   // A seeded id no longer active, or an active entrant missing from the bracket → stale.
-  for (const id of seeded) if (!active.has(id)) return { ok: false, reason: 'The bracket includes an entrant who is no longer in the cup.' }
+  for (const id of seeded) if (!active.has(id)) return { ok: false, reason: 'The bracket includes an entrant who is no longer in the tournament.' }
   for (const id of active) if (!seeded.has(id)) return { ok: false, reason: 'An entrant was added after the bracket was generated.' }
   return { ok: true }
 }
@@ -171,7 +171,7 @@ export interface TransitionResult {
 }
 
 /**
- * Transition a cup to a new state. `recovery` (OWNER-gated by the caller) permits an otherwise
+ * Transition a tournament to a new state. `recovery` (OWNER-gated by the caller) permits an otherwise
  * invalid move and is audited distinctly. Applies legacy-field sync, completion validation on
  * COMPLETED (unless recovery), and the idempotent ladder update, all transactionally + audited.
  */
@@ -229,7 +229,7 @@ export async function applyLadder(tx: Tx, tournamentId: number, actor: Actor): P
 }
 
 /**
- * Server-side gate: assert a cup is currently in one of `allowed` states before a mutation.
+ * Server-side gate: assert a tournament is currently in one of `allowed` states before a mutation.
  * This is the authoritative check — the UI hiding a control is never relied upon. Terminal states
  * (Completed/Cancelled) get a clear "locked" message so every normal mutation is refused server-side.
  */

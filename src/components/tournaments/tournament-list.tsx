@@ -90,7 +90,7 @@ export function CupList({ cups }: { cups: CupListItem[] }) {
       )}
 
       <section>
-        <h2 className="eyebrow mb-3 text-muted-foreground">Cup Archive {archive.length > 0 && `· ${archive.length}`}</h2>
+        <h2 className="eyebrow mb-3 text-muted-foreground">Archive {archive.length > 0 && `· ${archive.length}`}</h2>
         {archive.length === 0 && active.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cups match your search.</p>
         ) : (
@@ -116,9 +116,9 @@ function Row({ c, rel }: { c: CupListItem; rel: { display: string; relationship:
   const completed = !isActive(c.status)
   return (
     <li>
-      <Link href={`/cups/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
+      <Link href={`/tournaments/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="tabular text-sm font-semibold text-brand">Cup #{c.number}</span>
+          <span className="tabular text-sm font-semibold text-brand">Tournament #{c.number}</span>
           <span className="tabular text-xs text-muted-foreground">{c.code}</span>
           <span className="font-display font-semibold text-foreground">{c.name}</span>
           {c.year && <span className="text-xs text-muted-foreground">· {c.year}</span>}

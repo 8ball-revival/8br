@@ -1283,7 +1283,7 @@ export async function recordPlayoffScore(
 
 /**
  * A cup ENTRANT self-reports their OWN LOSS (never a win). Verifies the caller is a participant,
- * the cup is IN_PROGRESS, and the match is undecided; then records the OPPONENT as the winner
+ * the tournament is IN_PROGRESS, and the match is undecided; then records the OPPONENT as the winner
  * (race length) with the reporter's games, and advances the bracket. Duplicate/conflicting
  * submissions are rejected. A player can never report themselves as the winner (structural).
  */
@@ -1295,13 +1295,13 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
   if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
   if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }
 
-  // Resolve the caller's entrant in this cup (by account OR linked profile).
+  // Resolve the caller's entrant in this tournament (by account OR linked profile).
   const profile = await prisma.player.findUnique({ where: { linkedUserId: String(userId) }, select: { id: true } })
   const myReg = await prisma.registration.findFirst({
     where: { tournamentId: match.tournamentId, OR: [{ userId }, ...(profile ? [{ playerId: profile.id }] : [])] },
     select: { id: true },
   })
-  if (!myReg) return { ok: false, error: 'You are not an entrant in this cup.' }
+  if (!myReg) return { ok: false, error: 'You are not an entrant in this tournament.' }
   const isHome = match.homeRegistrationId === myReg.id
   const isAway = match.awayRegistrationId === myReg.id
   if (!isHome && !isAway) return { ok: false, error: 'You can only report a match you are playing in.' }

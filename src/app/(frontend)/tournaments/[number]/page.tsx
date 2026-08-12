@@ -36,15 +36,15 @@ interface MemberCtx {
   myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
   identity: SignupIdentity | null
   missing: string[]
-  /** The viewer's registration id in this cup (to locate their own active match for self-report). */
+  /** The viewer's registration id in this tournament (to locate their own active match for self-report). */
   myRegistrationId: number | null
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params
   const cup = getCup(Number(number))
-  const title = cup ? `${cup.name} — Cup ${cup.number}` : `Cup ${number}`
-  return { title, alternates: { canonical: `/cups/${number}` } }
+  const title = cup ? `${cup.name} — Tournament ${cup.number}` : `Cup ${number}`
+  return { title, alternates: { canonical: `/tournaments/${number}` } }
 }
 
 function CupHeader({
@@ -65,7 +65,7 @@ function CupHeader({
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="eyebrow text-muted-foreground">Cup {number}</span>
+        <span className="eyebrow text-muted-foreground">Tournament {number}</span>
         {badge && <Badge variant="default">{badge}</Badge>}
         {live ? <Badge variant="destructive">{statusLabel}</Badge> : <Badge variant="muted">{statusLabel}</Badge>}
         {year && <span className="tabular text-sm text-muted-foreground">{year}</span>}
@@ -75,7 +75,7 @@ function CupHeader({
   )
 }
 
-/** Resolve a registrationId to its current public identity from the cup's entrant list. */
+/** Resolve a registrationId to its current public identity from the tournament's entrant list. */
 function entrantIdentity(data: CupWorkspaceData, regId: number | null, fallbackName: string | null): PodiumIdentity | null {
   if (regId == null && !fallbackName) return null
   const e = regId != null ? data.entrants.find((x) => x.registrationId === regId) : undefined
@@ -256,7 +256,7 @@ function PublicLiveCup({ data, member, history }: { data: CupWorkspaceData; memb
 }
 
 export default async function CupDetailPage({ params }: { params: Promise<{ number: string }> }) {
-  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before rendering the cup
+  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before rendering the tournament
   const { number } = await params
   const num = Number(number)
 
@@ -271,8 +271,8 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
   if (!ws && !cup) return null // dynamicParams=true → unknown numbers 404 here
 
   const backLink = (
-    <Link href="/cups" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-      <ArrowLeft className="size-4" /> Cups
+    <Link href="/tournaments" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+      <ArrowLeft className="size-4" /> Tournaments
     </Link>
   )
 

@@ -7,10 +7,10 @@ import { roundColumnName } from '@/lib/tournaments/live'
  * Bridge a LIVE cup (edited via PlayoffMatch) into the snapshot architecture that powers
  * the cups list, rankings, records, and career history.
  *
- * - Always regenerates the derived-data snapshot so the cup appears/updates in the list.
- * - Only when the cup is COMPLETED do we materialise its bracket into `TournamentBracketMatch`
+ * - Always regenerates the derived-data snapshot so the tournament appears/updates in the list.
+ * - Only when the tournament is COMPLETED do we materialise its bracket into `TournamentBracketMatch`
  *   (the snapshot bracket source) and set champion/runner-up, so real results feed the
- *   ranking/records pipeline. Draft/live cups keep `TournamentBracketMatch` empty — the cup page
+ *   ranking/records pipeline. Draft/live cups keep `TournamentBracketMatch` empty — the tournament page
  *   renders them live from PlayoffMatch — so nothing fake ever enters the historical data.
  */
 export async function syncLiveCupToSnapshot(tournamentId: number): Promise<void> {

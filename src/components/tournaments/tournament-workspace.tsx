@@ -157,7 +157,7 @@ function Overview({ data }: { data: CupWorkspaceData }) {
 
 /**
  * "Add Player" — searchable dropdown of eligible REGISTERED players (by Preferred Name / CueVerse ID
- * / User ID / alias). Selecting one adds it to the cup by its permanent player id. There is no
+ * / User ID / alias). Selecting one adds it to the tournament by its permanent player id. There is no
  * free-text option: an entrant can only be a real registered account. Already-entered, inactive,
  * deleted and banned profiles are excluded server-side. An empty query lists eligible players so the
  * control is browsable.
@@ -474,7 +474,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
     startDelete(async () => {
       const r = await A.deleteCupAction(data.tournament.id, delCode)
       if (r.error) return setDelError(r.error)
-      router.push('/cups') // the cup no longer exists — leave the workspace
+      router.push("/tournaments") // the tournament no longer exists — leave the workspace
       router.refresh()
     })
   }
@@ -518,7 +518,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
         <p className="eyebrow mb-2 text-muted-foreground">Identity</p>
         <dl className="grid gap-1 text-sm">
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Code</dt><dd>{data.tournament.code}</dd></div>
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Cup number</dt><dd>{data.tournament.number}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Tournament number</dt><dd>{data.tournament.number}</dd></div>
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.tournament.formatBadge} · {(data.tournament.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
         </dl>
       </section>
@@ -527,12 +527,12 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
         <section className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-4">
           <p className="text-sm font-semibold text-foreground">Cancel tournament</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Cancel this cup. It becomes read-only and cannot be resumed except by an Owner recovery. History is preserved (use Delete below to remove it entirely).
+            Cancel this tournament. It becomes read-only and cannot be resumed except by an Owner recovery. History is preserved (use Delete below to remove it entirely).
           </p>
           <Button
             className="mt-3"
             variant="destructive"
-            onClick={() => { if (window.confirm('Cancel this cup? This is terminal (Owner recovery only).')) run(() => A.setCupStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
+            onClick={() => { if (window.confirm('Cancel this tournament? This is terminal (Owner recovery only).')) run(() => A.setCupStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
           >
             Cancel tournament
           </Button>
@@ -543,7 +543,7 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
         <section className="rounded-lg border border-destructive/30 bg-destructive/[0.05] p-4">
           <p className="text-sm font-semibold text-destructive">Danger zone</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Permanently delete this cup and everything under it (entrants, teams, bracket, results). This cannot be undone. To archive
+            Permanently delete this tournament and everything under it (entrants, teams, bracket, results). This cannot be undone. To archive
             instead (keeps the record), use the Lifecycle controls above.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">

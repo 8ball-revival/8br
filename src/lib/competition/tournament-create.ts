@@ -40,7 +40,7 @@ function formatBadge(cfg: CreateCupConfig): string {
 }
 
 /**
- * Create a new LIVE cup. Cup number + competition code are assigned atomically inside a
+ * Create a new LIVE cup. Tournament number + competition code are assigned atomically inside a
  * transaction (serializable-safe: derived from the current max under a single tx) so two
  * simultaneous creates cannot collide. Returns the new competition id + number + code.
  *
@@ -132,8 +132,8 @@ export async function createCup(
     return { ok: true, ...created }
   } catch (e) {
     if (e instanceof Error && e.message === 'CUP_NUMBER_TAKEN') {
-      return { ok: false, error: 'Cup number collision — please retry.' }
+      return { ok: false, error: 'Tournament number collision — please retry.' }
     }
-    return { ok: false, error: e instanceof Error ? e.message : 'Could not create the cup.' }
+    return { ok: false, error: e instanceof Error ? e.message : 'Could not create the tournament.' }
   }
 }

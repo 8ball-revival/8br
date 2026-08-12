@@ -37,11 +37,11 @@ export function CupJoinPanel({
 
   return (
     <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
-      <h2 className="eyebrow mb-3 text-brand">Join this cup</h2>
+      <h2 className="eyebrow mb-3 text-brand">Join this tournament</h2>
       {!isLoggedIn ? (
         <div className="flex flex-wrap items-center gap-3">
           <Lock className="size-4 text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">Sign in to enter this cup.</p>
+          <p className="text-sm text-muted-foreground">Sign in to enter this tournament.</p>
           <Button asChild size="sm">
             <Link href="/login">Sign in</Link>
           </Button>
@@ -55,7 +55,7 @@ export function CupJoinPanel({
       ) : (
         <div className="flex items-center gap-3">
           <XCircle className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">Registration for this cup is closed.</p>
+          <p className="text-sm text-muted-foreground">Registration for this tournament is closed.</p>
         </div>
       )}
     </section>
@@ -70,7 +70,7 @@ function JoinForm({ number, identity }: { number: number; identity: SignupIdenti
       <div className="flex items-start gap-3 rounded-md border border-success/40 bg-success/10 px-4 py-3 text-sm">
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         <p className="font-medium text-foreground">
-          {state.already ? 'You are already entered in this cup.' : "You're entered in this cup!"} You now appear on the entrant list.
+          {state.already ? 'You are already entered in this tournament.' : "You're entered in this tournament!"} You now appear on the entrant list.
         </p>
       </div>
     )
@@ -88,7 +88,7 @@ function JoinForm({ number, identity }: { number: number; identity: SignupIdenti
 
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
-        <span className="text-muted-foreground">I have read and agree to the cup rules and format.</span>
+        <span className="text-muted-foreground">I have read and agree to the tournament rules and format.</span>
       </label>
 
       {state.error && (
@@ -120,7 +120,7 @@ function EnteredState({
       <div className="flex items-start gap-3 text-sm">
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         <p className="font-medium text-foreground">
-          {myStatus === 'APPROVED' ? "You're entered in this cup." : 'Your entry is pending approval.'} You appear on the entrant list.
+          {myStatus === 'APPROVED' ? "You're entered in this tournament." : 'Your entry is pending approval.'} You appear on the entrant list.
         </p>
       </div>
       {registrationOpen && !state.ok && (
@@ -132,7 +132,7 @@ function EnteredState({
           {state.error && <p role="alert" className="mt-2 text-sm text-destructive">{state.error}</p>}
         </form>
       )}
-      {state.ok && <p className="text-sm text-muted-foreground">You have withdrawn from this cup.</p>}
+      {state.ok && <p className="text-sm text-muted-foreground">You have withdrawn from this tournament.</p>}
     </div>
   )
 }

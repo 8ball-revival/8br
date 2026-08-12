@@ -63,10 +63,10 @@ export async function getEntrants(tournamentId: number): Promise<EntrantRow[]> {
 export interface EntrantCandidateRow { playerId: string; primaryName: string; cueverseId: string | null }
 
 /**
- * Registered players eligible to be ADDED to a cup, for the "Add Player" dropdown. Returns permanent
+ * Registered players eligible to be ADDED to a tournament, for the "Add Player" dropdown. Returns permanent
  * player profiles (selected by stable player id), matched case-insensitively on Preferred Name /
  * CueVerse ID / verified alias (an empty query lists eligible players so the dropdown is browsable).
- * EXCLUDES: profiles already entered in this cup, inactive profiles, and profiles whose linked
+ * EXCLUDES: profiles already entered in this tournament, inactive profiles, and profiles whose linked
  * account is soft-deleted or banned. Never returns free-text / account-less entrants.
  */
 export async function searchEntrantCandidates(tournamentId: number, query: string, limit = 50): Promise<EntrantCandidateRow[]> {

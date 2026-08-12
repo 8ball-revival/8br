@@ -10,7 +10,7 @@ import type { Cup } from '@/lib/tournaments/service'
 export function CupCard({ cup }: { cup: Cup }) {
   const live = cup.status === 'live'
   return (
-    <Link href={`/cups/${cup.number}`} className="group block">
+    <Link href={`/tournaments/${cup.number}`} className="group block">
       <Card
         className={cn(
           'flex h-full flex-col p-5 transition-colors group-hover:border-brand/50',
@@ -18,7 +18,7 @@ export function CupCard({ cup }: { cup: Cup }) {
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="eyebrow text-muted-foreground">Cup {cup.number}</span>
+          <span className="eyebrow text-muted-foreground">Tournament {cup.number}</span>
           {live ? (
             <Badge variant="destructive">Live</Badge>
           ) : (

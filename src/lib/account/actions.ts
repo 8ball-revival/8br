@@ -392,29 +392,29 @@ async function cupByNumber(number: number) {
 }
 
 /** Enter the current user into a specific live Cup (the same public-registration path as
- *  seasons — a cup is just a comp_season row). Registration must be OPEN. */
+ *  seasons — a tournament is just a comp_season row). Registration must be OPEN. */
 export async function joinCupAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
-  if (!user) return { error: 'Please sign in to join this cup.' }
+  if (!user) return { error: 'Please sign in to join this tournament.' }
   if (formData.get('rulesAck') !== 'on') return { error: 'Please acknowledge the rules to join.' }
 
   const number = Number(formData.get('number'))
   const cup = await cupByNumber(number)
-  if (!cup) return { error: 'Cup not found.' }
+  if (!cup) return { error: 'Tournament not found.' }
 
   // Identity is NEVER taken from the form — same shared eligibility + canonical-profile path
   // as Tournament signup.
   const { checkSelfSignupEligibility } = await import('@/lib/competition/eligibility')
   const elig = await checkSelfSignupEligibility(Number(user.id), cup.id)
-  if (!elig.ok) return { error: elig.reason ?? 'You cannot join this cup right now.' }
+  if (!elig.ok) return { error: elig.reason ?? 'You cannot join this tournament right now.' }
   const profile = await getProfileByUserId(Number(user.id))
   if (!profile) return { error: 'Complete your player profile before joining.' }
 
   const identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
   const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/cups/${number}`)
-  revalidatePath('/cups')
+  revalidatePath(`/tournaments/${number}`)
+  revalidatePath("/tournaments")
   revalidatePath('/account')
   return { ok: true, already: res.already }
 }
@@ -426,12 +426,12 @@ export async function withdrawCupAction(_prev: FormResult, formData: FormData): 
 
   const number = Number(formData.get('number'))
   const cup = await cupByNumber(number)
-  if (!cup) return { error: 'Cup not found.' }
+  if (!cup) return { error: 'Tournament not found.' }
 
   const res = await withdrawPublicRegistration(cup.id, Number(user.id), user.username)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/cups/${number}`)
-  revalidatePath('/cups')
+  revalidatePath(`/tournaments/${number}`)
+  revalidatePath("/tournaments")
   revalidatePath('/account')
   return { ok: true }
 }

@@ -19,9 +19,9 @@ export interface ActionResult {
   navigate?: 'bracket' | 'results'
 }
 
-/** Revalidate the cup page + every snapshot-derived surface after a cup edit. */
+/** Revalidate the tournament page + every snapshot-derived surface after a tournament edit. */
 function revalidateCup(number?: number | null) {
-  if (number != null) revalidatePath(`/cups/${number}`)
+  if (number != null) revalidatePath(`/tournaments/${number}`)
   for (const p of ['/cups', '/', '/rankings', '/hall-of-fame', '/players', '/records', '/seasons']) revalidatePath(p)
 }
 
@@ -46,7 +46,7 @@ export async function createCupAction(cfg: CreateCupConfig): Promise<ActionResul
   if (!res.ok) return { error: res.error }
   await syncLiveCupToSnapshot(res.id!) // make the new cup appear in the snapshot-backed list
   revalidateCup(res.number)
-  return { ok: true, number: res.number, message: `Created ${res.code} — Cup ${res.number}.` }
+  return { ok: true, number: res.number, message: `Created ${res.code} — Tournament ${res.number}.` }
 }
 
 // ---- Legacy conversion ----------------------------------------------------
@@ -62,7 +62,7 @@ export async function searchCupPlayersAction(tournamentId: number, query: string
 }
 
 /** Entrant management is only permitted while registration is open or closed (never once the
- *  bracket is generated, the tournament is in progress, or the cup is completed/cancelled). */
+ *  bracket is generated, the tournament is in progress, or the tournament is completed/cancelled). */
 const ENTRANT_STATES: CupState[] = ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED']
 
 export async function addCupEntrantsAction(tournamentId: number, playerIds: string[]): Promise<ActionResult> {
@@ -136,7 +136,7 @@ async function defaultSeedOrder(tournamentId: number): Promise<number[]> {
 /**
  * PRIMARY "Generate Brackets" action (Overview). Validates enough eligible entrants, AUTO-CLOSES
  * registration if it is still open (persisted), then builds + publishes the bracket from the
- * registered entrants' permanent ids and moves the cup to BRACKET_GENERATED. Navigates the admin to
+ * registered entrants' permanent ids and moves the tournament to BRACKET_GENERATED. Navigates the admin to
  * the Bracket tab. Does NOT silently overwrite an up-to-date existing bracket (regeneration of a
  * stale bracket after re-opening is allowed; a matching one is left intact).
  */
@@ -180,15 +180,15 @@ export async function generateCupBracketAction(tournamentId: number): Promise<Ac
   }
   await recordAudit(actor, { action: 'cup.bracket.generate', entity: 'Tournament', entityId: tournamentId, newValue: { entrants: order.length } })
   revalidateCup(await cupNumberOfSeason(tournamentId))
-  return { ok: true, message: 'Bracket generated. Review it, then Start Cup.', navigate: 'bracket' }
+  return { ok: true, message: 'Bracket generated. Review it, then Start Tournament.', navigate: 'bracket' }
 }
 
 /**
- * Re-open registration (a first-class toggle, NOT a recovery) before the cup is live. Allowed from
+ * Re-open registration (a first-class toggle, NOT a recovery) before the tournament is live. Allowed from
  * Registration Closed or Bracket Generated. Re-opening from Bracket Generated warns that the
- * existing bracket may become outdated — the bracket rows are kept, but the cup can only be started
- * again after a fresh, matching bracket is generated (enforced by Start Cup's staleness check).
- * Once the cup is live, registration is permanently locked and this is refused server-side.
+ * existing bracket may become outdated — the bracket rows are kept, but the tournament can only be started
+ * again after a fresh, matching bracket is generated (enforced by Start Tournament's staleness check).
+ * Once the tournament is live, registration is permanently locked and this is refused server-side.
  */
 export async function reopenCupRegistrationAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
@@ -201,7 +201,7 @@ export async function reopenCupRegistrationAction(tournamentId: number): Promise
   return {
     ok: true,
     message: hadBracket
-      ? 'Registration re-opened. The previous bracket is now outdated — regenerate it before starting the cup.'
+      ? 'Registration re-opened. The previous bracket is now outdated — regenerate it before starting the tournament.'
       : 'Registration re-opened.',
   }
 }
@@ -211,7 +211,7 @@ export async function reopenCupRegistrationAction(tournamentId: number): Promise
  * (initial generation) or BRACKET_GENERATED (regeneration during pre-start review). If a bracket is
  * already published, it is returned to draft first so it can be rebuilt. Byes for non-power-of-two
  * fields are created and auto-advanced by the bracket planner. Records a distinct
- * generated/regenerated audit event for the cup history.
+ * generated/regenerated audit event for the tournament history.
  */
 export async function buildCupBracketAction(tournamentId: number, orderedRegistrationIds: number[]): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
@@ -266,7 +266,7 @@ export async function beginCupTournamentAction(tournamentId: number): Promise<Ac
   if (published === 0) return { error: 'Publish the generated bracket before beginning the tournament.' }
   // Refuse to start on a stale bracket (entrants changed after it was generated).
   const fresh = await bracketMatchesEntrants(tournamentId)
-  if (!fresh.ok) return { error: `${fresh.reason} Regenerate the bracket before starting the cup.` }
+  if (!fresh.ok) return { error: `${fresh.reason} Regenerate the bracket before starting the tournament.` }
   const t = await transitionCupState(actor, tournamentId, 'IN_PROGRESS')
   if (!t.ok) return { error: t.error }
   revalidateCup(await cupNumberOfSeason(tournamentId))
@@ -284,7 +284,7 @@ export async function returnCupBracketToDraftAction(tournamentId: number): Promi
   return { ok: true, message: 'Bracket returned to draft for editing.' }
 }
 
-/** Delete the (unstarted) bracket. If the cup had advanced to BRACKET_GENERATED, this scraps the
+/** Delete the (unstarted) bracket. If the tournament had advanced to BRACKET_GENERATED, this scraps the
  *  bracket and returns it to REGISTRATION_CLOSED so entrants can be corrected. */
 export async function deleteCupBracketAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
@@ -429,7 +429,7 @@ export async function completeCupAction(tournamentId: number, reason?: string): 
 
 /**
  * A MATCH PARTICIPANT reports their OWN LOSS (never a win). Server-side: verifies the caller is
- * in the match, the cup is IN_PROGRESS, and the match is undecided; then records the opponent as
+ * in the match, the tournament is IN_PROGRESS, and the match is undecided; then records the opponent as
  * the winner (race-length) and advances the bracket. Duplicate/conflicting submissions are
  * rejected. Players can never report themselves as the winner (enforced structurally).
  */
@@ -465,7 +465,7 @@ export async function deleteCupAction(tournamentId: number, typedCode: string): 
   const { regenerateCupSnapshot } = await import('@/lib/tournaments/migrate') // rebuild the snapshot without the deleted cup
   await regenerateCupSnapshot()
   revalidateCup(number)
-  return { ok: true, message: `Deleted ${code} — Cup ${number}.` }
+  return { ok: true, message: `Deleted ${code} — Tournament ${number}.` }
 }
 
 export async function archiveCupAction(tournamentId: number, reason?: string): Promise<ActionResult> {

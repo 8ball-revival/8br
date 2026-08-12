@@ -12,9 +12,9 @@ import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
 
 export const metadata: Metadata = {
-  title: 'Cups',
+  title: 'Tournaments',
   description: 'Variety competitions — prize tournaments, doubles, and special formats, separate from league Seasons.',
-  alternates: { canonical: '/cups' },
+  alternates: { canonical: "/tournaments" },
 }
 
 export default async function CupsPage() {

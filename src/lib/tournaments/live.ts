@@ -136,11 +136,11 @@ export interface CupWorkspaceData {
   hasPublishedBracket: boolean
   hasResults: boolean
   /** BRACKET_GENERATED only: the generated bracket no longer matches the current entrant list
-   *  (entrants changed after re-opening) — it must be regenerated before the cup can start. */
+   *  (entrants changed after re-opening) — it must be regenerated before the tournament can start. */
   bracketStale: boolean
 }
 
-/** Load everything the Cup workspace + public live render need for a cup number. */
+/** Load everything the Cup workspace + public live render need for a tournament number. */
 export async function getCupWorkspace(number: number): Promise<CupWorkspaceData | null> {
   const tournament = await prisma.tournament.findFirst({ where: { number } })
   if (!tournament) return null
@@ -201,7 +201,7 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
   const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
-  // Staleness only matters while the bracket is generated but the cup hasn't started.
+  // Staleness only matters while the bracket is generated but the tournament hasn't started.
   const bracketStale = getCupState(tournament) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(tournament.id)).ok : false
 
   // The legacy old-format-cup conversion feature was removed in the WCC reset.

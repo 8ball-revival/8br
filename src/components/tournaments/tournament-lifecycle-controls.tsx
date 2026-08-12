@@ -21,7 +21,7 @@ const LABEL: Record<State, string> = {
   REGISTRATION_OPEN: 'Registration Open',
   REGISTRATION_CLOSED: 'Registration Closed',
   BRACKET_GENERATED: 'Bracket Ready',
-  IN_PROGRESS: 'Cup Live',
+  IN_PROGRESS: 'Tournament Live',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 }
@@ -29,8 +29,8 @@ const LABEL: Record<State, string> = {
 /**
  * Primary tournament-lifecycle actions (shown on the Overview). Only the VALID next actions for the
  * current state are offered; the server enforces the same transitions and audits them. Registration
- * is a toggle (Close ⇄ Re-Open) that is permanently locked once the cup is live. Generate Brackets
- * jumps to the Bracket tab; Start Cup (confirmed) jumps to the Results tab. Cancelling/deleting a
+ * is a toggle (Close ⇄ Re-Open) that is permanently locked once the tournament is live. Generate Brackets
+ * jumps to the Bracket tab; Start Tournament (confirmed) jumps to the Results tab. Cancelling/deleting a
  * cup is intentionally NOT here — it lives in the Settings tab. Owners get a recovery control.
  */
 export function CupLifecycleControls({
@@ -65,7 +65,7 @@ export function CupLifecycleControls({
   }
 
   const recover = (to: State) => {
-    const reason = window.prompt(`Recovery: force this cup to "${LABEL[to]}"? Enter a reason (Owner action, audited):`)
+    const reason = window.prompt(`Recovery: force this tournament to "${LABEL[to]}"? Enter a reason (Owner action, audited):`)
     if (reason == null) return
     if (!reason.trim()) { setMsg({ text: 'A reason is required.' }); return }
     setMsg(null)
@@ -110,7 +110,7 @@ export function CupLifecycleControls({
 
           {state === 'BRACKET_GENERATED' && (
             <>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenCupRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the cup can start.')}>
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenCupRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
                 <Unlock className="size-4" /> Re-Open Registration
               </Button>
               {bracketStale ? (
@@ -118,15 +118,15 @@ export function CupLifecycleControls({
                   <RefreshCw className="size-4" /> Regenerate Bracket
                 </Button>
               ) : (
-                <Button size="sm" disabled={pending} onClick={() => act(() => beginCupTournamentAction(tournamentId), 'Start Cup?\n\nThis will make the cup live, permanently lock registration, and enable match reporting.')}>
-                  <Play className="size-4" /> Start Cup
+                <Button size="sm" disabled={pending} onClick={() => act(() => beginCupTournamentAction(tournamentId), 'Start Tournament?\n\nThis will make the tournament live, permanently lock registration, and enable match reporting.')}>
+                  <Play className="size-4" /> Start Tournament
                 </Button>
               )}
             </>
           )}
 
           {state === 'IN_PROGRESS' && (
-            <Button size="sm" disabled={pending} onClick={() => act(() => setCupStateAction(tournamentId, 'COMPLETED'), 'Complete this cup? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
+            <Button size="sm" disabled={pending} onClick={() => act(() => setCupStateAction(tournamentId, 'COMPLETED'), 'Complete this tournament? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
               <CheckCircle2 className="size-4" /> Complete tournament
             </Button>
           )}
@@ -139,7 +139,7 @@ export function CupLifecycleControls({
 
       {state === 'BRACKET_GENERATED' && bracketStale && (
         <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-amber-500">
-          <AlertTriangle className="size-4" /> The entrant list changed after this bracket was generated — regenerate it before starting the cup.
+          <AlertTriangle className="size-4" /> The entrant list changed after this bracket was generated — regenerate it before starting the tournament.
         </p>
       )}
       {msg && <p role="status" className={`mt-2 text-sm ${msg.ok ? 'text-success' : 'text-destructive'}`}>{msg.text}</p>}
