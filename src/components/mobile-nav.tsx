@@ -8,7 +8,6 @@ import { Menu, X } from 'lucide-react'
 
 import { PRIMARY_NAV } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
-import { SearchBar } from '@/components/search-bar'
 import { cn } from '@/lib/utils'
 
 function isActive(pathname: string, href: string) {
@@ -48,9 +47,6 @@ export function MobileNav({ className, isSignedIn = false }: { className?: strin
       {open && (
         <div className="fixed inset-x-0 top-[calc(var(--header-offset,7rem))] bottom-0 z-50 overflow-y-auto border-t border-border bg-background/98 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4">
-            <div className="mb-2">
-              <SearchBar />
-            </div>
             {PRIMARY_NAV.map((item) => {
               const active = isActive(pathname, item.href)
               return (
@@ -61,7 +57,7 @@ export function MobileNav({ className, isSignedIn = false }: { className?: strin
                   className={cn(
                     'rounded-md px-3 py-3 text-base font-medium transition-colors',
                     active
-                      ? 'bg-gold/10 text-gold'
+                      ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >

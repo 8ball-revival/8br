@@ -69,7 +69,6 @@ export function CupWorkspace({
           {data.tournament.code} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
           {(data.tournament.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase()}
         </span>
-        {data.tournament.locked && <Badge variant="destructive">Locked</Badge>}
         {pending && <span className="ml-auto text-xs text-muted-foreground">Working…</span>}
       </div>
 
@@ -144,7 +143,7 @@ function Overview({ data }: { data: CupWorkspaceData }) {
   const bracketState = data.hasPublishedBracket ? 'Published' : data.hasBracket ? 'Draft' : 'Not built'
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <StatCard label="Status" value={data.tournament.status.toLowerCase()} hint={data.tournament.cupStatus ?? undefined} />
+      <StatCard label="Status" value={data.tournament.lifecycleState.replace(/_/g, ' ').toLowerCase()} />
       <StatCard label={data.isTeam ? 'Teams' : 'Entrants'} value={String(rosterCount)} />
       <StatCard label="Bracket" value={bracketState} hint={data.hasBracket ? `${data.matches.length} matches` : undefined} />
       <StatCard label="Results" value={`${played}/${playable}`} hint="matches decided" />
@@ -512,25 +511,6 @@ function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData
               <Button variant="ghost" onClick={() => run(() => A.archiveCupAction(data.tournament.id))}>Archive</Button>
             )}
           </div>
-        </section>
-      )}
-
-      {data.isHistorical && (
-        <section className="rounded-lg border border-destructive/30 bg-destructive/[0.05] p-4">
-          <p className="text-sm font-semibold text-foreground">Historical competition — locked</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Imported historical cups are read-only to protect the record. {isOwner ? 'As Owner you may unlock it for correction.' : 'Only the Owner can unlock it.'}
-          </p>
-          {isOwner && data.tournament.locked && (
-            <div className="mt-3 space-y-2">
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={`Type ${data.tournament.code} to confirm`} className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              <Button variant="destructive" onClick={() => run(() => A.unlockHistoricalCupAction(data.tournament.id, code, reason))} disabled={!code.trim() || !reason.trim()}>Unlock historical cup</Button>
-            </div>
-          )}
-          {isOwner && !data.tournament.locked && data.tournament.importedFromFixture && (
-            <Button className="mt-3" variant="secondary" onClick={() => run(() => A.relockHistoricalCupAction(data.tournament.id))}>Re-lock competition</Button>
-          )}
         </section>
       )}
 

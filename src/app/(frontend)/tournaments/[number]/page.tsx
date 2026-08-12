@@ -7,9 +7,7 @@ import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
-import { TeamTies } from '@/components/tournaments/team-ties'
 import { CupWorkspace } from '@/components/tournaments/tournament-workspace'
-import { ConvertLegacyBanner } from '@/components/tournaments/convert-legacy-banner'
 import { getCup, cupBracket } from '@/lib/tournaments/service'
 import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
 import { getCupWorkspace, type CupWorkspaceData } from '@/lib/tournaments/live'
@@ -406,17 +404,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
         </section>
       )}
 
-      {cup.teamTies && cup.teamTies.length > 0 && (
-        <section className="mt-10">
-          <h2 className="eyebrow mb-4 text-foreground">Match Results</h2>
-          <TeamTies ties={cup.teamTies} />
-        </section>
-      )}
-
-      {canManage && ws && ws.isLegacyConvertible && (
-        <ConvertLegacyBanner tournamentId={ws.tournament.id} />
-      )}
-      {canManage && ws && !ws.isLegacyConvertible && (
+      {canManage && ws && (
         <CupWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getCupHistory(ws.tournament.id, { admin: true })} />
       )}
     </Container>

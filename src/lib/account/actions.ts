@@ -21,7 +21,6 @@ import { getCurrentUser } from './auth'
 import { getActiveSeason } from '@/lib/competition/queries'
 import { createPublicRegistration, withdrawPublicRegistration } from '@/lib/competition/service'
 import { getProfileByUserId, changeCueverseId, createOrLinkAccountProfile } from '@/lib/players/service'
-import { claimAccount, getClaimTarget } from '@/lib/accounts/provisioning'
 
 export interface FormResult {
   ok?: boolean
@@ -69,14 +68,9 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
 
   const p = await payload()
 
-  // Reject a duplicate CueVerse ID regardless of capitalization (username is the lowered form),
-  // and direct pre-created/unclaimed accounts to the claim flow.
+  // Reject a duplicate CueVerse ID regardless of capitalization (username is the lowered form).
   const existing = await p.find({ collection: 'users', where: { username: { equals: username } }, limit: 1, overrideAccess: true })
   if (existing.totalDocs > 0) {
-    const { prisma } = await import('@/lib/prisma')
-    const claim = await prisma.accountClaim.findUnique({ where: { userId: Number(existing.docs[0].id) } })
-    if (claim && claim.status === 'UNCLAIMED')
-      return { error: 'An account for that CueVerse ID already exists and is waiting to be claimed. Use “Claim your account” instead.' }
     return { error: 'That CueVerse ID or email is already in use.' }
   }
 
@@ -104,34 +98,6 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
   } catch {
     redirect('/login')
   }
-  redirect('/account')
-}
-
-/** Public: which Player profile a login id would claim (for the confirmation step). */
-export async function lookupClaimTargetAction(loginId: string): Promise<{ ok: boolean; playerName?: string; error?: string }> {
-  if (!loginId.trim()) return { ok: false }
-  return getClaimTarget(loginId)
-}
-
-/** Claim a pre-created account: login id + one-time code → set password + recovery email,
- *  then sign in. The code is single-use (invalidated on success). */
-export async function claimAccountAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
-  const loginId = String(formData.get('loginId') ?? '').trim()
-  const code = String(formData.get('code') ?? '').trim()
-  const password = String(formData.get('password') ?? '')
-  const confirm = String(formData.get('confirmPassword') ?? '')
-  const email = String(formData.get('email') ?? '').trim()
-
-  if (!loginId || !code) return { error: 'Enter your login id and claim code.' }
-  const pwErr = validatePassword(password)
-  if (pwErr) return { error: pwErr }
-  if (password !== confirm) return { error: 'Passwords do not match.' }
-  const emErr = validateEmail(email)
-  if (emErr) return { error: emErr }
-
-  const res = await claimAccount(loginId, code, password, email)
-  if (!res.ok) return { error: res.error }
-  if (res.token) await setSessionCookie(res.token, res.exp)
   redirect('/account')
 }
 
@@ -357,7 +323,7 @@ export async function withdrawSeason2(_prev: FormResult, _formData: FormData): P
 async function cupByNumber(number: number) {
   if (!Number.isFinite(number)) return null
   const { prisma } = await import('@/lib/prisma')
-  return prisma.tournament.findFirst({ where: { competitionType: 'CUP', number } })
+  return prisma.tournament.findFirst({ where: { number } })
 }
 
 /** Enter the current user into a specific live Cup (the same public-registration path as

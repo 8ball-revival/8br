@@ -263,7 +263,7 @@ export async function listPenalties(filter: PenaltyFilter = 'ALL'): Promise<Pena
 export async function getActiveRegistrations(userId: number): Promise<{ tournament: string; status: string }[]> {
   const linked = await linkedPlayerFilter(userId)
   const regs = await prisma.registration.findMany({
-    where: { OR: [{ userId }, ...linked], status: { in: ['PENDING', 'APPROVED'] }, tournament: { NOT: { OR: [{ status: 'COMPLETED' }, { cupStatus: 'completed' }] } } },
+    where: { OR: [{ userId }, ...linked], status: { in: ['PENDING', 'APPROVED'] }, tournament: { status: { not: 'COMPLETED' } } },
     include: { tournament: { select: { name: true } } },
   })
   return regs.map((r) => ({ tournament: r.tournament.name, status: r.status }))
