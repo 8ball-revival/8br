@@ -20,10 +20,10 @@ import { recordAudit, type Actor } from './audit'
  * profile-backed entry is not left active.
  */
 
-/** Ids of competitions that are COMPLETED (tournament done or cup marked completed). */
+/** Ids of tournaments that are COMPLETED. */
 async function completedCompetitionIds(client: Prisma.TransactionClient): Promise<Set<number>> {
   const done = await client.tournament.findMany({
-    where: { OR: [{ status: 'COMPLETED' }, { cupStatus: 'completed' }] },
+    where: { status: 'COMPLETED' },
     select: { id: true },
   })
   return new Set(done.map((s) => s.id))

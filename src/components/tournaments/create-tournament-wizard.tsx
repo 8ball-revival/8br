@@ -6,8 +6,8 @@ import { Plus, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { createCupAction } from '@/lib/competition/cup-actions'
-import type { CreateCupConfig } from '@/lib/competition/cup-create'
+import { createCupAction } from '@/lib/competition/tournament-actions'
+import type { CreateCupConfig } from '@/lib/competition/tournament-create'
 
 const FIELD = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm'
 const LABEL = 'eyebrow text-muted-foreground'

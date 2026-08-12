@@ -83,41 +83,31 @@ export async function unarchiveCompetition(actor: Actor, tournamentId: number, r
 }
 
 // ---------------------------------------------------------------------------
-// Historical Cup locking (imported cups are ARCHIVED + locked; edits require an
-// Owner to explicitly unlock, with typed-code confirmation + reason + audit).
+// Competition locking — retained as no-ops. The imported/locked historical-cup
+// feature was removed in the WCC reset; every tournament is live and editable per
+// its lifecycle state, so there is nothing to lock/unlock. These stubs keep the
+// call sites (teams, actions) stable.
 // ---------------------------------------------------------------------------
 
-/** Throws if the competition is a locked historical competition. Every cup-mutating
- *  service path calls this so historical results can never be changed accidentally. */
-export async function assertCompetitionUnlocked(client: Prisma.TransactionClient | typeof prisma, tournamentId: number): Promise<void> {
-  const s = await client.tournament.findUnique({ where: { id: tournamentId }, select: { locked: true, code: true } })
-  if (s?.locked) throw new Error(`This is a locked historical competition (${s.code ?? tournamentId}). An Owner must unlock it before editing.`)
+/** No-op: locked historical competitions no longer exist. */
+export async function assertCompetitionUnlocked(
+  _client: Prisma.TransactionClient | typeof prisma,
+  _tournamentId: number,
+): Promise<void> {
+  return
 }
 
-export async function isCompetitionLocked(tournamentId: number): Promise<boolean> {
-  return (await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { locked: true } }))?.locked ?? false
+export async function isCompetitionLocked(_tournamentId: number): Promise<boolean> {
+  return false
 }
 
-/** OWNER-ONLY: unlock a locked historical competition for correction. Requires the
- *  typed competition code + a reason; records who/when in the audit log. */
-export async function unlockHistoricalCompetition(actor: Actor, tournamentId: number, typedCode: string, reason: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!s) return { ok: false, error: 'Competition not found.' }
-  if (!s.locked) return { ok: true }
-  if (!reason.trim()) return { ok: false, error: 'A reason is required to unlock a historical competition.' }
-  if (typedCode.trim() !== (s.code ?? '')) return { ok: false, error: `Confirmation code does not match. Type ${s.code} to confirm.` }
-  await prisma.tournament.update({ where: { id: tournamentId }, data: { locked: false, unlockedAt: new Date() } })
-  await recordAudit(actor, { action: 'competition.unlock', entity: 'Tournament', entityId: tournamentId, oldValue: { locked: true }, newValue: { locked: false, unlockedBy: actor.username, code: s.code }, reason })
+/** No-op (feature removed). */
+export async function unlockHistoricalCompetition(_actor: Actor, _tournamentId: number, _typedCode: string, _reason: string): Promise<{ ok: boolean; error?: string }> {
   return { ok: true }
 }
 
-/** OWNER-ONLY: re-lock a competition after corrections. */
-export async function relockCompetition(actor: Actor, tournamentId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!s) return { ok: false, error: 'Competition not found.' }
-  if (s.locked) return { ok: true }
-  await prisma.tournament.update({ where: { id: tournamentId }, data: { locked: true } })
-  await recordAudit(actor, { action: 'competition.relock', entity: 'Tournament', entityId: tournamentId, oldValue: { locked: false }, newValue: { locked: true }, reason })
+/** No-op (feature removed). */
+export async function relockCompetition(_actor: Actor, _tournamentId: number, _reason?: string): Promise<{ ok: boolean; error?: string }> {
   return { ok: true }
 }
 
@@ -1300,9 +1290,8 @@ export async function recordPlayoffScore(
 export async function reportOwnLoss(userId: number, username: string, matchId: number, myGamesWon: number): Promise<{ ok: boolean; error?: string }> {
   const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { tournament: true } })
   if (!match) return { ok: false, error: 'Match not found.' }
-  if (match.tournament.competitionType !== 'CUP') return { ok: false, error: 'This is not a cup match.' }
   const { getCupState } = await import('./tournament-lifecycle')
-  if (getCupState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This cup is not currently in progress.' }
+  if (getCupState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This tournament is not currently in progress.' }
   if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
   if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }
 

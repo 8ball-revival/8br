@@ -11,8 +11,8 @@ import { Bracket } from '@/components/tournaments/bracket'
 import { CupLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
 import { CupHistory } from '@/components/tournaments/tournament-history'
 import type { CupWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
-import type { CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
-import * as A from '@/lib/competition/cup-actions'
+import type { CupHistoryEvent } from '@/lib/competition/tournament-lifecycle'
+import * as A from '@/lib/competition/tournament-actions'
 
 type Tab = 'overview' | 'roster' | 'bracket' | 'results' | 'history' | 'settings'
 type ActionResp = { ok?: boolean; error?: string; message?: string } | void

@@ -1,4 +1,4 @@
-import type { CupHistoryEvent } from '@/lib/competition/cup-lifecycle'
+import type { CupHistoryEvent } from '@/lib/competition/tournament-lifecycle'
 
 const DOT: Record<string, string> = {
   created: 'bg-muted-foreground',

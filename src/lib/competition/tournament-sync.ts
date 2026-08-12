@@ -15,14 +15,13 @@ import { roundColumnName } from '@/lib/tournaments/live'
  */
 export async function syncLiveCupToSnapshot(tournamentId: number): Promise<void> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!tournament || tournament.competitionType !== 'CUP') return
-  if (tournament.importedFromFixture) return // never rewrite an imported historical cup
+  if (!tournament) return
 
-  // Materialise the bracket into the snapshot when the cup is completed OR has a published
-  // bracket (a live/converted cup whose completed rounds already feed rankings). Draft
-  // (unpublished) cups are intentionally kept out of the snapshot until published.
+  // Materialise the bracket into the snapshot when the tournament is completed OR has a
+  // published bracket (whose completed rounds already feed rankings). Draft (unpublished)
+  // tournaments are intentionally kept out of the snapshot until published.
   const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
-  if (tournament.cupStatus === 'completed' || publishedCount > 0) {
+  if (tournament.lifecycleState === 'COMPLETED' || publishedCount > 0) {
     await materialiseBracket(tournamentId)
   }
   await regenerateCupSnapshot()
@@ -42,11 +41,11 @@ async function materialiseBracket(tournamentId: number): Promise<void> {
   const handleByReg = new Map(regs.map((r) => [r.id, r.cueverseId]))
 
   await prisma.$transaction(async (tx) => {
-    await tx.tournamentBracketMatch.deleteMany({ where: { competitionId: tournamentId, bracketKind: 'MAIN' } })
+    await tx.tournamentBracketMatch.deleteMany({ where: { tournamentId, bracketKind: 'MAIN' } })
     for (const r of rows) {
       await tx.tournamentBracketMatch.create({
         data: {
-          competitionId: tournamentId,
+          tournamentId,
           bracketKind: 'MAIN',
           roundName: roundColumnName(r.round, totalRounds),
           roundOrder: r.round,

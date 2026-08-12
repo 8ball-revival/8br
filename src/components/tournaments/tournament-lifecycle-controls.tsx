@@ -12,7 +12,7 @@ import {
   beginCupTournamentAction,
   generateCupBracketAction,
   reopenCupRegistrationAction,
-} from '@/lib/competition/cup-actions'
+} from '@/lib/competition/tournament-actions'
 
 type State = 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 

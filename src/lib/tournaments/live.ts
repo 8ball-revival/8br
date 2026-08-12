@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { BracketRound, BracketMatch, BracketSlot } from './fixtures'
 import { resolveEntrants } from '@/lib/competition/entrants'
 import { getTeamsForSeason, getTeamMembersByRegistration, type TeamView } from '@/lib/competition/teams'
-import { getCupState, bracketMatchesEntrants } from '@/lib/competition/cup-lifecycle'
+import { getCupState, bracketMatchesEntrants } from '@/lib/competition/tournament-lifecycle'
 
 /** Column name for a bracket round: last round = Final, then Semifinals, etc. */
 export function roundColumnName(round: number, totalRounds: number): string {

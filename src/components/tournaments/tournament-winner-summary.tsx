@@ -1,6 +1,6 @@
 import { Trophy } from 'lucide-react'
 
-import { PlayerAvatar } from '@/components/home/primitives'
+import { PlayerAvatar } from '@/components/primitives'
 import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
 
 export interface PodiumIdentity {

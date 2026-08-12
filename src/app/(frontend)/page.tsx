@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { Wide } from '@/components/home/primitives'
+import { Wide } from '@/components/primitives'
 import { Hero, HeroBackdrop } from '@/components/home/hero'
 import { CompetitionsPanel, type CompetitionItem } from '@/components/home/competitions-panel'
 import { Top10Panel } from '@/components/home/top10-panel'

@@ -15,6 +15,11 @@ export interface CreateCupConfig {
   camRequirement?: CamRequirement
   fieldSize?: number | null // informational target field/bracket size
   initialState?: 'DRAFT' | 'UPCOMING'
+  // Group Stage + Playoffs config (only used when tournamentFormat = GROUPS_PLAYOFFS).
+  groupCount?: number | null // number of round-robin groups
+  qualifiersPerGroup?: number | null // how many advance from each group
+  playoffSeeding?: string | null // "standing" | "random" | "manual"
+  playoffDoubleElim?: boolean // playoff bracket is double-elimination
 }
 
 function camLine(cam: CamRequirement | undefined): string {
@@ -58,11 +63,11 @@ export async function createCup(
 
   try {
     const created = await prisma.$transaction(async (tx) => {
-      // Atomic next-number/code assignment: read the current max cup number under the tx.
-      const agg = await tx.tournament.aggregate({ where: { competitionType: 'CUP' }, _max: { number: true } })
-      const nextNumber = (agg._max.number ?? 0) + 1
-      const code = `C${String(nextNumber).padStart(3, '0')}`
-      const slug = `cup-${nextNumber}`
+      // Atomic next-number/code assignment: read the current max tournament number under the tx.
+      const agg = await tx.tournament.aggregate({ _max: { number: true } })
+      const nextNumber = (agg._max?.number ?? 0) + 1
+      const code = `T${String(nextNumber).padStart(3, '0')}`
+      const slug = `tournament-${nextNumber}`
 
       // Guard against a slug/code/number that somehow already exists (unique columns will
       // also throw, but this yields a clean error).
@@ -72,11 +77,11 @@ export async function createCup(
       })
       if (clash) throw new Error('CUP_NUMBER_TAKEN')
 
+      const isGroups = cfg.tournamentFormat === 'GROUPS_PLAYOFFS'
       const tournament = await tx.tournament.create({
         data: {
           slug,
           name,
-          competitionType: 'CUP',
           code: code,
           number: nextNumber,
           gameType: cfg.gameType,
@@ -84,35 +89,38 @@ export async function createCup(
           teamSize: cfg.participantFormat === 'TEAM' ? cfg.teamSize ?? null : null,
           tournamentFormat: cfg.tournamentFormat,
           raceLength: cfg.raceLength,
-          cupFormatBadge: formatBadge(cfg),
-          cupStatus: 'live', // editable/live cup (distinguished from imported historical)
-          // Stamp the year + start date NOW so the cup falls inside the rolling ranking
-          // window and its champion title is credited once results are recorded/completed.
-          cupYear: new Date().getFullYear(),
-          cupDate: new Date().toISOString().slice(0, 10),
           status: 'UPCOMING',
-          // Lifecycle: a new cup starts in DRAFT — nothing publicly joinable. An Admin opens
-          // registration explicitly (see cup-lifecycle). registrationStatus stays in sync.
+          // Lifecycle: a new tournament starts in DRAFT — nothing publicly joinable. An Admin
+          // opens registration explicitly (see tournament-lifecycle); registrationStatus stays in sync.
           lifecycleState: 'DRAFT',
           registrationStatus: 'NOT_OPEN',
           playoffsStatus: 'PENDING',
-          importedFromFixture: false,
-          locked: false,
-          formatSummary:
-            cfg.tournamentFormat === 'SINGLE_ELIM'
+          // Group Stage + Playoffs config (ignored by bracket-only tournaments).
+          ...(isGroups
+            ? {
+                groupCount: cfg.groupCount ?? null,
+                qualifiersPerGroup: cfg.qualifiersPerGroup ?? 2,
+                playoffSeeding: cfg.playoffSeeding ?? 'standing',
+                playoffDoubleElim: cfg.playoffDoubleElim ?? false,
+              }
+            : {}),
+          formatSummary: isGroups
+            ? 'Round-robin group stage into a playoff bracket'
+            : cfg.tournamentFormat === 'SINGLE_ELIM'
               ? 'Single-elimination bracket'
-              : cfg.tournamentFormat.replace('_', ' ').toLowerCase(),
+              : cfg.tournamentFormat === 'DOUBLE_ELIM'
+                ? 'Double-elimination bracket'
+                : cfg.tournamentFormat.replace(/_/g, ' ').toLowerCase(),
           eligibilitySummary: [
             'Open to all registered accounts — sign up yourself, or be added by an admin.',
             camLine(cfg.camRequirement),
           ].join(' '),
-          ...(cfg.fieldSize ? { entrantsCount: null } : {}),
         },
       })
       await recordAudit(
         actor,
         {
-          action: 'cup.create',
+          action: 'tournament.create',
           entity: 'Tournament',
           entityId: tournament.id,
           newValue: { number: nextNumber, code, name, participantFormat: cfg.participantFormat, tournamentFormat: cfg.tournamentFormat },

@@ -6,7 +6,6 @@ import { requireCapability, requireStaffActor } from './staff-auth'
 import * as svc from './service'
 import * as teamSvc from './teams'
 import { createCup, type CreateCupConfig } from './tournament-create'
-import { convertLegacyCup } from './cup-convert'
 import { syncLiveCupToSnapshot } from './tournament-sync'
 import { transitionCupState, requireCupState, bracketMatchesEntrants, type CupState } from './tournament-lifecycle'
 import { recordAudit } from './audit'
@@ -52,16 +51,7 @@ export async function createCupAction(cfg: CreateCupConfig): Promise<ActionResul
 
 // ---- Legacy conversion ----------------------------------------------------
 
-/** One-time migration of a legacy (old-format) cup into the editable workspace. */
-export async function convertLegacyCupAction(tournamentId: number): Promise<ActionResult> {
-  const actor = await requireCapability('manage_competitions')
-  const r = await convertLegacyCup(actor, tournamentId)
-  if (!r.ok) return { error: r.error }
-  revalidateCup(await cupNumberOfSeason(tournamentId))
-  return { ok: true, message: 'Converted to an editable competition — history preserved.' }
-}
-
-// ---- Entrants (individual cups) -------------------------------------------
+// ---- Entrants (individual tournaments) ------------------------------------
 
 export interface EntrantCandidate { playerId: string; primaryName: string; cueverseId: string | null }
 
@@ -464,8 +454,7 @@ export async function reportCupLossAction(matchId: number, myGamesWon: number): 
 export async function deleteCupAction(tournamentId: number, typedCode: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const s = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!s || s.competitionType !== 'CUP') return { error: 'Cup not found.' }
-  if (s.importedFromFixture || s.locked) return { error: 'Imported historical cups cannot be deleted.' }
+  if (!s) return { error: 'Tournament not found.' }
   if (typedCode.trim() !== (s.code ?? '')) return { error: `Confirmation code does not match. Type ${s.code} to confirm deletion.` }
 
   const code = s.code

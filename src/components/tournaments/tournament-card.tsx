@@ -3,7 +3,7 @@ import { Trophy } from 'lucide-react'
 
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { PlayerAvatar } from '@/components/home/primitives'
+import { PlayerAvatar } from '@/components/primitives'
 import { cn } from '@/lib/utils'
 import type { Cup } from '@/lib/tournaments/service'
 

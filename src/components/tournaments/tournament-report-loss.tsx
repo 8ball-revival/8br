@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Flag } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { reportCupLossAction } from '@/lib/competition/cup-actions'
+import { reportCupLossAction } from '@/lib/competition/tournament-actions'
 
 /**
  * Player self-report control for the viewer's OWN active cup match. A player may ONLY report

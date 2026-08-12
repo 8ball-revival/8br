@@ -3,15 +3,13 @@ import type { Tournament } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { resolveEntrants, ENTRANT_SELECT } from './entrants'
 
-/** The tournament the public site and admin default to (most recent, non-completed).
- *  Scoped to competitionType SEASON so migrated Cups (also comp_season rows) are
- *  never mistaken for the active tournament. */
+/** The tournament the admin dashboard defaults to (most recent, non-completed). */
 export async function getActiveSeason(): Promise<Tournament | null> {
   const live = await prisma.tournament.findFirst({
-    where: { competitionType: 'SEASON', status: { not: 'COMPLETED' } },
+    where: { status: { not: 'COMPLETED' } },
     orderBy: { createdAt: 'desc' },
   })
-  return live ?? prisma.tournament.findFirst({ where: { competitionType: 'SEASON' }, orderBy: { createdAt: 'desc' } })
+  return live ?? prisma.tournament.findFirst({ orderBy: { createdAt: 'desc' } })
 }
 
 export async function getSeasonBySlug(slug: string): Promise<Tournament | null> {
