@@ -1,6 +1,6 @@
-# EGO — Workflow Validation
+# WCC — Workflow Validation
 
-A practical review proving the implemented schema supports the **actual ways EGO
+A practical review proving the implemented schema supports the **actual ways WCC
 competitions operate** — not merely that the models compile. Each of the ten
 operational workflows below is traced against the schema in
 [`prisma/schema.prisma`](./prisma/schema.prisma): the models/relationships
@@ -26,7 +26,7 @@ touched. Genuine gaps found during the review were fixed with a single migration
 
 | # | Workflow | Verdict |
 |---|---|---|
-| 1 | Standard EGO Season | ✅ Supported (traceability enhanced) |
+| 1 | Standard WCC Season | ✅ Supported (traceability enhanced) |
 | 2 | Cup — direct single-elim, varied race lengths | ✅ Supported, no change |
 | 3 | Double-elimination tournament (+ reset) | ✅ Supported, no change |
 | 4 | Invitational — admin-selected, no public registration | ✅ Supported after changes |
@@ -63,7 +63,7 @@ violate them (distinctness/non-negativity are still enforced when values are pre
 
 ---
 
-## Workflow 1 — Standard EGO Season
+## Workflow 1 — Standard WCC Season
 
 **Models & relationships.** `Competition(type=SEASON)` → `Division`* → `Stage`(GROUP,
 seq 1) → `Group`* → `Match`(groupId) → `MatchResult` → `StandingRow`; then
@@ -308,7 +308,7 @@ execution; treating handles as alias candidates.
 `MatchResult.verifiedByUserId/verifiedAt`, `RecordConfidence`.
 
 **Handling.**
-- **Imported vs. native:** `provenance = IMPORTED_8BRCAM | NATIVE_EGO`.
+- **Imported vs. native:** `provenance = IMPORTED_WCC | NATIVE_EGO`.
 - **Exact file:row:** `SourceReference(kind=FILE_ROW, locator="players.csv:412")`.
 - **Manual admin entry:** `SourceReference(kind=MANUAL_REVIEW)` and/or `enteredByUserId`.
 - **Correction history:** `HistoricalCorrection` (before/after/status).

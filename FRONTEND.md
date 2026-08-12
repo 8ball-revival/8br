@@ -1,10 +1,10 @@
-# EGO — Frontend Shell
+# WCC — Frontend Shell
 
 Production-quality public frontend shell: the visual identity every future page
 inherits. **Premium esports aesthetic** — dark-first, gold accent, minimal,
 typographic, fast, no heavy animation.
 
-> **Season 2 launch:** the public site is now the home of **EGO Season 2** —
+> **Season 2 launch:** the public site is now the home of **WCC Season 2** —
 > registration, an upcoming group stage, a future playoff bracket, the completed
 > Season 1 archive, plus public accounts and competition registration. See
 > **`SEASON2_LAUNCH.md`** for nav, routes, accounts, the Season 2 state model, and
@@ -69,7 +69,7 @@ src/
 │  ├─ search-bar.tsx        # global search field [client]
 │  ├─ theme-toggle.tsx      # dark/light toggle [client]
 │  ├─ preview-notice.tsx    # site-wide "sample data" banner
-│  ├─ brand.tsx             # EGO logo/wordmark
+│  ├─ brand.tsx             # WCC logo/wordmark
 │  ├─ hero-banner.tsx       # reusable hero frame
 │  ├─ section-header.tsx    # section eyebrow/title/action/sample marker
 │  ├─ page-header.tsx       # inner-page header band (breadcrumbs + title)
@@ -153,7 +153,7 @@ generic `ConfidenceBadge` (`components/confidence-badge.tsx`).
 
 ### Preview-data strategy
 
-Unlike earlier phases, player pages use **real 8BRCAM archive data as preview
+Unlike earlier phases, player pages use **real WCC archive data as preview
 content** (to make the site feel authentic pre-import) — never fabricated. A curated
 snapshot of ~10 players was extracted (read-only) from
 `Documents\Cueverse Prime\archive_viewer` into
@@ -163,7 +163,7 @@ snapshot of ~10 players was extracted (read-only) from
 Championship, PlayerSeasonStat, PlayerCareerStat, HeadToHead, HallOfFameEntry).
 **Nothing is invented:** where the archive lacks data (e.g. time-series rankings,
 full per-match logs), the UI shows honest pending states. Archive seasons are
-labelled historical and are **not** presented as EGO seasons. This is preview
+labelled historical and are **not** presented as WCC seasons. This is preview
 content only — **not** a Prisma connection or the import pipeline.
 
 `SeasonCard` → `/seasons/[slug]`, `PlayerCard` → `/players/[slug]`, and
@@ -182,14 +182,14 @@ content only — **not** a Prisma connection or the import pipeline.
   imported", "Champion pending verification", "Official playoff bracket pending
   source verification", "Source review pending"); `'sample'` shows neutral
   synthetic placeholders only (Player A–H, Qualifier 1–4, Seed pending) to exercise
-  the components. **EGO Season 1 (`ego-season-1`) uses `'pending'`** — no invented
+  the components. **WCC Season 1 (`ego-season-1`) uses `'pending'`** — no invented
   players, scores, seeds, dates, or champion.
 - **Historical note:** the `HistoricalNote` component (muted gold-bordered, non-
   sensationalized) renders the temporary seeding-review wording in the Overview
-  section for EGO Season 1 (text in `EGO_S1_HISTORICAL_NOTE`).
+  section for WCC Season 1 (text in `EGO_S1_HISTORICAL_NOTE`).
 - **Bracket:** `PlayoffBracketShell` is a responsive shell (horizontally scrollable
   round columns; supports TBD/bye/walkover/forfeit/pending + missing scores) — not
-  a bracket engine. EGO Season 1 shows the pending state.
+  a bracket engine. WCC Season 1 shows the pending state.
 
 ### Mock-data shape (season detail)
 
@@ -233,13 +233,13 @@ verification", "Participant list incomplete", "results partially reconstructed",
 playoff match results were not recorded in the archive (only seedings survive). The
 Schedule section discloses how many of the recorded group matches are shown
 ("Showing X of Y…"). Archive competitions carry an **"Archive preview · pending
-verification"** + **"Historical archive"** badge and are never labelled EGO seasons.
+verification"** + **"Historical archive"** badge and are never labelled WCC seasons.
 
 ### Competition preview-data shape
 
 `getCompetitionPreview(slug): CompetitionPreview | undefined`, `getCompetitionPreviewSlugs()`,
 and `getArchiveCompetitionIndex(): Competition[]` load
-`src/lib/preview-data/archive-competitions.json` (curated read-only 8BRCAM snapshot).
+`src/lib/preview-data/archive-competitions.json` (curated read-only WCC snapshot).
 `CompetitionPreview { slug, competitionId, seasonId, division, name, legacyName,
 type, chronology: 'archive'|'ego', status, year|null, dateLabel|null, datesPending,
 organizer, formatSummary|null, participantsCount|null, confidence: ConfidenceLevel,
@@ -253,25 +253,25 @@ historicalNotes: string[] }`.
 The homepage keeps its layout but now uses **real local archive preview data** with
 honest states — no fabricated events, results, rankings, or stats:
 
-- **Archive stats strip** — real 8BRCAM totals from `getArchiveStats()`
-  (players/aliases/matches/seasons), labelled "From the 8BRCAM archive · preview".
+- **Archive stats strip** — real WCC totals from `getArchiveStats()`
+  (players/aliases/matches/seasons), labelled "From the WCC archive · preview".
 - **Featured Season** — `getSeasonDetail('ego-season-1')` in its honest pending state
   (participants/champion/records pending); links to `/seasons/ego-season-1`.
 - **Historical Title Leaders** — `TitleLeaders` (real archive championship counts);
-  clearly not a current ranking ("official EGO rankings pending"); links to
+  clearly not a current ranking ("official WCC rankings pending"); links to
   `/players/[slug]`.
 - **Recent Results** — honest empty ("Recent results pending match-data import").
 - **Upcoming Competitions** — honest empty ("No active competition announced").
 - **Historical Spotlight** — one real archive competition (`2005-season-2`) with a
   confidence badge; links to `/competitions/[slug]`. Labelled "Historical archive",
-  never an EGO season.
+  never an WCC season.
 - **Player Spotlight** — the top real archive player; links to `/players/[slug]`.
 - **Latest News** — preview news; links resolve to `/news/[slug]`.
 - **CTA** — honest ("Explore the archive" → `/players` / `/competitions`); the old
   fabricated "Season 5 registration" was removed.
 
 Every homepage link resolves (verified). `/rankings` was likewise switched from the
-synthetic ranking table (dead player links) to `TitleLeaders` + an "EGO rankings
+synthetic ranking table (dead player links) to `TitleLeaders` + an "WCC rankings
 pending" note.
 
 ## Search (`/search`)
@@ -282,13 +282,13 @@ pending" note.
   (same component in header + mobile drawer) and is accessible (labelled `role="search"`).
 - **Indexing strategy:** `searchAll(q)` in `src/lib/search.ts` runs a straightforward
   **normalized, case-insensitive substring** match over the current preview datasets —
-  players (+aliases), archive competitions, EGO season previews, and news. No fuzzy-
+  players (+aliases), archive competitions, WCC season previews, and news. No fuzzy-
   search library (unnecessary at this scale).
 - **Alias matching:** `searchPlayers` matches primary names AND aliases; an alias hit
   **returns the canonical player** and reports the matched alias ("matched alias: …").
 - **Results:** grouped by type (Players · Competitions · Seasons · News); each row shows
   title, subtitle, a type badge, matched alias (when applicable), an archive-preview /
-  pending / EGO status badge, and a link to the correct detail page.
+  pending / WCC status badge, and a link to the correct detail page.
 - **States:** empty query → "Enter a player, alias, season, or competition"; no results
   → "No matching records found"; single/multiple/grouped results; alias and partial
   matches all supported. Result links verified to resolve.
@@ -296,10 +296,10 @@ pending" note.
 ## Honest empty-state / labeling rules
 
 - Missing data shows honest text, never fabricated content: "pending match-data import",
-  "No active competition announced", "Champion pending verification", "official EGO
+  "No active competition announced", "Champion pending verification", "official WCC
   rankings pending", "Archive preview · pending verification".
-- Historical archive competitions are **never** labelled EGO seasons; the historical
-  title leaderboard is **never** labelled a current EGO ranking.
+- Historical archive competitions are **never** labelled WCC seasons; the historical
+  title leaderboard is **never** labelled a current WCC ranking.
 
 ## Pages built
 
@@ -331,7 +331,7 @@ Refresh after each change — the pages hot-reload.
   `/news/[slug]` is a minimal preview detail (excerpt + "full article pending").
 - Competition detail before DB: real playoff bracket rendering (results/progression)
   when verified match data exists; full group match logs (currently capped, with an
-  honest "showing X of Y" note); expand the curated set / add real EGO competitions.
+  honest "showing X of Y" note); expand the curated set / add real WCC competitions.
 - Player detail before DB: full per-match history logs and time-series ranking
   history (both currently honest pending states), and alias-usage-by-competition.
 - Search before DB: broaden the index beyond the ~10 curated preview players /

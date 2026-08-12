@@ -1,13 +1,13 @@
-# EGO — Policy Framework
+# WCC — Policy Framework
 
-The approved initial competition and historical-record policies for EGO, and how each
+The approved initial competition and historical-record policies for WCC, and how each
 maps onto the schema. Policies are **application logic**; the database preserves **facts,
 sources, and context**. This document is the authority for how the app should *interpret*
 the data — it does not, by itself, change behaviour until the app implements it.
 
 > **General principle.** The database preserves facts, sources, and historical context.
 > Application logic applies competition policies. **Historical records are never silently
-> rewritten to match modern EGO rules** — historical competitions retain the rules and
+> rewritten to match modern WCC rules** — historical competitions retain the rules and
 > interpretations that applied to them whenever those rules are known. Where they are
 > unknown, the uncertainty is recorded and not invented away.
 
@@ -76,7 +76,7 @@ the admin action log.
 ## 3. Group-stage tiebreakers
 
 **Policy.** Tiebreakers are configured **per stage** as an **ordered list** — never hardcoded
-globally. The recommended initial order for future standard EGO **Seasons**:
+globally. The recommended initial order for future standard WCC **Seasons**:
 1. Match record / standings points → 2. Head-to-head (when applicable and unambiguous) →
 3. Game differential → 4. Games won → 5. Strength of schedule (only when the format supports
 it) → 6. Administrator-approved tiebreak match → 7. Random draw (last resort).

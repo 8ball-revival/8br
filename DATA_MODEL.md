@@ -1,7 +1,7 @@
-# EGO — Competition Data Model
+# WCC — Competition Data Model
 
-Authoritative documentation for the EGO relational schema. It supports the legacy
-**8BRCAM** archive and all future EGO competitions (Seasons, Cups, Tournaments)
+Authoritative documentation for the WCC relational schema. It supports the legacy
+**WCC** archive and all future WCC competitions (Seasons, Cups, Tournaments)
 under one model. Implemented in [`prisma/schema.prisma`](./prisma/schema.prisma);
 Payload-owned editorial content lives in `src/collections/`.
 
@@ -97,7 +97,7 @@ Prisma uses the default `public`. Neither introspects the other.
    numbers can never silently drift from its matches.
 
 7. **Provenance on everything.** Every primary entity has a `Provenance`
-   (`IMPORTED_8BRCAM` | `NATIVE_EGO`) and a nullable `legacyId`/`legacy*Id`. Imported
+   (`IMPORTED_WCC` | `NATIVE_EGO`) and a nullable `legacyId`/`legacy*Id`. Imported
    and native records are always distinguishable, and stable archive IDs (`P1316`,
    `2010-s1`) are preserved for traceability.
 
@@ -118,7 +118,7 @@ Prisma uses the default `public`. Neither introspects the other.
     and `divisionId` from its stage to keep the hottest queries single-index.
 
 11. **CUID primary keys.** Stable, non-sequential string PKs are environment-portable
-    (import/merge friendly) and uniform across the model. At 8BRCAM scale (~2k
+    (import/merge friendly) and uniform across the model. At WCC scale (~2k
     players, ~11k matches) this is comfortably efficient; high-volume tables can move
     to `bigint` later without touching relationships.
 
@@ -220,7 +220,7 @@ Note the deliberate split for matches: **`MatchStatus`** is the fixture *lifecyc
 
 - **Season** (primary, recurring): `Competition(type=SEASON)` → optional `Division`s
   → a `Stage(GROUP)` with several `Group`s → a `Stage(DOUBLE_ELIM)` playoff with a
-  `Bracket` → optional `Stage(FINALS)`. Mirrors the 8BRCAM season/division shape.
+  `Bracket` → optional `Stage(FINALS)`. Mirrors the WCC season/division shape.
 - **Cup** (secondary, flexible): e.g. `Competition(type=CUP)` → a single
   `Stage(SWISS)` → `Stage(SINGLE_ELIM)`. Different format, same tables.
 - **Tournament** (one-off/invitational): e.g. `Competition(type=TOURNAMENT)` → one
@@ -301,7 +301,7 @@ exists) a unique `legacyId`.
 
 #### Division
 - **Purpose:** optional split within a competition (A/B), each with its own groups &
-  playoff (8BRCAM shape).
+  playoff (WCC shape).
 - **PK:** `id`. **FK:** `competitionId` (Cascade). **IX:** unique `(competitionId,
   code)`, `competitionId`. Referenced (nullable) by `Stage`, `Group`,
   `CompetitionEntry`, `Match`, `Championship`.

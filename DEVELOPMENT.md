@@ -1,4 +1,4 @@
-# 8br.gg — Development & Deployment Workflow
+# WCC — Development & Deployment Workflow
 
 How to build, test, and ship changes safely without ever touching live production data.
 (Infra/first-deploy details and recovery live in `DEPLOYMENT.md`; this doc is the day-to-day workflow.)
@@ -11,7 +11,7 @@ How to build, test, and ship changes safely without ever touching live productio
 ## Branches
 | Branch | Purpose | Vercel env | Auto-deploys to |
 |---|---|---|---|
-| `main` | Production (source of truth for the live site) | Production | `8br.gg` |
+| `main` | Production (source of truth for the live site) | Production | `WCC` |
 | `development` | Staging / testing | Preview | preview URL (`8br-git-development-…vercel.app`) |
 | `feature/*` (optional) | Individual changes | Preview | per-branch preview URL |
 
@@ -22,7 +22,7 @@ Production Branch in Vercel is **`main`** — only commits to `main` create Prod
 |---|---|---|---|
 | Runs on | `localhost:3000` | Vercel Preview | Vercel Production |
 | Database | local Postgres (`.env`) | Neon **`staging`** branch | Neon **`main`** branch |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | staging preview URL | `https://8br.gg` |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | staging preview URL | `https://WCC` |
 | `PAYLOAD_SECRET` | dev value (`.env`) | distinct Preview value | distinct Production value |
 | Media (Blob) | prod store (or local) | *(prod store today — separate `8br-media-staging` store is a planned follow-up)* | production Blob store |
 
@@ -74,7 +74,7 @@ npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-*.mts   # service
 - **Production deploy:** Vercel → Deployments → previous build → **Promote to Production** (instant, no rebuild).
 - **Code:** `git revert <sha>` on `main`, push.
 - **Database:** Neon **Point-in-Time Restore** (7-day history) via the Neon dashboard — restore prod to a prior state or a new branch.
-- **Domain:** Vercel → Domains → reassign `8br.gg`/`www` to a prior deployment, or repoint DNS at Porkbun.
+- **Domain:** Vercel → Domains → reassign `WCC`/`www` to a prior deployment, or repoint DNS at Porkbun.
 
 ## Development rules
 1. **Never deploy to Production without explicit approval** — prepare + verify + explain impact, then wait.
