@@ -1,17 +1,12 @@
 import Link from 'next/link'
 import {
   LayoutDashboard,
-  ClipboardList,
-  Users,
   UserCog,
   Gavel,
-  CalendarRange,
   Trophy,
-  Swords,
   ShieldCheck,
   ScrollText,
   ShieldAlert,
-  KeyRound,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'

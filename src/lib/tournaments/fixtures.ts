@@ -1,9 +1,8 @@
 /**
- * Cups data (dev fixture). Variety competitions — prize events, 2v2, and special
- * formats — kept separate from league Seasons. Filled in one cup at a time.
- * Swap getCups()/getCup() for a real Payload/Prisma query later; components stay.
+ * WCC tournament view shapes. The historical 8BR fixture data was removed in the reset;
+ * tournaments now come from the DB snapshot (see @/lib/tournaments/service). These shared
+ * types describe the public tournament/bracket view model.
  */
-import { scrubForPublic } from '@/lib/stats/identity'
 
 export interface CupCompetitor {
   name: string

@@ -460,10 +460,8 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
 
 // --------------------------------------------------------------------------- Settings
 
-function SettingsTab({ data, run, canManage, isOwner }: { data: CupWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
+function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
   const router = useRouter()
-  const [code, setCode] = useState('')
-  const [reason, setReason] = useState('')
   const [race, setRace] = useState(data.tournament.raceLength)
   const [delCode, setDelCode] = useState('')
   const [deleting, startDelete] = useTransition()

@@ -110,5 +110,5 @@ updates the **Rankings** ladder.
 
 - The homepage hero banner is `public/wcc-hero-banner.png` (referenced from `src/app/(frontend)/page.tsx`).
 - Historical Prisma/Payload **migration files** retain old table/enum names (e.g. `comp_season`,
-  `IMPORTED_WCC`). These are immutable applied history and are never shown or executed by the
-  live app — the active schema uses WCC/tournament names.
+  and the previous `Provenance` enum values). These are immutable applied history and are never
+  shown or executed by the live app — the active schema uses WCC/tournament names.

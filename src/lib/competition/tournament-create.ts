@@ -34,11 +34,6 @@ function camLine(cam: CamRequirement | undefined): string {
   }
 }
 
-function formatBadge(cfg: CreateCupConfig): string {
-  if (cfg.participantFormat === 'TEAM') return cfg.teamSize === 2 ? '2v2' : `${cfg.teamSize ?? '?'}v${cfg.teamSize ?? '?'}`
-  return '1v1'
-}
-
 /**
  * Create a new LIVE cup. Tournament number + competition code are assigned atomically inside a
  * transaction (serializable-safe: derived from the current max under a single tx) so two

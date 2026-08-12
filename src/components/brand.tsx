@@ -1,12 +1,12 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
-import { brandName, brandTagline, brandAbbreviation } from '@/lib/site'
+import { brandName, brandTagline } from '@/lib/site'
 
 /**
- * World Cue Championships identity — a simple text-based mark: a crimson "WCC"
- * monogram badge + the full wordmark. No image asset (intentionally lightweight
- * and easy for the new owner to restyle). `showTagline` adds the eyebrow tagline.
+ * World Cue Championships identity — the WCC logo mark + the full wordmark.
+ * The logo asset lives at public/wcc-logo.png. `showTagline` adds the eyebrow tagline.
  */
 export function Logo({
   className,
@@ -19,12 +19,14 @@ export function Logo({
 }) {
   const mark = (
     <span className="flex items-center gap-2.5">
-      <span
-        aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-md bg-primary font-display text-sm font-bold tracking-tight text-primary-foreground"
-      >
-        {brandAbbreviation}
-      </span>
+      <Image
+        src="/wcc-logo.png"
+        alt=""
+        width={1254}
+        height={1254}
+        priority
+        className="size-10 shrink-0 rounded-md object-contain"
+      />
       <span className="flex flex-col leading-none">
         <span className="font-display text-lg font-bold tracking-tight sm:text-xl">{brandName}</span>
         {showTagline && (
