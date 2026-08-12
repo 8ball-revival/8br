@@ -11,7 +11,7 @@ function Confidence({ rd, provisional }: { rd: number; provisional: boolean }) {
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className={cn('size-1.5 rounded-full', i < tier ? 'bg-gold' : 'bg-muted-foreground/25')}
+            className={cn('size-1.5 rounded-full', i < tier ? 'bg-brand' : 'bg-muted-foreground/25')}
           />
         ))}
       </span>
@@ -100,14 +100,14 @@ export function RankingsTable({ rows, allTime = false }: { rows: RankingRow[]; a
         <tbody>
           {rows.map((r, i) => {
             const podium = r.rank <= 3
-            const nameColor = i % 2 === 0 ? 'text-gold' : 'text-warm-white'
+            const nameColor = i % 2 === 0 ? 'text-brand' : 'text-warm-white'
             return (
               <tr key={r.id} className="border-b border-border/60 last:border-0 hover:bg-card/40">
                 <Td className="text-center">
                   <span
                     className={cn(
                       'tabular font-semibold',
-                      r.rank === 1 ? 'text-gold' : podium ? 'text-gold/80' : 'text-muted-foreground',
+                      r.rank === 1 ? 'text-brand' : podium ? 'text-brand/80' : 'text-muted-foreground',
                     )}
                   >
                     {r.rank}
@@ -126,7 +126,7 @@ export function RankingsTable({ rows, allTime = false }: { rows: RankingRow[]; a
                     {/* mobile-only secondary line */}
                     <span className="mt-0.5 flex items-center gap-2 text-[0.7rem] text-muted-foreground sm:hidden">
                       <span className="tabular">{r.wins}–{r.losses}</span>
-                      {r.titles > 0 && <span className="text-gold">{r.titles}🏆</span>}
+                      {r.titles > 0 && <span className="text-brand">{r.titles}🏆</span>}
                     </span>
                   </div>
                 </Td>
@@ -151,7 +151,7 @@ export function RankingsTable({ rows, allTime = false }: { rows: RankingRow[]; a
                 <Td className="hidden text-center tabular text-muted-foreground lg:table-cell">{r.seasonsPlayed}</Td>
                 <Td className="hidden text-center tabular text-muted-foreground lg:table-cell">{r.cupsPlayed}</Td>
                 <Td className="hidden text-center sm:table-cell">
-                  {r.titles > 0 ? <span className="tabular font-semibold text-gold">{r.titles}</span> : <span className="text-muted-foreground/40">—</span>}
+                  {r.titles > 0 ? <span className="tabular font-semibold text-brand">{r.titles}</span> : <span className="text-muted-foreground/40">—</span>}
                 </Td>
                 {!allTime && (
                   <Td className="text-right">

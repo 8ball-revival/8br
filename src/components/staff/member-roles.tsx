@@ -58,7 +58,7 @@ export function MemberRoles({
         <Badge variant={targetRole === 'owner' ? 'gold' : targetRole === 'admin' ? 'success' : 'muted'}>
           {targetRole === 'owner' ? 'Owner' : targetRole === 'admin' ? 'Administrator' : 'Member'}
         </Badge>
-        {targetIsHeadAdmin && <Badge variant="gold"><Star className="mr-1 size-3" aria-hidden />Head Administrator</Badge>}
+        {targetIsHeadAdmin && <Badge variant="default"><Star className="mr-1 size-3" aria-hidden />Head Administrator</Badge>}
       </div>
 
       {msg && (
@@ -68,7 +68,7 @@ export function MemberRoles({
       {isSelf && <p className="text-xs text-muted-foreground italic">You cannot change your own role or remove yourself.</p>}
 
       {targetRole === 'owner' ? (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground"><Crown className="size-4 text-gold" aria-hidden /> The Owner is protected. Ownership changes only via transfer from the Owner account.</p>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground"><Crown className="size-4 text-brand" aria-hidden /> The Owner is protected. Ownership changes only via transfer from the Owner account.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {targetRole === 'member' && !isSelf && (

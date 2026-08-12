@@ -50,7 +50,7 @@ export function Panel({
         {actionHref && actionLabel && (
           <Link
             href={actionHref}
-            className="inline-flex items-center gap-0.5 text-[0.7rem] font-medium uppercase tracking-wide text-gold transition-colors hover:text-gold-soft"
+            className="inline-flex items-center gap-0.5 text-[0.7rem] font-medium uppercase tracking-wide text-brand transition-colors hover:text-brand-soft"
           >
             {actionLabel}
             <ArrowRight className="size-3" aria-hidden />
@@ -89,11 +89,11 @@ export function Flag({ code, className }: { code: string; className?: string }) 
 }
 
 const AVATAR_GRADIENTS = [
-  'from-gold-soft/30 to-gold-dim/30',
-  'from-gold/25 to-secondary',
-  'from-secondary to-gold-dim/30',
-  'from-muted to-gold/20',
-  'from-gold-dim/30 to-secondary',
+  'from-brand-soft/30 to-brand-dim/30',
+  'from-brand/25 to-secondary',
+  'from-secondary to-brand-dim/30',
+  'from-muted to-brand/20',
+  'from-brand-dim/30 to-secondary',
   'from-secondary to-muted',
 ]
 

@@ -28,12 +28,12 @@ export function HeroBanner({
         aria-hidden
       />
       <div
-        className="absolute -top-40 left-1/2 h-72 w-[46rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-gold/10 blur-3xl"
+        className="absolute -top-40 left-1/2 h-72 w-[46rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-brand/10 blur-3xl"
         aria-hidden
       />
       <Container className="relative py-20 sm:py-28">
         <div className="mx-auto max-w-3xl text-center">
-          {eyebrow && <p className="eyebrow mb-5 text-gold">{eyebrow}</p>}
+          {eyebrow && <p className="eyebrow mb-5 text-brand">{eyebrow}</p>}
           <h1 className="font-display text-5xl font-bold tracking-tight text-balance sm:text-6xl md:text-7xl">
             {title}
           </h1>

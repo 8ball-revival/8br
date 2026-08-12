@@ -45,11 +45,11 @@ export function StageComingSoon({
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 px-6 py-12 text-center sm:px-12">
         <div className="bg-grid absolute inset-0 opacity-40" aria-hidden />
         <div
-          className="absolute -top-24 left-1/2 h-48 w-96 max-w-[90vw] -translate-x-1/2 rounded-full bg-gold/10 blur-3xl"
+          className="absolute -top-24 left-1/2 h-48 w-96 max-w-[90vw] -translate-x-1/2 rounded-full bg-brand/10 blur-3xl"
           aria-hidden
         />
         <div className="relative">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-gold/25 bg-gold/10 text-gold">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-brand/25 bg-brand/10 text-brand">
             <Icon className="size-7" aria-hidden />
           </span>
           <div className="mt-5 flex justify-center">
@@ -81,7 +81,7 @@ export function StageComingSoon({
       <ol className="mt-10 grid gap-4 sm:grid-cols-3">
         {steps.map((s, i) => (
           <li key={s.title} className="rounded-lg border border-border bg-card/40 p-5">
-            <span className="eyebrow text-gold">Step {i + 1}</span>
+            <span className="eyebrow text-brand">Step {i + 1}</span>
             <h3 className="mt-2 font-display text-base font-semibold tracking-tight">{s.title}</h3>
             <p className="mt-1.5 text-sm text-muted-foreground">{s.body}</p>
           </li>

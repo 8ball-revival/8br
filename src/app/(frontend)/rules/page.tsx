@@ -45,7 +45,7 @@ export default function RulesPage() {
                   <li key={s.id}>
                     <a
                       href={`#${s.id}`}
-                      className="-ml-px flex gap-2 border-l-2 border-transparent py-1.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-gold hover:text-foreground"
+                      className="-ml-px flex gap-2 border-l-2 border-transparent py-1.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
                     >
                       <span className="tabular text-muted-foreground/60">{s.number}</span>
                       <span>{s.title}</span>
@@ -58,7 +58,7 @@ export default function RulesPage() {
 
           {/* Handbook body */}
           <div className="min-w-0 max-w-3xl">
-            <p className="mb-12 border-l-2 border-gold/50 pl-4 text-[0.95rem] italic leading-relaxed text-muted-foreground">
+            <p className="mb-12 border-l-2 border-brand/50 pl-4 text-[0.95rem] italic leading-relaxed text-muted-foreground">
               {HANDBOOK_PREAMBLE}
             </p>
             <HandbookBody />

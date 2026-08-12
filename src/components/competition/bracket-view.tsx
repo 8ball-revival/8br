@@ -52,7 +52,7 @@ function Side({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 text-sm">
-      <span className={'inline-flex items-center gap-1.5 ' + (won ? 'font-semibold text-gold' : '')}>
+      <span className={'inline-flex items-center gap-1.5 ' + (won ? 'font-semibold text-brand' : '')}>
         {seed != null && <span className="tabular text-xs text-muted-foreground">{seed}</span>}
         {name ?? <span className="text-muted-foreground italic">TBD</span>}
       </span>

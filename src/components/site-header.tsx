@@ -44,7 +44,7 @@ export async function SiteHeader() {
           <IconButton href="#" label="Notifications">
             <Bell className="size-5" />
             {DEV_NOTIFICATIONS > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[0.6rem] font-bold leading-4 text-primary-foreground">
+              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[0.6rem] font-bold leading-4 text-primary-foreground">
                 {DEV_NOTIFICATIONS}
               </span>
             )}
@@ -55,7 +55,7 @@ export async function SiteHeader() {
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md py-1 pl-1 pr-2 transition-colors hover:bg-accent [&::-webkit-details-marker]:hidden">
                 <span
                   aria-hidden
-                  className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-gold-soft/40 to-gold-dim/40 text-xs font-bold text-foreground ring-1 ring-border"
+                  className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-soft/40 to-brand-dim/40 text-xs font-bold text-foreground ring-1 ring-border"
                 >
                   {user.username.slice(0, 2).toUpperCase()}
                 </span>

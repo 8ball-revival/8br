@@ -88,7 +88,7 @@ export function CurrentRankingsTable({ rows }: { rows: CurrentScoreRow[] }) {
         <tbody>
           {rows.map((r, i) => {
             const podium = r.rank <= 3
-            const nameColor = i % 2 === 0 ? 'text-gold' : 'text-warm-white'
+            const nameColor = i % 2 === 0 ? 'text-brand' : 'text-warm-white'
             const expanded = open.has(r.id)
             return (
               <Fragment key={r.id}>
@@ -97,7 +97,7 @@ export function CurrentRankingsTable({ rows }: { rows: CurrentScoreRow[] }) {
                   className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-card/40"
                 >
                   <Td className="text-center">
-                    <span className={cn('tabular font-semibold', r.rank === 1 ? 'text-gold' : podium ? 'text-gold/80' : 'text-muted-foreground')}>
+                    <span className={cn('tabular font-semibold', r.rank === 1 ? 'text-brand' : podium ? 'text-brand/80' : 'text-muted-foreground')}>
                       {r.rank}
                     </span>
                   </Td>
@@ -113,8 +113,8 @@ export function CurrentRankingsTable({ rows }: { rows: CurrentScoreRow[] }) {
                       </span>
                       <span className="mt-0.5 flex items-center gap-2 text-[0.7rem] text-muted-foreground sm:hidden">
                         <span className="tabular">{r.wins}–{r.losses}</span>
-                        {r.seasonTitles > 0 && <span className="text-gold">{r.seasonTitles}× ST</span>}
-                        {r.cupTitles > 0 && <span className="text-gold">{r.cupTitles}× CT</span>}
+                        {r.seasonTitles > 0 && <span className="text-brand">{r.seasonTitles}× ST</span>}
+                        {r.cupTitles > 0 && <span className="text-brand">{r.cupTitles}× CT</span>}
                       </span>
                     </div>
                   </Td>
@@ -124,8 +124,8 @@ export function CurrentRankingsTable({ rows }: { rows: CurrentScoreRow[] }) {
                   <Td className="hidden text-center tabular text-muted-foreground lg:table-cell">{r.groupW}–{r.groupL}{r.groupD ? `–${r.groupD}` : ''}</Td>
                   <Td className="hidden text-center tabular text-muted-foreground lg:table-cell">{r.playoffW}–{r.playoffL}</Td>
                   <Td className="hidden text-center tabular text-muted-foreground lg:table-cell">{r.cupW}–{r.cupL}</Td>
-                  <Td className="hidden text-center md:table-cell">{r.seasonTitles > 0 ? <span className="tabular font-semibold text-gold">{r.seasonTitles}</span> : <span className="text-muted-foreground/40">—</span>}</Td>
-                  <Td className="hidden text-center md:table-cell">{r.cupTitles > 0 ? <span className="tabular font-semibold text-gold">{r.cupTitles}</span> : <span className="text-muted-foreground/40">—</span>}</Td>
+                  <Td className="hidden text-center md:table-cell">{r.seasonTitles > 0 ? <span className="tabular font-semibold text-brand">{r.seasonTitles}</span> : <span className="text-muted-foreground/40">—</span>}</Td>
+                  <Td className="hidden text-center md:table-cell">{r.cupTitles > 0 ? <span className="tabular font-semibold text-brand">{r.cupTitles}</span> : <span className="text-muted-foreground/40">—</span>}</Td>
                   <Td className="hidden text-center tabular xl:table-cell">{r.qualityWins > 0 ? <span className="text-success">{r.qualityWins}</span> : <span className="text-muted-foreground/40">—</span>}</Td>
                   <Td className="hidden text-right md:table-cell"><FormPips form={r.recentForm} /></Td>
                   <Td className="text-center">
@@ -151,7 +151,7 @@ export function CurrentRankingsTable({ rows }: { rows: CurrentScoreRow[] }) {
                               )}
                             >
                               <span className={total ? 'text-foreground' : 'text-muted-foreground'}>{l.label}</span>
-                              <span className={cn('tabular', total ? 'text-gold' : l.points >= 0 ? 'text-success' : 'text-destructive')}>
+                              <span className={cn('tabular', total ? 'text-brand' : l.points >= 0 ? 'text-success' : 'text-destructive')}>
                                 {l.points >= 0 ? '+' : ''}{l.points}
                               </span>
                             </li>

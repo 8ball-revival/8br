@@ -69,7 +69,7 @@ export async function StaffShell({
       <aside className="border-b border-border lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0">
         <div className="p-4">
           <Link href="/staff" className="flex items-center gap-2">
-            <span className="inline-block size-4 rotate-45 rounded-[3px] bg-gradient-to-br from-gold-soft to-gold-dim" aria-hidden />
+            <span className="inline-block size-4 rotate-45 rounded-[3px] bg-gradient-to-br from-brand-soft to-brand-dim" aria-hidden />
             <span className="font-display font-bold tracking-tight">8 Ball Revival Admin</span>
           </Link>
           <p className="mt-1 text-xs text-muted-foreground">Competition administration</p>
@@ -84,7 +84,7 @@ export async function StaffShell({
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                  isActive ? 'bg-gold/10 text-gold' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  isActive ? 'bg-brand/10 text-brand' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
                 <item.icon className="size-4" aria-hidden />
@@ -110,7 +110,7 @@ export async function StaffShell({
             <span className="text-muted-foreground">
               Signed in as <span className="font-medium text-foreground">{username}</span>
             </span>
-            <Link href="/" className="text-gold hover:text-gold-soft">
+            <Link href="/" className="text-brand hover:text-brand-soft">
               View site
             </Link>
             <Link href="/admin" className="text-muted-foreground hover:text-foreground">

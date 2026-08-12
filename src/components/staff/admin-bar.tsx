@@ -33,9 +33,9 @@ export async function AdminBar({ surface, tournamentId }: { surface: Surface; to
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-gold/30 bg-gold/5 p-3">
+    <div className="mb-6 rounded-lg border border-brand/30 bg-brand/5 p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="gold" className="gap-1">
+        <Badge variant="default" className="gap-1">
           <ShieldCheck className="size-3.5" aria-hidden /> Admin
         </Badge>
 

@@ -20,7 +20,7 @@ export function ViewTabs({ mode }: { mode: Mode }) {
           className={cn(
             'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
             mode === t.mode
-              ? 'bg-gold/15 text-gold'
+              ? 'bg-brand/15 text-brand'
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
@@ -43,7 +43,7 @@ export function YearSelector({ years, active }: { years: number[]; active: numbe
           className={cn(
             'tabular rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
             y === active
-              ? 'border-gold/40 bg-gold/10 text-gold'
+              ? 'border-brand/40 bg-brand/10 text-brand'
               : 'border-border text-muted-foreground hover:text-foreground',
           )}
         >

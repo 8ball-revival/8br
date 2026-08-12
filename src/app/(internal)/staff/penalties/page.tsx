@@ -31,7 +31,7 @@ export default async function PenaltiesPage({ searchParams }: SP) {
 
       <div className="mt-5 flex flex-wrap gap-1.5">
         {FILTERS.map((x) => (
-          <Link key={x} href={`/staff/penalties?filter=${x}`} className={`rounded-md border px-3 py-1.5 text-sm ${x === f ? 'border-gold bg-gold/10 text-gold' : 'border-border text-muted-foreground hover:bg-muted'}`}>
+          <Link key={x} href={`/staff/penalties?filter=${x}`} className={`rounded-md border px-3 py-1.5 text-sm ${x === f ? 'border-brand bg-brand/10 text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>
             {x === 'ALL' ? 'All' : x.charAt(0) + x.slice(1).toLowerCase()}
           </Link>
         ))}
@@ -42,7 +42,7 @@ export default async function PenaltiesPage({ searchParams }: SP) {
           return (
             <div key={p.id} className="rounded-lg border border-border bg-card/40 p-4 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Link href={`/staff/members/${p.userId}`} className="font-medium hover:text-gold">
+                <Link href={`/staff/members/${p.userId}`} className="font-medium hover:text-brand">
                   {p.preferredName ? <PublicPlayerIdentity preferredName={p.preferredName} cueverseId={p.cueverseId} muted /> : `@${p.username}`}
                 </Link>
                 <div className="flex items-center gap-2">

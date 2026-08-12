@@ -60,7 +60,7 @@ export default async function MembersPage({ searchParams }: SP) {
             {members.map((m) => (
               <tr key={m.userId} className="hover:bg-muted/30">
                 <td className="px-4 py-2.5">
-                  <Link href={`/staff/members/${m.userId}`} className="hover:text-gold">
+                  <Link href={`/staff/members/${m.userId}`} className="hover:text-brand">
                     {m.preferredName ? <PublicPlayerIdentity preferredName={m.preferredName} cueverseId={m.cueverseId} muted /> : <span className="text-muted-foreground italic">No profile</span>}
                   </Link>
                 </td>
@@ -68,7 +68,7 @@ export default async function MembersPage({ searchParams }: SP) {
                 <td className="px-4 py-2.5">
                   <span className="inline-flex items-center gap-1.5">
                     <Badge variant={m.role === 'owner' ? 'gold' : m.role === 'admin' ? 'success' : 'muted'}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</Badge>
-                    {m.headAdmin && <Badge variant="gold">Head</Badge>}
+                    {m.headAdmin && <Badge variant="default">Head</Badge>}
                   </span>
                 </td>
                 <td className="px-4 py-2.5"><StatusBadge status={m.status} /></td>

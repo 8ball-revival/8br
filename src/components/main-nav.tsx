@@ -29,7 +29,7 @@ export function MainNav({ className }: { className?: string }) {
           >
             {item.label}
             {active && (
-              <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-gold" aria-hidden />
+              <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-brand" aria-hidden />
             )}
           </Link>
         )

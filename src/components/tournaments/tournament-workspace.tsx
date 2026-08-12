@@ -60,10 +60,10 @@ export function CupWorkspace({
   ]
 
   return (
-    <div className="mt-6 rounded-xl border border-gold/30 bg-card/40">
+    <div className="mt-6 rounded-xl border border-brand/30 bg-card/40">
       {/* Admin toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
-        <Badge variant="gold">Admin</Badge>
+        <Badge variant="default">Admin</Badge>
         <span className="text-sm font-medium text-foreground">Competition workspace</span>
         <span className="text-xs text-muted-foreground">
           {data.tournament.code} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
@@ -93,7 +93,7 @@ export function CupWorkspace({
             onClick={() => setTab(t.id)}
             className={cn(
               'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              tab === t.id ? 'bg-gold/15 text-gold' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              tab === t.id ? 'bg-brand/15 text-brand' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
             <t.icon className="size-4" /> {t.label}
@@ -102,7 +102,7 @@ export function CupWorkspace({
       </div>
 
       {msg && (
-        <div className={cn('mx-4 mt-3 rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-gold/30 bg-gold/[0.06] text-foreground' : 'border-destructive/40 bg-destructive/[0.06] text-destructive')}>
+        <div className={cn('mx-4 mt-3 rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-brand/30 bg-brand/[0.06] text-foreground' : 'border-destructive/40 bg-destructive/[0.06] text-destructive')}>
           {msg.text}
         </div>
       )}
@@ -241,7 +241,7 @@ function EntrantsTab({ data, run, disabled }: { data: CupWorkspaceData; run: Run
               <span className="flex-1">{e.name}{e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}{e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}</span>
               {!disabled && (
                 e.withdrawn ? (
-                  <button onClick={() => run(() => A.restoreCupEntrantAction(data.tournament.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-gold">restore</button>
+                  <button onClick={() => run(() => A.restoreCupEntrantAction(data.tournament.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-brand">restore</button>
                 ) : (
                   <button onClick={() => run(() => A.removeCupEntrantAction(data.tournament.id, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
                 )
@@ -294,7 +294,7 @@ function TeamCard({ team, teamSize, run, disabled }: { team: CupWorkspaceData['t
         {team.seed != null && <Badge variant="muted">Seed {team.seed}</Badge>}
       </div>
       {!disabled && name.trim() && name !== team.name && (
-        <button onClick={() => run(() => A.renameTeamAction(team.id, name))} className="mt-1 text-xs text-gold hover:underline">Save name</button>
+        <button onClick={() => run(() => A.renameTeamAction(team.id, name))} className="mt-1 text-xs text-brand hover:underline">Save name</button>
       )}
       <textarea
         value={roster}
@@ -372,7 +372,7 @@ function SeedBuilder({ data, pool, run }: { data: CupWorkspaceData; pool: { id: 
     <div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="eyebrow text-muted-foreground">Seed order ({order.length})</p>
-        {published ? <Badge variant="gold">Published</Badge> : data.hasBracket ? <Badge variant="muted">Draft</Badge> : null}
+        {published ? <Badge variant="default">Published</Badge> : data.hasBracket ? <Badge variant="muted">Draft</Badge> : null}
       </div>
       <ol className="mt-2 max-w-md space-y-1">
         {order.map((id, i) => (
@@ -389,8 +389,8 @@ function SeedBuilder({ data, pool, run }: { data: CupWorkspaceData; pool: { id: 
             <span className="flex-1 truncate">{nameById.get(id)}</span>
             {!published && (
               <span className="flex gap-0.5">
-                <button onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-gold"><ChevronUp className="size-4" /></button>
-                <button onClick={() => move(i, i + 1)} className="text-muted-foreground hover:text-gold"><ChevronDown className="size-4" /></button>
+                <button onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-brand"><ChevronUp className="size-4" /></button>
+                <button onClick={() => move(i, i + 1)} className="text-muted-foreground hover:text-brand"><ChevronDown className="size-4" /></button>
               </span>
             )}
           </li>
@@ -438,11 +438,11 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
     <div className="rounded-md border border-border bg-background/40 p-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="w-16 text-xs text-muted-foreground">{m.label ?? `R${m.round}·${m.slot + 1}`}</span>
-        <span className={cn('flex-1', homeWon && 'font-semibold text-gold')}>{m.homeUsername}</span>
+        <span className={cn('flex-1', homeWon && 'font-semibold text-brand')}>{m.homeUsername}</span>
         <input value={home} onChange={(e) => setHome(e.target.value)} disabled={disabled} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
         <span className="text-muted-foreground">–</span>
         <input value={away} onChange={(e) => setAway(e.target.value)} disabled={disabled} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
-        <span className={cn('flex-1 text-right', decided && !homeWon && 'font-semibold text-gold')}>{m.awayUsername}</span>
+        <span className={cn('flex-1 text-right', decided && !homeWon && 'font-semibold text-brand')}>{m.awayUsername}</span>
       </div>
       {!disabled && (
         <div className="mt-2 flex items-center gap-2">

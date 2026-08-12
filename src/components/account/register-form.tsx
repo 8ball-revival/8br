@@ -51,7 +51,7 @@ export function RegisterForm({ identity, missing }: { identity: SignupIdentity |
       />
 
       <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-gold" />
+        <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
         <span className="text-muted-foreground">I have read and agree to the 8 Ball Revival Tournament 2 rules and format.</span>
       </label>
 

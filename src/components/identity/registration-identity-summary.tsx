@@ -27,7 +27,7 @@ export function RegistrationIdentitySummary({
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         {timeZone && <TimeZoneLabel zone={timeZone} />}
         {discord && <DiscordContactButton discord={discord} name={preferredName} />}
-        <Link href="/account" className="font-medium text-gold hover:text-gold-soft">Manage profile</Link>
+        <Link href="/account" className="font-medium text-brand hover:text-brand-soft">Manage profile</Link>
       </div>
     </div>
   )

@@ -66,7 +66,7 @@ function CupHeader({
     <>
       <div className="flex flex-wrap items-center gap-3">
         <span className="eyebrow text-muted-foreground">Cup {number}</span>
-        {badge && <Badge variant="gold">{badge}</Badge>}
+        {badge && <Badge variant="default">{badge}</Badge>}
         {live ? <Badge variant="destructive">{statusLabel}</Badge> : <Badge variant="muted">{statusLabel}</Badge>}
         {year && <span className="tabular text-sm text-muted-foreground">{year}</span>}
       </div>
@@ -336,8 +336,8 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
       />
 
       {cup.champion && !live && (
-        <div className="mt-4 inline-flex items-center gap-2.5 rounded-lg border border-gold/25 bg-gold/[0.06] px-4 py-2.5">
-          <Trophy className="size-5 text-gold" aria-hidden />
+        <div className="mt-4 inline-flex items-center gap-2.5 rounded-lg border border-brand/25 bg-brand/[0.06] px-4 py-2.5">
+          <Trophy className="size-5 text-brand" aria-hidden />
           <PlayerAvatar name={cup.champion.name} size="sm" />
           <div>
             <p className="text-sm font-semibold text-foreground">
@@ -346,7 +346,7 @@ export default async function CupDetailPage({ params }: { params: Promise<{ numb
             </p>
             {cup.champion.handle && <p className="text-xs text-muted-foreground">{cup.champion.handle}</p>}
           </div>
-          <span className="eyebrow ml-2 text-[0.55rem] text-gold">Champion</span>
+          <span className="eyebrow ml-2 text-[0.55rem] text-brand">Champion</span>
         </div>
       )}
 

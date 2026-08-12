@@ -1,98 +1,67 @@
 @import 'tailwindcss';
 
 /*
-  8 Ball Revival — public (frontend) design system.
-  Premium esports aesthetic: dark-first, gold accent, minimal, typographic.
-  Loaded ONLY by the (frontend) route group; the Payload admin has its own styles.
-  Theme system: dark is the default (tokens live in :root); `.light` overrides for
-  the optional light theme. The <html> class is set before paint (no flash).
+  World Cue Championships (WCC) — public (frontend) design system.
+  Premium competitive aesthetic: deep black, charcoal surfaces, crimson accent.
+  Single committed dark theme (no light mode). All colors are design tokens below —
+  the new owner can retune the whole site by editing these values in one place.
 */
-
-@custom-variant light (&:is(.light *));
 
 :root {
   --radius: 0.5rem;
 
-  /* ---- Dark theme (default) ---- */
-  --background: oklch(0.165 0.006 265);
-  --foreground: oklch(0.96 0.004 260);
+  /* ---- WCC palette (single dark theme) ---- */
+  --background: #050505; /* page background */
+  --foreground: #ffffff; /* primary text */
 
-  --card: oklch(0.205 0.007 265);
-  --card-foreground: oklch(0.96 0.004 260);
+  --surface: #0d0d0d; /* primary surface */
+  --card: #171717; /* elevated cards / panels */
+  --card-foreground: #ffffff;
 
-  --popover: oklch(0.185 0.007 265);
-  --popover-foreground: oklch(0.96 0.004 260);
+  --popover: #171717;
+  --popover-foreground: #ffffff;
 
-  /* Gold accent */
-  --primary: oklch(0.8 0.125 84);
-  --primary-foreground: oklch(0.18 0.02 80);
+  /* Crimson accent */
+  --primary: #c8102e;
+  --primary-foreground: #ffffff;
+  --primary-hover: #e31b3d;
 
-  --secondary: oklch(0.245 0.007 265);
-  --secondary-foreground: oklch(0.96 0.004 260);
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
 
-  --muted: oklch(0.245 0.007 265);
-  --muted-foreground: oklch(0.7 0.01 265);
+  --muted: #171717;
+  --muted-foreground: #a3a3a3; /* secondary text */
 
-  --accent: oklch(0.27 0.008 265);
-  --accent-foreground: oklch(0.96 0.004 260);
+  --accent: #1f1f1f; /* hover surface */
+  --accent-foreground: #ffffff;
 
-  --destructive: oklch(0.62 0.2 25);
-  --destructive-foreground: oklch(0.98 0.004 260);
+  /* Semantic status (kept distinct from the brand crimson) */
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
 
-  --success: oklch(0.7 0.14 155);
-  --warning: oklch(0.8 0.13 84);
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #e31b3d; /* visible crimson focus ring */
 
-  --border: oklch(0.28 0.007 265);
-  --input: oklch(0.28 0.007 265);
-  --ring: oklch(0.8 0.125 84);
+  /* Brand accents (used for emphasis, headings, active states) */
+  --brand: #c8102e;
+  --brand-hover: #e31b3d;
+  --brand-soft: #e31b3d;
+  --brand-dim: #9b0c23;
 
-  /* Brand */
-  --gold: oklch(0.8 0.125 84);
-  --gold-soft: oklch(0.87 0.1 88);
-  --gold-dim: oklch(0.62 0.1 80);
+  /* Back-compat aliases: legacy `gold` tokens now resolve to the WCC crimson so any
+     not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
+  --gold: var(--brand);
+  --gold-soft: var(--brand-soft);
+  --gold-dim: var(--brand-dim);
 
-  --chart-1: oklch(0.8 0.125 84);
-  --chart-2: oklch(0.7 0.13 200);
-  --chart-3: oklch(0.68 0.15 300);
-  --chart-4: oklch(0.72 0.15 150);
-  --chart-5: oklch(0.7 0.16 25);
-}
-
-.light {
-  --background: oklch(0.99 0.003 260);
-  --foreground: oklch(0.2 0.006 265);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.006 265);
-
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.006 265);
-
-  --primary: oklch(0.62 0.12 74);
-  --primary-foreground: oklch(0.99 0.004 90);
-
-  --secondary: oklch(0.96 0.004 260);
-  --secondary-foreground: oklch(0.22 0.006 265);
-
-  --muted: oklch(0.96 0.004 260);
-  --muted-foreground: oklch(0.48 0.008 265);
-
-  --accent: oklch(0.95 0.006 260);
-  --accent-foreground: oklch(0.22 0.006 265);
-
-  --destructive: oklch(0.58 0.21 27);
-  --destructive-foreground: oklch(0.99 0.004 260);
-
-  --success: oklch(0.55 0.14 155);
-  --warning: oklch(0.62 0.13 74);
-
-  --border: oklch(0.9 0.004 260);
-  --input: oklch(0.9 0.004 260);
-  --ring: oklch(0.62 0.12 74);
-
-  --gold: oklch(0.62 0.12 74);
-  --gold-soft: oklch(0.7 0.12 78);
-  --gold-dim: oklch(0.55 0.1 74);
+  --chart-1: #c8102e;
+  --chart-2: #e31b3d;
+  --chart-3: #a3a3a3;
+  --chart-4: #6b7280;
+  --chart-5: #f59e0b;
 }
 
 @theme inline {
@@ -104,12 +73,14 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -123,9 +94,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-gold: var(--gold);
-  --color-gold-soft: var(--gold-soft);
-  --color-gold-dim: var(--gold-dim);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-dim: var(--brand-dim);
+  /* Legacy gold utilities → crimson */
+  --color-gold: var(--brand);
+  --color-gold-soft: var(--brand-soft);
+  --color-gold-dim: var(--brand-dim);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -171,11 +146,11 @@
   }
 
   ::selection {
-    background: color-mix(in oklch, var(--gold) 30%, transparent);
+    background: color-mix(in srgb, var(--brand) 35%, transparent);
     color: var(--foreground);
   }
 
-  /* Focus ring */
+  /* Visible keyboard focus (accessibility) */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -183,25 +158,13 @@
 }
 
 @layer components {
-  /* Subtle gold text-gradient for hero wordmarks */
+  /* Subtle crimson text-gradient for hero wordmarks (no heavy glow). */
+  .text-brand-gradient,
   .text-gold-gradient {
-    background: linear-gradient(180deg, var(--gold-soft), var(--gold-dim));
+    background: linear-gradient(180deg, var(--brand-soft), var(--brand-dim));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-  }
-
-  /* Warm off-white for alternating ladder rows (pairs with gold, per bracket style) */
-  .text-warm-white {
-    color: oklch(0.93 0.022 85);
-  }
-
-  /* Faint grid texture for hero/section backgrounds */
-  .bg-grid {
-    background-image:
-      linear-gradient(to right, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px);
-    background-size: 44px 44px;
   }
 
   /* Uppercase eyebrow label */
@@ -212,33 +175,41 @@
     font-size: 0.72rem;
   }
 
-  /* Black-track, gold-thumb scrollbar for scrollable panels */
+  /* Faint grid texture for hero/section backgrounds */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--foreground) 4%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 4%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  /* Black-track, crimson-thumb scrollbar for scrollable panels */
+  .scrollbar-brand,
   .scrollbar-gold {
     scrollbar-width: thin;
-    scrollbar-color: var(--gold) #000000;
+    scrollbar-color: var(--brand) #000000;
   }
+  .scrollbar-brand::-webkit-scrollbar,
   .scrollbar-gold::-webkit-scrollbar {
     width: 8px;
   }
+  .scrollbar-brand::-webkit-scrollbar-track,
   .scrollbar-gold::-webkit-scrollbar-track {
     background: #000000;
   }
+  .scrollbar-brand::-webkit-scrollbar-thumb,
   .scrollbar-gold::-webkit-scrollbar-thumb {
-    background: var(--gold);
+    background: var(--brand);
     border-radius: 9999px;
     border: 2px solid #000000;
   }
-  .scrollbar-gold::-webkit-scrollbar-thumb:hover {
-    background: var(--gold-soft);
-  }
 
-  /* Responsive tournament bracket tree (season playoffs). Round columns flex to fill
-     the canvas; subtle gold elbow connectors show how matches advance. Falls back to
-     horizontal scroll only below the minimum column width. */
+  /* Responsive tournament bracket tree. Round columns flex to fill the canvas; subtle
+     crimson elbow connectors show how matches advance. */
   .bkt-tree {
     --bkt-gap: 2rem;
     --bkt-half-gap: calc(var(--bkt-gap) / 2);
-    --bkt-line: color-mix(in oklch, var(--gold) 45%, transparent);
+    --bkt-line: color-mix(in srgb, var(--brand) 55%, transparent);
     --bkt-col-min: 9rem;
     --bkt-col-max: 20rem;
     display: flex;
@@ -262,14 +233,11 @@
   .bkt-cell {
     position: relative;
     display: flex;
-    /* basis auto + no shrink: cell is always at least as tall as its card, so dense
-       rounds (e.g. 8 matches) never compress/overlap; sparser rounds grow to align. */
     flex: 1 0 auto;
     align-items: center;
     min-height: 3.5rem;
     padding-block: 0.4rem;
   }
-  /* feeder elbow: horizontal out of the card, then vertical toward the pair midpoint */
   .bkt-feeds > .bkt-cell::after {
     content: '';
     position: absolute;
@@ -287,7 +255,6 @@
     bottom: 50%;
     border-bottom: 1px solid var(--bkt-line);
   }
-  /* receiver: incoming horizontal tick from the pair midpoint into the card */
   .bkt-receives > .bkt-cell::before {
     content: '';
     position: absolute;
@@ -304,7 +271,7 @@
   }
 }
 
-/* Smooth reveal for the expanded group deep-dive */
+/* Smooth reveal for expandable panels (respects reduced motion) */
 @keyframes bkt-reveal {
   from {
     opacity: 0;
@@ -319,7 +286,10 @@
   animation: bkt-reveal 0.2s ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-reveal {
-    animation: none;
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

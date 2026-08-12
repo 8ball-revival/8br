@@ -84,7 +84,7 @@ export function CupList({ cups }: { cups: CupListItem[] }) {
 
       {active.length > 0 && (
         <section className="mb-8">
-          <h2 className="eyebrow mb-3 text-gold">Active &amp; Upcoming</h2>
+          <h2 className="eyebrow mb-3 text-brand">Active &amp; Upcoming</h2>
           <ul className="space-y-2">{active.map((c) => <Row key={c.number} c={c} rel={relFor(c)} />)}</ul>
         </section>
       )}
@@ -116,13 +116,13 @@ function Row({ c, rel }: { c: CupListItem; rel: { display: string; relationship:
   const completed = !isActive(c.status)
   return (
     <li>
-      <Link href={`/cups/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-gold/40 hover:bg-card/70">
+      <Link href={`/cups/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="tabular text-sm font-semibold text-gold">Cup #{c.number}</span>
+          <span className="tabular text-sm font-semibold text-brand">Cup #{c.number}</span>
           <span className="tabular text-xs text-muted-foreground">{c.code}</span>
           <span className="font-display font-semibold text-foreground">{c.name}</span>
           {c.year && <span className="text-xs text-muted-foreground">· {c.year}</span>}
-          {rel && <Badge variant="gold" className="ml-1">{rel.display}: {rel.relationship}</Badge>}
+          {rel && <Badge variant="default" className="ml-1">{rel.display}: {rel.relationship}</Badge>}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>{PFMT(c.participantFormat, c.teamSize)}</span>

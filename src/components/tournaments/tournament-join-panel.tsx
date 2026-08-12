@@ -37,7 +37,7 @@ export function CupJoinPanel({
 
   return (
     <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
-      <h2 className="eyebrow mb-3 text-gold">Join this cup</h2>
+      <h2 className="eyebrow mb-3 text-brand">Join this cup</h2>
       {!isLoggedIn ? (
         <div className="flex flex-wrap items-center gap-3">
           <Lock className="size-4 text-muted-foreground" aria-hidden />
@@ -87,7 +87,7 @@ function JoinForm({ number, identity }: { number: number; identity: SignupIdenti
       />
 
       <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-gold" />
+        <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
         <span className="text-muted-foreground">I have read and agree to the cup rules and format.</span>
       </label>
 

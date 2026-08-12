@@ -41,7 +41,7 @@ export function SignInForm() {
             <button
               type="button"
               onClick={() => setManualOpen(!showReset)}
-              className="text-xs font-medium text-gold hover:text-gold-soft"
+              className="text-xs font-medium text-brand hover:text-brand-soft"
             >
               Forgot password?
             </button>
@@ -68,7 +68,7 @@ export function SignInForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           New to 8 Ball Revival?{' '}
-          <Link href="/register" className="font-medium text-gold hover:text-gold-soft">
+          <Link href="/register" className="font-medium text-brand hover:text-brand-soft">
             Create an account
           </Link>
         </p>

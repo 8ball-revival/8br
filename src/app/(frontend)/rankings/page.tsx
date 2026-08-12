@@ -28,7 +28,7 @@ type SP = Promise<{ view?: string; year?: string }>
 function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-gold" /> Elite / podium</span>
+      <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-brand" /> Elite / podium</span>
       <span className="inline-flex items-center gap-1.5"><span className="text-success">▲</span> Rating up</span>
       <span className="inline-flex items-center gap-1.5"><span className="text-destructive">▼</span> Rating down</span>
       <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[3px] bg-success/20 text-center text-[0.6rem] font-bold leading-3 text-success">W</span>/<span className="size-3 rounded-[3px] bg-destructive/20 text-center text-[0.6rem] font-bold leading-3 text-destructive">L</span> Recent form</span>
@@ -121,7 +121,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: SP 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <ViewTabs mode={view} />
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <TrendingUp className="size-3.5 text-gold" aria-hidden /> Live rating · recalculated from match data
+            <TrendingUp className="size-3.5 text-brand" aria-hidden /> Live rating · recalculated from match data
           </span>
         </div>
 

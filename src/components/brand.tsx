@@ -27,7 +27,7 @@ export function Logo({
         height={438}
         unoptimized
         priority
-        className="h-10 w-auto rounded-md ring-1 ring-gold/20"
+        className="h-10 w-auto rounded-md ring-1 ring-brand/20"
       />
       <span className="flex flex-col leading-none">
         <span className="font-display text-xl font-bold tracking-tight">{brandName}</span>

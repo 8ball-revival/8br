@@ -72,7 +72,7 @@ export function EntrantList({
   return (
     <section className="mb-8 rounded-lg border border-border bg-card/30 p-4">
       <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
-        <Users className="size-5 text-gold" /> {label}
+        <Users className="size-5 text-brand" /> {label}
       </h2>
       {body}
     </section>

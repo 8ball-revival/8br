@@ -55,17 +55,17 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>@{m.username}</span>
             <Badge variant={m.role === 'owner' ? 'gold' : m.role === 'admin' ? 'success' : 'muted'}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</Badge>
-            {m.headAdmin && <Badge variant="gold">Head Administrator</Badge>}
+            {m.headAdmin && <Badge variant="default">Head Administrator</Badge>}
             <StatusBadge status={m.status} />
           </p>
         </div>
-        {m.slug && <Link href={`/players/${m.slug}`} className="inline-flex items-center gap-1 text-sm text-gold hover:text-gold-soft">Public profile <ExternalLink className="size-3.5" /></Link>}
+        {m.slug && <Link href={`/players/${m.slug}`} className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-soft">Public profile <ExternalLink className="size-3.5" /></Link>}
       </div>
 
       <nav className="mt-5 flex flex-wrap gap-1 border-b border-border">
         {TABS.map((t) => (
           <Link key={t} href={`/staff/members/${userId}?tab=${t}`} aria-current={t === active ? 'page' : undefined}
-            className={`rounded-t-md px-3 py-2 text-sm font-medium ${t === active ? 'border-b-2 border-gold text-gold' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`rounded-t-md px-3 py-2 text-sm font-medium ${t === active ? 'border-b-2 border-brand text-brand' : 'text-muted-foreground hover:text-foreground'}`}>
             {tabLabel(t)}
           </Link>
         ))}

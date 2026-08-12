@@ -79,7 +79,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                 {players.map((c) => (
                   <th
                     key={c.id}
-                    className={cn('h-10 min-w-14 px-2 text-center text-[0.7rem] font-medium', hl(c.id) ? 'bg-gold/10 text-gold' : 'text-muted-foreground')}
+                    className={cn('h-10 min-w-14 px-2 text-center text-[0.7rem] font-medium', hl(c.id) ? 'bg-brand/10 text-brand' : 'text-muted-foreground')}
                     onMouseEnter={() => setHoverId(c.id)}
                     onMouseLeave={() => setHoverId(null)}
                     title={c.name}
@@ -91,10 +91,10 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
             </thead>
             <tbody>
               {players.map((row) => (
-                <tr key={row.id} className={cn(hl(row.id) && 'bg-gold/5')}>
+                <tr key={row.id} className={cn(hl(row.id) && 'bg-brand/5')}>
                   <th
                     scope="row"
-                    className={cn('sticky left-0 z-10 h-10 min-w-40 border-t border-border bg-card px-3 text-left font-medium', hl(row.id) && 'text-gold')}
+                    className={cn('sticky left-0 z-10 h-10 min-w-40 border-t border-border bg-card px-3 text-left font-medium', hl(row.id) && 'text-brand')}
                     onMouseEnter={() => setHoverId(row.id)}
                     onMouseLeave={() => setHoverId(null)}
                   >
@@ -109,7 +109,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                         className={cn(
                           'h-10 min-w-14 border-t border-l border-border px-2 text-center tabular text-xs',
                           toneClass[tone],
-                          (hl(row.id) || hl(col.id)) && 'ring-1 ring-inset ring-gold/40',
+                          (hl(row.id) || hl(col.id)) && 'ring-1 ring-inset ring-brand/40',
                           clickable && 'cursor-pointer hover:brightness-125',
                         )}
                         onMouseEnter={() => setHoverId(col.id)}
@@ -147,7 +147,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                 return (
                   <tr
                     key={row.id}
-                    className={cn(hl(row.id) && 'bg-gold/5', s?.qualified && 'bg-success/5')}
+                    className={cn(hl(row.id) && 'bg-brand/5', s?.qualified && 'bg-success/5')}
                     onMouseEnter={() => setHoverId(row.id)}
                     onMouseLeave={() => setHoverId(null)}
                   >

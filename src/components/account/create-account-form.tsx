@@ -84,7 +84,7 @@ export function CreateAccountForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-gold hover:text-gold-soft">
+        <Link href="/login" className="font-medium text-brand hover:text-brand-soft">
           Sign in
         </Link>
       </p>

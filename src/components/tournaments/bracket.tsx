@@ -9,7 +9,7 @@ function Members({ members }: { members: NonNullable<BracketSlot['members']> }) 
         <span key={i}>
           {i > 0 && <span className="text-muted-foreground/50"> + </span>}
           {m.slug ? (
-            <Link href={`/players/${m.slug}`} className="hover:text-gold hover:underline">
+            <Link href={`/players/${m.slug}`} className="hover:text-brand hover:underline">
               {m.name}
             </Link>
           ) : (
@@ -28,7 +28,7 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
     <div
       className={cn(
         'flex items-center gap-2 px-2.5 py-1.5',
-        won && 'bg-gold/[0.08]',
+        won && 'bg-brand/[0.08]',
         !slot?.name && 'text-muted-foreground',
       )}
     >
@@ -36,7 +36,7 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
         <span className="tabular w-4 text-right text-[0.6rem] text-muted-foreground">{slot.seed}</span>
       )}
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-gold' : dim ? 'text-muted-foreground' : 'text-foreground')}>
+        <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-brand' : dim ? 'text-muted-foreground' : 'text-foreground')}>
           {label}
         </span>
         {hasMembers ? (
@@ -48,7 +48,7 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
         )}
       </span>
       {slot?.score != null && (
-        <span className={cn('tabular text-sm', won ? 'font-bold text-gold' : 'text-muted-foreground')}>{slot.score}</span>
+        <span className={cn('tabular text-sm', won ? 'font-bold text-brand' : 'text-muted-foreground')}>{slot.score}</span>
       )}
     </div>
   )
@@ -86,13 +86,13 @@ export function Bracket({
   fluid?: boolean
 }) {
   return (
-    <div className="scrollbar-gold overflow-x-auto pb-2">
+    <div className="scrollbar-brand overflow-x-auto pb-2">
       <div className={cn('flex items-stretch', fluid ? 'min-w-full gap-2 sm:gap-3 xl:gap-4' : 'min-w-max gap-8')}>
         {rounds.map((round, ri) => {
           const active = currentRound && round.name.toLowerCase() === currentRound.toLowerCase()
           return (
             <div key={ri} className={cn('flex flex-col', fluid ? 'min-w-[9rem] flex-1' : 'w-52')}>
-              <p className={cn('eyebrow mb-3 text-center', active ? 'text-gold' : 'text-muted-foreground')}>
+              <p className={cn('eyebrow mb-3 text-center', active ? 'text-brand' : 'text-muted-foreground')}>
                 {round.name}
               </p>
               <div className="flex flex-1 flex-col justify-around gap-4">

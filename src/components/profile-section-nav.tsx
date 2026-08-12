@@ -109,7 +109,7 @@ export function ProfileSectionNav({ sections }: { sections: ProfileNavSection[] 
                 className={cn(
                   'rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                   active === s.id
-                    ? 'bg-gold/10 text-gold'
+                    ? 'bg-brand/10 text-brand'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >

@@ -29,10 +29,10 @@ export function CupWinnerSummary({
   completedAt: string | null
 }) {
   return (
-    <section className="mt-6 rounded-xl border border-gold/25 bg-gold/[0.06] p-5">
+    <section className="mt-6 rounded-xl border border-brand/25 bg-brand/[0.06] p-5">
       <div className="flex items-center gap-2">
-        <Trophy className="size-5 text-gold" aria-hidden />
-        <span className="eyebrow text-gold">Final Result</span>
+        <Trophy className="size-5 text-brand" aria-hidden />
+        <span className="eyebrow text-brand">Final Result</span>
         {completedAt && <span className="ml-auto text-xs text-muted-foreground">Completed {completedAt}</span>}
       </div>
 
@@ -40,7 +40,7 @@ export function CupWinnerSummary({
         <div className="flex items-center gap-3">
           <PlayerAvatar name={champion.name} size="md" />
           <div>
-            <p className="eyebrow text-[0.55rem] text-gold">Champion</p>
+            <p className="eyebrow text-[0.55rem] text-brand">Champion</p>
             <PublicPlayerIdentity preferredName={champion.name} cueverseId={champion.cueverseId} slug={champion.slug} className="text-base" />
           </div>
         </div>

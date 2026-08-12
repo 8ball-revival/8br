@@ -175,7 +175,7 @@ function TimeoutCard({ userId, run, pending }: { userId: number; run: (fn: () =>
       <p className="text-xs text-muted-foreground">Blocks Cup + Tournament signup and withdraws active participation. Expires automatically.</p>
       <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((p) => (
-          <button key={p.hours} type="button" onClick={() => { setHours(p.hours); setCustom('') }} className={`rounded-md border px-2.5 py-1 text-xs ${!custom && hours === p.hours ? 'border-gold bg-gold/10 text-gold' : 'border-border text-muted-foreground hover:bg-muted'}`}>{p.label}</button>
+          <button key={p.hours} type="button" onClick={() => { setHours(p.hours); setCustom('') }} className={`rounded-md border px-2.5 py-1 text-xs ${!custom && hours === p.hours ? 'border-brand bg-brand/10 text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>{p.label}</button>
         ))}
       </div>
       <label className="block text-xs text-muted-foreground">Or custom end: <input type="datetime-local" value={custom} onChange={(e) => setCustom(e.target.value)} className={`${FIELD} mt-1`} /></label>
@@ -198,7 +198,7 @@ function BanCard({ userId, run, pending, ipAvailable }: { userId: number; run: (
       <Input placeholder="Reason (required)" value={reason} onChange={(e) => setReason(e.target.value)} />
       {ipAvailable ? (
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={useIp} onChange={(e) => setUseIp(e.target.checked)} className="size-4 rounded border-input accent-gold" />
+          <input type="checkbox" checked={useIp} onChange={(e) => setUseIp(e.target.checked)} className="size-4 rounded border-input accent-brand" />
           Also store a hashed IP identifier (secondary safeguard). Shared/VPN IPs are flagged and never the sole gate.
         </label>
       ) : (

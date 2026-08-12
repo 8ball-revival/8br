@@ -56,10 +56,10 @@ export function CreateCupWizard() {
   }
 
   return (
-    <div className="mb-8 rounded-xl border border-gold/30 bg-card/40 p-5">
+    <div className="mb-8 rounded-xl border border-brand/30 bg-card/40 p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant="gold">Admin</Badge>
+          <Badge variant="default">Admin</Badge>
           <h2 className="font-display text-lg font-semibold">Create a cup</h2>
         </div>
         <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="size-4" /></button>

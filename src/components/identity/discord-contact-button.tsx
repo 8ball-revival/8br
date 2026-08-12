@@ -42,7 +42,7 @@ export function DiscordContactButton({
   const { kind, href } = classify(value)
   const label = `Message ${name} on Discord`
   const base = cn(
-    'inline-flex items-center justify-center rounded-md border border-border bg-card/60 p-2 text-[#5865F2] transition-colors hover:bg-card hover:text-[#5865F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
+    'inline-flex items-center justify-center rounded-md border border-border bg-card/60 p-2 text-[#5865F2] transition-colors hover:bg-card hover:text-[#5865F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
     className,
   )
 

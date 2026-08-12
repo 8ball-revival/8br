@@ -28,7 +28,7 @@ export function SectionHeader({
   return (
     <div className={cn('mb-6 flex flex-wrap items-end justify-between gap-4', className)}>
       <div>
-        {eyebrow && <p className="eyebrow mb-2 text-gold">{eyebrow}</p>}
+        {eyebrow && <p className="eyebrow mb-2 text-brand">{eyebrow}</p>}
         <div className="flex items-center gap-3">
           <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
           {sample && <Badge variant="muted">Sample</Badge>}
@@ -38,7 +38,7 @@ export function SectionHeader({
       {actionHref && (
         <Link
           href={actionHref}
-          className="inline-flex items-center gap-1 text-sm font-medium text-gold transition-colors hover:text-gold-soft"
+          className="inline-flex items-center gap-1 text-sm font-medium text-brand transition-colors hover:text-brand-soft"
         >
           {actionLabel}
           <ArrowRight className="size-4" aria-hidden />

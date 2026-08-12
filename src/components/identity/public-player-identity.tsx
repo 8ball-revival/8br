@@ -36,7 +36,7 @@ export function PublicPlayerIdentity({
   )
   if (slug) {
     return (
-      <Link href={`/players/${slug}`} className={cn('hover:text-gold transition-colors', className)} title={formatIdentityLabel(name, id)}>
+      <Link href={`/players/${slug}`} className={cn('hover:text-brand transition-colors', className)} title={formatIdentityLabel(name, id)}>
         {inner}
       </Link>
     )

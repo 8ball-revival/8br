@@ -24,7 +24,7 @@ export default async function LoginPage() {
     <Container className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center py-16">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <p className="eyebrow text-gold">8 Ball Revival</p>
+          <p className="eyebrow text-brand">8 Ball Revival</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Sign in to manage your 8 Ball Revival account and Tournament 2 registration.
