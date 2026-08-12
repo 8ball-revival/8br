@@ -27,7 +27,7 @@ function revalidateCup(cupNumber?: number | null) {
 }
 
 async function cupNumberOfSeason(seasonId: number): Promise<number | null> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { cupNumber: true } })
+  const s = await prisma.tournament.findUnique({ where: { id: seasonId }, select: { cupNumber: true } })
   return s?.cupNumber ?? null
 }
 async function cupNumberOfMatch(matchId: number): Promise<number | null> {
@@ -362,7 +362,7 @@ export async function setTeamMembersAction(teamId: number, members: teamSvc.Team
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.setTeamMembers(actor, teamId, members)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.cupTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
   revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
   return { ok: true, message: 'Roster saved.' }
 }
@@ -371,7 +371,7 @@ export async function renameTeamAction(teamId: number, name: string): Promise<Ac
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.renameTeam(actor, teamId, name)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.cupTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
   revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
   return { ok: true }
 }
@@ -380,7 +380,7 @@ export async function withdrawTeamAction(teamId: number): Promise<ActionResult> 
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.withdrawTeam(actor, teamId)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.cupTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
   revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
   return { ok: true }
 }
@@ -389,14 +389,14 @@ export async function restoreTeamAction(teamId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await teamSvc.restoreTeam(actor, teamId)
   if (!r.ok) return { error: r.error }
-  const t = await prisma.cupTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
   revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
   return { ok: true }
 }
 
 export async function deleteTeamAction(teamId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const t = await prisma.cupTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
+  const t = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, select: { seasonId: true } })
   const r = await teamSvc.deleteTeam(actor, teamId)
   if (!r.ok) return { error: r.error }
   revalidateCup(t ? await cupNumberOfSeason(t.seasonId) : null)
@@ -463,14 +463,14 @@ export async function reportCupLossAction(matchId: number, myGamesWon: number): 
  */
 export async function deleteCupAction(seasonId: number, typedCode: string): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const s = await prisma.season.findUnique({ where: { id: seasonId } })
+  const s = await prisma.tournament.findUnique({ where: { id: seasonId } })
   if (!s || s.competitionType !== 'CUP') return { error: 'Cup not found.' }
   if (s.importedFromFixture || s.locked) return { error: 'Imported historical cups cannot be deleted.' }
   if (typedCode.trim() !== (s.competitionCode ?? '')) return { error: `Confirmation code does not match. Type ${s.competitionCode} to confirm deletion.` }
 
   const code = s.competitionCode
   const cupNumber = s.cupNumber
-  await prisma.season.delete({ where: { id: seasonId } }) // cascades registrations, teams, playoff matches, bracket rows
+  await prisma.tournament.delete({ where: { id: seasonId } }) // cascades registrations, teams, playoff matches, bracket rows
   const { recordAudit } = await import('./audit')
   await recordAudit(actor, { action: 'cup.delete', entity: 'Season', entityId: seasonId, oldValue: { name: s.name, code, cupNumber } })
   const { regenerateCupSnapshot } = await import('@/lib/cups/migrate') // rebuild the snapshot without the deleted cup

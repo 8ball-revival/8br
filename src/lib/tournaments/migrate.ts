@@ -85,14 +85,14 @@ export async function importCupsFromFixtures(): Promise<ImportResult> {
       locked: completed,
       seasonStatus: (completed ? 'COMPLETED' : 'ACTIVE') as 'COMPLETED' | 'ACTIVE',
     }
-    const comp = await prisma.season.upsert({
+    const comp = await prisma.tournament.upsert({
       where: { slug },
       update: fields,
       create: { slug, ...fields, ...(completed ? { archivedAt: new Date('2000-01-01T00:00:00Z') } : {}) },
     })
 
     // Idempotent: clear + re-create child structures.
-    await prisma.cupBracketMatch.deleteMany({ where: { competitionId: comp.id } })
+    await prisma.tournamentBracketMatch.deleteMany({ where: { competitionId: comp.id } })
     await prisma.cupTeamTie.deleteMany({ where: { competitionId: comp.id } }) // cascades tie matches
 
     const importRounds = async (rounds: BracketRound[] | undefined, kind: 'MAIN' | 'WINNERS' | 'LOSERS' | 'GRAND_FINAL') => {
@@ -102,7 +102,7 @@ export async function importCupsFromFixtures(): Promise<ImportResult> {
         for (let mi = 0; mi < rd.matches.length; mi++) {
           const m = rd.matches[mi]
           const a = m.a, b = m.b
-          await prisma.cupBracketMatch.create({
+          await prisma.tournamentBracketMatch.create({
             data: {
               competitionId: comp.id, bracketKind: kind, roundName: rd.name, roundOrder: ri, matchOrder: mi,
               aPresent: a !== undefined, aName: a?.name ?? null, aHandle: a?.handle ?? null, aSeed: a?.seed ?? null, aScore: a?.score ?? null,
@@ -147,7 +147,7 @@ export async function importCupsFromFixtures(): Promise<ImportResult> {
 // wrapper just supplies the DB rows.
 
 export async function getCupsFromDb(): Promise<Cup[]> {
-  const comps = await prisma.season.findMany({
+  const comps = await prisma.tournament.findMany({
     where: { competitionType: 'CUP' },
     orderBy: { cupNumber: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },

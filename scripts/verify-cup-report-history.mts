@@ -15,7 +15,7 @@ check('registration OPEN → REGISTRATION_OPEN', D({ registrationStatus: 'OPEN' 
 check('registration CLOSED → REGISTRATION_CLOSED', D({ registrationStatus: 'CLOSED' }) === 'REGISTRATION_CLOSED')
 check('default → DRAFT', D({}) === 'DRAFT')
 
-const cup = await prisma.season.create({ data: { slug: 'zzz-verify-rh', name: 'RH Cup', competitionType: 'CUP', competitionCode: 'CRH', cupNumber: 99002, cupState: 'IN_PROGRESS', registrationStatus: 'CLOSED', seasonStatus: 'ACTIVE', playoffsStatus: 'PUBLISHED', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-verify-rh', name: 'RH Cup', competitionType: 'CUP', competitionCode: 'CRH', cupNumber: 99002, cupState: 'IN_PROGRESS', registrationStatus: 'CLOSED', seasonStatus: 'ACTIVE', playoffsStatus: 'PUBLISHED', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- Part A: player self-report (loss only) ---')
@@ -64,7 +64,7 @@ try {
   check('PUBLIC history keeps lifecycle milestones', pk.has('registration_open') && pk.has('bracket_generated') && pk.has('recovery'))
   check('PUBLIC recovery has NO reason text anywhere', !JSON.stringify(pub).includes('SENSITIVE'))
 } finally {
-  await prisma.season.delete({ where: { id } }).catch(() => {})
+  await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'cup-rh' } })
   const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
   await regenerateCupSnapshot().catch(() => {})

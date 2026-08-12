@@ -10,7 +10,7 @@ const slug = 'ego-season-2'
 const closesAt = new Date('2026-08-28T06:00:00-07:00') // Aug 28 2026, 6:00 AM MST
 const opensAt = new Date('2026-07-01T00:00:00-07:00')
 
-const season = await prisma.season.upsert({
+const season = await prisma.tournament.upsert({
   where: { slug },
   update: {
     name: '2026 Season 2',

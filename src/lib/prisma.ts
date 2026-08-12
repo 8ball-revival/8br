@@ -52,7 +52,7 @@ export const prisma = new Proxy({} as PrismaClient, {
     if (prop.startsWith('$')) {
       return (...args: any[]) => getPrisma().then((c) => (c as any)[prop](...args))
     }
-    // Model delegates (prisma.season.findFirst, …).
+    // Model delegates (prisma.tournament.findFirst, …).
     return new Proxy(
       {},
       {

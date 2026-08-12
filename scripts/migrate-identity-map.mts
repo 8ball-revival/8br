@@ -21,7 +21,7 @@ async function reassignAndDelete(fromId: string, toId: string) {
     if (clash) await prisma.registration.delete({ where: { id: reg.id } })
     else await prisma.registration.update({ where: { id: reg.id }, data: { playerId: toId } })
   }
-  await prisma.cupTeamMember.updateMany({ where: { playerId: fromId }, data: { playerId: toId } })
+  await prisma.tournamentTeamMember.updateMany({ where: { playerId: fromId }, data: { playerId: toId } })
   await prisma.accountClaim.updateMany({ where: { playerId: fromId }, data: { playerId: toId } })
   await prisma.playerAlias.deleteMany({ where: { playerId: fromId } }) // re-added to canonical below
   await prisma.player.delete({ where: { id: fromId } })

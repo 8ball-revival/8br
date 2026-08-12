@@ -1,7 +1,7 @@
 {
-  "name": "8-ball-revival",
+  "name": "world-cue-championships",
   "version": "0.1.0",
-  "description": "8 Ball Revival — the next chapter of competitive online 8-ball. Formerly known as 8BRCAM.",
+  "description": "World Cue Championships (WCC) — a standalone tournament platform for competitive cue sports.",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

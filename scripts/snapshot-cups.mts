@@ -30,7 +30,7 @@ function fail(msg: string): never {
 }
 
 try {
-  const comps = await prisma.season.findMany({
+  const comps = await prisma.tournament.findMany({
     where: { competitionType: 'CUP' },
     orderBy: { cupNumber: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
@@ -60,9 +60,9 @@ try {
   renameSync(TMP, OUT) // atomic replace
 
   // Also update the DB-backed versioned snapshot (the live derived-data revision).
-  const prev = await prisma.cupSnapshot.findUnique({ where: { id: 1 } })
+  const prev = await prisma.tournamentSnapshot.findUnique({ where: { id: 1 } })
   const revision = (prev?.revision ?? 0) + 1
-  await prisma.cupSnapshot.upsert({
+  await prisma.tournamentSnapshot.upsert({
     where: { id: 1 },
     update: { revision, payload: cups as unknown as object },
     create: { id: 1, revision, payload: cups as unknown as object },

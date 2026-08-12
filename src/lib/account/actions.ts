@@ -357,7 +357,7 @@ export async function withdrawSeason2(_prev: FormResult, _formData: FormData): P
 async function cupByNumber(cupNumber: number) {
   if (!Number.isFinite(cupNumber)) return null
   const { prisma } = await import('@/lib/prisma')
-  return prisma.season.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+  return prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
 }
 
 /** Enter the current user into a specific live Cup (the same public-registration path as

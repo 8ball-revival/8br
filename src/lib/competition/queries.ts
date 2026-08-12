@@ -7,15 +7,15 @@ import { resolveEntrants, ENTRANT_SELECT } from './entrants'
  *  Scoped to competitionType SEASON so migrated Cups (also comp_season rows) are
  *  never mistaken for the active season. */
 export async function getActiveSeason(): Promise<Season | null> {
-  const live = await prisma.season.findFirst({
+  const live = await prisma.tournament.findFirst({
     where: { competitionType: 'SEASON', seasonStatus: { not: 'COMPLETED' } },
     orderBy: { createdAt: 'desc' },
   })
-  return live ?? prisma.season.findFirst({ where: { competitionType: 'SEASON' }, orderBy: { createdAt: 'desc' } })
+  return live ?? prisma.tournament.findFirst({ where: { competitionType: 'SEASON' }, orderBy: { createdAt: 'desc' } })
 }
 
 export async function getSeasonBySlug(slug: string): Promise<Season | null> {
-  return prisma.season.findUnique({ where: { slug } })
+  return prisma.tournament.findUnique({ where: { slug } })
 }
 
 /** Live registered (approved) player count for a season. */
@@ -108,7 +108,7 @@ export async function searchEntrantCandidates(seasonId: number, query: string, l
 
 /** Published groups with players + standings, for the PUBLIC groups page. */
 export async function getPublishedGroups(seasonId: number) {
-  return prisma.seasonGroup.findMany({
+  return prisma.tournamentGroup.findMany({
     where: { seasonId, published: true },
     orderBy: { ordinal: 'asc' },
     include: {
@@ -147,7 +147,7 @@ export interface GroupBuilderData {
  */
 export async function getGroupBuilder(seasonId: number): Promise<GroupBuilderData> {
   const [rawGroups, approved] = await Promise.all([
-    prisma.seasonGroup.findMany({
+    prisma.tournamentGroup.findMany({
       where: { seasonId },
       orderBy: { ordinal: 'asc' },
       include: { players: { orderBy: { seed: 'asc' }, include: { registration: { select: ENTRANT_SELECT } } } },
@@ -216,7 +216,7 @@ export async function getPlayoffBuilder(seasonId: number): Promise<PlayoffBuilde
 
 /** All groups (published or not) with players (+ registration) + standings, for ADMIN. */
 export async function getAllGroups(seasonId: number) {
-  return prisma.seasonGroup.findMany({
+  return prisma.tournamentGroup.findMany({
     where: { seasonId },
     orderBy: { ordinal: 'asc' },
     include: {
@@ -227,14 +227,14 @@ export async function getAllGroups(seasonId: number) {
 }
 
 export async function getGroupMatches(groupId: number) {
-  return prisma.seasonMatch.findMany({
+  return prisma.tournamentMatch.findMany({
     where: { groupId },
     orderBy: [{ round: 'asc' }, { id: 'asc' }],
   })
 }
 
 export async function getSeasonMatches(seasonId: number) {
-  return prisma.seasonMatch.findMany({
+  return prisma.tournamentMatch.findMany({
     where: { seasonId },
     orderBy: [{ groupId: 'asc' }, { round: 'asc' }, { id: 'asc' }],
   })
@@ -266,12 +266,12 @@ export async function listRegistrations(seasonId: number) {
 export async function getDashboardSummary(seasonId: number) {
   const [reg, groups, matchesWaiting, unverified, disputes, playoff] = await Promise.all([
     prisma.registration.groupBy({ by: ['status'], where: { seasonId }, _count: true }),
-    prisma.seasonGroup.count({ where: { seasonId } }),
-    prisma.seasonMatch.count({ where: { seasonId, status: 'SCHEDULED' } }),
-    prisma.seasonMatch.count({
+    prisma.tournamentGroup.count({ where: { seasonId } }),
+    prisma.tournamentMatch.count({ where: { seasonId, status: 'SCHEDULED' } }),
+    prisma.tournamentMatch.count({
       where: { seasonId, status: { not: 'SCHEDULED' }, verification: 'UNVERIFIED' },
     }),
-    prisma.seasonMatch.count({ where: { seasonId, status: 'DISPUTED' } }),
+    prisma.tournamentMatch.count({ where: { seasonId, status: 'DISPUTED' } }),
     prisma.playoffMatch.count({ where: { seasonId } }),
   ])
   const byStatus: Record<string, number> = {}

@@ -27,7 +27,7 @@ const check = (name: string, cond: boolean) => { if (cond) { pass++; log(`  ✓ 
 const UID = 990001 // synthetic Payload user id (guaranteed absent)
 const actor = { userId: 990000, username: 'verify-script' }
 
-const activeSeason = await prisma.season.findFirst({ where: { competitionType: 'SEASON', seasonStatus: { not: 'COMPLETED' } }, select: { id: true, registrationStatus: true } })
+const activeSeason = await prisma.tournament.findFirst({ where: { competitionType: 'SEASON', seasonStatus: { not: 'COMPLETED' } }, select: { id: true, registrationStatus: true } })
 let testRegId: number | null = null
 
 try {
@@ -92,7 +92,7 @@ try {
   check('exactly one Owner in the system', owners[0]?.n === 1)
 
   // Completed-history safety
-  const completed = await prisma.season.count({ where: { OR: [{ seasonStatus: 'COMPLETED' }, { cupStatus: 'completed' }] } })
+  const completed = await prisma.tournament.count({ where: { OR: [{ seasonStatus: 'COMPLETED' }, { cupStatus: 'completed' }] } })
   log(`  (info) cleanup never touches COMPLETED competitions — ${completed} present`)
 } finally {
   // ---- Delete every synthetic row this run created (fully non-destructive to real data) ----

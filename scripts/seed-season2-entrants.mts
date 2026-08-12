@@ -41,7 +41,7 @@ const ROSTER: { name: string; handle: string; discord?: string; timezone?: strin
   { name: 'Peter', handle: 'eskimo', discord: 'whishy', timezone: 'EST' },
 ]
 
-const season = await prisma.season.findUnique({ where: { slug: 'ego-season-2' } })
+const season = await prisma.tournament.findUnique({ where: { slug: 'ego-season-2' } })
 if (!season) { console.error('No ego-season-2 found.'); process.exit(1) }
 
 // Idempotent: clear prior admin-added entrants (keeps account/self-registrations).

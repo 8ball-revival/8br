@@ -6,18 +6,19 @@
  */
 
 // --- Brand identity (single source of truth) ---
-export const brandName = '8 Ball Revival'
-export const brandTagline = 'Formerly known as 8BRCAM'
-export const organizationName = '8 Ball Revival'
+export const brandName = 'World Cue Championships'
+export const brandTagline = 'Competitive cue sports championships'
+export const brandAbbreviation = 'WCC'
+export const organizationName = 'World Cue Championships'
 
 /** Default document title (home / root). */
-export const SITE_TITLE_DEFAULT = '8 Ball Revival | Formerly 8BRCAM'
+export const SITE_TITLE_DEFAULT = 'World Cue Championships'
 export const SITE_DESCRIPTION =
-  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Register for Season 1, follow the group stage and playoffs, and explore the archive.'
+  'World Cue Championships (WCC) — the home of competitive cue sports. Enter standalone tournaments, follow live brackets and standings, and climb the rankings.'
 
 // Back-compat aliases (metadata helpers reference these).
 export const SITE_NAME = brandName
-export const SITE_SHORT = brandName
+export const SITE_SHORT = brandAbbreviation
 export const SITE_TAGLINE = brandTagline
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')

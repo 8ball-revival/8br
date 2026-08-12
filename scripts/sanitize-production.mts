@@ -24,7 +24,7 @@ async function counts() {
     bridged: await prisma.player.count({ where: { legacyPlayerId: { not: null } } }),
     accounts: await prisma.accountClaim.count(),
     registrations: await prisma.registration.count(),
-    seasons: await prisma.season.count(),
+    seasons: await prisma.tournament.count(),
   }
 }
 

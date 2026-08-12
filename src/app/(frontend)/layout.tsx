@@ -23,10 +23,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE_DEFAULT,
-    template: '%s · 8 Ball Revival',
+    template: '%s · World Cue Championships',
   },
   description: SITE_DESCRIPTION,
-  applicationName: '8 Ball Revival',
+  applicationName: 'World Cue Championships',
   // No default canonical here: each page sets its own so pages never wrongly
   // claim to be a duplicate of the homepage.
   openGraph: {
@@ -45,20 +45,9 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#12131a' },
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-  ],
+  // WCC ships a single committed dark theme.
+  themeColor: '#050505',
 }
-
-// Set the theme class before paint to avoid a flash. Dark is the default (no class);
-// only an explicit "light" preference adds the `.light` class.
-const themeScript = `
-try {
-  var t = localStorage.getItem('8ball-theme');
-  if (t === 'light') document.documentElement.classList.add('light');
-} catch (e) {}
-`
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -67,9 +56,6 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       suppressHydrationWarning
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
         <SiteHeader />
         <main className="flex-1">{children}</main>

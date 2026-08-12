@@ -13,10 +13,10 @@ import { prisma } from '@/lib/prisma'
 import { planBracket, type Qualifier } from '@/lib/competition/bracket'
 
 async function resetLiveCup(cupNumber: number) {
-  const existing = await prisma.season.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+  const existing = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
   if (existing) {
     if (existing.importedFromFixture) throw new Error(`Refusing to reset imported historical cup #${cupNumber}`)
-    await prisma.season.delete({ where: { id: existing.id } }) // cascades registrations/teams/playoff matches
+    await prisma.tournament.delete({ where: { id: existing.id } }) // cascades registrations/teams/playoff matches
     console.log(`  reset existing live cup #${cupNumber}`)
   }
 }
@@ -52,7 +52,7 @@ async function buildDraftBracket(seasonId: number, qualifiers: Qualifier[]) {
 
 async function seedCup12() {
   await resetLiveCup(12)
-  const season = await prisma.season.create({
+  const season = await prisma.tournament.create({
     data: {
       slug: 'cup-12',
       name: '9 Ball Cup',
@@ -92,7 +92,7 @@ async function seedCup12() {
 
 async function seedCup13() {
   await resetLiveCup(13)
-  const season = await prisma.season.create({
+  const season = await prisma.tournament.create({
     data: {
       slug: 'cup-13',
       name: 'Sit and Stand 2v2',
@@ -136,8 +136,8 @@ async function seedCup13() {
     const reg = await prisma.registration.create({
       data: { seasonId: season.id, username: t.name, displayName: t.name, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date(), seed: i + 1 },
     })
-    const team = await prisma.cupTeam.create({ data: { seasonId: season.id, registrationId: reg.id, name: t.name, seed: i + 1 } })
-    await prisma.cupTeamMember.createMany({
+    const team = await prisma.tournamentTeam.create({ data: { seasonId: season.id, registrationId: reg.id, name: t.name, seed: i + 1 } })
+    await prisma.tournamentTeamMember.createMany({
       data: t.members.map((name, mi) => ({ teamId: team.id, name, memberOrder: mi, captain: mi === 0 })),
     })
     qualifiers.push({ registrationId: reg.id, username: t.name, seed: i + 1 })

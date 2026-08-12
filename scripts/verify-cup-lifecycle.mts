@@ -5,10 +5,10 @@ const check=(n:string,c:boolean)=>{ if(c){pass++;console.log('  ✓ '+n)}else{fa
 const actor={userId:990900,username:'cup-verify'}
 
 // Create a synthetic test cup in DRAFT.
-const cup = await prisma.season.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', competitionCode:'CVERIFY', cupNumber:99001, cupState:'DRAFT', registrationStatus:'NOT_OPEN', seasonStatus:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', competitionCode:'CVERIFY', cupNumber:99001, cupState:'DRAFT', registrationStatus:'NOT_OPEN', seasonStatus:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
 const id = cup.id
 try {
-  const st = async () => getCupState((await prisma.season.findUniqueOrThrow({ where:{id} })))
+  const st = async () => getCupState((await prisma.tournament.findUniqueOrThrow({ where:{id} })))
   check('starts DRAFT', await st()==='DRAFT')
 
   // Invalid skip rejected.
@@ -16,10 +16,10 @@ try {
   check('DRAFT→IN_PROGRESS rejected (invalid skip)', !bad.ok && /Invalid transition/.test(bad.error||''))
 
   check('DRAFT→REGISTRATION_OPEN ok', (await transitionCupState(actor,id,'REGISTRATION_OPEN')).ok)
-  check('  registrationStatus synced OPEN', (await prisma.season.findUniqueOrThrow({where:{id}})).registrationStatus==='OPEN')
+  check('  registrationStatus synced OPEN', (await prisma.tournament.findUniqueOrThrow({where:{id}})).registrationStatus==='OPEN')
   check('REGISTRATION_OPEN→COMPLETED rejected', !(await transitionCupState(actor,id,'COMPLETED')).ok)
   check('REGISTRATION_OPEN→REGISTRATION_CLOSED ok', (await transitionCupState(actor,id,'REGISTRATION_CLOSED')).ok)
-  check('  registrationStatus synced CLOSED', (await prisma.season.findUniqueOrThrow({where:{id}})).registrationStatus==='CLOSED')
+  check('  registrationStatus synced CLOSED', (await prisma.tournament.findUniqueOrThrow({where:{id}})).registrationStatus==='CLOSED')
 
   // NEW: bracket generation is its own state; REGISTRATION_CLOSED can no longer skip to IN_PROGRESS.
   check('matrix: REGISTRATION_CLOSED→IN_PROGRESS not allowed', !canTransition('REGISTRATION_CLOSED','IN_PROGRESS'))
@@ -28,7 +28,7 @@ try {
   const skip = await transitionCupState(actor, id, 'IN_PROGRESS')
   check('REGISTRATION_CLOSED→IN_PROGRESS rejected (must generate bracket first)', !skip.ok && /Invalid transition/.test(skip.error||''))
   check('REGISTRATION_CLOSED→BRACKET_GENERATED ok', (await transitionCupState(actor,id,'BRACKET_GENERATED')).ok)
-  check('  seasonStatus stays UPCOMING in BRACKET_GENERATED (not started)', (await prisma.season.findUniqueOrThrow({where:{id}})).seasonStatus==='UPCOMING')
+  check('  seasonStatus stays UPCOMING in BRACKET_GENERATED (not started)', (await prisma.tournament.findUniqueOrThrow({where:{id}})).seasonStatus==='UPCOMING')
   check('  reporting gate: requireCupState IN_PROGRESS rejected while BRACKET_GENERATED', !(await requireCupState(id,['IN_PROGRESS'])).ok)
   check('BRACKET_GENERATED→IN_PROGRESS ok (explicit begin)', (await transitionCupState(actor,id,'IN_PROGRESS')).ok)
 
@@ -44,7 +44,7 @@ try {
 
   const done = await transitionCupState(actor, id, 'COMPLETED')
   check('IN_PROGRESS→COMPLETED ok (final decided)', done.ok)
-  const afterComplete = await prisma.season.findUniqueOrThrow({ where:{id} })
+  const afterComplete = await prisma.tournament.findUniqueOrThrow({ where:{id} })
   check('  ladderAppliedAt set once', afterComplete.ladderAppliedAt!=null)
   const firstApplied = afterComplete.ladderAppliedAt
 
@@ -61,14 +61,14 @@ try {
   // Recovery: COMPLETED→IN_PROGRESS (owner recovery), then re-complete: ladder NOT re-applied.
   check('recovery COMPLETED→IN_PROGRESS ok', (await transitionCupState(actor,id,'IN_PROGRESS',{reason:'reopen',recovery:true})).ok)
   await transitionCupState(actor, id, 'COMPLETED')
-  const afterRe = await prisma.season.findUniqueOrThrow({ where:{id} })
+  const afterRe = await prisma.tournament.findUniqueOrThrow({ where:{id} })
   check('ladder NOT re-applied (idempotent — timestamp unchanged)', afterRe.ladderAppliedAt?.getTime()===firstApplied?.getTime())
 
   // State-change audit trail exists.
   const audits = await prisma.auditLog.count({ where:{ actorUsername:'cup-verify', action:{ in:['cup.state','cup.state.recovery','cup.ladder.apply'] } } })
   check('state changes + ladder are audited', audits>=5)
 } finally {
-  await prisma.season.delete({ where:{ id } }).catch(()=>{}) // cascades registrations + matches
+  await prisma.tournament.delete({ where:{ id } }).catch(()=>{}) // cascades registrations + matches
   await prisma.auditLog.deleteMany({ where:{ actorUsername:'cup-verify' } })
   const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
   await regenerateCupSnapshot().catch(()=>{})

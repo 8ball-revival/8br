@@ -63,7 +63,7 @@ export async function checkSelfSignupEligibility(userId: number, seasonId: numbe
   const blocked = await statusGate(userId)
   if (blocked) return blocked
 
-  const season = await prisma.season.findUnique({ where: { id: seasonId }, select: { id: true, registrationStatus: true } })
+  const season = await prisma.tournament.findUnique({ where: { id: seasonId }, select: { id: true, registrationStatus: true } })
   if (!season) return { ok: false, code: 'NOT_FOUND', reason: 'Competition not found.' }
   if (season.registrationStatus !== 'OPEN') return { ok: false, code: 'REGISTRATION_CLOSED', reason: 'Registration for this competition is closed.' }
 

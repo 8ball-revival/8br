@@ -22,7 +22,7 @@ export interface TeamView {
 
 /** All teams for a team-format cup, ordered by seed then name, with rosters. */
 export async function getTeamsForSeason(seasonId: number): Promise<TeamView[]> {
-  const teams = await prisma.cupTeam.findMany({
+  const teams = await prisma.tournamentTeam.findMany({
     where: { seasonId },
     include: { members: { orderBy: { memberOrder: 'asc' } } },
     orderBy: [{ seed: 'asc' }, { name: 'asc' }],
@@ -40,7 +40,7 @@ export async function getTeamsForSeason(seasonId: number): Promise<TeamView[]> {
 
 /** Map registrationId -> roster, for rendering team members beneath bracket slots. */
 export async function getTeamMembersByRegistration(seasonId: number): Promise<Map<number, { name: string; handle: string | null; playerId: string | null }[]>> {
-  const teams = await prisma.cupTeam.findMany({
+  const teams = await prisma.tournamentTeam.findMany({
     where: { seasonId },
     include: { members: { orderBy: { memberOrder: 'asc' } } },
   })
@@ -54,14 +54,14 @@ export async function createTeam(actor: Actor, seasonId: number, name: string): 
   const clean = name.trim()
   if (!clean) return { ok: false, error: 'A team name is required.' }
   await assertCompetitionUnlocked(prisma, seasonId)
-  const dupe = await prisma.cupTeam.findFirst({ where: { seasonId, name: clean } })
+  const dupe = await prisma.tournamentTeam.findFirst({ where: { seasonId, name: clean } })
   if (dupe) return { ok: false, error: `A team named "${clean}" already exists in this cup.` }
 
   const teamId = await prisma.$transaction(async (tx) => {
     const reg = await tx.registration.create({
       data: { seasonId, username: clean, displayName: clean, status: 'APPROVED', addedByAdmin: true, approvedAt: new Date() },
     })
-    const team = await tx.cupTeam.create({ data: { seasonId, registrationId: reg.id, name: clean } })
+    const team = await tx.tournamentTeam.create({ data: { seasonId, registrationId: reg.id, name: clean } })
     await recordAudit(actor, { action: 'cup.team.create', entity: 'CupTeam', entityId: team.id, newValue: { name: clean, seasonId } }, tx)
     return team.id
   })
@@ -71,7 +71,7 @@ export async function createTeam(actor: Actor, seasonId: number, name: string): 
 /** Replace a team's roster. Enforces: no duplicate player within the team, one player on
  *  only one active team per cup, and (soft) the cup's team size as a maximum. */
 export async function setTeamMembers(actor: Actor, teamId: number, members: TeamMemberInput[]): Promise<{ ok: boolean; error?: string }> {
-  const team = await prisma.cupTeam.findUnique({ where: { id: teamId }, include: { season: true } })
+  const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, include: { season: true } })
   if (!team) return { ok: false, error: 'Team not found.' }
   await assertCompetitionUnlocked(prisma, team.seasonId)
 
@@ -93,7 +93,7 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
   // OTHER active teams in this competition.
   const linkedIds = cleaned.map((m) => m.playerId).filter((p): p is string => !!p)
   if (linkedIds.length) {
-    const conflicts = await prisma.cupTeamMember.findMany({
+    const conflicts = await prisma.tournamentTeamMember.findMany({
       where: { playerId: { in: linkedIds }, team: { seasonId: team.seasonId, withdrawn: false, NOT: { id: teamId } } },
       include: { team: true },
     })
@@ -104,8 +104,8 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.cupTeamMember.deleteMany({ where: { teamId } })
-    await tx.cupTeamMember.createMany({
+    await tx.tournamentTeamMember.deleteMany({ where: { teamId } })
+    await tx.tournamentTeamMember.createMany({
       data: cleaned.map((m, i) => ({
         teamId,
         playerId: m.playerId ?? null,
@@ -115,7 +115,7 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
         captain: !!m.captain,
       })),
     })
-    await tx.cupTeam.update({ where: { id: teamId }, data: { updatedAt: new Date() } })
+    await tx.tournamentTeam.update({ where: { id: teamId }, data: { updatedAt: new Date() } })
     await recordAudit(actor, { action: 'cup.team.setMembers', entity: 'CupTeam', entityId: teamId, newValue: { members: cleaned.map((m) => m.name) } }, tx)
   })
   return { ok: true }
@@ -125,13 +125,13 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
 export async function renameTeam(actor: Actor, teamId: number, name: string): Promise<{ ok: boolean; error?: string }> {
   const clean = name.trim()
   if (!clean) return { ok: false, error: 'A team name is required.' }
-  const team = await prisma.cupTeam.findUnique({ where: { id: teamId } })
+  const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
   await assertCompetitionUnlocked(prisma, team.seasonId)
-  const dupe = await prisma.cupTeam.findFirst({ where: { seasonId: team.seasonId, name: clean, NOT: { id: teamId } } })
+  const dupe = await prisma.tournamentTeam.findFirst({ where: { seasonId: team.seasonId, name: clean, NOT: { id: teamId } } })
   if (dupe) return { ok: false, error: `A team named "${clean}" already exists.` }
   await prisma.$transaction(async (tx) => {
-    await tx.cupTeam.update({ where: { id: teamId }, data: { name: clean } })
+    await tx.tournamentTeam.update({ where: { id: teamId }, data: { name: clean } })
     await tx.registration.update({ where: { id: team.registrationId }, data: { username: clean, displayName: clean } })
     // Keep any already-seeded bracket slots showing the new name.
     await tx.playoffMatch.updateMany({ where: { seasonId: team.seasonId, homeRegistrationId: team.registrationId }, data: { homeUsername: clean } })
@@ -143,11 +143,11 @@ export async function renameTeam(actor: Actor, teamId: number, name: string): Pr
 
 /** Withdraw a team (soft; keeps it for restore). */
 export async function withdrawTeam(actor: Actor, teamId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
-  const team = await prisma.cupTeam.findUnique({ where: { id: teamId } })
+  const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
   await assertCompetitionUnlocked(prisma, team.seasonId)
   await prisma.$transaction(async (tx) => {
-    await tx.cupTeam.update({ where: { id: teamId }, data: { withdrawn: true } })
+    await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: true } })
     await tx.registration.update({ where: { id: team.registrationId }, data: { status: 'WITHDRAWN', withdrawnAt: new Date() } })
     await recordAudit(actor, { action: 'cup.team.withdraw', entity: 'CupTeam', entityId: teamId, reason }, tx)
   })
@@ -155,11 +155,11 @@ export async function withdrawTeam(actor: Actor, teamId: number, reason?: string
 }
 
 export async function restoreTeam(actor: Actor, teamId: number): Promise<{ ok: boolean; error?: string }> {
-  const team = await prisma.cupTeam.findUnique({ where: { id: teamId } })
+  const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
   await assertCompetitionUnlocked(prisma, team.seasonId)
   await prisma.$transaction(async (tx) => {
-    await tx.cupTeam.update({ where: { id: teamId }, data: { withdrawn: false } })
+    await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: false } })
     await tx.registration.update({ where: { id: team.registrationId }, data: { status: 'APPROVED', withdrawnAt: null } })
     await recordAudit(actor, { action: 'cup.team.restore', entity: 'CupTeam', entityId: teamId }, tx)
   })
@@ -168,7 +168,7 @@ export async function restoreTeam(actor: Actor, teamId: number): Promise<{ ok: b
 
 /** Delete a team entirely (only when not seeded into a published bracket). */
 export async function deleteTeam(actor: Actor, teamId: number): Promise<{ ok: boolean; error?: string }> {
-  const team = await prisma.cupTeam.findUnique({ where: { id: teamId } })
+  const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
   await assertCompetitionUnlocked(prisma, team.seasonId)
   const inPublishedBracket = await prisma.playoffMatch.count({
@@ -176,7 +176,7 @@ export async function deleteTeam(actor: Actor, teamId: number): Promise<{ ok: bo
   })
   if (inPublishedBracket > 0) return { ok: false, error: 'Team is in a published bracket — return the bracket to draft first.' }
   await prisma.$transaction(async (tx) => {
-    await tx.cupTeam.delete({ where: { id: teamId } }) // members cascade
+    await tx.tournamentTeam.delete({ where: { id: teamId } }) // members cascade
     await tx.registration.delete({ where: { id: team.registrationId } })
     await recordAudit(actor, { action: 'cup.team.delete', entity: 'CupTeam', entityId: teamId, oldValue: { name: team.name } }, tx)
   })

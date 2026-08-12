@@ -12,7 +12,7 @@ check('IN_PROGRESS → REGISTRATION_OPEN REJECTED (permanent lock once live)', !
 check('COMPLETED → REGISTRATION_OPEN REJECTED', !canTransition('COMPLETED', 'REGISTRATION_OPEN'))
 check('REGISTRATION_CLOSED → IN_PROGRESS REJECTED (must generate bracket)', !canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
 
-const cup = await prisma.season.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', competitionCode: 'CWF', cupNumber: 99060, cupState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', competitionCode: 'CWF', cupNumber: 99060, cupState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- temporary entrants are refused server-side ---')
@@ -22,9 +22,9 @@ try {
 
   console.log('\n--- close ⇄ re-open registration persists ---')
   check('REGISTRATION_OPEN → REGISTRATION_CLOSED ok', (await transitionCupState(actor, id, 'REGISTRATION_CLOSED')).ok)
-  check('  persisted CLOSED', getCupState(await prisma.season.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_CLOSED')
+  check('  persisted CLOSED', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_CLOSED')
   check('REGISTRATION_CLOSED → REGISTRATION_OPEN ok (re-open before bracket)', (await transitionCupState(actor, id, 'REGISTRATION_OPEN')).ok)
-  check('  persisted OPEN', getCupState(await prisma.season.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_OPEN')
+  check('  persisted OPEN', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'REGISTRATION_OPEN')
 
   console.log('\n--- bracket staleness: entrant change after generation ---')
   // Seed 4 registered entrants (permanent player refs simulated by registration ids).
@@ -48,7 +48,7 @@ try {
   const stale2 = await bracketMatchesEntrants(id)
   check('bracket is STALE after a seeded entrant withdraws', !stale2.ok)
 } finally {
-  await prisma.season.delete({ where: { id } }).catch(() => {})
+  await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'wf-verify' } })
   const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
   await regenerateCupSnapshot().catch(() => {})

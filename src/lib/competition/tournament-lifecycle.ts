@@ -174,7 +174,7 @@ export async function transitionCupState(
   to: CupState,
   opts: { reason?: string; recovery?: boolean } = {},
 ): Promise<TransitionResult> {
-  const season = await prisma.season.findUnique({ where: { id: seasonId } })
+  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
   if (!season || season.competitionType !== 'CUP') return { ok: false, error: 'Cup not found.' }
   if (season.locked || season.importedFromFixture) return { ok: false, error: 'Imported/locked historical cups cannot change state.' }
 
@@ -192,7 +192,7 @@ export async function transitionCupState(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.season.update({ where: { id: seasonId }, data: { cupState: to, ...legacyFieldsFor(to) } })
+    await tx.tournament.update({ where: { id: seasonId }, data: { cupState: to, ...legacyFieldsFor(to) } })
     await recordAudit(
       actor,
       { action: opts.recovery && !valid ? 'cup.state.recovery' : 'cup.state', entity: 'Season', entityId: seasonId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
@@ -216,9 +216,9 @@ type Tx = Prisma.TransactionClient
  * explicit and mean reopening/re-completing never double-applies.
  */
 export async function applyLadder(tx: Tx, seasonId: number, actor: Actor): Promise<void> {
-  const s = await tx.season.findUnique({ where: { id: seasonId }, select: { ladderAppliedAt: true, cupYear: true, cupDate: true } })
+  const s = await tx.tournament.findUnique({ where: { id: seasonId }, select: { ladderAppliedAt: true, cupYear: true, cupDate: true } })
   if (!s || s.ladderAppliedAt) return // already applied — do not run twice
-  await tx.season.update({
+  await tx.tournament.update({
     where: { id: seasonId },
     data: {
       ladderAppliedAt: new Date(),
@@ -239,7 +239,7 @@ export async function requireCupState(
   seasonId: number,
   allowed: CupState[],
 ): Promise<{ ok: true; state: CupState } | { ok: false; error: string }> {
-  const s = await prisma.season.findUnique({
+  const s = await prisma.tournament.findUnique({
     where: { id: seasonId },
     select: { competitionType: true, cupState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true },
   })
@@ -348,10 +348,10 @@ export async function getCupHistory(seasonId: number, opts: { admin?: boolean } 
 
 /** Lazily persist a derived state for a legacy cup (safe backfill on first workspace load). */
 export async function backfillCupState(seasonId: number): Promise<CupState> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { cupState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true } })
+  const s = await prisma.tournament.findUnique({ where: { id: seasonId }, select: { cupState: true, cupStatus: true, seasonStatus: true, registrationStatus: true, playoffsStatus: true } })
   if (!s) return 'DRAFT'
   if (s.cupState) return s.cupState
   const derived = deriveLegacyState(s)
-  await prisma.season.update({ where: { id: seasonId }, data: { cupState: derived } })
+  await prisma.tournament.update({ where: { id: seasonId }, data: { cupState: derived } })
   return derived
 }

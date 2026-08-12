@@ -59,20 +59,20 @@ export async function createCup(
   try {
     const created = await prisma.$transaction(async (tx) => {
       // Atomic next-number/code assignment: read the current max cup number under the tx.
-      const agg = await tx.season.aggregate({ where: { competitionType: 'CUP' }, _max: { cupNumber: true } })
+      const agg = await tx.tournament.aggregate({ where: { competitionType: 'CUP' }, _max: { cupNumber: true } })
       const nextNumber = (agg._max.cupNumber ?? 0) + 1
       const code = `C${String(nextNumber).padStart(3, '0')}`
       const slug = `cup-${nextNumber}`
 
       // Guard against a slug/code/number that somehow already exists (unique columns will
       // also throw, but this yields a clean error).
-      const clash = await tx.season.findFirst({
+      const clash = await tx.tournament.findFirst({
         where: { OR: [{ cupNumber: nextNumber }, { competitionCode: code }, { slug }] },
         select: { id: true },
       })
       if (clash) throw new Error('CUP_NUMBER_TAKEN')
 
-      const season = await tx.season.create({
+      const season = await tx.tournament.create({
         data: {
           slug,
           name,

@@ -28,15 +28,21 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Canonical host: send www.8br.gg → apex 8br.gg (matches NEXT_PUBLIC_SITE_URL).
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: 'www.8br.gg' }],
-        destination: 'https://8br.gg/:path*',
-        permanent: true,
-      },
-      // Retired duplicate player profile → canonical Luis (same real person).
-      { source: '/players/luis-p0027', destination: '/players/luis', permanent: true },
+      // Legacy "Cups" URLs now live under "Tournaments".
+      { source: '/cups', destination: '/tournaments', permanent: true },
+      { source: '/cups/:path*', destination: '/tournaments/:path*', permanent: true },
+      // Canonical host (www → apex): the new owner configures this for the WCC domain.
+      // Set WCC_WWW_HOST (e.g. "www.example.com") + WCC_APEX_ORIGIN (e.g. "https://example.com").
+      ...(process.env.WCC_WWW_HOST && process.env.WCC_APEX_ORIGIN
+        ? [
+            {
+              source: '/:path*',
+              has: [{ type: 'host' as const, value: process.env.WCC_WWW_HOST }],
+              destination: `${process.env.WCC_APEX_ORIGIN}/:path*`,
+              permanent: true,
+            },
+          ]
+        : []),
     ]
   },
 }

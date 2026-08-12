@@ -37,7 +37,7 @@ export interface CupListItem {
 }
 
 export async function getCupList(): Promise<CupListItem[]> {
-  const comps = await prisma.season.findMany({
+  const comps = await prisma.tournament.findMany({
     where: { competitionType: 'CUP' },
     orderBy: { cupNumber: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },

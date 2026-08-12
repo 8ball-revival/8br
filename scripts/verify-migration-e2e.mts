@@ -20,7 +20,7 @@ console.log(`migrated poolist: profile ${migrated.id.slice(0, 8)} legacyId=${mig
 const newbie = await prisma.player.create({ data: { primaryName: 'e2e_newbie', cueverseId: 'e2e_newbie', provenance: 'NATIVE_EGO' } })
 
 const playersBefore = await prisma.player.count()
-const cup = await prisma.season.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', competitionCode: 'CE2EM', cupNumber: 99080, cupState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', competitionCode: 'CE2EM', cupNumber: 99080, cupState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', seasonStatus: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   // Add both entrants by permanent profile id (no free-text).
@@ -37,7 +37,7 @@ try {
   await rebuildManualPlayoff(actor, id, regs.map((r) => r.id))
   await publishPlayoff(actor, id)
   await transitionCupState(actor, id, 'BRACKET_GENERATED')
-  check('cup reached BRACKET_GENERATED', getCupState(await prisma.season.findUniqueOrThrow({ where: { id } })) === 'BRACKET_GENERATED')
+  check('cup reached BRACKET_GENERATED', getCupState(await prisma.tournament.findUniqueOrThrow({ where: { id } })) === 'BRACKET_GENERATED')
   await transitionCupState(actor, id, 'IN_PROGRESS')
 
   // poolist wins the final 3–1.
@@ -60,7 +60,7 @@ try {
   check('new result attaches to the SAME historical identity', resolveIdentity(stillMigrated.cueverseId, stillMigrated.cueverseId)?.id === migrated.legacyPlayerId)
   check('migrated and new player resolve to DISTINCT identities', resolveIdentity('poolist', 'poolist')?.id !== resolveIdentity('e2e_newbie', 'e2e_newbie')?.id)
 } finally {
-  await prisma.season.delete({ where: { id } }).catch(() => {})
+  await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.playerAlias.deleteMany({ where: { playerId: newbie.id } }).catch(() => {})
   await prisma.player.delete({ where: { id: newbie.id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'e2e-mig' } })

@@ -111,7 +111,7 @@ export interface PublicGroupView {
  * data are never selected or exposed — only display names + CueVerse IDs appear.
  */
 export async function getPublicGroups(seasonId: number): Promise<PublicGroupView[]> {
-  const groups = await prisma.seasonGroup.findMany({
+  const groups = await prisma.tournamentGroup.findMany({
     where: { seasonId, published: true },
     orderBy: { ordinal: 'asc' },
     include: {

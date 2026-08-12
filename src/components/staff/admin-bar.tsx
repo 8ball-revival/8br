@@ -26,8 +26,8 @@ export async function AdminBar({ surface, seasonId }: { surface: Surface; season
   let groupState: { count: number; published: boolean } | null = null
   if (surface === 'groups' && seasonId != null) {
     const [count, publishedCount] = await Promise.all([
-      prisma.seasonGroup.count({ where: { seasonId } }),
-      prisma.seasonGroup.count({ where: { seasonId, published: true } }),
+      prisma.tournamentGroup.count({ where: { seasonId } }),
+      prisma.tournamentGroup.count({ where: { seasonId, published: true } }),
     ])
     groupState = { count, published: publishedCount > 0 }
   }

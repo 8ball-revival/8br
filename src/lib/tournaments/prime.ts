@@ -25,7 +25,7 @@ export { cupStore } from './context'
  */
 export const loadCupContext = cache(async (): Promise<CupContext> => {
   try {
-    const row = await prisma.cupSnapshot.findUnique({ where: { id: 1 } })
+    const row = await prisma.tournamentSnapshot.findUnique({ where: { id: 1 } })
     if (row?.payload) {
       return { cups: row.payload as unknown as Cup[], revision: row.revision }
     }

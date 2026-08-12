@@ -145,7 +145,7 @@ export interface CupWorkspaceData {
 
 /** Load everything the Cup workspace + public live render need for a cup number. */
 export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceData | null> {
-  const season = await prisma.season.findFirst({ where: { competitionType: 'CUP', cupNumber } })
+  const season = await prisma.tournament.findFirst({ where: { competitionType: 'CUP', cupNumber } })
   if (!season) return null
 
   const isTeam = season.participantFormat === 'TEAM'
@@ -202,8 +202,8 @@ export async function getCupWorkspace(cupNumber: number): Promise<CupWorkspaceDa
   let isLegacyConvertible = false
   if (matches.length === 0 && !season.locked) {
     const [mainCount, otherCount, tieCount] = await Promise.all([
-      prisma.cupBracketMatch.count({ where: { competitionId: season.id, bracketKind: 'MAIN' } }),
-      prisma.cupBracketMatch.count({ where: { competitionId: season.id, bracketKind: { not: 'MAIN' } } }),
+      prisma.tournamentBracketMatch.count({ where: { competitionId: season.id, bracketKind: 'MAIN' } }),
+      prisma.tournamentBracketMatch.count({ where: { competitionId: season.id, bracketKind: { not: 'MAIN' } } }),
       prisma.cupTeamTie.count({ where: { competitionId: season.id } }),
     ])
     isLegacyConvertible = mainCount > 0 && otherCount === 0 && tieCount === 0

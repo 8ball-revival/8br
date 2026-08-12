@@ -14,7 +14,7 @@ import { roundColumnName } from '@/lib/cups/live'
  *   renders them live from PlayoffMatch — so nothing fake ever enters the historical data.
  */
 export async function syncLiveCupToSnapshot(seasonId: number): Promise<void> {
-  const season = await prisma.season.findUnique({ where: { id: seasonId } })
+  const season = await prisma.tournament.findUnique({ where: { id: seasonId } })
   if (!season || season.competitionType !== 'CUP') return
   if (season.importedFromFixture) return // never rewrite an imported historical cup
 
@@ -42,9 +42,9 @@ async function materialiseBracket(seasonId: number): Promise<void> {
   const handleByReg = new Map(regs.map((r) => [r.id, r.cueverseId]))
 
   await prisma.$transaction(async (tx) => {
-    await tx.cupBracketMatch.deleteMany({ where: { competitionId: seasonId, bracketKind: 'MAIN' } })
+    await tx.tournamentBracketMatch.deleteMany({ where: { competitionId: seasonId, bracketKind: 'MAIN' } })
     for (const r of rows) {
-      await tx.cupBracketMatch.create({
+      await tx.tournamentBracketMatch.create({
         data: {
           competitionId: seasonId,
           bracketKind: 'MAIN',
@@ -75,7 +75,7 @@ async function materialiseBracket(seasonId: number): Promise<void> {
       const runnerUpName = homeWon ? final.awayUsername : final.homeUsername
       const cScore = homeWon ? final.homeGames : final.awayGames
       const rScore = homeWon ? final.awayGames : final.homeGames
-      await tx.season.update({
+      await tx.tournament.update({
         where: { id: seasonId },
         data: {
           championName: championName ?? null,
