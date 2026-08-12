@@ -16,7 +16,7 @@ import { MemberRoles } from '@/components/staff/member-roles'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getMemberDetail, getActiveRegistrations } from '@/lib/staff/members'
 
-export const metadata: Metadata = { title: 'Member · Admin · 8 Ball Revival', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Member · Admin · World Cue Championships', robots: { index: false, follow: false } }
 
 const TABS = ['overview', 'profile', 'competitions', 'warnings', 'moderation', 'roles', 'integrity'] as const
 type Tab = (typeof TABS)[number]

@@ -10,9 +10,8 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Rules', href: '/rules' },
 ]
 
-/** Slim footer links (some are Coming Soon stubs for now). */
+/** Slim footer links. */
 export const FOOTER_LINKS: NavItem[] = [
-  { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
   { label: 'Discord', href: '#' },
   { label: 'Privacy Policy', href: '/privacy' },

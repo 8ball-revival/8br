@@ -18,7 +18,7 @@ export interface SignupIdentity {
 }
 
 /**
- * Tournament 2 competition entry. A signed-in member never re-enters identity — the linked
+ * the tournament competition entry. A signed-in member never re-enters identity — the linked
  * profile's `Preferred Name (CueVerse ID)` is shown as confirmation. If the profile is
  * missing or incomplete, a completion notice replaces the form entirely.
  */
@@ -31,7 +31,7 @@ export function RegisterForm({ identity, missing }: { identity: SignupIdentity |
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         <div>
           <p className="font-medium text-foreground">
-            {state.already ? 'You are already registered for 8 Ball Revival Tournament 2.' : "You're registered for 8 Ball Revival Tournament 2!"}
+            {state.already ? 'You are already registered for this tournament.' : "You're registered for this tournament!"}
           </p>
           <p className="mt-1 text-muted-foreground">Your entry is active — you appear on the registered-players list immediately.</p>
         </div>
@@ -52,7 +52,7 @@ export function RegisterForm({ identity, missing }: { identity: SignupIdentity |
 
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
-        <span className="text-muted-foreground">I have read and agree to the 8 Ball Revival Tournament 2 rules and format.</span>
+        <span className="text-muted-foreground">I have read and agree to the this tournament rules and format.</span>
       </label>
 
       {state.error && (
@@ -62,7 +62,7 @@ export function RegisterForm({ identity, missing }: { identity: SignupIdentity |
       )}
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
-        {pending ? 'Registering…' : 'Register for Tournament 2'}
+        {pending ? 'Registering…' : 'Register'}
       </Button>
     </form>
   )

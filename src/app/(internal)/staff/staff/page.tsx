@@ -5,7 +5,7 @@ import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
-export const metadata: Metadata = { title: 'Staff · Admin · 8 Ball Revival', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Staff · Admin · World Cue Championships', robots: { index: false, follow: false } }
 
 export default async function StaffAdminPage() {
   const access = await resolveStaffAccess()

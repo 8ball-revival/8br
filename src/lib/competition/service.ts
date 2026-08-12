@@ -603,7 +603,7 @@ export async function unpublishGroups(actor: Actor, tournamentId: number): Promi
 }
 
 // ---------------------------------------------------------------------------
-// Manual group building (staff select the Tournament 2 groups by hand)
+// Manual group building (staff select the the tournament groups by hand)
 // ---------------------------------------------------------------------------
 
 const GROUP_CODES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'

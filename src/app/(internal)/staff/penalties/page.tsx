@@ -9,7 +9,7 @@ import { PenaltyRemoveButton } from '@/components/staff/penalty-remove-button'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { listPenalties, type PenaltyFilter } from '@/lib/staff/members'
 
-export const metadata: Metadata = { title: 'Penalties · Admin · 8 Ball Revival', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Penalties · Admin · World Cue Championships', robots: { index: false, follow: false } }
 
 const FILTERS: PenaltyFilter[] = ['ALL', 'ACTIVE', 'EXPIRED', 'REMOVED', 'TIMEOUT', 'BAN']
 

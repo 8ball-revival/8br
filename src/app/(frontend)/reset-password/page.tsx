@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = pageMetadata({
   title: 'Reset Password',
-  description: 'Choose a new password for your 8 Ball Revival account.',
+  description: 'Choose a new password for your World Cue Championships account.',
   path: '/reset-password',
   index: false,
 })
@@ -31,7 +31,7 @@ export default async function ResetPasswordPage({
     <Container className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center py-16">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <p className="eyebrow text-brand">8 Ball Revival</p>
+          <p className="eyebrow text-brand">World Cue Championships</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Reset your password</h1>
           <p className="mt-2 text-sm text-muted-foreground">Choose a new password for your account.</p>
         </div>

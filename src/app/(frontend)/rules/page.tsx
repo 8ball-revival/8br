@@ -10,7 +10,7 @@ import { pageMetadata } from '@/lib/site'
 export const metadata: Metadata = pageMetadata({
   title: 'Official Competition Handbook',
   description:
-    '8 Ball Revival Official Competition Handbook — conduct, eligibility, match format, group stage, playoffs, scheduling, gameplay, recording, and disputes.',
+    'World Cue Championships Official Competition Handbook — conduct, eligibility, match format, group stage, playoffs, scheduling, gameplay, recording, and disputes.',
   path: '/rules',
 })
 
@@ -23,7 +23,7 @@ export default function RulesPage() {
       <PageHeader
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Rules' }]}
         title="Official Competition Handbook"
-        description="This Handbook governs all official 8 Ball Revival competitions."
+        description="This Handbook governs all official World Cue Championships competitions."
       />
 
       {/* Mobile: horizontal anchor nav. Desktop: sticky TOC sidebar (below). */}

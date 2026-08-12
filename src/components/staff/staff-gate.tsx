@@ -22,7 +22,7 @@ export function StaffGate({ access }: { access: Exclude<StaffAccess, { status: '
           <h1 className="mt-2 font-display text-2xl font-bold tracking-tight">Staff access only</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Your account does not have permission to open the competition administration console. If
-            you believe this is a mistake, contact an 8 Ball Revival administrator.
+            you believe this is a mistake, contact an World Cue Championships administrator.
           </p>
           <Button asChild variant="outline" className="mt-6">
             <Link href="/">Back to site</Link>

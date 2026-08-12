@@ -12,7 +12,7 @@ import { StatusBadge } from '@/components/staff/status-badge'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { listMembers } from '@/lib/staff/members'
 
-export const metadata: Metadata = { title: 'Members · Admin · 8 Ball Revival', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Members · Admin · World Cue Championships', robots: { index: false, follow: false } }
 
 const STATUSES: (MemberStatus | 'ALL')[] = ['ALL', 'ACTIVE', 'TIMED_OUT', 'BANNED', 'DELETED']
 

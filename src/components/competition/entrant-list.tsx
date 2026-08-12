@@ -14,12 +14,12 @@ export interface EntrantListItem {
 /**
  * Public entrant list — renders each entrant as the shared `Preferred Name (CueVerse ID)`
  * public identity (linking to the profile when available). Never real email or raw Discord.
- * Used on Groups and Cup pages.
+ * Used on tournament pages.
  */
 export function EntrantList({
   entrants,
   collapsible = false,
-  label = 'Tournament 2 entrants',
+  label = 'Entrants',
 }: {
   entrants: EntrantListItem[]
   collapsible?: boolean

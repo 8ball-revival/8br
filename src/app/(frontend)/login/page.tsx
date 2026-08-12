@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = pageMetadata({
   title: 'Sign In',
-  description: 'Sign in to your 8 Ball Revival account to manage your Tournament 2 registration.',
+  description: 'Sign in to your World Cue Championships account to manage your tournament registration.',
   path: '/login',
   index: false,
 })
@@ -24,10 +24,10 @@ export default async function LoginPage() {
     <Container className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center py-16">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <p className="eyebrow text-brand">8 Ball Revival</p>
+          <p className="eyebrow text-brand">World Cue Championships</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to manage your 8 Ball Revival account and Tournament 2 registration.
+            Sign in to manage your World Cue Championships account and tournament registration.
           </p>
         </div>
         <Card>

@@ -70,7 +70,7 @@ export async function StaffShell({
         <div className="p-4">
           <Link href="/staff" className="flex items-center gap-2">
             <span className="inline-block size-4 rotate-45 rounded-[3px] bg-gradient-to-br from-brand-soft to-brand-dim" aria-hidden />
-            <span className="font-display font-bold tracking-tight">8 Ball Revival Admin</span>
+            <span className="font-display font-bold tracking-tight">World Cue Championships Admin</span>
           </Link>
           <p className="mt-1 text-xs text-muted-foreground">Competition administration</p>
         </div>

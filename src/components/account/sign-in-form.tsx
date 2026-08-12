@@ -67,7 +67,7 @@ export function SignInForm() {
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
-          New to 8 Ball Revival?{' '}
+          New to World Cue Championships?{' '}
           <Link href="/register" className="font-medium text-brand hover:text-brand-soft">
             Create an account
           </Link>

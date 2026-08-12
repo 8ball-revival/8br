@@ -1,5 +1,5 @@
 /**
- * 8 Ball Revival — RANKING SERVICE. Three views, each answering a distinct question:
+ * World Cue Championships — RANKING SERVICE. Three views, each answering a distinct question:
  *   - Current    — an INDEPENDENT Glicko-2 calc over ONLY the trailing 365 days
  *                  (who performed best in the last year). No lifetime carryover.
  *   - Historical — an INDEPENDENT Glicko-2 calc over ONLY the selected calendar year

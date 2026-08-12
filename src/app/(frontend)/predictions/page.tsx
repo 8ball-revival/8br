@@ -8,12 +8,12 @@ import { pageMetadata } from '@/lib/site'
 export const metadata: Metadata = pageMetadata({
   title: 'Predictions',
   description:
-    'Predictions are coming soon to 8 Ball Revival — publish match predictions, tournament picks, analysis, and upset calls directly on 8br.gg.',
+    'Predictions are coming soon to World Cue Championships — publish match predictions, tournament picks, analysis, and upset calls directly on WCC.',
   path: '/predictions',
 })
 
 const PLANNED: { icon: typeof Target; title: string; body: string }[] = [
-  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming Tournament and Cup matchups.' },
+  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming tournament matchups.' },
   { icon: Trophy, title: 'Tournament predictions', body: 'Pick group qualifiers, bracket runs, and champions.' },
   { icon: MessagesSquare, title: 'Community analysis', body: 'Share breakdowns, form reads, and upset calls.' },
   { icon: LineChart, title: 'Prediction accuracy tracking', body: 'Build a record — see who actually calls it right.' },
@@ -36,8 +36,8 @@ export default function PredictionsPage() {
             <span className="block text-brand-gradient">Coming Soon</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground text-pretty">
-            Soon, registered 8 Ball Revival members will be able to publish match predictions, tournament picks,
-            analysis, and upset calls directly on 8br.gg.
+            Soon, registered World Cue Championships members will be able to publish match predictions, tournament picks,
+            analysis, and upset calls directly on WCC.
           </p>
           <div className="mt-6 flex justify-center">
             <Badge variant="muted">Under development</Badge>

@@ -4,7 +4,7 @@ import React from 'react'
 import '../(frontend)/globals.css'
 
 export const metadata: Metadata = {
-  title: 'Internal · 8 Ball Revival',
+  title: 'Internal · World Cue Championships',
   robots: { index: false, follow: false }, // never public/indexed
 }
 

@@ -19,7 +19,7 @@ import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
   description:
-    'The official 8 Ball Revival competitive ladder — a Glicko-2 rating computed live from every official Tournament and Cup. Current, historical, and all-time strength.',
+    'The official World Cue Championships competitive ladder — a Glicko-2 rating computed live from every every WCC tournament. Current, historical, and all-time strength.',
   path: '/rankings',
 })
 
@@ -77,7 +77,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: SP 
     const data = getAllTimeRankings()
     intro = (
       <p className="max-w-3xl text-sm text-muted-foreground">
-        The same rating engine across every official Tournament and Cup in history, ranked by each player&apos;s
+        The same rating engine across every every WCC tournament in history, ranked by each player&apos;s
         highest <strong className="text-foreground">established</strong> conservative rating (RD ≤ 100 and at
         least 20 rated matches at that point). This measures competitive strength over the complete history of
         the game — it is <strong className="text-foreground">not</strong> the Hall of Fame.
@@ -115,7 +115,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: SP 
       <PageHeader
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Rankings' }]}
         title="Rankings"
-        description="The official competitive ladder — who is the strongest player right now. A live Glicko-2 rating derived entirely from official Tournament and Cup results."
+        description="The official competitive ladder — who is the strongest player right now. A live Glicko-2 rating derived entirely from every WCC tournament results."
       />
       <Container className="space-y-6 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

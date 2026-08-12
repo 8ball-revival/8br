@@ -1,5 +1,5 @@
 /**
- * 8 Ball Revival — CURRENT RANKINGS: stage-weighted performance score.
+ * World Cue Championships — CURRENT RANKINGS: stage-weighted performance score.
  *
  * Philosophy: the IMPORTANCE OF THE MATCH determines its value, not the number of matches
  * played. A single geometric ladder ranks every stage exactly:

@@ -1,5 +1,5 @@
 /**
- * 8 Ball Revival — RANKING ENGINE (standard Glicko-2, persistent timeline).
+ * World Cue Championships — RANKING ENGINE (standard Glicko-2, persistent timeline).
  *
  * ONE continuous Glicko-2 timeline over every official match in history. A player
  * enters at 1500 the first time they appear and is NEVER reset again; every match
@@ -233,7 +233,7 @@ function buildPeriods(): Period[] {
   const periods: Period[] = []
 
   // WCC ranking timeline: one rating period per completed tournament. The historical
-  // 8BRCAM archive (seasons) was removed in the WCC reset, so the ladder starts empty and
+  // WCC archive (seasons) was removed in the WCC reset, so the ladder starts empty and
   // rebuilds ONLY from completed WCC tournaments — using the SAME Glicko-2 formula that
   // previously rated Cups (weights, identity resolution, and math unchanged).
   for (const c of getCups()) {
