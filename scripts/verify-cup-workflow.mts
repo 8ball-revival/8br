@@ -1,5 +1,5 @@
 import { prisma } from '../src/lib/prisma.ts'
-import { transitionCupState, getCupState, canTransition, bracketMatchesEntrants } from '../src/lib/competition/cup-lifecycle.ts'
+import { transitionCupState, getCupState, canTransition, bracketMatchesEntrants } from '../src/lib/competition/tournament-lifecycle.ts'
 import { addManualEntrant, rebuildManualPlayoff, publishPlayoff } from '../src/lib/competition/service.ts'
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
@@ -12,7 +12,7 @@ check('IN_PROGRESS → REGISTRATION_OPEN REJECTED (permanent lock once live)', !
 check('COMPLETED → REGISTRATION_OPEN REJECTED', !canTransition('COMPLETED', 'REGISTRATION_OPEN'))
 check('REGISTRATION_CLOSED → IN_PROGRESS REJECTED (must generate bracket)', !canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
 
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionType: 'CUP', code: 'CWF', number: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', code: 'CWF', number: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- temporary entrants are refused server-side ---')
@@ -50,7 +50,7 @@ try {
 } finally {
   await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'wf-verify' } })
-  const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
+  const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
   await regenerateCupSnapshot().catch(() => {})
   console.log('cleaned up synthetic cup + audit + snapshot')
 }

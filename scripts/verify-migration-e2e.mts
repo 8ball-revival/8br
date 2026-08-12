@@ -6,7 +6,7 @@
  */
 import { prisma } from '../src/lib/prisma.ts'
 import { addEntrantByProfile, rebuildManualPlayoff, publishPlayoff, recordPlayoffScore, verifyPlayoffMatch } from '../src/lib/competition/service.ts'
-import { transitionCupState, getCupState } from '../src/lib/competition/cup-lifecycle.ts'
+import { transitionCupState, getCupState } from '../src/lib/competition/tournament-lifecycle.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
@@ -20,7 +20,7 @@ console.log(`migrated poolist: profile ${migrated.id.slice(0, 8)} legacyId=${mig
 const newbie = await prisma.player.create({ data: { primaryName: 'e2e_newbie', cueverseId: 'e2e_newbie', provenance: 'NATIVE_EGO' } })
 
 const playersBefore = await prisma.player.count()
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', competitionType: 'CUP', code: 'CE2EM', number: 99080, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-e2e-mig', name: 'E2E Mig Cup', code: 'CE2EM', number: 99080, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 3, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   // Add both entrants by permanent profile id (no free-text).
@@ -64,7 +64,7 @@ try {
   await prisma.playerAlias.deleteMany({ where: { playerId: newbie.id } }).catch(() => {})
   await prisma.player.delete({ where: { id: newbie.id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'e2e-mig' } })
-  const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
+  const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
   await regenerateCupSnapshot().catch(() => {})
   console.log('cleaned up E2E cup + new player + audit + snapshot')
 }

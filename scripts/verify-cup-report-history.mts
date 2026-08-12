@@ -1,21 +1,21 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { reportOwnLoss } from '../src/lib/competition/service.ts'
-import { getCupHistory, deriveLegacyState } from '../src/lib/competition/cup-lifecycle.ts'
+import { getCupHistory, deriveLegacyState } from '../src/lib/competition/tournament-lifecycle.ts'
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
 const UID_A = 990911, UID_B = 990912, UID_X = 990913
 const A = (action: string, extra: Record<string, unknown> = {}) => ({ actorUserId: 1, actorUsername: 'cup-rh', action, entity: 'Tournament', ...extra })
 
 console.log('--- Part C: deriveLegacyState (migration safety) ---')
-const D = (o: Record<string, unknown>) => deriveLegacyState({ lifecycleState: null, cupStatus: null, status: null, registrationStatus: null, playoffsStatus: null, ...o } as never)
+const D = (o: Record<string, unknown>) => deriveLegacyState({ lifecycleState: null, status: null, registrationStatus: null, playoffsStatus: null, ...o } as never)
 check('published bracket → IN_PROGRESS (legacy safe, NOT BRACKET_GENERATED)', D({ playoffsStatus: 'PUBLISHED' }) === 'IN_PROGRESS')
 check('explicit lifecycleState BRACKET_GENERATED wins', deriveLegacyState({ lifecycleState: 'BRACKET_GENERATED' } as never) === 'BRACKET_GENERATED')
-check('completed → COMPLETED', D({ cupStatus: 'completed' }) === 'COMPLETED')
+check('completed → COMPLETED', D({ status: 'COMPLETED' }) === 'COMPLETED')
 check('registration OPEN → REGISTRATION_OPEN', D({ registrationStatus: 'OPEN' }) === 'REGISTRATION_OPEN')
 check('registration CLOSED → REGISTRATION_CLOSED', D({ registrationStatus: 'CLOSED' }) === 'REGISTRATION_CLOSED')
 check('default → DRAFT', D({}) === 'DRAFT')
 
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-verify-rh', name: 'RH Cup', competitionType: 'CUP', code: 'CRH', number: 99002, lifecycleState: 'IN_PROGRESS', registrationStatus: 'CLOSED', status: 'ACTIVE', playoffsStatus: 'PUBLISHED', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-verify-rh', name: 'RH Cup', code: 'CRH', number: 99002, lifecycleState: 'IN_PROGRESS', registrationStatus: 'CLOSED', status: 'ACTIVE', playoffsStatus: 'PUBLISHED', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- Part A: player self-report (loss only) ---')
@@ -66,7 +66,7 @@ try {
 } finally {
   await prisma.tournament.delete({ where: { id } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'cup-rh' } })
-  const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
+  const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
   await regenerateCupSnapshot().catch(() => {})
   console.log('cleaned up synthetic cup + audit + snapshot')
 }

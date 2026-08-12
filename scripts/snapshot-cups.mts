@@ -3,7 +3,7 @@
  *
  *   npm run cups:snapshot
  *
- * Produces src/lib/cups/data/generated-cups.json — a derived compatibility artifact
+ * Produces src/lib/tournaments/data/generated-cups.json — a derived compatibility artifact
  * consumed (via the shared cup data service) by the historical stat/ranking pipeline
  * and public Cup pages. No dev server required; no runtime filesystem writes.
  * Atomic: writes a temp file, validates + compares against the adapter output, and
@@ -14,10 +14,10 @@ import { PrismaClient } from '@prisma/client'
 import { mkdirSync, writeFileSync, renameSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cupsFromCompRows, type CompRow } from '../src/lib/cups/adapter.ts'
+import { cupsFromCompRows, type CompRow } from '../src/lib/tournaments/adapter.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const OUT = resolve(__dirname, '../src/lib/cups/data/generated-cups.json')
+const OUT = resolve(__dirname, '../src/lib/tournaments/data/generated-cups.json')
 const TMP = OUT + '.tmp'
 const SCHEMA_VERSION = 1
 
@@ -31,7 +31,7 @@ function fail(msg: string): never {
 
 try {
   const comps = await prisma.tournament.findMany({
-    where: { competitionType: 'CUP' },
+    where: { },
     orderBy: { number: 'asc' },
     include: { cupBracketMatches: true, cupTeamTies: { include: { matches: true } } },
   })
@@ -68,7 +68,7 @@ try {
     create: { id: 1, revision, payload: cups as unknown as object },
   })
 
-  console.log(`✓ Snapshot written: ${cups.length} cups → src/lib/cups/data/generated-cups.json (DB revision ${revision})`)
+  console.log(`✓ Snapshot written: ${cups.length} cups → src/lib/tournaments/data/generated-cups.json (DB revision ${revision})`)
   console.log(`  cup numbers: ${cups.map((c) => c.number).join(', ')}`)
   const teamCups = cups.filter((c) => c.teamTies).length
   const deCups = cups.filter((c) => c.winnersBracket).length

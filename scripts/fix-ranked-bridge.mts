@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { getCurrentScoreRankings } from '../src/lib/stats/current-score.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
-import { cupStore, loadCupContext } from '../src/lib/cups/prime.ts'
+import { cupStore, loadCupContext } from '../src/lib/tournaments/prime.ts'
 cupStore.enterWith(await loadCupContext())
 
 const nk = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')

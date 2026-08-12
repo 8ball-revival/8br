@@ -1,11 +1,11 @@
 import { prisma } from '../src/lib/prisma.ts'
-import { transitionCupState, getCupState, assertCompletable, requireCupState, canTransition } from '../src/lib/competition/cup-lifecycle.ts'
+import { transitionCupState, getCupState, assertCompletable, requireCupState, canTransition } from '../src/lib/competition/tournament-lifecycle.ts'
 let pass=0, fail=0
 const check=(n:string,c:boolean)=>{ if(c){pass++;console.log('  ✓ '+n)}else{fail++;console.log('  ✗ '+n)} }
 const actor={userId:990900,username:'cup-verify'}
 
 // Create a synthetic test cup in DRAFT.
-const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionType:'CUP', code:'CVERIFY', number:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', status:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', code:'CVERIFY', number:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', status:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
 const id = cup.id
 try {
   const st = async () => getCupState((await prisma.tournament.findUniqueOrThrow({ where:{id} })))
@@ -70,7 +70,7 @@ try {
 } finally {
   await prisma.tournament.delete({ where:{ id } }).catch(()=>{}) // cascades registrations + matches
   await prisma.auditLog.deleteMany({ where:{ actorUsername:'cup-verify' } })
-  const { regenerateCupSnapshot } = await import('../src/lib/cups/migrate.ts')
+  const { regenerateCupSnapshot } = await import('../src/lib/tournaments/migrate.ts')
   await regenerateCupSnapshot().catch(()=>{})
   console.log('cleaned up synthetic cup + audit + snapshot')
 }

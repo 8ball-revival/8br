@@ -1,5 +1,5 @@
 import { getAllArchiveSeasons } from '../src/lib/seasons/archive.ts'
-import { getCups } from '../src/lib/cups/fixtures.ts'
+import { getCups } from '../src/lib/tournaments/fixtures.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
 import { prisma } from '../src/lib/prisma.ts'
 

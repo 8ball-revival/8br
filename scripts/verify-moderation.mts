@@ -27,7 +27,7 @@ const check = (name: string, cond: boolean) => { if (cond) { pass++; log(`  ✓ 
 const UID = 990001 // synthetic Payload user id (guaranteed absent)
 const actor = { userId: 990000, username: 'verify-script' }
 
-const activeSeason = await prisma.tournament.findFirst({ where: { competitionType: 'SEASON', status: { not: 'COMPLETED' } }, select: { id: true, registrationStatus: true } })
+const activeSeason = await prisma.tournament.findFirst({ where: { status: { not: 'COMPLETED' } }, select: { id: true, registrationStatus: true } })
 let testRegId: number | null = null
 
 try {
