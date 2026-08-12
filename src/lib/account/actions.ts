@@ -50,6 +50,64 @@ async function setSessionCookie(token: string, exp?: number) {
   revalidatePath('/', 'layout')
 }
 
+/** Whether any account exists yet. First-owner setup is only available while this is false. */
+export async function ownerExists(): Promise<boolean> {
+  const p = await payload()
+  const { totalDocs } = await p.count({ collection: 'users' })
+  return totalDocs > 0
+}
+
+/**
+ * SECURE FIRST-OWNER SETUP. Creates the very first administrator (Owner) account. Works ONLY
+ * while NO account exists, and — if the SETUP_SECRET env var is set — requires the matching
+ * secret. It self-disables permanently once any account exists. There is no default password
+ * and no hardcoded credentials; the human chooses them here. This is the ONLY path that may
+ * mint the Owner (the Users bootstrap hook rejects any other first-account creation).
+ */
+export async function createFirstOwner(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const p = await payload()
+  const { totalDocs } = await p.count({ collection: 'users' })
+  if (totalDocs > 0) return { error: 'Setup is already complete — an administrator account already exists.' }
+
+  const secret = process.env.SETUP_SECRET
+  if (secret && String(formData.get('setupSecret') ?? '') !== secret) {
+    return { error: 'Invalid setup secret.' }
+  }
+
+  const username = normalizeUsername(String(formData.get('username') ?? ''))
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('confirmPassword') ?? '')
+  if (!username) return { error: 'Choose a username for the owner account.' }
+  const emErr = validateEmail(email)
+  if (emErr) return { error: emErr }
+  const pwErr = validatePassword(password)
+  if (pwErr) return { error: pwErr }
+  if (password !== confirm) return { error: 'Passwords do not match.' }
+
+  try {
+    await p.create({
+      collection: 'users',
+      data: { username, email, password, roles: ['owner'] },
+      overrideAccess: true,
+      // The ONLY place this flag is set — authorizes the Users bootstrap hook to mint the Owner.
+      context: { allowBootstrap: true },
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : ''
+    if (/unique|already|duplicate/i.test(msg)) return { error: 'That username or email is already in use.' }
+    return { error: 'Could not create the owner account.' }
+  }
+
+  try {
+    const res = await p.login({ collection: 'users', data: { username, password } })
+    if (res.token) await setSessionCookie(res.token, res.exp)
+  } catch {
+    redirect('/login')
+  }
+  redirect('/account')
+}
+
 /** Create an account (User ID + email + password). Email verification is DISABLED
  *  for launch — the account is usable immediately. Auto-signs-in and redirects. */
 export async function createAccount(_prev: FormResult, formData: FormData): Promise<FormResult> {
@@ -67,6 +125,13 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
   const username = cueverseLoginKey(cueverseId)
 
   const p = await payload()
+
+  // Public registration is locked until the site owner has completed first-run setup. (The Users
+  // bootstrap hook also enforces this server-side; this yields a friendlier message.)
+  const { totalDocs: userCount } = await p.count({ collection: 'users' })
+  if (userCount === 0) {
+    return { error: 'Registration opens once the site owner completes setup. Please check back soon.' }
+  }
 
   // Reject a duplicate CueVerse ID regardless of capitalization (username is the lowered form).
   const existing = await p.find({ collection: 'users', where: { username: { equals: username } }, limit: 1, overrideAccess: true })

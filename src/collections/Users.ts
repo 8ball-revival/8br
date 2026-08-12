@@ -34,7 +34,7 @@ export const Users: CollectionConfig = {
               button below to choose a new password. This link expires in 1 hour.
             </p>
             <p style="margin:0 0 24px">
-              <a href="${url}" style="display:inline-block;background:#e9c341;color:#111;font-weight:600;text-decoration:none;padding:10px 18px;border-radius:8px">Reset password</a>
+              <a href="${url}" style="display:inline-block;background:#c8102e;color:#fff;font-weight:600;text-decoration:none;padding:10px 18px;border-radius:8px">Reset password</a>
             </p>
             <p style="margin:0 0 8px;font-size:12px;color:#666">Or paste this link into your browser:</p>
             <p style="margin:0 0 24px;font-size:12px;word-break:break-all"><a href="${url}" style="color:#0a58ca">${url}</a></p>
@@ -69,6 +69,14 @@ export const Users: CollectionConfig = {
         if (operation === 'create') {
           const { totalDocs } = await req.payload.count({ collection: 'users' })
           if (totalDocs === 0) {
+            // First-ever account = the Owner — but ONLY through the guarded /setup flow,
+            // which sets req.context.allowBootstrap after validating the optional SETUP_SECRET.
+            // This closes BOTH Payload's /admin "create first user" screen AND public signup
+            // from silently claiming ownership on a fresh database.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (!(req.context as any)?.allowBootstrap) {
+              throw new Error('Account creation is locked until the first administrator is created. Visit /setup to create the owner account.')
+            }
             data.roles = ['owner']
           }
         }
