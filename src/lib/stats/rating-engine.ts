@@ -23,7 +23,6 @@
  * This module produces the raw timeline. Views (Current / Historical / All-Time) and
  * per-player provenance are assembled in rankings.ts on top of this.
  */
-import { getAllArchiveSeasons } from '@/lib/seasons/archive'
 import { getCups, type BracketRound, type Cup } from '@/lib/tournaments/service'
 import { currentCupRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
@@ -233,50 +232,10 @@ function newVolatility(sigma: number, phi: number, v: number, delta: number): nu
 function buildPeriods(): Period[] {
   const periods: Period[] = []
 
-  // Seasons: group stage, then playoffs (two periods each), oldest first.
-  for (const s of getAllArchiveSeasons()) {
-    if (s.pending) continue
-    const base = s.year * 1000 + s.period * 10
-    const groupGames: Game[] = []
-    const playoffGames: Game[] = []
-    for (const d of s.divisions) {
-      // group stage — pairwise results (winner null + equal scores = draw)
-      for (const grp of d.groups ?? []) {
-        for (const m of grp.matches ?? []) {
-          const a = ident(m.a)
-          const b = ident(m.b)
-          if (!a || !b || a.id === b.id) continue // skip byes/unresolved + self-matches (merge artifacts)
-          let sA: 0 | 0.5 | 1
-          if (m.winner === 'a') sA = 1
-          else if (m.winner === 'b') sA = 0
-          else if (m.scoreA != null && m.scoreB != null && m.scoreA === m.scoreB) sA = 0.5
-          else continue // unplayed / undecided
-          groupGames.push({ aId: a.id, aName: a.name, aResolved: a.resolved, bId: b.id, bName: b.name, bResolved: b.resolved, sA, weight: WEIGHTS.group })
-        }
-      }
-      // playoffs — single-elim rounds + double-elim brackets
-      const rounds = [
-        ...(d.playoff?.rounds ?? []),
-        ...(d.doubleElim ? [...d.doubleElim.winners, ...d.doubleElim.losers] : []),
-      ]
-      for (const rd of rounds) {
-        const w = isFinalRound(rd.name) ? WEIGHTS.seasonFinal : WEIGHTS.playoff
-        for (const m of rd.matches) {
-          if (!m.winner) continue
-          const a = ident(m.a)
-          const b = ident(m.b)
-          if (!a || !b || a.id === b.id) continue // skip byes/unresolved + self-matches (merge artifacts)
-          playoffGames.push({ aId: a.id, aName: a.name, aResolved: a.resolved, bId: b.id, bName: b.name, bResolved: b.resolved, sA: m.winner === 'a' ? 1 : 0, weight: w })
-        }
-      }
-    }
-    if (groupGames.length)
-      periods.push({ eventId: `${s.tournamentId}:group`, eventLabel: `${s.label} · Group Stage`, year: s.year, kind: 'group', order: base, games: groupGames })
-    if (playoffGames.length)
-      periods.push({ eventId: `${s.tournamentId}:playoff`, eventLabel: `${s.label} · Playoffs`, year: s.year, kind: 'playoff', order: base + 1, games: playoffGames })
-  }
-
-  // Cups: one period each (bracket + team ties). Ordered after that year's seasons.
+  // WCC ranking timeline: one rating period per completed tournament. The historical
+  // 8BRCAM archive (seasons) was removed in the WCC reset, so the ladder starts empty and
+  // rebuilds ONLY from completed WCC tournaments — using the SAME Glicko-2 formula that
+  // previously rated Cups (weights, identity resolution, and math unchanged).
   for (const c of getCups()) {
     const year = c.year ?? 0
     const games: Game[] = []

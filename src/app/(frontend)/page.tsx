@@ -1,127 +1,139 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
 
 import { Wide } from '@/components/primitives'
-import { Hero, HeroBackdrop } from '@/components/home/hero'
-import { CompetitionsPanel, type CompetitionItem } from '@/components/home/competitions-panel'
-import { Top10Panel } from '@/components/home/top10-panel'
-import { CurrentCupBox } from '@/components/home/current-cup-box'
-import { NewsPanel } from '@/components/home/news-panel'
-import { PlayerSpotlight } from '@/components/home/player-spotlight'
-import { ByTheNumbers } from '@/components/home/by-the-numbers'
-import { OnThisDay } from '@/components/home/on-this-day'
-import { getHomeData, type HeroData } from '@/lib/home/fixtures'
-import { getSeasonTop, getSeasonRankings } from '@/lib/stats/tournament-stats'
-import { getAllArchiveSeasons } from '@/lib/seasons/archive'
-import { getPublicSeason, isRegistrationOpen, registrationDeadlineLabel } from '@/lib/competition/public'
-import { getSpotlightPlayers } from '@/lib/spotlight/fixtures'
-import { getCups } from '@/lib/tournaments/service'
+import { getCupList } from '@/lib/tournaments/list'
 import { cupStore, loadCupContext } from '@/lib/tournaments/prime'
-import { absoluteUrl } from '@/lib/site'
+import { pageMetadata, brandName } from '@/lib/site'
 
-const DESCRIPTION =
-  'The next chapter of competitive online 8-ball. Formerly known as 8BRCAM. Compete in Tournament 2 — the group stage and playoffs — and explore two decades of history.'
-
-export const metadata: Metadata = {
-  title: { absolute: '8 Ball Revival | Formerly 8BRCAM' },
-  description: DESCRIPTION,
-  alternates: { canonical: '/' },
-  openGraph: {
-    title: '8 Ball Revival | Formerly 8BRCAM',
-    description: DESCRIPTION,
-    url: absoluteUrl('/'),
-    siteName: '8 Ball Revival',
-    type: 'website',
-  },
-  twitter: { card: 'summary_large_image', title: '8 Ball Revival', description: DESCRIPTION },
-}
+export const metadata: Metadata = pageMetadata({
+  title: brandName,
+  description:
+    'World Cue Championships (WCC) — the home of competitive cue sports. Enter standalone tournaments, follow live brackets and standings, and climb the rankings.',
+  path: '/',
+})
 
 export default async function HomePage() {
-  cupStore.enterWith(await loadCupContext()) // resolve the live Cup revision before any cup-derived render
-  // Most homepage panels are still fixture-driven (see lib/home/fixtures); the
-  // Registered Players panel is now live from the database.
-  const data = getHomeData()
-  const currentCup = getCups().find((c) => c.status === 'live')
+  // Resolve the live tournament revision before any tournament-derived render.
+  cupStore.enterWith(await loadCupContext())
 
-  // Registration state on the hero is DB-driven (the manual staff status is
-  // authoritative) — never a hardcoded label or deadline.
-  const tournament = await getPublicSeason()
-  const open = isRegistrationOpen(tournament)
-  const hero: HeroData = {
-    ...data.hero,
-    seasonLabel: tournament?.name ?? data.hero.seasonLabel,
-    headingTop: 'Registration',
-    headingBottom: open ? 'Now Open' : tournament?.registrationStatus === 'CLOSED' ? 'Now Closed' : 'Opening Soon',
-    // Countdown only when open AND a deadline is set; otherwise hidden.
-    registrationClosesAt: open && tournament?.registrationClosesAt ? tournament.registrationClosesAt.toISOString() : '',
-    deadlineNote: open
-      ? tournament?.registrationClosesAt
-        ? registrationDeadlineLabel(tournament)
-        : 'Registration is open — enter Tournament 2 now.'
-      : tournament?.registrationStatus === 'CLOSED'
-        ? 'Registration is closed. Follow the group stage and playoffs.'
-        : 'Registration will open soon.',
-  }
-
-  // Current & upcoming competitions for the hero side panel (existing data only).
-  const competitions: CompetitionItem[] = []
-  if (tournament) {
-    competitions.push({
-      title: tournament.name,
-      meta: open ? 'Group stage → playoffs' : 'Tournament in progress',
-      href: open ? '/register' : '/groups',
-      status: open ? 'open' : 'closed',
-    })
-  }
-  for (const c of getCups().filter((c) => c.status === 'live')) {
-    competitions.push({
-      title: c.name,
-      meta: `Cup ${c.number}${c.currentRound ? ` · ${c.currentRound}` : ''}`,
-      href: `/cups/${c.number}`,
-      status: 'live',
-    })
-  }
-
-  // Championship + tournament counters derived from the canonical Seasons source (the
-  // remaining by-the-numbers tiles are decorative site-level counters, not player stats).
-  const champions = getSeasonRankings().filter((p) => p.championships > 0).length
-  const seasonCount = getAllArchiveSeasons().filter((s) => !s.pending).length
-  const byTheNumbers = data.byTheNumbers.map((s) =>
-    s.icon === 'champions'
-      ? { ...s, value: String(champions) }
-      : s.id === 's2' && s.icon === 'seasons'
-        ? { ...s, value: String(seasonCount) }
-        : s,
-  )
+  const tournaments = await getCupList()
+  const live = tournaments.filter((t) => t.status === 'live')
+  const recent = tournaments.filter((t) => t.status === 'completed').slice(-6).reverse()
+  const featured = [...live, ...recent].slice(0, 6)
 
   return (
     <>
-      {/* Hero band: arena backdrop + registration CTA + upcoming events */}
-      <section className="relative overflow-hidden border-b border-border">
-        <HeroBackdrop />
-        <Wide className="relative grid items-start gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-14">
-          <Hero data={hero} registrationOpen={open} />
-          <CompetitionsPanel items={competitions} />
-        </Wide>
-      </section>
-
-      {/* Live dashboard: five panels */}
-      <section className="py-8">
-        <Wide className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,3.5fr)_minmax(0,2fr)_minmax(0,3fr)]">
-          <Top10Panel players={getSeasonTop(10)} className="sm:col-span-2 xl:col-span-1" />
-          {currentCup && <CurrentCupBox cup={currentCup} />}
-          <NewsPanel items={data.news} />
-          <PlayerSpotlight players={getSpotlightPlayers()} />
-        </Wide>
-      </section>
-
-      {/* By the numbers + on this day */}
-      <section className="border-t border-border bg-card/20 py-10">
-        <Wide>
-          <h2 className="eyebrow mb-5 text-gold">8 Ball Revival by the Numbers</h2>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <ByTheNumbers stats={byTheNumbers} />
-            <OnThisDay items={data.onThisDay} />
+      {/* Hero: WCC banner (wide, responsive, undistorted) + primary calls to action */}
+      <section className="border-b border-border">
+        <Wide className="py-8 lg:py-12">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <Image
+              src="/wcc-hero-banner.png"
+              alt="World Cue Championships"
+              width={1983}
+              height={793}
+              priority
+              sizes="(max-width: 1280px) 100vw, 1216px"
+              className="h-auto w-full"
+            />
           </div>
+          <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="eyebrow text-primary">World Cue Championships</p>
+              <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
+                Competitive cue sports, one tournament at a time.
+              </h1>
+              <p className="mt-3 max-w-xl text-muted-foreground">
+                Enter standalone tournaments, follow live brackets and standings, and climb the WCC
+                rankings.
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-3">
+              <Link
+                href="/tournaments"
+                className="inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                View Tournaments
+              </Link>
+              <Link
+                href="/rankings"
+                className="inline-flex items-center rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Rankings
+              </Link>
+            </div>
+          </div>
+        </Wide>
+      </section>
+
+      {/* Tournaments */}
+      <section className="py-10">
+        <Wide>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Tournaments</h2>
+            <Link href="/tournaments" className="text-sm text-primary hover:underline">
+              All tournaments →
+            </Link>
+          </div>
+
+          {featured.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/40 p-10 text-center">
+              <p className="text-foreground">No tournaments yet.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Once the first WCC tournament is created it will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((t) => (
+                <Link
+                  key={t.number}
+                  href={`/tournaments/${t.number}`}
+                  className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="eyebrow text-muted-foreground">Tournament {t.number}</span>
+                    <span
+                      className={
+                        t.status === 'live'
+                          ? 'rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary'
+                          : 'rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-muted-foreground'
+                      }
+                    >
+                      {t.status === 'live' ? 'Live' : 'Completed'}
+                    </span>
+                  </div>
+                  <h3 className="mt-2 font-semibold group-hover:text-primary">{t.name}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {t.gameType ?? 'Cue sports'}
+                    {t.champion ? ` · Champion: ${t.champion.name}` : ''}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Wide>
+      </section>
+
+      {/* Feature links */}
+      <section className="border-t border-border bg-card/20 py-10">
+        <Wide className="grid gap-4 sm:grid-cols-3">
+          {[
+            { href: '/rankings', title: 'Rankings', body: 'The WCC ladder, rebuilt from every completed tournament.' },
+            { href: '/predictions', title: 'Predictions', body: 'Predict tournament outcomes and compete for bragging rights.' },
+            { href: '/rules', title: 'Rules', body: 'The official WCC competition handbook.' },
+          ].map((c) => (
+            <Link
+              key={c.href}
+              href={c.href}
+              className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+            >
+              <h3 className="font-semibold">{c.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
+            </Link>
+          ))}
         </Wide>
       </section>
     </>

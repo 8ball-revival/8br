@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
       {
         pathname: '/api/media/file/**',
       },
+      {
+        // WCC static brand assets in /public (e.g. the homepage hero banner).
+        pathname: '/wcc-*',
+      },
     ],
   },
   webpack: (webpackConfig) => {

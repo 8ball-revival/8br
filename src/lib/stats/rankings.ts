@@ -22,7 +22,6 @@ import {
   type PeakInfo,
 } from './rating-engine'
 import { getCurrentScoreForId, type ScoreLine } from './current-score'
-import { getAllArchiveSeasons } from '@/lib/seasons/archive'
 import { getCups } from '@/lib/tournaments/service'
 import { currentCupRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
@@ -84,10 +83,6 @@ function titleIndex(): Map<string, TitleRec[]> {
     const arr = m.get(r.id) ?? []
     arr.push({ year, kind })
     m.set(r.id, arr)
-  }
-  for (const s of getAllArchiveSeasons()) {
-    if (s.pending) continue
-    for (const d of s.divisions) add(d.champion, s.year, 'tournament')
   }
   for (const c of getCups()) if (c.year) add(c.champion, c.year, 'cup')
   _titles = m
@@ -176,15 +171,6 @@ export function getCurrentRankings(now: Date = new Date()): RankingView {
   assignRanks(rows)
 
   const warnings: string[] = []
-  // Data completeness: current-year seasons whose group logs aren't imported yet.
-  for (const s of getAllArchiveSeasons()) {
-    if (s.pending || s.year !== currentYear) continue
-    const hasGroupsNoMatches = s.divisions.some(
-      (d) => (d.groups ?? []).some((g) => g.rows.length > 0) && !(d.groups ?? []).some((g) => (g.matches ?? []).length > 0),
-    )
-    if (hasGroupsNoMatches)
-      warnings.push(`Current rankings are provisional because ${s.label} group-stage match logs have not yet been imported.`)
-  }
   warnings.push('Rolling window approximated by calendar year until events carry exact dates.')
 
   return {

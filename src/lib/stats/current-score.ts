@@ -13,7 +13,6 @@
  *
  * (All-Time and Historical keep the Glicko engine; this drives ONLY the Current view.)
  */
-import { getAllArchiveSeasons, type ArchiveSeason } from '@/lib/seasons/archive'
 import { getCups, type Cup } from '@/lib/tournaments/service'
 import { currentCupRevision } from '@/lib/tournaments/context'
 import { resolveIdentity } from './identity'
@@ -181,7 +180,6 @@ const withinWindow = (now: Date, year: number | undefined, date?: string): boole
   }
   return year === now.getFullYear()
 }
-const seasonOrder = (s: ArchiveSeason) => s.year * 1000 + s.period * 10
 const cupOrder = (c: Cup) => (c.year ?? 0) * 1000 + 900 + c.number
 
 const _cache = new Map<string, CurrentScoreView>()
@@ -196,17 +194,13 @@ export function getCurrentScoreRankings(now: Date = new Date()): CurrentScoreVie
 
 function computeCurrentScore(now: Date): CurrentScoreView {
   const currentYear = now.getFullYear()
-  const seasons = getAllArchiveSeasons().filter((s) => !s.pending && withinWindow(now, s.year))
   const cups = getCups().filter((c) => withinWindow(now, c.year, c.date))
 
   // Reigning-champion index (earliest order at which a player became champion in-window).
+  // The historical-season archive was removed in the WCC reset, so seasonChampAt stays empty
+  // and reigning-champion bonuses now derive only from completed WCC tournaments (cupChampAt).
   const seasonChampAt = new Map<string, number>()
   const cupChampAt = new Map<string, number>()
-  for (const s of seasons)
-    for (const d of s.divisions) {
-      const ch = ident(d.champion)
-      if (ch) seasonChampAt.set(ch.id, Math.min(seasonChampAt.get(ch.id) ?? Infinity, seasonOrder(s) + 1))
-    }
   for (const c of cups) {
     if (c.status !== 'completed') continue
     const ch = ident(c.champion)
@@ -249,46 +243,6 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     we.h2h.set(los.id, { w: (we.h2h.get(los.id)?.w ?? 0) + 1, l: we.h2h.get(los.id)?.l ?? 0 })
     le.h2h.set(win.id, { w: le.h2h.get(win.id)?.w ?? 0, l: (le.h2h.get(win.id)?.l ?? 0) + 1 })
     matches.push({ winId: win.id, loseId: los.id, kind, value, label, order, eventId })
-  }
-
-  // Seasons: capped group qualifier + per-match playoffs.
-  for (const s of seasons) {
-    const gLabel = `${s.label} — Group Stage`
-    const order = seasonOrder(s)
-    for (const d of s.divisions) {
-      const ch = ident(d.champion), ru = ident(d.runnerUp)
-      const eventId = `${s.tournamentId}:tournament`
-      events.push({ id: eventId, label: s.label, order: order + 1, kind: 'tournament', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: true })
-
-      // Group: ONE capped, count-independent number per player (placement + win rate).
-      for (const grp of d.groups ?? []) {
-        const N = grp.rows.length
-        grp.rows.forEach((row, i) => {
-          const played = row.wins + row.losses + row.draws
-          if (!played) return
-          const r = ident(row)
-          if (!r) return
-          const e = get(r.id, r.name, r.resolved)
-          const place01 = N > 1 ? (N - 1 - i) / (N - 1) : 1
-          const winRate = row.wins / played
-          const perf = CONFIG.group.placementWeight * place01 + CONFIG.group.winRateWeight * winRate
-          addLine(e, gLabel, CONFIG.group.cap * perf)
-          e.groupW += row.wins; e.groupL += row.losses; e.groupD += row.draws
-        })
-      }
-
-      // Playoffs (single-elim; legacy double-elim rounds tier by name → seasonPlayoffOther).
-      const rounds = [...(d.playoff?.rounds ?? []), ...(d.doubleElim ? [...d.doubleElim.winners, ...d.doubleElim.losers] : [])]
-      for (const rd of rounds) {
-        const tier = roundTier(rd.name)
-        for (const m of rd.matches) {
-          if (!m.winner) continue
-          const a = ident(m.a), b = ident(m.b)
-          if (!a || !b || a.id === b.id) continue
-          recordMatch(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, 'tournament', tier, `${s.label} — Playoffs`, eventId, order + 1)
-        }
-      }
-    }
   }
 
   // Cups: per-match bracket + team ties.
