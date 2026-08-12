@@ -58,7 +58,7 @@ export default async function AccountPage() {
               <div className="border-t border-border pt-4">
                 {(() => {
                   const cd = cueverseCooldownState(profile.cueverseIdChangedAt)
-                  return <CueverseIdForm current={profile.cueverseId} canChange={cd.canChange} nextAvailableAt={cd.nextAvailableAt} />
+                  return <CueverseIdForm current={profile.cueverseId} canChange={cd.canChange} nextAvailableAt={cd.nextAvailableAt ? cd.nextAvailableAt.toISOString() : null} />
                 })()}
               </div>
             )}
