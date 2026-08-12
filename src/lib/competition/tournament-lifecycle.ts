@@ -22,7 +22,7 @@ import { recordAudit, type Actor } from './audit'
  * ladder exactly once (idempotent via `ladderAppliedAt`). Every transition is audited.
  */
 
-export type CupState = TournamentLifecycleState
+export type CupState = TournamentLifecycleState // internal alias (kept to limit churn; not user-facing)
 
 const NEXT: Record<CupState, CupState[]> = {
   DRAFT: ['REGISTRATION_OPEN', 'CANCELLED'],
