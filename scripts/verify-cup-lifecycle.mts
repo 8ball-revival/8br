@@ -65,7 +65,7 @@ try {
   check('ladder NOT re-applied (idempotent — timestamp unchanged)', afterRe.ladderAppliedAt?.getTime()===firstApplied?.getTime())
 
   // State-change audit trail exists.
-  const audits = await prisma.auditLog.count({ where:{ actorUsername:'cup-verify', action:{ in:['cup.state','cup.state.recovery','cup.ladder.apply'] } } })
+  const audits = await prisma.auditLog.count({ where:{ actorUsername:'cup-verify', action:{ in:['tournament.state','tournament.state.recovery','tournament.ladder.apply'] } } })
   check('state changes + ladder are audited', audits>=5)
 } finally {
   await prisma.tournament.delete({ where:{ id } }).catch(()=>{}) // cascades registrations + matches

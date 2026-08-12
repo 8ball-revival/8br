@@ -38,14 +38,14 @@ try {
   console.log('\n--- Part B: cup history (audit-derived, public vs admin) ---')
   // Seed representative audit rows spanning the lifecycle + admin-only bookkeeping.
   await prisma.auditLog.createMany({ data: [
-    A('cup.create'),
-    A('cup.state', { newValue: { state: 'REGISTRATION_OPEN' } }),
-    A('cup.state', { newValue: { state: 'BRACKET_GENERATED' } }),
+    A('tournament.create'),
+    A('tournament.state', { newValue: { state: 'REGISTRATION_OPEN' } }),
+    A('tournament.state', { newValue: { state: 'BRACKET_GENERATED' } }),
     A('playoff.manualBuild'), // after BRACKET_GENERATED → counts as a regeneration
     A('entrant.add'),
     A('playoff.verify'),
-    A('cup.ladder.apply'),
-    A('cup.state.recovery', { newValue: { state: 'IN_PROGRESS' }, reason: 'SENSITIVE ADMIN NOTE' }),
+    A('tournament.ladder.apply'),
+    A('tournament.state.recovery', { newValue: { state: 'IN_PROGRESS' }, reason: 'SENSITIVE ADMIN NOTE' }),
   ].map((d) => ({ ...d, entityId: String(id) })) })
 
   const admin = await getTournamentHistory(id, { admin: true })
