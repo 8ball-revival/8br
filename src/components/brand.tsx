@@ -1,13 +1,12 @@
 import Link from 'next/link'
-import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
-import { brandName, brandTagline } from '@/lib/site'
+import { brandName, brandTagline, brandAbbreviation } from '@/lib/site'
 
 /**
- * 8 Ball Revival logo: the 8BR shield emblem (dark-bg badge, works in both themes)
- * + the brand wordmark. `showTagline` adds the "Formerly known as 8BRCAM" eyebrow.
- * Emblem lives at public/logo/8br-emblem.png (cropped from the full logo).
+ * World Cue Championships identity — a simple text-based mark: a crimson "WCC"
+ * monogram badge + the full wordmark. No image asset (intentionally lightweight
+ * and easy for the new owner to restyle). `showTagline` adds the eyebrow tagline.
  */
 export function Logo({
   className,
@@ -20,17 +19,14 @@ export function Logo({
 }) {
   const mark = (
     <span className="flex items-center gap-2.5">
-      <Image
-        src="/logo/8br-emblem.png"
-        alt=""
-        width={400}
-        height={438}
-        unoptimized
-        priority
-        className="h-10 w-auto rounded-md ring-1 ring-brand/20"
-      />
+      <span
+        aria-hidden
+        className="grid size-10 shrink-0 place-items-center rounded-md bg-primary font-display text-sm font-bold tracking-tight text-primary-foreground"
+      >
+        {brandAbbreviation}
+      </span>
       <span className="flex flex-col leading-none">
-        <span className="font-display text-xl font-bold tracking-tight">{brandName}</span>
+        <span className="font-display text-lg font-bold tracking-tight sm:text-xl">{brandName}</span>
         {showTagline && (
           <span className="eyebrow mt-1 text-[0.6rem] text-muted-foreground">{brandTagline}</span>
         )}

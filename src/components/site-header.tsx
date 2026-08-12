@@ -1,29 +1,13 @@
 import Link from 'next/link'
-import { Search, Bell, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
 import { MobileNav } from '@/components/mobile-nav'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/account/auth'
 
-// Placeholder notification count — swap for a real query when notifications exist.
-const DEV_NOTIFICATIONS = 1
-
-function IconButton({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      aria-label={label}
-      className="relative flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-    >
-      {children}
-    </Link>
-  )
-}
-
-/** Sticky public header: brand, primary nav, search, notifications, theme, user. */
+/** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
   const user = await getCurrentUser()
   return (
@@ -35,21 +19,6 @@ export async function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1">
-          <IconButton href="/search" label="Search">
-            <Search className="size-5" />
-          </IconButton>
-
-          <ThemeToggle />
-
-          <IconButton href="#" label="Notifications">
-            <Bell className="size-5" />
-            {DEV_NOTIFICATIONS > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[0.6rem] font-bold leading-4 text-primary-foreground">
-                {DEV_NOTIFICATIONS}
-              </span>
-            )}
-          </IconButton>
-
           {user ? (
             <details className="group relative ml-1">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md py-1 pl-1 pr-2 transition-colors hover:bg-accent [&::-webkit-details-marker]:hidden">

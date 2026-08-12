@@ -23,12 +23,7 @@ export const Rules: CollectionConfig = {
       name: 'category',
       type: 'select',
       defaultValue: 'general',
-      options: ['general', 'tournament', 'cup', 'tournament', 'format', 'conduct'],
-    },
-    {
-      name: 'appliesToCompetitionType',
-      type: 'text',
-      admin: { description: 'App-level reference to a CompetitionType code (Prisma), e.g. SEASON. Optional.' },
+      options: ['general', 'tournament', 'format', 'conduct'],
     },
     { name: 'content', type: 'richText' },
     { name: 'effectiveFrom', type: 'date' },
