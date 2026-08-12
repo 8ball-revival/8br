@@ -14,7 +14,7 @@ import type { CupWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
 import type { CupHistoryEvent } from '@/lib/competition/tournament-lifecycle'
 import * as A from '@/lib/competition/tournament-actions'
 
-type Tab = 'overview' | 'roster' | 'bracket' | 'results' | 'history' | 'settings'
+type Tab = 'overview' | 'roster' | 'groups' | 'bracket' | 'results' | 'history' | 'settings'
 type ActionResp = { ok?: boolean; error?: string; message?: string } | void
 type Run = (fn: () => Promise<ActionResp>) => void
 
@@ -53,6 +53,7 @@ export function CupWorkspace({
   const tabs: { id: Tab; label: string; icon: typeof Users }[] = [
     { id: 'overview', label: 'Overview', icon: Trophy },
     { id: 'roster', label: rosterLabel, icon: Users },
+    ...(data.isGroupStage ? ([{ id: 'groups', label: 'Groups', icon: ListChecks }] as const) : []),
     { id: 'bracket', label: 'Bracket', icon: GitBranch },
     { id: 'results', label: 'Results', icon: ListChecks },
     { id: 'history', label: 'History', icon: History },
@@ -77,9 +78,11 @@ export function CupWorkspace({
         <div className="px-4 pt-4">
           <CupLifecycleControls
             tournamentId={data.tournament.id}
-            state={data.tournament.lifecycleState as 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'}
+            state={data.tournament.lifecycleState as 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'GROUPS_IN_PROGRESS' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'}
             isOwner={isOwner}
             bracketStale={data.bracketStale}
+            isGroupStage={data.isGroupStage}
+            groupsComplete={data.groupsComplete}
             onNavigate={(t) => setTab(t)}
           />
         </div>
@@ -110,6 +113,7 @@ export function CupWorkspace({
       <div className="p-4">
         {tab === 'overview' && <Overview data={data} />}
         {tab === 'roster' && (data.isTeam ? <TeamsTab data={data} run={run} disabled={!canManage || data.isHistorical} /> : <EntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />)}
+        {tab === 'groups' && <GroupsTab data={data} run={run} canEditResults={canEditResults} />}
         {tab === 'bracket' && <BracketTab data={data} run={run} disabled={!canManage || data.isHistorical} />}
         {tab === 'results' && <ResultsTab data={data} run={run} disabled={!canEditResults || data.isHistorical} />}
         {tab === 'history' && (
@@ -558,6 +562,122 @@ function SettingsTab({ data, run, canManage }: { data: CupWorkspaceData; run: Ru
           {delError && <p className="mt-2 text-sm text-destructive">{delError}</p>}
         </section>
       )}
+    </div>
+  )
+}
+
+// --------------------------------------------------------------------------- Group Stage
+
+function GroupsTab({ data, run, canEditResults }: { data: CupWorkspaceData; run: Run; canEditResults: boolean }) {
+  if (data.groups.length === 0) {
+    return <p className="text-sm text-muted-foreground">Groups haven&apos;t been generated yet. Close registration, then Start Group Stage.</p>
+  }
+  return (
+    <div className="space-y-8">
+      <p className="text-xs text-muted-foreground">
+        Round-robin groups. Enter every match result; standings update automatically. The
+        <span className="mx-1 rounded bg-brand/15 px-1.5 py-0.5 text-brand">highlighted</span>
+        rows are the current qualifying positions. Once every match is decided, confirm qualifiers from the Overview.
+      </p>
+      {data.groups.map((g) => (
+        <div key={g.id} className="overflow-hidden rounded-lg border border-border">
+          <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">{g.name}</div>
+
+          {/* Standings */}
+          <div className="overflow-x-auto p-4">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="w-8 py-1">#</th>
+                  <th className="py-1">Player</th>
+                  <th className="w-10 py-1 text-center">P</th>
+                  <th className="w-10 py-1 text-center">W</th>
+                  <th className="w-10 py-1 text-center">L</th>
+                  <th className="w-14 py-1 text-center" title="Game differential">+/−</th>
+                  <th className="w-12 py-1 text-center">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.standings.length === 0 ? (
+                  <tr><td colSpan={7} className="py-2 text-muted-foreground">No results yet.</td></tr>
+                ) : (
+                  g.standings.map((s) => (
+                    <tr key={s.registrationId} className={cn('border-t border-border/60', s.qualified && 'bg-brand/10')}>
+                      <td className="py-1.5 tabular">{s.rank}</td>
+                      <td className={cn('py-1.5', s.qualified && 'font-medium text-brand')}>{s.username}</td>
+                      <td className="py-1.5 text-center tabular">{s.played}</td>
+                      <td className="py-1.5 text-center tabular">{s.wins}</td>
+                      <td className="py-1.5 text-center tabular">{s.losses}</td>
+                      <td className="py-1.5 text-center tabular">{s.gameDiff > 0 ? `+${s.gameDiff}` : s.gameDiff}</td>
+                      <td className="py-1.5 text-center tabular font-medium">{s.points}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Round-robin schedule + result entry */}
+          <div className="border-t border-border p-4">
+            <p className="eyebrow mb-2 text-muted-foreground">Round-robin schedule</p>
+            <div className="space-y-1.5">
+              {g.matches.map((m) => (
+                <GroupMatchRow key={m.id} m={m} raceLength={data.tournament.raceLength} run={run} disabled={!canEditResults} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function GroupMatchRow({
+  m,
+  raceLength,
+  run,
+  disabled,
+}: {
+  m: import('@/lib/tournaments/live').WorkspaceGroupMatch
+  raceLength: number
+  run: Run
+  disabled: boolean
+}) {
+  const decided = m.winnerRegistrationId != null
+  const [home, setHome] = useState<string>(m.homeGames != null ? String(m.homeGames) : '')
+  const [away, setAway] = useState<string>(m.awayGames != null ? String(m.awayGames) : '')
+  const [editing, setEditing] = useState(false)
+
+  const save = () => {
+    const h = Number(home)
+    const a = Number(away)
+    if (!Number.isFinite(h) || !Number.isFinite(a)) return
+    run(() => import('@/lib/competition/tournament-actions').then((A) => A.recordGroupResultAction(m.id, h, a)))
+    setEditing(false)
+  }
+
+  const homeWon = m.winnerRegistrationId === m.homeRegistrationId
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+      <span className={cn('min-w-0 flex-1 truncate text-right', decided && homeWon && 'font-semibold text-brand')}>{m.homeUsername}</span>
+      {decided && !editing ? (
+        <span className="tabular px-2 font-medium">{m.homeGames}–{m.awayGames}</span>
+      ) : (
+        <span className="flex items-center gap-1">
+          <input value={home} onChange={(e) => setHome(e.target.value)} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center tabular" placeholder="0" disabled={disabled} />
+          <span className="text-muted-foreground">–</span>
+          <input value={away} onChange={(e) => setAway(e.target.value)} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center tabular" placeholder="0" disabled={disabled} />
+        </span>
+      )}
+      <span className={cn('min-w-0 flex-1 truncate', decided && !homeWon && 'font-semibold text-brand')}>{m.awayUsername}</span>
+      {!disabled && (
+        decided && !editing ? (
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={save} disabled={home === '' || away === ''}>Save</Button>
+        )
+      )}
+      <span className="w-16 text-right text-[0.65rem] text-muted-foreground">race to {raceLength}</span>
     </div>
   )
 }

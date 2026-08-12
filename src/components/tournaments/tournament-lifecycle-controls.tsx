@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Play, Lock, Unlock, CheckCircle2, GitBranch, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Play, Lock, Unlock, CheckCircle2, GitBranch, RefreshCw, AlertTriangle, Users, Trophy } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,14 +12,18 @@ import {
   beginCupTournamentAction,
   generateCupBracketAction,
   reopenCupRegistrationAction,
+  startGroupStageAction,
+  confirmQualifiersAction,
 } from '@/lib/competition/tournament-actions'
 
-type State = 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+type State = 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'GROUPS_IN_PROGRESS' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+type NavTab = 'bracket' | 'results' | 'groups'
 
 const LABEL: Record<State, string> = {
   DRAFT: 'Draft',
   REGISTRATION_OPEN: 'Registration Open',
   REGISTRATION_CLOSED: 'Registration Closed',
+  GROUPS_IN_PROGRESS: 'Group Stage',
   BRACKET_GENERATED: 'Bracket Ready',
   IN_PROGRESS: 'Tournament Live',
   COMPLETED: 'Completed',
@@ -27,30 +31,33 @@ const LABEL: Record<State, string> = {
 }
 
 /**
- * Primary tournament-lifecycle actions (shown on the Overview). Only the VALID next actions for the
- * current state are offered; the server enforces the same transitions and audits them. Registration
- * is a toggle (Close ⇄ Re-Open) that is permanently locked once the tournament is live. Generate Brackets
- * jumps to the Bracket tab; Start Tournament (confirmed) jumps to the Results tab. Cancelling/deleting a
- * cup is intentionally NOT here — it lives in the Settings tab. Owners get a recovery control.
+ * Primary tournament-lifecycle actions. Only the VALID next actions for the current state are
+ * offered; the server enforces the same transitions and audits them. For Group Stage + Playoffs
+ * tournaments the group phase (Start Group Stage → Confirm Qualifiers) is inserted before the
+ * bracket; bracket-only tournaments are unchanged.
  */
 export function CupLifecycleControls({
   tournamentId,
   state,
   isOwner,
   bracketStale = false,
+  isGroupStage = false,
+  groupsComplete = false,
   onNavigate,
 }: {
   tournamentId: number
   state: State
   isOwner: boolean
   bracketStale?: boolean
-  onNavigate?: (tab: 'bracket' | 'results') => void
+  isGroupStage?: boolean
+  groupsComplete?: boolean
+  onNavigate?: (tab: NavTab) => void
 }) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null)
 
-  const act = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; navigate?: 'bracket' | 'results' }>, confirm?: string) => {
+  const act = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; navigate?: NavTab }>, confirm?: string) => {
     if (confirm && !window.confirm(confirm)) return
     setMsg(null)
     start(async () => {
@@ -76,7 +83,7 @@ export function CupLifecycleControls({
     })
   }
 
-  const badgeVariant = state === 'COMPLETED' ? 'gold' : state === 'CANCELLED' ? 'muted' : state === 'IN_PROGRESS' ? 'destructive' : 'success'
+  const badgeVariant = state === 'COMPLETED' ? 'default' : state === 'CANCELLED' ? 'muted' : state === 'IN_PROGRESS' ? 'destructive' : 'success'
 
   return (
     <div className="mb-6 rounded-lg border border-border bg-card/40 p-4">
@@ -102,10 +109,27 @@ export function CupLifecycleControls({
               <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenCupRegistrationAction(tournamentId))}>
                 <Unlock className="size-4" /> Re-Open Registration
               </Button>
-              <Button size="sm" disabled={pending} onClick={() => act(() => generateCupBracketAction(tournamentId))}>
-                <GitBranch className="size-4" /> Generate Brackets
-              </Button>
+              {isGroupStage ? (
+                <Button size="sm" disabled={pending} onClick={() => act(() => startGroupStageAction(tournamentId), 'Start the group stage? Round-robin groups are generated from the current entrants.')}>
+                  <Users className="size-4" /> Start Group Stage
+                </Button>
+              ) : (
+                <Button size="sm" disabled={pending} onClick={() => act(() => generateCupBracketAction(tournamentId))}>
+                  <GitBranch className="size-4" /> Generate Brackets
+                </Button>
+              )}
             </>
+          )}
+
+          {state === 'GROUPS_IN_PROGRESS' && (
+            <Button
+              size="sm"
+              disabled={pending || !groupsComplete}
+              title={groupsComplete ? undefined : 'Every group match needs a result first.'}
+              onClick={() => act(() => confirmQualifiersAction(tournamentId), 'Confirm qualifiers and seed the playoff bracket? The qualifying players advance into the bracket.')}
+            >
+              <Trophy className="size-4" /> Confirm Qualifiers &amp; Seed Bracket
+            </Button>
           )}
 
           {state === 'BRACKET_GENERATED' && (
@@ -113,7 +137,7 @@ export function CupLifecycleControls({
               <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenCupRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
                 <Unlock className="size-4" /> Re-Open Registration
               </Button>
-              {bracketStale ? (
+              {bracketStale && !isGroupStage ? (
                 <Button size="sm" disabled={pending} onClick={() => act(() => generateCupBracketAction(tournamentId))}>
                   <RefreshCw className="size-4" /> Regenerate Bracket
                 </Button>
@@ -137,9 +161,14 @@ export function CupLifecycleControls({
         </div>
       </div>
 
-      {state === 'BRACKET_GENERATED' && bracketStale && (
+      {state === 'BRACKET_GENERATED' && bracketStale && !isGroupStage && (
         <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-amber-500">
           <AlertTriangle className="size-4" /> The entrant list changed after this bracket was generated — regenerate it before starting the tournament.
+        </p>
+      )}
+      {state === 'GROUPS_IN_PROGRESS' && !groupsComplete && (
+        <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <AlertTriangle className="size-4" /> Enter every group result in the Groups tab, then confirm qualifiers.
         </p>
       )}
       {msg && <p role="status" className={`mt-2 text-sm ${msg.ok ? 'text-success' : 'text-destructive'}`}>{msg.text}</p>}

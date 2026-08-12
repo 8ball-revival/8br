@@ -6,6 +6,7 @@ import { requireCapability, requireStaffActor } from './staff-auth'
 import * as svc from './service'
 import * as teamSvc from './teams'
 import { createCup, type CreateCupConfig } from './tournament-create'
+import { startGroupStage, recordGroupResult, confirmQualifiersAndSeed } from './group-stage'
 import { syncLiveCupToSnapshot } from './tournament-sync'
 import { transitionCupState, requireCupState, bracketMatchesEntrants, type CupState } from './tournament-lifecycle'
 import { recordAudit } from './audit'
@@ -16,7 +17,7 @@ export interface ActionResult {
   error?: string
   message?: string
   /** Tab the workspace should switch to after a successful lifecycle action. */
-  navigate?: 'bracket' | 'results'
+  navigate?: 'bracket' | 'results' | 'groups'
 }
 
 /** Revalidate the tournament page + every snapshot-derived surface after a tournament edit. */
@@ -168,7 +169,8 @@ export async function generateCupBracketAction(tournamentId: number): Promise<Ac
     if (!rd.ok) return { error: rd.error }
   }
   await svc.reseedEntrants(actor, tournamentId, order)
-  const built = await svc.rebuildManualPlayoff(actor, tournamentId, order)
+  const fmt = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { tournamentFormat: true } })
+  const built = await svc.rebuildManualPlayoff(actor, tournamentId, order, { doubleElim: fmt?.tournamentFormat === 'DOUBLE_ELIM' })
   if (!built.ok) return { error: built.error }
   const pub = await svc.publishPlayoff(actor, tournamentId)
   if (!pub.ok) return { error: pub.error }
@@ -181,6 +183,45 @@ export async function generateCupBracketAction(tournamentId: number): Promise<Ac
   await recordAudit(actor, { action: 'cup.bracket.generate', entity: 'Tournament', entityId: tournamentId, newValue: { entrants: order.length } })
   revalidateCup(await cupNumberOfSeason(tournamentId))
   return { ok: true, message: 'Bracket generated. Review it, then Start Tournament.', navigate: 'bracket' }
+}
+
+// ---- Group Stage + Playoffs (GROUPS_PLAYOFFS format only) -------------------
+
+/** Generate + publish the round-robin groups and enter the group phase. */
+export async function startGroupStageAction(tournamentId: number): Promise<ActionResult> {
+  await requireCapability('manage_competitions')
+  const gate = await requireCupState(tournamentId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED'])
+  if (!gate.ok) return { error: gate.error }
+  const actor = await requireCapability('manage_competitions')
+  if (gate.state === 'REGISTRATION_OPEN') {
+    const close = await transitionCupState(actor, tournamentId, 'REGISTRATION_CLOSED')
+    if (!close.ok) return { error: close.error }
+  }
+  const r = await startGroupStage(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateCup(await cupNumberOfSeason(tournamentId))
+  return { ok: true, message: 'Group stage started — round-robin groups generated.', navigate: 'groups' }
+}
+
+/** Record (or correct) a group match result. Authoritative — verified + standings recompute. */
+export async function recordGroupResultAction(matchId: number, home: number, away: number, reason?: string): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  const r = await recordGroupResult(actor, matchId, home, away, reason)
+  if (!r.ok) return { error: r.error }
+  const match = await prisma.tournamentMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } })
+  if (match) revalidateCup(await cupNumberOfSeason(match.tournamentId))
+  return { ok: true, message: 'Result recorded.' }
+}
+
+/** Confirm the final qualifiers and seed them into the playoff bracket (single or double elim). */
+export async function confirmQualifiersAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const gate = await requireCupState(tournamentId, ['GROUPS_IN_PROGRESS'])
+  if (!gate.ok) return { error: gate.error }
+  const r = await confirmQualifiersAndSeed(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateCup(await cupNumberOfSeason(tournamentId))
+  return { ok: true, message: 'Qualifiers confirmed — playoff bracket seeded.', navigate: 'bracket' }
 }
 
 /**

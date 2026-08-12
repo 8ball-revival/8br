@@ -37,6 +37,14 @@ export type PlayoffRow = {
   feedsMatchId: number | null
   feedsSlot: number | null
   published: boolean
+  section?: string | null // "WB" | "LB" | "GF" for double-elimination; null for single-elim
+}
+
+/** Column heading for a double-elimination round (WB/LB/GF), given the stored global round number. */
+function deColumnName(section: string, round: number): string {
+  if (section === 'GF') return 'Grand Final'
+  if (section === 'LB') return `Losers R${round - 100}`
+  return `Winners R${round}`
 }
 
 type MemberInfo = { name: string; handle: string | null; playerId: string | null }
@@ -74,12 +82,13 @@ export function playoffToBracketRounds(
     }
     return s
   }
+  const isDoubleElim = rows.some((r) => r.section != null)
   const out: BracketRound[] = []
   for (const round of [...byRound.keys()].sort((a, b) => a - b)) {
     const isFirst = round === 1
     const ms = byRound.get(round)!.sort((a, b) => a.slot - b.slot)
     out.push({
-      name: roundColumnName(round, totalRounds),
+      name: isDoubleElim ? deColumnName(ms[0].section ?? 'WB', round) : roundColumnName(round, totalRounds),
       matches: ms.map((r): BracketMatch => {
         const m: BracketMatch = {}
         const a = slotFor(r.homeRegistrationId, r.homeUsername, r.homeSeed, r.homeGames, isFirst)
@@ -138,6 +147,98 @@ export interface CupWorkspaceData {
   /** BRACKET_GENERATED only: the generated bracket no longer matches the current entrant list
    *  (entrants changed after re-opening) — it must be regenerated before the tournament can start. */
   bracketStale: boolean
+  // ---- Group Stage + Playoffs (only populated when tournamentFormat = GROUPS_PLAYOFFS) ----
+  isGroupStage: boolean
+  groups: WorkspaceGroup[]
+  /** Every group match has a verified result → qualifiers can be confirmed. */
+  groupsComplete: boolean
+}
+
+export interface WorkspaceGroupMatch {
+  id: number
+  round: number
+  homeRegistrationId: number
+  awayRegistrationId: number
+  homeUsername: string
+  awayUsername: string
+  homeGames: number | null
+  awayGames: number | null
+  winnerRegistrationId: number | null
+  status: string
+  verification: string
+}
+export interface WorkspaceStandingRow {
+  registrationId: number
+  username: string
+  played: number
+  wins: number
+  losses: number
+  gamesWon: number
+  gamesLost: number
+  gameDiff: number
+  points: number
+  rank: number
+  qualified: boolean
+}
+export interface WorkspaceGroup {
+  id: number
+  code: string
+  name: string
+  ordinal: number
+  players: { registrationId: number; username: string; seed: number }[]
+  matches: WorkspaceGroupMatch[]
+  standings: WorkspaceStandingRow[]
+}
+
+/** Load the group-stage view (groups, round-robin matches, standings) for a tournament. */
+async function loadGroupStage(tournamentId: number): Promise<{ groups: WorkspaceGroup[]; complete: boolean }> {
+  const gs = await prisma.tournamentGroup.findMany({
+    where: { tournamentId },
+    orderBy: { ordinal: 'asc' },
+    include: {
+      players: { include: { registration: true }, orderBy: { seed: 'asc' } },
+      matches: { orderBy: [{ round: 'asc' }, { id: 'asc' }] },
+      standings: { orderBy: { rank: 'asc' } },
+    },
+  })
+  const groups: WorkspaceGroup[] = gs.map((g) => ({
+    id: g.id,
+    code: g.code,
+    name: g.name,
+    ordinal: g.ordinal,
+    players: g.players.map((p) => ({ registrationId: p.registrationId, username: p.registration.username, seed: p.seed })),
+    matches: g.matches.map((m) => ({
+      id: m.id,
+      round: m.round,
+      homeRegistrationId: m.homeRegistrationId,
+      awayRegistrationId: m.awayRegistrationId,
+      homeUsername: m.homeUsername,
+      awayUsername: m.awayUsername,
+      homeGames: m.homeGames,
+      awayGames: m.awayGames,
+      winnerRegistrationId: m.winnerRegistrationId,
+      status: m.status,
+      verification: m.verification,
+    })),
+    standings: g.standings.map((s) => ({
+      registrationId: s.registrationId,
+      username: s.username,
+      played: s.played,
+      wins: s.wins,
+      losses: s.losses,
+      gamesWon: s.gamesWon,
+      gamesLost: s.gamesLost,
+      gameDiff: s.gameDiff,
+      points: s.points,
+      rank: s.rank,
+      qualified: s.qualified,
+    })),
+  }))
+  const total = await prisma.tournamentMatch.count({ where: { tournamentId } })
+  const remaining = await prisma.tournamentMatch.count({
+    where: { tournamentId, OR: [{ winnerRegistrationId: null }, { verification: { not: 'VERIFIED' } }] },
+  })
+  return { groups, complete: total > 0 && remaining === 0 }
 }
 
 /** Load everything the Cup workspace + public live render need for a tournament number. */
@@ -187,7 +288,7 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
       id: true, round: true, slot: true, label: true,
       homeRegistrationId: true, awayRegistrationId: true, homeUsername: true, awayUsername: true,
       homeSeed: true, awaySeed: true, homeGames: true, awayGames: true, winnerRegistrationId: true,
-      verification: true, status: true, note: true, feedsMatchId: true, feedsSlot: true, published: true,
+      verification: true, status: true, note: true, feedsMatchId: true, feedsSlot: true, published: true, section: true,
     },
   })
 
@@ -206,6 +307,10 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
 
   // The legacy old-format-cup conversion feature was removed in the WCC reset.
   const isLegacyConvertible = false
+
+  // Group Stage + Playoffs data (only for that format).
+  const isGroupStage = tournament.tournamentFormat === 'GROUPS_PLAYOFFS'
+  const gs = isGroupStage ? await loadGroupStage(tournament.id) : { groups: [], complete: false }
 
   return {
     tournament: {
@@ -239,5 +344,8 @@ export async function getCupWorkspace(number: number): Promise<CupWorkspaceData 
     hasPublishedBracket,
     hasResults,
     bracketStale,
+    isGroupStage,
+    groups: gs.groups,
+    groupsComplete: gs.complete,
   }
 }
