@@ -1423,8 +1423,14 @@ model PlayoffMatch {
   winnerRegistrationId Int?
   verification         VerificationState @default(UNVERIFIED)
   note                 String? // optional admin note attached to the result
-  feedsMatchId         Int?
+  feedsMatchId         Int? // where the WINNER advances
   feedsSlot            Int?
+  // Double-elimination: where the LOSER drops to (null = eliminated, e.g. single-elim or LB matches).
+  loserFeedsMatchId    Int?
+  loserFeedsSlot       Int?
+  // Bracket section for double-elim rendering/logic: "WB" (winners) | "LB" (losers) | "GF" (grand final).
+  // Null for single-elimination brackets (rendered as one tree).
+  section              String?
   published            Boolean           @default(false)
   completedAt          DateTime?
   createdAt            DateTime          @default(now())

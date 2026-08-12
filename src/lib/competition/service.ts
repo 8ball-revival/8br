@@ -6,7 +6,8 @@ import { planGroups, type SeedableRegistration, type GroupPlan } from './groups'
 import { roundRobin, type SchedulePlayer } from './schedule'
 import { computeStandings, type StandingMatchInput } from './standings'
 import { validateScore } from './scoring'
-import { planBracket, orderQualifiers, type GroupQualifiers, type BracketPlan } from './bracket'
+import { planBracket, orderQualifiers, type GroupQualifiers, type BracketPlan, type Qualifier } from './bracket'
+import { planDoubleElim } from './bracket-de'
 
 // ---------------------------------------------------------------------------
 // Tournament
@@ -1096,19 +1097,121 @@ export async function previewPlayoff(tournamentId: number): Promise<{ ok: boolea
   }
 }
 
+/** Global round number for ordering/indexing: WB 1..k, LB 101.., GF 201. Single-elim uses m.round. */
+function deRound(section: 'WB' | 'LB' | 'GF', round: number): number {
+  return section === 'WB' ? round : section === 'LB' ? 100 + round : 200 + round
+}
+
+/** Place a player into a downstream slot, and if that match becomes a walkover (a real player
+ *  facing a Bye), auto-complete it and cascade the winner (and a Bye "loser") onward. Recursive. */
+async function advancePlayerInto(
+  tx: Prisma.TransactionClient,
+  matchId: number,
+  slot: number,
+  player: { registrationId: number | null; username: string | null; seed: number | null },
+): Promise<void> {
+  const data =
+    slot === 0
+      ? { homeRegistrationId: player.registrationId, homeUsername: player.username, homeSeed: player.seed }
+      : { awayRegistrationId: player.registrationId, awayUsername: player.username, awaySeed: player.seed }
+  await tx.playoffMatch.update({ where: { id: matchId }, data })
+
+  const t = await tx.playoffMatch.findUnique({ where: { id: matchId } })
+  if (!t || t.status === 'COMPLETED') return
+  const homeReal = t.homeRegistrationId !== null
+  const awayReal = t.awayRegistrationId !== null
+  const homeBye = t.homeRegistrationId === null && t.homeUsername === 'Bye'
+  const awayBye = t.awayRegistrationId === null && t.awayUsername === 'Bye'
+  if ((homeReal && awayBye) || (awayReal && homeBye)) {
+    const winId = (homeReal ? t.homeRegistrationId : t.awayRegistrationId)!
+    const winName = homeReal ? t.homeUsername : t.awayUsername
+    const winSeed = homeReal ? t.homeSeed : t.awaySeed
+    await tx.playoffMatch.update({
+      where: { id: matchId },
+      data: { winnerRegistrationId: winId, status: 'COMPLETED', verification: 'VERIFIED', completedAt: new Date() },
+    })
+    if (t.feedsMatchId != null) await advancePlayerInto(tx, t.feedsMatchId, t.feedsSlot!, { registrationId: winId, username: winName, seed: winSeed })
+    if (t.loserFeedsMatchId != null) await advancePlayerInto(tx, t.loserFeedsMatchId, t.loserFeedsSlot!, { registrationId: null, username: 'Bye', seed: null })
+  }
+}
+
+/** Persist a DOUBLE-ELIMINATION bracket (winners + losers + grand final) from seeded qualifiers. */
+async function persistDoubleElimPlan(actor: Actor, tournamentId: number, qualifiers: Qualifier[]): Promise<{ ok: boolean; error?: string }> {
+  let plan
+  try {
+    plan = planDoubleElim(qualifiers)
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Could not build the double-elimination bracket.' }
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.playoffMatch.deleteMany({ where: { tournamentId } })
+    const idByIndex: Record<number, number> = {}
+    for (const m of plan.matches) {
+      const created = await tx.playoffMatch.create({
+        data: {
+          tournamentId,
+          section: m.section,
+          round: deRound(m.section, m.round),
+          slot: m.slot,
+          label: m.label,
+          homeRegistrationId: m.home.registrationId,
+          awayRegistrationId: m.away.registrationId,
+          homeUsername: m.home.username,
+          awayUsername: m.away.username,
+          homeSeed: m.home.seed,
+          awaySeed: m.away.seed,
+        },
+      })
+      idByIndex[m.index] = created.id
+    }
+    for (const m of plan.matches) {
+      const upd: Prisma.PlayoffMatchUpdateInput = {}
+      if (m.feedsIndex !== null) {
+        upd.feedsMatchId = idByIndex[m.feedsIndex]
+        upd.feedsSlot = m.feedsSlot
+      }
+      if (m.loserFeedsIndex !== null) {
+        upd.loserFeedsMatchId = idByIndex[m.loserFeedsIndex]
+        upd.loserFeedsSlot = m.loserFeedsSlot
+      }
+      if (Object.keys(upd).length) await tx.playoffMatch.update({ where: { id: idByIndex[m.index] }, data: upd })
+    }
+    // Mark generation-time walkovers (real vs Bye) as completed — the plan already seated the
+    // advanced players downstream, so this just records the walkover result.
+    for (const m of plan.matches) {
+      const homeReal = m.home.registrationId !== null
+      const awayReal = m.away.registrationId !== null
+      const homeBye = m.home.registrationId === null && m.home.username === 'Bye'
+      const awayBye = m.away.registrationId === null && m.away.username === 'Bye'
+      if ((homeReal && awayBye) || (awayReal && homeBye)) {
+        const winId = (homeReal ? m.home.registrationId : m.away.registrationId)!
+        await tx.playoffMatch.update({
+          where: { id: idByIndex[m.index] },
+          data: { winnerRegistrationId: winId, status: 'COMPLETED', verification: 'VERIFIED', completedAt: new Date() },
+        })
+      }
+    }
+    await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
+    await recordAudit(actor, { action: 'playoff.generate', entity: 'Tournament', entityId: tournamentId, newValue: { matches: plan.matches.length, size: plan.bracketSize, doubleElim: true } }, tx)
+  })
+  return { ok: true }
+}
+
 export async function generatePlayoff(
   actor: Actor,
   tournamentId: number,
-  opts: { force?: boolean } = {},
+  opts: { force?: boolean; doubleElim?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   await assertCompetitionUnlocked(prisma, tournamentId)
   const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (publishedCount > 0 && !opts.force) return { ok: false, error: 'Playoffs are published. Confirm to regenerate.' }
 
-  const preview = await previewPlayoff(tournamentId)
-  if (!preview.ok || !preview.plan) return { ok: false, error: preview.error }
-  const plan = preview.plan
+  const qualifiers = orderQualifiers(await buildQualifiers(tournamentId))
+  if (qualifiers.length < 2) return { ok: false, error: 'Need at least 2 qualified players. Finish and verify group results first.' }
 
+  if (opts.doubleElim) return persistDoubleElimPlan(actor, tournamentId, qualifiers)
+
+  const plan = planBracket(qualifiers)
   await prisma.$transaction(async (tx) => {
     await tx.playoffMatch.deleteMany({ where: { tournamentId } })
     const idByIndex: Record<number, number> = {}
@@ -1165,7 +1268,7 @@ export async function publishPlayoff(actor: Actor, tournamentId: number): Promis
  * rendering as the auto-generator. Blocked while published (return to draft first).
  * Names are the entrants' resolved public display identity.
  */
-export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, orderedRegistrationIds: number[]): Promise<{ ok: boolean; error?: string }> {
+export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, orderedRegistrationIds: number[], opts: { doubleElim?: boolean } = {}): Promise<{ ok: boolean; error?: string }> {
   await assertCompetitionUnlocked(prisma, tournamentId)
   const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
   if (publishedCount > 0) return { ok: false, error: 'Bracket is published — return it to draft before editing.' }
@@ -1183,6 +1286,8 @@ export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, o
   const nameById = new Map(regs.map((r) => [r.id, idn.get(r.id)?.displayName ?? r.username]))
   const qualifiers = ids.filter((id) => nameById.has(id)).map((id, i) => ({ registrationId: id, username: nameById.get(id)!, seed: i + 1 }))
   if (qualifiers.length < 2) return { ok: false, error: 'Selected players are not valid entrants for this tournament.' }
+
+  if (opts.doubleElim) return persistDoubleElimPlan(actor, tournamentId, qualifiers)
 
   let plan: BracketPlan
   try {
@@ -1325,16 +1430,22 @@ export async function verifyPlayoffMatch(actor: Actor, matchId: number, reason?:
   if (match.winnerRegistrationId == null) return { ok: false, error: 'Record a result before verifying.' }
   await prisma.$transaction(async (tx) => {
     await tx.playoffMatch.update({ where: { id: matchId }, data: { verification: 'VERIFIED' } })
+    const winnerIsHome = match.winnerRegistrationId === match.homeRegistrationId
+    // Advance the WINNER (handles walkovers into a Bye).
     if (match.feedsMatchId != null) {
-      const winnerIsHome = match.winnerRegistrationId === match.homeRegistrationId
-      const winnerId = match.winnerRegistrationId
-      const winnerName = winnerIsHome ? match.homeUsername : match.awayUsername
-      const winnerSeed = winnerIsHome ? match.homeSeed : match.awaySeed
-      const slotData =
-        match.feedsSlot === 0
-          ? { homeRegistrationId: winnerId, homeUsername: winnerName, homeSeed: winnerSeed }
-          : { awayRegistrationId: winnerId, awayUsername: winnerName, awaySeed: winnerSeed }
-      await tx.playoffMatch.update({ where: { id: match.feedsMatchId }, data: slotData })
+      await advancePlayerInto(tx, match.feedsMatchId, match.feedsSlot!, {
+        registrationId: match.winnerRegistrationId,
+        username: winnerIsHome ? match.homeUsername : match.awayUsername,
+        seed: winnerIsHome ? match.homeSeed : match.awaySeed,
+      })
+    }
+    // Double-elimination: drop the LOSER into the losers bracket (also handles walkovers).
+    if (match.loserFeedsMatchId != null) {
+      await advancePlayerInto(tx, match.loserFeedsMatchId, match.loserFeedsSlot!, {
+        registrationId: winnerIsHome ? match.awayRegistrationId : match.homeRegistrationId,
+        username: winnerIsHome ? match.awayUsername : match.homeUsername,
+        seed: winnerIsHome ? match.awaySeed : match.homeSeed,
+      })
     }
     await recordAudit(actor, { action: 'playoff.verify', entity: 'PlayoffMatch', entityId: matchId, newValue: { verification: 'VERIFIED' }, reason }, tx)
   })
@@ -1362,6 +1473,19 @@ export async function undoPlayoffResult(actor: Actor, matchId: number, reason?: 
             ? { homeRegistrationId: null, homeUsername: null, homeSeed: null }
             : { awayRegistrationId: null, awayUsername: null, awaySeed: null }
         await tx.playoffMatch.update({ where: { id: m.feedsMatchId }, data: slotData })
+      }
+    }
+    // Double-elimination: also clear the LOSER's dropped slot if it still holds this match's loser.
+    if (m.loserFeedsMatchId != null && m.winnerRegistrationId != null) {
+      const loserId = m.winnerRegistrationId === m.homeRegistrationId ? m.awayRegistrationId : m.homeRegistrationId
+      const down = await tx.playoffMatch.findUnique({ where: { id: m.loserFeedsMatchId } })
+      const heldId = m.loserFeedsSlot === 0 ? down?.homeRegistrationId : down?.awayRegistrationId
+      if (down && loserId != null && heldId === loserId) {
+        const slotData =
+          m.loserFeedsSlot === 0
+            ? { homeRegistrationId: null, homeUsername: null, homeSeed: null }
+            : { awayRegistrationId: null, awayUsername: null, awaySeed: null }
+        await tx.playoffMatch.update({ where: { id: m.loserFeedsMatchId }, data: slotData })
       }
     }
     await tx.playoffMatch.update({
