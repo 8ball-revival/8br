@@ -68,6 +68,12 @@
   /* Gold used for clickable player names (e.g. the group crosstable). Themed per mode for contrast. */
   --player-name: #d4a94a;
 
+  /* Themed scrollbars — single source of truth (see .scrollbar-themed). Dark: near-black track, dark
+     gray thumb, crimson hover. */
+  --scrollbar-track: #0a0a0a;
+  --scrollbar-thumb: #3a3a3a;
+  --scrollbar-thumb-hover: var(--brand);
+
   /* Back-compat aliases: legacy `gold` tokens now resolve to the WCC crimson so any
      not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
   --gold: var(--brand);
@@ -133,6 +139,10 @@
   --loss: #6a6650;
 
   --player-name: #8a6a12; /* darker gold, readable on cream */
+
+  /* Light: light-gray track, medium-gray thumb, crimson hover (brand is crimson in both themes). */
+  --scrollbar-track: #e3e3e7;
+  --scrollbar-thumb: #b0b0b8;
 }
 
 @theme inline {
@@ -249,6 +259,35 @@
     text-transform: uppercase;
     letter-spacing: 0.18em;
     font-size: 0.72rem;
+  }
+
+  /* Polished, theme-aware scrollbar (colors from the shared --scrollbar-* tokens). Thin, rounded,
+     no arrow buttons, no bright track. Firefox uses scrollbar-color/width; Chromium/WebKit the
+     ::-webkit-scrollbar selectors. */
+  .scrollbar-themed {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+  .scrollbar-themed::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+  }
+  .scrollbar-themed::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 9999px;
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    border: 2px solid var(--scrollbar-track);
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  .scrollbar-themed::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   /* Faint grid texture for hero/section backgrounds */

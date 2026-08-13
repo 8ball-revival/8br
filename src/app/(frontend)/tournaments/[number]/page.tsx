@@ -355,25 +355,25 @@ export default async function TournamentDetailPage({ params }: { params: Promise
     }
 
     const badge = badgeByKey(ws.tournament.badge)
+    // Full-width tournament view (no max-width, ~24–40px side gutters) so group tables can use nearly
+    // the whole page and expand on large monitors. The global nav keeps its own width (SiteHeader).
     return (
-      <div>
-        <Container className="py-10">
-          {backLink}
-          <div className="flex items-center gap-2">
-            {badge && <span className="text-2xl" aria-hidden>{badge.emoji}</span>}
-            <div className="flex-1">
-              <TournamentHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
-            </div>
+      <div className="mx-auto w-full px-6 py-10 sm:px-8 lg:px-10">
+        {backLink}
+        <div className="flex items-center gap-2">
+          {badge && <span className="text-2xl" aria-hidden>{badge.emoji}</span>}
+          <div className="flex-1">
+            <TournamentHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
           </div>
-          {ws.tournament.description && (
-            <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">{ws.tournament.description}</p>
-          )}
-          {canManage ? (
-            <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
-          ) : (
-            publicView
-          )}
-        </Container>
+        </div>
+        {ws.tournament.description && (
+          <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">{ws.tournament.description}</p>
+        )}
+        {canManage ? (
+          <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
+        ) : (
+          publicView
+        )}
       </div>
     )
   }

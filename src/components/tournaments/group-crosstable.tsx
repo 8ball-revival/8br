@@ -53,8 +53,16 @@ function DiscordIcon({ name, discord }: { name: string; discord: string | null }
 }
 
 export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
-  const players = group.players // seed order — same on rows and columns so the diagonal lines up
   const standing = new Map(group.standings.map((s) => [s.registrationId, s]))
+
+  // Rows AND columns follow the OFFICIAL standings order (highest points first, via computeStandings)
+  // — never seed order — so the leader is always on top and the diagonal still lines up. Any player
+  // missing from standings (shouldn't happen) is appended so no one is dropped.
+  const byId = new Map(group.players.map((p) => [p.registrationId, p]))
+  const players = [
+    ...group.standings.map((s) => byId.get(s.registrationId)).filter((p): p is (typeof group.players)[number] => !!p),
+    ...group.players.filter((p) => !standing.has(p.registrationId)),
+  ]
 
   // result[row:col] = the row player's line in that head-to-head (games first), or absent if unplayed.
   const result = new Map<string, { text: string; rowWon: boolean }>()
@@ -75,31 +83,37 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
     return total ? Math.round((gamesWon / total) * 100) : 0
   }
 
-  const th = 'border border-border px-2 py-1 text-center align-middle'
-  const td = 'border border-border px-2 py-1 text-center align-middle tabular'
-  // Uniform width for every column except the CueVerse-ID name column on the left.
-  const COL = '4.5rem'
+  // ~20% larger real dimensions than before: bigger font, taller rows, more cell padding. No zoom/scale.
+  const th = 'border border-border px-3 py-2 text-center align-middle'
+  const td = 'border border-border px-3 py-2 text-center align-middle tabular'
+  // The CueVerse-ID name column is frozen on the left with an OPAQUE background while scrolling.
+  const stickyRowHead = `${th} sticky left-0 z-10 bg-background text-left font-medium`
+  // Table fills the tournament width and expands on large monitors; it only scrolls when it truly
+  // can't fit at this min-width (name column + a readable min for every score/stat column).
+  const minWidth = `${13 + (players.length + 3) * 5.5}rem`
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-max table-fixed border-collapse text-sm">
+    <div className="scrollbar-themed w-full overflow-x-auto pb-1">
+      <table className="w-full table-fixed border-collapse text-base" style={{ minWidth }}>
         <colgroup>
-          <col style={{ width: '11rem' }} />
-          {players.map((p) => <col key={p.registrationId} style={{ width: COL }} />)}
-          <col style={{ width: COL }} />
-          <col style={{ width: COL }} />
-          <col style={{ width: COL }} />
+          <col style={{ width: '13rem' }} />
+          {/* score + stat columns have no fixed width → table-fixed shares the remaining width equally
+              (uniform columns that grow to fill the extra space on wide screens) */}
+          {players.map((p) => <col key={p.registrationId} />)}
+          <col />
+          <col />
+          <col />
         </colgroup>
         <thead>
           <tr className="bg-card/50">
-            <th rowSpan={2} className={`${th} text-left font-bold text-foreground`}>{group.name}</th>
+            <th rowSpan={2} className={`${th} sticky left-0 z-30 bg-card text-left font-bold text-foreground`}>{group.name}</th>
             {players.map((p) => (
               <th key={p.registrationId} className={`${th} font-medium`}>
                 <PlayerName label={topLabel(p.preferredName, p.cueverseId)} title={p.preferredName ?? p.cueverseId} slug={p.slug} className="block truncate" />
               </th>
             ))}
-            <th colSpan={2} className={`${th} text-xs uppercase tracking-wide text-muted-foreground`}>Sets</th>
-            <th className={`${th} text-xs uppercase tracking-wide text-muted-foreground`}>Games</th>
+            <th colSpan={2} className={`${th} text-sm uppercase tracking-wide text-muted-foreground`}>Sets</th>
+            <th className={`${th} text-sm uppercase tracking-wide text-muted-foreground`}>Games</th>
           </tr>
           <tr className="bg-card/30">
             {players.map((p) => (
@@ -107,9 +121,9 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
                 <DiscordIcon name={p.cueverseId} discord={p.discord} />
               </th>
             ))}
-            <th className={`${th} text-[0.65rem] uppercase text-muted-foreground`}>Pts</th>
-            <th className={`${th} text-[0.65rem] uppercase text-muted-foreground`}>W-L-D</th>
-            <th className={`${th} text-[0.65rem] uppercase text-muted-foreground`}>Win %</th>
+            <th className={`${th} text-xs uppercase text-muted-foreground`}>Pts</th>
+            <th className={`${th} text-xs uppercase text-muted-foreground`}>W-L-D</th>
+            <th className={`${th} text-xs uppercase text-muted-foreground`}>Win %</th>
           </tr>
         </thead>
         <tbody>
@@ -118,8 +132,8 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
             const draws = s ? Math.max(0, s.played - s.wins - s.losses) : 0
             return (
               <tr key={row.registrationId}>
-                <th scope="row" className={`${th} text-left font-medium`}>
-                  <PlayerName label={row.cueverseId} slug={row.slug} className="block max-w-full truncate" />
+                <th scope="row" className={stickyRowHead}>
+                  <PlayerName label={row.cueverseId} slug={row.slug} className="block max-w-full truncate text-lg font-bold" />
                 </th>
                 {players.map((col) => {
                   if (col.registrationId === row.registrationId) {
