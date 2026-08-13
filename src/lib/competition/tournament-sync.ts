@@ -21,10 +21,49 @@ export async function syncLiveTournamentToSnapshot(tournamentId: number): Promis
   // published bracket (whose completed rounds already feed rankings). Draft (unpublished)
   // tournaments are intentionally kept out of the snapshot until published.
   const publishedCount = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
-  if (tournament.lifecycleState === 'COMPLETED' || publishedCount > 0) {
+  if (tournament.tournamentFormat === 'SWISS') {
+    // Swiss has no bracket; its per-round matches feed the Ladder only once the tournament COMPLETES
+    // (each decided match credits both players' individual W/L through the same snapshot engine).
+    if (tournament.lifecycleState === 'COMPLETED') await materialiseSwiss(tournamentId)
+  } else if (tournament.lifecycleState === 'COMPLETED' || publishedCount > 0) {
     await materialiseBracket(tournamentId)
   }
   await regenerateTournamentSnapshot()
+}
+
+/** Materialize a completed Swiss tournament's decided matches into the snapshot bracket rows so the
+ *  Ladder credits each participant's individual results. Byes (no opponent) are skipped. The
+ *  champion/runner-up were already set on the tournament row by completeSwiss. */
+async function materialiseSwiss(tournamentId: number): Promise<void> {
+  const rows = await prisma.swissMatch.findMany({
+    where: { tournamentId, isBye: false, winnerRegistrationId: { not: null } },
+    orderBy: [{ round: 'asc' }, { boardOrder: 'asc' }],
+  })
+  const regs = await prisma.registration.findMany({ where: { tournamentId }, select: { id: true, cueverseId: true } })
+  const handleByReg = new Map(regs.map((r) => [r.id, r.cueverseId]))
+  await prisma.$transaction(async (tx) => {
+    await tx.tournamentBracketMatch.deleteMany({ where: { tournamentId, bracketKind: 'MAIN' } })
+    for (const r of rows) {
+      await tx.tournamentBracketMatch.create({
+        data: {
+          tournamentId,
+          bracketKind: 'MAIN',
+          roundName: `Swiss Round ${r.round}`,
+          roundOrder: r.round,
+          matchOrder: r.boardOrder,
+          aPresent: true,
+          aName: r.homeName,
+          aHandle: r.homeRegistrationId != null ? handleByReg.get(r.homeRegistrationId) ?? null : null,
+          aScore: r.homeGames,
+          bPresent: true,
+          bName: r.awayName,
+          bHandle: r.awayRegistrationId != null ? handleByReg.get(r.awayRegistrationId) ?? null : null,
+          bScore: r.awayGames,
+          winner: r.winnerRegistrationId === r.homeRegistrationId ? 'a' : 'b',
+        },
+      })
+    }
+  })
 }
 
 async function materialiseBracket(tournamentId: number): Promise<void> {

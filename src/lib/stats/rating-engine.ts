@@ -163,6 +163,21 @@ interface Game {
   weight: number
 }
 
+type Ident = { id: string; name: string; resolved: boolean }
+
+/**
+ * A TEAM match. Team NAMES are never rated — instead each roster member receives exactly ONE
+ * result (win or loss) evaluated against the OPPOSING TEAM'S AVERAGE rating (per the team-average
+ * model), using the same Glicko-2 update. No positional pairings, no every-winner-vs-every-loser.
+ */
+interface TeamGame {
+  winners: Ident[]
+  losers: Ident[]
+  winName: string
+  loseName: string
+  weight: number
+}
+
 interface Period {
   eventId: string
   eventLabel: string
@@ -171,6 +186,7 @@ interface Period {
   kind: PeriodKind
   order: number
   games: Game[]
+  teamGames: TeamGame[]
 }
 
 // ---- Helpers ----------------------------------------------------------------
@@ -239,16 +255,29 @@ function buildPeriods(): Period[] {
   for (const c of getTournaments()) {
     const year = c.year ?? 0
     const games: Game[] = []
+    const teamGames: TeamGame[] = []
     const rounds: BracketRound[] = [
       ...(c.bracket ?? []),
       ...(c.winnersBracket ?? []),
       ...(c.losersBracket ?? []),
       ...(c.grandFinal ?? []),
     ]
+    const identsOf = (members?: { name: string; handle?: string }[]): Ident[] =>
+      (members ?? []).map((m) => ident({ name: m.name, handle: m.handle })).filter((x): x is Ident => !!x)
     for (const rd of rounds) {
       const w = isFinalRound(rd.name) ? WEIGHTS.cupFinal : WEIGHTS.cup
       for (const m of rd.matches) {
         if (!m.winner) continue
+        // TEAM match: the slots carry rosters → credit each member individually vs the team average.
+        if (m.a?.members?.length && m.b?.members?.length) {
+          const aI = identsOf(m.a.members)
+          const bI = identsOf(m.b.members)
+          if (!aI.length || !bI.length) continue
+          const winners = m.winner === 'a' ? aI : bI
+          const losers = m.winner === 'a' ? bI : aI
+          teamGames.push({ winners, losers, winName: (m.winner === 'a' ? m.a : m.b)?.name ?? 'Team', loseName: (m.winner === 'a' ? m.b : m.a)?.name ?? 'Team', weight: w })
+          continue
+        }
         const a = ident(m.a)
         const b = ident(m.b)
         if (!a || !b || a.id === b.id) continue // skip byes/unresolved + self-matches (merge artifacts)
@@ -266,8 +295,8 @@ function buildPeriods(): Period[] {
         games.push({ aId: a.id, aName: a.name, aResolved: a.resolved, bId: b.id, bName: b.name, bResolved: b.resolved, sA, weight: w })
       }
     }
-    if (games.length)
-      periods.push({ eventId: `cup${c.number}`, eventLabel: cupLabel(c), year, date: c.date, kind: 'cup', order: year * 1000 + 900 + c.number, games })
+    if (games.length || teamGames.length)
+      periods.push({ eventId: `cup${c.number}`, eventLabel: cupLabel(c), year, date: c.date, kind: 'cup', order: year * 1000 + 900 + c.number, games, teamGames })
   }
 
   periods.sort((a, b) => a.order - b.order)
@@ -324,6 +353,10 @@ function runGlicko(periods: Period[], trackYearEnd: boolean): RatingTimeline {
       ensure(g0.aId, g0.aName, g0.aResolved, period.year)
       ensure(g0.bId, g0.bName, g0.bResolved, period.year)
     }
+    for (const tg of period.teamGames) {
+      for (const p of tg.winners) ensure(p.id, p.name, p.resolved, period.year)
+      for (const p of tg.losers) ensure(p.id, p.name, p.resolved, period.year)
+    }
 
     // Snapshot pre-period ratings (opponent strength is evaluated at period start).
     const snap = new Map<string, { mu: number; phi: number }>()
@@ -340,6 +373,25 @@ function runGlicko(periods: Period[], trackYearEnd: boolean): RatingTimeline {
       push(gm.aId, gm.bId, gm.bName, gm.sA, gm.weight)
       push(gm.bId, gm.aId, gm.aName, 1 - gm.sA, gm.weight)
     }
+    // TEAM matches: each member plays ONE game vs the OPPOSING TEAM'S AVERAGE (μ,φ) from the
+    // pre-period snapshot. The averages are synthetic opponents — never added to `state`, so team
+    // names/averages are never rated or ranked; only the individual members' ratings move.
+    period.teamGames.forEach((tg, ti) => {
+      const avg = (ids: Ident[]): { mu: number; phi: number } | null => {
+        let mu = 0, phi = 0, n = 0
+        for (const p of ids) { const s = snap.get(p.id); if (s) { mu += s.mu; phi += s.phi; n++ } }
+        return n ? { mu: mu / n, phi: phi / n } : null
+      }
+      const winAvg = avg(tg.winners)
+      const loseAvg = avg(tg.losers)
+      if (!winAvg || !loseAvg) return
+      const winOppId = `__teamavg:${period.eventId}:${ti}:w`
+      const loseOppId = `__teamavg:${period.eventId}:${ti}:l`
+      snap.set(winOppId, winAvg)
+      snap.set(loseOppId, loseAvg)
+      for (const w of tg.winners) push(w.id, loseOppId, tg.loseName, 1, tg.weight)
+      for (const l of tg.losers) push(l.id, winOppId, tg.winName, 0, tg.weight)
+    })
 
     // Active players: batch Glicko-2 update from the snapshot.
     for (const [id, games] of perPlayer) {

@@ -130,10 +130,19 @@ export async function createPublicRegistration(
   userId: number,
   username: string,
   identity: RegistrationIdentity = {},
+  joinPassword?: string | null,
 ): Promise<{ ok: boolean; error?: string; already?: boolean }> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
   if (!tournament) return { ok: false, error: 'Tournament not found.' }
   if (tournament.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed.' }
+
+  // Private tournament: the join password is verified server-side against the stored scrypt hash.
+  if (tournament.accessMode === 'PASSWORD') {
+    const { verifyJoinPassword } = await import('./join-password')
+    if (!verifyJoinPassword((joinPassword ?? '').trim(), tournament.joinPasswordHash)) {
+      return { ok: false, error: 'Incorrect join password for this private tournament.' }
+    }
+  }
 
   // Moderation gate (single point for every self-signup path — tournament + cup): a banned,
   // timed-out or deleted account can never enter, regardless of the form used.

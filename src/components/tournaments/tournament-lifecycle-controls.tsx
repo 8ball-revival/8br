@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Play, Lock, Unlock, CheckCircle2, GitBranch, RefreshCw, AlertTriangle, Users, Trophy } from 'lucide-react'
+import { Play, Lock, Unlock, CheckCircle2, GitBranch, RefreshCw, AlertTriangle, Users, Trophy, Swords } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,8 @@ import {
   reopenTournamentRegistrationAction,
   startGroupStageAction,
   confirmQualifiersAction,
+  startSwissAction,
+  completeSwissAction,
 } from '@/lib/competition/tournament-actions'
 
 type State = 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'GROUPS_IN_PROGRESS' | 'BRACKET_GENERATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
@@ -42,6 +44,7 @@ export function TournamentLifecycleControls({
   isOwner,
   bracketStale = false,
   isGroupStage = false,
+  isSwiss = false,
   groupsComplete = false,
   onNavigate,
 }: {
@@ -50,6 +53,7 @@ export function TournamentLifecycleControls({
   isOwner: boolean
   bracketStale?: boolean
   isGroupStage?: boolean
+  isSwiss?: boolean
   groupsComplete?: boolean
   onNavigate?: (tab: NavTab) => void
 }) {
@@ -113,6 +117,10 @@ export function TournamentLifecycleControls({
                 <Button size="sm" disabled={pending} onClick={() => act(() => startGroupStageAction(tournamentId), 'Start the group stage? Round-robin groups are generated from the current entrants.')}>
                   <Users className="size-4" /> Start Group Stage
                 </Button>
+              ) : isSwiss ? (
+                <Button size="sm" disabled={pending} onClick={() => act(() => startSwissAction(tournamentId), 'Start the Swiss rounds? Round 1 is paired from the current entrants.')}>
+                  <Swords className="size-4" /> Start Swiss
+                </Button>
               ) : (
                 <Button size="sm" disabled={pending} onClick={() => act(() => generateTournamentBracketAction(tournamentId))}>
                   <GitBranch className="size-4" /> Generate Brackets
@@ -149,7 +157,12 @@ export function TournamentLifecycleControls({
             </>
           )}
 
-          {state === 'IN_PROGRESS' && (
+          {state === 'IN_PROGRESS' && isSwiss && (
+            <Button size="sm" disabled={pending} onClick={() => act(() => completeSwissAction(tournamentId), 'Complete this Swiss tournament? Every round must be reported. This applies the individual Ladder update.')}>
+              <CheckCircle2 className="size-4" /> Complete tournament
+            </Button>
+          )}
+          {state === 'IN_PROGRESS' && !isSwiss && (
             <Button size="sm" disabled={pending} onClick={() => act(() => setTournamentStateAction(tournamentId, 'COMPLETED'), 'Complete this tournament? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
               <CheckCircle2 className="size-4" /> Complete tournament
             </Button>

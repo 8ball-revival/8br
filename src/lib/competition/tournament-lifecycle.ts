@@ -30,7 +30,8 @@ const NEXT: Record<TournamentState, TournamentState[]> = {
   // Registration may be RE-OPENED (a first-class toggle, not a recovery) any time before the
   // tournament goes live. From Registration Closed a bracket-only tournament goes straight to
   // BRACKET_GENERATED; a Group Stage + Playoffs tournament first enters GROUPS_IN_PROGRESS.
-  REGISTRATION_CLOSED: ['REGISTRATION_OPEN', 'GROUPS_IN_PROGRESS', 'BRACKET_GENERATED', 'CANCELLED'],
+  // A Swiss tournament goes straight to IN_PROGRESS (round-based play, no bracket).
+  REGISTRATION_CLOSED: ['REGISTRATION_OPEN', 'GROUPS_IN_PROGRESS', 'BRACKET_GENERATED', 'IN_PROGRESS', 'CANCELLED'],
   // Group stage running; once groups finish, qualifiers seed the generated playoff bracket.
   GROUPS_IN_PROGRESS: ['REGISTRATION_OPEN', 'BRACKET_GENERATED', 'CANCELLED'],
   BRACKET_GENERATED: ['REGISTRATION_OPEN', 'GROUPS_IN_PROGRESS', 'IN_PROGRESS', 'CANCELLED'],
@@ -122,6 +123,19 @@ function legacyFieldsFor(to: TournamentState): Prisma.TournamentUpdateInput {
  * playable (both-sides-known) match left undecided.
  */
 export async function assertCompletable(tournamentId: number): Promise<string | null> {
+  // Swiss has no bracket — it completes when every round has been paired and reported.
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { tournamentFormat: true, swissRounds: true } })
+  if (t?.tournamentFormat === 'SWISS') {
+    const sm = await prisma.swissMatch.findMany({ where: { tournamentId }, select: { round: true, isBye: true, winnerRegistrationId: true } })
+    if (sm.length === 0) return 'The Swiss rounds have not started yet.'
+    const maxRound = Math.max(...sm.map((m) => m.round))
+    const total = t.swissRounds ?? 0
+    if (total > 0 && maxRound < total) return `Play all ${total} Swiss rounds before finishing.`
+    const undecided = sm.filter((m) => !m.isBye && m.winnerRegistrationId == null).length
+    if (undecided > 0) return `${undecided} Swiss match${undecided === 1 ? '' : 'es'} still need${undecided === 1 ? 's' : ''} a result.`
+    return null
+  }
+
   const matches = await prisma.playoffMatch.findMany({
     where: { tournamentId },
     select: { round: true, homeRegistrationId: true, awayRegistrationId: true, winnerRegistrationId: true },
@@ -190,6 +204,13 @@ export async function transitionTournamentState(
   const valid = canTransition(from, to)
   if (!valid && !opts.recovery)
     return { ok: false, error: `Invalid transition: ${TOURNAMENT_STATE_LABEL[from]} → ${TOURNAMENT_STATE_LABEL[to]}. Use a recovery action if this is intentional.` }
+
+  // Format guard: the direct REGISTRATION_CLOSED → IN_PROGRESS transition exists ONLY for Swiss
+  // (round-based, no bracket). A bracket / group-stage tournament must generate its bracket (or
+  // start groups) first — it can never skip straight to live.
+  if (from === 'REGISTRATION_CLOSED' && to === 'IN_PROGRESS' && !opts.recovery && tournament.tournamentFormat !== 'SWISS') {
+    return { ok: false, error: 'Generate the bracket (or start the group stage) before the tournament goes live.' }
+  }
 
   // Completion gate — the Final must be decided and no required match left open.
   if (to === 'COMPLETED' && !opts.recovery) {

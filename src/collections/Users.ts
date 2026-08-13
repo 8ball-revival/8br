@@ -105,6 +105,26 @@ export const Users: CollectionConfig = {
         return data
       },
     ],
+    afterChange: [
+      // Every account = one Player profile (the canonical competitive identity carrying the
+      // CueVerse ID that team rosters, entrant lists and rankings resolve against). The public
+      // registration flow creates the profile itself (preserving the chosen CueVerse ID casing)
+      // and sets `skipAutoProfile` so we don't double-create. Accounts made directly in the
+      // Payload admin panel have no such step — so we back-fill a linked profile here, using the
+      // username as the initial CueVerse ID. Idempotent: a no-op when a profile already exists.
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((req.context as any)?.skipAutoProfile) return
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const userId = Number((doc as any)?.id)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const username = (doc as any)?.username
+        if (!Number.isFinite(userId) || !username) return
+        const { createOrLinkAccountProfile } = await import('@/lib/players/service')
+        await createOrLinkAccountProfile(userId, String(username)).catch(() => {})
+      },
+    ],
     beforeDelete: [
       // The Owner account can never be deleted (transfer ownership first, which
       // demotes the former Owner to Admin — an Admin account is deletable).

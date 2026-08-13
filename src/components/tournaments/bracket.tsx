@@ -1,25 +1,6 @@
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/tournaments/service'
-
-function Members({ members }: { members: NonNullable<BracketSlot['members']> }) {
-  return (
-    <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">
-      {members.map((m, i) => (
-        <span key={i}>
-          {i > 0 && <span className="text-muted-foreground/50"> + </span>}
-          {m.slug ? (
-            <Link href={`/players/${m.slug}`} className="hover:text-brand hover:underline">
-              {m.name}
-            </Link>
-          ) : (
-            m.name
-          )}
-        </span>
-      ))}
-    </span>
-  )
-}
+import { TeamName } from './team-popover'
 
 function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boolean }) {
   const label = slot?.name ?? 'TBD'
@@ -33,22 +14,35 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
       )}
     >
       {slot?.seed != null && (
-        <span className="tabular w-4 text-right text-[0.6rem] text-muted-foreground">{slot.seed}</span>
+        <span className="tabular w-4 shrink-0 text-right text-[0.6rem] text-muted-foreground">{slot.seed}</span>
       )}
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-brand' : dim ? 'text-muted-foreground' : 'text-foreground')}>
-          {label}
-        </span>
         {hasMembers ? (
-          <Members members={slot!.members!} />
+          // TEAM slot: show ONLY the team name (truncating); the roster/ratings/record live in the
+          // hover/focus/click details popover so the row stays compact and scannable.
+          <TeamName
+            name={label}
+            seed={slot!.seed}
+            members={slot!.members!}
+            record={slot!.record}
+            avgRating={slot!.avgRating}
+            won={won}
+            dim={dim}
+          />
         ) : (
-          slot?.handle && slot.handle !== slot.name && (
-            <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">{slot.handle}</span>
-          )
+          // 1v1 slot: CueVerse ID stays inline, no popover.
+          <>
+            <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-brand' : dim ? 'text-muted-foreground' : 'text-foreground')}>
+              {label}
+            </span>
+            {slot?.handle && slot.handle !== slot.name && (
+              <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">{slot.handle}</span>
+            )}
+          </>
         )}
       </span>
       {slot?.score != null && (
-        <span className={cn('tabular text-sm', won ? 'font-bold text-brand' : 'text-muted-foreground')}>{slot.score}</span>
+        <span className={cn('tabular self-start pt-0.5 text-sm', won ? 'font-bold text-brand' : 'text-muted-foreground')}>{slot.score}</span>
       )}
     </div>
   )

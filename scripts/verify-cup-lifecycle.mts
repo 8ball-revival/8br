@@ -21,12 +21,14 @@ try {
   check('REGISTRATION_OPEN→REGISTRATION_CLOSED ok', (await transitionTournamentState(actor,id,'REGISTRATION_CLOSED')).ok)
   check('  registrationStatus synced CLOSED', (await prisma.tournament.findUniqueOrThrow({where:{id}})).registrationStatus==='CLOSED')
 
-  // NEW: bracket generation is its own state; REGISTRATION_CLOSED can no longer skip to IN_PROGRESS.
-  check('matrix: REGISTRATION_CLOSED→IN_PROGRESS not allowed', !canTransition('REGISTRATION_CLOSED','IN_PROGRESS'))
+  // The direct REGISTRATION_CLOSED→IN_PROGRESS transition now EXISTS at the map level (Swiss uses
+  // it), but is FORMAT-GATED: a bracket/group tournament is still rejected and must generate its
+  // bracket first. This tournament is not Swiss, so the guard must reject it.
+  check('matrix: REGISTRATION_CLOSED→IN_PROGRESS exists (for Swiss)', canTransition('REGISTRATION_CLOSED','IN_PROGRESS'))
   check('matrix: REGISTRATION_CLOSED→BRACKET_GENERATED allowed', canTransition('REGISTRATION_CLOSED','BRACKET_GENERATED'))
   check('matrix: BRACKET_GENERATED→IN_PROGRESS allowed', canTransition('BRACKET_GENERATED','IN_PROGRESS'))
   const skip = await transitionTournamentState(actor, id, 'IN_PROGRESS')
-  check('REGISTRATION_CLOSED→IN_PROGRESS rejected (must generate bracket first)', !skip.ok && /Invalid transition/.test(skip.error||''))
+  check('REGISTRATION_CLOSED→IN_PROGRESS rejected for a bracket tournament (must generate bracket first)', !skip.ok && /before the tournament goes live/.test(skip.error||''))
   check('REGISTRATION_CLOSED→BRACKET_GENERATED ok', (await transitionTournamentState(actor,id,'BRACKET_GENERATED')).ok)
   check('  status stays UPCOMING in BRACKET_GENERATED (not started)', (await prisma.tournament.findUniqueOrThrow({where:{id}})).status==='UPCOMING')
   check('  reporting gate: requireTournamentState IN_PROGRESS rejected while BRACKET_GENERATED', !(await requireTournamentState(id,['IN_PROGRESS'])).ok)

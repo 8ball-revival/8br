@@ -10,7 +10,9 @@ check('REGISTRATION_CLOSED → REGISTRATION_OPEN allowed (re-open toggle)', canT
 check('BRACKET_GENERATED → REGISTRATION_OPEN allowed (re-open, invalidates bracket)', canTransition('BRACKET_GENERATED', 'REGISTRATION_OPEN'))
 check('IN_PROGRESS → REGISTRATION_OPEN REJECTED (permanent lock once live)', !canTransition('IN_PROGRESS', 'REGISTRATION_OPEN'))
 check('COMPLETED → REGISTRATION_OPEN REJECTED', !canTransition('COMPLETED', 'REGISTRATION_OPEN'))
-check('REGISTRATION_CLOSED → IN_PROGRESS REJECTED (must generate bracket)', !canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
+// The map now allows REGISTRATION_CLOSED → IN_PROGRESS (Swiss uses it directly); for bracket
+// tournaments the direct jump is blocked by a format guard in transitionTournamentState instead.
+check('REGISTRATION_CLOSED → IN_PROGRESS exists at the map level (for Swiss)', canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
 
 const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', code: 'CWF', number: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id

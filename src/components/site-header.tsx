@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 
 import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
 import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/account/auth'
+import { signOut } from '@/lib/account/actions'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
@@ -38,6 +39,16 @@ export async function SiteHeader() {
                 <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
                   Account Settings
                 </Link>
+                <div className="my-1 h-px bg-border" role="separator" aria-hidden />
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
+                  >
+                    <LogOut className="size-4" aria-hidden />
+                    Sign Out
+                  </button>
+                </form>
               </div>
             </details>
           ) : (

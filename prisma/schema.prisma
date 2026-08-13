@@ -1136,6 +1136,19 @@ enum TournamentFormat {
   GROUPS_PLAYOFFS
   ROUND_ROBIN
   TEAM_KNOCKOUT
+  SWISS
+}
+
+/// How a team-format tournament's rosters are formed.
+enum TeamFormation {
+  PICK // a captain self-registers and picks their roster from registered accounts
+  RANDOM // players register solo; teams are shuffled at registration close
+}
+
+/// Who may register for a tournament.
+enum AccessMode {
+  OPEN // any registered account may join
+  PASSWORD // a join password is required to register
 }
 
 /// Which sub-bracket a tournament match belongs to (single- or double-elimination).
@@ -1176,9 +1189,29 @@ model Tournament {
   code                 String?                   @unique // permanent immutable id, e.g. "T001"
   number               Int?                      @unique // public tournament number
   gameType             String? // e.g. "8-Ball"
+  lounge               String                    @default("Social") // Social | Beginner's Lounge | Intermediate Lounge | Advanced Lounge
   participantFormat    ParticipantFormat         @default(INDIVIDUAL)
   teamSize             Int? // members per team when participantFormat = TEAM (2 for 2v2, 5 for 5v5)
+  teamFormation        TeamFormation             @default(PICK) // TEAM only: captains pick rosters, or random draw at close
   tournamentFormat     TournamentFormat?
+  // Swiss only: number of rounds. Null for non-Swiss (bracket rounds derive from the field size).
+  swissRounds          Int?
+  // Bracket/Swiss seeding method: "rating" | "rank" | "random" | "registration".
+  seedingMethod        String                    @default("rating")
+  // Access control. PASSWORD stores a scrypt hash in joinPasswordHash (NEVER the plaintext, never in a URL).
+  accessMode           AccessMode                @default(OPEN)
+  joinPasswordHash     String?
+  // Scheduled start: null = registration opens immediately on create ("start now").
+  scheduledStartAt     DateTime?
+  // ---- Per-tournament FLAIR (curated, on-brand, server-validated) ----
+  // Hero banner: an uploaded media URL or an https-validated external image URL (never a data: URL).
+  bannerImageUrl       String?
+  // Short description / announcement — stored as PLAIN TEXT (sanitized; no HTML/scripts).
+  description          String?
+  // Optional badge key from the approved icon set (see lib/competition/flair.ts). Null = none.
+  badge                String?
+  // Accent color preset key from the curated set (see flair.ts). Null = WCC default crimson.
+  accentPreset         String?
   // EXPLICIT lifecycle state (source of truth for all tournament behavior + gating).
   lifecycleState       TournamentLifecycleState?
   ladderAppliedAt      DateTime? // set once when COMPLETED applies ladder/ranking results (idempotency guard)
@@ -1201,9 +1234,50 @@ model Tournament {
   standings      Standing[]
   bracketMatches TournamentBracketMatch[]
   teams          TournamentTeam[]
+  swissMatches   SwissMatch[]
+  freeAgents     TournamentFreeAgent[]
 
   @@index([lifecycleState])
   @@map("comp_tournament")
+}
+
+/// One Swiss-system match on a given round. Swiss is round-based (not a bracket): each round
+/// every active entrant is paired, standings are computed from results, and the next round pairs
+/// on standings while avoiding repeat opponents. A `bye` (odd field) is a full point with no
+/// opponent (awayRegistrationId null). Standings/tiebreaks are computed from these rows in code.
+model SwissMatch {
+  id                   Int          @id @default(autoincrement())
+  tournamentId         Int
+  tournament           Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  round                Int
+  boardOrder           Int
+  homeRegistrationId   Int?
+  awayRegistrationId   Int? // null = bye
+  homeName             String?
+  awayName             String?
+  homeGames            Int?
+  awayGames            Int?
+  winnerRegistrationId Int?
+  isBye                Boolean      @default(false)
+  reportedAt           DateTime?
+  createdAt            DateTime     @default(now())
+
+  @@index([tournamentId, round, boardOrder])
+  @@map("comp_swiss_match")
+}
+
+/// An administrator's saved default FLAIR, applied as the starting point when they create a new
+/// tournament ("save as my default" / "restore WCC default"). Keyed by the Payload user id.
+/// All values are curated/validated the same way as per-tournament flair.
+model TournamentFlairDefault {
+  userId         Int      @id // Payload user id
+  bannerImageUrl String?
+  description    String?
+  badge          String?
+  accentPreset   String?
+  updatedAt      DateTime @updatedAt
+
+  @@map("tournament_flair_default")
 }
 
 /// A tournament bracket match (single- or double-elimination), the materialized public
@@ -1245,6 +1319,9 @@ model TournamentTeam {
   registrationId Int                    @unique // the bracket entrant this team maps to
   registration   Registration           @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   name           String
+  // Optional per-team JOIN CODE (scrypt hash only; never the plaintext). Separate field + concept
+  // from the tournament ACCESS password (Tournament.joinPasswordHash). Null = open team.
+  joinCodeHash   String?
   seed           Int?
   placement      Int?
   withdrawn      Boolean                @default(false)
@@ -1260,21 +1337,54 @@ model TournamentTeamMember {
   id          Int            @id @default(autoincrement())
   teamId      Int
   team        TournamentTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId      Int? // Payload account id — set for self-joined members (one account = one team per tournament)
   playerId    String? // canonical Player.id when the member is linked to a profile
   name        String
   handle      String?
   memberOrder Int            @default(0)
   captain     Boolean        @default(false)
+  // Player's Ladder rating CAPTURED when registration closed — frozen for the tournament so the
+  // team-details popover shows stable ratings that don't drift as the ladder updates. Null = unrated.
+  ratingAtClose Int?
   createdAt   DateTime       @default(now())
 
   @@index([teamId])
   @@index([playerId])
+  @@index([userId])
   @@map("comp_tournament_team_member")
 }
 
 enum AccountClaimStatus {
   UNCLAIMED
   CLAIMED
+}
+
+/// A Free Agent's placement state in a player-selected team tournament.
+enum FreeAgentStatus {
+  WAITING // registered as a free agent, awaiting placement
+  PLACED // allocated onto a team at registration close (kept for history)
+  NOT_PLACED // could not be placed (too few remaining players); retained, never deleted
+}
+
+/// A signed-in account that registered as a FREE AGENT in a player-selected team tournament — a
+/// competitor with no team yet, to be allocated at registration close. Exactly one of {team member,
+/// free agent} may exist per account per tournament (enforced in the service). Rows are retained
+/// after close (status PLACED / NOT_PLACED) for history + audit; never hard-deleted on placement.
+model TournamentFreeAgent {
+  id           Int             @id @default(autoincrement())
+  tournamentId Int
+  tournament   Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       Int // Payload account id
+  playerId     String? // canonical Player.id
+  name         String
+  handle       String? // CueVerse ID
+  status       FreeAgentStatus @default(WAITING)
+  placedTeamId Int? // the team this agent was allocated to (when PLACED)
+  createdAt    DateTime        @default(now())
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, status])
+  @@map("comp_tournament_free_agent")
 }
 
 /// Provisioning sidecar for pre-created player accounts. A bulk-generated account is a

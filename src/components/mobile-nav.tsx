@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { LogOut, Menu, X } from 'lucide-react'
 // Menu closes via link onClick (below), not a pathname effect.
 
 import { PRIMARY_NAV } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
+import { signOut } from '@/lib/account/actions'
 import { cn } from '@/lib/utils'
 
 function isActive(pathname: string, href: string) {
@@ -70,8 +71,19 @@ export function MobileNav({ className, isSignedIn = false }: { className?: strin
               onClick={() => setOpen(false)}
               className="mt-2 rounded-md border border-border px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
             >
-              {isSignedIn ? 'Account' : 'Sign In'}
+              {isSignedIn ? 'Account Settings' : 'Sign In'}
             </Link>
+            {isSignedIn && (
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  onClick={() => setOpen(false)}
+                  className="mt-1 flex w-full items-center gap-2 rounded-md border border-border px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
+                >
+                  <LogOut className="size-5" aria-hidden /> Sign Out
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

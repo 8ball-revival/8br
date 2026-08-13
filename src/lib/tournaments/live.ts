@@ -4,6 +4,7 @@ import type { BracketRound, BracketMatch, BracketSlot } from './fixtures'
 import { resolveEntrants } from '@/lib/competition/entrants'
 import { getTeamsForSeason, getTeamMembersByRegistration, type TeamView } from '@/lib/competition/teams'
 import { getTournamentState, bracketMatchesEntrants } from '@/lib/competition/tournament-lifecycle'
+import { getSwissState, type SwissState } from '@/lib/competition/swiss'
 
 /** Column name for a bracket round: last round = Final, then Semifinals, etc. */
 export function roundColumnName(round: number, totalRounds: number): string {
@@ -131,6 +132,13 @@ export interface TournamentWorkspaceData {
     lifecycleState: string // explicit lifecycle state (source of truth for the public page + gating)
     archivedAt: string | null
     formatBadge: string | null
+    teamFormation: 'PICK' | 'RANDOM'
+    swissRounds: number | null
+    // curated flair
+    bannerImageUrl: string | null
+    description: string | null
+    badge: string | null
+    accentPreset: string | null
   }
   isTournament: boolean
   isHistorical: boolean
@@ -152,6 +160,9 @@ export interface TournamentWorkspaceData {
   groups: WorkspaceGroup[]
   /** Every group match has a verified result → qualifiers can be confirmed. */
   groupsComplete: boolean
+  // ---- Swiss (only populated when tournamentFormat = SWISS) ----
+  isSwiss: boolean
+  swiss: SwissState | null
 }
 
 export interface WorkspaceGroupMatch {
@@ -311,6 +322,8 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
   // Group Stage + Playoffs data (only for that format).
   const isGroupStage = tournament.tournamentFormat === 'GROUPS_PLAYOFFS'
   const gs = isGroupStage ? await loadGroupStage(tournament.id) : { groups: [], complete: false }
+  const isSwiss = tournament.tournamentFormat === 'SWISS'
+  const swiss = isSwiss ? await getSwissState(tournament.id) : null
 
   return {
     tournament: {
@@ -330,6 +343,12 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       lifecycleState: getTournamentState(tournament),
       archivedAt: tournament.archivedAt ? tournament.archivedAt.toISOString() : null,
       formatBadge,
+      teamFormation: tournament.teamFormation,
+      swissRounds: tournament.swissRounds,
+      bannerImageUrl: tournament.bannerImageUrl,
+      description: tournament.description,
+      badge: tournament.badge,
+      accentPreset: tournament.accentPreset,
     },
     isTournament: true,
     isHistorical,
@@ -347,5 +366,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
     isGroupStage,
     groups: gs.groups,
     groupsComplete: gs.complete,
+    isSwiss,
+    swiss,
   }
 }

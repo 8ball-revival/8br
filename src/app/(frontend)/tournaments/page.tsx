@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 
 import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
 import { AdminBar } from '@/components/staff/admin-bar'
+import { Button } from '@/components/ui/button'
 import { TournamentList } from '@/components/tournaments/tournament-list'
-import { CreateTournamentWizard } from '@/components/tournaments/create-tournament-wizard'
 import { getTournamentList } from '@/lib/tournaments/list'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
@@ -30,7 +32,13 @@ export default async function TournamentsPage() {
         description="WCC tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
       />
       <AdminBar surface="cups" />
-      {canManage && <CreateTournamentWizard />}
+      {canManage && (
+        <div className="mb-6">
+          <Button asChild>
+            <Link href="/tournaments/new"><Plus className="size-4" /> Create tournament</Link>
+          </Button>
+        </div>
+      )}
       <Suspense fallback={null}>
         <TournamentList cups={cups} />
       </Suspense>

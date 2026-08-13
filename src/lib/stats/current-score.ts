@@ -123,6 +123,15 @@ function ident(slot: Slot): { id: string; name: string; resolved: boolean } | nu
   const r = resolveIdentity(slot.handle, slot.name, { unknownAsSelf: true })
   return r ? { id: r.id, name: r.name, resolved: r.ok } : null
 }
+type Ident = NonNullable<ReturnType<typeof ident>>
+/** Idents for a competitor: the ROSTER members for a team (so the Ladder credits players, not the
+ *  team name), else the single competitor. */
+function competitorIdents(comp?: { name?: string; handle?: string; members?: { name: string; handle?: string }[] } | null): Ident[] {
+  if (!comp) return []
+  if (comp.members?.length) return comp.members.map((m) => ident({ name: m.name, handle: m.handle })).filter((x): x is Ident => !!x)
+  const s = ident(comp)
+  return s ? [s] : []
+}
 function boardWinner(homeScore?: string, awayScore?: string): 0 | 1 | null {
   const h = homeScore?.trim().toUpperCase()
   const a = awayScore?.trim().toUpperCase()
@@ -153,12 +162,18 @@ interface Acc {
 interface EventMeta {
   id: string; label: string; order: number
   kind: 'tournament' | 'cup'
-  champId: string | null; ruId: string | null; completed: boolean
+  // Arrays so a TEAM champion / runner-up credits every roster member (never the team name).
+  champIds: string[]; ruIds: string[]; completed: boolean
 }
 // A single decided match, collected in pass 1 and re-scored for quality in pass 2.
 interface MatchRec {
   winId: string; loseId: string
   kind: 'tournament' | 'cup'; value: number; label: string; order: number; eventId: string
+}
+// A TEAM match: every winner gets one win, every loser one loss, each evaluated (for quality) vs
+// the OPPOSING TEAM'S AVERAGE strength — never the team name, never per-pairing.
+interface TeamMatchRec {
+  winIds: string[]; loseIds: string[]; value: number; order: number; eventId: string
 }
 
 /**
@@ -203,8 +218,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   const cupChampAt = new Map<string, number>()
   for (const c of cups) {
     if (c.status !== 'completed') continue
-    const ch = ident(c.champion)
-    if (ch) cupChampAt.set(ch.id, Math.min(cupChampAt.get(ch.id) ?? Infinity, cupOrder(c)))
+    for (const ch of competitorIdents(c.champion)) cupChampAt.set(ch.id, Math.min(cupChampAt.get(ch.id) ?? Infinity, cupOrder(c)))
   }
 
   const acc = new Map<string, Acc>()
@@ -221,6 +235,7 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   const addLine = (e: Acc, label: string, pts: number) => e.lines.set(label, (e.lines.get(label) ?? 0) + pts)
   const events: EventMeta[] = []
   const matches: MatchRec[] = []
+  const teamMatches: TeamMatchRec[] = []
   const deepest = new Map<string, Map<string, Tier>>()
   const setDeepest = (id: string, eventId: string, t: Tier) => {
     const m = deepest.get(id) ?? new Map<string, Tier>()
@@ -245,18 +260,32 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     matches.push({ winId: win.id, loseId: los.id, kind, value, label, order, eventId })
   }
 
+  // A TEAM match: each winner gets exactly ONE win, each loser ONE loss (no per-pairing, no h2h vs a
+  // specific person). Quality is scored in pass 2 against the OPPOSING TEAM'S AVERAGE strength.
+  const recordTeamMatch = (winners: Ident[], losers: Ident[], tier: Tier, eventId: string, order: number) => {
+    for (const w of winners) { const we = get(w.id, w.name, w.resolved); setDeepest(w.id, eventId, tier); we.cupW++; we.form.push({ order, result: 'W' }) }
+    for (const l of losers) { const le = get(l.id, l.name, l.resolved); setDeepest(l.id, eventId, tier); le.cupL++; le.form.push({ order, result: 'L' }) }
+    teamMatches.push({ winIds: winners.map((w) => w.id), loseIds: losers.map((l) => l.id), value: stageValue('cup', tier), order, eventId })
+  }
+
   // Tournaments: per-match bracket + team ties.
   for (const c of cups) {
     const order = cupOrder(c)
-    const ch = ident(c.champion), ru = ident(c.runnerUp)
     const eventId = `cup${c.number}`
     const label = cupLabel(c)
-    events.push({ id: eventId, label, order, kind: 'cup', champId: ch?.id ?? null, ruId: ru?.id ?? null, completed: c.status === 'completed' })
+    events.push({ id: eventId, label, order, kind: 'cup', champIds: competitorIdents(c.champion).map((x) => x.id), ruIds: competitorIdents(c.runnerUp).map((x) => x.id), completed: c.status === 'completed' })
     const bracket = [...(c.bracket ?? []), ...(c.winnersBracket ?? []), ...(c.losersBracket ?? []), ...(c.grandFinal ?? [])]
     for (const rd of bracket) {
       const tier = roundTier(rd.name)
       for (const m of rd.matches) {
         if (!m.winner) continue
+        // TEAM match → credit each roster member individually.
+        if (m.a?.members?.length && m.b?.members?.length) {
+          const aI = competitorIdents(m.a), bI = competitorIdents(m.b)
+          if (!aI.length || !bI.length) continue
+          recordTeamMatch(m.winner === 'a' ? aI : bI, m.winner === 'a' ? bI : aI, tier, eventId, order)
+          continue
+        }
         const a = ident(m.a), b = ident(m.b)
         if (!a || !b || a.id === b.id) continue
         recordMatch(m.winner === 'a' ? a : b, m.winner === 'a' ? b : a, 'cup', tier, label, eventId, order)
@@ -277,24 +306,25 @@ function computeCurrentScore(now: Date): CurrentScoreView {
   // Tournament finish (single-elim): title counts (final win already scored) + finalist bonus.
   for (const ev of events) {
     if (ev.kind !== 'tournament' || !ev.completed) continue
-    if (ev.champId) { const e = acc.get(ev.champId); if (e) e.seasonTitles++ }
-    if (ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.tournament) }
+    for (const id of ev.champIds) { const e = acc.get(id); if (e) e.seasonTitles++ }
+    for (const id of ev.ruIds) { const e = acc.get(id); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.tournament) }
   }
 
   // TournamentView finish (format-independent): stage points by how far each player advanced, so a
   // double-elim losers-bracket run scores the same as reaching that finish in single-elim.
   for (const ev of events) {
     if (ev.kind !== 'cup') continue
+    const champSet = new Set(ev.champIds)
     for (const [pid, evMap] of deepest) {
       const tier = evMap.get(ev.id)
       if (!tier) continue
       const e = acc.get(pid)
       if (!e) continue
-      const isChampion = ev.completed && pid === ev.champId
+      const isChampion = ev.completed && champSet.has(pid)
       addLine(e, ev.label, cupFinishStage(tier, isChampion))
       if (isChampion) e.cupTitles++
     }
-    if (ev.completed && ev.ruId) { const e = acc.get(ev.ruId); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.cup) }
+    if (ev.completed) for (const id of ev.ruIds) { const e = acc.get(id); if (e) addLine(e, `${ev.label} — Finalist`, CONFIG.finalist.cup) }
   }
 
   // ---- Strength (percentile of base positive contributions) for opponent quality ----
@@ -334,6 +364,28 @@ function computeCurrentScore(now: Date): CurrentScoreView {
     } else {
       const key = `${m.loseId}|${m.eventId}`
       if (!cupLossSeen.has(key)) { cupLossSeen.add(key); const le = acc.get(m.loseId); if (le) le.lossPenalties += pen }
+    }
+  }
+  // TEAM matches: quality scored vs the OPPOSING TEAM'S AVERAGE strength — one credit per member,
+  // deduped per event exactly like individual cup matches (never per-pairing).
+  const avgStrength = (ids: string[]) => (ids.length ? ids.reduce((s, id) => s + (strength.get(id) ?? 0.5), 0) / ids.length : 0.5)
+  for (const tm of teamMatches) {
+    const oppStrength = avgStrength(tm.loseIds)
+    let winMult = clamp(1 + CONFIG.quality.k * (2 * oppStrength - 1), CONFIG.quality.winMin, CONFIG.quality.winMax)
+    const oppReigning = tm.loseIds.some((id) => (seasonChampAt.get(id) ?? Infinity) < tm.order || (cupChampAt.get(id) ?? Infinity) < tm.order)
+    if (oppReigning) winMult = Math.max(winMult, 1 + CONFIG.quality.reigningChampWinFloor)
+    const bonus = tm.value * (winMult - 1)
+    for (const winId of tm.winIds) {
+      const key = `${winId}|${tm.eventId}`
+      const cur = cupQualityBest.get(key)
+      if (cur === undefined || bonus > cur) cupQualityBest.set(key, bonus)
+    }
+    const winnerStrength = avgStrength(tm.winIds)
+    const lossMult = clamp(1 + CONFIG.quality.k * (1 - 2 * winnerStrength), CONFIG.quality.lossMin, CONFIG.quality.lossMax)
+    const pen = -CONFIG.loss.base * lossMult
+    for (const loseId of tm.loseIds) {
+      const key = `${loseId}|${tm.eventId}`
+      if (!cupLossSeen.has(key)) { cupLossSeen.add(key); const le = acc.get(loseId); if (le) le.lossPenalties += pen }
     }
   }
   // Apply the deduped best cup quality win per player per cup.

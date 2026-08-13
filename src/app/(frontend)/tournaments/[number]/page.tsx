@@ -22,6 +22,10 @@ import { getUserRegistration } from '@/lib/competition/queries'
 import { profileCompleteness } from '@/lib/competition/eligibility'
 import { EntrantList } from '@/components/competition/entrant-list'
 import { TournamentJoinPanel } from '@/components/tournaments/tournament-join-panel'
+import { TournamentTeamRegister, type MyTeamView, type JoinableTeamView } from '@/components/tournaments/tournament-team-register'
+import { getMyTeamMembership, listJoinableTeams } from '@/lib/competition/teams'
+import { getMyFreeAgent } from '@/lib/competition/free-agents'
+import { accentStyleVars, badgeByKey } from '@/lib/competition/flair'
 import type { SignupIdentity } from '@/components/account/register-form'
 
 // TournamentView pages always resolve the signed-in viewer (admin workspace vs public view) via headers/cookies,
@@ -38,6 +42,11 @@ interface MemberCtx {
   missing: string[]
   /** The viewer's registration id in this tournament (to locate their own active match for self-report). */
   myRegistrationId: number | null
+  /** PICK-team only: the viewer's own team membership + the teams they could join. */
+  membership: MyTeamView | null
+  freeAgent: boolean
+  joinableTeams: JoinableTeamView[]
+  currentUserId: number | null
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
@@ -231,7 +240,8 @@ function PublicLiveTournament({ data, member, history }: { data: TournamentWorks
             </div>
           )}
 
-          {!data.isTeam && (
+          {/* Individual 1v1 AND random-draw teams register individually (teams are drawn later). */}
+          {(!data.isTeam || data.tournament.teamFormation === 'RANDOM') && (
             <TournamentJoinPanel
               number={member.number}
               isLoggedIn={member.isLoggedIn}
@@ -239,6 +249,21 @@ function PublicLiveTournament({ data, member, history }: { data: TournamentWorks
               myStatus={member.myStatus}
               identity={member.identity}
               missing={member.missing}
+            />
+          )}
+
+          {/* Pick-your-own team tournaments use the create-then-join flow. */}
+          {data.isTeam && data.tournament.teamFormation === 'PICK' && (
+            <TournamentTeamRegister
+              number={member.number}
+              isLoggedIn={member.isLoggedIn}
+              registrationOpen={state === 'REGISTRATION_OPEN'}
+              identity={member.identity}
+              missing={member.missing}
+              membership={member.membership}
+              freeAgent={member.freeAgent}
+              joinableTeams={member.joinableTeams}
+              currentUserId={member.currentUserId}
             />
           )}
         </>
@@ -298,21 +323,40 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           : null,
         missing: profile ? profileCompleteness(profile).missing : ['your player profile'],
         myRegistrationId: myReg?.id ?? null,
+        membership: user && ws.isTeam && ws.tournament.teamFormation === 'PICK' ? await getMyTeamMembership(Number(user.id), ws.tournament.id) : null,
+        freeAgent: user && ws.isTeam && ws.tournament.teamFormation === 'PICK' ? !!(await getMyFreeAgent(Number(user.id), ws.tournament.id)) : false,
+        joinableTeams: ws.isTeam && ws.tournament.teamFormation === 'PICK' ? await listJoinableTeams(ws.tournament.id) : [],
+        currentUserId: user ? Number(user.id) : null,
       }
       const history = await getTournamentHistory(ws.tournament.id, { admin: false })
       publicView = <PublicLiveTournament data={ws} member={member} history={history} />
     }
 
+    const badge = badgeByKey(ws.tournament.badge)
     return (
-      <Container className="py-10">
-        {backLink}
-        <TournamentHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
-        {canManage ? (
-          <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
-        ) : (
-          publicView
-        )}
-      </Container>
+      <div style={accentStyleVars(ws.tournament.accentPreset) as React.CSSProperties}>
+        <Container className="py-10">
+          {backLink}
+          {ws.tournament.bannerImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={ws.tournament.bannerImageUrl} alt="" className="mb-6 h-40 w-full rounded-xl border border-border object-cover sm:h-52" />
+          )}
+          <div className="flex items-center gap-2">
+            {badge && <span className="text-2xl" aria-hidden>{badge.emoji}</span>}
+            <div className="flex-1">
+              <TournamentHeader name={ws.tournament.name} number={ws.tournament.number} badge={ws.tournament.formatBadge} statusLabel={statusLabel} live={live} />
+            </div>
+          </div>
+          {ws.tournament.description && (
+            <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">{ws.tournament.description}</p>
+          )}
+          {canManage ? (
+            <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
+          ) : (
+            publicView
+          )}
+        </Container>
+      </div>
     )
   }
 

@@ -7,6 +7,8 @@
 export interface TournamentCompetitor {
   name: string
   handle?: string
+  /** Team-format: the roster behind the team name, so the Ladder credits members, not the team. */
+  members?: { name: string; handle?: string }[]
 }
 
 /** One competitor slot inside a bracket match. */
@@ -15,8 +17,11 @@ export interface BracketSlot {
   handle?: string
   seed?: number
   score?: number
-  /** Team-format cups: the roster shown beneath the team name (name is the team name). */
-  members?: { name: string; handle?: string; slug?: string }[]
+  /** Team-format: the roster + supporting data for the team-details popover. The bracket row shows
+   *  ONLY the team name; members/record/avgRating power the hover/focus/click card. */
+  members?: { name: string; handle?: string; slug?: string; rating?: number | null; captain?: boolean }[]
+  record?: string // team's W–L in THIS tournament, e.g. "2-0"
+  avgRating?: number | null // team average of member Ladder ratings (captured at close)
 }
 
 export interface BracketMatch {

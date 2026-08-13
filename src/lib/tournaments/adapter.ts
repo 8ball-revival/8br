@@ -2,7 +2,7 @@
 // type-only import of the TournamentView shapes, so this module is safe to run from a plain
 // `tsx` script (the snapshot generator) as well as inside Next — no dev server, no
 // path-alias runtime dependency.
-import type { TournamentView, BracketRound, BracketMatch, BracketSlot } from './fixtures'
+import type { TournamentView, BracketRound, BracketMatch, BracketSlot, TournamentCompetitor } from './fixtures'
 
 export type TournamentBracketRow = {
   bracketKind: string
@@ -41,6 +41,8 @@ export type CompRow = {
   thirdPlaceName: string | null
   thirdPlaceHandle: string | null
   bracketMatches: TournamentBracketRow[]
+  /** Team-format rosters (by team name): Ladder credit + the team-details popover data. */
+  teams?: { name: string; members: { name: string; handle: string | null; playerId: string | null; captain: boolean; ratingAtClose: number | null }[] }[]
 }
 
 /** Public "format" badge derived from the tournament's structural format. */
@@ -117,6 +119,51 @@ export function tournamentsFromCompRows(comps: CompRow[]): TournamentView[] {
       const wb = roundsFrom(rows, 'WINNERS'); if (wb.length) cup.winnersBracket = wb
       const lb = roundsFrom(rows, 'LOSERS'); if (lb.length) cup.losersBracket = lb
       const gf = roundsFrom(rows, 'GRAND_FINAL'); if (gf.length) cup.grandFinal = gf
+
+      // TEAM tournaments: attach each team's roster (matched by team name) to the bracket slots +
+      // champion/runner-up. Powers BOTH the Ladder (credit individual members, never the team name)
+      // and the team-details popover (rosters, ratings captured at close, team record + average).
+      if (comp.participantFormat === 'TEAM' && comp.teams?.length) {
+        type TeamMem = NonNullable<CompRow['teams']>[number]['members']
+        const key = (s: string) => s.trim().toLowerCase()
+        const byName = new Map(comp.teams.map((t) => [key(t.name), t.members]))
+        const roster = (name?: string | null) => (name ? byName.get(key(name)) : undefined)
+        const toMembers = (mem: TeamMem) =>
+          mem.map((m) => ({
+            name: m.name,
+            ...(m.handle ? { handle: m.handle, slug: m.handle } : {}), // CueVerse ID links to the public profile
+            ...(m.ratingAtClose != null ? { rating: m.ratingAtClose } : { rating: null }),
+            captain: m.captain,
+          }))
+        // Team average rating (of members whose rating was captured), by team name.
+        const avgByName = new Map<string, number | null>()
+        for (const t of comp.teams) {
+          const rs = t.members.map((m) => m.ratingAtClose).filter((r): r is number => r != null)
+          avgByName.set(key(t.name), rs.length ? Math.round(rs.reduce((s, v) => s + v, 0) / rs.length) : null)
+        }
+        // Team W–L record across every bracket round in this tournament.
+        const rec = new Map<string, { w: number; l: number }>()
+        const bump = (name: string | undefined, win: boolean) => { if (!name) return; const e = rec.get(key(name)) ?? { w: 0, l: 0 }; if (win) e.w++; else e.l++; rec.set(key(name), e) }
+        for (const rounds of [cup.bracket, cup.winnersBracket, cup.losersBracket, cup.grandFinal]) {
+          for (const rd of rounds ?? []) for (const m of rd.matches) {
+            if (!m.winner) continue
+            bump((m.winner === 'a' ? m.a : m.b)?.name, true)
+            bump((m.winner === 'a' ? m.b : m.a)?.name, false)
+          }
+        }
+        const attachSlot = (slot?: BracketSlot) => {
+          const mem = roster(slot?.name)
+          if (!slot || !mem) return
+          slot.members = toMembers(mem)
+          slot.avgRating = avgByName.get(key(slot.name!)) ?? null
+          const r = rec.get(key(slot.name!))
+          if (r) slot.record = `${r.w}-${r.l}`
+        }
+        const attachRounds = (rounds?: BracketRound[]) => rounds?.forEach((r) => r.matches.forEach((m) => { attachSlot(m.a); attachSlot(m.b) }))
+        attachRounds(cup.bracket); attachRounds(cup.winnersBracket); attachRounds(cup.losersBracket); attachRounds(cup.grandFinal)
+        const attachComp = (c?: TournamentCompetitor) => { const mem = roster(c?.name); if (c && mem) c.members = toMembers(mem).map((m) => ({ name: m.name, ...(m.handle ? { handle: m.handle } : {}) })) }
+        attachComp(cup.champion); attachComp(cup.runnerUp); attachComp(cup.thirdPlace)
+      }
 
       return cup
     })

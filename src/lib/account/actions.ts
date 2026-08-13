@@ -141,7 +141,9 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
 
   let newUserId: number
   try {
-    const created = await p.create({ collection: 'users', data: { username, email, password, roles: ['member'] }, overrideAccess: true })
+    // skipAutoProfile: this flow creates the linked profile below with the chosen CueVerse ID
+    // casing, so the Users afterChange back-fill hook must not pre-create one from the username.
+    const created = await p.create({ collection: 'users', data: { username, email, password, roles: ['member'] }, overrideAccess: true, context: { skipAutoProfile: true } })
     newUserId = Number(created.id)
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
@@ -411,7 +413,8 @@ export async function joinTournamentAction(_prev: FormResult, formData: FormData
   if (!profile) return { error: 'Complete your player profile before joining.' }
 
   const identity = { displayName: profile.primaryName, cueverseId: profile.cueverseId, discord: profile.discord, timeZone: profile.timeZone, playerId: profile.id }
-  const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity)
+  const joinPassword = String(formData.get('joinPassword') ?? '')
+  const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity, joinPassword)
   if (!res.ok) return { error: res.error }
   revalidatePath(`/tournaments/${number}`)
   revalidatePath("/tournaments")
@@ -433,5 +436,130 @@ export async function withdrawTournamentAction(_prev: FormResult, formData: Form
   revalidatePath(`/tournaments/${number}`)
   revalidatePath("/tournaments")
   revalidatePath('/account')
+  return { ok: true }
+}
+
+/** Resolve the signed-in player's identity from their profile (never from the form). */
+async function playerIdentityOf(userId: number): Promise<{ userId: number; playerId: string | null; name: string; handle: string | null } | null> {
+  const profile = await getProfileByUserId(userId)
+  if (!profile) return null
+  return { userId, playerId: profile.id, name: profile.primaryName, handle: profile.cueverseId }
+}
+function teamRevalidate(number: number) {
+  revalidatePath(`/tournaments/${number}`)
+  revalidatePath('/tournaments')
+  revalidatePath('/account')
+}
+
+/** START a new team — the signed-in player becomes captain + first member. Optional join code. */
+export async function startTeamAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in to start a team.' }
+  if (formData.get('rulesAck') !== 'on') return { error: 'Please agree to the tournament rules first.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const identity = await playerIdentityOf(Number(user.id))
+  if (!identity) return { error: 'Complete your player profile before registering.' }
+  const joinCode = String(formData.get('joinCode') ?? '')
+  const { startTeam } = await import('@/lib/competition/teams')
+  const res = await startTeam({ userId: Number(user.id), username: user.username }, cup.id, String(formData.get('teamName') ?? ''), identity, joinCode.trim() ? joinCode : null)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
+  return { ok: true }
+}
+
+/** JOIN an existing team (open, or with the correct join code if protected). */
+export async function joinTeamAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in to join a team.' }
+  if (formData.get('rulesAck') !== 'on') return { error: 'Please agree to the tournament rules first.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const teamId = Number(formData.get('teamId'))
+  if (!Number.isFinite(teamId)) return { error: 'Choose a team to join.' }
+  const identity = await playerIdentityOf(Number(user.id))
+  if (!identity) return { error: 'Complete your player profile before registering.' }
+  const joinCode = String(formData.get('joinCode') ?? '')
+  const { joinTeam } = await import('@/lib/competition/teams')
+  const res = await joinTeam({ userId: Number(user.id), username: user.username }, cup.id, teamId, identity, joinCode.trim() ? joinCode : null)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
+  return { ok: true }
+}
+
+/** WITHDRAW from your team (registration OPEN). Captain leaving promotes the next member / disbands. */
+export async function withdrawFromTeamAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const { withdrawFromTeam } = await import('@/lib/competition/teams')
+  const res = await withdrawFromTeam({ userId: Number(user.id), username: user.username }, cup.id)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
+  return { ok: true }
+}
+
+/** Captain REMOVES a roster member (by their account id). */
+export async function removeTeamMemberAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const memberUserId = Number(formData.get('memberUserId'))
+  const { removeTeamMember } = await import('@/lib/competition/teams')
+  const res = await removeTeamMember({ userId: Number(user.id), username: user.username }, cup.id, memberUserId)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
+  return { ok: true }
+}
+
+/** REGISTER as a Free Agent (no team) — to be placed at registration close. */
+export async function registerFreeAgentAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in to register.' }
+  if (formData.get('rulesAck') !== 'on') return { error: 'Please agree to the tournament rules first.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const identity = await playerIdentityOf(Number(user.id))
+  if (!identity) return { error: 'Complete your player profile before registering.' }
+  const { registerFreeAgent } = await import('@/lib/competition/free-agents')
+  const res = await registerFreeAgent({ userId: Number(user.id), username: user.username }, cup.id, identity)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
+  return { ok: true }
+}
+
+/** WITHDRAW a Free Agent registration (registration OPEN). */
+export async function withdrawFreeAgentAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const { withdrawFreeAgent } = await import('@/lib/competition/free-agents')
+  const res = await withdrawFreeAgent({ userId: Number(user.id), username: user.username }, cup.id)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
+  return { ok: true }
+}
+
+/** Captain SETS / CHANGES / REMOVES the team join code (empty = open the team). */
+export async function setTeamJoinCodeAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Please sign in.' }
+  const number = Number(formData.get('number'))
+  const cup = await cupByNumber(number)
+  if (!cup) return { error: 'Tournament not found.' }
+  const code = String(formData.get('joinCode') ?? '')
+  const { setTeamJoinCode } = await import('@/lib/competition/teams')
+  const res = await setTeamJoinCode({ userId: Number(user.id), username: user.username }, cup.id, code.trim() ? code : null)
+  if (!res.ok) return { error: res.error }
+  teamRevalidate(number)
   return { ok: true }
 }

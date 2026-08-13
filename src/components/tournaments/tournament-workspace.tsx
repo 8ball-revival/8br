@@ -10,11 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { Bracket } from '@/components/tournaments/bracket'
 import { TournamentLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
 import { TournamentHistory } from '@/components/tournaments/tournament-history'
+import { FlairEditor, FlairPreview, type FlairValue } from '@/components/tournaments/flair-editor'
+import { AdminTeamsManager } from '@/components/tournaments/admin-teams'
 import type { TournamentWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
 import type { TournamentHistoryEvent } from '@/lib/competition/tournament-lifecycle'
 import * as A from '@/lib/competition/tournament-actions'
 
-type Tab = 'overview' | 'roster' | 'groups' | 'bracket' | 'results' | 'history' | 'settings'
+type Tab = 'overview' | 'roster' | 'groups' | 'swiss' | 'bracket' | 'results' | 'history' | 'settings'
 type ActionResp = { ok?: boolean; error?: string; message?: string } | void
 type Run = (fn: () => Promise<ActionResp>) => void
 
@@ -54,8 +56,9 @@ export function TournamentWorkspace({
     { id: 'overview', label: 'Overview', icon: Trophy },
     { id: 'roster', label: rosterLabel, icon: Users },
     ...(data.isGroupStage ? ([{ id: 'groups', label: 'Groups', icon: ListChecks }] as const) : []),
-    { id: 'bracket', label: 'Bracket', icon: GitBranch },
-    { id: 'results', label: 'Results', icon: ListChecks },
+    ...(data.isSwiss ? ([{ id: 'swiss', label: 'Swiss', icon: ListChecks }] as const) : []),
+    ...(data.isSwiss ? [] : ([{ id: 'bracket', label: 'Bracket', icon: GitBranch }] as const)),
+    ...(data.isSwiss ? [] : ([{ id: 'results', label: 'Results', icon: ListChecks }] as const)),
     { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ]
@@ -82,8 +85,9 @@ export function TournamentWorkspace({
             isOwner={isOwner}
             bracketStale={data.bracketStale}
             isGroupStage={data.isGroupStage}
+            isSwiss={data.isSwiss}
             groupsComplete={data.groupsComplete}
-            onNavigate={(t) => setTab(t)}
+            onNavigate={(t) => setTab(t === 'results' && data.isSwiss ? 'swiss' : t)}
           />
         </div>
       )}
@@ -112,8 +116,15 @@ export function TournamentWorkspace({
 
       <div className="p-4">
         {tab === 'overview' && <Overview data={data} />}
-        {tab === 'roster' && (data.isTeam ? <TeamsTab data={data} run={run} disabled={!canManage || data.isHistorical} /> : <EntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />)}
+        {tab === 'roster' && (
+          data.isTeam
+            ? (data.tournament.teamFormation === 'PICK' && canManage && !data.isHistorical
+                ? <AdminTeamsManager tournamentId={data.tournament.id} teamSize={data.tournament.teamSize ?? 2} teams={data.teams} registrationOpen={data.tournament.lifecycleState === 'REGISTRATION_OPEN'} />
+                : <TeamsTab data={data} run={run} disabled={!canManage || data.isHistorical} />)
+            : <EntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />
+        )}
         {tab === 'groups' && <GroupsTab data={data} run={run} canEditResults={canEditResults} />}
+        {tab === 'swiss' && <SwissTab data={data} run={run} canEditResults={canEditResults} canManage={canManage} />}
         {tab === 'bracket' && <BracketTab data={data} run={run} disabled={!canManage || data.isHistorical} />}
         {tab === 'results' && <ResultsTab data={data} run={run} disabled={!canEditResults || data.isHistorical} />}
         {tab === 'history' && (
@@ -464,6 +475,27 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
 
 // --------------------------------------------------------------------------- Settings
 
+function FlairSettings({ data, run }: { data: TournamentWorkspaceData; run: Run }) {
+  const t = data.tournament
+  const [flair, setFlair] = useState<FlairValue>({ bannerImageUrl: t.bannerImageUrl, description: t.description, badge: t.badge, accentPreset: t.accentPreset })
+  return (
+    <section>
+      <p className="eyebrow mb-3 text-muted-foreground">Flair</p>
+      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+        <FlairEditor value={flair} onChange={setFlair} />
+        <div className="space-y-3">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">Preview</p>
+          <FlairPreview value={flair} name={t.name} />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => run(() => A.updateTournamentFlairAction(t.id, flair))}>Save flair</Button>
+            <Button size="sm" variant="ghost" onClick={() => run(() => A.saveFlairDefaultAction(flair))}>Save as my default</Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
   const router = useRouter()
   const [race, setRace] = useState(data.tournament.raceLength)
@@ -501,6 +533,8 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
           </div>
         </section>
       )}
+
+      {canManage && !data.isHistorical && <FlairSettings data={data} run={run} />}
 
       {canManage && !data.isHistorical && (
         <section>
@@ -677,6 +711,123 @@ function GroupMatchRow({
           <Button size="sm" variant="outline" onClick={save} disabled={home === '' || away === ''}>Save</Button>
         )
       )}
+      <span className="w-16 text-right text-[0.65rem] text-muted-foreground">race to {raceLength}</span>
+    </div>
+  )
+}
+
+// --------------------------------------------------------------------------- Swiss
+
+function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWorkspaceData; run: Run; canEditResults: boolean; canManage: boolean }) {
+  const s = data.swiss
+  if (!s || s.currentRound === 0) {
+    return <p className="text-sm text-muted-foreground">The Swiss rounds haven&apos;t started yet. Close registration, then Start Swiss.</p>
+  }
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs text-muted-foreground">
+          Round <b className="text-foreground">{s.currentRound}</b> of <b className="text-foreground">{s.totalRounds}</b>. Enter every result; standings and the next round&apos;s pairings update automatically.
+        </p>
+        <div className="ml-auto flex gap-2">
+          {canManage && s.canPairNext && (
+            <Button size="sm" onClick={() => run(() => A.pairSwissRoundAction(data.tournament.id))}>Pair round {s.currentRound + 1}</Button>
+          )}
+          {canManage && s.canComplete && (
+            <Button size="sm" onClick={() => run(() => A.completeSwissAction(data.tournament.id))}>Complete Swiss</Button>
+          )}
+        </div>
+      </div>
+
+      {/* Standings */}
+      <div className="overflow-hidden rounded-lg border border-border">
+        <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">Standings</div>
+        <div className="overflow-x-auto p-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="w-8 py-1">#</th>
+                <th className="py-1">Player</th>
+                <th className="w-12 py-1 text-center" title="Match points">Pts</th>
+                <th className="w-10 py-1 text-center" title="Matches played">P</th>
+                <th className="w-14 py-1 text-center" title="Game differential">+/−</th>
+                <th className="w-14 py-1 text-center" title="Buchholz tiebreak">Buch</th>
+                <th className="w-10 py-1 text-center" title="Byes">Bye</th>
+              </tr>
+            </thead>
+            <tbody>
+              {s.standings.map((r) => (
+                <tr key={r.registrationId} className={cn('border-t border-border/60', r.rank === 1 && 'bg-brand/10')}>
+                  <td className="py-1.5 tabular">{r.rank}</td>
+                  <td className={cn('py-1.5', r.rank === 1 && 'font-medium text-brand')}>{r.name}</td>
+                  <td className="py-1.5 text-center tabular font-medium">{r.points}</td>
+                  <td className="py-1.5 text-center tabular">{r.played}</td>
+                  <td className="py-1.5 text-center tabular">{r.gameW - r.gameL > 0 ? `+${r.gameW - r.gameL}` : r.gameW - r.gameL}</td>
+                  <td className="py-1.5 text-center tabular">{r.buchholz}</td>
+                  <td className="py-1.5 text-center tabular">{r.byes || ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Rounds */}
+      {[...s.rounds].reverse().map((rd) => (
+        <div key={rd.round} className="overflow-hidden rounded-lg border border-border">
+          <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">Round {rd.round}</div>
+          <div className="space-y-1.5 p-4">
+            {rd.matches.map((m) => (
+              <SwissMatchRow key={m.id} m={m} raceLength={data.tournament.raceLength} run={run} disabled={!canEditResults} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SwissMatchRow({ m, raceLength, run, disabled }: { m: NonNullable<TournamentWorkspaceData['swiss']>['rounds'][number]['matches'][number]; raceLength: number; run: Run; disabled: boolean }) {
+  const decided = m.winnerRegistrationId != null
+  const [home, setHome] = useState<string>(m.homeGames != null ? String(m.homeGames) : '')
+  const [away, setAway] = useState<string>(m.awayGames != null ? String(m.awayGames) : '')
+  const [editing, setEditing] = useState(false)
+
+  if (m.isBye) {
+    return (
+      <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+        <span className="min-w-0 flex-1 truncate font-medium text-brand">{m.homeName}</span>
+        <span className="rounded bg-brand/15 px-2 py-0.5 text-xs font-semibold text-brand">Bye</span>
+        <span className="min-w-0 flex-1" />
+      </div>
+    )
+  }
+
+  const save = () => {
+    const h = Number(home), a = Number(away)
+    if (!Number.isFinite(h) || !Number.isFinite(a)) return
+    run(() => A.recordSwissResultAction(m.id, h, a))
+    setEditing(false)
+  }
+  const homeWon = m.winnerRegistrationId === m.homeRegistrationId
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+      <span className={cn('min-w-0 flex-1 truncate text-right', decided && homeWon && 'font-semibold text-brand')}>{m.homeName}</span>
+      {decided && !editing ? (
+        <span className="tabular px-2 font-medium">{m.homeGames}–{m.awayGames}</span>
+      ) : (
+        <span className="flex items-center gap-1">
+          <input value={home} onChange={(e) => setHome(e.target.value)} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center tabular" placeholder="0" disabled={disabled} />
+          <span className="text-muted-foreground">–</span>
+          <input value={away} onChange={(e) => setAway(e.target.value)} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center tabular" placeholder="0" disabled={disabled} />
+        </span>
+      )}
+      <span className={cn('min-w-0 flex-1 truncate', decided && !homeWon && 'font-semibold text-brand')}>{m.awayName}</span>
+      {!disabled && (decided && !editing ? (
+        <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
+      ) : (
+        <Button size="sm" variant="outline" onClick={save} disabled={home === '' || away === ''}>Save</Button>
+      ))}
       <span className="w-16 text-right text-[0.65rem] text-muted-foreground">race to {raceLength}</span>
     </div>
   )

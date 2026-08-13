@@ -6,7 +6,12 @@ import { requireCapability, requireStaffActor } from './staff-auth'
 import * as svc from './service'
 import * as teamSvc from './teams'
 import { createTournament, type CreateTournamentConfig } from './tournament-create'
+import { normalizeFlair, type FlairInput } from './flair'
+import * as fa from './free-agents'
+import type { ClosingPlan, EligibleAccount, FreeAgentRow } from './free-agents'
+import { captureTeamRatingsAtClose } from './team-ratings'
 import { startGroupStage, recordGroupResult, confirmQualifiersAndSeed } from './group-stage'
+import { startSwiss, recordSwissResult, pairNextRound, completeSwiss } from './swiss'
 import { syncLiveTournamentToSnapshot } from './tournament-sync'
 import { transitionTournamentState, requireTournamentState, bracketMatchesEntrants, type TournamentState } from './tournament-lifecycle'
 import { recordAudit } from './audit'
@@ -45,7 +50,12 @@ export async function createTournamentAction(cfg: CreateTournamentConfig): Promi
   const actor = await requireCapability('manage_competitions')
   const res = await createTournament(actor, cfg)
   if (!res.ok) return { error: res.error }
-  await syncLiveTournamentToSnapshot(res.id!) // make the new cup appear in the snapshot-backed list
+  // "Start now" (the default) opens registration immediately via the lifecycle machine (which syncs
+  // registrationStatus + audits). "Schedule for later" leaves it in DRAFT with registrationOpensAt set.
+  if (res.startNow) {
+    await transitionTournamentState(actor, res.id!, 'REGISTRATION_OPEN').catch(() => {})
+  }
+  await syncLiveTournamentToSnapshot(res.id!) // make the new tournament appear in the snapshot-backed list
   revalidateTournament(res.number)
   return { ok: true, number: res.number, message: `Created ${res.code} — Tournament ${res.number}.` }
 }
@@ -146,9 +156,6 @@ export async function generateTournamentBracketAction(tournamentId: number): Pro
   const gate = await requireTournamentState(tournamentId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
   if (!gate.ok) return { error: gate.error }
 
-  const order = await defaultSeedOrder(tournamentId)
-  if (order.length < 2) return { error: 'Add at least 2 registered entrants before generating the bracket.' }
-
   // Don't silently overwrite: if a bracket already exists and still matches the entrants, keep it.
   if (gate.state === 'BRACKET_GENERATED') {
     const fresh = await bracketMatchesEntrants(tournamentId)
@@ -161,6 +168,18 @@ export async function generateTournamentBracketAction(tournamentId: number): Pro
     const close = await transitionTournamentState(actor, tournamentId, 'REGISTRATION_CLOSED')
     if (!close.ok) return { error: close.error }
   }
+
+  // Random-draw teams: shuffle the solo entrants into teams (against the now-frozen field) before seeding.
+  const asm = await teamSvc.ensureRandomTeamsAssembled(actor, tournamentId)
+  if (!asm.ok) return { error: asm.error }
+  const exc = await teamSvc.excludeIncompletePickTeams(actor, tournamentId)
+  if (!exc.ok) return { error: exc.error }
+  await captureTeamRatingsAtClose(tournamentId) // freeze member ratings for the team-details popover
+
+
+
+  const order = await defaultSeedOrder(tournamentId)
+  if (order.length < 2) return { error: 'Add at least 2 registered entrants before generating the bracket.' }
 
   // Replace any prior (stale/published) bracket, then build + publish the new one.
   const published = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
@@ -197,6 +216,13 @@ export async function startGroupStageAction(tournamentId: number): Promise<Actio
     const close = await transitionTournamentState(actor, tournamentId, 'REGISTRATION_CLOSED')
     if (!close.ok) return { error: close.error }
   }
+  const asm = await teamSvc.ensureRandomTeamsAssembled(actor, tournamentId)
+  if (!asm.ok) return { error: asm.error }
+  const exc = await teamSvc.excludeIncompletePickTeams(actor, tournamentId)
+  if (!exc.ok) return { error: exc.error }
+  await captureTeamRatingsAtClose(tournamentId) // freeze member ratings for the team-details popover
+
+
   const r = await startGroupStage(actor, tournamentId)
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
@@ -222,6 +248,151 @@ export async function confirmQualifiersAction(tournamentId: number): Promise<Act
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
   return { ok: true, message: 'Qualifiers confirmed — playoff bracket seeded.', navigate: 'bracket' }
+}
+
+// ---- Swiss ----------------------------------------------------------------
+
+/** Start the Swiss rounds (closes registration first if still open), generating round 1. */
+export async function startSwissAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const gate = await requireTournamentState(tournamentId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED'])
+  if (!gate.ok) return { error: gate.error }
+  if (gate.state === 'REGISTRATION_OPEN') {
+    const close = await transitionTournamentState(actor, tournamentId, 'REGISTRATION_CLOSED')
+    if (!close.ok) return { error: close.error }
+  }
+  const asm = await teamSvc.ensureRandomTeamsAssembled(actor, tournamentId)
+  if (!asm.ok) return { error: asm.error }
+  const exc = await teamSvc.excludeIncompletePickTeams(actor, tournamentId)
+  if (!exc.ok) return { error: exc.error }
+  await captureTeamRatingsAtClose(tournamentId) // freeze member ratings for the team-details popover
+
+
+  const r = await startSwiss(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Swiss started — round 1 paired.', navigate: 'results' }
+}
+
+/** Record (or correct) a Swiss match result. */
+export async function recordSwissResultAction(matchId: number, home: number, away: number, reason?: string): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  const r = await recordSwissResult(actor, matchId, home, away, reason)
+  if (!r.ok) return { error: r.error }
+  const m = await prisma.swissMatch.findUnique({ where: { id: matchId }, select: { tournamentId: true } })
+  if (m) revalidateTournament(await tournamentNumberOf(m.tournamentId))
+  return { ok: true, message: 'Result recorded.' }
+}
+
+/** Pair the next Swiss round (requires the current round fully reported). */
+export async function pairSwissRoundAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await pairNextRound(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: `Round ${r.round} paired.`, navigate: 'results' }
+}
+
+/** Finish a Swiss tournament (requires all rounds reported); applies the individual Ladder update. */
+export async function completeSwissAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await completeSwiss(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Swiss complete — Ladder updated.' }
+}
+
+// ---- Flair (per-tournament + per-admin default) ---------------------------
+
+/** Edit a tournament's flair later (banner/description/badge/accent). Sanitized/validated server-side.
+ *  Passing empty/nulls is the "Restore WCC Default" action. */
+export async function updateTournamentFlairAction(tournamentId: number, flair: FlairInput): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const norm = normalizeFlair(flair)
+  if (!norm.ok) return { error: norm.error }
+  const v = norm.value!
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { bannerImageUrl: v.bannerImageUrl, description: v.description, badge: v.badge, accentPreset: v.accentPreset } })
+  await recordAudit(actor, { action: 'tournament.flair.update', entity: 'Tournament', entityId: tournamentId, newValue: v })
+  await syncLiveTournamentToSnapshot(tournamentId)
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Tournament flair updated.' }
+}
+
+/** Save the given flair as THIS admin's default (applied as the starting point for new tournaments). */
+export async function saveFlairDefaultAction(flair: FlairInput): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const norm = normalizeFlair(flair)
+  if (!norm.ok) return { error: norm.error }
+  const v = norm.value!
+  await prisma.tournamentFlairDefault.upsert({ where: { userId: actor.userId }, update: { ...v }, create: { userId: actor.userId, ...v } })
+  return { ok: true, message: 'Saved as your default flair.' }
+}
+
+/** This admin's saved default flair (for prefilling the create form), or null. */
+export async function getFlairDefaultAction(): Promise<FlairInput | null> {
+  const actor = await requireCapability('manage_competitions')
+  const d = await prisma.tournamentFlairDefault.findUnique({ where: { userId: actor.userId } })
+  if (!d) return null
+  return { bannerImageUrl: d.bannerImageUrl, description: d.description, badge: d.badge, accentPreset: d.accentPreset }
+}
+
+// ---- Admin team roster management + Free Agents ----------------------------
+
+export async function listEligibleAccountsAction(tournamentId: number): Promise<EligibleAccount[]> {
+  await requireCapability('manage_competitions')
+  return fa.listEligibleAccounts(tournamentId)
+}
+
+export async function listFreeAgentsAction(tournamentId: number): Promise<FreeAgentRow[]> {
+  await requireCapability('manage_competitions')
+  return fa.listFreeAgents(tournamentId, 'WAITING')
+}
+
+export async function adminCreateTeamWithPlayersAction(tournamentId: number, name: string, memberUserIds: number[]): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await fa.adminCreateTeamWithPlayers(actor, tournamentId, name, memberUserIds)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Team created.' }
+}
+
+export async function adminAddTeamMemberAction(tournamentId: number, teamId: number, userId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await fa.adminAddMember(actor, tournamentId, teamId, userId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Player added.' }
+}
+
+export async function adminRemoveTeamMemberAction(tournamentId: number, teamId: number, userId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await fa.adminRemoveMember(actor, tournamentId, teamId, userId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Player removed.' }
+}
+
+export async function adminReplaceTeamMemberAction(tournamentId: number, teamId: number, oldUserId: number, newUserId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await fa.adminReplaceMember(actor, tournamentId, teamId, oldUserId, newUserId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Player replaced.' }
+}
+
+/** Compute the close-registration allocation PREVIEW (pure — nothing changes). */
+export async function previewCloseAllocationAction(tournamentId: number): Promise<{ ok: boolean; error?: string; plan?: ClosingPlan }> {
+  await requireCapability('manage_competitions')
+  return fa.computeClosingPlan(tournamentId)
+}
+
+/** Confirm the close: allocate free agents, create teams, mark unplaced, close + lock — one transaction. */
+export async function confirmCloseAllocationAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await fa.applyClosingPlan(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: `Registration closed — ${r.plan?.finalTeams ?? 0} teams entered.` }
 }
 
 /**

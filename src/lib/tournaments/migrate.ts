@@ -14,7 +14,12 @@ type DbClient = typeof prisma | Prisma.TransactionClient
 export async function regenerateTournamentSnapshot(client: DbClient = prisma): Promise<number> {
   const comps = await client.tournament.findMany({
     orderBy: { number: 'asc' },
-    include: { bracketMatches: true },
+    include: {
+      bracketMatches: true,
+      // Non-withdrawn team rosters — the adapter attaches these to bracket slots so the Ladder
+      // credits individual members (never the team name). Empty for individual tournaments.
+      teams: { where: { withdrawn: false }, include: { members: { orderBy: { memberOrder: 'asc' } } } },
+    },
   })
   const cups = tournamentsFromCompRows(comps as unknown as CompRow[])
   const prev = await client.tournamentSnapshot.findUnique({ where: { id: 1 } })
