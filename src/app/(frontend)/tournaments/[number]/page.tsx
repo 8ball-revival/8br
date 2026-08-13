@@ -7,6 +7,7 @@ import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
+import { GroupCrosstable } from '@/components/tournaments/group-crosstable'
 import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
 import { getTournament, tournamentBracket } from '@/lib/tournaments/service'
 import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
@@ -140,78 +141,20 @@ function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null
  *  IN_PROGRESS         → bracket primary + player self-report control; entrants/join hidden
  *  COMPLETED           → winner summary + read-only bracket; CANCELLED → cancelled notice
  */
-/** Read-only group-stage view for members: each group's live standings + played results. Mirrors the
- *  admin workspace's Groups tab without any result-entry controls. */
+/** Read-only group-stage view for members: a head-to-head crosstable per group (see GroupCrosstable). */
 function GroupStagePublic({ data }: { data: TournamentWorkspaceData }) {
-  const played = (m: TournamentWorkspaceData['groups'][number]['matches'][number]) => m.homeGames != null && m.awayGames != null
   return (
     <section className="mt-8">
       <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {data.groups.map((g) => {
-          const results = g.matches.filter(played)
-          const pending = g.matches.length - results.length
-          return (
-            <div key={g.id} className="overflow-hidden rounded-lg border border-border">
-              <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">{g.name}</div>
-
-              <div className="overflow-x-auto p-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="w-8 py-1">#</th>
-                      <th className="py-1">Player</th>
-                      <th className="w-10 py-1 text-center">P</th>
-                      <th className="w-10 py-1 text-center">W</th>
-                      <th className="w-10 py-1 text-center">L</th>
-                      <th className="w-14 py-1 text-center" title="Game differential">+/−</th>
-                      <th className="w-12 py-1 text-center">Pts</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.standings.length === 0 ? (
-                      <tr><td colSpan={7} className="py-2 text-muted-foreground">No results yet.</td></tr>
-                    ) : (
-                      g.standings.map((s) => (
-                        <tr key={s.registrationId} className={`border-t border-border/60${s.qualified ? ' bg-brand/10' : ''}`}>
-                          <td className="py-1.5 tabular">{s.rank}</td>
-                          <td className={`py-1.5${s.qualified ? ' font-medium text-brand' : ''}`}>{s.username}</td>
-                          <td className="py-1.5 text-center tabular">{s.played}</td>
-                          <td className="py-1.5 text-center tabular">{s.wins}</td>
-                          <td className="py-1.5 text-center tabular">{s.losses}</td>
-                          <td className="py-1.5 text-center tabular">{s.gameDiff > 0 ? `+${s.gameDiff}` : s.gameDiff}</td>
-                          <td className="py-1.5 text-center tabular font-medium">{s.points}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="border-t border-border p-4">
-                <p className="eyebrow mb-2 text-muted-foreground">Results {pending > 0 && <span className="font-normal normal-case tracking-normal">· {pending} to play</span>}</p>
-                {results.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No matches played yet.</p>
-                ) : (
-                  <ul className="space-y-1 text-sm">
-                    {results.map((m) => {
-                      const homeWon = m.winnerRegistrationId === m.homeRegistrationId
-                      return (
-                        <li key={m.id} className="flex items-center justify-between gap-2">
-                          <span className={`min-w-0 flex-1 truncate text-right${homeWon ? ' font-medium text-win' : ' text-muted-foreground'}`}>{m.homeUsername}</span>
-                          <span className="shrink-0 tabular text-xs text-foreground">{m.homeGames}–{m.awayGames}</span>
-                          <span className={`min-w-0 flex-1 truncate${!homeWon ? ' font-medium text-win' : ' text-muted-foreground'}`}>{m.awayUsername}</span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )
-        })}
+      <div className="space-y-6">
+        {data.groups.map((g) => (
+          <GroupCrosstable key={g.id} group={g} />
+        ))}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">Highlighted players are on track to qualify for the playoff bracket.</p>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Each cell shows the row player&apos;s result against the column player (their games first). Click a name for that
+        player&apos;s profile, or the Discord icon to message them.
+      </p>
     </section>
   )
 }

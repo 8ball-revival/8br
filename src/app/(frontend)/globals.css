@@ -65,6 +65,9 @@
   --win: #c8102e;
   --loss: #a3a3a3;
 
+  /* Gold used for clickable player names (e.g. the group crosstable). Themed per mode for contrast. */
+  --player-name: #d4a94a;
+
   /* Back-compat aliases: legacy `gold` tokens now resolve to the WCC crimson so any
      not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
   --gold: var(--brand);
@@ -128,6 +131,8 @@
   /* Fixed result semantics stay meaningful on light too */
   --win: #c8102e;
   --loss: #6a6650;
+
+  --player-name: #8a6a12; /* darker gold, readable on cream */
 }
 
 @theme inline {
