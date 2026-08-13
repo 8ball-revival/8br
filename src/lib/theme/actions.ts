@@ -6,7 +6,7 @@ import config from '@payload-config'
 
 import { getCurrentUser } from '@/lib/account/auth'
 import { recordAudit } from '@/lib/competition/audit'
-import { deriveTheme, validateThemePreference } from './theme'
+import { areColorsTooSimilar, deriveTheme, validateThemePreference } from './theme'
 
 export interface SaveThemeResult { ok: boolean; error?: string; warnings?: string[] }
 
@@ -23,6 +23,8 @@ export async function saveThemePreference(input: unknown): Promise<SaveThemeResu
   const res = validateThemePreference(input)
   if (!res.ok || !res.pref) return { ok: false, error: res.error ?? 'Invalid theme.' }
   const pref = res.pref
+  if (pref.type === 'CUSTOM' && areColorsTooSimilar(pref.mainColor ?? '', pref.accentColor ?? ''))
+    return { ok: false, error: 'Choose two more distinct colors.' }
   const warnings = deriveTheme(pref).warnings
 
   const payload = await getPayload({ config: await config })

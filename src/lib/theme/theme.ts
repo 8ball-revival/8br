@@ -181,8 +181,22 @@ export function validateThemePreference(input: unknown): ValidationResult {
   return { ok: true, pref: { type: 'CUSTOM', mainColor: main, accentColor: accent } }
 }
 
-/** Guard for a raw RGB triple from the editor (each channel 0–255 integer). */
+/** Guard for a raw RGB triple (each channel 0–255 integer). */
 export const isValidRgb = (r: number, g: number, b: number): boolean =>
   [r, g, b].every((n) => Number.isInteger(n) && n >= 0 && n <= 255)
+
+/**
+ * Custom Main + Accent must be visibly distinct — identical or near-identical colors can't form a
+ * readable interface. Returns true when the pair is too similar and should be rejected with a
+ * "pick two more distinct colors" message. (Behind that gate the engine still derives all remaining
+ * accessible colors automatically.)
+ */
+export function areColorsTooSimilar(mainHex: string, accentHex: string): boolean {
+  const m = normalizeHex(mainHex)
+  const a = normalizeHex(accentHex)
+  if (!m || !a) return false // invalids are caught by validation, not this gate
+  if (m === a) return true
+  return contrastRatio(m, a) < 1.6
+}
 
 export { isHex6 }

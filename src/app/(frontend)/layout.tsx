@@ -52,22 +52,32 @@ export const viewport: Viewport = {
   themeColor: '#050505',
 }
 
+// Runs before the page paints. For SIGNED-IN visitors the account theme is already on <html> (below)
+// and `data-theme-source="account"` makes this a no-op. For LOGGED-OUT visitors it applies the theme
+// saved in this browser (localStorage) with zero flash. Values are pre-derived hex from our engine;
+// it only ever writes CSS custom properties, never arbitrary CSS.
+const THEME_BOOT = `(function(){try{var r=document.documentElement;if(r.getAttribute('data-theme-source')==='account')return;var raw=localStorage.getItem('wcc-theme');if(!raw)return;var t=JSON.parse(raw);if(t.attr)r.setAttribute('data-theme',t.attr);var v=t.vars;if(v&&typeof v==='object'){for(var k in v){if(Object.prototype.hasOwnProperty.call(v,k)&&k.charAt(0)==='-'){r.style.setProperty(k,String(v[k]));}}}}catch(e){}})();`
+
 export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
-  // Personal theme, resolved server-side so the correct CSS variables are in the initial HTML on
-  // <html> — no flash of the wrong theme, no hydration mismatch. Logged-out visitors get WCC Default.
+  // Signed-in: resolve the account theme server-side so the correct CSS variables are in the initial
+  // HTML on <html> (no flash, no hydration mismatch), and mark it as the authoritative source.
+  // Logged-out: <html> is left un-themed here and the boot script applies this browser's saved choice.
   const user = await getCurrentUser()
+  const signedIn = Boolean(user)
   const pref = user?.theme ?? WCC_DEFAULT_PREFERENCE
-  const themeVars = deriveTheme(pref).vars as React.CSSProperties
+  const themeVars = signedIn ? (deriveTheme(pref).vars as React.CSSProperties) : undefined
 
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      data-theme={dataThemeAttr(pref.type)}
+      data-theme={signedIn ? dataThemeAttr(pref.type) : undefined}
+      data-theme-source={signedIn ? 'account' : undefined}
       style={themeVars}
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
     >
       <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />

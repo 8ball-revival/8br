@@ -8,7 +8,7 @@
  */
 import { contrastRatio, hexToRgb, rgbToHex, normalizeHex, readableText, isHex6, clamp255 } from '../src/lib/theme/color.ts'
 import {
-  deriveTheme, deriveCustom, validateThemePreference, isValidRgb, THEME_VARS,
+  deriveTheme, deriveCustom, validateThemePreference, isValidRgb, areColorsTooSimilar, THEME_VARS,
 } from '../src/lib/theme/theme.ts'
 
 let pass = 0, fail = 0
@@ -80,6 +80,13 @@ check('rgb 256 invalid', !isValidRgb(256, 0, 0))
 check('rgb -1 invalid', !isValidRgb(-1, 0, 0))
 check('rgb float invalid', !isValidRgb(12.5, 0, 0))
 check('#000000 / #ffffff are hex6', isHex6('#000000') && isHex6('#ffffff'))
+
+console.log('\nCustom distinctness gate (Main vs Accent)')
+check('identical colors are too similar', areColorsTooSimilar('#123456', '#123456'))
+check('near-identical colors are too similar', areColorsTooSimilar('#0d0d0d', '#141414'))
+check('WCC default black/crimson is allowed', !areColorsTooSimilar('#000000', '#c8102e'))
+check('cream/blue is allowed', !areColorsTooSimilar('#f3efe4', '#1d4ed8'))
+check('gate ignores invalid input (validation handles it)', !areColorsTooSimilar('#000000', 'nope'))
 
 console.log('\nValidation — malicious / malformed rejected')
 check('WCC_DEFAULT ok without colors', validateThemePreference({ type: 'WCC_DEFAULT' }).ok)

@@ -5,9 +5,10 @@ import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
 import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
-import { ThemeMenuItem } from '@/components/theme/theme-menu'
+import { ThemeSwitcher } from '@/components/theme/theme-switcher'
 import { getCurrentUser } from '@/lib/account/auth'
 import { signOut } from '@/lib/account/actions'
+import { WCC_DEFAULT_PREFERENCE } from '@/lib/theme/preference'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
@@ -21,6 +22,8 @@ export async function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Theme control — sun icon beside the account button / Sign In, always visible. */}
+          <ThemeSwitcher initial={user?.theme ?? WCC_DEFAULT_PREFERENCE} signedIn={Boolean(user)} />
           {user ? (
             <details className="group relative ml-1">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md py-1 pl-1 pr-2 transition-colors hover:bg-accent [&::-webkit-details-marker]:hidden">
@@ -40,7 +43,6 @@ export async function SiteHeader() {
                 <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
                   Account Settings
                 </Link>
-                <ThemeMenuItem initial={user.theme} />
                 <div className="my-1 h-px bg-border" role="separator" aria-hidden />
                 <form action={signOut}>
                   <button
