@@ -158,10 +158,8 @@ export async function createTournament(
           joinPasswordHash,
           swissRounds,
           scheduledStartAt,
-          bannerImageUrl: flair.bannerImageUrl,
           description: flair.description,
           badge: flair.badge,
-          accentPreset: flair.accentPreset,
           status: 'UPCOMING',
           // Always created in DRAFT; the action opens registration now (start-now) or leaves it
           // scheduled. registrationOpensAt records the intended open time when scheduled.

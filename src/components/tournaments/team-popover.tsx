@@ -105,7 +105,7 @@ export function TeamName({
         onClick={() => { if (open && pinned) { close() } else { setPinned(true); openNow() } }}
         className={cn(
           'block max-w-full truncate rounded text-left text-sm leading-tight outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
-          won ? 'font-semibold text-brand' : dim ? 'text-muted-foreground' : 'text-foreground',
+          won ? 'font-semibold text-win' : dim ? 'text-muted-foreground' : 'text-foreground',
           'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:decoration-brand',
         )}
         title={name}

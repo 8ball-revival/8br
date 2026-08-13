@@ -477,7 +477,7 @@ function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: bo
 
 function FlairSettings({ data, run }: { data: TournamentWorkspaceData; run: Run }) {
   const t = data.tournament
-  const [flair, setFlair] = useState<FlairValue>({ bannerImageUrl: t.bannerImageUrl, description: t.description, badge: t.badge, accentPreset: t.accentPreset })
+  const [flair, setFlair] = useState<FlairValue>({ description: t.description, badge: t.badge })
   return (
     <section>
       <p className="eyebrow mb-3 text-muted-foreground">Flair</p>

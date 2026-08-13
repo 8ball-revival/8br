@@ -45,11 +45,22 @@
   --input: #2a2a2a;
   --ring: #e31b3d; /* visible crimson focus ring */
 
+  /* Navigation surface (header/footer). Its own tokens so a personal theme can retint the nav
+     without disturbing the page — WCC default keeps them equal to the base surfaces. */
+  --nav-bg: #050505;
+  --nav-foreground: #ffffff;
+  --nav-border: #2a2a2a;
+
   /* Brand accents (used for emphasis, headings, active states) */
   --brand: #c8102e;
   --brand-hover: #e31b3d;
   --brand-soft: #e31b3d;
   --brand-dim: #9b0c23;
+
+  /* Fixed competitive-result semantics — WCC-controlled, never overridden by a personal theme, so a
+     winner/loser reads consistently under every theme. */
+  --win: #c8102e;
+  --loss: #a3a3a3;
 
   /* Back-compat aliases: legacy `gold` tokens now resolve to the WCC crimson so any
      not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
@@ -94,9 +105,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-border: var(--nav-border);
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
   --color-brand-dim: var(--brand-dim);
+  --color-win: var(--win);
+  --color-loss: var(--loss);
   /* Legacy gold utilities → crimson */
   --color-gold: var(--brand);
   --color-gold-soft: var(--brand-soft);

@@ -6,6 +6,7 @@ import config from '@payload-config'
 import type { RegistrationStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getActiveSeason } from '@/lib/competition/queries'
+import { normalizeThemeFromRecord, type ThemePreference } from '@/lib/theme/preference'
 
 export interface CurrentUser {
   id: string
@@ -13,6 +14,7 @@ export interface CurrentUser {
   email: string
   roles: string[]
   createdAt?: string
+  theme: ThemePreference
 }
 
 async function payload() {
@@ -28,13 +30,14 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   const p = await payload()
   const { user } = await p.auth({ headers: await nextHeaders() })
   if (!user) return null
-  const u = user as { id: string | number; username?: string; email?: string; roles?: string[]; createdAt?: string }
+  const u = user as { id: string | number; username?: string; email?: string; roles?: string[]; createdAt?: string; themeType?: string; themeMainColor?: string; themeAccentColor?: string }
   return {
     id: String(u.id),
     username: String(u.username ?? ''),
     email: String(u.email ?? ''),
     roles: Array.isArray(u.roles) ? u.roles : [],
     createdAt: u.createdAt,
+    theme: normalizeThemeFromRecord(u),
   }
 })
 

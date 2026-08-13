@@ -25,7 +25,7 @@ import { TournamentJoinPanel } from '@/components/tournaments/tournament-join-pa
 import { TournamentTeamRegister, type MyTeamView, type JoinableTeamView } from '@/components/tournaments/tournament-team-register'
 import { getMyTeamMembership, listJoinableTeams } from '@/lib/competition/teams'
 import { getMyFreeAgent } from '@/lib/competition/free-agents'
-import { accentStyleVars, badgeByKey } from '@/lib/competition/flair'
+import { badgeByKey } from '@/lib/competition/flair'
 import type { SignupIdentity } from '@/components/account/register-form'
 
 // TournamentView pages always resolve the signed-in viewer (admin workspace vs public view) via headers/cookies,
@@ -334,13 +334,9 @@ export default async function TournamentDetailPage({ params }: { params: Promise
 
     const badge = badgeByKey(ws.tournament.badge)
     return (
-      <div style={accentStyleVars(ws.tournament.accentPreset) as React.CSSProperties}>
+      <div>
         <Container className="py-10">
           {backLink}
-          {ws.tournament.bannerImageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={ws.tournament.bannerImageUrl} alt="" className="mb-6 h-40 w-full rounded-xl border border-border object-cover sm:h-52" />
-          )}
           <div className="flex items-center gap-2">
             {badge && <span className="text-2xl" aria-hidden>{badge.emoji}</span>}
             <div className="flex-1">

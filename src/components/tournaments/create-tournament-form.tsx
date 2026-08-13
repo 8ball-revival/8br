@@ -54,7 +54,7 @@ export function CreateTournamentForm() {
   // Prefill with this admin's saved default flair, if any.
   useEffect(() => {
     let live = true
-    getFlairDefaultAction().then((d) => { if (live && d) setFlair({ bannerImageUrl: d.bannerImageUrl ?? null, description: d.description ?? null, badge: d.badge ?? null, accentPreset: d.accentPreset ?? null }) }).catch(() => {})
+    getFlairDefaultAction().then((d) => { if (live && d) setFlair({ description: d.description ?? null, badge: d.badge ?? null }) }).catch(() => {})
     return () => { live = false }
   }, [])
 

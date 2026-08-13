@@ -1204,14 +1204,13 @@ model Tournament {
   // Scheduled start: null = registration opens immediately on create ("start now").
   scheduledStartAt     DateTime?
   // ---- Per-tournament FLAIR (curated, on-brand, server-validated) ----
-  // Hero banner: an uploaded media URL or an https-validated external image URL (never a data: URL).
-  bannerImageUrl       String?
   // Short description / announcement — stored as PLAIN TEXT (sanitized; no HTML/scripts).
   description          String?
   // Optional badge key from the approved icon set (see lib/competition/flair.ts). Null = none.
   badge                String?
-  // Accent color preset key from the curated set (see flair.ts). Null = WCC default crimson.
-  accentPreset         String?
+  // NOTE: per-tournament hero banner + accent color were removed — color is now a personal ACCOUNT
+  // theme (payload user fields; see src/lib/theme), not a tournament setting. The old
+  // `bannerImageUrl`/`accentPreset` columns are dropped by migration 20260813_remove_tournament_flair_colors.
   // EXPLICIT lifecycle state (source of truth for all tournament behavior + gating).
   lifecycleState       TournamentLifecycleState?
   ladderAppliedAt      DateTime? // set once when COMPLETED applies ladder/ranking results (idempotency guard)
@@ -1270,12 +1269,10 @@ model SwissMatch {
 /// tournament ("save as my default" / "restore WCC default"). Keyed by the Payload user id.
 /// All values are curated/validated the same way as per-tournament flair.
 model TournamentFlairDefault {
-  userId         Int      @id // Payload user id
-  bannerImageUrl String?
-  description    String?
-  badge          String?
-  accentPreset   String?
-  updatedAt      DateTime @updatedAt
+  userId      Int      @id // Payload user id
+  description String?
+  badge       String?
+  updatedAt   DateTime @updatedAt
 
   @@map("tournament_flair_default")
 }

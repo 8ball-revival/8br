@@ -1,6 +1,10 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, FieldAccess } from 'payload'
 import { isStaffUser, isOwnerUser, ownerFieldOnly } from './access'
 import { ROLE_OPTIONS } from '@/lib/auth/roles'
+
+// A player may write a field only on their OWN account — even an Owner cannot change another
+// player's value through the admin API. Used to lock the personal-theme fields.
+const themeSelfOnly: FieldAccess = ({ req, id }) => !!req?.user && id != null && String(req.user.id) === String(id)
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -160,5 +164,19 @@ export const Users: CollectionConfig = {
       access: { create: ownerFieldOnly, update: ownerFieldOnly },
       options: ROLE_OPTIONS,
     },
+    // ---- Personal color theme (see src/lib/theme). Belongs to THIS account and changes only how
+    // this player sees the site. Written exclusively by the self-only saveThemePreference action;
+    // hidden from the Payload panel + field-access-locked so no Admin/Owner can change another
+    // player's theme through admin tools. Existing accounts default to WCC_DEFAULT automatically.
+    {
+      name: 'themeType',
+      type: 'select',
+      defaultValue: 'WCC_DEFAULT',
+      options: ['WCC_DEFAULT', 'YAHOO_CLASSIC', 'CUSTOM'],
+      admin: { hidden: true },
+      access: { update: themeSelfOnly },
+    },
+    { name: 'themeMainColor', type: 'text', admin: { hidden: true }, access: { update: themeSelfOnly } },
+    { name: 'themeAccentColor', type: 'text', admin: { hidden: true }, access: { update: themeSelfOnly } },
   ],
 }

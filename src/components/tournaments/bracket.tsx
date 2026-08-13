@@ -9,7 +9,7 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
     <div
       className={cn(
         'flex items-center gap-2 px-2.5 py-1.5',
-        won && 'bg-brand/[0.08]',
+        won && 'bg-win/[0.08]',
         !slot?.name && 'text-muted-foreground',
       )}
     >
@@ -32,7 +32,7 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
         ) : (
           // 1v1 slot: CueVerse ID stays inline, no popover.
           <>
-            <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-brand' : dim ? 'text-muted-foreground' : 'text-foreground')}>
+            <span className={cn('block truncate text-sm leading-tight', won ? 'font-semibold text-win' : dim ? 'text-muted-foreground' : 'text-foreground')}>
               {label}
             </span>
             {slot?.handle && slot.handle !== slot.name && (
@@ -42,7 +42,7 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
         )}
       </span>
       {slot?.score != null && (
-        <span className={cn('tabular self-start pt-0.5 text-sm', won ? 'font-bold text-brand' : 'text-muted-foreground')}>{slot.score}</span>
+        <span className={cn('tabular self-start pt-0.5 text-sm', won ? 'font-bold text-win' : 'text-muted-foreground')}>{slot.score}</span>
       )}
     </div>
   )

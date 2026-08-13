@@ -68,10 +68,9 @@ console.log('\n--- access (password hashed, never plaintext) ---')
 
 console.log('\n--- flair (validated + sanitized) ---')
 {
-  const r = await ok({ flair: { bannerImageUrl: 'https://example.com/b.jpg', badge: 'trophy', accentPreset: 'emerald', description: 'Hello <script>alert(1)</script> world' } }, 'VC Flair')
+  const r = await ok({ flair: { badge: 'trophy', description: 'Hello <script>alert(1)</script> world' } }, 'VC Flair')
   const t = await prisma.tournament.findUniqueOrThrow({ where: { id: r.id! } })
-  check('banner https stored', t.bannerImageUrl === 'https://example.com/b.jpg')
-  check('badge + accent stored', t.badge === 'trophy' && t.accentPreset === 'emerald')
+  check('badge stored', t.badge === 'trophy')
   check('description sanitized (script stripped)', !!t.description && !/script/i.test(t.description))
 }
 
@@ -85,7 +84,6 @@ const bad: [string, Partial<CreateTournamentConfig>][] = [
   ['swiss rounds 0', { tournamentFormat: 'SWISS', swissRounds: 0 }],
   ['groups: 0 groups', { tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 0, qualifiersPerGroup: 2 }],
   ['bad schedule date', { scheduleForLater: true, scheduledStartAt: 'not-a-date' }],
-  ['http banner (not https)', { flair: { bannerImageUrl: 'http://insecure.com/b.jpg' } }],
   ['unknown badge', { flair: { badge: 'skull' } }],
 ]
 for (const [label, cfg] of bad) {

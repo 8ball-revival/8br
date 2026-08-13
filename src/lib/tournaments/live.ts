@@ -134,11 +134,9 @@ export interface TournamentWorkspaceData {
     formatBadge: string | null
     teamFormation: 'PICK' | 'RANDOM'
     swissRounds: number | null
-    // curated flair
-    bannerImageUrl: string | null
+    // curated flair (badge + plain-text description; per-tournament colors/banner removed)
     description: string | null
     badge: string | null
-    accentPreset: string | null
   }
   isTournament: boolean
   isHistorical: boolean
@@ -345,10 +343,8 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       formatBadge,
       teamFormation: tournament.teamFormation,
       swissRounds: tournament.swissRounds,
-      bannerImageUrl: tournament.bannerImageUrl,
       description: tournament.description,
       badge: tournament.badge,
-      accentPreset: tournament.accentPreset,
     },
     isTournament: true,
     isHistorical,

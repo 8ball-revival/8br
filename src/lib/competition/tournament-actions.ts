@@ -304,14 +304,15 @@ export async function completeSwissAction(tournamentId: number): Promise<ActionR
 
 // ---- Flair (per-tournament + per-admin default) ---------------------------
 
-/** Edit a tournament's flair later (banner/description/badge/accent). Sanitized/validated server-side.
- *  Passing empty/nulls is the "Restore WCC Default" action. */
+/** Edit a tournament's flair later (badge + description). Sanitized/validated server-side.
+ *  Passing empty/nulls clears it. (Per-tournament colors/banners were removed — theming is a
+ *  personal account preference now.) */
 export async function updateTournamentFlairAction(tournamentId: number, flair: FlairInput): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const norm = normalizeFlair(flair)
   if (!norm.ok) return { error: norm.error }
   const v = norm.value!
-  await prisma.tournament.update({ where: { id: tournamentId }, data: { bannerImageUrl: v.bannerImageUrl, description: v.description, badge: v.badge, accentPreset: v.accentPreset } })
+  await prisma.tournament.update({ where: { id: tournamentId }, data: { description: v.description, badge: v.badge } })
   await recordAudit(actor, { action: 'tournament.flair.update', entity: 'Tournament', entityId: tournamentId, newValue: v })
   await syncLiveTournamentToSnapshot(tournamentId)
   revalidateTournament(await tournamentNumberOf(tournamentId))
@@ -324,7 +325,7 @@ export async function saveFlairDefaultAction(flair: FlairInput): Promise<ActionR
   const norm = normalizeFlair(flair)
   if (!norm.ok) return { error: norm.error }
   const v = norm.value!
-  await prisma.tournamentFlairDefault.upsert({ where: { userId: actor.userId }, update: { ...v }, create: { userId: actor.userId, ...v } })
+  await prisma.tournamentFlairDefault.upsert({ where: { userId: actor.userId }, update: { description: v.description, badge: v.badge }, create: { userId: actor.userId, description: v.description, badge: v.badge } })
   return { ok: true, message: 'Saved as your default flair.' }
 }
 
@@ -333,7 +334,7 @@ export async function getFlairDefaultAction(): Promise<FlairInput | null> {
   const actor = await requireCapability('manage_competitions')
   const d = await prisma.tournamentFlairDefault.findUnique({ where: { userId: actor.userId } })
   if (!d) return null
-  return { bannerImageUrl: d.bannerImageUrl, description: d.description, badge: d.badge, accentPreset: d.accentPreset }
+  return { description: d.description, badge: d.badge }
 }
 
 // ---- Admin team roster management + Free Agents ----------------------------

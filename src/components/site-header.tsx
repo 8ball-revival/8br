@@ -5,6 +5,7 @@ import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
 import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
+import { ThemeMenuItem } from '@/components/theme/theme-menu'
 import { getCurrentUser } from '@/lib/account/auth'
 import { signOut } from '@/lib/account/actions'
 
@@ -12,7 +13,7 @@ import { signOut } from '@/lib/account/actions'
 export async function SiteHeader() {
   const user = await getCurrentUser()
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+    <header className="sticky top-0 z-40 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70">
       <div className="mx-auto flex h-16 w-full max-w-[96rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Logo />
@@ -39,6 +40,7 @@ export async function SiteHeader() {
                 <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
                   Account Settings
                 </Link>
+                <ThemeMenuItem initial={user.theme} />
                 <div className="my-1 h-px bg-border" role="separator" aria-hidden />
                 <form action={signOut}>
                   <button
