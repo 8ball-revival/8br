@@ -3,9 +3,12 @@
 /*
   World Cue Championships (WCC) — public (frontend) design system.
   Premium competitive aesthetic: deep black, charcoal surfaces, crimson accent.
-  Single committed dark theme (no light mode). All colors are design tokens below —
-  the new owner can retune the whole site by editing these values in one place.
+  Dark is the default (tokens in :root); `.light` overrides for the optional light theme, toggled
+  from the header. The <html> class is set before paint (no flash — see layout.tsx). All colors are
+  design tokens — retune the whole site by editing these values in one place.
 */
+
+@custom-variant light (&:is(.light *));
 
 :root {
   --radius: 0.5rem;
@@ -73,6 +76,58 @@
   --chart-3: #a3a3a3;
   --chart-4: #6b7280;
   --chart-5: #f59e0b;
+}
+
+/* ---- Light theme (opt-in via the header toggle) ----
+   Inspired by the classic Yahoo Pool lobby: warm cream page, olive nav bar, tan/gray panels, muted
+   gold highlight, dark readable text — but keeping WCC's crimson as the interactive accent. */
+.light {
+  --background: #f3efe0; /* warm cream page */
+  --foreground: #2a2a20; /* dark olive-black text */
+
+  --surface: #e7e2cf; /* muted warm gray panel (like the lobby data rows) */
+  --card: #fbf9ef; /* pale cream raised panel */
+  --card-foreground: #2a2a20;
+
+  --popover: #fbf9ef;
+  --popover-foreground: #2a2a20;
+
+  /* WCC crimson stays the accent; hover darkens on the light ground */
+  --primary: #c8102e;
+  --primary-foreground: #ffffff;
+  --primary-hover: #a80d27;
+
+  --secondary: #e2ddc8;
+  --secondary-foreground: #2a2a20;
+
+  --muted: #e7e2cf;
+  --muted-foreground: #6a6650; /* olive-gray, ≥ AA on cream */
+
+  --accent: #e0dac2; /* hover surface */
+  --accent-foreground: #2a2a20;
+
+  --destructive: #c0392b;
+  --destructive-foreground: #ffffff;
+  --success: #3f7d3f;
+  --warning: #b06d13;
+
+  --border: #cdc7ac; /* tan divider */
+  --input: #cdc7ac;
+  --ring: #c8102e;
+
+  /* Olive nav bar with cream text (the Yahoo top-bar cue) */
+  --nav-bg: #5f6136;
+  --nav-foreground: #f3efe0;
+  --nav-border: #4c4e2a;
+
+  --brand: #c8102e;
+  --brand-hover: #a80d27;
+  --brand-soft: #c9a24a; /* muted-gold highlight */
+  --brand-dim: #9b0c23;
+
+  /* Fixed result semantics stay meaningful on light too */
+  --win: #c8102e;
+  --loss: #6a6650;
 }
 
 @theme inline {
