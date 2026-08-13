@@ -194,7 +194,7 @@ export interface WorkspaceGroup {
   code: string
   name: string
   ordinal: number
-  players: { registrationId: number; username: string; seed: number; slug: string | null; discord: string | null }[]
+  players: { registrationId: number; seed: number; cueverseId: string; preferredName: string | null; slug: string | null; discord: string | null }[]
   matches: WorkspaceGroupMatch[]
   standings: WorkspaceStandingRow[]
 }
@@ -217,8 +217,9 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
     ordinal: g.ordinal,
     players: g.players.map((p) => ({
       registrationId: p.registrationId,
-      username: p.registration.username,
       seed: p.seed,
+      cueverseId: p.registration.cueverseId ?? p.registration.username, // left column: always the CueVerse ID
+      preferredName: p.registration.displayName?.trim() || null, // top column: preferred name (else abbreviated CueVerse ID)
       slug: p.registration.cueverseId ?? p.registration.username ?? null, // profile link handle
       discord: p.registration.discord ?? null,
     })),

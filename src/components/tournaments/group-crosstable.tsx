@@ -12,17 +12,22 @@ import type { WorkspaceGroup } from '@/lib/tournaments/live'
 
 const gold = 'text-[color:var(--player-name)] hover:underline'
 
-/** Player name — a gold profile link, or plain gold text when no profile handle is known. */
-function PlayerName({ name, slug, className = '' }: { name: string; slug: string | null; className?: string }) {
+/** Player name — a gold profile link (or plain gold text when no profile handle is known). `label` is
+ *  what's shown; `title` is the full hover text (defaults to label). */
+function PlayerName({ label, title, slug, className = '' }: { label: string; title?: string; slug: string | null; className?: string }) {
+  const hover = title ?? label
   if (slug) {
     return (
-      <Link href={`/players/${encodeURIComponent(slug)}`} title={name} className={`${gold} ${className}`}>
-        {name}
+      <Link href={`/players/${encodeURIComponent(slug)}`} title={hover} className={`${gold} ${className}`}>
+        {label}
       </Link>
     )
   }
-  return <span title={name} className={`text-[color:var(--player-name)] ${className}`}>{name}</span>
+  return <span title={hover} className={`text-[color:var(--player-name)] ${className}`}>{label}</span>
 }
+
+/** Top-column label: the preferred name, or the CueVerse ID when there's no preferred name — capped at 8. */
+const topLabel = (preferredName: string | null, cueverseId: string) => (preferredName ?? cueverseId).slice(0, 8)
 
 /** One Discord DM affordance. Linked when the player has a Discord on file; otherwise an inert icon. */
 function DiscordIcon({ name, discord }: { name: string; discord: string | null }) {
@@ -72,16 +77,25 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
 
   const th = 'border border-border px-2 py-1 text-center align-middle'
   const td = 'border border-border px-2 py-1 text-center align-middle tabular'
+  // Uniform width for every column except the CueVerse-ID name column on the left.
+  const COL = '4.5rem'
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-max border-collapse text-sm">
+      <table className="w-max table-fixed border-collapse text-sm">
+        <colgroup>
+          <col style={{ width: '11rem' }} />
+          {players.map((p) => <col key={p.registrationId} style={{ width: COL }} />)}
+          <col style={{ width: COL }} />
+          <col style={{ width: COL }} />
+          <col style={{ width: COL }} />
+        </colgroup>
         <thead>
           <tr className="bg-card/50">
-            <th rowSpan={2} className={`${th} min-w-[9rem] text-left font-bold text-foreground`}>{group.name}</th>
+            <th rowSpan={2} className={`${th} text-left font-bold text-foreground`}>{group.name}</th>
             {players.map((p) => (
-              <th key={p.registrationId} className={`${th} min-w-[3.75rem] font-medium`}>
-                <PlayerName name={p.username} slug={p.slug} className="block max-w-[6rem] truncate" />
+              <th key={p.registrationId} className={`${th} font-medium`}>
+                <PlayerName label={topLabel(p.preferredName, p.cueverseId)} title={p.preferredName ?? p.cueverseId} slug={p.slug} className="block truncate" />
               </th>
             ))}
             <th colSpan={2} className={`${th} text-xs uppercase tracking-wide text-muted-foreground`}>Sets</th>
@@ -90,7 +104,7 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
           <tr className="bg-card/30">
             {players.map((p) => (
               <th key={p.registrationId} className={`${th}`}>
-                <DiscordIcon name={p.username} discord={p.discord} />
+                <DiscordIcon name={p.cueverseId} discord={p.discord} />
               </th>
             ))}
             <th className={`${th} text-[0.65rem] uppercase text-muted-foreground`}>Pts</th>
@@ -105,7 +119,7 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
             return (
               <tr key={row.registrationId}>
                 <th scope="row" className={`${th} text-left font-medium`}>
-                  <PlayerName name={row.username} slug={row.slug} />
+                  <PlayerName label={row.cueverseId} slug={row.slug} className="block max-w-full truncate" />
                 </th>
                 {players.map((col) => {
                   if (col.registrationId === row.registrationId) {
