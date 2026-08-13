@@ -5,7 +5,6 @@ import { Plus } from 'lucide-react'
 
 import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
-import { AdminBar } from '@/components/staff/admin-bar'
 import { Button } from '@/components/ui/button'
 import { TournamentList } from '@/components/tournaments/tournament-list'
 import { getTournamentList } from '@/lib/tournaments/list'
@@ -31,7 +30,6 @@ export default async function TournamentsPage() {
         title="Tournaments"
         description="WCC tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
       />
-      <AdminBar surface="cups" />
       {canManage && (
         <div className="mb-6">
           <Button asChild>
