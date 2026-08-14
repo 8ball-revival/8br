@@ -4,6 +4,7 @@ import React from 'react'
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
+import { WccAmbientBackground } from '@/components/wcc-ambient-background'
 import { SITE_NAME, SITE_TITLE_DEFAULT, SITE_DESCRIPTION, SITE_URL } from '@/lib/site'
 import './globals.css'
 
@@ -66,7 +67,8 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
+      <body className="flex min-h-screen flex-col bg-transparent text-foreground antialiased">
+        <WccAmbientBackground />
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
