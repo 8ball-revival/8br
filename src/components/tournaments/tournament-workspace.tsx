@@ -374,6 +374,9 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
  *  (no effect needed). Drag to reorder, or use the up/down controls. */
 function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string }[]; run: Run }) {
   const [order, setOrder] = useState<number[]>(() => pool.map((p) => p.id))
+  // How many of the top seeds advance to the playoff bracket (the rest are cut). Defaults to the full
+  // field, so behavior is unchanged until an admin trims it.
+  const [fieldSize, setFieldSize] = useState<number>(() => pool.length)
   const nameById = useMemo(() => new Map(pool.map((p) => [p.id, p.name])), [pool])
   const dragIndex = useRef<number | null>(null)
   const published = data.hasPublishedBracket
@@ -383,38 +386,66 @@ function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool:
     setOrder((o) => { const n = [...o]; const [x] = n.splice(from, 1); n.splice(to, 0, x); return n })
   }
 
+  const cut = Math.max(2, Math.min(fieldSize, order.length)) // players actually included in the bracket
+  const included = order.slice(0, cut)
+  const bracketSlots = (() => { let s = 2; while (s < cut) s *= 2; return s })() // next power of two
+  const byes = bracketSlots - cut
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="eyebrow text-muted-foreground">Seed order ({order.length})</p>
         {published ? <Badge variant="default">Published</Badge> : data.hasBracket ? <Badge variant="muted">Draft</Badge> : null}
+        {!published && order.length > 2 && (
+          <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+            Players in playoffs
+            <input
+              type="number"
+              min={2}
+              max={order.length}
+              value={fieldSize}
+              onChange={(e) => setFieldSize(Math.max(2, Math.min(order.length, Number(e.target.value) || order.length)))}
+              className="w-16 rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground tabular focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <span className="text-muted-foreground/70">of {order.length}</span>
+          </label>
+        )}
       </div>
       <ol className="mt-2 max-w-md space-y-1">
-        {order.map((id, i) => (
-          <li
-            key={id}
-            draggable={!published}
-            onDragStart={() => (dragIndex.current = i)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => { if (dragIndex.current != null) move(dragIndex.current, i); dragIndex.current = null }}
-            className="flex items-center gap-2 rounded-md border border-border bg-background/50 px-2 py-1.5 text-sm"
-          >
-            <GripVertical className="size-4 shrink-0 text-muted-foreground" />
-            <span className="tabular w-5 text-right text-xs text-muted-foreground">{i + 1}</span>
-            <span className="flex-1 truncate">{nameById.get(id)}</span>
-            {!published && (
-              <span className="flex gap-0.5">
-                <button onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-brand"><ChevronUp className="size-4" /></button>
-                <button onClick={() => move(i, i + 1)} className="text-muted-foreground hover:text-brand"><ChevronDown className="size-4" /></button>
-              </span>
-            )}
-          </li>
-        ))}
+        {order.map((id, i) => {
+          const inField = i < cut
+          return (
+            <div key={id}>
+              {i === cut && cut < order.length && (
+                <li aria-hidden className="my-1.5 flex items-center gap-2 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground/70">
+                  <span className="h-px flex-1 bg-border" /> Not in playoffs <span className="h-px flex-1 bg-border" />
+                </li>
+              )}
+              <li
+                draggable={!published}
+                onDragStart={() => (dragIndex.current = i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => { if (dragIndex.current != null) move(dragIndex.current, i); dragIndex.current = null }}
+                className={cn('flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm', inField ? 'border-border bg-background/50' : 'border-border/40 bg-background/20 opacity-50')}
+              >
+                <GripVertical className="size-4 shrink-0 text-muted-foreground" />
+                <span className="tabular w-5 text-right text-xs text-muted-foreground">{inField ? i + 1 : '–'}</span>
+                <span className="flex-1 truncate">{nameById.get(id)}</span>
+                {!published && (
+                  <span className="flex gap-0.5">
+                    <button onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-brand"><ChevronUp className="size-4" /></button>
+                    <button onClick={() => move(i, i + 1)} className="text-muted-foreground hover:text-brand"><ChevronDown className="size-4" /></button>
+                  </span>
+                )}
+              </li>
+            </div>
+          )
+        })}
         {order.length === 0 && <li className="text-sm text-muted-foreground">Add {data.isTeam ? 'teams' : 'entrants'} first.</li>}
       </ol>
       <div className="mt-3 flex flex-wrap gap-2">
         {!published && (
-          <Button onClick={() => run(() => A.buildTournamentBracketAction(data.tournament.id, order))} disabled={order.length < 2}>
+          <Button onClick={() => run(() => A.buildTournamentBracketAction(data.tournament.id, included))} disabled={cut < 2}>
             {data.hasBracket ? 'Rebuild draft bracket' : 'Build draft bracket'}
           </Button>
         )}
@@ -422,7 +453,11 @@ function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool:
         {published && <Button variant="secondary" onClick={() => run(() => A.returnTournamentBracketToDraftAction(data.tournament.id))}><RotateCcw className="size-4" /> Return to draft</Button>}
         {data.hasBracket && !published && <Button variant="ghost" onClick={() => run(() => A.deleteTournamentBracketAction(data.tournament.id))}>Delete bracket</Button>}
       </div>
-      {order.length > 2 && <p className="mt-2 text-xs text-muted-foreground">Bracket auto-sizes to the next power of two; empty slots become byes.</p>}
+      {order.length > 2 && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Top <span className="font-medium text-foreground">{cut}</span> of {order.length} advance → {bracketSlots}-player bracket{byes > 0 ? ` (${byes} bye${byes === 1 ? '' : 's'})` : ''}. Bracket auto-sizes to the next power of two.
+        </p>
+      )}
     </div>
   )
 }
