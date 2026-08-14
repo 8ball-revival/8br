@@ -10,20 +10,19 @@ import type { WorkspaceGroup } from '@/lib/tournaments/live'
  * their profile; a single Discord icon under each column DMs that player (dead icon if none linked).
  */
 
-const gold = 'text-[color:var(--player-name)] hover:underline'
-
-/** Player name — a gold profile link (or plain gold text when no profile handle is known). `label` is
- *  what's shown; `title` is the full hover text (defaults to label). */
-function PlayerName({ label, title, slug, className = '' }: { label: string; title?: string; slug: string | null; className?: string }) {
+/** Player name — a profile link. The top-3 players in the group are GOLD; everyone else is the normal
+ *  foreground colour. `label` is shown; `title` is the full hover text (defaults to label). */
+function PlayerName({ label, title, slug, gold = false, className = '' }: { label: string; title?: string; slug: string | null; gold?: boolean; className?: string }) {
   const hover = title ?? label
+  const color = gold ? 'text-[color:var(--player-name)]' : 'text-foreground'
   if (slug) {
     return (
-      <Link href={`/players/${encodeURIComponent(slug)}`} title={hover} className={`${gold} ${className}`}>
+      <Link href={`/players/${encodeURIComponent(slug)}`} title={hover} className={`${color} hover:underline ${className}`}>
         {label}
       </Link>
     )
   }
-  return <span title={hover} className={`text-[color:var(--player-name)] ${className}`}>{label}</span>
+  return <span title={hover} className={`${color} ${className}`}>{label}</span>
 }
 
 /** Top-column label: the preferred name, or the CueVerse ID when there's no preferred name — capped at 8. */
@@ -63,6 +62,9 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
     ...group.standings.map((s) => byId.get(s.registrationId)).filter((p): p is (typeof group.players)[number] => !!p),
     ...group.players.filter((p) => !standing.has(p.registrationId)),
   ]
+
+  // The group's top 3 (by rank) get gold names; everyone else is the normal foreground colour.
+  const top3 = new Set(group.standings.slice(0, 3).map((s) => s.registrationId))
 
   // result[row:col] = the row player's line in that head-to-head (games first), or absent if unplayed.
   const result = new Map<string, { text: string; rowWon: boolean }>()
@@ -109,7 +111,7 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
             <th rowSpan={2} className={`${th} sticky left-0 z-30 bg-card text-left font-bold text-foreground`}>{group.name}</th>
             {players.map((p) => (
               <th key={p.registrationId} className={`${th} font-medium`}>
-                <PlayerName label={topLabel(p.preferredName, p.cueverseId)} title={p.preferredName ?? p.cueverseId} slug={p.slug} className="block truncate" />
+                <PlayerName label={topLabel(p.preferredName, p.cueverseId)} title={p.preferredName ?? p.cueverseId} slug={p.slug} gold={top3.has(p.registrationId)} className="block truncate" />
               </th>
             ))}
             <th colSpan={2} className={`${th} text-xs uppercase tracking-wide text-muted-foreground`}>Sets</th>
@@ -133,7 +135,7 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
             return (
               <tr key={row.registrationId}>
                 <th scope="row" className={stickyRowHead}>
-                  <PlayerName label={row.cueverseId} slug={row.slug} className="block max-w-full truncate text-base font-bold" />
+                  <PlayerName label={row.cueverseId} slug={row.slug} gold={top3.has(row.registrationId)} className="block max-w-full truncate text-base font-bold" />
                 </th>
                 {players.map((col) => {
                   if (col.registrationId === row.registrationId) {
