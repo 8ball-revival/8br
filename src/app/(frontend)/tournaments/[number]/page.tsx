@@ -151,12 +151,12 @@ function GroupStagePublic({ data, heading = true }: { data: TournamentWorkspaceD
       {heading && <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>}
       <div className="space-y-6">
         {data.groups.map((g) => (
-          <GroupCrosstable key={g.id} group={g} />
+          <GroupCrosstable key={g.id} group={g} raceLength={data.tournament.raceLength} qualifiersPerGroup={data.tournament.qualifiersPerGroup} />
         ))}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Each cell shows the row player&apos;s result against the column player (their games first). Click a name for that
-        player&apos;s profile, or the Discord icon to message them.
+        Each cell is the row player&apos;s result against the column player (their games first). Hover or focus a score to
+        highlight the matchup; click it for details. Names link to profiles; the Discord icon opens a DM.
       </p>
     </div>
   )

@@ -131,6 +131,7 @@ export interface TournamentWorkspaceData {
     teamSize: number | null
     tournamentFormat: string | null
     raceLength: number
+    qualifiersPerGroup: number | null // Group Stage: how many advance from each group (for the summary line)
     status: string
     playoffsStatus: string
     registrationStatus: string
@@ -180,6 +181,7 @@ export interface WorkspaceGroupMatch {
   winnerRegistrationId: number | null
   status: string
   verification: string
+  completedAt: string | null // when the result was recorded (public; for the match-details card)
 }
 export interface WorkspaceStandingRow {
   registrationId: number
@@ -246,6 +248,7 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
       winnerRegistrationId: m.winnerRegistrationId,
       status: m.status,
       verification: m.verification,
+      completedAt: m.completedAt ? m.completedAt.toISOString() : null,
     })),
     standings: g.standings.map((s) => ({
       registrationId: s.registrationId,
@@ -356,6 +359,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       teamSize: tournament.teamSize,
       tournamentFormat: tournament.tournamentFormat,
       raceLength: tournament.raceLength,
+      qualifiersPerGroup: tournament.qualifiersPerGroup ?? null,
       status: tournament.status,
       playoffsStatus: tournament.playoffsStatus,
       registrationStatus: tournament.registrationStatus,
