@@ -40,14 +40,14 @@ function DiscordIcon({ name, discord }: { name: string; discord: string | null }
         title={`Message ${name} on Discord`}
         className="inline-flex text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
-        <MessageCircle className="size-3.5" aria-hidden />
+        <MessageCircle className="size-3" aria-hidden />
         <span className="sr-only">Message {name} on Discord</span>
       </a>
     )
   }
   return (
     <span title={`${name} has no Discord linked`} aria-disabled="true" className="inline-flex cursor-default text-muted-foreground/30">
-      <MessageCircle className="size-3.5" aria-hidden />
+      <MessageCircle className="size-3" aria-hidden />
     </span>
   )
 }
@@ -84,19 +84,19 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
   }
 
   // ~20% larger real dimensions than before: bigger font, taller rows, more cell padding. No zoom/scale.
-  const th = 'border border-border px-3 py-2 text-center align-middle'
-  const td = 'border border-border px-3 py-2 text-center align-middle tabular'
+  const th = 'border border-border px-2.5 py-1.5 text-center align-middle'
+  const td = 'border border-border px-2.5 py-1.5 text-center align-middle tabular'
   // The CueVerse-ID name column is frozen on the left with an OPAQUE background while scrolling.
   const stickyRowHead = `${th} sticky left-0 z-10 bg-background text-left font-medium`
   // Table fills the tournament width and expands on large monitors; it only scrolls when it truly
   // can't fit at this min-width (name column + a readable min for every score/stat column).
-  const minWidth = `${13 + (players.length + 3) * 5.5}rem`
+  const minWidth = `${10.5 + (players.length + 3) * 4.4}rem`
 
   return (
     <div className="scrollbar-themed w-full overflow-x-auto pb-1">
-      <table className="w-full table-fixed border-collapse text-base" style={{ minWidth }}>
+      <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth }}>
         <colgroup>
-          <col style={{ width: '13rem' }} />
+          <col style={{ width: '10.5rem' }} />
           {/* score + stat columns have no fixed width → table-fixed shares the remaining width equally
               (uniform columns that grow to fill the extra space on wide screens) */}
           {players.map((p) => <col key={p.registrationId} />)}
@@ -112,8 +112,8 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
                 <PlayerName label={topLabel(p.preferredName, p.cueverseId)} title={p.preferredName ?? p.cueverseId} slug={p.slug} className="block truncate" />
               </th>
             ))}
-            <th colSpan={2} className={`${th} text-sm uppercase tracking-wide text-muted-foreground`}>Sets</th>
-            <th className={`${th} text-sm uppercase tracking-wide text-muted-foreground`}>Games</th>
+            <th colSpan={2} className={`${th} text-xs uppercase tracking-wide text-muted-foreground`}>Sets</th>
+            <th className={`${th} text-xs uppercase tracking-wide text-muted-foreground`}>Games</th>
           </tr>
           <tr className="bg-card/30">
             {players.map((p) => (
@@ -133,7 +133,7 @@ export function GroupCrosstable({ group }: { group: WorkspaceGroup }) {
             return (
               <tr key={row.registrationId}>
                 <th scope="row" className={stickyRowHead}>
-                  <PlayerName label={row.cueverseId} slug={row.slug} className="block max-w-full truncate text-lg font-bold" />
+                  <PlayerName label={row.cueverseId} slug={row.slug} className="block max-w-full truncate text-base font-bold" />
                 </th>
                 {players.map((col) => {
                   if (col.registrationId === row.registrationId) {
