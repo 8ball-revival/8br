@@ -54,10 +54,13 @@ type MemberInfo = { name: string; handle: string | null; playerId: string | null
 export function playoffToBracketRounds(
   rows: PlayoffRow[],
   membersByRegId?: Map<number, MemberInfo[]>,
-  /** Active cups only: regId → CURRENT CueVerse ID, overriding the seed-time name so a
+  /** Active cups only: regId → CURRENT Preferred Name, overriding the seed-time name so a
    *  live event always shows current identities. Omit for completed cups (they keep the
    *  frozen, as-played name stored in the bracket). */
   displayByRegId?: Map<number, string>,
+  /** Active individual cups: regId → CURRENT CueVerse ID, shown as the slot's secondary line so a
+   *  bracket slot reflects BOTH the Preferred Name and the CueVerse ID. */
+  handleByRegId?: Map<number, string>,
 ): BracketRound[] {
   if (!rows.length) return []
   const totalRounds = Math.max(...rows.map((r) => r.round))
@@ -76,6 +79,8 @@ export function playoffToBracketRounds(
     const current = regId != null ? displayByRegId?.get(regId) : undefined
     if (current != null) s.name = current
     else if (name != null) s.name = name
+    const handle = regId != null ? handleByRegId?.get(regId) : undefined
+    if (handle != null && handle !== s.name) s.handle = handle // secondary line: CueVerse ID
     if (seed != null) s.seed = seed
     if (score != null) s.score = score
     if (regId != null && membersByRegId?.has(regId)) {
@@ -210,19 +215,25 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
       standings: { orderBy: { rank: 'asc' } },
     },
   })
+  // Resolve CANONICAL identity for every group player (the linked profile's Preferred Name + CueVerse
+  // ID), exactly like the entrant list and the playoff bracket, so names are consistent everywhere.
+  const groupIdn = await resolveEntrants(gs.flatMap((g) => g.players.map((p) => p.registration)))
   const groups: WorkspaceGroup[] = gs.map((g) => ({
     id: g.id,
     code: g.code,
     name: g.name,
     ordinal: g.ordinal,
-    players: g.players.map((p) => ({
-      registrationId: p.registrationId,
-      seed: p.seed,
-      cueverseId: p.registration.cueverseId ?? p.registration.username, // left column: always the CueVerse ID
-      preferredName: p.registration.displayName?.trim() || null, // top column: preferred name (else abbreviated CueVerse ID)
-      slug: p.registration.cueverseId ?? p.registration.username ?? null, // profile link handle
-      discord: p.registration.discord ?? null,
-    })),
+    players: g.players.map((p) => {
+      const i = groupIdn.get(p.registrationId)
+      return {
+        registrationId: p.registrationId,
+        seed: p.seed,
+        cueverseId: i?.cueverseId ?? p.registration.cueverseId ?? p.registration.username, // left column: the CueVerse ID
+        preferredName: i?.preferredName ?? p.registration.displayName?.trim() ?? null, // top column: Preferred Name (else abbreviated CueVerse ID)
+        slug: i?.slug ?? p.registration.cueverseId ?? p.registration.username ?? null, // profile link handle
+        discord: i?.discord ?? p.registration.discord ?? null,
+      }
+    }),
     matches: g.matches.map((m) => ({
       id: m.id,
       round: m.round,
@@ -315,7 +326,10 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
   const isCompleted = tournament.lifecycleState === 'COMPLETED' || tournament.status === 'COMPLETED'
   const displayByRegId =
     !isCompleted && !isTeam ? new Map(entrants.map((e) => [e.registrationId, e.name])) : undefined
-  const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId)
+  // Individual bracket slots also carry the CueVerse ID as a secondary line (Preferred Name + ID).
+  const handleByRegId =
+    !isCompleted && !isTeam ? new Map(entrants.flatMap((e) => (e.handle ? [[e.registrationId, e.handle] as const] : []))) : undefined
+  const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId, handleByRegId)
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
   // Staleness only matters while the bracket is generated but the tournament hasn't started.
