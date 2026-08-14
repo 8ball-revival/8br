@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trophy, Users, GitBranch, ListChecks, Settings2, History, Plus, X, ChevronUp, ChevronDown, GripVertical, RotateCcw } from 'lucide-react'
+import { Trophy, Users, GitBranch, ListChecks, Settings2, History, Plus, X, ChevronUp, ChevronDown, GripVertical, RotateCcw, ShieldAlert } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -395,7 +395,7 @@ function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool:
     <div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="eyebrow text-muted-foreground">Seed order ({order.length})</p>
-        {published ? <Badge variant="default">Published</Badge> : data.hasBracket ? <Badge variant="muted">Draft</Badge> : null}
+        {published ? <Badge variant="default">Published</Badge> : data.hasBracket ? <Badge variant="muted">Unpublished draft</Badge> : null}
         {!published && order.length > 2 && (
           <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
             Players in playoffs
@@ -411,6 +411,12 @@ function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool:
           </label>
         )}
       </div>
+      {data.hasBracket && !published && (
+        <p className="mt-2 flex items-start gap-1.5 rounded-md border border-warning/30 bg-warning/[0.06] px-3 py-2 text-xs text-warning">
+          <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          This is a private, unpublished draft — members and the public cannot see the playoff bracket yet. Publish it to make the seeds and matchups public.
+        </p>
+      )}
       <ol className="mt-2 max-w-md space-y-1">
         {order.map((id, i) => {
           const inField = i < cut
@@ -449,7 +455,11 @@ function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool:
             {data.hasBracket ? 'Rebuild draft bracket' : 'Build draft bracket'}
           </Button>
         )}
-        {data.hasBracket && !published && <Button onClick={() => run(() => A.publishTournamentBracketAction(data.tournament.id))}>Publish bracket</Button>}
+        {data.hasBracket && !published && (
+          <Button onClick={() => { if (window.confirm('Publish the playoff bracket?\n\nThis makes the playoff seeds and matchups visible to EVERYONE — all members and logged-out visitors. Groups stay visible too. You can return it to draft afterward.')) run(() => A.publishTournamentBracketAction(data.tournament.id)) }}>
+            Publish bracket
+          </Button>
+        )}
         {published && <Button variant="secondary" onClick={() => run(() => A.returnTournamentBracketToDraftAction(data.tournament.id))}><RotateCcw className="size-4" /> Return to draft</Button>}
         {data.hasBracket && !published && <Button variant="ghost" onClick={() => run(() => A.deleteTournamentBracketAction(data.tournament.id))}>Delete bracket</Button>}
       </div>

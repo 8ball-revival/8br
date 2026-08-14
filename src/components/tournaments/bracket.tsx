@@ -80,7 +80,7 @@ export function Bracket({
   fluid?: boolean
 }) {
   return (
-    <div className="scrollbar-brand overflow-x-auto pb-2">
+    <div className="scrollbar-themed overflow-x-auto pb-2">
       <div className={cn('flex items-stretch', fluid ? 'min-w-full gap-2 sm:gap-3 xl:gap-4' : 'min-w-max gap-8')}>
         {rounds.map((round, ri) => {
           const active = currentRound && round.name.toLowerCase() === currentRound.toLowerCase()

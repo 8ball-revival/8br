@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
 import { GroupCrosstable } from '@/components/tournaments/group-crosstable'
+import { ViewToggle } from '@/components/tournaments/view-toggle'
+import { canViewPlayoffs, redactPlayoffs } from '@/lib/competition/playoff-visibility'
 import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
 import { getTournament, tournamentBracket } from '@/lib/tournaments/service'
 import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
@@ -141,11 +143,12 @@ function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null
  *  IN_PROGRESS         → bracket primary + player self-report control; entrants/join hidden
  *  COMPLETED           → winner summary + read-only bracket; CANCELLED → cancelled notice
  */
-/** Read-only group-stage view for members: a head-to-head crosstable per group (see GroupCrosstable). */
-function GroupStagePublic({ data }: { data: TournamentWorkspaceData }) {
+/** Read-only group-stage view for members: a head-to-head crosstable per group (see GroupCrosstable).
+ *  `heading` is suppressed when the groups sit under the Groups|Playoffs toggle (the tab already labels it). */
+function GroupStagePublic({ data, heading = true }: { data: TournamentWorkspaceData; heading?: boolean }) {
   return (
-    <section className="mt-8">
-      <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>
+    <div className={heading ? 'mt-8' : ''}>
+      {heading && <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>}
       <div className="space-y-6">
         {data.groups.map((g) => (
           <GroupCrosstable key={g.id} group={g} />
@@ -155,19 +158,26 @@ function GroupStagePublic({ data }: { data: TournamentWorkspaceData }) {
         Each cell shows the row player&apos;s result against the column player (their games first). Click a name for that
         player&apos;s profile, or the Discord icon to message them.
       </p>
-    </section>
+    </div>
   )
 }
 
-function PublicLiveTournament({ data, member, history }: { data: TournamentWorkspaceData; member: MemberCtx; history: TournamentHistoryEvent[] }) {
+function PublicLiveTournament({ data, member, history, view, playoffsPublished }: { data: TournamentWorkspaceData; member: MemberCtx; history: TournamentHistoryEvent[]; view: 'groups' | 'playoffs'; playoffsPublished: boolean }) {
   const state = data.tournament.lifecycleState
   const activeEntrants = data.entrants.filter((e) => !e.withdrawn)
   const inRegistration = state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_CLOSED'
-  const bracketPrimary = state === 'BRACKET_GENERATED' || state === 'IN_PROGRESS' || state === 'COMPLETED'
   const podium = state === 'COMPLETED' ? resolvePodium(data) : null
   const myMatch = state === 'IN_PROGRESS' ? findMyActiveMatch(data, member.myRegistrationId) : null
   const completedAt = history.find((e) => e.kind === 'tournament_completed')?.at ?? null
   const completedDate = completedAt ? completedAt.slice(0, 10) : null
+
+  // `data.bracketRounds` is already redacted server-side to [] for viewers not allowed to see the
+  // bracket, so `bracketVisible` doubles as "this viewer may see the playoffs".
+  const isGroups = data.isGroupStage
+  const hasGroups = data.groups.length > 0
+  const bracketVisible = data.bracketRounds.length > 0
+  const showToggle = isGroups && hasGroups && playoffsPublished && bracketVisible
+  const effectiveView: 'groups' | 'playoffs' = showToggle ? view : 'groups'
 
   if (state === 'DRAFT') {
     return (
@@ -197,33 +207,47 @@ function PublicLiveTournament({ data, member, history }: { data: TournamentWorks
         />
       )}
 
-      {/* Bracket-generated: the bracket is visible but the tournament has NOT begun. */}
-      {state === 'BRACKET_GENERATED' && (
-        <div className="mt-6 rounded-lg border border-sky-500/30 bg-sky-500/[0.06] px-4 py-3">
-          <Badge variant="muted">Awaiting Tournament Start</Badge>
-          <span className="ml-2 text-sm text-muted-foreground">
-            The bracket has been generated and is under review. The tournament hasn&apos;t started yet — results can&apos;t be reported until it begins.
-          </span>
-        </div>
-      )}
-
-      {/* In progress: the viewer's own match self-report control (loss only). */}
-      {myMatch && (
-        <div className="mt-6">
-          <TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} />
-        </div>
-      )}
-
-      {/* Bracket is the primary focus once generated, underway, or complete. */}
-      {bracketPrimary && (
+      {/* GROUP STAGE + PLAYOFFS: groups are public throughout; the playoff bracket is hidden until it
+          is PUBLISHED. Once published, a Groups | Playoffs toggle appears (Playoffs is the default).
+          Playoff data is redacted server-side for viewers who may not see it → bracketVisible is false. */}
+      {isGroups && hasGroups && (
         <section className="mt-8">
-          <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
-          {data.bracketRounds.length > 0 ? (
-            <Bracket rounds={data.bracketRounds} />
+          {showToggle && <div className="mb-5"><ViewToggle number={member.number} active={effectiveView} /></div>}
+          {effectiveView === 'playoffs' && bracketVisible ? (
+            <div id="panel-playoffs" role={showToggle ? 'tabpanel' : undefined} aria-labelledby={showToggle ? 'tab-playoffs' : undefined}>
+              {state === 'BRACKET_GENERATED' && (
+                <p className="mb-4 text-sm text-muted-foreground"><Badge variant="muted">Awaiting Start</Badge> <span className="ml-1">The bracket is published; play begins soon.</span></p>
+              )}
+              {myMatch && <div className="mb-6"><TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} /></div>}
+              <Bracket rounds={data.bracketRounds} fluid />
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground">The bracket is being prepared.</p>
+            <div id="panel-groups" role={showToggle ? 'tabpanel' : undefined} aria-labelledby={showToggle ? 'tab-groups' : undefined}>
+              <GroupStagePublic data={data} heading={!showToggle} />
+            </div>
           )}
         </section>
+      )}
+
+      {/* NON-group formats: the bracket shows only once it is visible (published) to this viewer. */}
+      {!isGroups && bracketVisible && (
+        <>
+          {state === 'BRACKET_GENERATED' && (
+            <div className="mt-6 rounded-lg border border-sky-500/30 bg-sky-500/[0.06] px-4 py-3">
+              <Badge variant="muted">Awaiting Tournament Start</Badge>
+              <span className="ml-2 text-sm text-muted-foreground">The bracket is published and under review — results can&apos;t be reported until play begins.</span>
+            </div>
+          )}
+          {myMatch && (
+            <div className="mt-6">
+              <TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} />
+            </div>
+          )}
+          <section className="mt-8">
+            <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
+            <Bracket rounds={data.bracketRounds} />
+          </section>
+        </>
       )}
 
       {/* Registration phases: entrant list + (open only) join/withdraw. */}
@@ -288,9 +312,6 @@ function PublicLiveTournament({ data, member, history }: { data: TournamentWorks
         </>
       )}
 
-      {/* Group Stage: live standings + results (round-robin groups feed the playoff bracket). */}
-      {data.isGroupStage && data.groups.length > 0 && <GroupStagePublic data={data} />}
-
       {/* Chronological tournament history (public, non-sensitive events only). */}
       {history.length > 0 && (
         <section className="mt-10">
@@ -302,10 +323,11 @@ function PublicLiveTournament({ data, member, history }: { data: TournamentWorks
   )
 }
 
-export default async function TournamentDetailPage({ params }: { params: Promise<{ number: string }> }) {
+export default async function TournamentDetailPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ view?: string }> }) {
   tournamentStore.enterWith(await loadTournamentContext()) // resolve the live TournamentView revision before rendering the tournament
   const { number } = await params
   const num = Number(number)
+  const sp = await searchParams
 
   const access = await resolveStaffAccess()
   const isStaffOk = access.status === 'ok'
@@ -351,7 +373,19 @@ export default async function TournamentDetailPage({ params }: { params: Promise
         currentUserId: user ? Number(user.id) : null,
       }
       const history = await getTournamentHistory(ws.tournament.id, { admin: false })
-      publicView = <PublicLiveTournament data={ws} member={member} history={history} />
+
+      // Playoff visibility: the public may see the bracket ONLY once it is published. Strip all
+      // playoff/bracket data server-side for viewers who can't see it (never sent to the client), and
+      // resolve the selected view — default Playoffs after publication, and ?view=playoffs safely falls
+      // back to Groups before publication so nothing is exposed via the URL.
+      const playoffsPublished = ws.hasPublishedBracket
+      const canView = canViewPlayoffs({ isStaff: false, playoffsPublished }) // non-staff path
+      const publicData = redactPlayoffs(ws, canView)
+      const requested = sp?.view === 'groups' ? 'groups' : sp?.view === 'playoffs' ? 'playoffs' : null
+      let view: 'groups' | 'playoffs' = requested ?? (canView ? 'playoffs' : 'groups')
+      if (view === 'playoffs' && !canView) view = 'groups'
+
+      publicView = <PublicLiveTournament data={publicData} member={member} history={history} view={view} playoffsPublished={playoffsPublished} />
     }
 
     const badge = badgeByKey(ws.tournament.badge)
