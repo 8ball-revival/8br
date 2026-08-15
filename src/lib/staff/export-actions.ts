@@ -21,10 +21,23 @@ async function headAdminGate() {
 
 export async function exportMembersAction(): Promise<ExportResult> {
   if (!(await headAdminGate())) return { error: 'Head Admin only.' }
-  const users = await prisma.$queryRawUnsafe<{ id: number; username: string | null; email: string | null; roles: string | null }[]>(
-    `SELECT u.id, u.username, u.email, string_agg(r.value, '|') roles FROM payload.users u LEFT JOIN payload.users_roles r ON r.parent_id=u.id GROUP BY u.id, u.username, u.email ORDER BY u.id`,
+  // Identity columns = Preferred Name, CueVerse ID (the account identity), Email, immutable User ID.
+  // No separate "username" column — the username is only the internal login projection of the CueVerse ID.
+  const users = await prisma.$queryRawUnsafe<
+    { id: number; cueverseId: string | null; preferredName: string | null; email: string | null; roles: string | null }[]
+  >(
+    `SELECT u.id, p."cueverseId" AS "cueverseId", p."primaryName" AS "preferredName", u.email,
+            string_agg(r.value, '|') roles
+       FROM payload.users u
+       LEFT JOIN payload.users_roles r ON r.parent_id = u.id
+       LEFT JOIN public."Player" p ON p."linkedUserId" = u.id::text
+      GROUP BY u.id, p."cueverseId", p."primaryName", u.email
+      ORDER BY u.id`,
   )
-  const csv = toCsv(['userId', 'username', 'email', 'roles'], users.map((u) => [u.id, u.username, u.email, u.roles ?? 'member']))
+  const csv = toCsv(
+    ['userId', 'cueverseId', 'preferredName', 'email', 'roles'],
+    users.map((u) => [u.id, u.cueverseId, u.preferredName, u.email, u.roles ?? 'member']),
+  )
   return { ok: true, csv, filename: `wcc-members-${new Date().toISOString().slice(0, 10)}.csv` }
 }
 

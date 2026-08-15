@@ -31,7 +31,7 @@ export default async function MembersPage({ searchParams }: SP) {
     <AdminShell actor={access.actor} active="members">
       <h1 className="font-display text-2xl font-bold tracking-tight">Member Management</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {members.length} member{members.length === 1 ? '' : 's'}. Search by name, CueVerse ID, or username. Open a member to
+        {members.length} member{members.length === 1 ? '' : 's'}. Search by Preferred Name or CueVerse ID. Open a member to
         view their profile, competitions, warnings, moderation, and integrity log. Email is private and shown only inside a
         member&apos;s account section.
       </p>
@@ -49,7 +49,7 @@ export default async function MembersPage({ searchParams }: SP) {
           <thead className="bg-card/60 text-left text-xs text-muted-foreground uppercase">
             <tr>
               <th className="px-4 py-2.5 font-medium">Member</th>
-              <th className="px-4 py-2.5 font-medium">Username</th>
+              <th className="px-4 py-2.5 font-medium">CueVerse ID</th>
               <th className="px-4 py-2.5 font-medium">Role</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
               <th className="px-4 py-2.5 font-medium">Penalty ends</th>
@@ -61,10 +61,10 @@ export default async function MembersPage({ searchParams }: SP) {
               <tr key={m.userId} className="hover:bg-muted/30">
                 <td className="px-4 py-2.5">
                   <Link href={`/staff/members/${m.userId}`} className="hover:text-brand">
-                    {m.preferredName ? <PublicPlayerIdentity preferredName={m.preferredName} cueverseId={m.cueverseId} muted /> : <span className="text-muted-foreground italic">No profile</span>}
+                    {m.preferredName ? <PublicPlayerIdentity preferredName={m.preferredName} cueverseId={m.cueverseId} muted /> : (m.cueverseId ? <span>{m.cueverseId}</span> : <span className="text-muted-foreground italic">No profile</span>)}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-muted-foreground">{m.username}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{m.cueverseId ? `@${m.cueverseId}` : '—'}</td>
                 <td className="px-4 py-2.5">
                   <span className="inline-flex items-center gap-1.5">
                     <Badge variant={m.role === 'owner' ? 'gold' : m.role === 'admin' ? 'success' : 'muted'}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</Badge>

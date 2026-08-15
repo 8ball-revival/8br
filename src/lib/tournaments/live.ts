@@ -19,6 +19,22 @@ async function ratingsByPlayerId(playerIds: (string | null)[]): Promise<Map<stri
   return m
 }
 
+/** Short public "format" badge derived from the tournament's structural format.
+ *  Kept in sync with adapter.ts formatBadgeOf — covers every TournamentFormat so the
+ *  header never mislabels (e.g. a Swiss tournament must not read "S/E"). */
+export function badgeForFormat(participantFormat: string, tournamentFormat: string | null, teamSize: number | null): string {
+  if (participantFormat === 'TEAM') return teamSize ? `${teamSize}v${teamSize}` : 'Team'
+  switch (tournamentFormat) {
+    case 'DOUBLE_ELIM': return 'D/E'
+    case 'SWISS': return 'Swiss'
+    case 'ROUND_ROBIN': return 'R/R'
+    case 'TEAM_KNOCKOUT': return 'T/K'
+    case 'GROUPS_PLAYOFFS': return 'Groups'
+    case 'SINGLE_ELIM':
+    default: return 'S/E'
+  }
+}
+
 /** Column name for a bracket round: last round = Final, then Semifinals, etc. */
 export function roundColumnName(round: number, totalRounds: number): string {
   const fromEnd = totalRounds - round
@@ -384,16 +400,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
   const isTeam = tournament.participantFormat === 'TEAM'
   const isHistorical = false
   const isEditable = true
-  const formatBadge =
-    tournament.participantFormat === 'TEAM'
-      ? tournament.teamSize
-        ? `${tournament.teamSize}v${tournament.teamSize}`
-        : 'Team'
-      : tournament.tournamentFormat === 'DOUBLE_ELIM'
-        ? 'D/E'
-        : tournament.tournamentFormat === 'GROUPS_PLAYOFFS'
-          ? 'Groups'
-          : 'S/E'
+  const formatBadge = badgeForFormat(tournament.participantFormat, tournament.tournamentFormat, tournament.teamSize)
 
   // Entrants (individual). Teams are the entrants for team cups.
   let entrants: TournamentEntrantView[] = []

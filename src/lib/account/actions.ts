@@ -75,29 +75,53 @@ export async function createFirstOwner(_prev: FormResult, formData: FormData): P
     return { error: 'Invalid setup secret.' }
   }
 
-  const username = normalizeUsername(String(formData.get('username') ?? ''))
+  // The owner sets a CueVerse ID (their canonical identity + login), NOT a separate username.
+  const cueverseId = normalizeCueverseId(String(formData.get('cueverseId') ?? ''))
+  const preferredName = String(formData.get('preferredName') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
   const confirm = String(formData.get('confirmPassword') ?? '')
-  if (!username) return { error: 'Choose a username for the owner account.' }
+  const cidErr = validateCueverseId(cueverseId)
+  if (cidErr) return { error: cidErr }
+  if (preferredName) {
+    const pnErr = validatePreferredName(preferredName)
+    if (pnErr) return { error: pnErr }
+  }
   const emErr = validateEmail(email)
   if (emErr) return { error: emErr }
   const pwErr = validatePassword(password)
   if (pwErr) return { error: pwErr }
   if (password !== confirm) return { error: 'Passwords do not match.' }
 
+  // Login username = the case-insensitive CueVerse ID (the controlled projection).
+  const username = cueverseLoginKey(cueverseId)
+
+  let ownerId: number
   try {
-    await p.create({
+    const created = await p.create({
       collection: 'users',
       data: { username, email, password, roles: ['owner'] },
       overrideAccess: true,
-      // The ONLY place this flag is set — authorizes the Users bootstrap hook to mint the Owner.
-      context: { allowBootstrap: true },
+      // allowBootstrap authorizes the first-Owner mint; skipAutoProfile lets us create the linked
+      // Player below with the chosen CueVerse ID casing (and Preferred Name).
+      context: { allowBootstrap: true, skipAutoProfile: true },
     })
+    ownerId = Number(created.id)
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
-    if (/unique|already|duplicate/i.test(msg)) return { error: 'That username or email is already in use.' }
+    if (/unique|already|duplicate/i.test(msg)) return { error: 'That CueVerse ID or email is already in use.' }
     return { error: 'Could not create the owner account.' }
+  }
+
+  // One account = one Player identity, keyed by the canonical CueVerse ID (casing preserved).
+  const provision = await createOrLinkAccountProfile(ownerId, username, { cueverseId })
+  if (!provision.ok) {
+    await p.delete({ collection: 'users', id: ownerId, overrideAccess: true }).catch(() => {})
+    return { error: provision.error }
+  }
+  if (preferredName) {
+    const { prisma } = await import('@/lib/prisma')
+    await prisma.player.update({ where: { linkedUserId: String(ownerId) }, data: { primaryName: preferredName } }).catch(() => {})
   }
 
   try {
@@ -116,10 +140,15 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
   // public identity AND its login handle. Preferred Name / Discord / Time Zone are OPTIONAL
   // and are added later in My Account — never required here or to enter a competition.
   const cueverseId = normalizeCueverseId(String(formData.get('cueverseId') ?? '')) // trimmed, capitalization preserved
+  const preferredName = String(formData.get('preferredName') ?? '').trim() // OPTIONAL public display name
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
 
-  const err = validateCueverseId(cueverseId) || validateEmail(email) || validatePassword(password)
+  const err =
+    validateCueverseId(cueverseId) ||
+    (preferredName ? validatePreferredName(preferredName) : null) ||
+    validateEmail(email) ||
+    validatePassword(password)
   if (err) return { error: err }
 
   // Login handle = case-insensitive CueVerse ID (Payload username uniqueness is the enforcement).
@@ -158,6 +187,11 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
   if (!provision.ok) {
     await p.delete({ collection: 'users', id: newUserId, overrideAccess: true }).catch(() => {})
     return { error: provision.error }
+  }
+  // Optional public display name, if the member supplied one at signup.
+  if (preferredName) {
+    const { prisma } = await import('@/lib/prisma')
+    await prisma.player.update({ where: { linkedUserId: String(newUserId) }, data: { primaryName: preferredName } }).catch(() => {})
   }
 
   const returnTo = safeReturnTo(String(formData.get('returnTo') ?? ''))

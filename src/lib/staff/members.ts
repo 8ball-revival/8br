@@ -120,10 +120,12 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   })
 
   const q = (opts.q ?? '').trim().toLowerCase()
+  // Search by the canonical identity only — Preferred Name, CueVerse ID, or immutable User ID.
+  // There is no separate "username" concept to search.
   return rows
     .filter((r) => (opts.status && opts.status !== 'ALL' ? r.status === opts.status : true))
-    .filter((r) => (q ? `${r.username} ${r.preferredName ?? ''} ${r.cueverseId ?? ''}`.toLowerCase().includes(q) : true))
-    .sort((a, b) => a.username.localeCompare(b.username))
+    .filter((r) => (q ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} #${r.userId}`.toLowerCase().includes(q) : true))
+    .sort((a, b) => (a.cueverseId ?? '').localeCompare(b.cueverseId ?? '') || a.userId - b.userId)
 }
 
 export async function getMemberDetail(userId: number, opts: { includeEmail?: boolean } = {}): Promise<MemberDetail | null> {

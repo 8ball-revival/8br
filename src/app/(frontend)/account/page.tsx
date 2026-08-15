@@ -46,12 +46,12 @@ export default async function AccountPage() {
             <CardTitle>Account details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <Row label="CueVerse ID" value={profile?.cueverseId ?? user.username} hint="Your public identity — also used to sign in." />
+            <Row label="CueVerse ID" value={profile?.cueverseId ?? user.cueverseId ?? user.username} hint="Your public identity and login name — sign in with this or your email." />
             <Row label="Email" value={user.email} hint="Private — never shown publicly." />
             {user.createdAt && <Row label="Member since" value={formatDate(user.createdAt)} />}
             <Row
               label="Public identity"
-              value={profile ? formatIdentityLabel(profile.primaryName, profile.cueverseId) : user.username}
+              value={profile ? formatIdentityLabel(profile.primaryName, profile.cueverseId) : (user.cueverseId ?? user.username)}
               hint={profile ? 'Shown across the site as Preferred Name (CueVerse ID).' : undefined}
             />
             {profile && (

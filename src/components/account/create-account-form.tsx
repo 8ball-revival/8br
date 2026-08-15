@@ -33,7 +33,23 @@ export function CreateAccountForm({ returnTo = '/account' }: { returnTo?: string
           aria-describedby="cueverseId-hint"
         />
         <p id="cueverseId-hint" className="text-xs text-muted-foreground">
-          Must exactly match your current CueVerse in-game ID. This will be your public identity and can also be used to sign in.
+          Must exactly match your current CueVerse in-game ID. This is your public identity and your login name — sign in with this or your email.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="preferredName" className="text-sm font-medium">
+          Preferred Name <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
+        <Input
+          id="preferredName"
+          name="preferredName"
+          autoComplete="name"
+          placeholder="How you'd like to be shown"
+          aria-describedby="preferredName-hint"
+        />
+        <p id="preferredName-hint" className="text-xs text-muted-foreground">
+          An optional public display name. You can add or change this later in My Account.
         </p>
       </div>
 

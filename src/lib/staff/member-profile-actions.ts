@@ -7,14 +7,13 @@ import { prisma } from '@/lib/prisma'
 import { updateProfile, changeCueverseId } from '@/lib/players/service'
 import { targetTier } from '@/lib/staff/password-reset'
 import { recordAudit } from '@/lib/competition/audit'
-import { validateUsername, validateEmail, validatePreferredName, validateCueverseId, validateDiscord, validateTimeZone } from '@/lib/account/validation'
+import { validateEmail, validatePreferredName, validateCueverseId, validateDiscord, validateTimeZone } from '@/lib/account/validation'
 
 export interface ProfilePatch {
   preferredName?: string
   cueverseId?: string
   timeZone?: string
   discord?: string
-  username?: string
   email?: string
 }
 export interface ProfileResult { ok?: boolean; error?: string }
@@ -39,7 +38,6 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
     [patch.cueverseId, validateCueverseId],
     [patch.timeZone, (v) => (v.trim() ? validateTimeZone(v) : null)],
     [patch.discord, (v) => (v.trim() ? validateDiscord(v) : null)],
-    [patch.username, validateUsername],
     [patch.email, validateEmail],
   ]
   for (const [val, fn] of checks) {
@@ -67,22 +65,24 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
     })
   }
 
-  // 2) CueVerse ID — admin override (no cooldown).
+  // 2) CueVerse ID — admin override (no cooldown). Routes through the identity service, which also
+  //    syncs the login username. A collision returns a clear inline conflict error (no private data).
+  let cueverseChanged = false
   if (player && patch.cueverseId != null && patch.cueverseId.trim() && patch.cueverseId.trim() !== player.cueverseId) {
-    const r = await changeCueverseId(actorRef, player.id, patch.cueverseId.trim(), { override: true })
+    const r = await changeCueverseId(actorRef, player.id, patch.cueverseId.trim(), { override: true, reason: 'admin correction' })
     if (!r.ok) return { error: r.error }
+    cueverseChanged = true
   }
 
-  // 3) Payload account fields (username, email). Payload enforces uniqueness; surface a clean error.
-  const userPatch: Record<string, string> = {}
-  if (patch.username != null && patch.username.trim()) userPatch.username = patch.username.trim()
-  if (patch.email != null && patch.email.trim()) userPatch.email = patch.email.trim().toLowerCase()
-  if (Object.keys(userPatch).length) {
+  // 3) Email (private). The username is NOT editable — it is derived from the CueVerse ID above.
+  let emailChanged = false
+  if (patch.email != null && patch.email.trim()) {
     try {
       const p = await getPayload({ config: await config })
-      await p.update({ collection: 'users', id: userId, data: userPatch, overrideAccess: true })
+      await p.update({ collection: 'users', id: userId, data: { email: patch.email.trim().toLowerCase() }, overrideAccess: true })
+      emailChanged = true
     } catch {
-      return { error: 'Could not save username/email — it may already be in use.' }
+      return { error: 'Could not save the email — it may already be in use.' }
     }
   }
 
@@ -97,8 +97,8 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
       cueverseId: patch.cueverseId ?? before.cueverseId,
       timeZone: patch.timeZone ?? before.timeZone,
       discord: patch.discord ?? before.discord,
-      usernameChanged: !!userPatch.username,
-      emailChanged: !!userPatch.email,
+      cueverseIdChanged: cueverseChanged,
+      emailChanged,
     },
   })
 

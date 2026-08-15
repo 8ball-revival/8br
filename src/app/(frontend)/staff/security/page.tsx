@@ -17,7 +17,7 @@ function List({ title, rows, tone }: { title: string; rows: SecurityRow[]; tone?
         <ul className="mt-2 divide-y divide-border text-sm">
           {rows.map((r) => (
             <li key={r.userId} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <span className="min-w-0"><span className="font-medium text-foreground">{r.username ?? `User ${r.userId}`}</span> <span className="text-xs text-muted-foreground">#{r.userId} · {r.detail}</span></span>
+              <span className="min-w-0"><span className="font-medium text-foreground">{r.cueverseId ? `@${r.cueverseId}` : `User ${r.userId}`}</span> <span className="text-xs text-muted-foreground">#{r.userId} · {r.detail}</span></span>
               <Link href="/staff/members" className="text-xs text-brand hover:underline">Review →</Link>
             </li>
           ))}

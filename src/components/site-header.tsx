@@ -16,6 +16,10 @@ export async function SiteHeader() {
   const user = await getCurrentUser()
   // Staff-only Admin entry, appended after the public nav (Home · Seasons · Tournaments · Ladder · …).
   const staffItems: NavItem[] = user && isStaff(user.roles) ? [{ label: 'Admin', href: '/staff' }] : []
+  // Display policy: Preferred Name when present, otherwise the CueVerse ID (the account identity).
+  // Never a separate "username" — that is only the internal login key.
+  const displayName = user ? (user.preferredName || user.cueverseId || user.username) : ''
+  const cueverse = user ? (user.cueverseId || user.username) : ''
   return (
     <header className="sticky top-0 z-40 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70">
       <div className="mx-auto flex h-16 w-full max-w-[96rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -34,14 +38,14 @@ export async function SiteHeader() {
                   aria-hidden
                   className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-soft/40 to-brand-dim/40 text-xs font-bold text-foreground ring-1 ring-border"
                 >
-                  {user.username.slice(0, 2).toUpperCase()}
+                  {displayName.slice(0, 2).toUpperCase()}
                 </span>
-                <span className="hidden text-sm font-medium sm:block">{user.username}</span>
+                <span className="hidden text-sm font-medium sm:block">{displayName}</span>
                 <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-md border border-border bg-popover p-1 shadow-lg">
                 <p className="truncate px-3 py-2 text-xs text-muted-foreground">
-                  Signed in as <span className="font-semibold text-foreground">{user.username}</span>
+                  Signed in as <span className="font-semibold text-foreground">@{cueverse}</span>
                 </p>
                 <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
                   Account Settings

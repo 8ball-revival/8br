@@ -62,7 +62,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
   return rows
 }
 
-export interface SecurityRow { userId: number; username: string | null; email: string | null; detail: string }
+export interface SecurityRow { userId: number; cueverseId: string | null; email: string | null; detail: string }
 export interface SecuritySummary {
   forcedChange: SecurityRow[]
   expiredResets: SecurityRow[]
@@ -74,12 +74,14 @@ export interface SecuritySummary {
   elevatedCount: number
 }
 
-async function usersByIds(ids: number[]): Promise<Map<number, { username: string | null; email: string | null }>> {
+async function usersByIds(ids: number[]): Promise<Map<number, { cueverseId: string | null; email: string | null }>> {
   if (!ids.length) return new Map()
-  const rows = await prisma.$queryRawUnsafe<{ id: number; username: string | null; email: string | null }[]>(
-    `SELECT id, username, email FROM payload.users WHERE id = ANY($1::int[])`, ids,
+  const rows = await prisma.$queryRawUnsafe<{ id: number; cueverseId: string | null; email: string | null }[]>(
+    `SELECT u.id, p."cueverseId" AS "cueverseId", u.email
+       FROM payload.users u LEFT JOIN public."Player" p ON p."linkedUserId" = u.id::text
+      WHERE u.id = ANY($1::int[])`, ids,
   )
-  return new Map(rows.map((r) => [r.id, { username: r.username, email: r.email }]))
+  return new Map(rows.map((r) => [r.id, { cueverseId: r.cueverseId, email: r.email }]))
 }
 
 export async function getSecuritySummary(): Promise<SecuritySummary> {
@@ -90,7 +92,7 @@ export async function getSecuritySummary(): Promise<SecuritySummary> {
   const expiredResets: SecurityRow[] = []
   for (const r of resets) {
     const u = resetUsers.get(r.userId)
-    const row = { userId: r.userId, username: u?.username ?? null, email: u?.email ?? null, detail: `issued by #${r.issuedByUser}` }
+    const row = { userId: r.userId, cueverseId: u?.cueverseId ?? null, email: u?.email ?? null, detail: `issued by #${r.issuedByUser}` }
     if (r.expiresAt.getTime() <= now || r.attempts >= 5) expiredResets.push(row); else forcedChange.push(row)
   }
 
@@ -100,22 +102,29 @@ export async function getSecuritySummary(): Promise<SecuritySummary> {
   const banned: SecurityRow[] = []
   for (const m of mods) {
     const u = modUsers.get(m.userId)
-    const row = { userId: m.userId, username: u?.username ?? null, email: u?.email ?? null, detail: m.status.toLowerCase() }
+    const row = { userId: m.userId, cueverseId: u?.cueverseId ?? null, email: u?.email ?? null, detail: m.status.toLowerCase() }
     if (m.status === 'BANNED') banned.push(row); else suspended.push(row)
   }
 
-  const lockedRaw = await prisma.$queryRawUnsafe<{ id: number; username: string | null; email: string | null; lock_until: Date }[]>(
-    `SELECT id, username, email, lock_until FROM payload.users WHERE lock_until IS NOT NULL AND lock_until > now()`,
+  const lockedRaw = await prisma.$queryRawUnsafe<{ id: number; cueverseId: string | null; email: string | null; lock_until: Date }[]>(
+    `SELECT u.id, p."cueverseId" AS "cueverseId", u.email, u.lock_until
+       FROM payload.users u LEFT JOIN public."Player" p ON p."linkedUserId" = u.id::text
+      WHERE u.lock_until IS NOT NULL AND u.lock_until > now()`,
   )
-  const lockedAccounts = lockedRaw.map((r) => ({ userId: r.id, username: r.username, email: r.email, detail: 'login-locked' }))
+  const lockedAccounts = lockedRaw.map((r) => ({ userId: r.id, cueverseId: r.cueverseId, email: r.email, detail: 'login-locked' }))
 
   const recent = await prisma.auditLog.findMany({ where: { action: 'account.password.reset' }, orderBy: { createdAt: 'desc' }, take: 10 })
   const recentResets = recent.map((r) => ({ actor: r.actorUsername, targetId: r.entityId, at: r.createdAt.toISOString() }))
 
-  const staffRaw = await prisma.$queryRawUnsafe<{ id: number; username: string | null; email: string | null; roles: string }[]>(
-    `SELECT u.id, u.username, u.email, string_agg(r.value, ',') roles FROM payload.users u JOIN payload.users_roles r ON r.parent_id=u.id WHERE r.value IN ('admin','owner') GROUP BY u.id, u.username, u.email`,
+  const staffRaw = await prisma.$queryRawUnsafe<{ id: number; cueverseId: string | null; email: string | null; roles: string }[]>(
+    `SELECT u.id, p."cueverseId" AS "cueverseId", u.email, string_agg(r.value, ',') roles
+       FROM payload.users u
+       JOIN payload.users_roles r ON r.parent_id = u.id
+       LEFT JOIN public."Player" p ON p."linkedUserId" = u.id::text
+      WHERE r.value IN ('admin','owner')
+      GROUP BY u.id, p."cueverseId", u.email`,
   )
-  const activeStaff = staffRaw.map((r) => ({ userId: r.id, username: r.username, email: r.email, detail: r.roles }))
+  const activeStaff = staffRaw.map((r) => ({ userId: r.id, cueverseId: r.cueverseId, email: r.email, detail: r.roles }))
 
   return { forcedChange, expiredResets, suspended, banned, lockedAccounts, recentResets, activeStaff, elevatedCount: staffRaw.length }
 }

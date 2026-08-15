@@ -9,7 +9,12 @@ import { getActiveSeason } from '@/lib/competition/queries'
 
 export interface CurrentUser {
   id: string
+  /** Login key (the controlled projection of the CueVerse ID). Internal — not a display value. */
   username: string
+  /** Canonical account identity (display casing). Shown wherever the account is identified. */
+  cueverseId: string | null
+  /** Optional public display name. */
+  preferredName: string | null
   email: string
   roles: string[]
   createdAt?: string
@@ -29,9 +34,16 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   const { user } = await p.auth({ headers: await nextHeaders() })
   if (!user) return null
   const u = user as { id: string | number; username?: string; email?: string; roles?: string[]; createdAt?: string }
+  // Resolve the canonical CueVerse ID (display casing) + optional Preferred Name from the linked Player.
+  const profile = await prisma.player.findUnique({
+    where: { linkedUserId: String(u.id) },
+    select: { cueverseId: true, primaryName: true },
+  }).catch(() => null)
   return {
     id: String(u.id),
     username: String(u.username ?? ''),
+    cueverseId: profile?.cueverseId ?? null,
+    preferredName: profile?.primaryName ?? null,
     email: String(u.email ?? ''),
     roles: Array.isArray(u.roles) ? u.roles : [],
     createdAt: u.createdAt,

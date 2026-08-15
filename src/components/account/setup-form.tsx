@@ -21,12 +21,18 @@ export function SetupForm({ secretRequired }: { secretRequired: boolean }) {
         </div>
       )}
       <div>
-        <label className={LABEL} htmlFor="username">Owner username</label>
-        <input id="username" name="username" required autoComplete="username" className={`${FIELD} mt-1`} />
+        <label className={LABEL} htmlFor="cueverseId">CueVerse ID</label>
+        <input id="cueverseId" name="cueverseId" required autoComplete="username" className={`${FIELD} mt-1`} />
+        <p className="mt-1 text-xs text-muted-foreground">Your public identity and login name. Sign in with this or your email.</p>
+      </div>
+      <div>
+        <label className={LABEL} htmlFor="preferredName">Preferred Name <span className="normal-case text-muted-foreground/70">(optional)</span></label>
+        <input id="preferredName" name="preferredName" autoComplete="name" className={`${FIELD} mt-1`} />
       </div>
       <div>
         <label className={LABEL} htmlFor="email">Email</label>
         <input id="email" name="email" type="email" required autoComplete="email" className={`${FIELD} mt-1`} />
+        <p className="mt-1 text-xs text-muted-foreground">Private — for account recovery only.</p>
       </div>
       <div>
         <label className={LABEL} htmlFor="password">Password</label>

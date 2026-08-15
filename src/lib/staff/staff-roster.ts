@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 export interface StaffMember {
   userId: number
-  username: string | null
+  cueverseId: string | null
   email: string | null
   preferredName: string | null
   headAdmin: boolean
@@ -14,11 +14,11 @@ export interface StaffRoster {
   admins: StaffMember[] // admins who are NOT the head admin
 }
 
-async function decorate(rows: { id: number; username: string | null; email: string | null }[], headAdminId: number | null): Promise<StaffMember[]> {
+async function decorate(rows: { id: number; email: string | null }[], headAdminId: number | null): Promise<StaffMember[]> {
   const out: StaffMember[] = []
   for (const r of rows) {
-    const player = await prisma.player.findFirst({ where: { linkedUserId: String(r.id) }, select: { primaryName: true } })
-    out.push({ userId: r.id, username: r.username, email: r.email, preferredName: player?.primaryName ?? null, headAdmin: r.id === headAdminId })
+    const player = await prisma.player.findFirst({ where: { linkedUserId: String(r.id) }, select: { primaryName: true, cueverseId: true } })
+    out.push({ userId: r.id, cueverseId: player?.cueverseId ?? null, email: r.email, preferredName: player?.primaryName ?? null, headAdmin: r.id === headAdminId })
   }
   return out
 }
@@ -46,11 +46,16 @@ export async function getStaffRoster(): Promise<StaffRoster> {
 export async function searchPromotableMembers(query: string): Promise<StaffMember[]> {
   const q = query.trim().toLowerCase()
   const like = `%${q}%`
-  const rows = await prisma.$queryRawUnsafe<{ id: number; username: string | null; email: string | null }[]>(
-    `SELECT u.id, u.username, u.email
+  const rows = await prisma.$queryRawUnsafe<{ id: number; email: string | null }[]>(
+    `SELECT u.id, u.email
        FROM payload.users u
+       LEFT JOIN public."Player" p ON p."linkedUserId" = u.id::text
       WHERE u.id NOT IN (SELECT parent_id FROM payload.users_roles WHERE value IN ('admin','owner'))
-        AND ($1 = '' OR lower(u.username) LIKE $2 OR lower(u.email) LIKE $2)
+        AND ($1 = ''
+             OR lower(u.username) LIKE $2
+             OR lower(u.email) LIKE $2
+             OR lower(coalesce(p."cueverseIdNormalized", '')) LIKE $2
+             OR lower(coalesce(p."primaryName", '')) LIKE $2)
       ORDER BY u.username ASC
       LIMIT 15`,
     q, like,

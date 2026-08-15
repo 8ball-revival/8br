@@ -60,6 +60,18 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
+      // IDENTITY GUARD. `username` is the login PROJECTION of the canonical CueVerse ID and is never
+      // independently editable — it is written ONLY by the central identity service (which sets
+      // req.context.allowIdentitySync). This blocks the Payload admin panel, the REST/local API, and
+      // any other path from changing the username so it can never diverge from the CueVerse ID.
+      async ({ operation, data, req, originalDoc }) => {
+        if (operation !== 'update') return data
+        if (data?.username == null) return data
+        if (data.username === originalDoc?.username) return data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((req.context as any)?.allowIdentitySync) return data
+        throw new Error('Usernames are derived from the CueVerse ID and cannot be edited directly. Change the CueVerse ID instead.')
+      },
       // Bootstrap: the very first account created on a fresh database becomes the
       // OWNER, so a brand-new deployment has a usable top-level admin without manual
       // DB work (created through Payload's secure first-user onboarding — the human

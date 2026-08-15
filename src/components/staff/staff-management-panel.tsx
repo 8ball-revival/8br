@@ -11,7 +11,8 @@ import { useConfirm } from '@/components/ui/confirm-dialog'
 import { promoteToAdminAction, demoteAdminAction, searchPromotableMembersAction } from '@/lib/staff/roles-actions'
 import type { StaffMember, StaffRoster } from '@/lib/staff/staff-roster'
 
-const nameOf = (m: StaffMember) => m.preferredName || m.username || `User ${m.userId}`
+const nameOf = (m: StaffMember) => m.preferredName || m.cueverseId || `User ${m.userId}`
+const idOf = (m: StaffMember) => (m.cueverseId ? `@${m.cueverseId}` : '—')
 
 export function StaffManagementPanel({ roster, canManage }: { roster: StaffRoster; canManage: boolean }) {
   const router = useRouter()
@@ -50,7 +51,7 @@ export function StaffManagementPanel({ roster, canManage }: { roster: StaffRoste
             {roster.admins.map((m) => (
               <li key={m.userId} className="flex flex-wrap items-center gap-2 py-2.5">
                 <ShieldCheck className="size-4 text-brand" />
-                <span className="min-w-0 flex-1"><span className="font-medium text-foreground">{nameOf(m)}</span> <span className="text-xs text-muted-foreground">{m.username ?? '—'} · #{m.userId}</span></span>
+                <span className="min-w-0 flex-1"><span className="font-medium text-foreground">{nameOf(m)}</span> <span className="text-xs text-muted-foreground">{idOf(m)} · #{m.userId}</span></span>
                 {canManage && (
                   <div className="flex items-center gap-2">
                     <Button asChild size="sm" variant="outline"><Link href="/staff/reset-password"><KeyRound className="size-3.5" /> Reset password</Link></Button>
@@ -95,7 +96,7 @@ function PromoteMember({ run, confirm, pending }: { run: (fn: () => Promise<{ ok
             {candidates.map((m) => (
               <li key={m.userId}>
                 <button type="button" disabled={pending} onMouseDown={(e) => e.preventDefault()} onClick={() => promote(m)} className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted">
-                  <span className="min-w-0 truncate"><span className="font-medium text-foreground">{nameOf(m)}</span> <span className="text-xs text-muted-foreground">{m.username ?? '—'} · #{m.userId}</span></span>
+                  <span className="min-w-0 truncate"><span className="font-medium text-foreground">{nameOf(m)}</span> <span className="text-xs text-muted-foreground">{idOf(m)} · #{m.userId}</span></span>
                   <ArrowUp className="size-3.5 text-brand" />
                 </button>
               </li>

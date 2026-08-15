@@ -30,7 +30,7 @@ export function ResetPasswordPanel() {
 
   const doReset = async () => {
     if (!selected) return
-    const label = selected.preferredName || selected.username || `User ${selected.userId}`
+    const label = selected.preferredName || selected.cueverseId || `User ${selected.userId}`
     const res = await confirm({
       title: 'Reset this player’s password?',
       tone: 'warning',
@@ -39,8 +39,8 @@ export function ResetPasswordPanel() {
       message: (
         <div className="space-y-1.5">
           <p>You are about to reset the password for:</p>
-          <p className="font-semibold text-foreground">{label} <span className="font-normal text-muted-foreground">· {selected.username ?? '—'}{selected.email ? ` · ${selected.email}` : ''}</span></p>
-          <p>A one-time 5-digit code will be generated and shown once. Their existing sessions are signed out immediately, and they must set a permanent password on their next sign-in.</p>
+          <p className="font-semibold text-foreground">{label} <span className="font-normal text-muted-foreground">· {selected.cueverseId ? `@${selected.cueverseId}` : '—'}{selected.email ? ` · ${selected.email}` : ''}</span></p>
+          <p>A one-time 5-digit code will be generated and shown once. The player signs in with their <span className="font-medium text-foreground">CueVerse ID</span> and this code. Their existing sessions are signed out immediately, and they must set a permanent password on their next sign-in.</p>
         </div>
       ),
       input: { label: 'Reason (optional)', placeholder: 'e.g. player requested a reset' },
@@ -82,8 +82,8 @@ export function ResetPasswordPanel() {
                 <li key={a.userId}>
                   <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(a)} className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted">
                     <span className="min-w-0 truncate">
-                      <span className="font-medium text-foreground">{a.preferredName || a.username || `User ${a.userId}`}</span>
-                      <span className="ml-1.5 text-xs text-muted-foreground">{a.username ?? '—'}{a.email ? ` · ${a.email}` : ''} · #{a.userId}</span>
+                      <span className="font-medium text-foreground">{a.preferredName || a.cueverseId || `User ${a.userId}`}</span>
+                      <span className="ml-1.5 text-xs text-muted-foreground">{a.cueverseId ? `@${a.cueverseId}` : '—'}{a.email ? ` · ${a.email}` : ''} · #{a.userId}</span>
                     </span>
                     <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-semibold', a.tier === 'headAdmin' ? 'bg-[#d6ae42]/15 text-[#d6ae42]' : a.tier === 'admin' ? 'bg-brand/15 text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[a.tier]}</span>
                   </button>
@@ -99,10 +99,10 @@ export function ResetPasswordPanel() {
         <div className="rounded-lg border border-border bg-card/40 p-4">
           <p className="eyebrow text-muted-foreground">Selected player</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <p className="font-display text-lg font-bold">{selected.preferredName || selected.username || `User ${selected.userId}`}</p>
+            <p className="font-display text-lg font-bold">{selected.preferredName || selected.cueverseId || `User ${selected.userId}`}</p>
             <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', selected.tier === 'headAdmin' ? 'bg-[#d6ae42]/15 text-[#d6ae42]' : selected.tier === 'admin' ? 'bg-brand/15 text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[selected.tier]}</span>
           </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">{selected.username ?? '—'}{selected.email ? ` · ${selected.email}` : ''} · account #{selected.userId}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{selected.cueverseId ? `@${selected.cueverseId}` : '—'}{selected.email ? ` · ${selected.email}` : ''} · account #{selected.userId}</p>
           {selected.tier === 'headAdmin' && (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-[#d6ae42]/40 bg-[#d6ae42]/10 px-3 py-2 text-xs text-[#d6ae42]"><ShieldAlert className="size-3.5" /> The Head Admin password cannot be reset here.</p>
           )}

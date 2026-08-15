@@ -17,7 +17,7 @@ import { getMemberDetail, getActiveRegistrations } from '@/lib/staff/members'
 
 export const metadata: Metadata = { title: 'Member · Admin · World Cue Championships', robots: { index: false, follow: false } }
 
-const TABS = ['overview', 'profile', 'competitions', 'warnings', 'moderation', 'roles', 'integrity'] as const
+const TABS = ['overview', 'warnings', 'moderation', 'roles', 'integrity'] as const
 type Tab = (typeof TABS)[number]
 
 type Props = { params: Promise<{ userId: string }>; searchParams: Promise<{ tab?: string }> }
@@ -49,10 +49,10 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight">
-            {m.preferredName ? <PublicPlayerIdentity preferredName={m.preferredName} cueverseId={m.cueverseId} muted /> : m.username}
+            {m.preferredName ? <PublicPlayerIdentity preferredName={m.preferredName} cueverseId={m.cueverseId} muted /> : (m.cueverseId ?? `#${m.userId}`)}
           </h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>@{m.username}</span>
+            {m.cueverseId && <span>@{m.cueverseId}</span>}
             <Badge variant={m.role === 'owner' ? 'gold' : m.role === 'admin' ? 'success' : 'muted'}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</Badge>
             {m.headAdmin && <Badge variant="default">Head Administrator</Badge>}
             <StatusBadge status={m.status} />
@@ -72,8 +72,6 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
 
       <div className="mt-6 max-w-3xl">
         {active === 'overview' && <Overview m={m} activePenalty={activePenalty} />}
-        {active === 'profile' && <Profile m={m} />}
-        {active === 'competitions' && <Competitions m={m} />}
         {active === 'warnings' && <Warnings m={m} />}
         {active === 'moderation' && (
           <MemberModeration
@@ -90,7 +88,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
         {active === 'roles' && (
           <MemberRoles
             targetUserId={userId}
-            targetUsername={m.username}
+            targetUsername={m.cueverseId ?? `#${m.userId}`}
             targetRole={m.role}
             targetIsHeadAdmin={m.headAdmin}
             viewerUserId={access.actor.userId}
@@ -110,49 +108,32 @@ function tabLabel(t: Tab): string {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function Overview({ m, activePenalty }: { m: any; activePenalty: any }) {
+  // Overview folds in the editable Profile (admin edit — no cooldown). Derived stats
+  // (rating, records, achievements) are never editable here.
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Stat label="Status" value={<StatusBadge status={m.status} />} />
-      <Stat label="Registrations" value={String(m.registrationCount)} />
-      <Stat label="Warnings" value={String(m.warnings.length)} />
-      <Stat label="Penalties (all-time)" value={String(m.penalties.length)} />
-      {m.timeoutUntil && <Stat label="Timeout ends" value={new Date(m.timeoutUntil).toLocaleString()} />}
-      {activePenalty && <Stat label="Active penalty" value={`${activePenalty.type === 'BAN' ? 'Ban' : 'Timeout'}${activePenalty.endAt ? ` · ends ${new Date(activePenalty.endAt).toLocaleString()}` : ''}`} />}
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Stat label="Status" value={<StatusBadge status={m.status} />} />
+        <Stat label="Registrations" value={String(m.registrationCount)} />
+        <Stat label="Warnings" value={String(m.warnings.length)} />
+        <Stat label="Penalties (all-time)" value={String(m.penalties.length)} />
+        {m.timeoutUntil && <Stat label="Timeout ends" value={new Date(m.timeoutUntil).toLocaleString()} />}
+        {activePenalty && <Stat label="Active penalty" value={`${activePenalty.type === 'BAN' ? 'Ban' : 'Timeout'}${activePenalty.endAt ? ` · ends ${new Date(activePenalty.endAt).toLocaleString()}` : ''}`} />}
+      </div>
+      <div className="border-t border-border pt-6">
+        <h2 className="eyebrow mb-3 text-muted-foreground">Profile</h2>
+        <MemberProfileEditor
+          initial={{
+            userId: m.userId,
+            preferredName: m.preferredName ?? '',
+            cueverseId: m.cueverseId ?? '',
+            timeZone: m.timeZone ?? '',
+            discord: m.discord ?? '',
+            email: m.email ?? '',
+          }}
+        />
+      </div>
     </div>
-  )
-}
-
-function Profile({ m }: { m: any }) {
-  // Admin-editable — no cooldown. Derived stats (rating, records, achievements) are never editable.
-  return (
-    <MemberProfileEditor
-      initial={{
-        userId: m.userId,
-        preferredName: m.preferredName ?? '',
-        cueverseId: m.cueverseId ?? '',
-        timeZone: m.timeZone ?? '',
-        discord: m.discord ?? '',
-        username: m.username ?? '',
-        email: m.email ?? '',
-      }}
-    />
-  )
-}
-
-function Competitions({ m }: { m: any }) {
-  if (m.competitions.length === 0) return <Empty>No competition entries.</Empty>
-  return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
-      {m.competitions.map((c: any) => (
-        <li key={c.registrationId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-          <span className="font-medium">{c.tournament}</span>
-          <span className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant={c.status === 'WITHDRAWN' || c.status === 'REJECTED' ? 'muted' : 'success'}>{c.status}</Badge>
-            {c.withdrawnAt && <span>withdrawn {new Date(c.withdrawnAt).toLocaleDateString()}</span>}
-          </span>
-        </li>
-      ))}
-    </ul>
   )
 }
 
