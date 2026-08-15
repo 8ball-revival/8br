@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Trophy, Flame, Snowflake, ChevronsRight, ChevronsLeft } from 'lucide-react'
+import { Trophy, Flame, Snowflake, ChevronsRight, ChevronsLeft, Diamond } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
 // Local, client-safe row shape (structurally matches LadderRow in the server-only ladder service).
 interface TrophyEntry { tournamentId: number; number: number | null; name: string; date: string | null; slug: string }
+interface SeasonTrophyView { seasonNumber: number; title: string; date: string | null; slug: string }
 export interface LadderRowView {
+  seasonTitles: SeasonTrophyView[]
   playerId: string
   name: string
   cueverseId: string | null
@@ -37,6 +39,21 @@ function StreakCell({ streak }: { streak: number }) {
     <span className={cn('inline-flex items-center gap-1 tabular font-semibold', win ? 'text-success' : 'text-destructive')} title={label} aria-label={label}>
       {mag}
       {icon}
+    </span>
+  )
+}
+
+/** Season Championships — the glowing diamond, distinct from tournament trophies. */
+function Diamonds({ seasons }: { seasons: SeasonTrophyView[] }) {
+  if (!seasons?.length) return null
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`${seasons.length} Season Championship${seasons.length === 1 ? '' : 's'}`}>
+      {seasons.slice(0, 5).map((s) => (
+        <Link key={s.seasonNumber} href={s.slug} title={s.title} className="transition-transform hover:scale-110">
+          <Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463] drop-shadow-[0_0_4px_rgba(230,196,99,0.8)]" aria-hidden />
+        </Link>
+      ))}
+      {seasons.length > 5 && <span className="tabular text-xs font-semibold text-[#e6c463]">×{seasons.length}</span>}
     </span>
   )
 }
@@ -138,7 +155,7 @@ export function LadderTable({ rows }: { rows: LadderRowView[] }) {
               <td className={cn(TD, 'text-center')}><span className="tabular font-semibold text-foreground">{r.rating}</span></td>
               <td className={cn(TD, 'text-center tabular text-muted-foreground')}>{r.winPct.toFixed(1)}%</td>
               <td className={cn(TD, 'text-center')}><StreakCell streak={r.streak} /></td>
-              <td className={cn(TD, 'text-center')}><Trophies trophies={r.trophies} /></td>
+              <td className={cn(TD, 'text-center')}><span className="inline-flex items-center gap-1"><Diamonds seasons={r.seasonTitles} /><Trophies trophies={r.trophies} /></span></td>
               {expanded && (
                 <>
                   <td className={cn(TD, 'border-l border-border/60 bg-brand/[0.03] text-center tabular text-muted-foreground')}>{r.highestRank || '—'}</td>

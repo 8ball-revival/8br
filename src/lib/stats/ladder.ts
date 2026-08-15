@@ -1,6 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { ELO_START, ELO_K, expectedScore } from './elo'
+import type { SeasonTrophyEntry } from '@/lib/seasons/trophies'
 
 /**
  * LADDER / RANKINGS SERVICE — derives every ranking value from the `rating_ledger` (the persisted
@@ -37,6 +38,7 @@ export interface LadderRow {
   winPct: number // 0..100, one decimal
   streak: number // signed: + winning run, - losing run, 0 none
   trophies: TrophyEntry[]
+  seasonTitles: SeasonTrophyEntry[] // Season Championships (glowing diamond), separate from trophies
   highestRank: number
   highestRating: number
   longestWinStreak: number
@@ -298,11 +300,15 @@ export async function getLadder(view: LadderView, now: Date = new Date()): Promi
   const allTimeLatest = computeLatestByPlayer(rows) // idle always from latest match ever
   const identities = await loadIdentities([...stats.keys()])
   const trophies = await computeTrophies()
+  const { computeSeasonTrophies } = await import('@/lib/seasons/trophies')
+  const seasonTrophies = await computeSeasonTrophies()
 
   const list: LadderRow[] = [...stats.values()].map((s) => {
     const idn = identities.get(s.playerId)
     const allTrophies = trophies.get(s.playerId) ?? []
     const viewTrophies = view === 'current' ? allTrophies.filter((tr) => tr.date != null && new Date(tr.date) >= cutoff) : allTrophies
+    const allSeasons = seasonTrophies.get(s.playerId) ?? []
+    const viewSeasons = view === 'current' ? allSeasons.filter((tr) => tr.date != null && new Date(tr.date) >= cutoff) : allSeasons
     const latest = allTimeLatest.get(s.playerId) ?? null
     return {
       playerId: s.playerId,
@@ -317,6 +323,7 @@ export async function getLadder(view: LadderView, now: Date = new Date()): Promi
       winPct: winPct(s.wins, s.losses),
       streak: s.streak,
       trophies: viewTrophies.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
+      seasonTitles: viewSeasons.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
       highestRank: s.highestRank,
       highestRating: Math.round(s.highestRating),
       longestWinStreak: s.longestWinStreak,

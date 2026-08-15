@@ -1,0 +1,27 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+
+/** A Season Championship — the glowing-diamond achievement, kept SEPARATE from ordinary tournament
+ *  trophies and team-event awards. Derived on the fly from completed Seasons (no persisted table). */
+export interface SeasonTrophyEntry {
+  seasonNumber: number
+  title: string // "WCC Season N"
+  date: string | null
+  slug: string // /seasons/N
+}
+
+/** playerId → the Seasons they have won. */
+export async function computeSeasonTrophies(): Promise<Map<string, SeasonTrophyEntry[]>> {
+  const seasons = await prisma.season.findMany({
+    where: { lifecycleState: 'COMPLETED', championPlayerId: { not: null } },
+    select: { number: true, championPlayerId: true, completedAt: true },
+  })
+  const map = new Map<string, SeasonTrophyEntry[]>()
+  for (const s of seasons) {
+    const pid = s.championPlayerId!
+    const list = map.get(pid) ?? []
+    list.push({ seasonNumber: s.number, title: `WCC Season ${s.number}`, date: s.completedAt?.toISOString() ?? null, slug: `/seasons/${s.number}` })
+    map.set(pid, list)
+  }
+  return map
+}

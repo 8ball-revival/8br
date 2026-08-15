@@ -122,14 +122,53 @@ async function collectMatchups(tx: Tx, tournamentId: number, isTeam: boolean, fa
   return out
 }
 
-/** Full deterministic rebuild of the entire rating ledger from every COMPLETED tournament, in close
- *  order. Idempotent: safe to call on every close, retry, or correction. */
-export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; entries: number }> {
-  const completed = await tx.tournament.findMany({
+/** Collect rated matchups for one completed Season. INDIVIDUAL only. ONLY genuinely-played matches
+ *  count toward the Ladder — FF (FORFEIT), KO (VOID), unplayed (NO_CONTEST) and byes are all excluded.
+ *  Uses a `season-group:` / `season-playoff:` matchKey namespace distinct from Tournaments. */
+async function collectSeasonMatchups(tx: Tx, seasonId: number, fallbackDate: Date): Promise<Matchup[]> {
+  const ents = await tx.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, playerId: true, cueverseId: true, displayName: true, username: true } })
+  const sideOf = new Map<number, Side>(ents.map((e) => [e.id, { teamName: null, players: [keyOf(e.playerId, e.cueverseId, e.displayName?.trim() || e.username)] }]))
+  const side = (id: number | null): Side | null => (id != null ? sideOf.get(id) ?? null : null)
+  const out: Matchup[] = []
+
+  const groups = await tx.seasonMatch.findMany({ where: { seasonId, status: 'COMPLETED' }, orderBy: [{ round: 'asc' }, { id: 'asc' }], include: { group: { select: { code: true, name: true } } } })
+  for (const m of groups) {
+    const home = side(m.homeEntrantId), away = side(m.awayEntrantId)
+    if (!home || !away) continue
+    const outcome: Matchup['outcome'] = m.winnerEntrantId == null ? 'DRAW' : m.winnerEntrantId === m.homeEntrantId ? 'HOME' : 'AWAY'
+    out.push({ matchKey: `season-group:${m.id}`, stage: 'GROUP', roundLabel: m.group?.name || m.group?.code || `Group R${m.round}`, completedAt: m.completedAt ?? fallbackDate, home, away, outcome, forfeit: false, isTeam: false })
+  }
+
+  const playoffs = await tx.seasonPlayoffMatch.findMany({ where: { seasonId, status: 'COMPLETED', NOT: [{ homeEntrantId: null }, { awayEntrantId: null }] }, orderBy: [{ round: 'asc' }, { slot: 'asc' }] })
+  for (const m of playoffs) {
+    if (m.winnerEntrantId == null) continue
+    const home = side(m.homeEntrantId), away = side(m.awayEntrantId)
+    if (!home || !away) continue
+    out.push({ matchKey: `season-playoff:${m.id}`, stage: 'PLAYOFF', roundLabel: m.label ?? `Round ${m.round}`, completedAt: m.completedAt ?? fallbackDate, home, away, outcome: m.winnerEntrantId === m.homeEntrantId ? 'HOME' : 'AWAY', forfeit: false, isTeam: false })
+  }
+  return out
+}
+
+/** Full deterministic rebuild of the entire rating ledger from every COMPLETED Tournament AND Season,
+ *  interleaved in close order. Idempotent: safe to call on every close, retry, or correction. */
+export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; seasons: number; entries: number }> {
+  const tournaments = await tx.tournament.findMany({
     where: { lifecycleState: 'COMPLETED' },
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
     select: { id: true, participantFormat: true, ladderAppliedAt: true, createdAt: true },
   })
+  const seasons = await tx.season.findMany({
+    where: { lifecycleState: 'COMPLETED' },
+    orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
+    select: { id: true, ladderAppliedAt: true, createdAt: true },
+  })
+
+  // One combined, close-ordered timeline so Season and Tournament ratings interleave correctly.
+  type Source = { tournamentId?: number; seasonId?: number; isTeam: boolean; at: Date }
+  const sources: Source[] = [
+    ...tournaments.map((t) => ({ tournamentId: t.id, isTeam: t.participantFormat === 'TEAM', at: t.ladderAppliedAt ?? t.createdAt })),
+    ...seasons.map((s) => ({ seasonId: s.id, isTeam: false, at: s.ladderAppliedAt ?? s.createdAt })),
+  ].sort((a, b) => a.at.getTime() - b.at.getTime())
 
   await tx.ratingLedger.deleteMany({})
 
@@ -138,9 +177,8 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
   const rows: Prisma.RatingLedgerCreateManyInput[] = []
   let sequence = 0
 
-  for (const t of completed) {
-    const isTeam = t.participantFormat === 'TEAM'
-    const matchups = await collectMatchups(tx, t.id, isTeam, t.ladderAppliedAt ?? t.createdAt)
+  for (const c of sources) {
+    const matchups = c.tournamentId != null ? await collectMatchups(tx, c.tournamentId, c.isTeam, c.at) : await collectSeasonMatchups(tx, c.seasonId!, c.at)
     for (const mu of matchups) {
       sequence += 1
       const homeRating = mu.home.players.reduce((s, p) => s + cur(p.id), 0) / mu.home.players.length
@@ -156,7 +194,8 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
           const pre = cur(p.id)
           const post = pre + info.delta
           rows.push({
-            tournamentId: t.id, matchKey: mu.matchKey, stage: mu.stage, roundLabel: mu.roundLabel,
+            tournamentId: c.tournamentId ?? null, seasonId: c.seasonId ?? null,
+            matchKey: mu.matchKey, stage: mu.stage, roundLabel: mu.roundLabel,
             playerId: p.id, playerName: p.name,
             opponentId: mu.isTeam ? null : opp.players[0]?.id ?? null,
             opponentName: mu.isTeam ? opp.teamName ?? 'Team' : opp.players[0]?.name ?? 'Unknown',
@@ -174,5 +213,5 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
   }
 
   if (rows.length > 0) await tx.ratingLedger.createMany({ data: rows })
-  return { tournaments: completed.length, entries: rows.length }
+  return { tournaments: tournaments.length, seasons: seasons.length, entries: rows.length }
 }

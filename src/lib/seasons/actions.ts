@@ -14,6 +14,11 @@ import {
   type CreateSeasonConfig,
   type SeasonCandidate,
 } from './service'
+import * as grp from './groups'
+import * as gs from './group-stage'
+import * as po from './playoffs'
+import { closeSeason } from './close'
+import { deleteSeason } from './admin'
 import { prisma } from '@/lib/prisma'
 
 export interface SeasonActionResult {
@@ -85,4 +90,141 @@ export async function registerForSeasonAction(seasonNumber: number, joinPassword
   revalidateSeason(seasonNumber)
   revalidatePath('/account')
   return { ok: true, message: "You're registered for this Season." }
+}
+
+// ============================================================================
+// Phase C — Group setup
+// ============================================================================
+
+export async function generateSeasonGroupsAction(seasonId: number, numGroups: number): Promise<SeasonActionResult & { uneven?: boolean }> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.generateSeasonGroups(actor, seasonId, numGroups)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId))
+  return { ok: true, message: r.uneven ? 'Groups generated — sizes differ by one (allowed).' : 'Groups generated.', uneven: r.uneven }
+}
+export async function moveSeasonEntrantAction(seasonId: number, entrantId: number, toGroupId: number | null): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.moveSeasonEntrantToGroup(actor, seasonId, entrantId, toGroupId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId))
+  return { ok: true }
+}
+export async function addSeasonGroupAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.addSeasonGroup(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
+export async function removeSeasonGroupAction(seasonId: number, groupId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.removeSeasonGroup(actor, seasonId, groupId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Group removed — its players returned to Unassigned.' }
+}
+export async function renameSeasonGroupAction(seasonId: number, groupId: number, name: string): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.renameSeasonGroup(actor, seasonId, groupId, name)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
+export async function resetSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.resetSeasonGroups(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Assignments cleared.' }
+}
+export async function publishSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.publishSeasonGroups(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Group stage is live.' }
+}
+
+// ============================================================================
+// Phase D — Live group stage
+// ============================================================================
+export async function saveSeasonGroupAction(seasonId: number, groupId: number, entries: gs.GroupResultEntry[], opts?: { confirmFF?: boolean; confirmKO?: boolean; koReason?: string }): Promise<gs.SaveGroupResult> {
+  const actor = await requireCapability('edit_results')
+  const r = await gs.saveSeasonGroupResults(actor, seasonId, groupId, entries, opts ?? {})
+  if (r.ok) revalidateSeason(await seasonNumberOf(seasonId))
+  return r
+}
+export async function closeSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await gs.closeSeasonGroups(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Groups closed — final standings locked.' }
+}
+export async function reopenSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await gs.reopenSeasonGroups(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Groups reopened — any draft bracket was discarded.' }
+}
+
+// ============================================================================
+// Phase E — Playoffs
+// ============================================================================
+export async function enterSeasonPlayoffSetupAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.enterSeasonPlayoffSetup(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Playoff setup opened.' }
+}
+export async function setSeasonQualificationAction(seasonId: number, entrantId: number, action: po.QualAction, reason?: string): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonQualification(actor, seasonId, entrantId, action, reason)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
+export async function setSeasonPlayoffTypeAction(seasonId: number, doubleElim: boolean): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonPlayoffType(actor, seasonId, doubleElim)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
+export async function generateSeasonBracketAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.generateSeasonBracket(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Draft bracket generated (private).' }
+}
+export async function startSeasonPlayoffsAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.startSeasonPlayoffs(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Playoffs are live.' }
+}
+export async function recordSeasonPlayoffResultAction(matchId: number, homeGames: number, awayGames: number, confirmRebuild?: boolean): Promise<SeasonActionResult & { warning?: po.DownstreamWarning }> {
+  const actor = await requireCapability('edit_results')
+  const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId }, select: { seasonId: true } })
+  const r = await po.recordSeasonPlayoffResult(actor, matchId, homeGames, awayGames, { confirmRebuild })
+  if (r.warning) return { warning: r.warning }
+  if (!r.ok) return { error: r.error }
+  if (m) revalidateSeason(await seasonNumberOf(m.seasonId))
+  return { ok: true }
+}
+
+// ============================================================================
+// Phase F — Close + delete
+// ============================================================================
+export async function closeSeasonAction(seasonId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await closeSeason(actor, seasonId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidatePath('/rankings')
+  return { ok: true, message: 'Season closed — champion crowned and rankings applied.' }
+}
+export async function deleteSeasonAction(seasonId: number, typedName: string): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true, year: true, subtitle: true } })
+  if (!s) return { error: 'Season not found.' }
+  const official = `WCC Season ${s.number} · ${s.year}`
+  if (typedName.trim() !== official && typedName.trim() !== (s.subtitle ?? '')) return { error: 'The typed name does not match — deletion cancelled.' }
+  const r = await deleteSeason(actor, seasonId, actor.isHeadAdmin)
+  if (!r.ok) return { error: r.error }
+  revalidatePath('/seasons'); revalidatePath('/rankings')
+  return { ok: true, message: 'Season permanently deleted.' }
 }

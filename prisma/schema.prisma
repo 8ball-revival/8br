@@ -1251,21 +1251,25 @@ model Tournament {
 ///  - Byes are never written (no win/loss/streak/rating effect).
 ///  - Team match: opponentId is null; each roster member gets one row with the team's shared change.
 model RatingLedger {
-  id               Int        @id @default(autoincrement())
-  tournamentId     Int
-  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  matchKey         String // stable per-match id: "group:<id>" | "playoff:<id>" | "swiss:<id>"
+  id               Int         @id @default(autoincrement())
+  // A ledger row belongs to EITHER a Tournament or a Season (exactly one is set). Both feed the same
+  // all-time Ladder; the Season matchKey namespace ("season-group:" / "season-playoff:") keeps them distinct.
+  tournamentId     Int?
+  tournament       Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  seasonId         Int?
+  season           Season?     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  matchKey         String // stable per-match id: "group:<id>" | "playoff:<id>" | "swiss:<id>" | "season-*:<id>"
   stage            String // 'GROUP' | 'PLAYOFF' | 'SWISS'
   roundLabel       String? // display label, e.g. "Final", "Round 1", "Group A"
   playerId         String // resolved competitive identity (Player.id when linked, else a stable handle key)
   playerName       String // display fallback (identity at time of play)
   opponentId       String? // null for a team match (opponent is a team, not one player)
   opponentName     String
-  isTeamMatch      Boolean    @default(false)
+  isTeamMatch      Boolean     @default(false)
   teamName         String? // this player's team name (team matches)
   opponentTeamName String? // opposing team name (team matches)
   result           String // 'WIN' | 'LOSS' | 'DRAW'
-  isForfeit        Boolean    @default(false) // official result but Elo-neutral (no competitive game played)
+  isForfeit        Boolean     @default(false) // official result but Elo-neutral (no competitive game played)
   actual           Float // 1 / 0 / 0.5
   preRating        Int
   expected         Float
@@ -1273,11 +1277,12 @@ model RatingLedger {
   postRating       Int
   sequence         Int // global deterministic order across the whole all-time timeline
   completedAt      DateTime
-  createdAt        DateTime   @default(now())
+  createdAt        DateTime    @default(now())
 
   @@unique([matchKey, playerId])
   @@index([playerId, sequence])
   @@index([tournamentId])
+  @@index([seasonId])
   @@index([completedAt])
   @@map("rating_ledger")
 }
@@ -1839,6 +1844,7 @@ model Season {
   matches        SeasonMatch[]
   standings      SeasonStanding[]
   playoffMatches SeasonPlayoffMatch[]
+  ratingLedger   RatingLedger[]
 
   @@index([lifecycleState])
   @@map("season")
