@@ -959,12 +959,6 @@
           "notNull": false,
           "default": "'general'"
         },
-        "applies_to_competition_type": {
-          "name": "applies_to_competition_type",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
         "content": {
           "name": "content",
           "type": "jsonb",
@@ -1110,12 +1104,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'general'"
-        },
-        "version_applies_to_competition_type": {
-          "name": "version_applies_to_competition_type",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
         },
         "version_content": {
           "name": "version_content",
@@ -1996,9 +1984,8 @@
       "name": "enum_users_roles",
       "schema": "payload",
       "values": [
+        "owner",
         "admin",
-        "senior_editor",
-        "editor",
         "member"
       ]
     },
@@ -2023,8 +2010,6 @@
       "schema": "payload",
       "values": [
         "general",
-        "season",
-        "cup",
         "tournament",
         "format",
         "conduct"
@@ -2043,8 +2028,6 @@
       "schema": "payload",
       "values": [
         "general",
-        "season",
-        "cup",
         "tournament",
         "format",
         "conduct"
@@ -2071,6 +2054,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "a095456f-6e01-4860-a36f-99923cbebafd",
+  "id": "69c4982e-00d1-4cf0-b50d-d29fba1cd935",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

@@ -1,14 +1,22 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+  // Idempotency guard: this migration provisions the ENTIRE `payload` schema on a fresh database.
+  // If that schema was already provisioned out-of-band (e.g. a production DB created before this
+  // migration set existed), re-running the CREATE statements would error. In that case skip the DDL
+  // and let Payload record this migration as applied, so future migrations layer on cleanly.
+  const probe = await db.execute(sql`SELECT to_regclass('payload.users') IS NOT NULL AS present`)
+  const rows = Array.isArray(probe) ? probe : (probe?.rows ?? [])
+  if (rows[0]?.present) return
+
   await db.execute(sql`
    CREATE SCHEMA IF NOT EXISTS "payload";
-  CREATE TYPE "payload"."enum_users_roles" AS ENUM('admin', 'senior_editor', 'editor', 'member');
+  CREATE TYPE "payload"."enum_users_roles" AS ENUM('owner', 'admin', 'member');
   CREATE TYPE "payload"."enum_news_status" AS ENUM('draft', 'published');
   CREATE TYPE "payload"."enum__news_v_version_status" AS ENUM('draft', 'published');
-  CREATE TYPE "payload"."enum_rules_category" AS ENUM('general', 'tournament', 'cup', 'tournament', 'format', 'conduct');
+  CREATE TYPE "payload"."enum_rules_category" AS ENUM('general', 'tournament', 'format', 'conduct');
   CREATE TYPE "payload"."enum_rules_status" AS ENUM('draft', 'published');
-  CREATE TYPE "payload"."enum__rules_v_version_category" AS ENUM('general', 'tournament', 'cup', 'tournament', 'format', 'conduct');
+  CREATE TYPE "payload"."enum__rules_v_version_category" AS ENUM('general', 'tournament', 'format', 'conduct');
   CREATE TYPE "payload"."enum__rules_v_version_status" AS ENUM('draft', 'published');
   CREATE TABLE "payload"."users_roles" (
   	"order" integer NOT NULL,
@@ -96,7 +104,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"title" varchar,
   	"slug" varchar,
   	"category" "payload"."enum_rules_category" DEFAULT 'general',
-  	"applies_to_competition_type" varchar,
   	"content" jsonb,
   	"effective_from" timestamp(3) with time zone,
   	"version_label" varchar,
@@ -111,7 +118,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"version_title" varchar,
   	"version_slug" varchar,
   	"version_category" "payload"."enum__rules_v_version_category" DEFAULT 'general',
-  	"version_applies_to_competition_type" varchar,
   	"version_content" jsonb,
   	"version_effective_from" timestamp(3) with time zone,
   	"version_version_label" varchar,
