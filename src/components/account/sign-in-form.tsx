@@ -32,7 +32,7 @@ export function SignInForm({ returnTo = '/account' }: { returnTo?: string }) {
             name="identifier"
             autoComplete="username"
             required
-            placeholder="sixohtwo or you@example.com"
+            placeholder="Starkiller or you@example.com"
           />
         </div>
 
@@ -114,7 +114,7 @@ function ForgotPasswordPanel({ onClose }: { onClose: () => void }) {
               name="identifier"
               autoComplete="username"
               required
-              placeholder="sixohtwo or you@example.com"
+              placeholder="Starkiller or you@example.com"
             />
           </div>
           {state.error && (

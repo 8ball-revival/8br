@@ -29,7 +29,7 @@ export function CreateAccountForm({ returnTo = '/account' }: { returnTo?: string
           name="cueverseId"
           autoComplete="username"
           required
-          placeholder="sixohtwo"
+          placeholder="Starkiller"
           aria-describedby="cueverseId-hint"
         />
         <p id="cueverseId-hint" className="text-xs text-muted-foreground">
