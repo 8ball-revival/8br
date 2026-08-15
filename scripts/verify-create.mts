@@ -26,8 +26,10 @@ async function ok(cfg: Partial<CreateTournamentConfig>, name: string) {
 }
 
 console.log('\n--- formats ---')
-for (const fmt of ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS', 'GROUPS_PLAYOFFS'] as const) {
-  const extra = fmt === 'SWISS' ? { swissRounds: 5 } : fmt === 'GROUPS_PLAYOFFS' ? { groupCount: 4, qualifiersPerGroup: 2 } : {}
+// GROUPS_PLAYOFFS is a SEASON-only format now (Season Championships own groups→playoffs); Tournament
+// creation supports only the three bracket/round formats below and must REJECT GROUPS_PLAYOFFS.
+for (const fmt of ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS'] as const) {
+  const extra = fmt === 'SWISS' ? { swissRounds: 5 } : {}
   const r = await ok({ tournamentFormat: fmt, ...extra }, `VC ${fmt}`)
   check(`create ${fmt}`, r.ok)
   if (r.id) {
@@ -35,8 +37,12 @@ for (const fmt of ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS', 'GROUPS_PLAYOFFS'] as 
     check(`${fmt} persisted format`, t.tournamentFormat === fmt)
     check(`${fmt} starts in DRAFT + start-now flag`, t.lifecycleState === 'DRAFT' && r.startNow === true)
     if (fmt === 'SWISS') check('swiss rounds stored', t.swissRounds === 5)
-    if (fmt === 'GROUPS_PLAYOFFS') check('group config stored', t.groupCount === 4 && t.qualifiersPerGroup === 2)
   }
+}
+{
+  const r = await make({ tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 4, qualifiersPerGroup: 2 }, 'VC reject GROUPS_PLAYOFFS')
+  check('GROUPS_PLAYOFFS is rejected for Tournaments (Season-only format)', !r.ok)
+  if (r.ok && r.id) createdIds.push(r.id)
 }
 
 console.log('\n--- participants / team sizes / formation ---')
@@ -82,7 +88,6 @@ const bad: [string, Partial<CreateTournamentConfig>][] = [
   ['team size 7', { participantFormat: 'TEAM', teamSize: 7 }],
   ['password too short', { accessMode: 'PASSWORD', joinPassword: 'ab' }],
   ['swiss rounds 0', { tournamentFormat: 'SWISS', swissRounds: 0 }],
-  ['groups: 0 groups', { tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 0, qualifiersPerGroup: 2 }],
   ['bad schedule date', { scheduleForLater: true, scheduledStartAt: 'not-a-date' }],
   ['unknown badge', { flair: { badge: 'skull' } }],
 ]
