@@ -35,6 +35,10 @@ export interface BracketMatch {
   note?: string // e.g. "Walkover", "Forfeit"
   /** Race length for this specific match (Group Stage + Playoffs: 7 early, 9 semis/final). */
   raceLength?: number
+  /** Season live playoffs: the persistent match id + last-updated stamp, so admins can enter/correct
+   *  results inline in the bracket (Tournaments omit these — the renderer stays read-only there). */
+  id?: number
+  updatedAt?: string
 }
 
 export interface BracketRound {

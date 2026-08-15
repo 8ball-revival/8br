@@ -7,6 +7,7 @@ import { Lock, Plus, Search, UserPlus, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   searchSeasonPlayersAction,
   addSeasonEntrantAction,
@@ -43,6 +44,7 @@ export function SeasonRegistration({
   requiresPassword: boolean
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -89,7 +91,16 @@ export function SeasonRegistration({
             variant="outline"
             className="ml-auto"
             disabled={pending}
-            onClick={() => { if (window.confirm('Close registration?\n\nThe entrant field locks and each player’s current Ladder rating is captured as the Season seeding snapshot.')) run(() => closeSeasonRegistrationAction(seasonId)) }}
+            onClick={async () => {
+              const res = await confirm({
+                title: 'Close Registration?',
+                message: 'Registration will close, the entrant list will lock, and every player’s current Ladder rating will be captured for Season seeding.',
+                confirmLabel: 'Close Registration',
+                cancelLabel: 'Keep Registration Open',
+                action: async () => closeSeasonRegistrationAction(seasonId),
+              })
+              if (res.confirmed) router.refresh()
+            }}
           >
             <Lock className="size-4" /> Close Registration
           </Button>

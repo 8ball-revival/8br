@@ -5,19 +5,21 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Bracket } from '@/components/tournaments/bracket'
+import { SeasonLiveBracket } from '@/components/seasons/season-live-bracket'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { BracketRound } from '@/lib/tournaments/service'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
-import type { PlayablePlayoff } from '@/lib/seasons/views'
 import {
   setSeasonQualificationAction, setSeasonPlayoffTypeAction, generateSeasonBracketAction,
-  startSeasonPlayoffsAction, recordSeasonPlayoffResultAction, closeSeasonAction,
+  startSeasonPlayoffsAction, closeSeasonAction,
 } from '@/lib/seasons/actions'
 
 const QUAL_LABEL: Record<string, string> = { AUTOMATIC: 'Automatic Qualifier', WILDCARD: 'Wildcard', DISQUALIFIED: 'Disqualified', KICKED_OUT: 'Kicked Out', NOT_SELECTED: 'Not Selected' }
 
-/** Playoff setup (locked seeding + selection + generate/start) OR the live public bracket. */
+/** Playoff setup (locked seeding + selection + generate/start) OR the live public bracket with inline
+ *  admin score entry. */
 export function SeasonPlayoffs({
-  seasonId, phase, seeding, rounds, doubleElim, hasDraft, playable, canManage, canClose,
+  seasonId, phase, seeding, rounds, doubleElim, hasDraft, canManage, canClose,
 }: {
   seasonId: number
   phase: 'setup' | 'live'
@@ -25,11 +27,11 @@ export function SeasonPlayoffs({
   rounds: BracketRound[]
   doubleElim: boolean
   hasDraft: boolean
-  playable: PlayablePlayoff[]
   canManage: boolean
   canClose: boolean
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
@@ -39,13 +41,18 @@ export function SeasonPlayoffs({
     return (
       <div className="mt-8 space-y-6">
         {msg && <Toast msg={msg} />}
-        {rounds.length > 0 ? <div className="w-full"><Bracket rounds={rounds} fluid /></div> : <p className="text-sm text-muted-foreground">The bracket is being prepared.</p>}
-        {canManage && <LivePlayoffAdmin playable={playable} run={run} pending={pending} />}
+        {rounds.length > 0 ? <SeasonLiveBracket rounds={rounds} canManage={canManage} /> : <p className="text-sm text-muted-foreground">The bracket is being prepared.</p>}
         {canManage && canClose && (
           <div className="border-t border-border pt-4">
-            <Button className="bg-[#d6ae42] text-black hover:bg-[#e6c463]" disabled={pending} onClick={() => { if (window.confirm('Close Season?\n\nThis crowns the champion, locks all results, applies the Ladder ranking update (played matches only), and awards the Season Championship.')) run(() => closeSeasonAction(seasonId)) }}>
-              Close Season & Crown Champion
-            </Button>
+            <Button className="bg-[#d6ae42] text-black hover:bg-[#e6c463]" disabled={pending} onClick={async () => {
+              const res = await confirm({
+                title: 'Close Season & Crown Champion?',
+                message: 'This crowns the champion, locks all group and playoff results, applies the Ladder ranking update (genuinely-played matches only — FF/KO/voided/no-contest excluded), and awards the Season Championship.',
+                confirmLabel: 'Close Season', cancelLabel: 'Not yet', tone: 'warning',
+                action: async () => closeSeasonAction(seasonId),
+              })
+              if (res.confirmed) router.refresh()
+            }}>Close Season & Crown Champion</Button>
           </div>
         )}
         {canManage && !canClose && <p className="text-xs text-muted-foreground">Close Season becomes available once the final has a winner.</p>}
@@ -76,7 +83,6 @@ export function SeasonPlayoffs({
         </div>
       )}
 
-      {/* Locked seeding list */}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-border bg-card/50 text-left text-xs text-muted-foreground">
@@ -95,14 +101,20 @@ export function SeasonPlayoffs({
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.groupPosition}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.points}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums text-muted-foreground">{r.record}</td>
-                <td className="px-2 py-1.5"><QualBadge q={r.qualification} included={r.included} /></td>
+                <td className="px-2 py-1.5"><QualBadge q={r.qualification} /></td>
                 {canManage && (
                   <td className="px-2 py-1.5 text-right">
                     {r.qualification === 'KICKED_OUT' ? <span className="text-xs text-muted-foreground">—</span>
                       : r.included ? (
-                        <button className="text-xs text-muted-foreground hover:text-destructive" disabled={pending} onClick={() => { const reason = window.prompt(`Disqualify ${r.name}? Enter a reason:`); if (reason?.trim()) run(() => setSeasonQualificationAction(seasonId, r.entrantId, 'disqualify', reason.trim())) }}>Disqualify</button>
+                        <button className="text-xs text-muted-foreground hover:text-destructive" disabled={pending} onClick={async () => {
+                          const res = await confirm({ title: `Disqualify ${r.name}?`, message: 'The player is removed from the playoff field and any draft bracket is invalidated.', confirmLabel: 'Disqualify', tone: 'danger', input: { label: 'Reason (required)', placeholder: 'Why is this player disqualified?', required: true }, action: async (reason) => setSeasonQualificationAction(seasonId, r.entrantId, 'disqualify', reason) })
+                          if (res.confirmed) router.refresh()
+                        }}>Disqualify</button>
                       ) : (
-                        <button className="text-xs text-brand hover:underline" disabled={pending} onClick={() => { const reason = window.prompt(`Add ${r.name} as a Wildcard? Enter a reason:`); if (reason?.trim()) run(() => setSeasonQualificationAction(seasonId, r.entrantId, 'wildcard', reason.trim())) }}>Wildcard</button>
+                        <button className="text-xs text-brand hover:underline" disabled={pending} onClick={async () => {
+                          const res = await confirm({ title: `Add ${r.name} as a Wildcard?`, message: 'The player is added to the playoff field. A note is optional.', confirmLabel: 'Add Wildcard', input: { label: 'Note (optional)', placeholder: 'Optional — why this wildcard?' }, action: async (note) => setSeasonQualificationAction(seasonId, r.entrantId, 'wildcard', note || undefined) })
+                          if (res.confirmed) router.refresh()
+                        }}>Wildcard</button>
                       )}
                   </td>
                 )}
@@ -113,47 +125,23 @@ export function SeasonPlayoffs({
       </div>
 
       {canManage && (
-        <Button className="bg-[#d6ae42] text-black hover:bg-[#e6c463]" disabled={pending || !hasDraft} title={hasDraft ? undefined : 'Generate the bracket first.'} onClick={() => { if (window.confirm('Start Playoffs?\n\nThis publishes the bracket publicly and permanently locks the participants, seeds and bracket type.')) run(() => startSeasonPlayoffsAction(seasonId)) }}>
-          Start Playoffs
-        </Button>
+        <Button className="bg-[#d6ae42] text-black hover:bg-[#e6c463]" disabled={pending || !hasDraft} title={hasDraft ? undefined : 'Generate the bracket first.'} onClick={async () => {
+          const res = await confirm({
+            title: 'Start Playoffs?',
+            message: 'This publishes the bracket publicly and permanently locks the participants, seeds and bracket type.',
+            confirmLabel: 'Start Playoffs', tone: 'warning',
+            action: async () => startSeasonPlayoffsAction(seasonId),
+          })
+          if (res.confirmed) router.refresh()
+        }}>Start Playoffs</Button>
       )}
     </div>
   )
 }
 
-function LivePlayoffAdmin({ playable, run, pending }: { playable: PlayablePlayoff[]; run: (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; warning?: { affected: { id: number; label: string }[] } }>) => void; pending: boolean }) {
-  const open = playable.filter((m) => !m.decided)
-  if (!open.length) return null
-  return (
-    <div className="rounded-lg border border-border bg-card/40 p-4">
-      <p className="eyebrow mb-3 text-muted-foreground">Enter playoff results</p>
-      <ul className="space-y-2">
-        {open.map((m) => <PlayoffRow key={m.id} m={m} run={run} pending={pending} />)}
-      </ul>
-    </div>
-  )
-}
-
-function PlayoffRow({ m, run, pending }: { m: PlayablePlayoff; run: (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; warning?: { affected: { id: number; label: string }[] } }>) => void; pending: boolean }) {
-  const [h, setH] = useState('')
-  const [a, setA] = useState('')
-  return (
-    <li className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="min-w-[10rem] flex-1 truncate">{m.label ? <span className="text-xs text-muted-foreground">{m.label}: </span> : null}{m.homeUsername} <span className="text-muted-foreground">vs</span> {m.awayUsername}</span>
-      <input value={h} onChange={(e) => setH(e.target.value)} inputMode="numeric" className="h-8 w-12 rounded border border-input bg-card text-center text-sm" aria-label={`${m.homeUsername} games`} />
-      <input value={a} onChange={(e) => setA(e.target.value)} inputMode="numeric" className="h-8 w-12 rounded border border-input bg-card text-center text-sm" aria-label={`${m.awayUsername} games`} />
-      <Button size="sm" variant="outline" disabled={pending || h === '' || a === ''} onClick={() => run(async () => {
-        const first = await recordSeasonPlayoffResultAction(m.id, Number(h), Number(a))
-        if (first.warning) { if (window.confirm(`This changes a completed match. ${first.warning.affected.length} downstream match(es) will be cleared and rebuilt. Continue?`)) return recordSeasonPlayoffResultAction(m.id, Number(h), Number(a), true); return { ok: true } }
-        return first
-      })}>Save</Button>
-    </li>
-  )
-}
-
-function QualBadge({ q, included }: { q: string; included: boolean }) {
-  const tone = q === 'AUTOMATIC' ? 'text-success' : q === 'WILDCARD' ? 'text-brand' : q === 'KICKED_OUT' ? 'text-destructive' : q === 'DISQUALIFIED' ? 'text-destructive' : 'text-muted-foreground'
-  return <span className={cn('text-xs font-medium', tone)}>{QUAL_LABEL[q] ?? q}{included && q === 'AUTOMATIC' ? '' : ''}</span>
+function QualBadge({ q }: { q: string }) {
+  const tone = q === 'AUTOMATIC' ? 'text-success' : q === 'WILDCARD' ? 'text-brand' : q === 'KICKED_OUT' || q === 'DISQUALIFIED' ? 'text-destructive' : 'text-muted-foreground'
+  return <span className={cn('text-xs font-medium', tone)}>{QUAL_LABEL[q] ?? q}</span>
 }
 
 function Toast({ msg }: { msg: { ok: boolean; text: string } }) {

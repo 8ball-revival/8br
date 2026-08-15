@@ -6,6 +6,7 @@ import { Download, Save, Trash2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { SeasonView } from '@/lib/seasons/service'
 import { updateSeasonSettingsAction, exportSeasonDataAction, deleteSeasonAction } from '@/lib/seasons/actions'
 
@@ -15,6 +16,7 @@ const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm t
  *  format until playoffs begin (warned once live); after Close only identity/description/export. */
 export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: number; view: SeasonView; isHeadAdmin: boolean }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -31,16 +33,21 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
   const [joinPassword, setJoinPassword] = useState('')
   const [fmt, setFmt] = useState(view.format)
 
-  const save = () => start(async () => {
-    if (formatWarn && !window.confirm('The group stage is already live. Changing the match format now affects displayed labels for matches still to be played. Continue?')) return
-    const r = await updateSeasonSettingsAction(seasonId, {
-      subtitle, description, ...(completed ? {} : { lounge }),
-      ...(regEditable ? { accessMode: access as 'OPEN' | 'PASSWORD', joinPassword: access === 'PASSWORD' ? joinPassword : null } : {}),
-      ...(formatEditable ? { groupStageGames: fmt.groupStageGames, earlyRaceTo: fmt.earlyRaceTo, semifinalRaceTo: fmt.semifinalRaceTo, finalRaceTo: fmt.finalRaceTo } : {}),
+  const save = async () => {
+    if (formatWarn) {
+      const res = await confirm({ title: 'Change the match format?', message: 'The group stage is already live. Changing the match format now affects the displayed labels for matches still to be played.', confirmLabel: 'Change Format', tone: 'warning' })
+      if (!res.confirmed) return
+    }
+    start(async () => {
+      const r = await updateSeasonSettingsAction(seasonId, {
+        subtitle, description, ...(completed ? {} : { lounge }),
+        ...(regEditable ? { accessMode: access as 'OPEN' | 'PASSWORD', joinPassword: access === 'PASSWORD' ? joinPassword : null } : {}),
+        ...(formatEditable ? { groupStageGames: fmt.groupStageGames, earlyRaceTo: fmt.earlyRaceTo, semifinalRaceTo: fmt.semifinalRaceTo, finalRaceTo: fmt.finalRaceTo } : {}),
+      })
+      setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' })
+      if (!r.error) router.refresh()
     })
-    setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' })
-    if (!r.error) router.refresh()
-  })
+  }
 
   const exportData = () => start(async () => {
     const r = await exportSeasonDataAction(seasonId)
@@ -99,9 +106,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
 
 function DangerZone({ seasonId, view, completed, isHeadAdmin }: { seasonId: number; view: SeasonView; completed: boolean; isHeadAdmin: boolean }) {
   const router = useRouter()
-  const [pending, start] = useTransition()
-  const [typed, setTyped] = useState('')
-  const [err, setErr] = useState<string | null>(null)
+  const confirm = useConfirm()
   const canDelete = completed ? isHeadAdmin : true
 
   return (
@@ -113,20 +118,29 @@ function DangerZone({ seasonId, view, completed, isHeadAdmin }: { seasonId: numb
         {completed && !isHeadAdmin ? ' A completed Season can only be deleted by the Head Admin.' : ''} This cannot be undone.
       </p>
       {canDelete && (
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Type <span className="font-semibold text-foreground">{view.title}</span> to confirm</label>
-            <input value={typed} onChange={(e) => setTyped(e.target.value)} className={cn(input, 'max-w-[320px]')} placeholder={view.title} />
-          </div>
+        <div className="mt-3">
           <Button
             variant="outline"
             className="border-destructive/50 text-destructive hover:bg-destructive/10"
-            disabled={pending || typed.trim() !== view.title}
-            onClick={() => { if (window.confirm('Permanently delete this Season? This cannot be undone.')) start(async () => { const r = await deleteSeasonAction(seasonId, typed); if (r.error) setErr(r.error); else router.push('/seasons') }) }}
+            onClick={async () => {
+              const res = await confirm({
+                title: 'Permanently Delete Season?',
+                message: (
+                  <div>
+                    <p>This permanently removes the Season and everything in it: entrants, rating snapshots, groups, all results and statuses, standings, qualification decisions, the playoff bracket{completed ? ', and it reverses the ranking updates + removes the Season Championship award' : ''}.</p>
+                    <p className="mt-1.5 font-semibold text-destructive">This cannot be undone.</p>
+                  </div>
+                ),
+                confirmLabel: 'Permanently Delete',
+                tone: 'danger',
+                input: { label: `Type “${view.title}” to confirm`, placeholder: view.title, matchText: view.title },
+                action: async (value) => deleteSeasonAction(seasonId, value),
+              })
+              if (res.confirmed) router.push('/seasons')
+            }}
           >
             <Trash2 className="size-4" /> Permanently Delete Season
           </Button>
-          {err && <p className="w-full text-xs text-destructive">{err}</p>}
         </div>
       )}
     </section>

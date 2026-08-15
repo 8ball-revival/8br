@@ -6,6 +6,7 @@ import { Plus, RotateCcw, Shuffle, Trash2, Play, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { GroupSetupView, SetupPlayer } from '@/lib/seasons/views'
 import {
   generateSeasonGroupsAction, moveSeasonEntrantAction, addSeasonGroupAction, removeSeasonGroupAction,
@@ -16,6 +17,7 @@ import {
  *  add/remove/rename/reset, and the Group Stage Live publish once valid. */
 export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: GroupSetupView }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [numGroups, setNumGroups] = useState(Math.max(2, view.groups.length || 4))
@@ -41,7 +43,7 @@ export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: G
         {hasGroups && (
           <>
             <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => addSeasonGroupAction(seasonId))}><Plus className="size-4" /> Add Group</Button>
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => resetSeasonGroupsAction(seasonId))}><RotateCcw className="size-4" /> Reset</Button>
+            <Button size="sm" variant="outline" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Reset assignments?', message: 'Every entrant returns to the Unassigned pool. The groups themselves remain.', confirmLabel: 'Reset', tone: 'warning', action: async () => resetSeasonGroupsAction(seasonId) }); if (res.confirmed) router.refresh() }}><RotateCcw className="size-4" /> Reset</Button>
           </>
         )}
       </div>
@@ -65,8 +67,8 @@ export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: G
                 key={g.id}
                 title={g.name || `Group ${g.code}`}
                 count={g.players.length}
-                onRename={() => { const name = window.prompt('Rename group', g.name || `Group ${g.code}`); if (name != null) run(() => renameSeasonGroupAction(seasonId, g.id, name)) }}
-                onDelete={() => { if (window.confirm('Remove this group? Its players return to Unassigned.')) run(() => removeSeasonGroupAction(seasonId, g.id)) }}
+                onRename={async () => { const res = await confirm({ title: 'Rename group', confirmLabel: 'Rename', input: { label: 'Group name', defaultValue: g.name || `Group ${g.code}` } }); if (res.confirmed) run(() => renameSeasonGroupAction(seasonId, g.id, res.value)) }}
+                onDelete={async () => { const res = await confirm({ title: 'Remove group?', message: 'Its players return to the Unassigned pool. Entrants are never deleted.', confirmLabel: 'Remove Group', tone: 'danger', action: async () => removeSeasonGroupAction(seasonId, g.id) }); if (res.confirmed) router.refresh() }}
               >
                 {g.players.length === 0 ? <Empty>Drag or move players here.</Empty> : g.players.map((p) => (
                   <PlayerRow key={p.entrantId} p={p} groups={groupOptions} currentGroup={g.id} onMove={(gid) => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, gid))} onRemove={() => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, null))} />
@@ -79,7 +81,7 @@ export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: G
             <Button
               disabled={pending || !view.valid}
               title={view.valid ? undefined : 'Every entrant must be in exactly one valid group.'}
-              onClick={() => { if (window.confirm('Group Stage Live?\n\nThis publishes the groups, generates the round-robin schedule, and makes group play visible to members.')) run(() => publishSeasonGroupsAction(seasonId)) }}
+              onClick={async () => { const res = await confirm({ title: 'Make the Group Stage live?', message: 'This publishes the groups, generates the round-robin schedule, and makes group play visible to members.', confirmLabel: 'Group Stage Live', tone: 'warning', action: async () => publishSeasonGroupsAction(seasonId) }); if (res.confirmed) router.refresh() }}
             >
               <Play className="size-4" /> Group Stage Live
             </Button>

@@ -121,11 +121,12 @@ export async function setSeasonQualification(actor: Actor, seasonId: number, ent
   const e = await prisma.seasonEntrant.findFirst({ where: { id: entrantId, seasonId } })
   if (!e) return { ok: false, error: 'Entrant not found.' }
   if (e.kickedOut) return { ok: false, error: 'Kicked-out players cannot be selected.' }
-  if ((action === 'disqualify' || action === 'wildcard') && !reason?.trim()) return { ok: false, error: 'A reason is required.' }
+  // Disqualification requires a reason; a Wildcard note is OPTIONAL (may be blank).
+  if (action === 'disqualify' && !reason?.trim()) return { ok: false, error: 'A reason is required.' }
 
   const data =
     action === 'disqualify' ? { playoffIncluded: false, qualification: 'DISQUALIFIED' as const, qualificationReason: reason!.trim() }
-    : action === 'wildcard' ? { playoffIncluded: true, qualification: 'WILDCARD' as const, qualificationReason: reason!.trim() }
+    : action === 'wildcard' ? { playoffIncluded: true, qualification: 'WILDCARD' as const, qualificationReason: reason?.trim() || null }
     : { playoffIncluded: true, qualification: 'AUTOMATIC' as const, qualificationReason: null }
 
   await prisma.$transaction(async (tx) => {
@@ -166,7 +167,10 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
       const plan = planDoubleElim(qualifiers)
       const idByIndex = new Map<number, number>()
       for (const m of plan.matches) {
-        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, section: m.section, round: deRound(m.section, m.round), slot: m.slot, label: m.label, homeEntrantId: m.home.registrationId, awayEntrantId: m.away.registrationId, homeUsername: m.home.username, awayUsername: m.away.username, homeSeed: m.home.seed, awaySeed: m.away.seed } })
+        // A first-round (WB round 1) empty slot is a BYE, not a yet-undetermined TBD — label it so it
+        // renders as "Bye" and settleByes advances the seeded player through it.
+        const wbFirst = m.section === 'WB' && m.round === 1
+        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, section: m.section, round: deRound(m.section, m.round), slot: m.slot, label: m.label, homeEntrantId: m.home.registrationId, awayEntrantId: m.away.registrationId, homeUsername: wbFirst && m.home.registrationId == null ? 'Bye' : m.home.username, awayUsername: wbFirst && m.away.registrationId == null ? 'Bye' : m.away.username, homeSeed: m.home.seed, awaySeed: m.away.seed } })
         idByIndex.set(m.index, row.id)
       }
       for (const m of plan.matches) {
@@ -176,7 +180,10 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
       const plan = planBracket(qualifiers)
       const idByIndex = new Map<number, number>()
       for (const m of plan.matches) {
-        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, round: m.round, slot: m.slot, label: m.label, homeEntrantId: m.home.registrationId, awayEntrantId: m.away.registrationId, homeUsername: m.home.username, awayUsername: m.away.username, homeSeed: m.home.seed, awaySeed: m.away.seed } })
+        // A first-round empty slot is a BYE, not a yet-undetermined TBD — label it so it renders as
+        // "Bye" and settleByes advances the seeded player through it.
+        const firstRound = m.round === 1
+        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, round: m.round, slot: m.slot, label: m.label, homeEntrantId: m.home.registrationId, awayEntrantId: m.away.registrationId, homeUsername: firstRound && m.home.registrationId == null ? 'Bye' : m.home.username, awayUsername: firstRound && m.away.registrationId == null ? 'Bye' : m.away.username, homeSeed: m.home.seed, awaySeed: m.away.seed } })
         idByIndex.set(m.index, row.id)
       }
       for (const m of plan.matches) {
@@ -249,24 +256,30 @@ export async function recordSeasonPlayoffResult(
   matchId: number,
   homeGames: number,
   awayGames: number,
-  opts: { confirmRebuild?: boolean } = {},
-): Promise<{ ok: boolean; error?: string; warning?: DownstreamWarning }> {
+  opts: { confirmRebuild?: boolean; note?: string | null; expectedUpdatedAt?: string } = {},
+): Promise<{ ok: boolean; error?: string; conflict?: boolean; warning?: DownstreamWarning }> {
   const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId } })
   if (!m) return { ok: false, error: 'Match not found.' }
+  // Stale-edit protection: reject if the matchup changed after the admin loaded it.
+  if (opts.expectedUpdatedAt && m.updatedAt.toISOString() !== opts.expectedUpdatedAt) {
+    return { ok: false, conflict: true, error: 'This matchup was updated elsewhere. Refresh before saving.' }
+  }
   const season = await prisma.season.findUnique({ where: { id: m.seasonId }, select: { lifecycleState: true } })
   if (season?.lifecycleState !== 'PLAYOFFS_LIVE') return { ok: false, error: 'Playoffs are not live.' }
   if (m.homeEntrantId == null || m.awayEntrantId == null) return { ok: false, error: 'Both players must be determined first.' }
   const v = validateResult(m.homeEntrantId, m.awayEntrantId, homeGames, awayGames, { allowDraw: false })
   if (!v.ok) return { ok: false, error: v.error } // equal scores are rejected here (no playoff draw)
 
-  // If this match already had a winner that advanced, editing rebuilds the downstream path.
+  const winnerId = v.winnerRegistrationId!
   const wasDecided = m.winnerEntrantId != null
-  if (wasDecided && !opts.confirmRebuild) {
+  // A correction only needs a downstream rebuild when the WINNER actually changes (a score-only edit
+  // that keeps the same winner leaves the bracket structure intact).
+  const winnerChanged = wasDecided && m.winnerEntrantId !== winnerId
+  if (winnerChanged && !opts.confirmRebuild) {
     const affected = await downstreamMatches(m.seasonId, m)
     if (affected.length) return { ok: false, warning: { affected: affected.map((x) => ({ id: x.id, label: x.label ?? `Round ${x.round}` })) } }
   }
 
-  const winnerId = v.winnerRegistrationId!
   const winnerHome = winnerId === m.homeEntrantId
   const winnerName = winnerHome ? m.homeUsername! : m.awayUsername!
   const winnerSeed = winnerHome ? m.homeSeed : m.awaySeed
@@ -275,12 +288,22 @@ export async function recordSeasonPlayoffResult(
   const loserSeed = winnerHome ? m.awaySeed : m.homeSeed
 
   await prisma.$transaction(async (tx) => {
-    if (wasDecided) await clearDownstream(tx, m.seasonId, m)
+    if (winnerChanged) await clearDownstream(tx, m.seasonId, m)
     await tx.seasonPlayoffMatch.update({ where: { id: matchId }, data: { homeGames, awayGames, winnerEntrantId: winnerId, status: 'COMPLETED', verification: 'VERIFIED', completedAt: new Date() } })
-    if (m.feedsMatchId != null) await placeInto(tx, m.feedsMatchId, m.feedsSlot ?? 0, { id: winnerId, name: winnerName, seed: winnerSeed })
-    if (m.loserFeedsMatchId != null) await placeInto(tx, m.loserFeedsMatchId, m.loserFeedsSlot ?? 0, { id: loserId, name: loserName, seed: loserSeed })
-    await settleByes(tx, m.seasonId)
-    await recordAudit(actor, { action: wasDecided ? 'season.playoff.correct' : 'season.playoff.result', entity: 'Season', entityId: m.seasonId, newValue: { matchId, home: homeGames, away: awayGames } }, tx)
+    // Re-advance only when the winner changed (or this is the first result); a same-winner score edit
+    // leaves the already-seated downstream players untouched.
+    if (!wasDecided || winnerChanged) {
+      if (m.feedsMatchId != null) await placeInto(tx, m.feedsMatchId, m.feedsSlot ?? 0, { id: winnerId, name: winnerName, seed: winnerSeed })
+      if (m.loserFeedsMatchId != null) await placeInto(tx, m.loserFeedsMatchId, m.loserFeedsSlot ?? 0, { id: loserId, name: loserName, seed: loserSeed })
+      await settleByes(tx, m.seasonId)
+    }
+    await recordAudit(actor, {
+      action: wasDecided ? 'season.playoff.correct' : 'season.playoff.result',
+      entity: 'Season', entityId: m.seasonId,
+      oldValue: wasDecided ? { matchId, home: m.homeGames, away: m.awayGames, winnerEntrantId: m.winnerEntrantId } : undefined,
+      newValue: { matchId, home: homeGames, away: awayGames, winnerEntrantId: winnerId, winnerChanged },
+      reason: opts.note?.trim() || undefined,
+    }, tx)
   })
   return { ok: true }
 }
@@ -305,11 +328,53 @@ async function downstreamMatches(seasonId: number, m: { feedsMatchId: number | n
   return out
 }
 
-/** Clear the result + seated slots of every match downstream of `m` so the path can be rebuilt. */
-async function clearDownstream(tx: Prisma.TransactionClient, seasonId: number, m: { feedsMatchId: number | null; loserFeedsMatchId: number | null }): Promise<void> {
-  const affected = await downstreamMatches(seasonId, m)
-  for (const a of affected) {
-    await tx.seasonPlayoffMatch.update({ where: { id: a.id }, data: { winnerEntrantId: null, status: 'SCHEDULED', verification: 'UNVERIFIED', homeGames: null, awayGames: null, completedAt: null, homeEntrantId: null, homeUsername: null, homeSeed: null, awayEntrantId: null, awayUsername: null, awaySeed: null } })
+/** Clear the result of every match downstream of `m`, plus ONLY the incoming slots along the changed
+ *  path. A slot seated from OUTSIDE this path (a bye winner, a match on another branch) is left in
+ *  place — so correcting one result never evicts an unrelated player who happens to share the next
+ *  matchup (the georgiapoolking→missy / travis-bye bug). */
+async function clearDownstream(
+  tx: Prisma.TransactionClient,
+  seasonId: number,
+  origin: { feedsMatchId: number | null; feedsSlot: number | null; loserFeedsMatchId: number | null; loserFeedsSlot: number | null },
+): Promise<void> {
+  const all = await tx.seasonPlayoffMatch.findMany({ where: { seasonId }, select: { id: true, feedsMatchId: true, feedsSlot: true, loserFeedsMatchId: true, loserFeedsSlot: true } })
+  const byId = new Map(all.map((x) => [x.id, x]))
+
+  // Matches whose RESULTS become invalid (everything reachable downstream via winner + DE-loser edges).
+  const affected = new Set<number>()
+  const queue = [origin.feedsMatchId, origin.loserFeedsMatchId].filter((x): x is number => x != null)
+  while (queue.length) {
+    const id = queue.shift()!
+    if (affected.has(id)) continue
+    affected.add(id)
+    const n = byId.get(id)
+    if (n?.feedsMatchId != null) queue.push(n.feedsMatchId)
+    if (n?.loserFeedsMatchId != null) queue.push(n.loserFeedsMatchId)
+  }
+
+  // Incoming slots to clear = every edge EMITTED by the origin match or an affected match. A slot fed
+  // from outside this set is preserved (it holds a player unaffected by this correction).
+  const clear = new Map<number, Set<number>>()
+  const mark = (mid: number | null, slot: number | null) => { if (mid == null) return; if (!clear.has(mid)) clear.set(mid, new Set()); clear.get(mid)!.add(slot ?? 0) }
+  mark(origin.feedsMatchId, origin.feedsSlot)
+  mark(origin.loserFeedsMatchId, origin.loserFeedsSlot)
+  for (const id of affected) {
+    const n = byId.get(id)
+    if (!n) continue
+    mark(n.feedsMatchId, n.feedsSlot)
+    mark(n.loserFeedsMatchId, n.loserFeedsSlot)
+  }
+
+  for (const id of affected) {
+    const slots = clear.get(id) ?? new Set<number>()
+    await tx.seasonPlayoffMatch.update({
+      where: { id },
+      data: {
+        winnerEntrantId: null, status: 'SCHEDULED', verification: 'UNVERIFIED', homeGames: null, awayGames: null, completedAt: null,
+        ...(slots.has(0) ? { homeEntrantId: null, homeUsername: null, homeSeed: null } : {}),
+        ...(slots.has(1) ? { awayEntrantId: null, awayUsername: null, awaySeed: null } : {}),
+      },
+    })
   }
 }
 
@@ -347,7 +412,7 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
         const handle = id != null ? cueverseOf.get(id) ?? undefined : undefined
         return { name: name ?? 'TBD', ...(handle ? { handle, slug: handle } : {}), ...(seed != null ? { seed } : {}), ...(games != null ? { score: games } : {}) }
       }
-      const m: ViewMatch = {}
+      const m: ViewMatch = { id: r.id, updatedAt: r.updatedAt.toISOString() }
       const a = slot(r.homeEntrantId, r.homeUsername, r.homeSeed, r.homeGames)
       const b = slot(r.awayEntrantId, r.awayUsername, r.awaySeed, r.awayGames)
       if (a) m.a = a

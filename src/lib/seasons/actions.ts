@@ -196,11 +196,17 @@ export async function startSeasonPlayoffsAction(seasonId: number): Promise<Seaso
   if (!r.ok) return { error: r.error }
   revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Playoffs are live.' }
 }
-export async function recordSeasonPlayoffResultAction(matchId: number, homeGames: number, awayGames: number, confirmRebuild?: boolean): Promise<SeasonActionResult & { warning?: po.DownstreamWarning }> {
+export async function recordSeasonPlayoffResultAction(
+  matchId: number,
+  homeGames: number,
+  awayGames: number,
+  opts?: { confirmRebuild?: boolean; note?: string | null; expectedUpdatedAt?: string },
+): Promise<SeasonActionResult & { warning?: po.DownstreamWarning; conflict?: boolean }> {
   const actor = await requireCapability('edit_results')
   const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId }, select: { seasonId: true } })
-  const r = await po.recordSeasonPlayoffResult(actor, matchId, homeGames, awayGames, { confirmRebuild })
+  const r = await po.recordSeasonPlayoffResult(actor, matchId, homeGames, awayGames, opts ?? {})
   if (r.warning) return { warning: r.warning }
+  if (r.conflict) return { error: r.error, conflict: true }
   if (!r.ok) return { error: r.error }
   if (m) revalidateSeason(await seasonNumberOf(m.seasonId))
   return { ok: true }

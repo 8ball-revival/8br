@@ -5,7 +5,7 @@ import { Diamond, Settings2 } from 'lucide-react'
 
 import { Container } from '@/components/ui/container'
 import { getSeasonView } from '@/lib/seasons/service'
-import { getSeasonGroupSetup, getSeasonGroupStage, getSeasonPlayable } from '@/lib/seasons/views'
+import { getSeasonGroupSetup, getSeasonGroupStage } from '@/lib/seasons/views'
 import { loadSeasonSeeding, seasonPlayoffRounds, seasonChampion } from '@/lib/seasons/playoffs'
 import { SEASON_STATE_LABEL } from '@/lib/seasons/shared'
 import { SeasonRegistration } from '@/components/seasons/season-registration'
@@ -78,12 +78,12 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonN
 
       {state === 'PLAYOFF_SETUP' && (
         canManageComp
-          ? <SeasonPlayoffs seasonId={view.id} phase="setup" seeding={await loadSeasonSeeding(view.id)} rounds={await seasonPlayoffRounds(view.id)} doubleElim={await playoffTypeOf(view.id)} hasDraft={(await prisma.seasonPlayoffMatch.count({ where: { seasonId: view.id } })) > 0} playable={[]} canManage canClose={false} />
+          ? <SeasonPlayoffs seasonId={view.id} phase="setup" seeding={await loadSeasonSeeding(view.id)} rounds={await seasonPlayoffRounds(view.id)} doubleElim={await playoffTypeOf(view.id)} hasDraft={(await prisma.seasonPlayoffMatch.count({ where: { seasonId: view.id } })) > 0} canManage canClose={false} />
           : <><Info>Group stage complete — the playoff field is being finalized.</Info><SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} groupStageGames={view.format.groupStageGames} canManage={false} canClose={false} canReopen={false} /></>
       )}
 
       {state === 'PLAYOFFS_LIVE' && (
-        <SeasonPlayoffs seasonId={view.id} phase="live" seeding={[]} rounds={await seasonPlayoffRounds(view.id)} doubleElim={false} hasDraft playable={canManage ? await getSeasonPlayable(view.id) : []} canManage={canManage} canClose={canManageComp && !!(await seasonChampion(view.id))} />
+        <SeasonPlayoffs seasonId={view.id} phase="live" seeding={[]} rounds={await seasonPlayoffRounds(view.id)} doubleElim={false} hasDraft canManage={canManage} canClose={canManageComp && !!(await seasonChampion(view.id))} />
       )}
 
       {state === 'COMPLETED' && <CompletedView view={view} rounds={await seasonPlayoffRounds(view.id)} groups={await getSeasonGroupStage(view.id)} />}

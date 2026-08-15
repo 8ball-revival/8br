@@ -1,13 +1,27 @@
+'use client'
+
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/tournaments/service'
 import { TeamName } from './team-popover'
 
-function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boolean }) {
+/** Optional admin inline-edit API for the SEASON live playoff bracket. Tournaments never pass this,
+ *  so their brackets stay read-only and unchanged. */
+export interface BracketEditApi {
+  draft(matchId: number): { home: string; away: string }
+  set(matchId: number, side: 'home' | 'away', value: string): void
+  dirty(matchId: number): boolean
+  saving(matchId: number): boolean
+  error(matchId: number): string | null
+  save(matchId: number): void
+}
+
+function Slot({ slot, won, dim, edit, matchId, side }: { slot?: BracketSlot; won?: boolean; dim?: boolean; edit?: BracketEditApi; matchId?: number; side?: 'home' | 'away' }) {
   const label = slot?.name ?? 'TBD'
   const hasMembers = !!slot?.members?.length
+  const editable = !!edit && matchId != null && side != null && !!slot?.name && slot.name !== 'Bye'
   return (
     <div
       className={cn(
@@ -68,23 +82,55 @@ function Slot({ slot, won, dim }: { slot?: BracketSlot; won?: boolean; dim?: boo
           })()
         )}
       </span>
-      {slot?.score != null && (
+      {/* Admins editing the live Season bracket get a score input beside each confirmed player; members
+          (and every Tournament bracket) see the plain read-only score. */}
+      {editable ? (
+        <input
+          value={edit!.draft(matchId!)[side!]}
+          onChange={(e) => edit!.set(matchId!, side!, e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); edit!.save(matchId!) } }}
+          disabled={edit!.saving(matchId!)}
+          inputMode="numeric"
+          aria-label={`${label} score`}
+          className={cn(
+            'h-6 w-10 shrink-0 self-center rounded border bg-card/70 text-center text-[0.85rem] tabular outline-none focus-visible:border-brand disabled:opacity-50',
+            edit!.dirty(matchId!) ? 'border-[#c8102e] ring-1 ring-[#c8102e]/40' : 'border-input',
+          )}
+        />
+      ) : slot?.score != null ? (
         <span className={cn('tabular self-start pt-0.5 text-[0.95rem]', won ? 'font-bold text-foreground' : dim ? 'text-foreground/70' : 'text-muted-foreground')}>{slot.score}</span>
-      )}
+      ) : null}
     </div>
   )
 }
 
-export function MatchBox({ match }: { match: BracketMatch }) {
+export function MatchBox({ match, edit }: { match: BracketMatch; edit?: BracketEditApi }) {
+  // Editable only when this is a real, both-sides-known Season playoff matchup.
+  const bothKnown = !!match.a?.name && match.a.name !== 'Bye' && !!match.b?.name && match.b.name !== 'Bye'
+  const canEdit = !!edit && match.id != null && bothKnown
+  const matchId = match.id
+  const dirty = canEdit && edit!.dirty(matchId!)
+  const saving = canEdit && edit!.saving(matchId!)
+  const err = canEdit ? edit!.error(matchId!) : null
   return (
     <div className="w-full">
       {/* Frame is transparent (no card fill): only the WINNER row paints a dark background; the loser
           row stays see-through to the page. */}
       <div className="overflow-hidden rounded-md border border-border">
-        <Slot slot={match.a} won={match.winner === 'a'} dim={match.winner === 'b'} />
+        <Slot slot={match.a} won={match.winner === 'a'} dim={match.winner === 'b'} edit={canEdit ? edit : undefined} matchId={matchId} side="home" />
         <div className="h-px bg-border" />
-        <Slot slot={match.b} won={match.winner === 'b'} dim={match.winner === 'a'} />
+        <Slot slot={match.b} won={match.winner === 'b'} dim={match.winner === 'a'} edit={canEdit ? edit : undefined} matchId={matchId} side="away" />
       </div>
+      {canEdit && (dirty || err) && (
+        <div className="mt-1 flex items-center justify-between gap-2">
+          {err ? <span className="text-[0.6rem] text-destructive">{err}</span> : <span />}
+          {dirty && (
+            <button type="button" onClick={() => edit!.save(matchId!)} disabled={saving} aria-label="Save result" className="inline-flex items-center gap-1 rounded bg-[#c8102e] px-1.5 py-0.5 text-[0.6rem] font-semibold text-white hover:opacity-90 disabled:opacity-50">
+              {saving ? <span className="size-2.5 animate-spin rounded-full border border-white/40 border-t-white" aria-hidden /> : <Check className="size-3" aria-hidden />} Save
+            </button>
+          )}
+        </div>
+      )}
       <div className="mt-1 flex items-center justify-center gap-2 text-[0.55rem] uppercase tracking-wide text-muted-foreground">
         {match.raceLength != null && (match.a || match.b) && <span>Race to {match.raceLength}</span>}
         {match.note && <span>{match.note}</span>}
@@ -102,12 +148,15 @@ export function Bracket({
   rounds,
   currentRound,
   fluid = false,
+  edit,
 }: {
   rounds: BracketRound[]
   currentRound?: string
   /** Fill the available width (columns flex to fit) instead of fixed-width columns
    *  that scroll. Used by the wide tournament Playoffs canvas; tournaments keep fixed columns. */
   fluid?: boolean
+  /** SEASON live playoffs only: enables admin inline score entry per matchup. */
+  edit?: BracketEditApi
 }) {
   return (
     <div className="scrollbar-themed overflow-x-auto pb-2">
@@ -126,7 +175,7 @@ export function Bracket({
               <div className={cn('bkt-body', !isLast && 'bkt-feeds', !isFirst && 'bkt-receives')}>
                 {round.matches.map((m, mi) => (
                   <div key={mi} className="bkt-cell">
-                    <MatchBox match={m} />
+                    <MatchBox match={m} edit={edit} />
                   </div>
                 ))}
               </div>

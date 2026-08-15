@@ -7,6 +7,7 @@ import { Info } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { StageGroup, StageMatch, StageStandingRow } from '@/lib/seasons/views'
 import { saveSeasonGroupAction, closeSeasonGroupsAction, reopenSeasonGroupsAction } from '@/lib/seasons/actions'
 
@@ -16,14 +17,10 @@ type Draft = Record<number, { home: string; away: string }>
  *  fields and one Save Group per group (batched, one transaction). Matches the tournament group design. */
 export function SeasonGroupStage({ seasonId, groups, groupStageGames, canManage, canClose, canReopen }: { seasonId: number; groups: StageGroup[]; groupStageGames: number; canManage: boolean; canClose: boolean; canReopen: boolean }) {
   const router = useRouter()
-  const [pending, start] = useTransition()
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
-    start(async () => { const r = await fn(); setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' }); router.refresh() })
+  const confirm = useConfirm()
 
   return (
     <div className="mt-8 space-y-6">
-      {msg && <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>}
       {canManage && <Legend />}
       {groups.map((g) => <GroupTable key={`${g.id}:${g.matches.map((m) => m.version).join(',')}`} seasonId={seasonId} group={g} groupStageGames={groupStageGames} canManage={canManage} />)}
       {!canManage && <MemberLegend />}
@@ -31,14 +28,23 @@ export function SeasonGroupStage({ seasonId, groups, groupStageGames, canManage,
       {canManage && (canClose || canReopen) && (
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
           {canClose && (
-            <Button size="sm" disabled={pending} onClick={() => {
+            <Button size="sm" onClick={async () => {
               const unresolved = groups.flatMap((g) => g.matches).filter((m) => m.status === 'SCHEDULED')
-              const ok = window.confirm(unresolved.length ? `Close Groups?\n\n${unresolved.length} match(es) are still unresolved and will be marked No Contest (no points, no Ladder effect). Continue anyway?` : 'Close Groups and lock the final standings?')
-              if (ok) run(() => closeSeasonGroupsAction(seasonId))
+              const res = await confirm({
+                title: 'Close Groups?',
+                message: unresolved.length
+                  ? `${unresolved.length} match(es) are still unresolved. Continuing marks them No Contest (no points, no Ladder effect); final standings then lock.`
+                  : 'The final group standings will be locked.',
+                confirmLabel: 'Close Groups', tone: 'warning', action: async () => closeSeasonGroupsAction(seasonId),
+              })
+              if (res.confirmed) router.refresh()
             }}>Close Groups</Button>
           )}
           {canReopen && (
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => { if (window.confirm('Reopen Groups?\n\nAny private draft playoff bracket will be discarded because standings may change.')) run(() => reopenSeasonGroupsAction(seasonId)) }}>Reopen Groups</Button>
+            <Button size="sm" variant="outline" onClick={async () => {
+              const res = await confirm({ title: 'Reopen Groups?', message: 'Any private draft playoff bracket will be discarded because standings may change.', confirmLabel: 'Reopen Groups', tone: 'warning', action: async () => reopenSeasonGroupsAction(seasonId) })
+              if (res.confirmed) router.refresh()
+            }}>Reopen Groups</Button>
           )}
         </div>
       )}
@@ -87,6 +93,7 @@ const td = 'border border-border px-2.5 py-1.5 text-center align-middle tabular'
 
 function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId: number; group: StageGroup; groupStageGames: number; canManage: boolean }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [err, setErr] = useState<string | null>(null)
   const tipId = useId()
@@ -124,8 +131,18 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
     const entries = dirty.map((id) => { const mt = group.matches.find((x) => x.id === id)!; return { matchId: id, home: draft[id].home, away: draft[id].away, version: mt.version } })
     if (!entries.length) { setErr('No changes to save.'); return }
     const r = await saveSeasonGroupAction(seasonId, group.id, entries, opts)
-    if (r.needConfirmFF?.length) { if (window.confirm(`Record forfeit(s)?\n\n${r.needConfirmFF.map((f) => `${f.forfeiter} forfeits to ${f.opponent}`).join('\n')}`)) save({ ...opts, confirmFF: true }); return }
-    if (r.needConfirmKO?.length) { const reason = window.prompt(`KICK OUT ${r.needConfirmKO.map((k) => k.name).join(', ')}?\n\nThis voids ALL their group matches and removes them from playoff eligibility. Enter a reason:`); if (reason?.trim()) save({ ...opts, confirmKO: true, koReason: reason.trim() }); return }
+    if (r.needConfirmFF?.length) {
+      const ff = r.needConfirmFF
+      const res = await confirm({ title: 'Record forfeit(s)?', message: (<ul className="list-disc pl-5">{ff.map((f, i) => <li key={i}>{f.forfeiter} forfeits to {f.opponent}</li>)}</ul>), confirmLabel: 'Record forfeit' })
+      if (res.confirmed) save({ ...opts, confirmFF: true })
+      return
+    }
+    if (r.needConfirmKO?.length) {
+      const names = r.needConfirmKO.map((k) => k.name).join(', ')
+      const res = await confirm({ title: `Kick out ${names}?`, message: 'This voids ALL of their group matches (including previously entered results) and removes them from playoff eligibility. This cannot be undone.', confirmLabel: 'Kick Out', tone: 'danger', input: { label: 'Reason (required)', placeholder: 'Why is this player being kicked out?', required: true } })
+      if (res.confirmed && res.value.trim()) save({ ...opts, confirmKO: true, koReason: res.value.trim() })
+      return
+    }
     if (r.conflict) { setErr(r.error ?? 'Someone else edited this group — refresh.'); return }
     if (!r.ok) { setErr(r.error ?? 'Could not save.'); return }
     router.refresh()
