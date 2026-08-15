@@ -1,0 +1,130 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { Plus, RotateCcw, Shuffle, Trash2, Play, X } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import type { GroupSetupView, SetupPlayer } from '@/lib/seasons/views'
+import {
+  generateSeasonGroupsAction, moveSeasonEntrantAction, addSeasonGroupAction, removeSeasonGroupAction,
+  renameSeasonGroupAction, resetSeasonGroupsAction, publishSeasonGroupsAction,
+} from '@/lib/seasons/actions'
+
+/** Private Group Setup board (admin only): rating snake-seeded generation, then drag/dropdown moves,
+ *  add/remove/rename/reset, and the Group Stage Live publish once valid. */
+export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: GroupSetupView }) {
+  const router = useRouter()
+  const [pending, start] = useTransition()
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [numGroups, setNumGroups] = useState(Math.max(2, view.groups.length || 4))
+  const hasGroups = view.groups.length > 0
+
+  const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
+    start(async () => { const r = await fn(); setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' }); router.refresh() })
+
+  const groupOptions = view.groups.map((g) => ({ id: g.id, label: g.name || `Group ${g.code}` }))
+
+  return (
+    <div className="mt-8 space-y-5">
+      {msg && <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>}
+
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card/40 p-4">
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-foreground">Number of Groups</label>
+          <input type="number" min={1} max={26} value={numGroups} onChange={(e) => setNumGroups(Math.max(1, Math.min(26, Number(e.target.value) || 1)))} className="w-24 rounded-md border border-input bg-card px-3 py-2 text-sm" />
+        </div>
+        <Button size="sm" disabled={pending} onClick={() => run(() => generateSeasonGroupsAction(seasonId, numGroups))}>
+          <Shuffle className="size-4" /> {hasGroups ? 'Regenerate Groups' : 'Generate Groups'}
+        </Button>
+        {hasGroups && (
+          <>
+            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => addSeasonGroupAction(seasonId))}><Plus className="size-4" /> Add Group</Button>
+            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => resetSeasonGroupsAction(seasonId))}><RotateCcw className="size-4" /> Reset</Button>
+          </>
+        )}
+      </div>
+
+      {hasGroups && (
+        <>
+          {view.issues.length > 0 && (
+            <ul className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+              {view.issues.map((i, k) => <li key={k}>• {i.detail}</li>)}
+            </ul>
+          )}
+
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            <Panel title="Unassigned" tone="muted">
+              {view.unassigned.length === 0 ? <Empty>All entrants assigned.</Empty> : view.unassigned.map((p) => (
+                <PlayerRow key={p.entrantId} p={p} groups={groupOptions} currentGroup={null} onMove={(gid) => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, gid))} onRemove={null} />
+              ))}
+            </Panel>
+            {view.groups.map((g) => (
+              <Panel
+                key={g.id}
+                title={g.name || `Group ${g.code}`}
+                count={g.players.length}
+                onRename={() => { const name = window.prompt('Rename group', g.name || `Group ${g.code}`); if (name != null) run(() => renameSeasonGroupAction(seasonId, g.id, name)) }}
+                onDelete={() => { if (window.confirm('Remove this group? Its players return to Unassigned.')) run(() => removeSeasonGroupAction(seasonId, g.id)) }}
+              >
+                {g.players.length === 0 ? <Empty>Drag or move players here.</Empty> : g.players.map((p) => (
+                  <PlayerRow key={p.entrantId} p={p} groups={groupOptions} currentGroup={g.id} onMove={(gid) => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, gid))} onRemove={() => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, null))} />
+                ))}
+              </Panel>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              disabled={pending || !view.valid}
+              title={view.valid ? undefined : 'Every entrant must be in exactly one valid group.'}
+              onClick={() => { if (window.confirm('Group Stage Live?\n\nThis publishes the groups, generates the round-robin schedule, and makes group play visible to members.')) run(() => publishSeasonGroupsAction(seasonId)) }}
+            >
+              <Play className="size-4" /> Group Stage Live
+            </Button>
+            {!view.valid && <span className="text-xs text-muted-foreground">Resolve the warnings above to publish.</span>}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function Panel({ title, count, tone, children, onRename, onDelete }: { title: string; count?: number; tone?: 'muted'; children: React.ReactNode; onRename?: () => void; onDelete?: () => void }) {
+  return (
+    <div className={cn('rounded-lg border p-3', tone === 'muted' ? 'border-dashed border-border bg-background/40' : 'border-border bg-card/40')}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">{title} {count != null && <span className="text-xs text-muted-foreground">({count})</span>}</p>
+        <div className="flex items-center gap-2">
+          {onRename && <button onClick={onRename} className="text-xs text-muted-foreground hover:text-foreground">rename</button>}
+          {onDelete && <button onClick={onDelete} aria-label="Remove group" className="text-muted-foreground hover:text-destructive"><Trash2 className="size-3.5" /></button>}
+        </div>
+      </div>
+      <ul className="space-y-1">{children}</ul>
+    </div>
+  )
+}
+
+function PlayerRow({ p, groups, currentGroup, onMove, onRemove }: { p: SetupPlayer; groups: { id: number; label: string }[]; currentGroup: number | null; onMove: (gid: number | null) => void; onRemove: (() => void) | null }) {
+  return (
+    <li className="flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5 text-sm">
+      <span className="min-w-0 flex-1 truncate">{p.name}{p.cueverseId && p.cueverseId !== p.name && <span className="ml-1.5 text-xs text-muted-foreground">{p.cueverseId}</span>}</span>
+      <span className="tabular shrink-0 text-xs font-semibold text-muted-foreground">{p.rating ?? '—'}</span>
+      <select
+        aria-label={`Move ${p.name} to group`}
+        value={currentGroup ?? ''}
+        onChange={(e) => onMove(e.target.value === '' ? null : Number(e.target.value))}
+        className="shrink-0 rounded border border-input bg-card px-1.5 py-1 text-xs"
+      >
+        <option value="">Unassigned</option>
+        {groups.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+      </select>
+      {onRemove && <button aria-label={`Remove ${p.name} from group`} onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-3.5" /></button>}
+    </li>
+  )
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <li className="rounded-md border border-dashed border-border/50 px-2.5 py-3 text-center text-xs text-muted-foreground">{children}</li>
+}
