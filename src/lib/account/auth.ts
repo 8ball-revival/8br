@@ -1,6 +1,6 @@
 import 'server-only'
 import { cache } from 'react'
-import { headers as nextHeaders } from 'next/headers'
+import { headers as nextHeaders, cookies } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import type { RegistrationStatus } from '@prisma/client'
@@ -31,7 +31,15 @@ async function payload() {
  */
 export const getCurrentUser = cache(async function getCurrentUser(): Promise<CurrentUser | null> {
   const p = await payload()
-  const { user } = await p.auth({ headers: await nextHeaders() })
+  // Resolve auth from the request. In Server Actions (POST) the forwarded Cookie header is not
+  // reliably surfaced to `p.auth`, so authenticated mutations (create Season/Tournament, etc.)
+  // resolved as anonymous → "staff access required" even for a valid Owner, while GET page renders
+  // worked. Read the session token from the cookie explicitly (reliable in RSC AND actions) and
+  // pass it as an Authorization header so p.auth resolves the user consistently in both contexts.
+  const reqHeaders = new Headers(await nextHeaders())
+  const token = (await cookies()).get('payload-token')?.value
+  if (token && !reqHeaders.has('authorization')) reqHeaders.set('authorization', `JWT ${token}`)
+  const { user } = await p.auth({ headers: reqHeaders })
   if (!user) return null
   const u = user as { id: string | number; username?: string; email?: string; roles?: string[]; createdAt?: string }
   // Resolve the canonical CueVerse ID (display casing) + optional Preferred Name from the linked Player.

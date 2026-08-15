@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/account', '/login', '/admin', '/archive-review', '/api/', '/search'],
+      disallow: ['/account', '/login', '/admin', '/archive-review', '/api/', '/search', '/recovery'],
     },
     sitemap: absoluteUrl('/sitemap.xml'),
     host: SITE_URL,
