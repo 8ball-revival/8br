@@ -56,7 +56,7 @@ function ProfileForm({ profile }: { profile: { preferredName: string; discord: s
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="pn">Preferred Name</Label>
-          <Input id="pn" name="preferredName" defaultValue={profile.preferredName} maxLength={40} placeholder="e.g. Kevin" />
+          <Input id="pn" name="preferredName" defaultValue={profile.preferredName} maxLength={40} placeholder="e.g. Neo" />
           <p className="text-xs text-muted-foreground">Optional public community name. When blank, your CueVerse ID is shown.</p>
         </div>
         <div className="space-y-1.5">
