@@ -37,7 +37,7 @@ export default buildConfig({
   ...(process.env.RESEND_API_KEY
     ? {
         email: resendAdapter({
-          defaultFromAddress: process.env.RESEND_FROM_EMAIL || 'noreply@wcc.example',
+          defaultFromAddress: process.env.RESEND_FROM_EMAIL || 'noreply@cueverse.net',
           defaultFromName: 'World Cue Championships',
           apiKey: process.env.RESEND_API_KEY,
         }),

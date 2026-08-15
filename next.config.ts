@@ -35,8 +35,8 @@ const nextConfig: NextConfig = {
       // Legacy "Cups" URLs now live under "Tournaments".
       { source: '/cups', destination: '/tournaments', permanent: true },
       { source: '/cups/:path*', destination: '/tournaments/:path*', permanent: true },
-      // Canonical host (www → apex): the new owner configures this for the WCC domain.
-      // Set WCC_WWW_HOST (e.g. "www.example.com") + WCC_APEX_ORIGIN (e.g. "https://example.com").
+      // Canonical host (www → apex) for cueverse.net.
+      // Set WCC_WWW_HOST="www.cueverse.net" + WCC_APEX_ORIGIN="https://cueverse.net".
       ...(process.env.WCC_WWW_HOST && process.env.WCC_APEX_ORIGIN
         ? [
             {
