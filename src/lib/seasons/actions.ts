@@ -223,12 +223,13 @@ export async function closeSeasonAction(seasonId: number): Promise<SeasonActionR
   revalidatePath('/rankings')
   return { ok: true, message: 'Season closed — champion crowned and rankings applied.' }
 }
-export async function deleteSeasonAction(seasonId: number, typedName: string): Promise<SeasonActionResult> {
+export async function deleteSeasonAction(seasonId: number, password: string): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true, year: true, subtitle: true } })
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true } })
   if (!s) return { error: 'Season not found.' }
-  const official = `WCC Season ${s.number} · ${s.year}`
-  if (typedName.trim() !== official && typedName.trim() !== (s.subtitle ?? '')) return { error: 'The typed name does not match — deletion cancelled.' }
+  // Re-authentication gate: the admin must confirm their OWN password before this irreversible delete.
+  const { verifyCurrentUserPassword } = await import('@/lib/account/auth')
+  if (!(await verifyCurrentUserPassword(password))) return { error: 'Incorrect password — deletion cancelled.' }
   const r = await deleteSeason(actor, seasonId, actor.isHeadAdmin)
   if (!r.ok) return { error: r.error }
   revalidatePath('/seasons'); revalidatePath('/rankings')

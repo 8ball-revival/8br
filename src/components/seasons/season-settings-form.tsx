@@ -99,12 +99,12 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
         <Button variant="outline" disabled={pending} onClick={exportData}><Download className="size-4" /> Export Season Data</Button>
       </div>
 
-      <DangerZone seasonId={seasonId} view={view} completed={completed} isHeadAdmin={isHeadAdmin} />
+      <DangerZone seasonId={seasonId} completed={completed} isHeadAdmin={isHeadAdmin} />
     </div>
   )
 }
 
-function DangerZone({ seasonId, view, completed, isHeadAdmin }: { seasonId: number; view: SeasonView; completed: boolean; isHeadAdmin: boolean }) {
+function DangerZone({ seasonId, completed, isHeadAdmin }: { seasonId: number; completed: boolean; isHeadAdmin: boolean }) {
   const router = useRouter()
   const confirm = useConfirm()
   const canDelete = completed ? isHeadAdmin : true
@@ -133,7 +133,7 @@ function DangerZone({ seasonId, view, completed, isHeadAdmin }: { seasonId: numb
                 ),
                 confirmLabel: 'Permanently Delete',
                 tone: 'danger',
-                input: { label: `Type “${view.title}” to confirm`, placeholder: view.title, matchText: view.title },
+                input: { label: 'Enter your admin password to confirm', placeholder: 'Your password', password: true, required: true },
                 action: async (value) => deleteSeasonAction(seasonId, value),
               })
               if (res.confirmed) router.push('/seasons')

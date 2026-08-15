@@ -38,6 +38,25 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   }
 })
 
+/**
+ * Verify a password against the CURRENTLY signed-in user — a re-authentication gate for destructive
+ * admin actions (e.g. permanently deleting a Season). Returns true only on an exact match. Uses
+ * Payload's own credential check; it does NOT issue a new session, so the caller's session is
+ * untouched. Repeated wrong attempts count toward Payload's normal login-attempt lockout.
+ */
+export async function verifyCurrentUserPassword(password: string): Promise<boolean> {
+  if (!password) return false
+  const current = await getCurrentUser()
+  if (!current?.username) return false
+  const p = await payload()
+  try {
+    await p.login({ collection: 'users', data: { username: current.username, password } })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export interface Season2Registration {
   /** True when the user has an active entry (pending or approved). */
   registered: boolean
