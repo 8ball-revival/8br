@@ -13,7 +13,7 @@ const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 const PFMT = (p: string, size: number | null) => (p === 'INDIVIDUAL' ? '1v1' : size === 2 ? '2v2' : size ? `${size}v${size}` : 'Team')
 const TFMT: Record<string, string> = {
-  SINGLE_ELIM: 'Single Elimination', DOUBLE_ELIM: 'Double Elimination', SWISS: 'Swiss System', GROUPS_PLAYOFFS: 'Groups + Playoffs', ROUND_ROBIN: 'Round Robin', TEAM_KNOCKOUT: 'Team Knockout',
+  SINGLE_ELIM: 'Single Elimination', DOUBLE_ELIM: 'Double Elimination', SWISS: 'Swiss System', ROUND_ROBIN: 'Round Robin', TEAM_KNOCKOUT: 'Team Knockout',
 }
 const isActive = (s: string) => s === 'live' || s === 'upcoming'
 

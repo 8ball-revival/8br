@@ -10,7 +10,9 @@ export type TeamFormationInput = 'PICK' | 'RANDOM'
 export type AccessModeInput = 'OPEN' | 'PASSWORD'
 
 /** Formats the WCC create flow supports end-to-end (creation → completion). */
-const SUPPORTED_FORMATS: TournamentFormat[] = ['SINGLE_ELIM', 'DOUBLE_ELIM', 'GROUPS_PLAYOFFS', 'SWISS']
+// Season Championship (GROUPS_PLAYOFFS) is now its own competition type at /seasons — Tournaments
+// only support these three formats. Creation rejects anything else (backend enforcement).
+const SUPPORTED_FORMATS: TournamentFormat[] = ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS']
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
 const SEEDING: SeedingMethod[] = ['rating', 'rank', 'random', 'registration']
 
