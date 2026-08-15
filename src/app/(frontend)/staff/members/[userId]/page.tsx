@@ -8,11 +8,10 @@ import { AdminShell, AdminDenied } from '@/components/staff/admin-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { Badge } from '@/components/ui/badge'
 import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
-import { DiscordContactButton } from '@/components/identity/discord-contact-button'
-import { TimeZoneLabel } from '@/components/identity/time-zone'
 import { StatusBadge } from '@/components/staff/status-badge'
 import { MemberModeration } from '@/components/staff/member-moderation'
 import { MemberRoles } from '@/components/staff/member-roles'
+import { MemberProfileEditor } from '@/components/staff/member-profile-editor'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getMemberDetail, getActiveRegistrations } from '@/lib/staff/members'
 
@@ -124,24 +123,19 @@ function Overview({ m, activePenalty }: { m: any; activePenalty: any }) {
 }
 
 function Profile({ m }: { m: any }) {
+  // Admin-editable — no cooldown. Derived stats (rating, records, achievements) are never editable.
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Stat label="Preferred Name" value={m.preferredName ?? '—'} />
-        <Stat label="CueVerse ID" value={m.cueverseId ?? '—'} />
-        <Stat label="Time Zone" value={m.timeZone ? <TimeZoneLabel zone={m.timeZone} /> : '—'} />
-        <Stat label="Discord" value={m.discord ? <DiscordContactButton discord={m.discord} name={m.preferredName ?? m.username} /> : '—'} />
-      </div>
-      {/* PRIVATE account section — authorized staff only. Email never leaves this box. */}
-      <div className="rounded-lg border border-destructive/25 bg-destructive/[0.04] p-4">
-        <h3 className="eyebrow text-destructive">Private account details</h3>
-        <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <Stat label="Username" value={m.username} />
-          <Stat label="Email (private)" value={m.email ?? '—'} />
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">Email is private — visible only to authorized staff here and never on public pages.</p>
-      </div>
-    </div>
+    <MemberProfileEditor
+      initial={{
+        userId: m.userId,
+        preferredName: m.preferredName ?? '',
+        cueverseId: m.cueverseId ?? '',
+        timeZone: m.timeZone ?? '',
+        discord: m.discord ?? '',
+        username: m.username ?? '',
+        email: m.email ?? '',
+      }}
+    />
   )
 }
 

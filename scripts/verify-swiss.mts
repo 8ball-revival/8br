@@ -94,6 +94,10 @@ async function run(number: number, players: number) {
     check('complete swiss ok', done.ok)
     const t = await prisma.tournament.findUniqueOrThrow({ where: { id } })
     check('tournament is COMPLETED', t.lifecycleState === 'COMPLETED')
+    // Regression: once completed, the Swiss state must no longer offer Complete/Pair actions
+    // (otherwise the "Complete Swiss" button lingers after the tournament is already done).
+    const afterState = await getSwissState(id)
+    check('completed Swiss offers no more Complete/Pair actions', afterState.canComplete === false && afterState.canPairNext === false)
     check('champion recorded', t.championName === `SW${number}_01`)
     check('ladder applied on completion', t.ladderAppliedAt != null)
     // Swiss results materialized into snapshot bracket rows so the Ladder credits each player.

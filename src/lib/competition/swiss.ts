@@ -219,8 +219,10 @@ export interface SwissState {
 }
 
 export async function getSwissState(tournamentId: number): Promise<SwissState> {
-  const t = await prisma.tournament.findUniqueOrThrow({ where: { id: tournamentId }, select: { swissRounds: true } })
+  const t = await prisma.tournament.findUniqueOrThrow({ where: { id: tournamentId }, select: { swissRounds: true, lifecycleState: true, status: true } })
   const totalRounds = t.swissRounds ?? 0
+  // Once the tournament is finished, no more Swiss management actions are offered.
+  const isDone = t.lifecycleState === 'COMPLETED' || t.lifecycleState === 'CANCELLED' || t.status === 'COMPLETED'
   const all = await prisma.swissMatch.findMany({ where: { tournamentId }, orderBy: [{ round: 'asc' }, { boardOrder: 'asc' }] })
   const currentRound = all.reduce((m, x) => Math.max(m, x.round), 0)
   const byRound = new Map<number, SwissState['rounds'][number]['matches']>()
@@ -234,8 +236,8 @@ export async function getSwissState(tournamentId: number): Promise<SwissState> {
     totalRounds,
     currentRound,
     roundComplete: complete,
-    canPairNext: complete && currentRound > 0 && currentRound < totalRounds,
-    canComplete: complete && currentRound > 0 && currentRound >= totalRounds,
+    canPairNext: !isDone && complete && currentRound > 0 && currentRound < totalRounds,
+    canComplete: !isDone && complete && currentRound > 0 && currentRound >= totalRounds,
     rounds,
     standings: await computeStandings(tournamentId),
   }

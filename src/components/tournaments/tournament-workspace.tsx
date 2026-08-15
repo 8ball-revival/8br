@@ -176,8 +176,10 @@ function Overview({ data }: { data: TournamentWorkspaceData }) {
     const total = cur?.matches.length ?? 0
     const done = cur?.matches.filter((m) => m.winnerRegistrationId != null || m.isBye).length ?? 0
     const leader = s?.standings[0]
-    const swissStatus = !s
-      ? 'not started'
+    const swissDone = data.tournament.lifecycleState === 'COMPLETED' || data.tournament.lifecycleState === 'CANCELLED'
+    const swissStatus = swissDone
+      ? 'complete'
+      : !s ? 'not started'
       : s.canComplete ? 'final round complete — ready to finish'
       : s.roundComplete ? `round ${s.currentRound} complete — pair round ${s.currentRound + 1}`
       : `round ${s.currentRound} in progress`
@@ -964,21 +966,29 @@ function GroupMatchRow({
 
 function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWorkspaceData; run: Run; canEditResults: boolean; canManage: boolean }) {
   const s = data.swiss
+  const confirm = useConfirm()
+  const isDone = data.tournament.lifecycleState === 'COMPLETED' || data.tournament.lifecycleState === 'CANCELLED'
   if (!s || s.currentRound === 0) {
     return <p className="text-sm text-muted-foreground">The Swiss rounds haven&apos;t started yet. Close registration, then Start Swiss.</p>
+  }
+  const completeSwiss = async () => {
+    const r = await confirm({ title: 'Complete this Swiss tournament?', message: 'This finalizes the standings, crowns the winner, and applies results to the Ladder. It is terminal — the tournament becomes read-only.', confirmLabel: 'Complete Swiss', cancelLabel: 'Keep playing', tone: 'warning' })
+    if (r.confirmed) run(() => A.completeSwissAction(data.tournament.id))
   }
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs text-muted-foreground">
-          Round <b className="text-foreground">{s.currentRound}</b> of <b className="text-foreground">{s.totalRounds}</b>. Enter every result; standings and the next round&apos;s pairings update automatically.
+          {isDone
+            ? <>This Swiss tournament is <b className="text-foreground">complete</b> — final standings below.</>
+            : <>Round <b className="text-foreground">{s.currentRound}</b> of <b className="text-foreground">{s.totalRounds}</b>. Enter every result; standings and the next round&apos;s pairings update automatically.</>}
         </p>
         <div className="ml-auto flex gap-2">
           {canManage && s.canPairNext && (
             <Button size="sm" onClick={() => run(() => A.pairSwissRoundAction(data.tournament.id))}>Pair round {s.currentRound + 1}</Button>
           )}
           {canManage && s.canComplete && (
-            <Button size="sm" onClick={() => run(() => A.completeSwissAction(data.tournament.id))}>Complete Swiss</Button>
+            <Button size="sm" onClick={completeSwiss}>Complete Swiss</Button>
           )}
         </div>
       </div>
