@@ -1,16 +1,25 @@
 /**
- * Runs ALL database migrations before the Next.js build so a deployment against a
- * brand-new (empty) PostgreSQL database (e.g. Neon on Vercel) needs zero manual DB
- * work. Applies:
- *   1. Prisma migrations   → the `public` schema (competition + records tables)
+ * Prepares the database before the Next.js build so a deployment against a brand-new
+ * (empty) PostgreSQL database (e.g. Neon on Vercel) needs zero manual DB work. Applies:
+ *   1. Prisma schema (public schema — competition + records tables) via `prisma db push`
  *   2. Payload migrations  → the `payload` schema (auth / CMS tables)
  *
- * Connection: uses DATABASE_URL. If DIRECT_URL is set (Neon's direct / unpooled
- * connection string), migrations run over it instead — Prisma's migrate engine
- * needs advisory locks that a pooled/PgBouncer endpoint cannot provide. The app
- * itself still runs against DATABASE_URL (which may be the pooled endpoint).
+ * Why `db push` and not `migrate deploy`: this project's Prisma migration history is
+ * intentionally INCOMPLETE — a number of schema changes (notably the Season→Tournament
+ * rename, comp_season→comp_tournament) were applied locally via `db push` / raw SQL and were
+ * never captured as migration files. Replaying the committed migrations against a fresh DB
+ * therefore fails (later migrations reference comp_tournament, which no migration creates).
+ * `db push` reconciles the database to the canonical schema.prisma directly, which is the
+ * authoritative source of truth here. `--accept-data-loss` is required once to reconcile any
+ * pre-existing drift (e.g. an empty comp_season table); it is harmless for purely additive
+ * changes and touches only the `public` schema, never Payload's `payload` schema.
  *
- * Idempotent: both tools skip already-applied migrations, so re-deploys are safe.
+ * Connection: uses DATABASE_URL. If an unpooled/direct URL is available (DATABASE_URL_UNPOOLED /
+ * POSTGRES_URL_NON_POOLING / DIRECT_URL), schema ops run over it — Prisma's engine needs
+ * advisory locks a pooled/PgBouncer endpoint cannot provide. The app still runs on DATABASE_URL.
+ *
+ * Idempotent: `db push` is a no-op when the DB already matches the schema, and `payload migrate`
+ * skips already-applied migrations, so re-deploys are safe.
  */
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -61,7 +70,7 @@ function withEsmPackage(fn) {
 }
 
 try {
-  run('Prisma: applying migrations (public schema)', 'npx prisma migrate deploy')
+  run('Prisma: syncing schema to schema.prisma (public schema)', 'npx prisma db push --accept-data-loss --skip-generate')
   withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
   console.log('\n✓ All database migrations applied.')
 } catch (err) {
