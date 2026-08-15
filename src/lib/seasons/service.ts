@@ -308,3 +308,77 @@ export async function closeRegistration(actor: Actor, seasonId: number): Promise
   })
   return { ok: true }
 }
+
+// ---- Settings (lifecycle-aware) + export -----------------------------------
+
+export interface SeasonSettingsPatch {
+  subtitle?: string | null
+  description?: string | null
+  lounge?: string
+  accessMode?: 'OPEN' | 'PASSWORD'
+  joinPassword?: string | null
+  registrationOpensAt?: string | null
+  bannerMediaId?: string | null
+  groupStageGames?: number
+  earlyRaceTo?: number
+  semifinalRaceTo?: number
+  finalRaceTo?: number
+}
+
+const REG_EDITABLE = new Set(['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN'])
+const FORMAT_EDITABLE = new Set(['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP', 'GROUP_STAGE_LIVE', 'GROUPS_CLOSED'])
+
+/** Update Season settings with server-enforced, lifecycle-aware gating. Fields the current phase does
+ *  not permit are silently ignored (the UI hides them; this is the authoritative backstop). */
+export async function updateSeasonSettings(actor: Actor, seasonId: number, patch: SeasonSettingsPatch): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true, accessMode: true } })
+  if (!s) return { ok: false, error: 'Season not found.' }
+  const state = s.lifecycleState
+  const data: Record<string, unknown> = {}
+  // Always editable (even after Close): identity + presentation.
+  if (patch.subtitle !== undefined) data.subtitle = patch.subtitle?.trim() || null
+  if (patch.description !== undefined) data.description = patch.description?.trim() || null
+  if (patch.bannerMediaId !== undefined) data.bannerMediaId = patch.bannerMediaId?.trim() || null
+  if (state !== 'COMPLETED') {
+    if (patch.lounge !== undefined) data.lounge = patch.lounge.trim() || 'Social'
+  }
+  // Registration access + schedule: only before registration closes.
+  if (REG_EDITABLE.has(state)) {
+    if (patch.accessMode !== undefined) {
+      const mode = patch.accessMode === 'PASSWORD' ? 'PASSWORD' : 'OPEN'
+      data.accessMode = mode
+      if (mode === 'PASSWORD') { if ((patch.joinPassword ?? '').trim().length < 4) return { ok: false, error: 'Set a join password of at least 4 characters.' }; data.joinPasswordHash = hashJoinPassword((patch.joinPassword ?? '').trim()) }
+      else data.joinPasswordHash = null
+    }
+    if (patch.registrationOpensAt !== undefined) data.registrationOpensAt = patch.registrationOpensAt ? new Date(patch.registrationOpensAt) : null
+  }
+  // Match format: editable until playoffs begin (a warning is shown once groups are live — UI concern).
+  if (FORMAT_EDITABLE.has(state)) {
+    const clamp = (v: number | undefined, d: number) => { const n = Math.trunc(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 99 ? n : d }
+    if (patch.groupStageGames !== undefined) data.groupStageGames = clamp(patch.groupStageGames, 10)
+    if (patch.earlyRaceTo !== undefined) data.earlyRaceTo = clamp(patch.earlyRaceTo, 7)
+    if (patch.semifinalRaceTo !== undefined) data.semifinalRaceTo = clamp(patch.semifinalRaceTo, 9)
+    if (patch.finalRaceTo !== undefined) data.finalRaceTo = clamp(patch.finalRaceTo, 9)
+  }
+  if (Object.keys(data).length === 0) return { ok: true }
+  await prisma.season.update({ where: { id: seasonId }, data })
+  await recordAudit(actor, { action: 'season.settings.update', entity: 'Season', entityId: seasonId, newValue: { fields: Object.keys(data) } })
+  return { ok: true }
+}
+
+/** Complete portable export of a Season (entrants, snapshots, groups, results, standings,
+ *  qualifications, seeds, bracket, champion, ranking rows, audit history). */
+export async function exportSeasonData(seasonId: number): Promise<unknown> {
+  const [season, entrants, groups, matches, standings, playoff, ledger, audit] = await Promise.all([
+    prisma.season.findUnique({ where: { id: seasonId } }),
+    prisma.seasonEntrant.findMany({ where: { seasonId } }),
+    prisma.seasonGroup.findMany({ where: { seasonId } }),
+    prisma.seasonMatch.findMany({ where: { seasonId } }),
+    prisma.seasonStanding.findMany({ where: { seasonId } }),
+    prisma.seasonPlayoffMatch.findMany({ where: { seasonId } }),
+    prisma.ratingLedger.findMany({ where: { seasonId } }),
+    prisma.auditLog.findMany({ where: { entity: 'Season', entityId: String(seasonId) }, orderBy: { createdAt: 'asc' } }),
+  ])
+  if (!season) return null
+  return { exportedAt: new Date().toISOString(), season, entrants, groups, matches, standings, playoffMatches: playoff, rankingChanges: ledger, history: audit }
+}

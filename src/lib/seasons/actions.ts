@@ -228,3 +228,19 @@ export async function deleteSeasonAction(seasonId: number, typedName: string): P
   revalidatePath('/seasons'); revalidatePath('/rankings')
   return { ok: true, message: 'Season permanently deleted.' }
 }
+
+export async function updateSeasonSettingsAction(seasonId: number, patch: import('./service').SeasonSettingsPatch): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const { updateSeasonSettings } = await import('./service')
+  const r = await updateSeasonSettings(actor, seasonId, patch)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Settings saved.' }
+}
+
+export async function exportSeasonDataAction(seasonId: number): Promise<{ ok: boolean; error?: string; data?: unknown }> {
+  await requireCapability('manage_competitions')
+  const { exportSeasonData } = await import('./service')
+  const data = await exportSeasonData(seasonId)
+  if (!data) return { ok: false, error: 'Season not found.' }
+  return { ok: true, data }
+}
