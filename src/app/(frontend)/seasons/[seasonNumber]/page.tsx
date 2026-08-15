@@ -61,7 +61,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonN
       )}
 
       {state === 'GROUP_STAGE_LIVE' && (
-        <SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} canManage={canManage} canClose={canManageComp} canReopen={false} />
+        <SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} groupStageGames={view.format.groupStageGames} canManage={canManage} canClose={canManageComp} canReopen={false} />
       )}
 
       {state === 'GROUPS_CLOSED' && (
@@ -72,14 +72,14 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonN
               <span className="text-sm text-muted-foreground">Groups are closed — advance to playoff selection, or reopen below to edit results.</span>
             </div>
           )}
-          <SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} canManage={false} canClose={false} canReopen={canManageComp} />
+          <SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} groupStageGames={view.format.groupStageGames} canManage={false} canClose={false} canReopen={canManageComp} />
         </>
       )}
 
       {state === 'PLAYOFF_SETUP' && (
         canManageComp
           ? <SeasonPlayoffs seasonId={view.id} phase="setup" seeding={await loadSeasonSeeding(view.id)} rounds={await seasonPlayoffRounds(view.id)} doubleElim={await playoffTypeOf(view.id)} hasDraft={(await prisma.seasonPlayoffMatch.count({ where: { seasonId: view.id } })) > 0} playable={[]} canManage canClose={false} />
-          : <><Info>Group stage complete — the playoff field is being finalized.</Info><SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} canManage={false} canClose={false} canReopen={false} /></>
+          : <><Info>Group stage complete — the playoff field is being finalized.</Info><SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} groupStageGames={view.format.groupStageGames} canManage={false} canClose={false} canReopen={false} /></>
       )}
 
       {state === 'PLAYOFFS_LIVE' && (
@@ -136,7 +136,7 @@ function CompletedView({ view, rounds, groups }: { view: NonNullable<Awaited<Ret
       {groups.length > 0 && (
         <div>
           <h2 className="mb-4 font-display text-lg font-bold text-foreground">Final Group Standings</h2>
-          <SeasonGroupStage seasonId={view.id} groups={groups} canManage={false} canClose={false} canReopen={false} />
+          <SeasonGroupStage seasonId={view.id} groups={groups} groupStageGames={view.format.groupStageGames} canManage={false} canClose={false} canReopen={false} />
         </div>
       )}
     </div>

@@ -24,18 +24,26 @@ export async function getSeasonGroupSetup(seasonId: number): Promise<GroupSetupV
 
 /** Live group-stage view: per group, standings (ranked) + the head-to-head matches for the cross-table. */
 export interface StageMatch { id: number; homeEntrantId: number; awayEntrantId: number; homeUsername: string; awayUsername: string; homeGames: number | null; awayGames: number | null; status: string; winnerEntrantId: number | null; forfeitEntrantId: number | null; version: number }
-export interface StageStandingRow { entrantId: number; username: string; cueverseId: string | null; played: number; wins: number; losses: number; draws: number; gamesWon: number; gamesLost: number; points: number; rank: number; qualified: boolean; kickedOut: boolean }
+export interface StageStandingRow { entrantId: number; username: string; cueverseId: string | null; preferredName: string | null; slug: string | null; discord: string | null; played: number; wins: number; losses: number; draws: number; gamesWon: number; gamesLost: number; points: number; rank: number; qualified: boolean; kickedOut: boolean }
 export interface StageGroup { id: number; code: string; name: string | null; standings: StageStandingRow[]; matches: StageMatch[] }
 
 export async function getSeasonGroupStage(seasonId: number): Promise<StageGroup[]> {
   const groups = await prisma.seasonGroup.findMany({ where: { seasonId, published: true }, include: { standings: true, matches: true }, orderBy: { ordinal: 'asc' } })
-  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, cueverseId: true, kickedOut: true } })
+  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, playerId: true, cueverseId: true, displayName: true, username: true, kickedOut: true } })
   const meta = new Map(entrants.map((e) => [e.id, e]))
+  // Discord + canonical identity come from the linked Player (SeasonEntrant stores only the frozen name).
+  const playerIds = [...new Set(entrants.map((e) => e.playerId).filter((p): p is string => !!p))]
+  const players = playerIds.length ? await prisma.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, discord: true, cueverseId: true } }) : []
+  const pmeta = new Map(players.map((p) => [p.id, p]))
   return groups.map((g) => ({
     id: g.id, code: g.code, name: g.name,
     standings: [...g.standings]
       .sort((a, b) => a.rank - b.rank)
-      .map((s) => ({ entrantId: s.entrantId, username: s.username, cueverseId: meta.get(s.entrantId)?.cueverseId ?? null, played: s.played, wins: s.wins, losses: s.losses, draws: s.draws, gamesWon: s.gamesWon, gamesLost: s.gamesLost, points: s.points, rank: s.rank, qualified: s.qualified, kickedOut: meta.get(s.entrantId)?.kickedOut ?? false })),
+      .map((s) => {
+        const e = meta.get(s.entrantId)
+        const cueverseId = e?.cueverseId ?? pmeta.get(e?.playerId ?? '')?.cueverseId ?? null
+        return { entrantId: s.entrantId, username: s.username, cueverseId, preferredName: e?.displayName?.trim() || null, slug: cueverseId, discord: e?.playerId ? pmeta.get(e.playerId)?.discord ?? null : null, played: s.played, wins: s.wins, losses: s.losses, draws: s.draws, gamesWon: s.gamesWon, gamesLost: s.gamesLost, points: s.points, rank: s.rank, qualified: s.qualified, kickedOut: e?.kickedOut ?? false }
+      }),
     matches: g.matches.map((m) => ({ id: m.id, homeEntrantId: m.homeEntrantId, awayEntrantId: m.awayEntrantId, homeUsername: m.homeUsername, awayUsername: m.awayUsername, homeGames: m.homeGames, awayGames: m.awayGames, status: m.status, winnerEntrantId: m.winnerEntrantId, forfeitEntrantId: m.forfeitEntrantId, version: m.version })),
   }))
 }
