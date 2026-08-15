@@ -6,6 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/lib/competition/audit'
 import { isAdmin } from '@/lib/auth/roles'
 import type { StaffUser } from '@/lib/competition/staff-auth'
+import { canResetTarget, type TargetTier } from './reset-authz'
+
+export { canResetTarget, type TargetTier }
 
 /**
  * ADMIN-INITIATED PASSWORD RESET.
@@ -25,8 +28,6 @@ const TEMP_ATTEMPT_LIMIT = 5
 const payloadClient = async () => getPayload({ config: await config })
 const hashCode = (code: string) => crypto.createHash('sha256').update(code).digest('hex')
 
-export type TargetTier = 'member' | 'admin' | 'headAdmin'
-
 /** The role tier of a target user (for permission decisions + UI). */
 export async function targetTier(userId: number): Promise<TargetTier> {
   const roles = (await prisma.$queryRawUnsafe<{ value: string }[]>(
@@ -41,8 +42,6 @@ export async function targetTier(userId: number): Promise<TargetTier> {
 export interface ResetResult { ok: boolean; error?: string; code?: string; expiresAt?: string }
 
 export async function resetPlayerPassword(actor: StaffUser, targetUserId: number, reason?: string): Promise<ResetResult> {
-  if (!actor.isAdmin && !actor.isOwner) return { ok: false, error: 'Only staff may reset passwords.' }
-
   const target = await prisma.$queryRawUnsafe<{ id: number; username: string | null; email: string | null }[]>(
     'SELECT id, username, email FROM payload.users WHERE id = $1',
     targetUserId,
@@ -50,8 +49,8 @@ export async function resetPlayerPassword(actor: StaffUser, targetUserId: number
   if (!target.length) return { ok: false, error: 'Player not found.' }
 
   const tier = await targetTier(targetUserId)
-  if (tier === 'headAdmin') return { ok: false, error: 'The Head Admin password cannot be reset here — use secure self-service recovery.' }
-  if (tier === 'admin' && !actor.isHeadAdmin) return { ok: false, error: 'Only the Head Admin may reset an Admin password.' }
+  const authz = canResetTarget(actor, tier)
+  if (!authz.ok) return { ok: false, error: authz.error }
 
   // Crypto-secure one-time 5-digit numeric code.
   const code = String(crypto.randomInt(0, 100000)).padStart(5, '0')
