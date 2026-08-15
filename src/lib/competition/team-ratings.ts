@@ -29,5 +29,9 @@ export async function captureTeamRatingsAtClose(tournamentId: number): Promise<v
   }
 
   const updates = members.map((m) => ({ id: m.id, rating: m.playerId ? ratingById.get(m.playerId) ?? ELO_START : ELO_START }))
-  await prisma.$transaction(updates.map((u) => prisma.tournamentTeamMember.update({ where: { id: u.id }, data: { ratingAtClose: u.rating } })))
+  // Interactive form (not the array/batch form): the app's Prisma proxy returns plain Promises, so
+  // `$transaction([...])` rejects with "elements must be Prisma Client promises". See lib/prisma.ts.
+  await prisma.$transaction(async (tx) => {
+    for (const u of updates) await tx.tournamentTeamMember.update({ where: { id: u.id }, data: { ratingAtClose: u.rating } })
+  })
 }
