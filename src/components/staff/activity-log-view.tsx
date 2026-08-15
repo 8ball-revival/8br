@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { formatDateTime } from '@/lib/format'
 import { exportActivityCsvAction } from '@/lib/staff/activity-actions'
-import { ACTIVITY_CATEGORIES, type ActivityRow, type ActivityFilters } from '@/lib/staff/activity-log'
+import { ACTIVITY_CATEGORIES, type ActivityRow, type ActivityFilters } from '@/lib/staff/activity-shared'
 
 const SEVERITIES = ['info', 'notice', 'warning', 'critical'] as const
 const sevClass: Record<string, string> = {
