@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { LogOut, Menu, X } from 'lucide-react'
 // Menu closes via link onClick (below), not a pathname effect.
 
-import { PRIMARY_NAV } from '@/lib/nav'
+import { PRIMARY_NAV, type NavItem } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/account/actions'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,7 @@ function isActive(pathname: string, href: string) {
 }
 
 /** Mobile navigation drawer (slide-down panel). */
-export function MobileNav({ className, isSignedIn = false }: { className?: string; isSignedIn?: boolean }) {
+export function MobileNav({ className, isSignedIn = false, extraItems = [] }: { className?: string; isSignedIn?: boolean; extraItems?: NavItem[] }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -48,7 +48,7 @@ export function MobileNav({ className, isSignedIn = false }: { className?: strin
       {open && (
         <div className="fixed inset-x-0 top-[calc(var(--header-offset,7rem))] bottom-0 z-50 overflow-y-auto border-t border-border bg-background/98 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4">
-            {PRIMARY_NAV.map((item) => {
+            {[...PRIMARY_NAV, ...extraItems].map((item) => {
               const active = isActive(pathname, item.href)
               return (
                 <Link

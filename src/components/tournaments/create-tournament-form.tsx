@@ -8,16 +8,16 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { createTournamentAction, saveFlairDefaultAction, getFlairDefaultAction } from '@/lib/competition/tournament-actions'
 import type { CreateTournamentConfig } from '@/lib/competition/tournament-create'
-import { GROUP_STAGE_GAMES, GROUPS_PLAYOFFS_FORMAT_SUMMARY } from '@/lib/competition/match-format'
 import { FlairEditor, FlairPreview, EMPTY_FLAIR, type FlairValue } from '@/components/tournaments/flair-editor'
 
-type Format = 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'SWISS' | 'GROUPS_PLAYOFFS'
+// Season Championship (GROUPS_PLAYOFFS) is now its own first-class competition type at /seasons — it is
+// NOT a Tournament format. Tournaments offer only these three formats.
+type Format = 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'SWISS'
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
 const FMT_LABEL: Record<Format, string> = {
   SINGLE_ELIM: 'Single Elimination',
   DOUBLE_ELIM: 'Double Elimination',
   SWISS: 'Swiss System',
-  GROUPS_PLAYOFFS: 'Season Championship',
 }
 
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
@@ -34,9 +34,6 @@ export function CreateTournamentForm() {
 
   const [format, setFormat] = useState<Format>('SINGLE_ELIM')
   const [swissRounds, setSwissRounds] = useState(4)
-  const [groupCount, setGroupCount] = useState(4)
-  const [qualifiers, setQualifiers] = useState(2)
-  const [groupPlayoffDouble, setGroupPlayoffDouble] = useState(false)
 
   const [participant, setParticipant] = useState<'INDIVIDUAL' | 'TEAM'>('INDIVIDUAL')
   const [teamSize, setTeamSize] = useState(2)
@@ -62,9 +59,8 @@ export function CreateTournamentForm() {
   const summary = useMemo(() => {
     let fmt: string = FMT_LABEL[format]
     if (format === 'SWISS') fmt += ` · ${swissRounds} rounds`
-    if (format === 'GROUPS_PLAYOFFS') fmt = `${groupCount} groups → ${groupPlayoffDouble ? 'Double' : 'Single'} elim`
     return { fmt }
-  }, [format, swissRounds, groupCount, groupPlayoffDouble])
+  }, [format, swissRounds])
 
   const submit = () => {
     setError(null)
@@ -78,9 +74,7 @@ export function CreateTournamentForm() {
       teamSize: participant === 'TEAM' ? teamSize : null,
       teamFormation: participant === 'TEAM' ? teamFormation : undefined,
       tournamentFormat: format,
-      // Group Stage + Playoffs match lengths are hard-coded per stage; store the group-game count as a
-      // stable placeholder — the per-stage resolver never reads it for this format.
-      raceLength: format === 'GROUPS_PLAYOFFS' ? GROUP_STAGE_GAMES : race,
+      raceLength: race,
       lounge,
       accessMode: access,
       joinPassword: access === 'PASSWORD' ? joinPassword.trim() : null,
@@ -88,9 +82,6 @@ export function CreateTournamentForm() {
       scheduledStartAt: scheduleLater ? `${date}T${time || '00:00'}` : null,
       swissRounds: format === 'SWISS' ? swissRounds : null,
       flair,
-      ...(format === 'GROUPS_PLAYOFFS'
-        ? { groupCount, qualifiersPerGroup: qualifiers, playoffSeeding: 'standing', playoffDoubleElim: groupPlayoffDouble }
-        : {}),
     }
     start(async () => {
       const r = await createTournamentAction(cfg)
@@ -110,7 +101,6 @@ export function CreateTournamentForm() {
             <Choice active={format === 'SINGLE_ELIM'} onClick={() => setFormat('SINGLE_ELIM')} title="Single Elimination" body="One loss and you're out" />
             <Choice active={format === 'DOUBLE_ELIM'} onClick={() => setFormat('DOUBLE_ELIM')} title="Double Elimination" body="Winners + losers bracket" />
             <Choice active={format === 'SWISS'} onClick={() => setFormat('SWISS')} title="Swiss System" body="Fixed rounds, no elimination" />
-            <Choice active={format === 'GROUPS_PLAYOFFS'} onClick={() => setFormat('GROUPS_PLAYOFFS')} title="Season Championship" body="Round-robin, then a bracket" />
           </div>
         </section>
 
@@ -130,30 +120,6 @@ export function CreateTournamentForm() {
                 <p className="mt-1.5 text-xs text-muted-foreground">Everyone plays every round; standings and pairings update each round.</p>
               </Labeled>
             )}
-
-            {format === 'GROUPS_PLAYOFFS' && (
-              <>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Labeled label="Number of groups">
-                    <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))} className={input}>
-                      {[2, 4, 6, 8].map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </Labeled>
-                  <Labeled label="Qualifiers per group">
-                    <select value={qualifiers} onChange={(e) => setQualifiers(Number(e.target.value))} className={input}>
-                      {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </Labeled>
-                </div>
-                <Labeled label="Playoff bracket">
-                  <Segmented
-                    options={[{ v: 'single', l: 'Single elim' }, { v: 'double', l: 'Double elim' }]}
-                    value={groupPlayoffDouble ? 'double' : 'single'}
-                    onChange={(v) => setGroupPlayoffDouble(v === 'double')}
-                  />
-                </Labeled>
-              </>
-            )}
           </div>
         </section>
 
@@ -166,27 +132,12 @@ export function CreateTournamentForm() {
             </Labeled>
             <div className="grid gap-4 sm:grid-cols-2">
               <Labeled label="Match format">
-                {format === 'GROUPS_PLAYOFFS' ? (
-                  // Group Stage + Playoffs has fixed, per-stage match lengths — no race length to choose.
-                  <div className="rounded-md border border-input bg-card px-3 py-2 text-sm">
-                    <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
-                      {GROUPS_PLAYOFFS_FORMAT_SUMMARY.map((r) => (
-                        <div key={r.stage} className="contents">
-                          <dt className="text-muted-foreground">{r.stage}</dt>
-                          <dd className="text-right font-medium text-foreground tabular-nums">{r.format}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <p className="mt-2 text-[0.7rem] text-muted-foreground/70">Fixed for this format.</p>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center overflow-hidden rounded-md border border-input bg-card">
-                    <button type="button" onClick={() => setRace((v) => Math.max(1, v - 1))} className="h-10 w-10 text-lg hover:bg-card-2">–</button>
-                    <input value={race} onChange={(e) => setRace(Math.max(1, Math.min(99, Number(e.target.value) || 1)))} inputMode="numeric" className="h-10 w-14 border-x border-input bg-transparent text-center font-bold tabular-nums outline-none" aria-label="Race to" />
-                    <button type="button" onClick={() => setRace((v) => Math.min(99, v + 1))} className="h-10 w-10 text-lg hover:bg-card-2">+</button>
-                    <span className="px-3 text-sm text-muted-foreground">Race to <b className="text-foreground">{race}</b></span>
-                  </div>
-                )}
+                <div className="inline-flex items-center overflow-hidden rounded-md border border-input bg-card">
+                  <button type="button" onClick={() => setRace((v) => Math.max(1, v - 1))} className="h-10 w-10 text-lg hover:bg-card-2">–</button>
+                  <input value={race} onChange={(e) => setRace(Math.max(1, Math.min(99, Number(e.target.value) || 1)))} inputMode="numeric" className="h-10 w-14 border-x border-input bg-transparent text-center font-bold tabular-nums outline-none" aria-label="Race to" />
+                  <button type="button" onClick={() => setRace((v) => Math.min(99, v + 1))} className="h-10 w-10 text-lg hover:bg-card-2">+</button>
+                  <span className="px-3 text-sm text-muted-foreground">Race to <b className="text-foreground">{race}</b></span>
+                </div>
               </Labeled>
               <Labeled label="Lounge">
                 <select value={lounge} onChange={(e) => setLounge(e.target.value)} className={input}>
@@ -295,7 +246,7 @@ export function CreateTournamentForm() {
           </div>
           <dl className="px-5 py-1 text-sm">
             <Row k="Format" v={summary.fmt} />
-            <Row k="Match" v={format === 'GROUPS_PLAYOFFS' ? 'Groups 10 · Playoffs 7/9' : `Race to ${race}`} />
+            <Row k="Match" v={`Race to ${race}`} />
             <Row k="Participants" v={participant === 'TEAM' ? `Teams of ${teamSize}` : 'Individual (1v1)'} />
             {participant === 'TEAM' && <Row k="Team draw" v={teamFormation === 'RANDOM' ? 'Random draw' : 'Pick roster'} />}
             <Row k="Lounge" v={lounge} />

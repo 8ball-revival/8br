@@ -8,16 +8,20 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { getCurrentUser } from '@/lib/account/auth'
 import { signOut } from '@/lib/account/actions'
+import { isStaff } from '@/lib/auth/roles'
+import type { NavItem } from '@/lib/nav'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
   const user = await getCurrentUser()
+  // Staff-only Admin entry, appended after the public nav (Home · Seasons · Tournaments · Ladder · …).
+  const staffItems: NavItem[] = user && isStaff(user.roles) ? [{ label: 'Admin', href: '/staff' }] : []
   return (
     <header className="sticky top-0 z-40 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70">
       <div className="mx-auto flex h-16 w-full max-w-[96rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Logo />
-          <MainNav className="hidden xl:flex" />
+          <MainNav className="hidden xl:flex" extraItems={staffItems} />
         </div>
 
         <div className="flex items-center gap-1">
@@ -60,7 +64,7 @@ export async function SiteHeader() {
             </Button>
           )}
 
-          <MobileNav className="xl:hidden" isSignedIn={Boolean(user)} />
+          <MobileNav className="xl:hidden" isSignedIn={Boolean(user)} extraItems={staffItems} />
         </div>
       </div>
     </header>
