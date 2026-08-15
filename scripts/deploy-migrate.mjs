@@ -22,7 +22,6 @@
  * skips already-applied migrations, so re-deploys are safe.
  */
 import { execSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
 
 const runtimeUrl = process.env.DATABASE_URL
 if (!runtimeUrl) {
@@ -47,34 +46,17 @@ function run(label, cmd, { closeStdin = false } = {}) {
   execSync(cmd, { stdio: [closeStdin ? 'ignore' : 'inherit', 'inherit', 'inherit'], env })
 }
 
-/**
- * The Payload migrate CLI `require()`s the config, which uses top-level await, so
- * it must be loaded as an ES module. But the app's `package.json` has NO `"type"`
- * field (CommonJS) on purpose: it makes Next/Turbopack emit the `.next/server`
- * JS bundles as CommonJS so Vercel's `___next_launcher.cjs` can `require()` them
- * without ERR_REQUIRE_ESM. So we flip `type` to `module` for ONLY the payload
- * migrate command, then restore the original file verbatim. `next build` runs
- * afterwards under CommonJS.
- */
-const pkgUrl = new URL('../package.json', import.meta.url)
-function withEsmPackage(fn) {
-  const original = readFileSync(pkgUrl, 'utf8')
-  const pkg = JSON.parse(original)
-  pkg.type = 'module'
-  writeFileSync(pkgUrl, JSON.stringify(pkg, null, 2) + '\n')
-  try {
-    fn()
-  } finally {
-    writeFileSync(pkgUrl, original)
-  }
-}
+// NOTE: The Payload (`payload` schema) side is synced by Payload's own `push` on init
+// (postgresAdapter push: true — see src/payload.config.ts), for the same reason as the Prisma
+// db push above: the committed Payload migration history is incomplete and cannot reproduce the
+// current schema on a fresh DB. Payload creates/updates its schema on the first `getPayload()`
+// init (build-time static analysis or first request). So there is no `payload migrate` step here.
 
 try {
   run('Prisma: syncing schema to schema.prisma (public schema)', 'npx prisma db push --accept-data-loss --skip-generate')
-  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
-  console.log('\n✓ All database migrations applied.')
+  console.log('\n✓ Prisma public schema synced. Payload (payload schema) syncs on init via push.')
 } catch (err) {
-  console.error('\n✗ Migration step failed. Aborting build.')
+  console.error('\n✗ Schema sync step failed. Aborting build.')
   console.error(err?.message ?? err)
   process.exit(1)
 }

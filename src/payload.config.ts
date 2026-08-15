@@ -51,9 +51,14 @@ export default buildConfig({
     // Payload owns a SEPARATE Postgres schema so it never collides with the
     // Prisma-owned competition/records tables in the default "public" schema.
     schemaName: 'payload',
-    // Production runs generated migrations (see src/migrations). `push` stays on
-    // only in dev, where it auto-syncs the schema for fast iteration.
-    push: process.env.NODE_ENV !== 'production',
+    // Schema is the source of truth. `push` auto-syncs the Payload (`payload`) schema from the
+    // collection configs — mirroring the Prisma `db push` approach on the `public` schema. The
+    // committed Payload migration history is intentionally incomplete (only the initial migration;
+    // later changes like the `owner` role were applied via dev push and never captured), so
+    // `payload migrate` cannot reproduce the current schema on a fresh database. push is idempotent
+    // (a no-op when the DB already matches). TODO(prod hardening): generate a complete Payload
+    // migration set and switch back to migrate-on-deploy for higher-traffic operation.
+    push: true,
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
