@@ -8,7 +8,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Seasons', href: '/seasons' },
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Ladder', href: '/rankings' },
-  { label: 'Predictions', href: '/predictions' },
+  // Predictions: coming in a future release — hidden from nav until implemented.
   { label: 'Rules', href: '/rules' },
 ]
 
