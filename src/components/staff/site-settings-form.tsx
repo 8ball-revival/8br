@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { SETTINGS_FIELDS, type SiteSettings } from '@/lib/staff/site-settings'
+import { SETTINGS_FIELDS, type SiteSettings } from '@/lib/staff/site-settings-shared'
 import { updateSiteSettingsAction } from '@/lib/staff/settings-actions'
 
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand'
