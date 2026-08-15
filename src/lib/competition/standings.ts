@@ -7,8 +7,9 @@ export interface StandingMatchInput {
   awayUsername: string
   homeGames: number
   awayGames: number
-  winnerRegistrationId: number
-  /** Only VERIFIED, decided matches should be passed in. */
+  /** Winner of the match, or `null` for a Group Stage 5–5 draw. */
+  winnerRegistrationId: number | null
+  /** Only VERIFIED, completed matches should be passed in (draws included). */
 }
 
 export interface StandingRowComputed {
@@ -17,6 +18,7 @@ export interface StandingRowComputed {
   played: number
   wins: number
   losses: number
+  draws: number
   gamesWon: number
   gamesLost: number
   gameDiff: number
@@ -31,6 +33,7 @@ interface Acc {
   played: number
   wins: number
   losses: number
+  draws: number
   gamesWon: number
   gamesLost: number
 }
@@ -38,8 +41,9 @@ interface Acc {
 /**
  * Compute ranked standings for one group.
  * - `roster` seeds a row for every player so 0-game players still appear.
- * - Tiebreakers (deterministic): wins ↓, game differential ↓, games won ↓,
- *   head-to-head result between the tied pair, then username ↑.
+ * - Points: Win = 2, Draw = 1, +1 for completing every scheduled set in the group.
+ * - Tiebreakers (deterministic): Points ↓, then head-to-head result between the tied pair,
+ *   then win percentage ↓, then username ↑.
  * - `qualifiersPerGroup` marks the top N as qualified.
  */
 export function computeStandings(
@@ -55,6 +59,7 @@ export function computeStandings(
       played: 0,
       wins: 0,
       losses: 0,
+      draws: 0,
       gamesWon: 0,
       gamesLost: 0,
     })
@@ -63,7 +68,7 @@ export function computeStandings(
   const ensure = (id: number, username: string): Acc => {
     let row = acc.get(id)
     if (!row) {
-      row = { registrationId: id, username, played: 0, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0 }
+      row = { registrationId: id, username, played: 0, wins: 0, losses: 0, draws: 0, gamesWon: 0, gamesLost: 0 }
       acc.set(id, row)
     }
     return row
@@ -81,39 +86,51 @@ export function computeStandings(
     home.gamesLost += m.awayGames
     away.gamesWon += m.awayGames
     away.gamesLost += m.homeGames
-    if (m.winnerRegistrationId === m.homeRegistrationId) {
+    if (m.winnerRegistrationId == null) {
+      // Group Stage 5–5 draw: no win or loss for either side (game stats still count). The wins /
+      // points / tiebreaker formulas are unchanged — a draw simply adds no match win.
+      home.draws++
+      away.draws++
+    } else if (m.winnerRegistrationId === m.homeRegistrationId) {
       home.wins++
       away.losses++
+      h2h.set(pairKey(m.homeRegistrationId, m.awayRegistrationId), m.winnerRegistrationId)
     } else {
       away.wins++
       home.losses++
+      h2h.set(pairKey(m.homeRegistrationId, m.awayRegistrationId), m.winnerRegistrationId)
     }
-    const key = pairKey(m.homeRegistrationId, m.awayRegistrationId)
-    h2h.set(key, m.winnerRegistrationId)
   }
 
+  // A full round-robin slate is (group size − 1) matches; completing it earns a completion point.
+  const fullSlate = Math.max(0, roster.length - 1)
   const rows: StandingRowComputed[] = [...acc.values()].map((r) => ({
     registrationId: r.registrationId,
     username: r.username,
     played: r.played,
     wins: r.wins,
     losses: r.losses,
+    draws: r.draws,
     gamesWon: r.gamesWon,
     gamesLost: r.gamesLost,
     gameDiff: r.gamesWon - r.gamesLost,
-    points: r.wins, // 1 point per match win
+    // Points: Win = 2, Draw = 1, plus 1 for completing every scheduled set in the group.
+    points: r.wins * 2 + r.draws + (fullSlate > 0 && r.played >= fullSlate ? 1 : 0),
     rank: 0,
     qualified: false,
   }))
 
+  // Game win percentage (used only to break a points + head-to-head tie).
+  const winRate = (r: StandingRowComputed) => { const t = r.gamesWon + r.gamesLost; return t ? r.gamesWon / t : 0 }
   rows.sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins
-    if (b.gameDiff !== a.gameDiff) return b.gameDiff - a.gameDiff
-    if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon
-    // head-to-head between exactly these two
+    if (b.points !== a.points) return b.points - a.points
+    // Tie on points → head-to-head result between these two first…
     const winner = h2h.get(pairKey(a.registrationId, b.registrationId))
     if (winner === a.registrationId) return -1
     if (winner === b.registrationId) return 1
+    // …then win percentage; finally the player name for a fully deterministic order.
+    const dw = winRate(b) - winRate(a)
+    if (Math.abs(dw) > 1e-9) return dw
     return a.username.toLowerCase() < b.username.toLowerCase() ? -1 : 1
   })
 

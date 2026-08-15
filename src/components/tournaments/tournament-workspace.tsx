@@ -12,8 +12,11 @@ import { TournamentLifecycleControls } from '@/components/tournaments/tournament
 import { TournamentHistory } from '@/components/tournaments/tournament-history'
 import { FlairEditor, FlairPreview, type FlairValue } from '@/components/tournaments/flair-editor'
 import { AdminTeamsManager } from '@/components/tournaments/admin-teams'
+import { GroupSetupBoard } from '@/components/tournaments/group-setup-board'
 import type { TournamentWorkspaceData, PlayoffRow } from '@/lib/tournaments/live'
 import type { TournamentHistoryEvent } from '@/lib/competition/tournament-lifecycle'
+import { GROUP_STAGE_GAMES, GROUPS_PLAYOFFS_FORMAT_SUMMARY, computeBracketShape, playoffRaceLength } from '@/lib/competition/match-format'
+import { previewResult } from '@/lib/competition/scoring'
 import * as A from '@/lib/competition/tournament-actions'
 
 type Tab = 'overview' | 'roster' | 'groups' | 'swiss' | 'bracket' | 'results' | 'history' | 'settings'
@@ -51,14 +54,17 @@ export function TournamentWorkspace({
       router.refresh()
     })
 
-  const rosterLabel = data.isTeam ? 'Teams' : 'Entrants'
+  // RANDOM tournaments always use the fixed six-tab set (Overview | Entrants | Bracket | Results |
+  // History | Settings) with a FLAT individual-entrant roster — never a Teams tab, never Groups/Swiss.
+  const isRandom = data.isRandomTeam
+  const rosterLabel = data.isTeam && !isRandom ? 'Teams' : 'Entrants'
   const tabs: { id: Tab; label: string; icon: typeof Users }[] = [
     { id: 'overview', label: 'Overview', icon: Trophy },
     { id: 'roster', label: rosterLabel, icon: Users },
-    ...(data.isGroupStage ? ([{ id: 'groups', label: 'Groups', icon: ListChecks }] as const) : []),
-    ...(data.isSwiss ? ([{ id: 'swiss', label: 'Swiss', icon: ListChecks }] as const) : []),
-    ...(data.isSwiss ? [] : ([{ id: 'bracket', label: 'Bracket', icon: GitBranch }] as const)),
-    ...(data.isSwiss ? [] : ([{ id: 'results', label: 'Results', icon: ListChecks }] as const)),
+    ...(!isRandom && data.isGroupStage ? ([{ id: 'groups', label: 'Groups', icon: ListChecks }] as const) : []),
+    ...(!isRandom && data.isSwiss ? ([{ id: 'swiss', label: 'Swiss', icon: ListChecks }] as const) : []),
+    ...(!isRandom && data.isSwiss ? [] : ([{ id: 'bracket', label: 'Bracket', icon: GitBranch }] as const)),
+    ...(!isRandom && data.isSwiss ? [] : ([{ id: 'results', label: 'Results', icon: ListChecks }] as const)),
     { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ]
@@ -86,6 +92,7 @@ export function TournamentWorkspace({
             bracketStale={data.bracketStale}
             isGroupStage={data.isGroupStage}
             isSwiss={data.isSwiss}
+            isRandom={data.isRandomTeam}
             groupsComplete={data.groupsComplete}
             onNavigate={(t) => setTab(t === 'results' && data.isSwiss ? 'swiss' : t)}
           />
@@ -117,13 +124,15 @@ export function TournamentWorkspace({
       <div className="p-4">
         {tab === 'overview' && <Overview data={data} />}
         {tab === 'roster' && (
-          data.isTeam
-            ? (data.tournament.teamFormation === 'PICK' && canManage && !data.isHistorical
-                ? <AdminTeamsManager tournamentId={data.tournament.id} teamSize={data.tournament.teamSize ?? 2} teams={data.teams} registrationOpen={data.tournament.lifecycleState === 'REGISTRATION_OPEN'} />
-                : <TeamsTab data={data} run={run} disabled={!canManage || data.isHistorical} />)
-            : <EntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />
+          isRandom
+            ? <RandomEntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />
+            : data.isTeam
+              ? (data.tournament.teamFormation === 'PICK' && canManage && !data.isHistorical
+                  ? <AdminTeamsManager tournamentId={data.tournament.id} teamSize={data.tournament.teamSize ?? 2} teams={data.teams} registrationOpen={data.tournament.lifecycleState === 'REGISTRATION_OPEN'} />
+                  : <TeamsTab data={data} run={run} disabled={!canManage || data.isHistorical} />)
+              : <EntrantsTab data={data} run={run} disabled={!canManage || data.isHistorical} />
         )}
-        {tab === 'groups' && <GroupsTab data={data} run={run} canEditResults={canEditResults} />}
+        {tab === 'groups' && <GroupsTab data={data} run={run} canEditResults={canEditResults} canManage={canManage} />}
         {tab === 'swiss' && <SwissTab data={data} run={run} canEditResults={canEditResults} canManage={canManage} />}
         {tab === 'bracket' && <BracketTab data={data} run={run} disabled={!canManage || data.isHistorical} />}
         {tab === 'results' && <ResultsTab data={data} run={run} disabled={!canEditResults || data.isHistorical} />}
@@ -250,15 +259,89 @@ function EntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceData; r
       <div>
         <p className="eyebrow mb-2 text-muted-foreground">{data.entrants.length} entrants</p>
         <ul className="divide-y divide-border rounded-md border border-border">
-          {data.entrants.map((e) => (
+          {data.entrants.map((e, i) => (
             <li key={e.registrationId} className={cn('flex items-center gap-3 px-3 py-2 text-sm', e.withdrawn && 'opacity-50')}>
-              <span className="tabular w-6 text-right text-xs text-muted-foreground">{e.seed ?? '—'}</span>
-              <span className="flex-1">{e.name}{e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}{e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}</span>
+              <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate">{e.name}{e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}{e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}</span>
+              <span className="tabular w-14 shrink-0 text-right text-xs font-semibold text-foreground">{e.rating != null ? e.rating : <span className="font-normal text-muted-foreground">—</span>}</span>
               {!disabled && (
                 e.withdrawn ? (
                   <button onClick={() => run(() => A.restoreTournamentEntrantAction(data.tournament.id, e.registrationId))} className="text-xs text-muted-foreground hover:text-brand">restore</button>
                 ) : (
                   <button onClick={() => run(() => A.removeTournamentEntrantAction(data.tournament.id, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
+                )
+              )}
+            </li>
+          ))}
+          {data.entrants.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">No entrants yet.</li>}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * RANDOM-draw roster tab: a FLAT individual-entrant list (same shape as single-player entrants).
+ * While registration is OPEN admins add/remove players; once registration is CLOSED the list is
+ * read-only pending the one-time draw; after the draw each player is shown read-only with the team
+ * they were drawn into. No team-creation / renaming / moving / preview controls ever appear here.
+ */
+function RandomEntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
+  const tournamentId = data.tournament.id
+  const generated = data.randomTeamsGenerated
+  const state = data.tournament.lifecycleState
+  const canEdit = !disabled && !generated && state === 'REGISTRATION_OPEN'
+  const teamSize = data.tournament.teamSize ?? 2
+  const active = data.entrants.filter((e) => !e.withdrawn)
+  const remainder = active.length % teamSize
+  const teamsFromCount = Math.floor(active.length / teamSize)
+
+  return (
+    <div className="space-y-5">
+      {canEdit && <AddPlayer tournamentId={tournamentId} run={run} />}
+      {!canEdit && !generated && (
+        <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+          {state === 'DRAFT'
+            ? 'Open registration to add players.'
+            : 'Registration is closed — the entrant list is locked. Generate Teams to draw the rosters.'}
+        </p>
+      )}
+      {generated && (
+        <p className="rounded-md border border-brand/30 bg-brand/[0.06] px-3 py-2 text-xs text-foreground">
+          Teams have been generated and are permanently locked. Each player below shows the team they were drawn into.
+        </p>
+      )}
+
+      {/* Live team-completeness readout (pre-draw) so the admin can hit an exact multiple before closing. */}
+      {!generated && state !== 'DRAFT' && (
+        <p className="text-xs text-muted-foreground">
+          {active.length} player{active.length === 1 ? '' : 's'} · teams of {teamSize} ·{' '}
+          {remainder === 0
+            ? `${teamsFromCount} complete team${teamsFromCount === 1 ? '' : 's'}`
+            : `${remainder} left over — add ${teamSize - remainder} or remove ${remainder} to complete teams`}
+        </p>
+      )}
+
+      <div>
+        <p className="eyebrow mb-2 text-muted-foreground">{data.entrants.length} {generated ? 'players' : 'entrants'}</p>
+        <ul className="divide-y divide-border rounded-md border border-border">
+          {data.entrants.map((e, i) => (
+            <li key={e.registrationId} className={cn('flex items-center gap-3 px-3 py-2 text-sm', e.withdrawn && 'opacity-50')}>
+              <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {e.name}
+                {e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}
+                {e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}
+              </span>
+              {generated && e.teamName && (
+                <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-foreground">{e.teamName}</span>
+              )}
+              <span className="tabular w-14 shrink-0 text-right text-xs font-semibold text-foreground">{e.rating != null ? e.rating : <span className="font-normal text-muted-foreground">—</span>}</span>
+              {canEdit && (
+                e.withdrawn ? (
+                  <button onClick={() => run(() => A.restoreTournamentEntrantAction(tournamentId, e.registrationId))} className="text-xs text-muted-foreground hover:text-brand">restore</button>
+                ) : (
+                  <button onClick={() => run(() => A.removeTournamentEntrantAction(tournamentId, e.registrationId))} className="text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
                 )
               )}
             </li>
@@ -345,16 +428,29 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
   // Bracket generation/regeneration is only possible after registration closes and before the
   // tournament begins (server-enforced too). Once In Progress/Completed the bracket is fixed.
   const canBuild = data.tournament.lifecycleState === 'REGISTRATION_CLOSED' || data.tournament.lifecycleState === 'BRACKET_GENERATED'
+  // If a draft bracket already exists (e.g. just seeded from the group qualifiers), initialise the seed
+  // builder FROM it — the qualifiers in seed order, top-N field — so the review reflects the real seeding.
+  const seededOrder = (() => {
+    if (!data.hasBracket || data.matches.length === 0) return null
+    const minR = Math.min(...data.matches.map((m) => m.round))
+    const pairs: { id: number; seed: number }[] = []
+    for (const m of data.matches.filter((m) => m.round === minR)) {
+      if (m.homeRegistrationId != null) pairs.push({ id: m.homeRegistrationId, seed: m.homeSeed ?? 9999 })
+      if (m.awayRegistrationId != null) pairs.push({ id: m.awayRegistrationId, seed: m.awaySeed ?? 9999 })
+    }
+    pairs.sort((a, b) => a.seed - b.seed)
+    return pairs.map((p) => p.id)
+  })()
 
   return (
     <div className="space-y-6">
-      {!disabled && canBuild && <SeedBuilder key={poolKey} data={data} pool={pool} run={run} />}
+      {!disabled && canBuild && <SeedBuilder key={poolKey} data={data} pool={pool} seededOrder={seededOrder} run={run} />}
       {!disabled && !canBuild && (
         <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
           {data.tournament.lifecycleState === 'IN_PROGRESS'
             ? 'The tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
             : data.tournament.lifecycleState === 'COMPLETED'
-              ? 'This cup is completed — the bracket is read-only.'
+              ? 'This tournament is completed — the bracket is read-only.'
               : 'Close registration to generate the bracket.'}
         </p>
       )}
@@ -372,11 +468,21 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
 
 /** Seed-order builder. Keyed on the pool so it re-initialises when entrants/teams change
  *  (no effect needed). Drag to reorder, or use the up/down controls. */
-function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string }[]; run: Run }) {
-  const [order, setOrder] = useState<number[]>(() => pool.map((p) => p.id))
-  // How many of the top seeds advance to the playoff bracket (the rest are cut). Defaults to the full
-  // field, so behavior is unchanged until an admin trims it.
-  const [fieldSize, setFieldSize] = useState<number>(() => pool.length)
+function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string }[]; seededOrder: number[] | null; run: Run }) {
+  // Start from the existing draft seeding when present (qualifiers first, in seed order), else the pool.
+  const initialOrder = useMemo(() => {
+    if (seededOrder && seededOrder.length) {
+      const poolIds = new Set(pool.map((p) => p.id))
+      const inField = seededOrder.filter((id) => poolIds.has(id))
+      const rest = pool.map((p) => p.id).filter((id) => !inField.includes(id))
+      return [...inField, ...rest]
+    }
+    return pool.map((p) => p.id)
+  }, [seededOrder, pool])
+  const [order, setOrder] = useState<number[]>(() => initialOrder)
+  // How many of the top seeds advance to the playoff bracket (the rest are cut). Defaults to the seeded
+  // field (qualifier count) when a draft exists, else the full pool.
+  const [fieldSize, setFieldSize] = useState<number>(() => (seededOrder && seededOrder.length ? seededOrder.length : pool.length))
   const nameById = useMemo(() => new Map(pool.map((p) => [p.id, p.name])), [pool])
   const dragIndex = useRef<number | null>(null)
   const published = data.hasPublishedBracket
@@ -476,41 +582,56 @@ function SeedBuilder({ data, pool, run }: { data: TournamentWorkspaceData; pool:
 
 function ResultsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   const playable = data.matches.filter((m) => m.homeUsername && m.awayUsername)
+  // Group Stage + Playoffs uses a hard-coded per-stage race length; other formats use the configured one.
+  const shape = data.isGroupStage ? computeBracketShape(data.matches) : null
+  const raceFor = (m: PlayoffRow) => (shape ? playoffRaceLength({ round: m.round, section: m.section }, shape) : data.tournament.raceLength)
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Race to <span className="font-semibold text-foreground">{data.tournament.raceLength}</span> — the winner must reach {data.tournament.raceLength} games.
+        {data.isGroupStage ? (
+          <>Playoffs: <span className="font-semibold text-foreground">Race to 7</span> through the quarterfinals, <span className="font-semibold text-foreground">Race to 9</span> in the semifinals &amp; final.</>
+        ) : (
+          <>Race to <span className="font-semibold text-foreground">{data.tournament.raceLength}</span> — the intended match format.</>
+        )}
       </p>
+      <p className="text-xs text-muted-foreground/80">Enter the final score actually played. The higher score will be recorded as the winner.</p>
       {playable.length === 0 && <p className="text-sm text-muted-foreground">No playable matches yet. Build and publish the bracket first.</p>}
       {playable.map((m) => (
-        <ResultRow key={m.id} m={m} run={run} disabled={disabled} />
+        <ResultRow key={m.id} m={m} raceLength={raceFor(m)} run={run} disabled={disabled} />
       ))}
     </div>
   )
 }
 
-function ResultRow({ m, run, disabled }: { m: PlayoffRow; run: Run; disabled: boolean }) {
+function ResultRow({ m, raceLength, run, disabled }: { m: PlayoffRow; raceLength: number; run: Run; disabled: boolean }) {
   const [home, setHome] = useState(m.homeGames?.toString() ?? '')
   const [away, setAway] = useState(m.awayGames?.toString() ?? '')
   const decided = m.winnerRegistrationId != null
   const homeWon = decided && m.winnerRegistrationId === m.homeRegistrationId
+  const bothFilled = home.trim() !== '' && away.trim() !== ''
+  // Elimination: any non-negative whole-number score is accepted, the higher score wins, a tie is
+  // rejected. The race length is an informational format, not a limit.
+  const preview = bothFilled ? previewResult(Number(home), Number(away), false) : null
+  const canSave = preview != null && preview.status !== 'invalid'
   return (
     <div className="rounded-md border border-border bg-background/40 p-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="w-16 text-xs text-muted-foreground">{m.label ?? `R${m.round}·${m.slot + 1}`}</span>
-        <span className={cn('flex-1', homeWon && 'font-semibold text-brand')}>{m.homeUsername}</span>
+        <span className="w-16 shrink-0 text-[0.65rem] text-muted-foreground/70">race to {raceLength}</span>
+        <span className={cn('flex-1', (homeWon || preview?.status === 'home') && 'font-semibold text-brand')}>{m.homeUsername}</span>
         <input value={home} onChange={(e) => setHome(e.target.value)} disabled={disabled} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
         <span className="text-muted-foreground">–</span>
         <input value={away} onChange={(e) => setAway(e.target.value)} disabled={disabled} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
-        <span className={cn('flex-1 text-right', decided && !homeWon && 'font-semibold text-brand')}>{m.awayUsername}</span>
+        <span className={cn('flex-1 text-right', ((decided && !homeWon) || preview?.status === 'away') && 'font-semibold text-brand')}>{m.awayUsername}</span>
       </div>
       {!disabled && (
         <div className="mt-2 flex items-center gap-2">
-          <Button size="sm" onClick={() => run(() => A.recordTournamentScoreAction(m.id, Number(home), Number(away)))} disabled={home === '' || away === ''}>
+          <Button size="sm" onClick={() => run(() => A.recordTournamentScoreAction(m.id, Number(home), Number(away)))} disabled={!canSave}>
             {decided ? 'Update result' : 'Save result'}
           </Button>
           {decided && <Button size="sm" variant="ghost" onClick={() => run(() => A.undoTournamentResultAction(m.id))}>Undo</Button>}
           {decided && <Badge variant={m.verification === 'VERIFIED' ? 'gold' : 'muted'}>{m.verification === 'VERIFIED' ? 'advanced' : 'recorded'}</Badge>}
+          {bothFilled && preview?.status === 'invalid' && <span className="text-xs text-destructive">{preview.reason ?? 'Enter a valid score.'}</span>}
         </div>
       )}
       {m.note && <p className="mt-1 text-xs text-muted-foreground">{m.note}</p>}
@@ -562,20 +683,33 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
       {canManage && !data.isHistorical && (
         <section>
           <p className="eyebrow mb-2 text-muted-foreground">Match format</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-sm text-muted-foreground">Race to</label>
-            <input
-              type="number"
-              min={1}
-              value={race}
-              onChange={(e) => setRace(Math.max(1, Number(e.target.value) || 1))}
-              className="w-20 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-            />
-            <Button size="sm" variant="secondary" onClick={() => run(() => A.setTournamentRaceLengthAction(data.tournament.id, race))} disabled={race === data.tournament.raceLength}>
-              Save race length
-            </Button>
-            <span className="text-xs text-muted-foreground">Games to win a match — used by score validation everywhere.</span>
-          </div>
+          {data.isGroupStage ? (
+            // Group Stage + Playoffs has fixed, per-stage match lengths — nothing to configure.
+            <dl className="max-w-xs space-y-1 text-sm">
+              {GROUPS_PLAYOFFS_FORMAT_SUMMARY.map((r) => (
+                <div key={r.stage} className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">{r.stage}</dt>
+                  <dd className="font-medium text-foreground tabular-nums">{r.format}</dd>
+                </div>
+              ))}
+              <p className="pt-1 text-xs text-muted-foreground">Fixed for Group Stage + Playoffs.</p>
+            </dl>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-sm text-muted-foreground">Race to</label>
+              <input
+                type="number"
+                min={1}
+                value={race}
+                onChange={(e) => setRace(Math.max(1, Number(e.target.value) || 1))}
+                className="w-20 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              />
+              <Button size="sm" variant="secondary" onClick={() => run(() => A.setTournamentRaceLengthAction(data.tournament.id, race))} disabled={race === data.tournament.raceLength}>
+                Save race length
+              </Button>
+              <span className="text-xs text-muted-foreground">Games to win a match — used by score validation everywhere.</span>
+            </div>
+          )}
         </section>
       )}
 
@@ -635,7 +769,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
               className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
             <Button variant="destructive" onClick={deleteTournament} disabled={deleting || delCode.trim() !== (data.tournament.code ?? '')}>
-              {deleting ? 'Deleting…' : 'Delete cup permanently'}
+              {deleting ? 'Deleting…' : 'Delete tournament permanently'}
             </Button>
           </div>
           {delError && <p className="mt-2 text-sm text-destructive">{delError}</p>}
@@ -647,9 +781,19 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
 
 // --------------------------------------------------------------------------- Group Stage
 
-function GroupsTab({ data, run, canEditResults }: { data: TournamentWorkspaceData; run: Run; canEditResults: boolean }) {
+function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentWorkspaceData; run: Run; canEditResults: boolean; canManage: boolean }) {
+  // Draft Group Setup phase (registration closed, groups not yet published): show the organize-and-publish board.
+  if (canManage && data.groupSetup && !data.groupsPublished) {
+    return (
+      <GroupSetupBoard
+        tournamentId={data.tournament.id}
+        setup={data.groupSetup}
+        groups={data.groups.map((g) => ({ id: g.id, name: g.name, playerIds: g.players.map((p) => p.registrationId) }))}
+      />
+    )
+  }
   if (data.groups.length === 0) {
-    return <p className="text-sm text-muted-foreground">Groups haven&apos;t been generated yet. Close registration, then Start Group Stage.</p>
+    return <p className="text-sm text-muted-foreground">Groups haven&apos;t been set up yet. Close registration, then use <span className="font-medium text-foreground">Set Up Groups</span> to organize them.</p>
   }
   return (
     <div className="space-y-8">
@@ -698,10 +842,11 @@ function GroupsTab({ data, run, canEditResults }: { data: TournamentWorkspaceDat
 
           {/* Round-robin schedule + result entry */}
           <div className="border-t border-border p-4">
-            <p className="eyebrow mb-2 text-muted-foreground">Round-robin schedule</p>
+            <p className="eyebrow mb-1 text-muted-foreground">Round-robin schedule</p>
+            {canEditResults && <p className="mb-2 text-xs text-muted-foreground/80">Enter the final score actually played. The higher score wins; an equal score is a draw.</p>}
             <div className="space-y-1.5">
               {g.matches.map((m) => (
-                <GroupMatchRow key={m.id} m={m} raceLength={data.tournament.raceLength} run={run} disabled={!canEditResults} />
+                <GroupMatchRow key={m.id} m={m} run={run} disabled={!canEditResults} />
               ))}
             </div>
           </div>
@@ -713,24 +858,31 @@ function GroupsTab({ data, run, canEditResults }: { data: TournamentWorkspaceDat
 
 function GroupMatchRow({
   m,
-  raceLength,
   run,
   disabled,
 }: {
   m: import('@/lib/tournaments/live').WorkspaceGroupMatch
-  raceLength: number
   run: Run
   disabled: boolean
 }) {
-  const decided = m.winnerRegistrationId != null
+  // A group result is settled once both scores are recorded — including a 5–5 draw, which has NO winner.
+  // (Gating only on winnerRegistrationId left saved draws stuck in the unsaved "Save" state.)
+  const decided = m.winnerRegistrationId != null || (m.homeGames != null && m.awayGames != null)
+  const isDraw = decided && m.winnerRegistrationId == null
   const [home, setHome] = useState<string>(m.homeGames != null ? String(m.homeGames) : '')
   const [away, setAway] = useState<string>(m.awayGames != null ? String(m.awayGames) : '')
   const [editing, setEditing] = useState(false)
 
+  const h = Number(home)
+  const a = Number(away)
+  const bothFilled = home.trim() !== '' && away.trim() !== ''
+  // Any non-negative whole-number score is accepted; the higher score wins and an equal score is a
+  // draw (Group Stage permits draws). The game count is informational — not enforced.
+  const preview = bothFilled ? previewResult(h, a, true) : null
+  const canSave = preview != null && preview.status !== 'invalid'
+
   const save = () => {
-    const h = Number(home)
-    const a = Number(away)
-    if (!Number.isFinite(h) || !Number.isFinite(a)) return
+    if (!canSave) return
     run(() => import('@/lib/competition/tournament-actions').then((A) => A.recordGroupResultAction(m.id, h, a)))
     setEditing(false)
   }
@@ -753,10 +905,22 @@ function GroupMatchRow({
         decided && !editing ? (
           <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
         ) : (
-          <Button size="sm" variant="outline" onClick={save} disabled={home === '' || away === ''}>Save</Button>
+          <Button size="sm" variant="outline" onClick={save} disabled={!canSave}>Save</Button>
         )
       )}
-      <span className="w-16 text-right text-[0.65rem] text-muted-foreground">race to {raceLength}</span>
+      <span className="w-28 text-right text-[0.65rem] text-muted-foreground">
+        {!disabled && (editing || !decided) && preview ? (
+          preview.status === 'invalid'
+            ? <span className="text-destructive">{preview.reason ?? 'check score'}</span>
+            : preview.status === 'draw'
+              ? <span className="text-foreground">draw</span>
+              : <span className="truncate text-brand">{preview.status === 'home' ? m.homeUsername : m.awayUsername} wins</span>
+        ) : isDraw ? (
+          <span className="text-foreground">draw</span>
+        ) : (
+          `${GROUP_STAGE_GAMES} games`
+        )}
+      </span>
     </div>
   )
 }
@@ -822,6 +986,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
         <div key={rd.round} className="overflow-hidden rounded-lg border border-border">
           <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">Round {rd.round}</div>
           <div className="space-y-1.5 p-4">
+            {canEditResults && rd.round === s.currentRound && <p className="mb-1 text-xs text-muted-foreground/80">Enter the final score actually played. The higher score will be recorded as the winner.</p>}
             {rd.matches.map((m) => (
               <SwissMatchRow key={m.id} m={m} raceLength={data.tournament.raceLength} run={run} disabled={!canEditResults} />
             ))}
@@ -848,16 +1013,20 @@ function SwissMatchRow({ m, raceLength, run, disabled }: { m: NonNullable<Tourna
     )
   }
 
+  const bothFilled = home.trim() !== '' && away.trim() !== ''
+  // Swiss needs a winner every board (no draws): higher score wins, a tie is rejected. Any
+  // non-negative whole-number score is accepted; the race length is informational only.
+  const preview = bothFilled ? previewResult(Number(home), Number(away), false) : null
+  const canSave = preview != null && preview.status !== 'invalid'
   const save = () => {
-    const h = Number(home), a = Number(away)
-    if (!Number.isFinite(h) || !Number.isFinite(a)) return
-    run(() => A.recordSwissResultAction(m.id, h, a))
+    if (!canSave) return
+    run(() => A.recordSwissResultAction(m.id, Number(home), Number(away)))
     setEditing(false)
   }
   const homeWon = m.winnerRegistrationId === m.homeRegistrationId
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
-      <span className={cn('min-w-0 flex-1 truncate text-right', decided && homeWon && 'font-semibold text-brand')}>{m.homeName}</span>
+      <span className={cn('min-w-0 flex-1 truncate text-right', (decided && homeWon) || preview?.status === 'home' ? 'font-semibold text-brand' : '')}>{m.homeName}</span>
       {decided && !editing ? (
         <span className="tabular px-2 font-medium">{m.homeGames}–{m.awayGames}</span>
       ) : (
@@ -867,13 +1036,17 @@ function SwissMatchRow({ m, raceLength, run, disabled }: { m: NonNullable<Tourna
           <input value={away} onChange={(e) => setAway(e.target.value)} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center tabular" placeholder="0" disabled={disabled} />
         </span>
       )}
-      <span className={cn('min-w-0 flex-1 truncate', decided && !homeWon && 'font-semibold text-brand')}>{m.awayName}</span>
+      <span className={cn('min-w-0 flex-1 truncate', (decided && !homeWon) || preview?.status === 'away' ? 'font-semibold text-brand' : '')}>{m.awayName}</span>
       {!disabled && (decided && !editing ? (
         <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
       ) : (
-        <Button size="sm" variant="outline" onClick={save} disabled={home === '' || away === ''}>Save</Button>
+        <Button size="sm" variant="outline" onClick={save} disabled={!canSave}>Save</Button>
       ))}
-      <span className="w-16 text-right text-[0.65rem] text-muted-foreground">race to {raceLength}</span>
+      <span className="w-20 text-right text-[0.65rem] text-muted-foreground">
+        {!disabled && (editing || !decided) && preview?.status === 'invalid'
+          ? <span className="text-destructive">{preview.reason ?? 'needs a winner'}</span>
+          : `race to ${raceLength}`}
+      </span>
     </div>
   )
 }

@@ -9,7 +9,6 @@ import {
   recomputeStandings,
   generatePlayoff,
   rebuildManualPlayoff,
-  publishPlayoff,
 } from './service'
 import { transitionTournamentState } from './tournament-lifecycle'
 import { orderQualifiers, type GroupQualifiers } from './bracket'
@@ -69,8 +68,13 @@ export async function recordGroupResult(
 /** Every group match must have a verified, decided result before qualifiers can be confirmed. */
 export async function groupStageComplete(tournamentId: number): Promise<{ complete: boolean; total: number; remaining: number }> {
   const total = await prisma.tournamentMatch.count({ where: { tournamentId } })
+  // A match is settled once it is VERIFIED and in a completed status — including a 5–5 draw, which is
+  // COMPLETED with a null winner. Only unplayed/disputed/unverified matches remain.
   const remaining = await prisma.tournamentMatch.count({
-    where: { tournamentId, OR: [{ winnerRegistrationId: null }, { verification: { not: 'VERIFIED' } }] },
+    where: {
+      tournamentId,
+      OR: [{ verification: { not: 'VERIFIED' } }, { status: { notIn: ['COMPLETED', 'FORFEIT', 'NO_SHOW'] } }],
+    },
   })
   return { complete: total > 0 && remaining === 0, total, remaining }
 }
@@ -127,9 +131,9 @@ export async function confirmQualifiersAndSeed(actor: Actor, tournamentId: numbe
   }
   if (!seed.ok) return seed
 
-  const pub = await publishPlayoff(actor, tournamentId)
-  if (!pub.ok) return pub
-
+  // Confirming qualifiers seeds a DRAFT playoff bracket (unpublished) and moves to BRACKET_GENERATED — a
+  // review step. The Admin then adjusts who's in / the seeding on the Bracket tab, publishes it, and
+  // starts play. It does NOT auto-publish or go live here, so seeding can still be changed.
   const tr = await transitionTournamentState(actor, tournamentId, 'BRACKET_GENERATED')
   if (!tr.ok) return { ok: false, error: tr.error }
   return { ok: true }

@@ -2,6 +2,19 @@ import 'server-only'
 import type { TournamentLifecycleState, Tournament, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
+import { validateRandomCount } from './random-teams'
+
+/**
+ * RANDOM close gate: a random-draw tournament may only close registration when its solo entrant
+ * count forms complete teams (an exact multiple of team size) AND at least two teams. Returns an
+ * error string (exactly how many to add/remove), else null. Enforced inside `transitionTournamentState`
+ * so every close path — the button, auto-close, or a direct call — validates it identically.
+ */
+async function assertRandomClosable(tournamentId: number, teamSize: number): Promise<string | null> {
+  const n = await prisma.registration.count({ where: { tournamentId, status: 'APPROVED', team: { is: null } } })
+  const r = validateRandomCount(n, teamSize)
+  return r.ok ? null : r.error
+}
 
 /**
  * CUP LIFECYCLE — the single source of truth for a tournament's state and the ONLY place cup state
@@ -32,8 +45,9 @@ const NEXT: Record<TournamentState, TournamentState[]> = {
   // BRACKET_GENERATED; a Group Stage + Playoffs tournament first enters GROUPS_IN_PROGRESS.
   // A Swiss tournament goes straight to IN_PROGRESS (round-based play, no bracket).
   REGISTRATION_CLOSED: ['REGISTRATION_OPEN', 'GROUPS_IN_PROGRESS', 'BRACKET_GENERATED', 'IN_PROGRESS', 'CANCELLED'],
-  // Group stage running; once groups finish, qualifiers seed the generated playoff bracket.
-  GROUPS_IN_PROGRESS: ['REGISTRATION_OPEN', 'BRACKET_GENERATED', 'CANCELLED'],
+  // Group stage running; once groups finish, confirming qualifiers seeds + publishes the playoff
+  // bracket and goes live (IN_PROGRESS) so playoff results can be reported immediately.
+  GROUPS_IN_PROGRESS: ['REGISTRATION_OPEN', 'BRACKET_GENERATED', 'IN_PROGRESS', 'CANCELLED'],
   BRACKET_GENERATED: ['REGISTRATION_OPEN', 'GROUPS_IN_PROGRESS', 'IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
   COMPLETED: [],
@@ -157,6 +171,7 @@ export async function assertCompletable(tournamentId: number): Promise<string | 
  * registration ids the same way.
  */
 export async function bracketMatchesEntrants(tournamentId: number): Promise<{ ok: boolean; reason?: string }> {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { tournamentFormat: true } })
   const matches = await prisma.playoffMatch.findMany({
     where: { tournamentId },
     select: { round: true, homeRegistrationId: true, awayRegistrationId: true },
@@ -171,9 +186,13 @@ export async function bracketMatchesEntrants(tournamentId: number): Promise<{ ok
   // Current active entrants: non-withdrawn registrations, or (team cups) non-withdrawn teams' regs.
   const regs = await prisma.registration.findMany({ where: { tournamentId, status: { not: 'WITHDRAWN' } }, select: { id: true } })
   const active = new Set(regs.map((r) => r.id))
-  // A seeded id no longer active, or an active entrant missing from the bracket → stale.
+  // A seeded id no longer active → stale (a qualifier/entrant left after seeding).
   for (const id of seeded) if (!active.has(id)) return { ok: false, reason: 'The bracket includes an entrant who is no longer in the tournament.' }
-  for (const id of active) if (!seeded.has(id)) return { ok: false, reason: 'An entrant was added after the bracket was generated.' }
+  // For Group Stage + Playoffs the bracket holds only the qualifiers (top-N), so non-qualifying
+  // entrants are legitimately absent — skip the "everyone must be seeded" reverse check there.
+  if (tournament?.tournamentFormat !== 'GROUPS_PLAYOFFS') {
+    for (const id of active) if (!seeded.has(id)) return { ok: false, reason: 'An entrant was added after the bracket was generated.' }
+  }
   return { ok: true }
 }
 
@@ -212,6 +231,20 @@ export async function transitionTournamentState(
     return { ok: false, error: 'Generate the bracket (or start the group stage) before the tournament goes live.' }
   }
 
+  const isRandom = tournament.participantFormat === 'TEAM' && tournament.teamFormation === 'RANDOM'
+
+  // RANDOM close gate — never close into an entrant count that can't form complete teams.
+  if (to === 'REGISTRATION_CLOSED' && isRandom && !opts.recovery) {
+    const problem = await assertRandomClosable(tournamentId, tournament.teamSize ?? 2)
+    if (problem) return { ok: false, error: problem }
+  }
+
+  // RANDOM lock: registration cannot be RE-OPENED once closed (teams are drawn once and locked).
+  // (`from === DRAFT` is the initial open, which stays allowed.)
+  if (to === 'REGISTRATION_OPEN' && from !== 'DRAFT' && isRandom && !opts.recovery) {
+    return { ok: false, error: 'Random-draw tournaments cannot reopen registration once it has closed.' }
+  }
+
   // Completion gate — the Final must be decided and no required match left open.
   if (to === 'COMPLETED' && !opts.recovery) {
     const problem = await assertCompletable(tournamentId)
@@ -225,7 +258,14 @@ export async function transitionTournamentState(
       { action: opts.recovery && !valid ? 'tournament.state.recovery' : 'tournament.state', entity: 'Tournament', entityId: tournamentId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
       tx,
     )
-    if (to === 'COMPLETED') await applyLadder(tx, tournamentId, actor)
+    if (to === 'COMPLETED') {
+      await applyLadder(tx, tournamentId, actor)
+      // Deterministically (re)build the Elo rating ledger from every completed tournament in close
+      // order. Idempotent — a normal close, a retry, and an authorized correction all converge on the
+      // same correct state, and downstream ratings are always replayed chronologically.
+      const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+      await rebuildRatingLedger(tx)
+    }
   })
 
   // Reflect the final bracket/champion into the derived snapshot (rankings/records/list).
@@ -274,7 +314,7 @@ export async function requireTournamentState(
 
 export type TournamentHistoryKind =
   | 'created' | 'registration_open' | 'registration_closed'
-  | 'bracket_generated' | 'bracket_regenerated' | 'tournament_started'
+  | 'bracket_generated' | 'bracket_regenerated' | 'tournament_started' | 'teams_generated'
   | 'match_result' | 'entrant_added' | 'entrant_removed' | 'ladder_applied'
   | 'tournament_completed' | 'tournament_cancelled' | 'recovery' | 'other'
 
@@ -288,7 +328,7 @@ export interface TournamentHistoryEvent {
 
 const PUBLIC_KINDS: ReadonlySet<TournamentHistoryKind> = new Set([
   'created', 'registration_open', 'registration_closed', 'bracket_generated', 'bracket_regenerated',
-  'tournament_started', 'match_result', 'tournament_completed', 'tournament_cancelled', 'recovery',
+  'tournament_started', 'teams_generated', 'match_result', 'tournament_completed', 'tournament_cancelled', 'recovery',
 ])
 
 /**
@@ -342,6 +382,14 @@ export async function getTournamentHistory(tournamentId: number, opts: { admin?:
         // only builds AFTER that milestone are regenerations worth surfacing.
         if (sawBracketGenerated) push('bracket_regenerated', 'Bracket regenerated')
         break
+      case 'tournament.team.randomDraw': {
+        // The one-time random team draw. Public sees the milestone; admins additionally see the names.
+        const nv = r.newValue && typeof r.newValue === 'object' ? (r.newValue as Record<string, unknown>) : {}
+        const teams = typeof nv.teams === 'number' ? nv.teams : undefined
+        const names = Array.isArray(nv.names) ? (nv.names as unknown[]).filter((x): x is string => typeof x === 'string') : []
+        push('teams_generated', teams != null ? `Random teams generated (${teams})` : 'Random teams generated', names.length ? names.join(', ') : undefined)
+        break
+      }
       case 'playoff.verify':
         push('match_result', 'Match result recorded')
         break

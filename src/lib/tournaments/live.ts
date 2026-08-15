@@ -4,7 +4,20 @@ import type { BracketRound, BracketMatch, BracketSlot } from './fixtures'
 import { resolveEntrants } from '@/lib/competition/entrants'
 import { getTeamsForSeason, getTeamMembersByRegistration, type TeamView } from '@/lib/competition/teams'
 import { getTournamentState, bracketMatchesEntrants } from '@/lib/competition/tournament-lifecycle'
+import { computeBracketShape, playoffRaceLength } from '@/lib/competition/match-format'
+import { MIN_GROUP_SIZE, roundRobinMatchCount, validateGroupDraft, groupsArePublished } from '@/lib/competition/group-setup'
 import { getSwissState, type SwissState } from '@/lib/competition/swiss'
+
+/** Current Rankings rating (latest all-time Elo post-rating) per playerId. Players with no rated
+ *  history are simply absent from the map (shown as unrated). */
+async function ratingsByPlayerId(playerIds: (string | null)[]): Promise<Map<string, number>> {
+  const m = new Map<string, number>()
+  const ids = [...new Set(playerIds.filter((p): p is string => !!p))]
+  if (!ids.length) return m
+  const latest = await prisma.ratingLedger.findMany({ where: { playerId: { in: ids } }, orderBy: { sequence: 'desc' }, select: { playerId: true, postRating: true } })
+  for (const r of latest) if (!m.has(r.playerId)) m.set(r.playerId, r.postRating)
+  return m
+}
 
 /** Column name for a bracket round: last round = Final, then Semifinals, etc. */
 export function roundColumnName(round: number, totalRounds: number): string {
@@ -61,8 +74,14 @@ export function playoffToBracketRounds(
   /** Active individual cups: regId → CURRENT CueVerse ID, shown as the slot's secondary line so a
    *  bracket slot reflects BOTH the Preferred Name and the CueVerse ID. */
   handleByRegId?: Map<number, string>,
+  /** Individual cups (live AND completed): regId → profile slug (CueVerse ID) so each 1v1 name links
+   *  to the player's profile. Unlike handleByRegId, this is kept even when it equals the name. */
+  slugByRegId?: Map<number, string>,
+  /** Group Stage + Playoffs: annotate each match with its hard-coded race length (7 early, 9 semis/final). */
+  groupsPlayoffs?: boolean,
 ): BracketRound[] {
   if (!rows.length) return []
+  const bracketShape = groupsPlayoffs ? computeBracketShape(rows) : null
   const totalRounds = Math.max(...rows.map((r) => r.round))
   const byRound = new Map<number, PlayoffRow[]>()
   for (const r of rows) {
@@ -81,6 +100,8 @@ export function playoffToBracketRounds(
     else if (name != null) s.name = name
     const handle = regId != null ? handleByRegId?.get(regId) : undefined
     if (handle != null && handle !== s.name) s.handle = handle // secondary line: CueVerse ID
+    const slug = regId != null ? slugByRegId?.get(regId) : undefined
+    if (slug != null) s.slug = slug // profile-link target (kept even when it equals the name)
     if (seed != null) s.seed = seed
     if (score != null) s.score = score
     if (regId != null && membersByRegId?.has(regId)) {
@@ -103,6 +124,7 @@ export function playoffToBracketRounds(
         if (b) m.b = b
         if (r.winnerRegistrationId != null) m.winner = r.winnerRegistrationId === r.homeRegistrationId ? 'a' : 'b'
         if (r.note) m.note = r.note
+        if (bracketShape) m.raceLength = playoffRaceLength({ round: r.round, section: r.section }, bracketShape)
         return m
       }),
     })
@@ -117,6 +139,10 @@ export interface TournamentEntrantView {
   slug: string | null
   seed: number | null
   withdrawn: boolean
+  /** Current Rankings (all-time Elo) rating, or null when the player has no rated history yet. */
+  rating: number | null
+  /** RANDOM tournaments only: the generated team this player was drawn into (null before the draw). */
+  teamName?: string | null
 }
 
 export interface TournamentWorkspaceData {
@@ -130,6 +156,8 @@ export interface TournamentWorkspaceData {
     participantFormat: 'INDIVIDUAL' | 'TEAM'
     teamSize: number | null
     tournamentFormat: string | null
+    accessMode: string // 'OPEN' | 'PASSWORD'
+    requiresJoinPassword: boolean
     raceLength: number
     qualifiersPerGroup: number | null // Group Stage: how many advance from each group (for the summary line)
     status: string
@@ -162,11 +190,20 @@ export interface TournamentWorkspaceData {
   // ---- Group Stage + Playoffs (only populated when tournamentFormat = GROUPS_PLAYOFFS) ----
   isGroupStage: boolean
   groups: WorkspaceGroup[]
+  /** True once the groups are published (Group Stage live). While false the groups are a private draft. */
+  groupsPublished: boolean
+  /** Draft-phase board data (null once published) — Unassigned entrants + live summary + validation. */
+  groupSetup: GroupSetupView | null
   /** Every group match has a verified result → qualifiers can be confirmed. */
   groupsComplete: boolean
   // ---- Swiss (only populated when tournamentFormat = SWISS) ----
   isSwiss: boolean
   swiss: SwissState | null
+  // ---- RANDOM team formation ----
+  /** teamFormation = RANDOM. Drives the fixed six-tab, individual-entrants workspace. */
+  isRandomTeam: boolean
+  /** RANDOM only: the one-time draw has run (teams exist). Entrants become read-only + show team names. */
+  randomTeamsGenerated: boolean
 }
 
 export interface WorkspaceGroupMatch {
@@ -207,6 +244,67 @@ export interface WorkspaceGroup {
 }
 
 /** Load the group-stage view (groups, round-robin matches, standings) for a tournament. */
+export interface GroupSetupEntrant {
+  registrationId: number
+  name: string
+  cueverseId: string | null
+}
+
+export interface GroupSetupView {
+  isTeam: boolean
+  /** Every active (approved) entrant, keyed for the board to render cards in any column. */
+  entrants: GroupSetupEntrant[]
+  unassignedIds: number[]
+  totalEntrants: number
+  numGroups: number
+  targetPerGroup: number
+  minGroupSize: number
+  assignedCount: number
+  unassignedCount: number
+  /** Round-robin matches that publishing will generate (sum of nC2 over groups). */
+  totalMatches: number
+  perGroup: { id: number; name: string; count: number; overTarget: boolean; underMin: boolean }[]
+  issues: { code: string; message: string }[]
+  canPublish: boolean
+}
+
+/** Build the private Group-Setup board view for the draft phase (before groups are published). */
+async function loadGroupSetup(tournamentId: number, isTeam: boolean, groups: WorkspaceGroup[], entrantName: Map<number, GroupSetupEntrant>): Promise<GroupSetupView> {
+  const approved = await prisma.registration.findMany({ where: { tournamentId, status: 'APPROVED' }, select: { id: true } })
+  const approvedIds = approved.map((r) => r.id)
+  const approvedSet = new Set(approvedIds)
+  const assigned = new Set(groups.flatMap((g) => g.players.map((p) => p.registrationId)))
+  const unassignedIds = approvedIds.filter((id) => !assigned.has(id))
+  const entrants: GroupSetupEntrant[] = approvedIds.map((id) => entrantName.get(id) ?? { registrationId: id, name: `#${id}`, cueverseId: null })
+
+  const numGroups = groups.length
+  const totalEntrants = approvedIds.length
+  const targetPerGroup = numGroups > 0 ? Math.ceil(totalEntrants / numGroups) : 0
+  const perGroup = groups.map((g) => {
+    const count = g.players.filter((p) => approvedSet.has(p.registrationId)).length
+    return { id: g.id, name: g.name, count, overTarget: count > targetPerGroup, underMin: count < MIN_GROUP_SIZE }
+  })
+  const totalMatches = perGroup.reduce((s, g) => s + roundRobinMatchCount(g.count), 0)
+  const assignedCount = totalEntrants - unassignedIds.length
+  const { issues } = await validateGroupDraft(tournamentId)
+
+  return {
+    isTeam,
+    entrants,
+    unassignedIds,
+    totalEntrants,
+    numGroups,
+    targetPerGroup,
+    minGroupSize: MIN_GROUP_SIZE,
+    assignedCount,
+    unassignedCount: unassignedIds.length,
+    totalMatches,
+    perGroup,
+    issues,
+    canPublish: issues.length === 0,
+  }
+}
+
 async function loadGroupStage(tournamentId: number): Promise<{ groups: WorkspaceGroup[]; complete: boolean }> {
   const gs = await prisma.tournamentGroup.findMany({
     where: { tournamentId },
@@ -265,8 +363,15 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
     })),
   }))
   const total = await prisma.tournamentMatch.count({ where: { tournamentId } })
+  // A match is settled once it is VERIFIED and in a completed status — INCLUDING a 5–5 draw, which is
+  // COMPLETED with a null winner. Only unplayed/disputed/unverified matches remain. (Mirrors
+  // groupStageComplete; gating on winnerRegistrationId here wrongly treated a draw as unplayed and left
+  // "Confirm Qualifiers" disabled.)
   const remaining = await prisma.tournamentMatch.count({
-    where: { tournamentId, OR: [{ winnerRegistrationId: null }, { verification: { not: 'VERIFIED' } }] },
+    where: {
+      tournamentId,
+      OR: [{ verification: { not: 'VERIFIED' } }, { status: { notIn: ['COMPLETED', 'FORFEIT', 'NO_SHOW'] } }],
+    },
   })
   return { groups, complete: total > 0 && remaining === 0 }
 }
@@ -299,6 +404,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       orderBy: [{ seed: 'asc' }, { id: 'asc' }],
     })
     const idn = await resolveEntrants(regs)
+    const ratings = await ratingsByPlayerId(regs.map((r) => r.playerId))
     entrants = regs.map((r) => ({
       registrationId: r.id,
       name: idn.get(r.id)?.displayName ?? r.username,
@@ -306,10 +412,53 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       slug: idn.get(r.id)?.slug ?? null,
       seed: r.seed,
       withdrawn: r.status === 'WITHDRAWN',
+      rating: r.playerId ? ratings.get(r.playerId) ?? null : null,
     }))
   }
   const teams = isTeam ? await getTeamsForSeason(tournament.id) : []
   const membersByRegId = isTeam ? await getTeamMembersByRegistration(tournament.id) : undefined
+
+  // RANDOM tournaments present a FLAT individual-entrant list (like single-player), never a Teams UI.
+  // Before the draw: the solo registrations (editable while registration is open). After the draw:
+  // each drawn player shown read-only with the generated team they landed in.
+  const isRandomTeam = isTeam && tournament.teamFormation === 'RANDOM'
+  const randomTeamsGenerated = isRandomTeam && teams.length > 0
+  if (isRandomTeam) {
+    if (!randomTeamsGenerated) {
+      const solos = await prisma.registration.findMany({
+        where: { tournamentId: tournament.id, team: { is: null } },
+        select: { id: true, username: true, displayName: true, cueverseId: true, playerId: true, seed: true, status: true },
+        orderBy: [{ seed: 'asc' }, { id: 'asc' }],
+      })
+      const ratings = await ratingsByPlayerId(solos.map((r) => r.playerId))
+      entrants = solos.map((r) => ({
+        registrationId: r.id,
+        name: r.displayName?.trim() || r.username,
+        handle: r.cueverseId ?? null,
+        slug: r.cueverseId ?? null,
+        seed: r.seed,
+        withdrawn: r.status === 'WITHDRAWN',
+        rating: r.playerId ? ratings.get(r.playerId) ?? null : null,
+        teamName: null,
+      }))
+    } else {
+      const members = await prisma.tournamentTeamMember.findMany({
+        where: { team: { tournamentId: tournament.id } },
+        select: { id: true, name: true, handle: true, memberOrder: true, ratingAtClose: true, team: { select: { name: true } } },
+        orderBy: [{ teamId: 'asc' }, { memberOrder: 'asc' }],
+      })
+      entrants = members.map((m) => ({
+        registrationId: m.id,
+        name: m.name,
+        handle: m.handle ?? null,
+        slug: m.handle ?? null,
+        seed: null,
+        withdrawn: false,
+        rating: m.ratingAtClose ?? null,
+        teamName: m.team.name,
+      }))
+    }
+  }
 
   const matches: PlayoffRow[] = await prisma.playoffMatch.findMany({
     where: { tournamentId: tournament.id },
@@ -332,7 +481,12 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
   // Individual bracket slots also carry the CueVerse ID as a secondary line (Preferred Name + ID).
   const handleByRegId =
     !isCompleted && !isTeam ? new Map(entrants.flatMap((e) => (e.handle ? [[e.registrationId, e.handle] as const] : []))) : undefined
-  const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId, handleByRegId)
+  // Profile-link slug for every individual entrant (live AND completed) so bracket names link to the
+  // player's profile like the Rankings ladder does. Prefer the resolved slug, fall back to the CueVerse ID.
+  const slugByRegId = !isTeam
+    ? new Map(entrants.flatMap((e) => { const s = e.slug ?? e.handle; return s ? [[e.registrationId, s] as const] : [] }))
+    : undefined
+  const bracketRounds = playoffToBracketRounds(matches, membersByRegId, displayByRegId, handleByRegId, slugByRegId, tournament.tournamentFormat === 'GROUPS_PLAYOFFS')
   const hasPublishedBracket = matches.some((m) => m.published)
   const hasResults = matches.some((m) => m.winnerRegistrationId != null)
   // Staleness only matters while the bracket is generated but the tournament hasn't started.
@@ -344,6 +498,16 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
   // Group Stage + Playoffs data (only for that format).
   const isGroupStage = tournament.tournamentFormat === 'GROUPS_PLAYOFFS'
   const gs = isGroupStage ? await loadGroupStage(tournament.id) : { groups: [], complete: false }
+  const groupsPublished = isGroupStage ? await groupsArePublished(tournament.id) : false
+  // Draft board (before publish): Unassigned entrants + summary + validation. Every entrant (individual
+  // or whole team) is one movable card, keyed by registrationId.
+  let groupSetup: GroupSetupView | null = null
+  if (isGroupStage && !groupsPublished && getTournamentState(tournament) === 'REGISTRATION_CLOSED') {
+    const entrantName = new Map<number, GroupSetupEntrant>()
+    if (isTeam) for (const t of teams) entrantName.set(t.registrationId, { registrationId: t.registrationId, name: t.name, cueverseId: null })
+    else for (const e of entrants) entrantName.set(e.registrationId, { registrationId: e.registrationId, name: e.name, cueverseId: e.handle })
+    groupSetup = await loadGroupSetup(tournament.id, isTeam, gs.groups, entrantName)
+  }
   const isSwiss = tournament.tournamentFormat === 'SWISS'
   const swiss = isSwiss ? await getSwissState(tournament.id) : null
 
@@ -358,6 +522,8 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       participantFormat: tournament.participantFormat,
       teamSize: tournament.teamSize,
       tournamentFormat: tournament.tournamentFormat,
+      accessMode: tournament.accessMode, // 'OPEN' | 'PASSWORD' — a private tournament needs a join password
+      requiresJoinPassword: tournament.accessMode === 'PASSWORD',
       raceLength: tournament.raceLength,
       qualifiersPerGroup: tournament.qualifiersPerGroup ?? null,
       status: tournament.status,
@@ -386,8 +552,12 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
     bracketStale,
     isGroupStage,
     groups: gs.groups,
+    groupsPublished,
+    groupSetup,
     groupsComplete: gs.complete,
     isSwiss,
     swiss,
+    isRandomTeam,
+    randomTeamsGenerated,
   }
 }

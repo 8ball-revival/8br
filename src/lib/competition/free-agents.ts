@@ -2,6 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 import { requirePickTeamOpen, accountState } from './teams'
+import { joinPasswordGate } from './join-password'
 
 /**
  * Free Agents + registration-close allocation for PLAYER-SELECTED (teamFormation = PICK) team
@@ -27,9 +28,11 @@ export async function accountIdentity(userId: number): Promise<PlayerIdentity | 
 // ---- Free-agent registration (player-facing) -------------------------------
 
 /** REGISTER as a Free Agent (no team). Refused if already on a team or already a free agent. */
-export async function registerFreeAgent(actor: Actor, tournamentId: number, identity: PlayerIdentity): Promise<{ ok: boolean; error?: string }> {
+export async function registerFreeAgent(actor: Actor, tournamentId: number, identity: PlayerIdentity, joinPassword?: string | null): Promise<{ ok: boolean; error?: string }> {
   const gate = await requirePickTeamOpen(tournamentId)
   if (!gate.ok) return gate
+  const pwErr = await joinPasswordGate(tournamentId, joinPassword)
+  if (pwErr) return { ok: false, error: pwErr }
   const { resolveMemberStatus } = await import('@/lib/moderation/service')
   if (!(await resolveMemberStatus(actor.userId)).canRegister) return { ok: false, error: 'This account cannot register.' }
   const st = await accountState(tournamentId, actor.userId)

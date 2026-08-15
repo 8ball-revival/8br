@@ -13,11 +13,13 @@ const initial: FormResult = {}
 /** Account creation — only CueVerse ID, Email, and Password. The CueVerse ID is the public
  *  identity and the login handle. Preferred Name / Discord / Time Zone are optional and are
  *  added later in My Account, never required to sign up or to enter a competition. */
-export function CreateAccountForm() {
+export function CreateAccountForm({ returnTo = '/account' }: { returnTo?: string }) {
   const [state, action, pending] = useActionState(createAccount, initial)
+  const loginHref = returnTo && returnTo !== '/account' ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="returnTo" value={returnTo} />
       <div className="space-y-1.5">
         <label htmlFor="cueverseId" className="text-sm font-medium">
           CueVerse ID
@@ -84,7 +86,7 @@ export function CreateAccountForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-brand hover:text-brand-soft">
+        <Link href={loginHref} className="font-medium text-brand hover:text-brand-soft">
           Sign in
         </Link>
       </p>

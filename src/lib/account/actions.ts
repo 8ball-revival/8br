@@ -18,6 +18,7 @@ import {
   validateTimeZone,
 } from './validation'
 import { getCurrentUser } from './auth'
+import { safeReturnTo } from './return-to'
 import { getActiveSeason } from '@/lib/competition/queries'
 import { createPublicRegistration, withdrawPublicRegistration } from '@/lib/competition/service'
 import { getProfileByUserId, changeCueverseId, createOrLinkAccountProfile } from '@/lib/players/service'
@@ -159,13 +160,15 @@ export async function createAccount(_prev: FormResult, formData: FormData): Prom
     return { error: provision.error }
   }
 
+  const returnTo = safeReturnTo(String(formData.get('returnTo') ?? ''))
   try {
     const res = await p.login({ collection: 'users', data: { username, password } })
     if (res.token) await setSessionCookie(res.token, res.exp)
   } catch {
-    redirect('/login')
+    redirect(returnTo === '/account' ? '/login' : `/login?returnTo=${encodeURIComponent(returnTo)}`)
   }
-  redirect('/account')
+  // Send a new member back to where they started (e.g. the tournament they were joining).
+  redirect(returnTo)
 }
 
 /** Sign in with User ID or email + password. */
@@ -203,7 +206,9 @@ export async function signIn(_prev: FormResult, formData: FormData): Promise<For
       return { error: status.status === 'BANNED' ? 'This account has been banned.' : 'This account has been deleted.' }
   }
   await setSessionCookie(token!, exp)
-  redirect('/account')
+  // Return the user to where they started (e.g. the tournament they were joining), if a safe local
+  // path was carried through; otherwise the account page.
+  redirect(safeReturnTo(String(formData.get('returnTo') ?? '')))
 }
 
 /**
@@ -463,7 +468,7 @@ export async function startTeamAction(_prev: FormResult, formData: FormData): Pr
   if (!identity) return { error: 'Complete your player profile before registering.' }
   const joinCode = String(formData.get('joinCode') ?? '')
   const { startTeam } = await import('@/lib/competition/teams')
-  const res = await startTeam({ userId: Number(user.id), username: user.username }, cup.id, String(formData.get('teamName') ?? ''), identity, joinCode.trim() ? joinCode : null)
+  const res = await startTeam({ userId: Number(user.id), username: user.username }, cup.id, String(formData.get('teamName') ?? ''), identity, joinCode.trim() ? joinCode : null, String(formData.get('joinPassword') ?? ''))
   if (!res.ok) return { error: res.error }
   teamRevalidate(number)
   return { ok: true }
@@ -483,7 +488,7 @@ export async function joinTeamAction(_prev: FormResult, formData: FormData): Pro
   if (!identity) return { error: 'Complete your player profile before registering.' }
   const joinCode = String(formData.get('joinCode') ?? '')
   const { joinTeam } = await import('@/lib/competition/teams')
-  const res = await joinTeam({ userId: Number(user.id), username: user.username }, cup.id, teamId, identity, joinCode.trim() ? joinCode : null)
+  const res = await joinTeam({ userId: Number(user.id), username: user.username }, cup.id, teamId, identity, joinCode.trim() ? joinCode : null, String(formData.get('joinPassword') ?? ''))
   if (!res.ok) return { error: res.error }
   teamRevalidate(number)
   return { ok: true }
@@ -529,7 +534,7 @@ export async function registerFreeAgentAction(_prev: FormResult, formData: FormD
   const identity = await playerIdentityOf(Number(user.id))
   if (!identity) return { error: 'Complete your player profile before registering.' }
   const { registerFreeAgent } = await import('@/lib/competition/free-agents')
-  const res = await registerFreeAgent({ userId: Number(user.id), username: user.username }, cup.id, identity)
+  const res = await registerFreeAgent({ userId: Number(user.id), username: user.username }, cup.id, identity, String(formData.get('joinPassword') ?? ''))
   if (!res.ok) return { error: res.error }
   teamRevalidate(number)
   return { ok: true }

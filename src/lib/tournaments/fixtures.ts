@@ -15,6 +15,10 @@ export interface TournamentCompetitor {
 export interface BracketSlot {
   name?: string
   handle?: string
+  /** 1v1 slots: the CueVerse ID used to link the name to the player's public profile
+   *  (`/players/{slug}`), the same target the Rankings ladder uses. Present whenever the
+   *  slot maps to a real registrant, even when it equals the displayed name. */
+  slug?: string
   seed?: number
   score?: number
   /** Team-format: the roster + supporting data for the team-details popover. The bracket row shows
@@ -29,6 +33,8 @@ export interface BracketMatch {
   b?: BracketSlot
   winner?: 'a' | 'b'
   note?: string // e.g. "Walkover", "Forfeit"
+  /** Race length for this specific match (Group Stage + Playoffs: 7 early, 9 semis/final). */
+  raceLength?: number
 }
 
 export interface BracketRound {

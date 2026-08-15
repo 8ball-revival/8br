@@ -9,6 +9,8 @@ export interface EntrantListItem {
   name: string
   cueverseId?: string | null
   slug?: string | null
+  /** Current Rankings (all-time Elo) rating; null = unrated (no ranked history yet). */
+  rating?: number | null
 }
 
 /**
@@ -26,10 +28,13 @@ export function EntrantList({
   label?: string
 }) {
   const [q, setQ] = useState('')
+  // Assign a stable 1-based entrant number from the full list order, then filter (the number is
+  // preserved when searching, so "Entrant #" always refers to the same person).
+  const numbered = useMemo(() => entrants.map((e, i) => ({ ...e, num: i + 1 })), [entrants])
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return s ? entrants.filter((e) => `${e.name} ${e.cueverseId ?? ''}`.toLowerCase().includes(s)) : entrants
-  }, [q, entrants])
+    return s ? numbered.filter((e) => `${e.name} ${e.cueverseId ?? ''}`.toLowerCase().includes(s)) : numbered
+  }, [q, numbered])
 
   const body = (
     <>
@@ -47,13 +52,27 @@ export function EntrantList({
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">No entrants match “{q}”.</p>
       ) : (
-        <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((e, i) => (
-            <li key={`${e.name}-${i}`} className="truncate rounded-md border border-border bg-card/40 px-2.5 py-1.5 text-sm">
-              <PublicPlayerIdentity preferredName={e.name} cueverseId={e.cueverseId} slug={e.slug} muted />
-            </li>
-          ))}
-        </ul>
+        // One long single-column list: Entrant # | Preferred Name + CueVerse ID | Rankings Rating.
+        <div className="overflow-hidden rounded-md border border-border">
+          <div className="flex items-center gap-3 border-b border-border bg-card/50 px-3 py-1.5 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+            <span className="w-8 shrink-0 text-right">#</span>
+            <span className="min-w-0 flex-1">Entrant</span>
+            <span className="w-16 shrink-0 text-right">Rating</span>
+          </div>
+          <ul className="divide-y divide-border">
+            {filtered.map((e) => (
+              <li key={`${e.name}-${e.num}`} className="flex items-center gap-3 px-3 py-2 text-sm">
+                <span className="tabular w-8 shrink-0 text-right text-xs text-muted-foreground">{e.num}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  <PublicPlayerIdentity preferredName={e.name} cueverseId={e.cueverseId} slug={e.slug} muted />
+                </span>
+                <span className="tabular w-16 shrink-0 text-right font-semibold text-foreground">
+                  {e.rating != null ? e.rating : <span className="font-normal text-muted-foreground">—</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </>
   )

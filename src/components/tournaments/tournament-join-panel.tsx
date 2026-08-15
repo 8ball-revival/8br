@@ -6,6 +6,7 @@ import { CheckCircle2, Lock, XCircle } from 'lucide-react'
 
 import { joinTournamentAction, withdrawTournamentAction, type FormResult } from '@/lib/account/actions'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { RegistrationIdentitySummary } from '@/components/identity/registration-identity-summary'
 import { ProfileCompletionNotice } from '@/components/identity/profile-completion-notice'
 import type { SignupIdentity } from '@/components/account/register-form'
@@ -25,6 +26,7 @@ export function TournamentJoinPanel({
   myStatus,
   identity,
   missing,
+  requiresPassword = false,
 }: {
   number: number
   isLoggedIn: boolean
@@ -32,6 +34,7 @@ export function TournamentJoinPanel({
   myStatus: 'PENDING' | 'APPROVED' | 'WITHDRAWN' | 'REJECTED' | null
   identity: SignupIdentity | null
   missing: string[]
+  requiresPassword?: boolean
 }) {
   const entered = myStatus === 'APPROVED' || myStatus === 'PENDING'
 
@@ -43,7 +46,7 @@ export function TournamentJoinPanel({
           <Lock className="size-4 text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">Sign in to enter this tournament.</p>
           <Button asChild size="sm">
-            <Link href="/login">Sign in</Link>
+            <Link href={`/login?returnTo=${encodeURIComponent(`/tournaments/${number}`)}`}>Sign in</Link>
           </Button>
         </div>
       ) : entered ? (
@@ -51,7 +54,7 @@ export function TournamentJoinPanel({
       ) : !identity || missing.length > 0 ? (
         <ProfileCompletionNotice missing={missing} />
       ) : registrationOpen ? (
-        <JoinForm number={number} identity={identity} />
+        <JoinForm number={number} identity={identity} requiresPassword={requiresPassword} />
       ) : (
         <div className="flex items-center gap-3">
           <XCircle className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -62,7 +65,7 @@ export function TournamentJoinPanel({
   )
 }
 
-function JoinForm({ number, identity }: { number: number; identity: SignupIdentity }) {
+function JoinForm({ number, identity, requiresPassword }: { number: number; identity: SignupIdentity; requiresPassword: boolean }) {
   const [state, action, pending] = useActionState(joinTournamentAction, initial)
 
   if (state.ok) {
@@ -86,6 +89,14 @@ function JoinForm({ number, identity }: { number: number; identity: SignupIdenti
         timeZone={identity.timeZone}
       />
 
+      {requiresPassword && (
+        <div className="space-y-1.5">
+          <label htmlFor="joinPassword" className="text-sm font-medium text-foreground">Join password</label>
+          <Input id="joinPassword" name="joinPassword" type="password" required autoComplete="off" placeholder="This is a private tournament" />
+          <p className="text-xs text-muted-foreground">This tournament is private — ask the organizer for the password.</p>
+        </div>
+      )}
+
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
         <span className="text-muted-foreground">I have read and agree to the tournament rules and format.</span>
@@ -98,7 +109,7 @@ function JoinForm({ number, identity }: { number: number; identity: SignupIdenti
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? 'Joining…' : 'Join cup'}
+        {pending ? 'Joining…' : 'Join tournament'}
       </Button>
     </form>
   )
@@ -127,7 +138,7 @@ function EnteredState({
         <form action={action}>
           <input type="hidden" name="number" value={number} />
           <Button type="submit" variant="outline" size="sm" disabled={pending}>
-            {pending ? 'Withdrawing…' : 'Withdraw from cup'}
+            {pending ? 'Withdrawing…' : 'Withdraw from tournament'}
           </Button>
           {state.error && <p role="alert" className="mt-2 text-sm text-destructive">{state.error}</p>}
         </form>

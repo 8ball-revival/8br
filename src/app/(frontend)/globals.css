@@ -33,6 +33,13 @@
   --secondary-foreground: #ffffff;
 
   --muted: #171717;
+
+  /* Group-stage Discord contact row (dark): opaque matte bg, subtle red-brown borders, muted-silver
+     icons; blurple on icon hover/focus. */
+  --discord-row-bg: #160c0f;
+  --discord-row-border: #32171d;
+  --discord-icon: #8b8d93;
+  --discord-icon-active: #5865f2;
   --muted-foreground: #a3a3a3; /* secondary text */
 
   --accent: #1f1f1f; /* hover surface */
@@ -47,6 +54,11 @@
   --border: #2a2a2a;
   --input: #2a2a2a;
   --ring: #e31b3d; /* visible crimson focus ring */
+
+  /* Bracket match rows: winner = near-black fill; loser = transparent (the row shows the plain card
+     behind it, no grey highlight) so only the advancing side is emphasized. */
+  --bkt-winner-bg: #0c0c0d;
+  --bkt-loser-bg: transparent;
 
   /* Navigation surface (header/footer). Its own tokens so a personal theme can retint the nav
      without disturbing the page — WCC default keeps them equal to the base surfaces. */
@@ -110,6 +122,12 @@
   --secondary-foreground: #2a2a20;
 
   --muted: #e7e2cf;
+
+  /* Group-stage Discord contact row (light): pale crimson-gray bg + borders, muted icons; blurple stays. */
+  --discord-row-bg: #f4eaed;
+  --discord-row-border: #e3cdd2;
+  --discord-icon: #62646a;
+  --discord-icon-active: #5865f2;
   --muted-foreground: #6a6650; /* olive-gray, ≥ AA on cream */
 
   --accent: #e0dac2; /* hover surface */
@@ -124,6 +142,10 @@
   --input: #cdc7ac;
   --ring: #c8102e;
 
+  /* Bracket two-tone for the cream theme: winner = darker tan, loser = lighter cream (dark text stays readable). */
+  --bkt-winner-bg: #cbc39f;
+  --bkt-loser-bg: #f4eede;
+
   /* Olive nav bar with cream text (the Yahoo top-bar cue) */
   --nav-bg: #5f6136;
   --nav-foreground: #f3efe0;
@@ -137,6 +159,7 @@
   /* Fixed result semantics stay meaningful on light too */
   --win: #c8102e;
   --loss: #6a6650;
+
 
   --player-name: #8a6a12; /* darker gold, readable on cream */
 
@@ -249,6 +272,20 @@
 }
 
 @layer components {
+  /* Bracket match rows use a neutral two-tone (no brand red): the WINNER gets the DARKER charcoal and
+     the LOSER the LIGHTER grey, so each match reads as a decided pair at a glance. Undecided matches
+     stay on the plain card background. Winner name is bold white; loser name is dimmed — both readable. */
+  .bracket-winner-row {
+    background-color: var(--bkt-winner-bg);
+  }
+  .bracket-loser-row {
+    background-color: var(--bkt-loser-bg);
+  }
+  /* Loser NAME: plain red (no glow). Winners stay bold white — see the component. */
+  .bracket-loser-name {
+    color: #ff2d46;
+  }
+
   /* Subtle crimson text-gradient for hero wordmarks (no heavy glow). */
   .text-brand-gradient,
   .text-gold-gradient {
@@ -325,7 +362,7 @@
   }
 
   /* Responsive tournament bracket tree. Round columns flex to fill the canvas; subtle
-     crimson elbow connectors show how matches advance. */
+     neon-red elbow connectors show how matches advance. */
   .bkt-tree {
     --bkt-gap: 2rem;
     --bkt-half-gap: calc(var(--bkt-gap) / 2);

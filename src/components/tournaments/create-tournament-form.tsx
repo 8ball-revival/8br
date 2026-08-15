@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { createTournamentAction, saveFlairDefaultAction, getFlairDefaultAction } from '@/lib/competition/tournament-actions'
 import type { CreateTournamentConfig } from '@/lib/competition/tournament-create'
+import { GROUP_STAGE_GAMES, GROUPS_PLAYOFFS_FORMAT_SUMMARY } from '@/lib/competition/match-format'
 import { FlairEditor, FlairPreview, EMPTY_FLAIR, type FlairValue } from '@/components/tournaments/flair-editor'
 
 type Format = 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'SWISS' | 'GROUPS_PLAYOFFS'
@@ -16,7 +17,7 @@ const FMT_LABEL: Record<Format, string> = {
   SINGLE_ELIM: 'Single Elimination',
   DOUBLE_ELIM: 'Double Elimination',
   SWISS: 'Swiss System',
-  GROUPS_PLAYOFFS: 'Group Stage → Playoffs',
+  GROUPS_PLAYOFFS: 'Season Championship',
 }
 
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
@@ -77,7 +78,9 @@ export function CreateTournamentForm() {
       teamSize: participant === 'TEAM' ? teamSize : null,
       teamFormation: participant === 'TEAM' ? teamFormation : undefined,
       tournamentFormat: format,
-      raceLength: race,
+      // Group Stage + Playoffs match lengths are hard-coded per stage; store the group-game count as a
+      // stable placeholder — the per-stage resolver never reads it for this format.
+      raceLength: format === 'GROUPS_PLAYOFFS' ? GROUP_STAGE_GAMES : race,
       lounge,
       accessMode: access,
       joinPassword: access === 'PASSWORD' ? joinPassword.trim() : null,
@@ -100,21 +103,90 @@ export function CreateTournamentForm() {
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       {/* ---- form ---- */}
       <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border bg-surface">
+        {/* Format — only the four main format choices (format-specific settings live in Configuration). */}
+        <section className="p-6">
+          <p className={eyebrow}><span className="text-muted-foreground/50">01</span> Format</p>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+            <Choice active={format === 'SINGLE_ELIM'} onClick={() => setFormat('SINGLE_ELIM')} title="Single Elimination" body="One loss and you're out" />
+            <Choice active={format === 'DOUBLE_ELIM'} onClick={() => setFormat('DOUBLE_ELIM')} title="Double Elimination" body="Winners + losers bracket" />
+            <Choice active={format === 'SWISS'} onClick={() => setFormat('SWISS')} title="Swiss System" body="Fixed rounds, no elimination" />
+            <Choice active={format === 'GROUPS_PLAYOFFS'} onClick={() => setFormat('GROUPS_PLAYOFFS')} title="Season Championship" body="Round-robin, then a bracket" />
+          </div>
+        </section>
+
+        {/* Configuration — settings specific to the selected format only (progressive disclosure). */}
+        <section className="p-6">
+          <p className={eyebrow}><span className="text-muted-foreground/50">02</span> Configuration</p>
+          <div className="mt-4 space-y-4">
+            {(format === 'SINGLE_ELIM' || format === 'DOUBLE_ELIM') && (
+              <p className="text-sm text-muted-foreground">No additional settings for {FMT_LABEL[format]}.</p>
+            )}
+
+            {format === 'SWISS' && (
+              <Labeled label="Number of rounds">
+                <select value={swissRounds} onChange={(e) => setSwissRounds(Number(e.target.value))} className={cn(input, 'max-w-[140px]')}>
+                  {[3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <p className="mt-1.5 text-xs text-muted-foreground">Everyone plays every round; standings and pairings update each round.</p>
+              </Labeled>
+            )}
+
+            {format === 'GROUPS_PLAYOFFS' && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Labeled label="Number of groups">
+                    <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))} className={input}>
+                      {[2, 4, 6, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </Labeled>
+                  <Labeled label="Qualifiers per group">
+                    <select value={qualifiers} onChange={(e) => setQualifiers(Number(e.target.value))} className={input}>
+                      {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </Labeled>
+                </div>
+                <Labeled label="Playoff bracket">
+                  <Segmented
+                    options={[{ v: 'single', l: 'Single elim' }, { v: 'double', l: 'Double elim' }]}
+                    value={groupPlayoffDouble ? 'double' : 'single'}
+                    onChange={(v) => setGroupPlayoffDouble(v === 'double')}
+                  />
+                </Labeled>
+              </>
+            )}
+          </div>
+        </section>
+
         {/* Basics */}
         <section className="p-6">
-          <p className={eyebrow}><span className="text-muted-foreground/50">01</span> Basics</p>
+          <p className={eyebrow}><span className="text-muted-foreground/50">03</span> Basics</p>
           <div className="mt-4 space-y-4">
             <Labeled label="Tournament name" hint="optional">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. WCC Winter Open" maxLength={80} className={input} />
             </Labeled>
             <div className="grid gap-4 sm:grid-cols-2">
               <Labeled label="Match format">
-                <div className="inline-flex items-center overflow-hidden rounded-md border border-input bg-card">
-                  <button type="button" onClick={() => setRace((v) => Math.max(1, v - 1))} className="h-10 w-10 text-lg hover:bg-card-2">–</button>
-                  <input value={race} onChange={(e) => setRace(Math.max(1, Math.min(99, Number(e.target.value) || 1)))} inputMode="numeric" className="h-10 w-14 border-x border-input bg-transparent text-center font-bold tabular-nums outline-none" aria-label="Race to" />
-                  <button type="button" onClick={() => setRace((v) => Math.min(99, v + 1))} className="h-10 w-10 text-lg hover:bg-card-2">+</button>
-                  <span className="px-3 text-sm text-muted-foreground">Race to <b className="text-foreground">{race}</b></span>
-                </div>
+                {format === 'GROUPS_PLAYOFFS' ? (
+                  // Group Stage + Playoffs has fixed, per-stage match lengths — no race length to choose.
+                  <div className="rounded-md border border-input bg-card px-3 py-2 text-sm">
+                    <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
+                      {GROUPS_PLAYOFFS_FORMAT_SUMMARY.map((r) => (
+                        <div key={r.stage} className="contents">
+                          <dt className="text-muted-foreground">{r.stage}</dt>
+                          <dd className="text-right font-medium text-foreground tabular-nums">{r.format}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="mt-2 text-[0.7rem] text-muted-foreground/70">Fixed for this format.</p>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center overflow-hidden rounded-md border border-input bg-card">
+                    <button type="button" onClick={() => setRace((v) => Math.max(1, v - 1))} className="h-10 w-10 text-lg hover:bg-card-2">–</button>
+                    <input value={race} onChange={(e) => setRace(Math.max(1, Math.min(99, Number(e.target.value) || 1)))} inputMode="numeric" className="h-10 w-14 border-x border-input bg-transparent text-center font-bold tabular-nums outline-none" aria-label="Race to" />
+                    <button type="button" onClick={() => setRace((v) => Math.min(99, v + 1))} className="h-10 w-10 text-lg hover:bg-card-2">+</button>
+                    <span className="px-3 text-sm text-muted-foreground">Race to <b className="text-foreground">{race}</b></span>
+                  </div>
+                )}
               </Labeled>
               <Labeled label="Lounge">
                 <select value={lounge} onChange={(e) => setLounge(e.target.value)} className={input}>
@@ -132,55 +204,9 @@ export function CreateTournamentForm() {
           </div>
         </section>
 
-        {/* Format */}
-        <section className="p-6">
-          <p className={eyebrow}><span className="text-muted-foreground/50">02</span> Format</p>
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-            <Choice active={format === 'SINGLE_ELIM'} onClick={() => setFormat('SINGLE_ELIM')} title="Single Elimination" body="One loss and you're out" />
-            <Choice active={format === 'DOUBLE_ELIM'} onClick={() => setFormat('DOUBLE_ELIM')} title="Double Elimination" body="Winners + losers bracket" />
-            <Choice active={format === 'SWISS'} onClick={() => setFormat('SWISS')} title="Swiss System" body="Fixed rounds, no elimination" />
-            <Choice active={format === 'GROUPS_PLAYOFFS'} onClick={() => setFormat('GROUPS_PLAYOFFS')} title="Group Stage → Playoffs" body="Round-robin, then a bracket" />
-          </div>
-
-          {format === 'SWISS' && (
-            <Reveal>
-              <Labeled label="Number of rounds">
-                <select value={swissRounds} onChange={(e) => setSwissRounds(Number(e.target.value))} className={cn(input, 'max-w-[140px]')}>
-                  {[3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-                <p className="mt-1.5 text-xs text-muted-foreground">Everyone plays every round; standings and pairings update each round.</p>
-              </Labeled>
-            </Reveal>
-          )}
-
-          {format === 'GROUPS_PLAYOFFS' && (
-            <Reveal>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Labeled label="Number of groups">
-                  <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))} className={input}>
-                    {[2, 4, 6, 8].map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </Labeled>
-                <Labeled label="Qualifiers per group">
-                  <select value={qualifiers} onChange={(e) => setQualifiers(Number(e.target.value))} className={input}>
-                    {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </Labeled>
-              </div>
-              <Labeled label="Playoff bracket" className="mt-4">
-                <Segmented
-                  options={[{ v: 'single', l: 'Single elim' }, { v: 'double', l: 'Double elim' }]}
-                  value={groupPlayoffDouble ? 'double' : 'single'}
-                  onChange={(v) => setGroupPlayoffDouble(v === 'double')}
-                />
-              </Labeled>
-            </Reveal>
-          )}
-        </section>
-
         {/* Participants */}
         <section className="p-6">
-          <p className={eyebrow}><span className="text-muted-foreground/50">03</span> Participants</p>
+          <p className={eyebrow}><span className="text-muted-foreground/50">04</span> Participants</p>
           <Labeled label="Who competes" className="mt-4">
             <Segmented
               options={[{ v: 'INDIVIDUAL', l: 'Individual (1v1)' }, { v: 'TEAM', l: 'Teams' }]}
@@ -205,7 +231,7 @@ export function CreateTournamentForm() {
 
         {/* Access */}
         <section className="p-6">
-          <p className={eyebrow}><span className="text-muted-foreground/50">04</span> Access</p>
+          <p className={eyebrow}><span className="text-muted-foreground/50">05</span> Access</p>
           <Labeled label="Who can register" className="mt-4">
             <Segmented
               options={[{ v: 'OPEN', l: 'Open to all' }, { v: 'PASSWORD', l: 'Password required' }]}
@@ -225,7 +251,7 @@ export function CreateTournamentForm() {
 
         {/* Schedule */}
         <section className="p-6">
-          <p className={eyebrow}><span className="text-muted-foreground/50">05</span> Schedule</p>
+          <p className={eyebrow}><span className="text-muted-foreground/50">06</span> Schedule</p>
           <Labeled label="When registration opens" className="mt-4">
             <Segmented
               options={[{ v: 'now', l: 'Start now' }, { v: 'later', l: 'Schedule for later' }]}
@@ -246,7 +272,7 @@ export function CreateTournamentForm() {
 
         {/* Flair */}
         <section className="p-6">
-          <p className={eyebrow}><span className="text-muted-foreground/50">06</span> Flair <span className="font-normal normal-case tracking-normal text-muted-foreground/60">— optional, on-brand</span></p>
+          <p className={eyebrow}><span className="text-muted-foreground/50">07</span> Flair <span className="font-normal normal-case tracking-normal text-muted-foreground/60">— optional, on-brand</span></p>
           <div className="mt-4">
             <FlairEditor value={flair} onChange={setFlair} />
           </div>
@@ -269,7 +295,7 @@ export function CreateTournamentForm() {
           </div>
           <dl className="px-5 py-1 text-sm">
             <Row k="Format" v={summary.fmt} />
-            <Row k="Match" v={`Race to ${race}`} />
+            <Row k="Match" v={format === 'GROUPS_PLAYOFFS' ? 'Groups 10 · Playoffs 7/9' : `Race to ${race}`} />
             <Row k="Participants" v={participant === 'TEAM' ? `Teams of ${teamSize}` : 'Individual (1v1)'} />
             {participant === 'TEAM' && <Row k="Team draw" v={teamFormation === 'RANDOM' ? 'Random draw' : 'Pick roster'} />}
             <Row k="Lounge" v={lounge} />

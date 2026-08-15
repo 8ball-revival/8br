@@ -1235,9 +1235,51 @@ model Tournament {
   teams          TournamentTeam[]
   swissMatches   SwissMatch[]
   freeAgents     TournamentFreeAgent[]
+  ratingLedger   RatingLedger[]
 
   @@index([lifecycleState])
   @@map("comp_tournament")
+}
+
+/// RATING LEDGER — the authoritative, per-completed-match Elo record (the source of truth for the
+/// Rankings/Ladder). One row per player per rated matchup, written transactionally when a tournament
+/// is officially closed (COMPLETED). `(matchKey, playerId)` is unique so re-closing / retrying / a
+/// deterministic rebuild can never create duplicates. All ladder values (Current 365-day and
+/// All-Time, wins/losses/streaks/highest-achieved, match history) are derived from these rows.
+///  - Elo: K=32, everyone starts at 1500. actual = 1 win / 0 loss / 0.5 draw.
+///  - Forfeit: counts as an official win/loss (result + streak) but ratingChange = 0 (pre == post).
+///  - Byes are never written (no win/loss/streak/rating effect).
+///  - Team match: opponentId is null; each roster member gets one row with the team's shared change.
+model RatingLedger {
+  id               Int        @id @default(autoincrement())
+  tournamentId     Int
+  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matchKey         String // stable per-match id: "group:<id>" | "playoff:<id>" | "swiss:<id>"
+  stage            String // 'GROUP' | 'PLAYOFF' | 'SWISS'
+  roundLabel       String? // display label, e.g. "Final", "Round 1", "Group A"
+  playerId         String // resolved competitive identity (Player.id when linked, else a stable handle key)
+  playerName       String // display fallback (identity at time of play)
+  opponentId       String? // null for a team match (opponent is a team, not one player)
+  opponentName     String
+  isTeamMatch      Boolean    @default(false)
+  teamName         String? // this player's team name (team matches)
+  opponentTeamName String? // opposing team name (team matches)
+  result           String // 'WIN' | 'LOSS' | 'DRAW'
+  isForfeit        Boolean    @default(false) // official result but Elo-neutral (no competitive game played)
+  actual           Float // 1 / 0 / 0.5
+  preRating        Int
+  expected         Float
+  ratingChange     Int
+  postRating       Int
+  sequence         Int // global deterministic order across the whole all-time timeline
+  completedAt      DateTime
+  createdAt        DateTime   @default(now())
+
+  @@unique([matchKey, playerId])
+  @@index([playerId, sequence])
+  @@index([tournamentId])
+  @@index([completedAt])
+  @@map("rating_ledger")
 }
 
 /// One Swiss-system match on a given round. Swiss is round-based (not a bracket): each round

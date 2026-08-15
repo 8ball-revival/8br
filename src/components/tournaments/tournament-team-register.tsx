@@ -43,6 +43,7 @@ export function TournamentTeamRegister({
   freeAgent,
   joinableTeams,
   currentUserId,
+  requiresPassword = false,
 }: {
   number: number
   isLoggedIn: boolean
@@ -53,6 +54,7 @@ export function TournamentTeamRegister({
   freeAgent: boolean
   joinableTeams: JoinableTeamView[]
   currentUserId: number | null
+  requiresPassword?: boolean
 }) {
   return (
     <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
@@ -60,15 +62,15 @@ export function TournamentTeamRegister({
         <Users className="size-4" aria-hidden /> Team registration
       </h2>
       {!isLoggedIn ? (
-        <SignInPrompt />
+        <SignInPrompt number={number} />
       ) : membership ? (
         <MyTeamCard number={number} team={membership} currentUserId={currentUserId} registrationOpen={registrationOpen} />
       ) : !identity || missing.length > 0 ? (
         <ProfileCompletionNotice missing={missing} />
       ) : freeAgent ? (
-        <FreeAgentCard number={number} identity={identity} joinableTeams={joinableTeams} registrationOpen={registrationOpen} />
+        <FreeAgentCard number={number} identity={identity} joinableTeams={joinableTeams} registrationOpen={registrationOpen} requiresPassword={requiresPassword} />
       ) : registrationOpen ? (
-        <StartOrJoin number={number} identity={identity} joinableTeams={joinableTeams} allowFree />
+        <StartOrJoin number={number} identity={identity} joinableTeams={joinableTeams} allowFree requiresPassword={requiresPassword} />
       ) : (
         <p className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="size-4" /> Registration is closed — rosters are locked.</p>
       )}
@@ -76,7 +78,7 @@ export function TournamentTeamRegister({
   )
 }
 
-function FreeAgentCard({ number, identity, joinableTeams, registrationOpen }: { number: number; identity: SignupIdentity; joinableTeams: JoinableTeamView[]; registrationOpen: boolean }) {
+function FreeAgentCard({ number, identity, joinableTeams, registrationOpen, requiresPassword }: { number: number; identity: SignupIdentity; joinableTeams: JoinableTeamView[]; registrationOpen: boolean; requiresPassword: boolean }) {
   const [state, action, pending] = useActionState(withdrawFreeAgentAction, initial)
   return (
     <div className="space-y-4">
@@ -98,20 +100,30 @@ function FreeAgentCard({ number, identity, joinableTeams, registrationOpen }: { 
       {registrationOpen && !state.ok && (
         <div className="rounded-md border border-border bg-background/40 p-4">
           <p className="mb-3 text-xs text-muted-foreground">Changed your mind? Start or join a team instead — it replaces your free-agent registration.</p>
-          <StartOrJoin number={number} identity={identity} joinableTeams={joinableTeams} allowFree={false} />
+          <StartOrJoin number={number} identity={identity} joinableTeams={joinableTeams} allowFree={false} requiresPassword={requiresPassword} />
         </div>
       )}
     </div>
   )
 }
 
-function SignInPrompt() {
+function SignInPrompt({ number }: { number: number }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Lock className="size-4 text-muted-foreground" aria-hidden />
       <p className="text-sm text-muted-foreground">Sign in to start or join a team.</p>
-      <Button asChild size="sm"><Link href="/login">Sign in</Link></Button>
+      <Button asChild size="sm"><Link href={`/login?returnTo=${encodeURIComponent(`/tournaments/${number}`)}`}>Sign in</Link></Button>
     </div>
+  )
+}
+
+function JoinPasswordField({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <Field label="Tournament password">
+      <input name="joinPassword" type="password" required maxLength={200} placeholder="This is a private tournament" className={cn(input, 'max-w-[280px]')} autoComplete="off" />
+      <p className="mt-1.5 text-xs text-muted-foreground">This tournament is private — ask the organizer for the password. (Separate from any team join code.)</p>
+    </Field>
   )
 }
 
@@ -124,7 +136,7 @@ function RulesAck() {
   )
 }
 
-function StartOrJoin({ number, identity, joinableTeams, allowFree }: { number: number; identity: SignupIdentity; joinableTeams: JoinableTeamView[]; allowFree: boolean }) {
+function StartOrJoin({ number, identity, joinableTeams, allowFree, requiresPassword }: { number: number; identity: SignupIdentity; joinableTeams: JoinableTeamView[]; allowFree: boolean; requiresPassword: boolean }) {
   const [mode, setMode] = useState<'start' | 'join' | 'free'>('start')
   const captainLabel = identity.cueverseId || identity.preferredName
   const tabs: { id: 'start' | 'join' | 'free'; label: string }[] = [
@@ -144,18 +156,19 @@ function StartOrJoin({ number, identity, joinableTeams, allowFree }: { number: n
         <span className="font-semibold text-foreground">{captainLabel}</span>
         <span className="text-muted-foreground"> — from your account (read-only).</span>
       </div>
-      {mode === 'start' ? <StartTeamForm number={number} /> : mode === 'join' ? <JoinTeamForm number={number} joinableTeams={joinableTeams} /> : <FreeAgentForm number={number} />}
+      {mode === 'start' ? <StartTeamForm number={number} requiresPassword={requiresPassword} /> : mode === 'join' ? <JoinTeamForm number={number} joinableTeams={joinableTeams} requiresPassword={requiresPassword} /> : <FreeAgentForm number={number} requiresPassword={requiresPassword} />}
     </div>
   )
 }
 
-function FreeAgentForm({ number }: { number: number }) {
+function FreeAgentForm({ number, requiresPassword }: { number: number; requiresPassword: boolean }) {
   const [state, action, pending] = useActionState(registerFreeAgentAction, initial)
   if (state.ok) return <Success text="You're registered as a Free Agent. An admin will place you on a team when registration closes." />
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="number" value={number} />
       <p className="text-sm text-muted-foreground">Don&apos;t have a team? Register as a Free Agent and you&apos;ll be placed on a team that needs players — or grouped with other free agents into a new team — when registration closes.</p>
+      <JoinPasswordField show={requiresPassword} />
       <RulesAck />
       <ErrorLine error={state.error} />
       <Button type="submit" disabled={pending}><UserRound className="size-4" /> {pending ? 'Registering…' : 'Register as a Free Agent'}</Button>
@@ -163,7 +176,7 @@ function FreeAgentForm({ number }: { number: number }) {
   )
 }
 
-function StartTeamForm({ number }: { number: number }) {
+function StartTeamForm({ number, requiresPassword }: { number: number; requiresPassword: boolean }) {
   const [state, action, pending] = useActionState(startTeamAction, initial)
   const [useCode, setUseCode] = useState(false)
   if (state.ok) return <Success text="Your team is created — you're the captain. Share your team name (and code, if you set one) so players can join." />
@@ -173,6 +186,7 @@ function StartTeamForm({ number }: { number: number }) {
       <Field label="Team name">
         <input name="teamName" required maxLength={60} placeholder="e.g. Cue Crew" className={input} autoComplete="off" />
       </Field>
+      <JoinPasswordField show={requiresPassword} />
       <div>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <input type="checkbox" checked={useCode} onChange={(e) => setUseCode(e.target.checked)} className="size-4 rounded border-input accent-brand" />
@@ -190,7 +204,7 @@ function StartTeamForm({ number }: { number: number }) {
   )
 }
 
-function JoinTeamForm({ number, joinableTeams }: { number: number; joinableTeams: JoinableTeamView[] }) {
+function JoinTeamForm({ number, joinableTeams, requiresPassword }: { number: number; joinableTeams: JoinableTeamView[]; requiresPassword: boolean }) {
   const [state, action, pending] = useActionState(joinTeamAction, initial)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<JoinableTeamView | null>(null)
@@ -232,6 +246,7 @@ function JoinTeamForm({ number, joinableTeams }: { number: number; joinableTeams
           <input name="joinCode" required maxLength={40} placeholder="Enter the team's join code" className={cn(input, 'max-w-[280px]')} autoComplete="off" />
         </Field>
       )}
+      <JoinPasswordField show={requiresPassword} />
       <RulesAck />
       <ErrorLine error={state.error} />
       <Button type="submit" disabled={pending || !selected}>{pending ? 'Joining…' : selected ? `Join ${selected.name}` : 'Select a team'}</Button>

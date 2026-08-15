@@ -6,6 +6,7 @@ const DOT: Record<string, string> = {
   registration_closed: 'bg-amber-500',
   bracket_generated: 'bg-sky-500',
   bracket_regenerated: 'bg-sky-500',
+  teams_generated: 'bg-brand',
   tournament_started: 'bg-destructive',
   match_result: 'bg-muted-foreground',
   entrant_added: 'bg-muted-foreground',

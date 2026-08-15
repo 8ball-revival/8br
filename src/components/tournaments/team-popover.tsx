@@ -104,8 +104,8 @@ export function TeamName({
         onBlur={scheduleClose}
         onClick={() => { if (open && pinned) { close() } else { setPinned(true); openNow() } }}
         className={cn(
-          'block max-w-full truncate rounded text-left text-sm leading-tight outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
-          won ? 'font-semibold text-win' : dim ? 'text-muted-foreground' : 'text-foreground',
+          'block max-w-full truncate rounded text-left text-[1.02rem] leading-snug tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+          won ? 'font-bold text-foreground' : dim ? 'bracket-loser-name font-bold italic' : 'font-medium text-foreground',
           'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:decoration-brand',
         )}
         title={name}

@@ -37,3 +37,13 @@ export function redactPlayoffs(data: TournamentWorkspaceData, canView: boolean):
     bracketStale: false,
   }
 }
+
+/**
+ * Strip DRAFT group data from a non-staff response. Until the Admin publishes the groups, members
+ * must not see draft assignments — only that registration is closed and groups are being prepared.
+ * Published groups pass through untouched.
+ */
+export function redactDraftGroups(data: TournamentWorkspaceData): TournamentWorkspaceData {
+  if (data.groupsPublished) return data
+  return { ...data, groups: [], groupSetup: null }
+}

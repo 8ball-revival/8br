@@ -1,7 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
-import { validateScore } from './scoring'
+import { validateResult } from './scoring'
 import { assertCompetitionUnlocked } from './service'
 import { transitionTournamentState, getTournamentState } from './tournament-lifecycle'
 
@@ -124,7 +124,9 @@ export async function recordSwissResult(actor: Actor, matchId: number, homeGames
   if (!m) return { ok: false, error: 'Match not found.' }
   await assertCompetitionUnlocked(prisma, m.tournamentId)
   if (m.isBye || m.homeRegistrationId == null || m.awayRegistrationId == null) return { ok: false, error: 'A bye has no score to report.' }
-  const res = validateScore(m.tournament.raceLength, m.homeRegistrationId, m.awayRegistrationId, homeGames, awayGames)
+  // Swiss pairings need a winner every board (standings don't model draws), so a tie is rejected. Any
+  // non-negative whole-number score is accepted; the configured race length is informational only.
+  const res = validateResult(m.homeRegistrationId, m.awayRegistrationId, homeGames, awayGames, { allowDraw: false })
   if (!res.ok) return { ok: false, error: res.error }
   await prisma.swissMatch.update({ where: { id: matchId }, data: { homeGames, awayGames, winnerRegistrationId: res.winnerRegistrationId, reportedAt: new Date() } })
   await recordAudit(actor, { action: 'swiss.recordScore', entity: 'SwissMatch', entityId: matchId, oldValue: { homeGames: m.homeGames, awayGames: m.awayGames }, newValue: { homeGames, awayGames }, reason })

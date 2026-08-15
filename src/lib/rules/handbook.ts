@@ -560,7 +560,7 @@ export const HANDBOOK: HandbookSection[] = [
           {
             k: 'dl',
             items: [
-              { term: 'Win', def: '3 points' },
+              { term: 'Win', def: '2 points' },
               { term: 'Draw', def: '1 point' },
               { term: 'Loss', def: '0 points' },
               {

@@ -1,135 +1,64 @@
 import type { Metadata } from 'next'
-import { AlertTriangle, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 
+import { getLadder, type LadderView } from '@/lib/stats/ladder'
+import { LadderTable } from '@/components/rankings/ladder-table'
+import { HowRankingsWork } from '@/components/rankings/how-rankings-work'
 import { pageMetadata } from '@/lib/site'
-import { Container } from '@/components/ui/container'
-import { PageHeader } from '@/components/page-header'
-import { RankingsTable } from '@/components/rankings/rankings-table'
-import { CurrentRankingsTable } from '@/components/rankings/current-rankings-table'
-import { ViewTabs, YearSelector } from '@/components/rankings/view-tabs'
-import {
-  getHistoricalRankings,
-  getAllTimeRankings,
-  getRankingYears,
-} from '@/lib/stats/rankings'
-import { getCurrentScoreRankings } from '@/lib/stats/current-score'
-import { applyLinkedIdentities } from '@/lib/stats/linked-identity'
-import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
+import { cn } from '@/lib/utils'
+
+export const dynamic = 'force-dynamic' // ladder reflects the latest completed tournaments
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
-  description:
-    'The official World Cue Championships competitive ladder — a Glicko-2 rating computed live from every every WCC tournament. Current, historical, and all-time strength.',
+  description: 'The World Cue Championships Rating ladder — a standard Elo system over every completed tournament match.',
   path: '/rankings',
 })
 
-type SP = Promise<{ view?: string; year?: string }>
+const VIEWS: { key: LadderView; label: string }[] = [
+  { key: 'current', label: 'Current' },
+  { key: 'all-time', label: 'All Time' },
+]
 
-function Legend() {
-  return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-brand" /> Elite / podium</span>
-      <span className="inline-flex items-center gap-1.5"><span className="text-success">▲</span> Rating up</span>
-      <span className="inline-flex items-center gap-1.5"><span className="text-destructive">▼</span> Rating down</span>
-      <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[3px] bg-success/20 text-center text-[0.6rem] font-bold leading-3 text-success">W</span>/<span className="size-3 rounded-[3px] bg-destructive/20 text-center text-[0.6rem] font-bold leading-3 text-destructive">L</span> Recent form</span>
-      <span className="inline-flex items-center gap-1.5"><span className="rounded bg-warning/10 px-1.5 py-0.5 text-[0.6rem] font-medium tracking-wide text-warning uppercase">Prov</span> Provisional (small sample)</span>
-    </div>
-  )
-}
-
-function WarningBanner({ warnings }: { warnings: string[] }) {
-  if (!warnings.length) return null
-  return (
-    <div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/[0.06] px-4 py-3">
-      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-      <ul className="space-y-1 text-sm text-muted-foreground">
-        {warnings.map((w, i) => (
-          <li key={i}>{w}</li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-export default async function RankingsPage({ searchParams }: { searchParams: SP }) {
-  tournamentStore.enterWith(await loadTournamentContext()) // resolve the live TournamentView revision before cup-derived rankings
+export default async function RankingsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const sp = await searchParams
-  const view = sp.view === 'historical' ? 'historical' : sp.view === 'all-time' ? 'all-time' : 'current'
-  const years = getRankingYears()
-
-  let intro: React.ReactNode = null
-  let table: React.ReactNode = null
-  let warnings: string[] = []
-
-  if (view === 'current') {
-    const data = getCurrentScoreRankings()
-    warnings = data.warnings
-    intro = (
-      <p className="max-w-3xl text-sm text-muted-foreground">
-        Official competition during the previous {data.window?.days} days — a true rolling window, not a
-        calendar-year ranking. Players are ranked by a transparent performance score that values Tournament
-        playoffs above group play above cups, weights later playoff rounds more, and accounts for losses
-        and opponent quality. Click any player to see exactly where every point came from.
-      </p>
-    )
-    table = <CurrentRankingsTable rows={await applyLinkedIdentities(data.rows)} />
-  } else if (view === 'all-time') {
-    const data = getAllTimeRankings()
-    intro = (
-      <p className="max-w-3xl text-sm text-muted-foreground">
-        The same rating engine across every every WCC tournament in history, ranked by each player&apos;s
-        highest <strong className="text-foreground">established</strong> conservative rating (RD ≤ 100 and at
-        least 20 rated matches at that point). This measures competitive strength over the complete history of
-        the game — it is <strong className="text-foreground">not</strong> the Hall of Fame.
-      </p>
-    )
-    table = (
-      <div className="space-y-4">
-        <RankingsTable rows={await applyLinkedIdentities(data.rows)} allTime />
-        {data.unranked && data.unranked.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {data.unranked.length} further players have competed but never reached an established rating
-            (RD ≤ 100 with ≥ 20 matches), so they do not yet hold an all-time peak.
-          </p>
-        )}
-      </div>
-    )
-  } else {
-    const year = sp.year && years.includes(Number(sp.year)) ? Number(sp.year) : years[0]
-    const data = year ? getHistoricalRankings(year) : { rows: [] }
-    intro = (
-      <div className="space-y-4">
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          The ladder exactly as it stood at the end of {year ?? '—'} — a snapshot of the continuous rating
-          timeline, showing players active that year. Continuity is preserved: this reflects where players
-          actually stood at that point in time.
-        </p>
-        {year != null && <YearSelector years={years} active={year} />}
-      </div>
-    )
-    table = <RankingsTable rows={await applyLinkedIdentities(data.rows)} />
-  }
+  const view: LadderView = sp.view === 'all-time' ? 'all-time' : 'current'
+  const rows = await getLadder(view)
 
   return (
-    <>
-      <PageHeader
-        breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Rankings' }]}
-        title="Rankings"
-        description="The official competitive ladder — who is the strongest player right now. A live Glicko-2 rating derived entirely from every WCC tournament results."
-      />
-      <Container className="space-y-6 py-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <ViewTabs mode={view} />
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <TrendingUp className="size-3.5 text-brand" aria-hidden /> Live rating · recalculated from match data
-          </span>
-        </div>
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      {/* Heading + a small Current / All Time slider. */}
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
+        <nav aria-label="Rankings view" className="inline-flex rounded-md border border-border bg-card/40 p-0.5 text-xs">
+          {VIEWS.map((v) => {
+            const active = v.key === view
+            return (
+              <Link
+                key={v.key}
+                href={`/rankings?view=${v.key}`}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'rounded px-2.5 py-1 font-medium transition-colors',
+                  active ? 'bg-brand text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {v.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
 
-        {intro}
-        <WarningBanner warnings={warnings} />
-        {table}
-        <Legend />
-      </Container>
-    </>
+      <LadderTable rows={rows} />
+
+      {/* Explanation + summary below the list, so the rankings are the immediate focus. */}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <HowRankingsWork />
+        <span className="ml-auto text-xs text-muted-foreground">
+          {view === 'current' ? 'Rolling 365-day ladder' : 'All completed tournaments'} · {rows.length} player{rows.length === 1 ? '' : 's'}
+        </span>
+      </div>
+    </div>
   )
 }

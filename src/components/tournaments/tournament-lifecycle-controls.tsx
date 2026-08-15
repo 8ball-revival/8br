@@ -11,6 +11,7 @@ import {
   recoverTournamentStateAction,
   beginTournamentAction,
   generateTournamentBracketAction,
+  generateRandomTeamsAction,
   reopenTournamentRegistrationAction,
   startGroupStageAction,
   confirmQualifiersAction,
@@ -45,6 +46,7 @@ export function TournamentLifecycleControls({
   bracketStale = false,
   isGroupStage = false,
   isSwiss = false,
+  isRandom = false,
   groupsComplete = false,
   onNavigate,
 }: {
@@ -54,6 +56,7 @@ export function TournamentLifecycleControls({
   bracketStale?: boolean
   isGroupStage?: boolean
   isSwiss?: boolean
+  isRandom?: boolean
   groupsComplete?: boolean
   onNavigate?: (tab: NavTab) => void
 }) {
@@ -108,14 +111,30 @@ export function TournamentLifecycleControls({
             </Button>
           )}
 
-          {state === 'REGISTRATION_CLOSED' && (
+          {/* RANDOM tournaments: the ONLY progression is the one-time, atomic Generate Teams. No
+              re-open, no manual bracket, no groups/swiss — teams are drawn once, locked, and the
+              bracket goes live immediately. */}
+          {state === 'REGISTRATION_CLOSED' && isRandom && (
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() => act(
+                () => generateRandomTeamsAction(tournamentId),
+                'Generate teams now?\n\nTeams are drawn ONCE and permanently locked, and the bracket immediately becomes public. This cannot be undone or regenerated.',
+              )}
+            >
+              <Users className="size-4" /> Generate Teams
+            </Button>
+          )}
+
+          {state === 'REGISTRATION_CLOSED' && !isRandom && (
             <>
               <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId))}>
                 <Unlock className="size-4" /> Re-Open Registration
               </Button>
               {isGroupStage ? (
-                <Button size="sm" disabled={pending} onClick={() => act(() => startGroupStageAction(tournamentId), 'Start the group stage? Round-robin groups are generated from the current entrants.')}>
-                  <Users className="size-4" /> Start Group Stage
+                <Button size="sm" disabled={pending} onClick={() => act(() => startGroupStageAction(tournamentId), 'Set up groups? Registration locks and the Group Setup board opens so you can organize the groups before publishing.')}>
+                  <Users className="size-4" /> Set Up Groups
                 </Button>
               ) : isSwiss ? (
                 <Button size="sm" disabled={pending} onClick={() => act(() => startSwissAction(tournamentId), 'Start the Swiss rounds? Round 1 is paired from the current entrants.')}>
@@ -142,9 +161,14 @@ export function TournamentLifecycleControls({
 
           {state === 'BRACKET_GENERATED' && (
             <>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
-                <Unlock className="size-4" /> Re-Open Registration
-              </Button>
+              {/* Re-opening registration here scraps the bracket — destructive once play has begun. A
+                  Group Stage + Playoffs tournament already has group results at this point, so it is
+                  hidden there; a bracket-only tournament has no results yet, so it stays available. */}
+              {!isGroupStage && (
+                <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
+                  <Unlock className="size-4" /> Re-Open Registration
+                </Button>
+              )}
               {bracketStale && !isGroupStage ? (
                 <Button size="sm" disabled={pending} onClick={() => act(() => generateTournamentBracketAction(tournamentId))}>
                   <RefreshCw className="size-4" /> Regenerate Bracket

@@ -5,7 +5,8 @@ import { recordAudit, type Actor } from './audit'
 import { planGroups, type SeedableRegistration, type GroupPlan } from './groups'
 import { roundRobin, type SchedulePlayer } from './schedule'
 import { computeStandings, type StandingMatchInput } from './standings'
-import { validateScore } from './scoring'
+import { validateResult } from './scoring'
+import { isGroupsPlayoffs, GROUP_STAGE_GAMES, computeBracketShape, playoffRaceLength } from './match-format'
 import { planBracket, orderQualifiers, type GroupQualifiers, type BracketPlan, type Qualifier } from './bracket'
 import { planDoubleElim } from './bracket-de'
 
@@ -873,14 +874,14 @@ export async function recordScore(
     where: { id: matchId },
     include: { tournament: true },
   })
-  const result = validateScore(
-    match.tournament.raceLength,
-    match.homeRegistrationId,
-    match.awayRegistrationId,
-    homeGames,
-    awayGames,
-  )
+
+  // Group Stage is round-robin and permits draws: any non-negative whole-number score is accepted, the
+  // higher score wins, and an equal score is recorded as a draw (no winner/loser). The configured game
+  // count is informational only and is not enforced.
+  const result = validateResult(match.homeRegistrationId, match.awayRegistrationId, homeGames, awayGames, { allowDraw: true })
   if (!result.ok) return { ok: false, error: result.error }
+  const winnerRegistrationId = result.winnerRegistrationId ?? null
+  const loserRegistrationId = result.loserRegistrationId ?? null
 
   await prisma.tournamentMatch.update({
     where: { id: matchId },
@@ -888,8 +889,8 @@ export async function recordScore(
       homeGames,
       awayGames,
       status: 'COMPLETED',
-      winnerRegistrationId: result.winnerRegistrationId,
-      loserRegistrationId: result.loserRegistrationId,
+      winnerRegistrationId,
+      loserRegistrationId,
       verification: 'UNVERIFIED',
       completedAt: new Date(),
     },
@@ -933,8 +934,11 @@ export async function setMatchResolution(
     const winnerIsHome = winnerRegistrationId === match.homeRegistrationId
     data.winnerRegistrationId = winnerRegistrationId
     data.loserRegistrationId = loserId
-    data.homeGames = winnerIsHome ? match.tournament.raceLength : 0
-    data.awayGames = winnerIsHome ? 0 : match.tournament.raceLength
+    // Administrative forfeit/no-show awards the full match to the present player: the whole 10-game
+    // Group Stage matchup for Group Stage + Playoffs, else the configurable race length.
+    const fullGames = isGroupsPlayoffs(match.tournament.tournamentFormat) ? GROUP_STAGE_GAMES : match.tournament.raceLength
+    data.homeGames = winnerIsHome ? fullGames : 0
+    data.awayGames = winnerIsHome ? 0 : fullGames
     data.completedAt = new Date()
   }
   await prisma.tournamentMatch.update({ where: { id: matchId }, data })
@@ -1035,12 +1039,13 @@ export async function recomputeStandings(tournamentId: number): Promise<void> {
       registrationId: p.registrationId,
       username: p.registration.username,
     }))
+    // Include every verified, completed match — a 5–5 Group Stage draw is completed with a null
+    // winner and must still count (played + game stats), so it is NOT filtered out here.
     const decided = await prisma.tournamentMatch.findMany({
       where: {
         groupId: group.id,
         verification: 'VERIFIED',
         status: { in: ['COMPLETED', 'FORFEIT', 'NO_SHOW'] },
-        NOT: { winnerRegistrationId: null },
       },
     })
     const inputs: StandingMatchInput[] = decided.map((m) => ({
@@ -1050,7 +1055,7 @@ export async function recomputeStandings(tournamentId: number): Promise<void> {
       awayUsername: m.awayUsername,
       homeGames: m.homeGames ?? 0,
       awayGames: m.awayGames ?? 0,
-      winnerRegistrationId: m.winnerRegistrationId!,
+      winnerRegistrationId: m.winnerRegistrationId, // null for a draw
     }))
     const rows = computeStandings(roster, inputs, tournament.qualifiersPerGroup)
 
@@ -1360,6 +1365,17 @@ export async function deletePlayoff(actor: Actor, tournamentId: number): Promise
   return { ok: true }
 }
 
+/**
+ * Race length for a single playoff match. For Group Stage + Playoffs it is hard-coded per bracket
+ * stage (Race to 7 early, Race to 9 for the semifinals/final/grand final) derived from the whole
+ * bracket's shape; every other format uses the tournament's configurable race length.
+ */
+export async function resolvePlayoffRaceLength(match: { tournamentId: number; round: number; section: string | null; tournament: { tournamentFormat: string | null; raceLength: number } }): Promise<number> {
+  if (!isGroupsPlayoffs(match.tournament.tournamentFormat)) return match.tournament.raceLength
+  const all = await prisma.playoffMatch.findMany({ where: { tournamentId: match.tournamentId }, select: { round: true, section: true } })
+  return playoffRaceLength({ round: match.round, section: match.section }, computeBracketShape(all))
+}
+
 export async function recordPlayoffScore(
   actor: Actor,
   matchId: number,
@@ -1371,7 +1387,9 @@ export async function recordPlayoffScore(
   await assertCompetitionUnlocked(prisma, match.tournamentId)
   if (match.homeRegistrationId == null || match.awayRegistrationId == null)
     return { ok: false, error: 'Both players must be determined before entering a score.' }
-  const result = validateScore(match.tournament.raceLength, match.homeRegistrationId, match.awayRegistrationId, homeGames, awayGames)
+  // A playoff bracket is elimination: any non-negative whole-number score is accepted, the higher score
+  // wins, and a tie is rejected. The configured race length is an informational format, not a limit.
+  const result = validateResult(match.homeRegistrationId, match.awayRegistrationId, homeGames, awayGames, { allowDraw: false })
   if (!result.ok) return { ok: false, error: result.error }
   await prisma.playoffMatch.update({
     where: { id: matchId },
@@ -1420,7 +1438,7 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
   const isAway = match.awayRegistrationId === myReg.id
   if (!isHome && !isAway) return { ok: false, error: 'You can only report a match you are playing in.' }
 
-  const race = match.tournament.raceLength
+  const race = await resolvePlayoffRaceLength(match)
   const mine = Math.max(0, Math.min(Number.isFinite(myGamesWon) ? myGamesWon : 0, race - 1)) // a loss is strictly < race
   const homeGames = isHome ? mine : race // the OPPONENT (winner) gets the full race
   const awayGames = isHome ? race : mine

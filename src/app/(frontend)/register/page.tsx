@@ -6,6 +6,7 @@ import { Container } from '@/components/ui/container'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateAccountForm } from '@/components/account/create-account-form'
 import { getCurrentUser } from '@/lib/account/auth'
+import { safeReturnTo } from '@/lib/account/return-to'
 import { pageMetadata } from '@/lib/site'
 
 export const dynamic = 'force-dynamic' // auth-dependent
@@ -17,9 +18,11 @@ export const metadata: Metadata = pageMetadata({
   index: false,
 })
 
-export default async function RegisterPage() {
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
+  const { returnTo: rawReturnTo } = await searchParams
+  const returnTo = safeReturnTo(rawReturnTo)
   const user = await getCurrentUser()
-  if (user) redirect('/account')
+  if (user) redirect(returnTo)
 
   return (
     <Container className="mx-auto max-w-md py-16">
@@ -35,13 +38,13 @@ export default async function RegisterPage() {
           <CardTitle className="text-base">Sign up</CardTitle>
         </CardHeader>
         <CardContent>
-          <CreateAccountForm />
+          <CreateAccountForm returnTo={returnTo} />
         </CardContent>
       </Card>
 
       <p className="mt-4 text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-brand hover:text-brand-soft">
+        <Link href={returnTo !== '/account' ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'} className="font-medium text-brand hover:text-brand-soft">
           Sign in
         </Link>
       </p>

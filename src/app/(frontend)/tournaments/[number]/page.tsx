@@ -9,7 +9,8 @@ import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
 import { GroupCrosstable } from '@/components/tournaments/group-crosstable'
 import { ViewToggle } from '@/components/tournaments/view-toggle'
-import { canViewPlayoffs, redactPlayoffs } from '@/lib/competition/playoff-visibility'
+import { canViewPlayoffs, redactPlayoffs, redactDraftGroups } from '@/lib/competition/playoff-visibility'
+import { computeBracketShape, playoffRaceLength } from '@/lib/competition/match-format'
 import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
 import { getTournament, tournamentBracket } from '@/lib/tournaments/service'
 import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
@@ -122,7 +123,7 @@ function resolvePodium(data: TournamentWorkspaceData): { champion: PodiumIdentit
 }
 
 /** The viewer's own unresolved, playable (non-bye) match in an in-progress cup, if any. */
-function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null): { matchId: number; opponentName: string; matchLabel: string } | null {
+function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null): { matchId: number; opponentName: string; matchLabel: string; raceLength: number } | null {
   if (myRegId == null) return null
   const m = data.matches.find(
     (x) => x.winnerRegistrationId == null && x.homeRegistrationId != null && x.awayRegistrationId != null && (x.homeRegistrationId === myRegId || x.awayRegistrationId === myRegId),
@@ -131,7 +132,12 @@ function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null
   const iAmHome = m.homeRegistrationId === myRegId
   const oppId = iAmHome ? m.awayRegistrationId : m.homeRegistrationId
   const opp = entrantIdentity(data, oppId, iAmHome ? m.awayUsername : m.homeUsername)
-  return { matchId: m.id, opponentName: opp?.name ?? 'your opponent', matchLabel: m.label ?? `Round ${m.round}` }
+  // Group Stage + Playoffs playoff matches use a hard-coded per-stage race length; other formats use
+  // the tournament's configured race length.
+  const raceLength = data.tournament.tournamentFormat === 'GROUPS_PLAYOFFS'
+    ? playoffRaceLength({ round: m.round, section: m.section }, computeBracketShape(data.matches))
+    : data.tournament.raceLength
+  return { matchId: m.id, opponentName: opp?.name ?? 'your opponent', matchLabel: m.label ?? `Round ${m.round}`, raceLength }
 }
 
 /**
@@ -146,12 +152,24 @@ function findMyActiveMatch(data: TournamentWorkspaceData, myRegId: number | null
 /** Read-only group-stage view for members: a head-to-head crosstable per group (see GroupCrosstable).
  *  `heading` is suppressed when the groups sit under the Groups|Playoffs toggle (the tab already labels it). */
 function GroupStagePublic({ data, heading = true }: { data: TournamentWorkspaceData; heading?: boolean }) {
+  // Draft groups are private: members only learn that registration is closed and groups are being set up.
+  if (!data.groupsPublished || data.groups.length === 0) {
+    return (
+      <div className={heading ? 'mt-8' : ''}>
+        {heading && <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>}
+        <div className="rounded-lg border border-border bg-card/40 p-6 text-center">
+          <p className="text-sm font-medium text-foreground">Registration is closed — the groups are being prepared.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Group assignments will appear here once they&apos;re published.</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className={heading ? 'mt-8' : ''}>
       {heading && <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>}
       <div className="space-y-6">
         {data.groups.map((g) => (
-          <GroupCrosstable key={g.id} group={g} raceLength={data.tournament.raceLength} qualifiersPerGroup={data.tournament.qualifiersPerGroup} />
+          <GroupCrosstable key={g.id} group={g} qualifiersPerGroup={data.tournament.qualifiersPerGroup} />
         ))}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
@@ -182,14 +200,14 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
   if (state === 'DRAFT') {
     return (
       <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        This cup isn&apos;t open for registration yet. Check back soon.
+        This tournament isn&apos;t open for registration yet. Check back soon.
       </p>
     )
   }
   if (state === 'CANCELLED') {
     return (
       <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        This cup was cancelled.
+        This tournament was cancelled.
       </p>
     )
   }
@@ -218,7 +236,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
               {state === 'BRACKET_GENERATED' && (
                 <p className="mb-4 text-sm text-muted-foreground"><Badge variant="muted">Awaiting Start</Badge> <span className="ml-1">The bracket is published; play begins soon.</span></p>
               )}
-              {myMatch && <div className="mb-6"><TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} /></div>}
+              {myMatch && <div className="mb-6"><TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={myMatch.raceLength} /></div>}
               <Bracket rounds={data.bracketRounds} fluid />
             </div>
           ) : (
@@ -240,7 +258,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
           )}
           {myMatch && (
             <div className="mt-6">
-              <TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={data.tournament.raceLength} />
+              <TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={myMatch.raceLength} />
             </div>
           )}
           <section className="mt-8">
@@ -267,16 +285,20 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
             </section>
           )}
 
-          {!data.isTeam && (
+          {/* Individual entrant list — for 1v1 tournaments and for RANDOM-draw teams (players register
+              solo and are shown as a flat list; the teams are drawn later at registration close). */}
+          {(!data.isTeam || data.isRandomTeam) && (
             <div className="mt-8">
               {state === 'REGISTRATION_CLOSED' && (
                 <div className="mb-3">
                   <Badge variant="muted">Registration Closed</Badge>
-                  <span className="ml-2 text-xs text-muted-foreground">The field is set — waiting for the bracket to be generated.</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {data.isRandomTeam ? 'The field is set — waiting for the random teams to be drawn.' : 'The field is set — waiting for the bracket to be generated.'}
+                  </span>
                 </div>
               )}
               {activeEntrants.length > 0 ? (
-                <EntrantList entrants={activeEntrants.map((e) => ({ name: e.name, cueverseId: e.handle, slug: e.slug }))} label="Entrants" />
+                <EntrantList entrants={activeEntrants.map((e) => ({ name: e.name, cueverseId: e.handle, slug: e.slug, rating: e.rating }))} label="Entrants" />
               ) : (
                 <p className="text-sm text-muted-foreground">No entrants yet{state === 'REGISTRATION_OPEN' ? ' — be the first to join.' : '.'}</p>
               )}
@@ -292,6 +314,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
               myStatus={member.myStatus}
               identity={member.identity}
               missing={member.missing}
+              requiresPassword={data.tournament.requiresJoinPassword}
             />
           )}
 
@@ -307,6 +330,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
               freeAgent={member.freeAgent}
               joinableTeams={member.joinableTeams}
               currentUserId={member.currentUserId}
+              requiresPassword={data.tournament.requiresJoinPassword}
             />
           )}
         </>
@@ -380,7 +404,8 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
       // back to Groups before publication so nothing is exposed via the URL.
       const playoffsPublished = ws.hasPublishedBracket
       const canView = canViewPlayoffs({ isStaff: false, playoffsPublished }) // non-staff path
-      const publicData = redactPlayoffs(ws, canView)
+      // Non-staff never see draft group assignments — only that groups are being prepared.
+      const publicData = redactDraftGroups(redactPlayoffs(ws, canView))
       const requested = sp?.view === 'groups' ? 'groups' : sp?.view === 'playoffs' ? 'playoffs' : null
       let view: 'groups' | 'playoffs' = requested ?? (canView ? 'playoffs' : 'groups')
       if (view === 'playoffs' && !canView) view = 'groups'

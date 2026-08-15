@@ -10,10 +10,12 @@ import { normalizeFlair, type FlairInput } from './flair'
 import * as fa from './free-agents'
 import type { ClosingPlan, EligibleAccount, FreeAgentRow } from './free-agents'
 import { captureTeamRatingsAtClose } from './team-ratings'
-import { startGroupStage, recordGroupResult, confirmQualifiersAndSeed } from './group-stage'
+import { recordGroupResult, confirmQualifiersAndSeed } from './group-stage'
+import * as gsetup from './group-setup'
 import { startSwiss, recordSwissResult, pairNextRound, completeSwiss } from './swiss'
 import { syncLiveTournamentToSnapshot } from './tournament-sync'
 import { transitionTournamentState, requireTournamentState, bracketMatchesEntrants, type TournamentState } from './tournament-lifecycle'
+import { isGroupsPlayoffs } from './match-format'
 import { recordAudit } from './audit'
 import { getCurrentUser } from '@/lib/account/auth'
 
@@ -120,6 +122,10 @@ export async function restoreTournamentEntrantAction(tournamentId: number, regis
 export async function setTournamentRaceLengthAction(tournamentId: number, raceLength: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   if (!Number.isInteger(raceLength) || raceLength < 1) return { error: 'Race length must be a positive whole number.' }
+  // Group Stage + Playoffs has hard-coded, per-stage match lengths (10-game groups; Race to 7/9
+  // playoffs) — there is no single configurable race length to set.
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { tournamentFormat: true } })
+  if (isGroupsPlayoffs(t?.tournamentFormat)) return { error: 'Group Stage + Playoffs uses fixed match lengths (10-game groups, Race to 7/9 playoffs) and cannot be changed.' }
   const gate = await requireTournamentState(tournamentId, ['DRAFT', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED'])
   if (!gate.ok) return { error: gate.error }
   await svc.assertCompetitionUnlocked(prisma, tournamentId)
@@ -153,6 +159,12 @@ async function defaultSeedOrder(tournamentId: number): Promise<number[]> {
  */
 export async function generateTournamentBracketAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
+  // Random-draw tournaments use the dedicated, one-time atomic "Generate Teams" action instead —
+  // never this manual path (backend enforcement, so a direct call can't bypass the RANDOM flow).
+  const rnd = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { participantFormat: true, teamFormation: true } })
+  if (rnd?.participantFormat === 'TEAM' && rnd.teamFormation === 'RANDOM') {
+    return { error: 'Use “Generate Teams” for random-draw tournaments.' }
+  }
   const gate = await requireTournamentState(tournamentId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'BRACKET_GENERATED'])
   if (!gate.ok) return { error: gate.error }
 
@@ -204,14 +216,71 @@ export async function generateTournamentBracketAction(tournamentId: number): Pro
   return { ok: true, message: 'Bracket generated. Review it, then Start Tournament.', navigate: 'bracket' }
 }
 
+/**
+ * RANDOM-draw "Generate Teams" — the ONE-TIME, atomic team generation for teamFormation = RANDOM.
+ * Runs only from REGISTRATION_CLOSED (registration is closed & validated as its own step first).
+ * Draws balanced-random teams with unique names, seeds + publishes the bracket using the existing
+ * generator (seeding + byes unchanged), and advances straight to live (no seeding-review step).
+ * IDEMPOTENT: once teams are drawn and the bracket is published, it never draws again — a retry just
+ * navigates to the bracket. A failure before the commit leaves nothing partial; a failure AFTER teams
+ * are drawn but before the bracket publishes is recoverable by re-running (the draw no-ops, the
+ * bracket completes) — so retries can never produce a second assignment.
+ */
+export async function generateRandomTeamsAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { participantFormat: true, teamFormation: true, tournamentFormat: true } })
+  if (!(t?.participantFormat === 'TEAM' && t.teamFormation === 'RANDOM')) return { error: 'This action is only for random-draw team tournaments.' }
+
+  // Idempotency: teams drawn AND bracket published → the operation already succeeded. Never redraw.
+  const teamsExist = (await prisma.tournamentTeam.count({ where: { tournamentId } })) > 0
+  const alreadyPublished = (await prisma.playoffMatch.count({ where: { tournamentId, published: true } })) > 0
+  if (teamsExist && alreadyPublished) return { ok: true, message: 'Teams are already generated — the bracket is live.', navigate: 'bracket' }
+
+  const gate = await requireTournamentState(tournamentId, ['REGISTRATION_CLOSED'])
+  if (!gate.ok) return { error: gate.error }
+
+  // 1) Draw balanced-random teams + unique names (atomic; idempotent no-op if already drawn).
+  const asm = await teamSvc.assembleRandomTeams(actor, tournamentId)
+  if (!asm.ok) return { error: asm.error }
+  await captureTeamRatingsAtClose(tournamentId) // ratings already frozen at draw; no-op safety net
+
+  // 2) Seed + build + publish the bracket from the generated teams (existing seeding & bye behavior).
+  const order = await defaultSeedOrder(tournamentId)
+  if (order.length < 2) return { error: 'Need at least two teams to generate the bracket.' }
+  const priorPublished = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
+  if (priorPublished > 0) {
+    const rd = await svc.returnPlayoffToDraft(actor, tournamentId)
+    if (!rd.ok) return { error: rd.error }
+  }
+  await svc.reseedEntrants(actor, tournamentId, order)
+  const built = await svc.rebuildManualPlayoff(actor, tournamentId, order, { doubleElim: t.tournamentFormat === 'DOUBLE_ELIM' })
+  if (!built.ok) return { error: built.error }
+  const pub = await svc.publishPlayoff(actor, tournamentId)
+  if (!pub.ok) return { error: pub.error }
+
+  // 3) Advance to live. The direct CLOSED→IN_PROGRESS jump is blocked for non-Swiss, so step through
+  //    BRACKET_GENERATED — RANDOM never pauses there for review.
+  const g1 = await transitionTournamentState(actor, tournamentId, 'BRACKET_GENERATED')
+  if (!g1.ok) return { error: g1.error }
+  const g2 = await transitionTournamentState(actor, tournamentId, 'IN_PROGRESS')
+  if (!g2.ok) return { error: g2.error }
+
+  await recordAudit(actor, { action: 'tournament.team.generate', entity: 'Tournament', entityId: tournamentId, newValue: { teams: asm.teams } })
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: `${asm.teams} teams generated — the bracket is live.`, navigate: 'bracket' }
+}
+
 // ---- Group Stage + Playoffs (GROUPS_PLAYOFFS format only) -------------------
 
-/** Generate + publish the round-robin groups and enter the group phase. */
+/**
+ * Open the Group Setup phase: close registration (if open), finalize teams, then create the empty
+ * draft groups. Does NOT generate matches, publish, or start play — the Admin organizes the groups on
+ * the (private) Group Setup board and then publishes. Stays in REGISTRATION_CLOSED.
+ */
 export async function startGroupStageAction(tournamentId: number): Promise<ActionResult> {
-  await requireCapability('manage_competitions')
+  const actor = await requireCapability('manage_competitions')
   const gate = await requireTournamentState(tournamentId, ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED'])
   if (!gate.ok) return { error: gate.error }
-  const actor = await requireCapability('manage_competitions')
   if (gate.state === 'REGISTRATION_OPEN') {
     const close = await transitionTournamentState(actor, tournamentId, 'REGISTRATION_CLOSED')
     if (!close.ok) return { error: close.error }
@@ -222,11 +291,107 @@ export async function startGroupStageAction(tournamentId: number): Promise<Actio
   if (!exc.ok) return { error: exc.error }
   await captureTeamRatingsAtClose(tournamentId) // freeze member ratings for the team-details popover
 
-
-  const r = await startGroupStage(actor, tournamentId)
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { groupCount: true } })
+  const r = await gsetup.enterGroupSetup(actor, tournamentId, Math.max(1, t?.groupCount ?? 1))
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
-  return { ok: true, message: 'Group stage started — round-robin groups generated.', navigate: 'groups' }
+  return { ok: true, message: 'Group Setup ready — organize the groups, then publish to start the Group Stage.', navigate: 'groups' }
+}
+
+/** Draft-phase gate: Group Setup edits are only allowed before the Group Stage begins. */
+async function requireGroupSetup(tournamentId: number): Promise<ActionResult | null> {
+  const gate = await requireTournamentState(tournamentId, ['REGISTRATION_CLOSED'])
+  if (!gate.ok) return { error: gate.error }
+  if (await gsetup.groupsArePublished(tournamentId)) return { error: 'Groups are already published — reopen the draft to reorganize.' }
+  return null
+}
+
+/** Move an entrant to a group (or to Unassigned when `toGroupId` is null). */
+export async function moveGroupEntrantAction(tournamentId: number, registrationId: number, toGroupId: number | null): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await gsetup.moveEntrantToGroup(actor, tournamentId, registrationId, toGroupId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Saved.' }
+}
+
+/** Auto-assign every entrant evenly across the current groups (replaces the draft assignments). */
+export async function autoAssignGroupsAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await gsetup.autoAssignGroups(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Entrants auto-assigned evenly.' }
+}
+
+/** Even out current group sizes (and place any Unassigned), preserving assignments where possible. */
+export async function autoBalanceGroupsAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await gsetup.autoBalanceGroups(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Groups balanced.' }
+}
+
+/** Add an empty group to the draft (existing assignments are preserved). */
+export async function addDraftGroupAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await svc.createGroup(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Group added.' }
+}
+
+/** Remove a draft group — its entrants return to Unassigned (never deleted). */
+export async function removeDraftGroupAction(tournamentId: number, groupId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await gsetup.removeDraftGroup(actor, tournamentId, groupId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: r.returned > 0 ? `Group removed — ${r.returned} entrant${r.returned === 1 ? '' : 's'} back in Unassigned.` : 'Group removed.' }
+}
+
+/** Rename a draft group. */
+export async function renameDraftGroupAction(tournamentId: number, groupId: number, name: string): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await svc.renameGroup(actor, tournamentId, groupId, name)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Group renamed.' }
+}
+
+/** Adjust the target entrants-per-group (adds/removes empty groups; never drops entrants). */
+export async function setGroupTargetAction(tournamentId: number, target: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await gsetup.setTargetPerGroup(actor, tournamentId, target)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Target group size updated.' }
+}
+
+/** Publish the draft groups and start the Group Stage (validate → matches + standings → public → live). */
+export async function publishGroupsAndStartAction(tournamentId: number): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const blocked = await requireGroupSetup(tournamentId)
+  if (blocked) return blocked
+  const r = await gsetup.publishGroupsAndStart(actor, tournamentId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: 'Groups published — the Group Stage is live.', navigate: 'groups' }
 }
 
 /** Record (or correct) a group match result. Authoritative — verified + standings recompute. */
@@ -247,7 +412,7 @@ export async function confirmQualifiersAction(tournamentId: number): Promise<Act
   const r = await confirmQualifiersAndSeed(actor, tournamentId)
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
-  return { ok: true, message: 'Qualifiers confirmed — playoff bracket seeded.', navigate: 'bracket' }
+  return { ok: true, message: 'Qualifiers seeded into a draft bracket — review who’s in and the seeding on the Bracket tab, then publish and start the playoffs.', navigate: 'bracket' }
 }
 
 // ---- Swiss ----------------------------------------------------------------
@@ -484,7 +649,7 @@ export async function beginTournamentAction(tournamentId: number): Promise<Actio
   if (!t.ok) return { error: t.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
   // TournamentView is live: registration is permanently locked; match reporting is enabled → Results tab.
-  return { ok: true, message: 'The cup is live. Registration is locked and results can be reported.', navigate: 'results' }
+  return { ok: true, message: 'The tournament is live. Registration is locked and results can be reported.', navigate: 'results' }
 }
 
 export async function returnTournamentBracketToDraftAction(tournamentId: number): Promise<ActionResult> {
@@ -625,7 +790,7 @@ export async function recoverTournamentStateAction(tournamentId: number, to: Tou
   const r = await transitionTournamentState(actor, tournamentId, to, { reason, recovery: true })
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
-  return { ok: true, message: `Recovery applied — cup set to ${to.replace(/_/g, ' ').toLowerCase()}.` }
+  return { ok: true, message: `Recovery applied — tournament set to ${to.replace(/_/g, ' ').toLowerCase()}.` }
 }
 
 /** Complete the tournament (state → COMPLETED). The lifecycle service validates the Final has a
@@ -710,7 +875,7 @@ export async function unlockHistoricalTournamentAction(tournamentId: number, typ
   const r = await svc.unlockHistoricalCompetition(actor, tournamentId, typedCode, reason)
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
-  return { ok: true, message: 'Historical cup unlocked for editing.' }
+  return { ok: true, message: 'Historical tournament unlocked for editing.' }
 }
 
 export async function relockHistoricalTournamentAction(tournamentId: number, reason?: string): Promise<ActionResult> {
@@ -718,5 +883,5 @@ export async function relockHistoricalTournamentAction(tournamentId: number, rea
   const r = await svc.relockCompetition(actor, tournamentId, reason)
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
-  return { ok: true, message: 'Historical cup re-locked.' }
+  return { ok: true, message: 'Historical tournament re-locked.' }
 }

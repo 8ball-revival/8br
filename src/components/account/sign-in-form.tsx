@@ -9,9 +9,11 @@ import { Input } from '@/components/ui/input'
 
 const initial: FormResult = {}
 
-/** Sign in with CueVerse ID (or email) + password, with an inline forgot-password flow. */
-export function SignInForm() {
+/** Sign in with CueVerse ID (or email) + password, with an inline forgot-password flow.
+ *  `returnTo` (a safe local path) sends the user back where they started after signing in. */
+export function SignInForm({ returnTo = '/account' }: { returnTo?: string }) {
   const [state, action, pending] = useActionState(signIn, initial)
+  const registerHref = returnTo && returnTo !== '/account' ? `/register?returnTo=${encodeURIComponent(returnTo)}` : '/register'
   // Panel opens automatically after a failed sign-in; `null` follows the error, a boolean is
   // the user's manual override (derived, so no state-syncing effect).
   const [manualOpen, setManualOpen] = useState<boolean | null>(null)
@@ -20,6 +22,7 @@ export function SignInForm() {
   return (
     <div className="space-y-4">
       <form action={action} className="space-y-4">
+        <input type="hidden" name="returnTo" value={returnTo} />
         <div className="space-y-1.5">
           <label htmlFor="identifier" className="text-sm font-medium">
             CueVerse ID or email
@@ -68,7 +71,7 @@ export function SignInForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           New to World Cue Championships?{' '}
-          <Link href="/register" className="font-medium text-brand hover:text-brand-soft">
+          <Link href={registerHref} className="font-medium text-brand hover:text-brand-soft">
             Create an account
           </Link>
         </p>

@@ -72,7 +72,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
       <div className="mb-6 space-y-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cups, players, teams, aliases, champions…" className="h-10 pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tournaments, players, teams, aliases, champions…" className="h-10 pl-9" />
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           <Select label="Status" value={status} onChange={setStatus} options={[['all', 'All statuses'], ['active', 'Active & Upcoming'], ['completed', 'Completed']]} />
@@ -92,7 +92,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
       <section>
         <h2 className="eyebrow mb-3 text-muted-foreground">Archive {archive.length > 0 && `· ${archive.length}`}</h2>
         {archive.length === 0 && active.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No cups match your search.</p>
+          <p className="text-sm text-muted-foreground">No tournaments match your search.</p>
         ) : (
           <ul className="space-y-2">{archive.map((c) => <Row key={c.number} c={c} rel={relFor(c)} />)}</ul>
         )}

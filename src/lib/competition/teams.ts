@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 import { assertCompetitionUnlocked } from './service'
 import { hashSecret, verifySecret } from './secret-hash'
+import { joinPasswordGate } from './join-password'
+import { secureShuffle } from './secure-random'
+import { planBalancedRosters, validateRandomCount, type RandomEntrant } from './random-teams'
+import { drawTeamNames } from './team-name-pool'
+import { getLadder } from '@/lib/stats/ladder'
+import { ELO_START } from '@/lib/stats/elo'
 
 export interface TeamMemberInput {
   playerId?: string | null
@@ -51,9 +57,22 @@ export async function getTeamMembersByRegistration(tournamentId: number): Promis
 }
 
 /** Create a team (its bracket entrant is a Registration; roster added via setTeamMembers). */
+/** Reject MANUAL team management on RANDOM tournaments — their teams are generated once and locked,
+ *  so create / edit / rename / move / delete are all disabled (backend enforcement so a direct
+ *  endpoint call can't bypass the Random Team restrictions). Returns an error string, else null. */
+async function assertManualTeamsAllowed(tournamentId: number): Promise<string | null> {
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { participantFormat: true, teamFormation: true } })
+  if (t?.participantFormat === 'TEAM' && t.teamFormation === 'RANDOM') {
+    return 'This tournament draws teams at random — manual team management is disabled.'
+  }
+  return null
+}
+
 export async function createTeam(actor: Actor, tournamentId: number, name: string): Promise<{ ok: boolean; error?: string; teamId?: number }> {
   const clean = name.trim()
   if (!clean) return { ok: false, error: 'A team name is required.' }
+  const rnd = await assertManualTeamsAllowed(tournamentId)
+  if (rnd) return { ok: false, error: rnd }
   await assertCompetitionUnlocked(prisma, tournamentId)
   const dupe = await prisma.tournamentTeam.findFirst({ where: { tournamentId, name: clean } })
   if (dupe) return { ok: false, error: `A team named "${clean}" already exists in this tournament.` }
@@ -74,13 +93,15 @@ export async function createTeam(actor: Actor, tournamentId: number, name: strin
 export async function setTeamMembers(actor: Actor, teamId: number, members: TeamMemberInput[]): Promise<{ ok: boolean; error?: string }> {
   const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId }, include: { tournament: true } })
   if (!team) return { ok: false, error: 'Team not found.' }
+  const rnd = await assertManualTeamsAllowed(team.tournamentId)
+  if (rnd) return { ok: false, error: rnd }
   await assertCompetitionUnlocked(prisma, team.tournamentId)
 
   const cleaned = members.map((m) => ({ ...m, name: m.name.trim() })).filter((m) => m.name)
   if (!cleaned.length) return { ok: false, error: 'A team needs at least one member.' }
 
   const maxSize = team.tournament.teamSize ?? cleaned.length
-  if (cleaned.length > maxSize) return { ok: false, error: `This cup allows at most ${maxSize} members per team.` }
+  if (cleaned.length > maxSize) return { ok: false, error: `This tournament allows at most ${maxSize} members per team.` }
 
   // No duplicate player within the team (by linked playerId, else by name).
   const seen = new Set<string>()
@@ -128,6 +149,8 @@ export async function renameTeam(actor: Actor, teamId: number, name: string): Pr
   if (!clean) return { ok: false, error: 'A team name is required.' }
   const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
+  const rnd = await assertManualTeamsAllowed(team.tournamentId)
+  if (rnd) return { ok: false, error: rnd }
   await assertCompetitionUnlocked(prisma, team.tournamentId)
   const dupe = await prisma.tournamentTeam.findFirst({ where: { tournamentId: team.tournamentId, name: clean, NOT: { id: teamId } } })
   if (dupe) return { ok: false, error: `A team named "${clean}" already exists.` }
@@ -146,6 +169,7 @@ export async function renameTeam(actor: Actor, teamId: number, name: string): Pr
 export async function withdrawTeam(actor: Actor, teamId: number, reason?: string): Promise<{ ok: boolean; error?: string }> {
   const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
+  { const rnd = await assertManualTeamsAllowed(team.tournamentId); if (rnd) return { ok: false, error: rnd } }
   await assertCompetitionUnlocked(prisma, team.tournamentId)
   await prisma.$transaction(async (tx) => {
     await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: true } })
@@ -158,6 +182,7 @@ export async function withdrawTeam(actor: Actor, teamId: number, reason?: string
 export async function restoreTeam(actor: Actor, teamId: number): Promise<{ ok: boolean; error?: string }> {
   const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
+  { const rnd = await assertManualTeamsAllowed(team.tournamentId); if (rnd) return { ok: false, error: rnd } }
   await assertCompetitionUnlocked(prisma, team.tournamentId)
   await prisma.$transaction(async (tx) => {
     await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: false } })
@@ -171,6 +196,7 @@ export async function restoreTeam(actor: Actor, teamId: number): Promise<{ ok: b
 export async function deleteTeam(actor: Actor, teamId: number): Promise<{ ok: boolean; error?: string }> {
   const team = await prisma.tournamentTeam.findUnique({ where: { id: teamId } })
   if (!team) return { ok: false, error: 'Team not found.' }
+  { const rnd = await assertManualTeamsAllowed(team.tournamentId); if (rnd) return { ok: false, error: rnd } }
   await assertCompetitionUnlocked(prisma, team.tournamentId)
   const inPublishedBracket = await prisma.playoffMatch.count({
     where: { tournamentId: team.tournamentId, published: true, OR: [{ homeRegistrationId: team.registrationId }, { awayRegistrationId: team.registrationId }] },
@@ -263,9 +289,11 @@ function validateJoinCode(code: string): string | null {
 }
 
 /** START a new team: the signed-in player becomes captain + first roster member. Optional join code. */
-export async function startTeam(actor: Actor, tournamentId: number, teamName: string, captain: PlayerIdentity, joinCode: string | null): Promise<{ ok: boolean; error?: string; teamId?: number }> {
+export async function startTeam(actor: Actor, tournamentId: number, teamName: string, captain: PlayerIdentity, joinCode: string | null, joinPassword?: string | null): Promise<{ ok: boolean; error?: string; teamId?: number }> {
   const gate = await requirePickTeamOpen(tournamentId)
   if (!gate.ok) return gate
+  const pwErr = await joinPasswordGate(tournamentId, joinPassword)
+  if (pwErr) return { ok: false, error: pwErr }
   const clean = teamName.trim()
   if (!clean) return { ok: false, error: 'Enter a team name.' }
   if (clean.length > 60) return { ok: false, error: 'Team name must be 60 characters or fewer.' }
@@ -310,9 +338,11 @@ export async function listJoinableTeams(tournamentId: number): Promise<JoinableT
 }
 
 /** JOIN an existing team. Adds ONLY the signed-in account. Protected teams require the correct code. */
-export async function joinTeam(actor: Actor, tournamentId: number, teamId: number, player: PlayerIdentity, joinCode: string | null): Promise<{ ok: boolean; error?: string }> {
+export async function joinTeam(actor: Actor, tournamentId: number, teamId: number, player: PlayerIdentity, joinCode: string | null, joinPassword?: string | null): Promise<{ ok: boolean; error?: string }> {
   const gate = await requirePickTeamOpen(tournamentId)
   if (!gate.ok) return gate
+  const pwErr = await joinPasswordGate(tournamentId, joinPassword)
+  if (pwErr) return { ok: false, error: pwErr }
   const mod = await canRegister(actor.userId)
   if (!mod.ok) return mod
   const st = await accountState(tournamentId, actor.userId)
@@ -430,32 +460,48 @@ export async function setTeamJoinCode(actor: Actor, tournamentId: number, code: 
 // Random-draw team assembly (teamFormation = RANDOM)
 // ---------------------------------------------------------------------------
 
-/** Deterministic shuffle (mulberry32 seeded by tournament id) so a redraw is stable + reproducible. */
-function shuffleSeeded<T>(items: T[], seed: number): T[] {
-  const a = [...items]
-  let s = (seed * 2654435761) >>> 0
-  const rand = () => {
-    s = (s + 0x6d2b79f5) | 0
-    let t = Math.imul(s ^ (s >>> 15), 1 | s)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+/** Load the solo entrants of a RANDOM tournament with their current all-time Elo, ranked flag and
+ *  overall top-five status, ready for the balanced generator. Rating source = latest post-rating in
+ *  the ledger (this event's results are not yet in the ledger); unrated players default to 1500 and
+ *  are marked unranked. Top-five = the players currently holding overall Ladder positions 1–5. */
+async function loadRandomEntrants(tournamentId: number): Promise<RandomEntrant[]> {
+  const solos = await prisma.registration.findMany({ where: { tournamentId, status: 'APPROVED', team: { is: null } }, orderBy: { id: 'asc' } })
+  const playerIds = [...new Set(solos.map((s) => s.playerId).filter((p): p is string => !!p))]
+
+  const ratingById = new Map<string, number>()
+  if (playerIds.length) {
+    const latest = await prisma.ratingLedger.findMany({ where: { playerId: { in: playerIds } }, orderBy: { sequence: 'desc' }, select: { playerId: true, postRating: true } })
+    for (const r of latest) if (!ratingById.has(r.playerId)) ratingById.set(r.playerId, r.postRating)
   }
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
+  // Overall Ladder positions 1–5 (all-time), by playerId — the top-five protection set.
+  const ladder = await getLadder('all-time')
+  const topFive = new Set(ladder.filter((r) => r.rank >= 1 && r.rank <= 5).map((r) => r.playerId))
+
+  return solos.map((s) => {
+    const ranked = s.playerId != null && ratingById.has(s.playerId)
+    return {
+      registrationId: s.id,
+      playerId: s.playerId,
+      name: s.displayName || s.username,
+      handle: s.cueverseId,
+      rating: s.playerId ? ratingById.get(s.playerId) ?? ELO_START : ELO_START,
+      ranked,
+      topFive: s.playerId != null && topFive.has(s.playerId),
+    }
+  })
 }
 
 /**
- * Assemble RANDOM-draw teams from the solo entrants of a TEAM tournament (teamFormation = RANDOM):
- * every approved individual signup is shuffled and grouped into teams of `teamSize`. Each team gets
- * a bracket-entrant Registration ("Team N") + a TournamentTeam whose members reference the drawn
- * players (by playerId). The original solo registrations are withdrawn (superseded by the team).
+ * Assemble RANDOM-draw teams from the solo entrants of a TEAM tournament (teamFormation = RANDOM).
+ * Uses the balanced-random generator (rating bands + top-five protection, secure unbiased shuffle)
+ * and assigns each team a unique random name drawn without replacement from the curated pool. Each
+ * team gets a bracket-entrant Registration + a TournamentTeam (permanent name) whose members
+ * reference the drawn players (rating frozen in `ratingAtClose`). The solo registrations are retired.
  *
- * NEVER silently drops players: if the entrant count is not an exact multiple of the team size, the
- * draw is BLOCKED and the admin is told precisely how many players to add or remove. Idempotent:
- * refuses (no-op) if teams already exist. Runs at registration close, before seeding.
+ * NEVER silently drops players: if the entrant count is not an exact multiple of the team size (or
+ * fewer than two teams), the draw is BLOCKED with a precise add/remove message. IDEMPOTENT: no-op if
+ * teams already exist, so retries never produce a second assignment. Atomic: all rows are created in
+ * one transaction — a failure leaves no partial teams, names or players.
  */
 export async function assembleRandomTeams(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string; teams?: number }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId } })
@@ -465,41 +511,37 @@ export async function assembleRandomTeams(actor: Actor, tournamentId: number): P
   const size = t.teamSize ?? 2
 
   const already = await prisma.tournamentTeam.count({ where: { tournamentId } })
-  if (already > 0) return { ok: true, teams: already } // already drawn — no-op
+  if (already > 0) return { ok: true, teams: already } // already drawn — no-op (idempotent)
 
-  // Solo entrants = approved registrations that are NOT themselves team entrants.
-  const solos = await prisma.registration.findMany({ where: { tournamentId, status: 'APPROVED', team: { is: null } }, orderBy: { id: 'asc' } })
-  const n = solos.length
-  if (n < size) {
-    return { ok: false, error: `Random-draw teams of ${size} need at least ${size} registered players — you have ${n}. Add ${size - n} more before generating.` }
-  }
-  const remainder = n % size
-  if (remainder !== 0) {
-    const add = size - remainder
-    // Never discard anyone: block and tell the admin exactly what to change.
-    return {
-      ok: false,
-      error: `Random-draw teams of ${size} need the number of players to be an exact multiple of ${size}. You have ${n}. Add ${add} more player${add === 1 ? '' : 's'} (to ${n + add}) or remove ${remainder} (to ${n - remainder}) before generating — no player is ever dropped from the draw.`,
-    }
-  }
+  const entrants = await loadRandomEntrants(tournamentId)
+  const count = validateRandomCount(entrants.length, size)
+  if (!count.ok) return { ok: false, error: count.error }
+  const numTeams = count.numTeams
 
-  const drawn = shuffleSeeded(solos, tournamentId)
-  const numTeams = n / size
+  // Fail SAFELY before creating anything if the name pool can't cover this many teams.
+  let names: string[]
+  try { names = drawTeamNames(numTeams, secureShuffle) } catch (e) { return { ok: false, error: (e as Error).message } }
+
+  const rosters = planBalancedRosters(entrants, size)
+  const drawnIds = entrants.map((e) => e.registrationId)
+
   await prisma.$transaction(async (tx) => {
     for (let ti = 0; ti < numTeams; ti++) {
-      const members = drawn.slice(ti * size, ti * size + size)
-      const teamName = `Team ${ti + 1}`
+      const teamName = names[ti]
       const reg = await tx.registration.create({
         data: { tournamentId, username: teamName, displayName: teamName, status: 'APPROVED', approvedAt: new Date(), addedByAdmin: true },
       })
       const team = await tx.tournamentTeam.create({ data: { tournamentId, registrationId: reg.id, name: teamName } })
       await tx.tournamentTeamMember.createMany({
-        data: members.map((m, i) => ({ teamId: team.id, playerId: m.playerId, name: m.displayName || m.username, handle: m.cueverseId, memberOrder: i, captain: i === 0 })),
+        data: rosters[ti].members.map((m, i) => ({
+          teamId: team.id, playerId: m.playerId, name: m.name, handle: m.handle,
+          memberOrder: i, captain: i === 0, ratingAtClose: m.rating,
+        })),
       })
     }
     // Retire the (now fully drawn) solo registrations — the team entrants replace them in the bracket.
-    await tx.registration.updateMany({ where: { id: { in: drawn.map((r) => r.id) } }, data: { status: 'WITHDRAWN', withdrawnAt: new Date() } })
-    await recordAudit(actor, { action: 'tournament.team.randomDraw', entity: 'Tournament', entityId: tournamentId, newValue: { teams: numTeams, teamSize: size } }, tx)
+    await tx.registration.updateMany({ where: { id: { in: drawnIds } }, data: { status: 'WITHDRAWN', withdrawnAt: new Date() } })
+    await recordAudit(actor, { action: 'tournament.team.randomDraw', entity: 'Tournament', entityId: tournamentId, newValue: { teams: numTeams, teamSize: size, names } }, tx)
   })
   return { ok: true, teams: numTeams }
 }

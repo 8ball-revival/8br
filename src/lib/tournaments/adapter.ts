@@ -68,7 +68,7 @@ const slotFromRow = (present: boolean, name: string | null, handle: string | nul
   if (!present) return undefined
   const s: BracketSlot = {}
   if (name != null) s.name = name
-  if (handle != null) s.handle = handle
+  if (handle != null) { s.handle = handle; s.slug = handle } // handle = CueVerse ID → profile link
   if (seed != null) s.seed = seed
   if (score != null) s.score = score
   return s

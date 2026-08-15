@@ -5,6 +5,7 @@ import { Container } from '@/components/ui/container'
 import { Card, CardContent } from '@/components/ui/card'
 import { SignInForm } from '@/components/account/sign-in-form'
 import { getCurrentUser } from '@/lib/account/auth'
+import { safeReturnTo } from '@/lib/account/return-to'
 import { pageMetadata } from '@/lib/site'
 
 export const dynamic = 'force-dynamic' // auth/user-specific — must render per-request (reads headers/cookies)
@@ -16,9 +17,11 @@ export const metadata: Metadata = pageMetadata({
   index: false,
 })
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
+  const { returnTo: rawReturnTo } = await searchParams
+  const returnTo = safeReturnTo(rawReturnTo)
   const user = await getCurrentUser()
-  if (user) redirect('/account')
+  if (user) redirect(returnTo)
 
   return (
     <Container className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center py-16">
@@ -32,7 +35,7 @@ export default async function LoginPage() {
         </div>
         <Card>
           <CardContent className="pt-6">
-            <SignInForm />
+            <SignInForm returnTo={returnTo} />
           </CardContent>
         </Card>
       </div>
