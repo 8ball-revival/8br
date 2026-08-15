@@ -18,10 +18,31 @@ const dirname = path.dirname(filename)
 // Public site origin (also used for canonical/OG URLs). Optional in dev.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
 
+// Every origin the app is legitimately served from MUST be allowed for Payload cookie auth
+// (CORS + CSRF). Otherwise authenticated POSTs (Next.js Server Actions) fail the CSRF origin
+// check, Payload silently drops the session cookie, and the request resolves as anonymous —
+// surfacing as "Forbidden: staff access required" even for a valid Owner. On Vercel the app is
+// reachable at its *.vercel.app URLs in addition to the custom domain, so trust both:
+// VERCEL_PROJECT_PRODUCTION_URL is the stable production alias (e.g. cueverse-wcc.vercel.app);
+// VERCEL_URL is the per-deployment host (covers preview deployments).
+const withProto = (h?: string) => (h ? (h.startsWith('http') ? h : `https://${h}`) : undefined)
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      siteUrl,
+      withProto(process.env.VERCEL_PROJECT_PRODUCTION_URL),
+      withProto(process.env.VERCEL_URL),
+    ].filter(Boolean) as string[],
+  ),
+)
+
 export default buildConfig({
-  // In production, set NEXT_PUBLIC_SITE_URL so admin cookies / CORS / CSRF use the
-  // real origin. Omitted in dev → Payload infers from the request.
-  ...(siteUrl ? { serverURL: siteUrl, cors: [siteUrl], csrf: [siteUrl] } : {}),
+  // serverURL is the canonical site origin when set (else the Vercel production URL). cors/csrf
+  // allow EVERY origin the app is served from so authenticated Server Actions work on the
+  // temporary *.vercel.app URL, preview deployments, AND the custom domain after DNS cutover.
+  ...(allowedOrigins.length
+    ? { serverURL: siteUrl || allowedOrigins[0], cors: allowedOrigins, csrf: allowedOrigins }
+    : {}),
   admin: {
     user: Users.slug,
     importMap: {
