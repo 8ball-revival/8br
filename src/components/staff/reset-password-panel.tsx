@@ -17,7 +17,6 @@ export function ResetPasswordPanel() {
   const [candidates, setCandidates] = useState<StaffAccount[]>([])
   const [searching, startSearch] = useTransition()
   const [selected, setSelected] = useState<StaffAccount | null>(null)
-  const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [issued, setIssued] = useState<{ code: string; name: string; expiresAt: string } | null>(null)
@@ -44,7 +43,7 @@ export function ResetPasswordPanel() {
           <p>A one-time 5-digit code will be generated and shown once. Their existing sessions are signed out immediately, and they must set a permanent password on their next sign-in.</p>
         </div>
       ),
-      input: { label: 'Reason (optional)', placeholder: 'e.g. player requested a reset', defaultValue: reason },
+      input: { label: 'Reason (optional)', placeholder: 'e.g. player requested a reset' },
     })
     if (!res.confirmed) return
     setBusy(true); setError(null)

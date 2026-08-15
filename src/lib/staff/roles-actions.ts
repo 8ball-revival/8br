@@ -4,10 +4,18 @@ import { revalidatePath } from 'next/cache'
 
 import { requireStaffActor } from '@/lib/competition/staff-auth'
 import { promoteToAdmin, demoteAdmin, setHeadAdministrator, transferOwnership, type RoleActor } from './roles-service'
+import { searchPromotableMembers, type StaffMember } from './staff-roster'
 
 export interface RoleResult {
   ok?: boolean
   error?: string
+}
+
+/** Members eligible for promotion (Staff Management picker). Head-Admin/Owner only. */
+export async function searchPromotableMembersAction(query: string): Promise<StaffMember[]> {
+  const a = await requireStaffActor()
+  if (!a.canManageAdmins()) return []
+  return searchPromotableMembers(query)
 }
 
 async function roleActor(): Promise<RoleActor> {

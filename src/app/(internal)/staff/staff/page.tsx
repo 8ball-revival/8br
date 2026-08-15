@@ -1,32 +1,33 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-
 import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
+import { StaffManagementPanel } from '@/components/staff/staff-management-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
+import { getStaffRoster } from '@/lib/staff/staff-roster'
 
-export const metadata: Metadata = { title: 'Staff · Admin · World Cue Championships', robots: { index: false, follow: false } }
+export const dynamic = 'force-dynamic'
+export const metadata: Metadata = { title: 'Staff Management · Admin', robots: { index: false, follow: false } }
 
-export default async function StaffAdminPage() {
+export default async function StaffManagementPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
-  // Only an Owner manages staff accounts and roles.
-  if (!access.actor.can('manage_staff'))
-    return <StaffDenied active="staff" username={access.actor.username} label="Staff" />
+  const canManage = access.actor.canManageAdmins()
+  if (!access.actor.can('manage_staff') && !access.actor.isHeadAdmin) {
+    return <StaffDenied active="staff" username={access.actor.username} label="Staff Management" />
+  }
+
+  const roster = await getStaffRoster()
 
   return (
     <StaffShell active="staff" username={access.actor.username}>
-      <h1 className="font-display text-2xl font-bold tracking-tight">Staff</h1>
-      <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-        Staff accounts, roles, and permissions are the source of truth in the Payload CMS. Create
-        accounts there and assign roles (Owner / Admin / Editor).
+      <h1 className="font-display text-2xl font-bold tracking-tight">Staff Management</h1>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+        Promote Members to Admin and demote Admins to Members. All role changes are authorized
+        server-side and recorded in the Activity Log. Only the Head Admin may change staff roles.
       </p>
-      <Link
-        href="/admin/collections/users"
-        className="mt-4 inline-block rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
-      >
-        Open user management in CMS →
-      </Link>
+      <div className="mt-6">
+        <StaffManagementPanel roster={roster} canManage={canManage} />
+      </div>
     </StaffShell>
   )
 }
