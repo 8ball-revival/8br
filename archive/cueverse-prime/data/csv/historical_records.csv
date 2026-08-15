@@ -1,0 +1,12 @@
+record_code,description,player_id,player_name,value,context
+MOST_CHAMPIONSHIPS,Most championships (career),P0478,Luis,4,
+MOST_FINALS,Most finals appearances,P0073,Jamie,5,
+MOST_TOTAL_WINS,Most match wins (career),P0969,Kevin,91,
+MOST_GROUP_WINS,Most group-stage wins,P0073,Jamie,85,
+MOST_PLAYOFF_WINS,Most playoff wins,P0969,Kevin,26,
+MOST_SEASONS,Most seasons played,P0772,Sergio,25,
+MOST_MATCHES,Most matches played (career),P0772,Sergio,140,
+LONGEST_TITLE_STREAK,Longest consecutive-season title streak,P0478,Luis,2,
+LONGEST_PLAYOFF_RUN,Most wins in a single playoff run,P0064,Tim,5,
+HIGHEST_GROUP_WIN_PCT,Highest group win %% (min 30 matches),P0512,MJ,85.0,
+BIGGEST_BLOWOUT,Largest group-match margin,P0018,Tyler,10,2005-s1-single-GB-0-4 (10-0)

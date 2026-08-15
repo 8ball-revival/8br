@@ -5,13 +5,14 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 export const REPO_ROOT = path.resolve(here, '../../..')
 
-// READ-ONLY source (never written). Overridable for other machines.
+// READ-ONLY source (never written). Overridable for other machines. Defaults to the WCC copy's
+// internal, self-contained archive inputs (offline snapshot 2026-08-15).
 export const SOURCE_DIR =
   process.env.ARCHIVE_SOURCE_DIR ||
-  'C:/Users/Cerebro/Documents/Cueverse Prime/archive_viewer/data/csv'
+  path.join(REPO_ROOT, 'archive', 'cueverse-prime', 'data', 'csv')
 export const CORRECTIONS_DIR =
   process.env.ARCHIVE_CORRECTIONS_DIR ||
-  'C:/Users/Cerebro/Documents/Cueverse Prime/archive_viewer/corrections'
+  path.join(REPO_ROOT, 'archive', 'cueverse-prime', 'corrections')
 
 export const STAGING_DIR = path.join(REPO_ROOT, 'data', 'staging')
 export const REPORTS_DIR = path.join(REPO_ROOT, 'reports', 'archive')

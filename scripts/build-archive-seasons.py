@@ -11,9 +11,11 @@ archive. Re-run whenever the archive is corrected.
 import csv, json, os, re
 from collections import defaultdict
 
-ARCHIVE = r"C:\Users\Cerebro\Documents\Cueverse Prime\archive_viewer\data\csv"
-CORR = r"C:\Users\Cerebro\Documents\Cueverse Prime\archive_viewer\corrections"
-OUT = os.path.join(os.path.dirname(__file__), "..", "src", "lib", "seasons", "data", "archive-seasons.json")
+# Self-contained: resolve inputs inside this WCC project's own archive folder (offline snapshot).
+HERE = os.path.dirname(__file__)
+ARCHIVE = os.path.join(HERE, "..", "archive", "cueverse-prime", "data", "csv")
+CORR = os.path.join(HERE, "..", "archive", "cueverse-prime", "corrections")
+OUT = os.path.join(HERE, "..", "src", "lib", "seasons", "data", "archive-seasons.json")
 
 
 def read_csv(path):

@@ -1,0 +1,657 @@
+achievement_id,player_id,code,label,season_id,division,value
+A00001,P0027,CHAMPION,Division single Champion,2005-s1,single,
+A00002,P0067,FINALIST,Division single Finalist,2005-s1,single,
+A00003,P0081,CHAMPION,Division single Champion,2005-s2,single,
+A00004,P0018,FINALIST,Division single Finalist,2005-s2,single,
+A00005,P0004,CHAMPION,Division single Champion,2005-s3,single,
+A00006,P0005,FINALIST,Division single Finalist,2005-s3,single,
+A00007,P0104,CHAMPION,Division single Champion,2005-s4,single,
+A00008,P0034,FINALIST,Division single Finalist,2005-s4,single,
+A00009,P0478,CHAMPION,Division A Champion,2006-s1,A,
+A00010,P0073,FINALIST,Division A Finalist,2006-s1,A,
+A00011,P0546,CHAMPION,Division B Champion,2006-s1,B,
+A00012,P0502,FINALIST,Division B Finalist,2006-s1,B,
+A00013,P0258,CHAMPION,Division A Champion,2006-s2,A,
+A00014,P0024,FINALIST,Division A Finalist,2006-s2,A,
+A00015,P0457,CHAMPION,Division B Champion,2006-s2,B,
+A00016,P0617,FINALIST,Division B Finalist,2006-s2,B,
+A00017,P0478,CHAMPION,Division A Champion,2006-s3,A,
+A00018,P0018,FINALIST,Division A Finalist,2006-s3,A,
+A00019,P0196,CHAMPION,Division B Champion,2006-s3,B,
+A00020,P0329,FINALIST,Division B Finalist,2006-s3,B,
+A00021,P0478,CHAMPION,Division A Champion,2006-s4,A,
+A00022,P0653,FINALIST,Division A Finalist,2006-s4,A,
+A00023,P0542,CHAMPION,Division B Champion,2006-s4,B,
+A00024,P0634,FINALIST,Division B Finalist,2006-s4,B,
+A00025,P0233,CHAMPION,Division A Champion,2006-s5,A,
+A00026,P0018,FINALIST,Division A Finalist,2006-s5,A,
+A00027,P0437,CHAMPION,Division B Champion,2006-s5,B,
+A00028,P0266,FINALIST,Division B Finalist,2006-s5,B,
+A00029,P0297,CHAMPION,Division A Champion,2006-s6,A,
+A00030,P0073,FINALIST,Division A Finalist,2006-s6,A,
+A00031,P0239,CHAMPION,Division B Champion,2006-s6,B,
+A00032,P0448,FINALIST,Division B Finalist,2006-s6,B,
+A00033,P0653,CHAMPION,Division A Champion,2006-s7,A,
+A00034,P0512,FINALIST,Division A Finalist,2006-s7,A,
+A00035,P0302,CHAMPION,Division B Champion,2006-s7,B,
+A00036,P0484,FINALIST,Division B Finalist,2006-s7,B,
+A00037,P0261,CHAMPION,Division A Champion,2007-s1,A,
+A00038,P0018,FINALIST,Division A Finalist,2007-s1,A,
+A00039,P0913,CHAMPION,Division B Champion,2007-s1,B,
+A00040,P0872,FINALIST,Division B Finalist,2007-s1,B,
+A00041,P0258,CHAMPION,Division A Champion,2007-s2,A,
+A00042,P0270,FINALIST,Division A Finalist,2007-s2,A,
+A00043,P0051,CHAMPION,Division B Champion,2007-s2,B,
+A00044,P0484,FINALIST,Division B Finalist,2007-s2,B,
+A00045,P0702,CHAMPION,Division A Champion,2007-s3,A,
+A00046,P0853,FINALIST,Division A Finalist,2007-s3,A,
+A00047,P0223,CHAMPION,Division B Champion,2007-s3,B,
+A00048,P0774,FINALIST,Division B Finalist,2007-s3,B,
+A00049,P0297,CHAMPION,Division A Champion,2007-s4,A,
+A00050,P0584,FINALIST,Division A Finalist,2007-s4,A,
+A00051,P0558,CHAMPION,Division B Champion,2007-s4,B,
+A00052,P0785,FINALIST,Division B Finalist,2007-s4,B,
+A00053,P0297,CHAMPION,Division A Champion,2007-s5,A,
+A00054,P0847,FINALIST,Division A Finalist,2007-s5,A,
+A00055,P0781,CHAMPION,Division B Champion,2007-s5,B,
+A00056,P0764,FINALIST,Division B Finalist,2007-s5,B,
+A00057,P0672,CHAMPION,Division A Champion,2007-s6,A,
+A00058,P0707,FINALIST,Division A Finalist,2007-s6,A,
+A00059,P0781,CHAMPION,Division B Champion,2007-s6,B,
+A00060,P0726,FINALIST,Division B Finalist,2007-s6,B,
+A00061,P0478,CHAMPION,Division A Champion,2008-s1,A,
+A00062,P0029,FINALIST,Division A Finalist,2008-s1,A,
+A00063,P1094,CHAMPION,Division B Champion,2008-s1,B,
+A00064,P1111,FINALIST,Division B Finalist,2008-s1,B,
+A00065,P0984,CHAMPION,Division A Champion,2008-s2,A,
+A00066,P0140,FINALIST,Division A Finalist,2008-s2,A,
+A00067,P1047,CHAMPION,Division B Champion,2008-s2,B,
+A00068,P0982,FINALIST,Division B Finalist,2008-s2,B,
+A00069,P0985,CHAMPION,Division A Champion,2008-s3,A,
+A00070,P0321,FINALIST,Division A Finalist,2008-s3,A,
+A00071,P1104,CHAMPION,Division B Champion,2008-s3,B,
+A00072,P1080,FINALIST,Division B Finalist,2008-s3,B,
+A00073,P1002,CHAMPION,Division A Champion,2008-s4,A,
+A00074,P0858,FINALIST,Division A Finalist,2008-s4,A,
+A00075,P0947,CHAMPION,Division B Champion,2008-s4,B,
+A00076,P1033,FINALIST,Division B Finalist,2008-s4,B,
+A00077,P0969,CHAMPION,Division A Champion,2008-s5,A,
+A00078,P1022,FINALIST,Division A Finalist,2008-s5,A,
+A00079,P1112,CHAMPION,Division B Champion,2008-s5,B,
+A00080,P1025,FINALIST,Division B Finalist,2008-s5,B,
+A00081,P1368,CHAMPION,Division A Champion,2009-s1,A,
+A00082,P0672,FINALIST,Division A Finalist,2009-s1,A,
+A00083,P1005,CHAMPION,Division B Champion,2009-s1,B,
+A00084,P1167,FINALIST,Division B Finalist,2009-s1,B,
+A00085,P1368,CHAMPION,Division A Champion,2009-s2,A,
+A00086,P1312,FINALIST,Division A Finalist,2009-s2,A,
+A00087,P1322,CHAMPION,Division B Champion,2009-s2,B,
+A00088,P1300,FINALIST,Division B Finalist,2009-s2,B,
+A00089,P1193,CHAMPION,Division A Champion,2009-s3,A,
+A00090,P1227,FINALIST,Division A Finalist,2009-s3,A,
+A00091,P1225,CHAMPION,Division B Champion,2009-s3,B,
+A00092,P1340,FINALIST,Division B Finalist,2009-s3,B,
+A00093,P1334,CHAMPION,Division A Champion,2009-s4,A,
+A00094,P1369,FINALIST,Division A Finalist,2009-s4,A,
+A00095,P1314,CHAMPION,Division B Champion,2009-s4,B,
+A00096,P0327,FINALIST,Division B Finalist,2009-s4,B,
+A00097,P1334,CHAMPION,Division A Champion,2009-s5,A,
+A00098,P1251,FINALIST,Division A Finalist,2009-s5,A,
+A00099,P1189,CHAMPION,Division B Champion,2009-s5,B,
+A00100,P1270,FINALIST,Division B Finalist,2009-s5,B,
+A00101,P0140,CHAMPION,Division A Champion,2009-s6,A,
+A00102,P0073,FINALIST,Division A Finalist,2009-s6,A,
+A00103,P1286,CHAMPION,Division B Champion,2009-s6,B,
+A00104,P0296,FINALIST,Division B Finalist,2009-s6,B,
+A00105,P0672,CHAMPION,Division A Champion,2010-s1,A,
+A00106,P1441,FINALIST,Division A Finalist,2010-s1,A,
+A00107,P1182,CHAMPION,Division B Champion,2010-s1,B,
+A00108,P1525,FINALIST,Division B Finalist,2010-s1,B,
+A00109,P1441,CHAMPION,Division A Champion,2010-s2,A,
+A00110,P1334,FINALIST,Division A Finalist,2010-s2,A,
+A00111,P1483,CHAMPION,Division B Champion,2010-s2,B,
+A00112,P1138,FINALIST,Division B Finalist,2010-s2,B,
+A00113,P1262,CHAMPION,Division A Champion,2010-s3,A,
+A00114,P0672,FINALIST,Division A Finalist,2010-s3,A,
+A00115,P1113,CHAMPION,Division B Champion,2010-s3,B,
+A00116,P1516,FINALIST,Division B Finalist,2010-s3,B,
+A00117,P1404,CHAMPION,Division A Champion,2010-s4,A,
+A00118,P1262,FINALIST,Division A Finalist,2010-s4,A,
+A00119,P1440,CHAMPION,Division B Champion,2010-s4,B,
+A00120,P0383,FINALIST,Division B Finalist,2010-s4,B,
+A00121,P0073,CHAMPION,Division A Champion,2011-s1,A,
+A00122,P1441,FINALIST,Division A Finalist,2011-s1,A,
+A00123,P1589,CHAMPION,Division B Champion,2011-s1,B,
+A00124,P1603,FINALIST,Division B Finalist,2011-s1,B,
+A00125,P1410,CHAMPION,Division A Champion,2011-s2,A,
+A00126,P1567,FINALIST,Division A Finalist,2011-s2,A,
+A00127,P1413,CHAMPION,Division B Champion,2011-s2,B,
+A00128,P1642,FINALIST,Division B Finalist,2011-s2,B,
+A00129,P1198,CHAMPION,Division A Champion,2011-s3,A,
+A00130,P1334,FINALIST,Division A Finalist,2011-s3,A,
+A00131,P1576,CHAMPION,Division B Champion,2011-s3,B,
+A00132,P1609,FINALIST,Division B Finalist,2011-s3,B,
+A00133,P1713,CHAMPION,Division A Champion,2011-s4,A,
+A00134,P1656,FINALIST,Division A Finalist,2011-s4,A,
+A00135,P1609,CHAMPION,Division B Champion,2011-s4,B,
+A00136,P1627,FINALIST,Division B Finalist,2011-s4,B,
+A00137,P1585,CHAMPION,Division A Champion,2011-s5,A,
+A00138,P0073,FINALIST,Division A Finalist,2011-s5,A,
+A00139,P1591,CHAMPION,Division B Champion,2011-s5,B,
+A00140,P0296,FINALIST,Division B Finalist,2011-s5,B,
+A00141,P1585,CHAMPION,Division A Champion,2012-s1,A,
+A00142,P1732,FINALIST,Division A Finalist,2012-s1,A,
+A00143,P0064,CHAMPION,Division B Champion,2012-s1,B,
+A00144,P1051,FINALIST,Division B Finalist,2012-s1,B,
+A00145,P1316,CHAMPION,Division A Champion,2012-s2,A,
+A00146,P1745,FINALIST,Division A Finalist,2012-s2,A,
+A00147,P1531,CHAMPION,Division B Champion,2012-s2,B,
+A00148,P1731,FINALIST,Division B Finalist,2012-s2,B,
+A00149,P1251,CHAMPION,Division A Champion,2012-s3,A,
+A00150,P0969,FINALIST,Division A Finalist,2012-s3,A,
+A00151,P1856,CHAMPION,Division B Champion,2012-s3,B,
+A00152,P1183,FINALIST,Division B Finalist,2012-s3,B,
+A00153,P0368,CHAMPION,Division A Champion,2012-s4,A,
+A00154,P0969,FINALIST,Division A Finalist,2012-s4,A,
+A00155,P1751,CHAMPION,Division B Champion,2012-s4,B,
+A00156,P1813,FINALIST,Division B Finalist,2012-s4,B,
+A00157,P1802,CHAMPION,Division A Champion,2012-s5,A,
+A00158,P0182,FINALIST,Division A Finalist,2012-s5,A,
+A00159,P1818,CHAMPION,Division B Champion,2012-s5,B,
+A00160,P1717,FINALIST,Division B Finalist,2012-s5,B,
+A00161,P1749,CHAMPION,Division A Champion,2013-s1,A,
+A00162,P1604,CHAMPION,Division B Champion,2013-s1,B,
+A00163,P1876,FINALIST,Division B Finalist,2013-s1,B,
+A00164,P1202,CHAMPION,Division A Champion,2013-s2,A,
+A00165,P0709,FINALIST,Division A Finalist,2013-s2,A,
+A00166,P1772,CHAMPION,Division B Champion,2013-s2,B,
+A00167,P1763,FINALIST,Division B Finalist,2013-s2,B,
+A00168,P1732,CHAMPION,Division A Champion,2013-s3,A,
+A00169,P1587,FINALIST,Division A Finalist,2013-s3,A,
+A00170,P1896,CHAMPION,Division B Champion,2013-s3,B,
+A00171,P1733,FINALIST,Division B Finalist,2013-s3,B,
+A00172,P1587,CHAMPION,Division A Champion,2013-s4,A,
+A00173,P0969,FINALIST,Division A Finalist,2013-s4,A,
+A00174,P1523,FINALIST,Division B Finalist,2013-s4,B,
+A00175,P1791,CHAMPION,Division A Champion,2013-s5,A,
+A00176,P1788,FINALIST,Division A Finalist,2013-s5,A,
+A00177,P1593,CHAMPION,Division B Champion,2013-s5,B,
+A00178,P1213,FINALIST,Division B Finalist,2013-s5,B,
+A00179,P0969,CHAMPION,Division A Champion,2014-s1,A,
+A00180,P1791,FINALIST,Division A Finalist,2014-s1,A,
+A00181,P1733,CHAMPION,Division B Champion,2014-s1,B,
+A00182,P1771,FINALIST,Division B Finalist,2014-s1,B,
+A00183,P0027,UNDEFEATED_GROUP,Undefeated group stage (7-0),2005-s1,single,7
+A00184,P0008,UNDEFEATED_GROUP,Undefeated group stage (4-0),2005-s1,single,4
+A00185,P0067,UNDEFEATED_GROUP,Undefeated group stage (4-0),2005-s1,single,4
+A00186,P0049,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s1,single,5
+A00187,P0018,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s2,single,5
+A00188,P0027,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s2,single,5
+A00189,P0046,UNDEFEATED_GROUP,Undefeated group stage (4-0),2005-s2,single,4
+A00190,P0103,UNDEFEATED_GROUP,Undefeated group stage (6-0),2005-s2,single,6
+A00191,P0081,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s2,single,5
+A00192,P0005,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s3,single,5
+A00193,P0027,UNDEFEATED_GROUP,Undefeated group stage (4-0),2005-s3,single,4
+A00194,P0073,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s3,single,5
+A00195,P0113,UNDEFEATED_GROUP,Undefeated group stage (4-0),2005-s3,single,4
+A00196,P0132,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s3,single,5
+A00197,P0004,UNDEFEATED_GROUP,Undefeated group stage (6-0),2005-s3,single,6
+A00198,P0001,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s3,single,5
+A00199,P0032,UNDEFEATED_GROUP,Undefeated group stage (6-0),2005-s4,single,6
+A00200,P0027,UNDEFEATED_GROUP,Undefeated group stage (6-0),2005-s4,single,6
+A00201,P0140,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s4,single,5
+A00202,P0005,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s4,single,5
+A00203,P0104,UNDEFEATED_GROUP,Undefeated group stage (4-0),2005-s4,single,4
+A00204,P0076,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s4,single,5
+A00205,P0010,UNDEFEATED_GROUP,Undefeated group stage (6-0),2005-s4,single,6
+A00206,P0060,UNDEFEATED_GROUP,Undefeated group stage (5-0),2005-s4,single,5
+A00207,P0258,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s1,single,6
+A00208,P0490,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s1,single,5
+A00209,P0257,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s1,single,6
+A00210,P0297,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s1,single,5
+A00211,P0073,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s1,single,6
+A00212,P0362,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s1,single,4
+A00213,P0140,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s1,single,5
+A00214,P0374,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s1,single,4
+A00215,P0226,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s2,single,4
+A00216,P0297,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s2,single,4
+A00217,P0261,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s2,single,4
+A00218,P0255,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s2,single,4
+A00219,P0033,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s2,single,5
+A00220,P0140,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s2,single,4
+A00221,P0335,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s2,single,6
+A00222,P0515,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s2,single,4
+A00223,P0029,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,A,4
+A00224,P0018,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s3,A,5
+A00225,P0324,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,A,4
+A00226,P0622,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,A,4
+A00227,P0247,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,A,4
+A00228,P0029,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,B,4
+A00229,P0018,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s3,B,5
+A00230,P0324,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,B,4
+A00231,P0622,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,B,4
+A00232,P0247,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s3,B,4
+A00233,P0181,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s4,A,4
+A00234,P0263,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s4,A,6
+A00235,P0175,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s4,A,4
+A00236,P0556,UNDEFEATED_GROUP,Undefeated group stage (7-0),2006-s4,B,7
+A00237,P0601,UNDEFEATED_GROUP,Undefeated group stage (7-0),2006-s4,B,7
+A00238,P0430,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s5,A,4
+A00239,P0542,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s5,A,4
+A00240,P0233,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s5,A,5
+A00241,P0622,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s5,A,5
+A00242,P0018,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s5,A,4
+A00243,P0478,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s5,A,5
+A00244,P0375,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s5,A,4
+A00245,P0266,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s5,B,4
+A00246,P0355,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s6,A,6
+A00247,P0456,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s6,A,5
+A00248,P0482,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s6,A,6
+A00249,P0268,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s6,A,5
+A00250,P0654,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s6,A,6
+A00251,P0254,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s6,A,5
+A00252,P0292,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s6,B,6
+A00253,P0526,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s6,B,6
+A00254,P0345,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s6,B,5
+A00255,P0439,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s6,B,5
+A00256,P0191,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s6,B,4
+A00257,P0653,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s7,A,6
+A00258,P0385,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s7,A,5
+A00259,P0512,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s7,A,5
+A00260,P0493,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s7,A,6
+A00261,P0205,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s7,A,5
+A00262,P0235,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s7,A,6
+A00263,P0440,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s7,A,5
+A00264,P0371,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s7,B,6
+A00265,P0550,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s7,B,5
+A00266,P0223,UNDEFEATED_GROUP,Undefeated group stage (5-0),2006-s7,B,5
+A00267,P0344,UNDEFEATED_GROUP,Undefeated group stage (4-0),2006-s7,B,4
+A00268,P0240,UNDEFEATED_GROUP,Undefeated group stage (6-0),2006-s7,B,6
+A00269,P0239,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s1,A,6
+A00270,P0411,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s1,A,5
+A00271,P0018,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s1,A,4
+A00272,P0512,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s1,A,5
+A00273,P0853,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s1,A,6
+A00274,P0938,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s1,B,5
+A00275,P0258,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s2,A,4
+A00276,P0493,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s2,A,5
+A00277,P0512,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s2,A,6
+A00278,P0874,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s2,A,6
+A00279,P0327,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s2,B,4
+A00280,P0484,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s2,B,4
+A00281,P0453,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s2,B,5
+A00282,P0140,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s3,A,6
+A00283,P0321,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s3,A,6
+A00284,P0315,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s3,B,5
+A00285,P0051,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s3,B,5
+A00286,P0680,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s3,B,5
+A00287,P0712,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s3,B,5
+A00288,P0897,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s4,A,4
+A00289,P0584,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s4,A,5
+A00290,P0493,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s4,A,6
+A00291,P0172,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s4,A,4
+A00292,P0558,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s4,B,5
+A00293,P0315,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s4,B,6
+A00294,P0217,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s4,B,5
+A00295,P0765,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s4,B,6
+A00296,P0724,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s5,A,4
+A00297,P0297,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s5,A,6
+A00298,P0702,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s5,A,5
+A00299,P0918,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s5,B,5
+A00300,P0748,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s5,B,4
+A00301,P0880,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s5,B,4
+A00302,P0781,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s5,B,4
+A00303,P0735,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s5,B,5
+A00304,P0315,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s5,B,4
+A00305,P0815,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s5,B,5
+A00306,P0696,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s6,A,4
+A00307,P0689,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s6,A,4
+A00308,P0896,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s6,B,6
+A00309,P0873,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s6,B,5
+A00310,P0869,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s6,B,5
+A00311,P0926,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s6,B,4
+A00312,P0685,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s6,B,4
+A00313,P0781,UNDEFEATED_GROUP,Undefeated group stage (5-0),2007-s6,B,5
+A00314,P0752,UNDEFEATED_GROUP,Undefeated group stage (4-0),2007-s6,B,4
+A00315,P0748,UNDEFEATED_GROUP,Undefeated group stage (6-0),2007-s6,B,6
+A00316,P0953,UNDEFEATED_GROUP,Undefeated group stage (4-0),2008-s1,A,4
+A00317,P1071,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s1,A,5
+A00318,P0205,UNDEFEATED_GROUP,Undefeated group stage (4-0),2008-s1,A,4
+A00319,P0994,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s1,A,5
+A00320,P0847,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s1,A,5
+A00321,P0478,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s1,A,5
+A00322,P0472,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s1,A,6
+A00323,P0752,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s1,B,6
+A00324,P1072,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s2,A,6
+A00325,P0297,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s2,A,5
+A00326,P1149,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s2,A,6
+A00327,P0847,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s2,A,6
+A00328,P1051,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s2,B,5
+A00329,P1007,UNDEFEATED_GROUP,Undefeated group stage (4-0),2008-s2,B,4
+A00330,P0982,UNDEFEATED_GROUP,Undefeated group stage (4-0),2008-s2,B,4
+A00331,P0985,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s3,A,5
+A00332,P0321,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s3,A,5
+A00333,P1026,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s3,A,5
+A00334,P0707,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s3,A,6
+A00335,P0858,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s4,A,5
+A00336,P0707,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s4,A,5
+A00337,P0321,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s4,A,5
+A00338,P0921,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s4,A,5
+A00339,P1002,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s4,A,5
+A00340,P0949,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s5,A,5
+A00341,P1088,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s5,A,5
+A00342,P1002,UNDEFEATED_GROUP,Undefeated group stage (4-0),2008-s5,A,4
+A00343,P0512,UNDEFEATED_GROUP,Undefeated group stage (6-0),2008-s5,A,6
+A00344,P1025,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s5,B,5
+A00345,P1008,UNDEFEATED_GROUP,Undefeated group stage (4-0),2008-s5,B,4
+A00346,P1134,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s5,B,5
+A00347,P1123,UNDEFEATED_GROUP,Undefeated group stage (5-0),2008-s5,B,5
+A00348,P1368,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s1,A,6
+A00349,P0858,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s1,A,5
+A00350,P0984,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s1,A,5
+A00351,P0491,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s1,A,5
+A00352,P1002,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s1,A,6
+A00353,P1022,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s1,A,4
+A00354,P1085,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s1,A,4
+A00355,P1289,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s1,B,6
+A00356,P1300,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s2,B,6
+A00357,P1322,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s2,B,5
+A00358,P0870,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s2,B,5
+A00359,P1304,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s3,A,4
+A00360,P1368,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s3,A,5
+A00361,P1172,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s3,A,5
+A00362,P1193,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s3,A,5
+A00363,P0140,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s3,A,5
+A00364,P0847,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s3,A,5
+A00365,P1332,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s3,B,5
+A00366,P1340,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s3,B,6
+A00367,P0820,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s3,B,4
+A00368,P1167,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s3,B,4
+A00369,P1369,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s4,A,6
+A00370,P0658,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s4,A,6
+A00371,P0951,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s4,A,6
+A00372,P0697,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s4,A,6
+A00373,P1172,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s4,A,4
+A00374,P1371,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s4,B,6
+A00375,P1188,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s4,B,5
+A00376,P0327,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s4,B,4
+A00377,P0772,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s4,B,5
+A00378,P1234,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s4,B,4
+A00379,P1226,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s6,A,5
+A00380,P0951,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s6,A,6
+A00381,P1251,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s6,A,5
+A00382,P1088,UNDEFEATED_GROUP,Undefeated group stage (5-0),2009-s6,A,5
+A00383,P1106,UNDEFEATED_GROUP,Undefeated group stage (4-0),2009-s6,B,4
+A00384,P0248,UNDEFEATED_GROUP,Undefeated group stage (6-0),2009-s6,B,6
+A00385,P1441,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s1,A,4
+A00386,P0672,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s1,A,4
+A00387,P1328,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s1,B,4
+A00388,P1334,UNDEFEATED_GROUP,Undefeated group stage (6-0),2010-s2,A,6
+A00389,P1408,UNDEFEATED_GROUP,Undefeated group stage (5-0),2010-s2,A,5
+A00390,P1459,UNDEFEATED_GROUP,Undefeated group stage (5-0),2010-s2,A,5
+A00391,P0140,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s2,A,4
+A00392,P1441,UNDEFEATED_GROUP,Undefeated group stage (6-0),2010-s2,A,6
+A00393,P1318,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s2,A,4
+A00394,P1483,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s2,B,4
+A00395,P1409,UNDEFEATED_GROUP,Undefeated group stage (5-0),2010-s3,A,5
+A00396,P1022,UNDEFEATED_GROUP,Undefeated group stage (6-0),2010-s3,A,6
+A00397,P0689,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s3,A,4
+A00398,P1456,UNDEFEATED_GROUP,Undefeated group stage (5-0),2010-s3,B,5
+A00399,P1516,UNDEFEATED_GROUP,Undefeated group stage (6-0),2010-s3,B,6
+A00400,P1419,UNDEFEATED_GROUP,Undefeated group stage (6-0),2010-s3,B,6
+A00401,P1223,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,A,4
+A00402,P1399,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,A,4
+A00403,P0969,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,A,4
+A00404,P0073,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,A,4
+A00405,P1403,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,A,4
+A00406,P1465,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,B,4
+A00407,P1057,UNDEFEATED_GROUP,Undefeated group stage (4-0),2010-s4,B,4
+A00408,P1022,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s1,A,4
+A00409,P1650,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s1,A,6
+A00410,P0672,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s1,A,4
+A00411,P1655,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s1,A,4
+A00412,P0073,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s1,A,6
+A00413,P1199,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s1,B,6
+A00414,P1725,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s1,B,6
+A00415,P1603,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s1,B,5
+A00416,P0951,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s2,A,4
+A00417,P1425,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s2,A,5
+A00418,P1713,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s2,A,5
+A00419,P1404,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s2,A,5
+A00420,P1581,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s2,A,4
+A00421,P1677,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s2,B,6
+A00422,P1413,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s2,B,5
+A00423,P1536,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s2,B,5
+A00424,P1572,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s2,B,5
+A00425,P1607,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s2,B,4
+A00426,P1410,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s3,A,5
+A00427,P1334,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s3,A,6
+A00428,P0754,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s3,A,6
+A00429,P0907,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s3,B,6
+A00430,P1576,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s3,B,5
+A00431,P1531,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s3,B,6
+A00432,P1223,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,A,4
+A00433,P0988,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,A,4
+A00434,P1656,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s4,A,5
+A00435,P1700,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s4,B,6
+A00436,P0907,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s4,B,6
+A00437,P1673,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,B,4
+A00438,P1516,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s4,B,5
+A00439,P1580,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,B,4
+A00440,P1604,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,B,4
+A00441,P1627,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,B,4
+A00442,P1113,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s4,B,4
+A00443,P1334,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s5,A,6
+A00444,P1434,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s5,A,5
+A00445,P1585,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s5,A,4
+A00446,P1689,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s5,A,5
+A00447,P1075,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s5,A,6
+A00448,P0296,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s5,B,5
+A00449,P1587,UNDEFEATED_GROUP,Undefeated group stage (5-0),2011-s5,B,5
+A00450,P1591,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s5,B,6
+A00451,P1138,UNDEFEATED_GROUP,Undefeated group stage (6-0),2011-s5,B,6
+A00452,P1516,UNDEFEATED_GROUP,Undefeated group stage (4-0),2011-s5,B,4
+A00453,P1585,UNDEFEATED_GROUP,Undefeated group stage (6-0),2012-s1,A,6
+A00454,P1733,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s1,B,5
+A00455,P1604,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s1,B,5
+A00456,P1848,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s1,B,4
+A00457,P1808,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s2,A,4
+A00458,P1251,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s2,A,5
+A00459,P1801,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s2,A,4
+A00460,P1787,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s2,B,5
+A00461,P1739,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s2,B,5
+A00462,P1531,UNDEFEATED_GROUP,Undefeated group stage (6-0),2012-s2,B,6
+A00463,P0368,UNDEFEATED_GROUP,Undefeated group stage (6-0),2012-s3,A,6
+A00464,P1732,UNDEFEATED_GROUP,Undefeated group stage (6-0),2012-s3,A,6
+A00465,P0182,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s3,A,4
+A00466,P1778,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s3,B,5
+A00467,P1746,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s3,B,4
+A00468,P1686,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s3,B,4
+A00469,P1183,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s3,B,5
+A00470,P1251,UNDEFEATED_GROUP,Undefeated group stage (6-0),2012-s4,A,6
+A00471,P1202,UNDEFEATED_GROUP,Undefeated group stage (6-0),2012-s4,A,6
+A00472,P1401,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s4,B,4
+A00473,P1202,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s5,A,5
+A00474,P1732,UNDEFEATED_GROUP,Undefeated group stage (5-0),2012-s5,A,5
+A00475,P1824,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s5,B,4
+A00476,P1536,UNDEFEATED_GROUP,Undefeated group stage (4-0),2012-s5,B,4
+A00477,P1523,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s1,B,5
+A00478,P1862,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s1,B,6
+A00479,P1604,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s1,B,5
+A00480,P0709,UNDEFEATED_GROUP,Undefeated group stage (4-0),2013-s2,A,4
+A00481,P1531,UNDEFEATED_GROUP,Undefeated group stage (4-0),2013-s2,A,4
+A00482,P1921,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s2,B,5
+A00483,P1786,UNDEFEATED_GROUP,Undefeated group stage (4-0),2013-s2,B,4
+A00484,P1202,UNDEFEATED_GROUP,Undefeated group stage (4-0),2013-s3,A,4
+A00485,P0969,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s3,A,6
+A00486,P1791,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s3,A,5
+A00487,P1567,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s3,A,5
+A00488,P1802,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s3,A,5
+A00489,P1664,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s3,B,5
+A00490,P1872,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s3,B,5
+A00491,P1587,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s4,A,6
+A00492,P1802,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s4,A,6
+A00493,P1791,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s4,A,5
+A00494,P1830,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s4,A,6
+A00495,P1567,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s4,A,5
+A00496,P1761,UNDEFEATED_GROUP,Undefeated group stage (4-0),2013-s4,B,4
+A00497,P1869,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s4,B,5
+A00498,P1523,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s4,B,6
+A00499,P1839,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s5,A,6
+A00500,P1202,UNDEFEATED_GROUP,Undefeated group stage (6-0),2013-s5,A,6
+A00501,P1567,UNDEFEATED_GROUP,Undefeated group stage (5-0),2013-s5,A,5
+A00502,P1813,UNDEFEATED_GROUP,Undefeated group stage (4-0),2013-s5,B,4
+A00503,P1805,UNDEFEATED_GROUP,Undefeated group stage (6-0),2014-s1,A,6
+A00504,P1860,UNDEFEATED_GROUP,Undefeated group stage (4-0),2014-s1,A,4
+A00505,P1941,UNDEFEATED_GROUP,Undefeated group stage (6-0),2014-s1,B,6
+A00506,P1813,UNDEFEATED_GROUP,Undefeated group stage (4-0),2014-s1,B,4
+A00507,P1743,UNDEFEATED_GROUP,Undefeated group stage (5-0),2014-s1,B,5
+A00508,P0027,FIRST_TITLE,First championship,,,1
+A00509,P0131,VETERAN_10,Competed in 10+ seasons,,,10
+A00510,P0024,VETERAN_10,Competed in 10+ seasons,,,19
+A00511,P0004,FIRST_TITLE,First championship,,,1
+A00512,P0081,FIRST_TITLE,First championship,,,1
+A00513,P0073,FIRST_TITLE,First championship,,,1
+A00514,P0073,VETERAN_20,Competed in 20+ seasons,,,24
+A00515,P0064,FIRST_TITLE,First championship,,,1
+A00516,P0064,VETERAN_10,Competed in 10+ seasons,,,12
+A00517,P0076,VETERAN_10,Competed in 10+ seasons,,,16
+A00518,P0051,FIRST_TITLE,First championship,,,1
+A00519,P0051,VETERAN_10,Competed in 10+ seasons,,,15
+A00520,P0140,FIRST_TITLE,First championship,,,1
+A00521,P0140,VETERAN_20,Competed in 20+ seasons,,,23
+A00522,P0104,FIRST_TITLE,First championship,,,1
+A00523,P0029,VETERAN_20,Competed in 20+ seasons,,,22
+A00524,P0478,FIRST_TITLE,First championship,,,4
+A00525,P0478,TRIPLE_CHAMP,3+ championships,,,4
+A00526,P0478,REPEAT_CHAMP,Back-to-back+ titles (2 in a row),,,2
+A00527,P0297,FIRST_TITLE,First championship,,,3
+A00528,P0297,TRIPLE_CHAMP,3+ championships,,,3
+A00529,P0297,VETERAN_10,Competed in 10+ seasons,,,14
+A00530,P0297,REPEAT_CHAMP,Back-to-back+ titles (2 in a row),,,2
+A00531,P0258,FIRST_TITLE,First championship,,,2
+A00532,P0196,FIRST_TITLE,First championship,,,1
+A00533,P0546,FIRST_TITLE,First championship,,,1
+A00534,P0440,VETERAN_10,Competed in 10+ seasons,,,10
+A00535,P0261,FIRST_TITLE,First championship,,,1
+A00536,P0617,VETERAN_10,Competed in 10+ seasons,,,16
+A00537,P0457,FIRST_TITLE,First championship,,,1
+A00538,P0491,VETERAN_10,Competed in 10+ seasons,,,10
+A00539,P0431,VETERAN_10,Competed in 10+ seasons,,,19
+A00540,P0333,VETERAN_10,Competed in 10+ seasons,,,10
+A00541,P0616,VETERAN_10,Competed in 10+ seasons,,,18
+A00542,P0607,VETERAN_10,Competed in 10+ seasons,,,10
+A00543,P0359,VETERAN_10,Competed in 10+ seasons,,,10
+A00544,P0558,FIRST_TITLE,First championship,,,1
+A00545,P0558,VETERAN_10,Competed in 10+ seasons,,,16
+A00546,P0653,FIRST_TITLE,First championship,,,1
+A00547,P0542,FIRST_TITLE,First championship,,,1
+A00548,P0233,FIRST_TITLE,First championship,,,1
+A00549,P0447,VETERAN_10,Competed in 10+ seasons,,,11
+A00550,P0239,FIRST_TITLE,First championship,,,1
+A00551,P0327,VETERAN_10,Competed in 10+ seasons,,,13
+A00552,P0217,VETERAN_10,Competed in 10+ seasons,,,19
+A00553,P0437,FIRST_TITLE,First championship,,,1
+A00554,P0223,FIRST_TITLE,First championship,,,1
+A00555,P0223,VETERAN_10,Competed in 10+ seasons,,,10
+A00556,P0205,VETERAN_10,Competed in 10+ seasons,,,11
+A00557,P0368,FIRST_TITLE,First championship,,,1
+A00558,P0368,VETERAN_10,Competed in 10+ seasons,,,11
+A00559,P0464,VETERAN_10,Competed in 10+ seasons,,,10
+A00560,P0363,VETERAN_10,Competed in 10+ seasons,,,12
+A00561,P0344,VETERAN_10,Competed in 10+ seasons,,,12
+A00562,P0302,FIRST_TITLE,First championship,,,1
+A00563,P0913,FIRST_TITLE,First championship,,,1
+A00564,P0772,VETERAN_20,Competed in 20+ seasons,,,25
+A00565,P0702,FIRST_TITLE,First championship,,,1
+A00566,P0658,VETERAN_10,Competed in 10+ seasons,,,11
+A00567,P0672,FIRST_TITLE,First championship,,,2
+A00568,P0781,FIRST_TITLE,First championship,,,2
+A00569,P0781,REPEAT_CHAMP,Back-to-back+ titles (2 in a row),,,2
+A00570,P0726,VETERAN_10,Competed in 10+ seasons,,,10
+A00571,P1088,VETERAN_10,Competed in 10+ seasons,,,11
+A00572,P1063,VETERAN_10,Competed in 10+ seasons,,,19
+A00573,P1094,FIRST_TITLE,First championship,,,1
+A00574,P1168,VETERAN_10,Competed in 10+ seasons,,,13
+A00575,P0984,FIRST_TITLE,First championship,,,1
+A00576,P1047,FIRST_TITLE,First championship,,,1
+A00577,P0985,FIRST_TITLE,First championship,,,1
+A00578,P1104,FIRST_TITLE,First championship,,,1
+A00579,P1104,VETERAN_10,Competed in 10+ seasons,,,10
+A00580,P1002,FIRST_TITLE,First championship,,,1
+A00581,P0947,FIRST_TITLE,First championship,,,1
+A00582,P1113,FIRST_TITLE,First championship,,,1
+A00583,P0969,FIRST_TITLE,First championship,,,2
+A00584,P0969,VETERAN_20,Competed in 20+ seasons,,,21
+A00585,P1138,VETERAN_10,Competed in 10+ seasons,,,10
+A00586,P0951,VETERAN_10,Competed in 10+ seasons,,,18
+A00587,P1005,FIRST_TITLE,First championship,,,1
+A00588,P1096,VETERAN_20,Competed in 20+ seasons,,,23
+A00589,P1112,FIRST_TITLE,First championship,,,1
+A00590,P1368,FIRST_TITLE,First championship,,,2
+A00591,P1368,REPEAT_CHAMP,Back-to-back+ titles (2 in a row),,,2
+A00592,P1381,VETERAN_20,Competed in 20+ seasons,,,23
+A00593,P1300,VETERAN_10,Competed in 10+ seasons,,,13
+A00594,P1322,FIRST_TITLE,First championship,,,1
+A00595,P1193,FIRST_TITLE,First championship,,,1
+A00596,P1316,FIRST_TITLE,First championship,,,1
+A00597,P1316,VETERAN_10,Competed in 10+ seasons,,,11
+A00598,P1182,FIRST_TITLE,First championship,,,1
+A00599,P1202,FIRST_TITLE,First championship,,,1
+A00600,P1202,VETERAN_10,Competed in 10+ seasons,,,10
+A00601,P1225,FIRST_TITLE,First championship,,,1
+A00602,P1198,FIRST_TITLE,First championship,,,1
+A00603,P1334,FIRST_TITLE,First championship,,,2
+A00604,P1334,REPEAT_CHAMP,Back-to-back+ titles (2 in a row),,,2
+A00605,P1314,FIRST_TITLE,First championship,,,1
+A00606,P1251,FIRST_TITLE,First championship,,,1
+A00607,P1189,FIRST_TITLE,First championship,,,1
+A00608,P1270,VETERAN_10,Competed in 10+ seasons,,,11
+A00609,P1286,FIRST_TITLE,First championship,,,1
+A00610,P1262,FIRST_TITLE,First championship,,,1
+A00611,P1425,VETERAN_10,Competed in 10+ seasons,,,18
+A00612,P1441,FIRST_TITLE,First championship,,,1
+A00613,P1413,FIRST_TITLE,First championship,,,1
+A00614,P1419,VETERAN_10,Competed in 10+ seasons,,,14
+A00615,P1483,FIRST_TITLE,First championship,,,1
+A00616,P1531,FIRST_TITLE,First championship,,,1
+A00617,P1531,VETERAN_10,Competed in 10+ seasons,,,17
+A00618,P1396,VETERAN_10,Competed in 10+ seasons,,,14
+A00619,P1440,FIRST_TITLE,First championship,,,1
+A00620,P1404,FIRST_TITLE,First championship,,,1
+A00621,P1410,FIRST_TITLE,First championship,,,1
+A00622,P1717,VETERAN_10,Competed in 10+ seasons,,,14
+A00623,P1593,FIRST_TITLE,First championship,,,1
+A00624,P1576,FIRST_TITLE,First championship,,,1
+A00625,P1589,FIRST_TITLE,First championship,,,1
+A00626,P1664,VETERAN_10,Competed in 10+ seasons,,,12
+A00627,P1567,VETERAN_10,Competed in 10+ seasons,,,12
+A00628,P1713,FIRST_TITLE,First championship,,,1
+A00629,P1609,FIRST_TITLE,First championship,,,1
+A00630,P1578,VETERAN_10,Competed in 10+ seasons,,,10
+A00631,P1588,VETERAN_10,Competed in 10+ seasons,,,12
+A00632,P1604,FIRST_TITLE,First championship,,,1
+A00633,P1585,FIRST_TITLE,First championship,,,2
+A00634,P1585,REPEAT_CHAMP,Back-to-back+ titles (2 in a row),,,2
+A00635,P1586,VETERAN_10,Competed in 10+ seasons,,,10
+A00636,P1587,FIRST_TITLE,First championship,,,1
+A00637,P1587,VETERAN_10,Competed in 10+ seasons,,,12
+A00638,P1591,FIRST_TITLE,First championship,,,1
+A00639,P1802,FIRST_TITLE,First championship,,,1
+A00640,P1825,VETERAN_10,Competed in 10+ seasons,,,11
+A00641,P1732,FIRST_TITLE,First championship,,,1
+A00642,P1830,VETERAN_10,Competed in 10+ seasons,,,11
+A00643,P1791,FIRST_TITLE,First championship,,,1
+A00644,P1791,VETERAN_10,Competed in 10+ seasons,,,11
+A00645,P1733,FIRST_TITLE,First championship,,,1
+A00646,P1733,VETERAN_10,Competed in 10+ seasons,,,11
+A00647,P1805,VETERAN_10,Competed in 10+ seasons,,,10
+A00648,P1818,FIRST_TITLE,First championship,,,1
+A00649,P1818,VETERAN_10,Competed in 10+ seasons,,,10
+A00650,P1736,VETERAN_10,Competed in 10+ seasons,,,11
+A00651,P1813,VETERAN_10,Competed in 10+ seasons,,,10
+A00652,P1772,FIRST_TITLE,First championship,,,1
+A00653,P1856,FIRST_TITLE,First championship,,,1
+A00654,P1751,FIRST_TITLE,First championship,,,1
+A00655,P1749,FIRST_TITLE,First championship,,,1
+A00656,P1896,FIRST_TITLE,First championship,,,1

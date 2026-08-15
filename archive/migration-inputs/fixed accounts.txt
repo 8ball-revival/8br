@@ -1,0 +1,37 @@
+Here is the complete list (30 migrated accounts). Login ID = the username entered at /claim-account along with the code:
+
+https://8br.gg/claim-account  cueverseid:   code:  
+
+Login ID (username)	Claim code
+
+sixohtwo	DGBLV-4UWHQ 	ignored
+travis		TESK3-EZLRK	x
+sid		8M364-52AT3	x
+l_mr_cc_l	NW53Y-C7HLR	x
+-noob-		STK65-22X9F	x
+leighjohn__	JYFHH-FNL4J	x
+poolist		G6EBZ-3A6LD	ignored
+eskimo		MJLZ7-29TLW	x
+jabronni16	V7BPX-CAKAS	x
+faisal		QHZX3-8XVKL	x
+mr.gaz		ZHQ2Z-XFZ44	gone
+iantunstall	VC6A3-PLDTZ	ignored
+ogges		ZJ5HR-U378R	x
+missy		LEYYF-XACYK	x
+cam		2AMD5-KGRUY	x
+lilsparky67	5U2T6-FPLU7	x
+trick__d	VBF5L-F7NLW
+w t f		L9MFH-43Y6Z
+bricycle	H4B39-KVZRA	x
+jc		W53ZN-VV8MP	x
+hustler_	2BYEJ-4FBQZ	x
+fsm-brian	DLBXY-VBKAD	x
+sabregirl	78NRR-F6KWB	x
+adambundy	FE8YQ-JCRWZ	gone
+black_ball	ZH4U3-J5XT2
+javi		8HFY3-S5X9L
+jefe		8MK23-VLDVN	x
+pfb		QCX5E-39LUB	x
+triothelegend	Q9BSR-AB665	banned
+o_aig_o		JTFFF-948DR	gone
+Total: 30 accounts. These are one-time codes, valid for 30 days (until ~Sep 5).

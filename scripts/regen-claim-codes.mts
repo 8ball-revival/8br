@@ -5,10 +5,13 @@
  * Accounts already claimed by their owner are skipped. Idempotent to run; each run issues new codes.
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
 import { prisma } from '../src/lib/prisma.ts'
 
-const OUT_DIR = 'C:/Users/Cerebro/Documents/8BR/migration-reports'
+// Self-contained: write reports inside this WCC project's own migration-reports folder.
+const OUT_DIR = path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), 'migration-reports')
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no ambiguous chars
 const CLAIM_TTL_DAYS = 30
 const normalizeCode = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '')

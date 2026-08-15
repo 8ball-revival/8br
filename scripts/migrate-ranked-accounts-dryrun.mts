@@ -9,11 +9,15 @@
  * Run: npx tsx --tsconfig scripts/tsconfig.verify.json scripts/migrate-ranked-accounts-dryrun.mts
  */
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { prisma } from '../src/lib/prisma.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
 
-const MAP_FILE = 'C:/Users/Cerebro/Downloads/fixed accounts.txt'
-const OUT_DIR = 'C:/Users/Cerebro/Documents/8BR/migration-reports'
+// Self-contained paths: resolve relative to this WCC project's root (scripts/ is one level down).
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const MAP_FILE = path.join(REPO_ROOT, 'archive', 'migration-inputs', 'fixed accounts.txt')
+const OUT_DIR = path.join(REPO_ROOT, 'migration-reports')
 const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 interface Entry { line: number; oldName: string; mappedId: string | null; mergeInto: number | null }
