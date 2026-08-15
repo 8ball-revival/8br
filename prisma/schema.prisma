@@ -267,7 +267,7 @@ model Player {
   primaryEmail        String? // primary email (identity signal)
   // Public current-identity fields (safe to display): competitive handle, Discord,
   // and time zone. Email is NEVER stored here (it lives only on the Payload account).
-  cueverseId          String? // public competitive handle (e.g. "sixohtwo") — the site-wide default display identity (preserves casing)
+  cueverseId          String? // public competitive handle (e.g. "Starkiller") — the site-wide default display identity (preserves casing)
   // Case-insensitive canonical form of cueverseId (trim + lowercase = cueverseLoginKey). This is the
   // authoritative uniqueness key for account identity: a UNIQUE index enforces that no two players can
   // hold the same CueVerse ID regardless of casing. Written ONLY by the central identity service, which
