@@ -1287,9 +1287,9 @@ model RatingLedger {
 /// on standings while avoiding repeat opponents. A `bye` (odd field) is a full point with no
 /// opponent (awayRegistrationId null). Standings/tiebreaks are computed from these rows in code.
 model SwissMatch {
-  id                   Int          @id @default(autoincrement())
+  id                   Int        @id @default(autoincrement())
   tournamentId         Int
-  tournament           Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament           Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   round                Int
   boardOrder           Int
   homeRegistrationId   Int?
@@ -1299,9 +1299,9 @@ model SwissMatch {
   homeGames            Int?
   awayGames            Int?
   winnerRegistrationId Int?
-  isBye                Boolean      @default(false)
+  isBye                Boolean    @default(false)
   reportedAt           DateTime?
-  createdAt            DateTime     @default(now())
+  createdAt            DateTime   @default(now())
 
   @@index([tournamentId, round, boardOrder])
   @@map("comp_swiss_match")
@@ -1373,19 +1373,19 @@ model TournamentTeam {
 }
 
 model TournamentTeamMember {
-  id          Int            @id @default(autoincrement())
-  teamId      Int
-  team        TournamentTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  userId      Int? // Payload account id — set for self-joined members (one account = one team per tournament)
-  playerId    String? // canonical Player.id when the member is linked to a profile
-  name        String
-  handle      String?
-  memberOrder Int            @default(0)
-  captain     Boolean        @default(false)
+  id            Int            @id @default(autoincrement())
+  teamId        Int
+  team          TournamentTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId        Int? // Payload account id — set for self-joined members (one account = one team per tournament)
+  playerId      String? // canonical Player.id when the member is linked to a profile
+  name          String
+  handle        String?
+  memberOrder   Int            @default(0)
+  captain       Boolean        @default(false)
   // Player's Ladder rating CAPTURED when registration closed — frozen for the tournament so the
   // team-details popover shows stable ratings that don't drift as the ladder updates. Null = unrated.
   ratingAtClose Int?
-  createdAt   DateTime       @default(now())
+  createdAt     DateTime       @default(now())
 
   @@index([teamId])
   @@index([playerId])
@@ -1744,4 +1744,261 @@ model StaffDesignation {
 
   @@index([headAdmin])
   @@map("staff_designation")
+}
+
+// ============================================================================
+// SEASON DOMAIN — a first-class competition type, NOT a Tournament.
+// Separate storage with its own lifecycle, routes, UI and authorization. Reuses
+// the PURE planners (groups/schedule/standings/scoring/bracket) but never the
+// Tournament tables. Completed Seasons feed the same Ladder via a `season:`
+// rating-ledger namespace (added in a later migration). Reuses shared enums
+// AccessMode and VerificationState.
+// ============================================================================
+
+enum SeasonLifecycleState {
+  REGISTRATION_SCHEDULED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  GROUP_SETUP
+  GROUP_STAGE_LIVE
+  GROUPS_CLOSED
+  PLAYOFF_SETUP
+  PLAYOFFS_LIVE
+  COMPLETED
+}
+
+enum SeasonEntrantStatus {
+  PENDING
+  APPROVED
+  WITHDRAWN
+  KICKED_OUT
+}
+
+/// Match resolution for Season group + playoff matches.
+///  COMPLETED   = played with a numeric result (or a draw in groups)
+///  FORFEIT     = FF: opponent awarded the match; Elo-neutral, no games counted
+///  NO_CONTEST  = close-groups override: unplayed; excluded from everything
+///  VOID        = KO-voided (a kicked entrant matches); excluded from everything
+enum SeasonMatchStatus {
+  SCHEDULED
+  COMPLETED
+  FORFEIT
+  NO_CONTEST
+  VOID
+}
+
+enum SeasonQualification {
+  NOT_SELECTED
+  AUTOMATIC
+  WILDCARD
+  DISQUALIFIED
+  KICKED_OUT
+}
+
+model Season {
+  id             Int                  @id @default(autoincrement())
+  number         Int                  @unique // public season number (1, 2, ...)
+  year           Int
+  slug           String               @unique
+  subtitle       String? // optional custom subtitle; official title is "WCC Season N - YEAR"
+  lifecycleState SeasonLifecycleState @default(REGISTRATION_SCHEDULED)
+
+  lounge              String     @default("Social")
+  accessMode          AccessMode @default(OPEN)
+  joinPasswordHash    String?
+  registrationOpensAt DateTime?
+  scheduledStartAt    DateTime?
+  description         String?
+  bannerMediaId       String? // Payload media id (no cross-ORM FK)
+
+  // Editable match formats -- intended labels only, never enforced as winning scores.
+  groupStageGames Int @default(10)
+  earlyRaceTo     Int @default(7)
+  semifinalRaceTo Int @default(9)
+  finalRaceTo     Int @default(9)
+
+  playoffDoubleElim Boolean @default(false) // decided at playoff setup, not creation
+
+  ratingSnapshotAt DateTime? // set when registration closes (locks seeding ratings)
+  ladderAppliedAt  DateTime? // idempotency guard for close -> Ladder
+
+  entrantsCount    Int       @default(0)
+  championName     String?
+  championHandle   String?
+  championPlayerId String?
+  runnerUpName     String?
+  runnerUpHandle   String?
+  finalScore       String?
+  completedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entrants       SeasonEntrant[]
+  groups         SeasonGroup[]
+  matches        SeasonMatch[]
+  standings      SeasonStanding[]
+  playoffMatches SeasonPlayoffMatch[]
+
+  @@index([lifecycleState])
+  @@map("season")
+}
+
+model SeasonEntrant {
+  id             Int                 @id @default(autoincrement())
+  seasonId       Int
+  userId         Int? // Payload user id (self-registration)
+  playerId       String? // canonical Player id
+  username       String
+  displayName    String?
+  cueverseId     String?
+  status         SeasonEntrantStatus @default(APPROVED)
+  seed           Int?
+  addedByAdmin   Boolean             @default(false)
+  ratingSnapshot Int? // locked Ladder rating captured at registration close
+
+  // Playoff selection (set on the playoff setup page).
+  playoffIncluded     Boolean             @default(false)
+  qualification       SeasonQualification @default(NOT_SELECTED)
+  qualificationReason String?
+  playoffSeed         Int?
+
+  // KO administrative state.
+  kickedOut      Boolean   @default(false)
+  kickedReason   String?
+  kickedAt       DateTime?
+  kickedByUserId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  season       Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  groupPlayers SeasonGroupPlayer[]
+
+  @@unique([seasonId, userId])
+  @@unique([seasonId, playerId])
+  @@index([seasonId])
+  @@map("season_entrant")
+}
+
+model SeasonGroup {
+  id             Int      @id @default(autoincrement())
+  seasonId       Int
+  code           String // A, B, C, ...
+  name           String?
+  ordinal        Int
+  published      Boolean  @default(false)
+  generationSeed Int?
+  createdAt      DateTime @default(now())
+
+  season    Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  players   SeasonGroupPlayer[]
+  matches   SeasonMatch[]
+  standings SeasonStanding[]
+
+  @@unique([seasonId, code])
+  @@index([seasonId])
+  @@map("season_group")
+}
+
+model SeasonGroupPlayer {
+  id        Int  @id @default(autoincrement())
+  groupId   Int
+  entrantId Int
+  seed      Int?
+
+  group   SeasonGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  entrant SeasonEntrant @relation(fields: [entrantId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, entrantId])
+  @@index([entrantId])
+  @@map("season_group_player")
+}
+
+model SeasonMatch {
+  id               Int               @id @default(autoincrement())
+  seasonId         Int
+  groupId          Int
+  round            Int
+  homeEntrantId    Int
+  awayEntrantId    Int
+  homeUsername     String
+  awayUsername     String
+  status           SeasonMatchStatus @default(SCHEDULED)
+  homeGames        Int?
+  awayGames        Int?
+  winnerEntrantId  Int?
+  loserEntrantId   Int?
+  forfeitEntrantId Int? // FF: the forfeiting (losing) entrant
+  note             String?
+  version          Int               @default(0) // optimistic concurrency for batch saves
+  completedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  season Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  group  SeasonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([seasonId, status])
+  @@map("season_match")
+}
+
+model SeasonStanding {
+  id        Int      @id @default(autoincrement())
+  seasonId  Int
+  groupId   Int
+  entrantId Int
+  username  String
+  played    Int      @default(0)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  gamesWon  Int      @default(0)
+  gamesLost Int      @default(0)
+  points    Int      @default(0)
+  rank      Int      @default(0)
+  qualified Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  season Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  group  SeasonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, entrantId])
+  @@index([seasonId])
+  @@map("season_standing")
+}
+
+model SeasonPlayoffMatch {
+  id                Int               @id @default(autoincrement())
+  seasonId          Int
+  round             Int
+  slot              Int
+  label             String?
+  homeEntrantId     Int?
+  awayEntrantId     Int?
+  homeUsername      String?
+  awayUsername      String?
+  homeSeed          Int?
+  awaySeed          Int?
+  homeGames         Int?
+  awayGames         Int?
+  status            SeasonMatchStatus @default(SCHEDULED)
+  winnerEntrantId   Int?
+  verification      VerificationState @default(UNVERIFIED)
+  note              String?
+  feedsMatchId      Int?
+  feedsSlot         Int?
+  loserFeedsMatchId Int?
+  loserFeedsSlot    Int?
+  section           String? // WB / LB / GF; null = single-elim
+  published         Boolean           @default(false)
+  completedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId, round, slot])
+  @@map("season_playoff_match")
 }
