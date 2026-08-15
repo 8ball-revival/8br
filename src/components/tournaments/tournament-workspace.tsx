@@ -162,17 +162,49 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
 
 function Overview({ data }: { data: TournamentWorkspaceData }) {
   const rosterCount = data.isTeam ? data.teams.filter((t) => !t.withdrawn).length : data.entrants.filter((e) => !e.withdrawn).length
+  const statusCard = <StatCard label="Status" value={data.tournament.lifecycleState.replace(/_/g, ' ').toLowerCase()} />
+  const entrantsCard = <StatCard label={data.isTeam ? 'Teams' : 'Entrants'} value={String(rosterCount)} />
+  const gameCard = <StatCard label="Game" value={data.tournament.gameType ?? '—'} />
+  const regCard = <StatCard label="Registration" value={data.tournament.registrationStatus.replace('_', ' ').toLowerCase()} />
+
+  // Swiss has no bracket and its matches live outside the playoff/group tables — surface Swiss-native
+  // progress (round, this-round pairings, leader, status) instead of a meaningless "Bracket: Not built".
+  if (data.isSwiss) {
+    const s = data.swiss
+    const cur = s?.rounds.find((r) => r.round === s.currentRound)
+    const total = cur?.matches.length ?? 0
+    const done = cur?.matches.filter((m) => m.winnerRegistrationId != null || m.isBye).length ?? 0
+    const leader = s?.standings[0]
+    const swissStatus = !s
+      ? 'not started'
+      : s.canComplete ? 'final round complete — ready to finish'
+      : s.roundComplete ? `round ${s.currentRound} complete — pair round ${s.currentRound + 1}`
+      : `round ${s.currentRound} in progress`
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {statusCard}
+        {entrantsCard}
+        <StatCard label="Round" value={s ? `${s.currentRound} / ${s.totalRounds}` : `— / ${data.tournament.swissRounds ?? '—'}`} hint="swiss rounds" />
+        <StatCard label="Pairings" value={`${done}/${total}`} hint={s ? `round ${s.currentRound} decided` : 'awaiting first pairing'} />
+        <StatCard label="Leader" value={leader ? leader.name : '—'} hint={leader ? `${leader.points} pt${leader.points === 1 ? '' : 's'} · Buchholz ${leader.buchholz}` : 'no results yet'} />
+        <StatCard label="Swiss" value={swissStatus} />
+        {gameCard}
+        {regCard}
+      </div>
+    )
+  }
+
   const played = data.matches.filter((m) => m.winnerRegistrationId != null).length
   const playable = data.matches.filter((m) => m.homeUsername && m.awayUsername).length
   const bracketState = data.hasPublishedBracket ? 'Published' : data.hasBracket ? 'Draft' : 'Not built'
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <StatCard label="Status" value={data.tournament.lifecycleState.replace(/_/g, ' ').toLowerCase()} />
-      <StatCard label={data.isTeam ? 'Teams' : 'Entrants'} value={String(rosterCount)} />
+      {statusCard}
+      {entrantsCard}
       <StatCard label="Bracket" value={bracketState} hint={data.hasBracket ? `${data.matches.length} matches` : undefined} />
       <StatCard label="Results" value={`${played}/${playable}`} hint="matches decided" />
-      <StatCard label="Game" value={data.tournament.gameType ?? '—'} />
-      <StatCard label="Registration" value={data.tournament.registrationStatus.replace('_', ' ').toLowerCase()} />
+      {gameCard}
+      {regCard}
     </div>
   )
 }

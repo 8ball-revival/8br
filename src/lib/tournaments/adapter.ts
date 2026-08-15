@@ -51,6 +51,12 @@ function formatBadgeOf(comp: CompRow): string {
   switch (comp.tournamentFormat) {
     case 'DOUBLE_ELIM':
       return 'D/E'
+    case 'SWISS':
+      return 'Swiss'
+    case 'ROUND_ROBIN':
+      return 'R/R'
+    case 'TEAM_KNOCKOUT':
+      return 'T/K'
     case 'GROUPS_PLAYOFFS':
       return 'Groups'
     case 'SINGLE_ELIM':
