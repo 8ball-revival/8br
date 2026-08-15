@@ -1751,6 +1751,26 @@ model StaffDesignation {
   @@map("staff_designation")
 }
 
+/// Admin-initiated password reset state (Prisma-owned sidecar; Payload owns the credential itself).
+/// When an Admin/Head-Admin resets a player's password, a temporary numeric code is set as the
+/// Payload password and this row records the forced-change + short expiry. The temp code is NEVER
+/// stored here in plaintext — only its bcrypt hash, for a constant-time login check and attempt limit.
+/// The row is deleted once the player sets a permanent password (or lets it expire).
+model PasswordResetState {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique // Payload user id
+  forceChange   Boolean  @default(true) // player must set a permanent password before normal use
+  tempCodeHash  String // bcrypt hash of the one-time numeric code (never the plaintext)
+  expiresAt     DateTime // temp code is invalid after this (default: +15 min)
+  attempts      Int      @default(0) // failed temp-code entries (brute-force guard)
+  issuedByUser  Int // actor (Payload user id) who performed the reset
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("password_reset_state")
+}
+
 // ============================================================================
 // SEASON DOMAIN — a first-class competition type, NOT a Tournament.
 // Separate storage with its own lifecycle, routes, UI and authorization. Reuses

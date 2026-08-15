@@ -204,6 +204,15 @@ export async function signIn(_prev: FormResult, formData: FormData): Promise<For
     const status = await resolveMemberStatus(userId)
     if (!status.canLogin)
       return { error: status.status === 'BANNED' ? 'This account has been banned.' : 'This account has been deleted.' }
+    // Admin-initiated password reset: an expired temporary code blocks sign-in; a still-valid one lets
+    // the player in but forces them straight to setting a permanent password.
+    const { pendingResetGate } = await import('@/lib/staff/password-reset')
+    const gate = await pendingResetGate(userId)
+    if (gate.expired) return { error: 'Your temporary access code has expired. Ask an administrator to issue a new one.' }
+    if (gate.forceChange) {
+      await setSessionCookie(token!, exp)
+      redirect('/account/set-password')
+    }
   }
   await setSessionCookie(token!, exp)
   // Return the user to where they started (e.g. the tournament they were joining), if a safe local

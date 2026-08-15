@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   ScrollText,
   ShieldAlert,
+  KeyRound,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -15,21 +16,23 @@ import { can, type Capability } from '@/lib/auth/roles'
 
 export type StaffSection =
   | 'dashboard'
-  | 'tournaments'
+  | 'reset'
+  | 'audit'
   | 'members'
   | 'penalties'
   | 'staff'
-  | 'audit'
+  | 'tournaments'
 
 // Nav items gated by capability (undefined = any staff). Server-side page guards
 // enforce the same matrix — the nav only hides what the user can't reach.
 const NAV: { key: StaffSection; label: string; href: string; icon: typeof LayoutDashboard; cap?: Capability }[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/staff', icon: LayoutDashboard },
-  { key: 'tournaments', label: 'Tournaments', href: '/tournaments', icon: Trophy, cap: 'manage_competitions' },
-  { key: 'members', label: 'Members', href: '/staff/members', icon: UserCog, cap: 'moderate_members' },
+  { key: 'reset', label: 'Reset Player Password', href: '/staff/reset-password', icon: KeyRound, cap: 'moderate_members' },
+  { key: 'audit', label: 'Activity Log', href: '/staff/audit', icon: ScrollText, cap: 'view_audit' },
+  { key: 'members', label: 'Player Management', href: '/staff/members', icon: UserCog, cap: 'moderate_members' },
   { key: 'penalties', label: 'Penalties', href: '/staff/penalties', icon: Gavel, cap: 'moderate_members' },
-  { key: 'staff', label: 'Staff', href: '/staff/staff', icon: ShieldCheck, cap: 'manage_staff' },
-  { key: 'audit', label: 'Audit Log', href: '/staff/audit', icon: ScrollText, cap: 'view_audit' },
+  { key: 'staff', label: 'Staff Management', href: '/staff/staff', icon: ShieldCheck, cap: 'manage_staff' },
+  { key: 'tournaments', label: 'Competition Oversight', href: '/tournaments', icon: Trophy, cap: 'manage_competitions' },
 ]
 
 /** Competition-admin chrome: sidebar nav + header. Nav is filtered by the signed-in
