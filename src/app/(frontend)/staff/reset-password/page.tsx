@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
-import { StaffShell } from '@/components/staff/staff-shell'
+import { AdminShell, AdminDenied } from '@/components/staff/admin-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
-import { StaffDenied } from '@/components/staff/staff-shell'
 import { ResetPasswordPanel } from '@/components/staff/reset-password-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
@@ -11,10 +10,10 @@ export const metadata: Metadata = { title: 'Reset Player Password · Admin', rob
 export default async function ResetPasswordAdminPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
-  if (!access.actor.can('moderate_members')) return <StaffDenied active="reset" username={access.actor.username} label="Reset Player Password" />
+  if (!access.actor.can('moderate_members')) return <AdminDenied actor={access.actor} active="reset" label="Reset Player Password" />
 
   return (
-    <StaffShell active="reset" username={access.actor.username}>
+    <AdminShell actor={access.actor} active="reset">
       <h1 className="font-display text-2xl font-bold tracking-tight">Reset Player Password</h1>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
         Generate a one-time temporary code for a player. It is shown once, signs them out of all
@@ -26,6 +25,6 @@ export default async function ResetPasswordAdminPage() {
       <div className="mt-6">
         <ResetPasswordPanel />
       </div>
-    </StaffShell>
+    </AdminShell>
   )
 }

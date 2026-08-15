@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
+import { AdminShell, AdminDenied } from '@/components/staff/admin-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { Badge } from '@/components/ui/badge'
 import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
@@ -18,14 +18,14 @@ type SP = { searchParams: Promise<{ filter?: string }> }
 export default async function PenaltiesPage({ searchParams }: SP) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
-  if (!access.actor.can('moderate_members')) return <StaffDenied active="penalties" username={access.actor.username} label="Penalties" />
+  if (!access.actor.can('moderate_members')) return <AdminDenied actor={access.actor} active="penalties" label="Penalties" />
 
   const { filter = 'ALL' } = await searchParams
   const f = (FILTERS as string[]).includes(filter) ? (filter as PenaltyFilter) : 'ALL'
   const penalties = await listPenalties(f)
 
   return (
-    <StaffShell active="penalties" username={access.actor.username}>
+    <AdminShell actor={access.actor} active="penalties">
       <h1 className="font-display text-2xl font-bold tracking-tight">Penalties</h1>
       <p className="mt-1 text-sm text-muted-foreground">Audit/history of every Timeout and Ban. Removals are recorded in place — nothing is deleted. Open a member to moderate, or remove an active penalty here.</p>
 
@@ -69,6 +69,6 @@ export default async function PenaltiesPage({ searchParams }: SP) {
         })}
         {penalties.length === 0 && <p className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">No penalties match this filter.</p>}
       </div>
-    </StaffShell>
+    </AdminShell>
   )
 }

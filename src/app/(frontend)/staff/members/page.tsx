@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { MemberStatus } from '@prisma/client'
 
-import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
+import { AdminShell, AdminDenied } from '@/components/staff/admin-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -21,14 +21,14 @@ type SP = { searchParams: Promise<{ q?: string; status?: string }> }
 export default async function MembersPage({ searchParams }: SP) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
-  if (!access.actor.can('moderate_members')) return <StaffDenied active="members" username={access.actor.username} label="Member Management" />
+  if (!access.actor.can('moderate_members')) return <AdminDenied actor={access.actor} active="members" label="Member Management" />
 
   const { q = '', status = 'ALL' } = await searchParams
   const statusFilter = (STATUSES as string[]).includes(status) ? (status as MemberStatus | 'ALL') : 'ALL'
   const members = await listMembers({ q, status: statusFilter })
 
   return (
-    <StaffShell active="members" username={access.actor.username}>
+    <AdminShell actor={access.actor} active="members">
       <h1 className="font-display text-2xl font-bold tracking-tight">Member Management</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {members.length} member{members.length === 1 ? '' : 's'}. Search by name, CueVerse ID, or username. Open a member to
@@ -82,7 +82,7 @@ export default async function MembersPage({ searchParams }: SP) {
           </tbody>
         </table>
       </div>
-    </StaffShell>
+    </AdminShell>
   )
 }
 

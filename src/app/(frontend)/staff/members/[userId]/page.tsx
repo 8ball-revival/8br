@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 
-import { StaffShell, StaffDenied } from '@/components/staff/staff-shell'
+import { AdminShell, AdminDenied } from '@/components/staff/admin-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { Badge } from '@/components/ui/badge'
 import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
@@ -26,7 +26,7 @@ type Props = { params: Promise<{ userId: string }>; searchParams: Promise<{ tab?
 export default async function MemberDetailPage({ params, searchParams }: Props) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
-  if (!access.actor.can('moderate_members')) return <StaffDenied active="members" username={access.actor.username} label="Member Management" />
+  if (!access.actor.can('moderate_members')) return <AdminDenied actor={access.actor} active="members" label="Member Management" />
 
   const userId = Number((await params).userId)
   const tab = ((await searchParams).tab ?? 'overview') as Tab
@@ -44,7 +44,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
   const activePenalty = m.penalties.find((p) => p.active) ?? null
 
   return (
-    <StaffShell active="members" username={access.actor.username}>
+    <AdminShell actor={access.actor} active="members">
       <Link href="/staff/members" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Members</Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -101,7 +101,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
         )}
         {active === 'integrity' && <Integrity m={m} />}
       </div>
-    </StaffShell>
+    </AdminShell>
   )
 }
 

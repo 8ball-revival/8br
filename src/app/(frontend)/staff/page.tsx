@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { KeyRound, ScrollText, UserCog, ShieldCheck, Trophy, Plus, ClipboardList } from 'lucide-react'
 
-import { StaffShell } from '@/components/staff/staff-shell'
+import { AdminShell } from '@/components/staff/admin-shell'
 import { StaffGate } from '@/components/staff/staff-gate'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getAdminOverview } from '@/lib/staff/admin-dashboard'
-import { getRecentAudit } from '@/lib/competition/queries'
+import { getRecentHumanActions } from '@/lib/staff/activity-log'
 import { formatDateTime } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -47,10 +47,10 @@ export default async function StaffDashboardPage() {
   if (access.status !== 'ok') return <StaffGate access={access} />
   const { actor } = access
 
-  const [o, audit] = await Promise.all([getAdminOverview(), getRecentAudit(10)])
+  const [o, audit] = await Promise.all([getAdminOverview(), getRecentHumanActions(10)])
 
   return (
-    <StaffShell active="dashboard" username={actor.username}>
+    <AdminShell actor={access.actor} active="dashboard">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight">Admin Portal</h1>
@@ -105,13 +105,13 @@ export default async function StaffDashboardPage() {
             {audit.map((a) => (
               <li key={a.id} className="flex items-baseline justify-between gap-3">
                 <span><span className="font-medium">{a.actorUsername}</span> <span className="text-muted-foreground">{a.action}</span></span>
-                <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(a.createdAt.toISOString())}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(a.createdAt)}</span>
               </li>
             ))}
           </ul>
         )}
         <Link href="/staff/audit" className="mt-3 inline-block text-sm text-brand hover:underline">View full Activity Log →</Link>
       </div>
-    </StaffShell>
+    </AdminShell>
   )
 }

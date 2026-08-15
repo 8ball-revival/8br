@@ -1,14 +1,17 @@
 import 'server-only'
-import crypto from 'node:crypto'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/lib/competition/audit'
 import { isAdmin } from '@/lib/auth/roles'
 import type { StaffUser } from '@/lib/competition/staff-auth'
-import { canResetTarget, type TargetTier } from './reset-authz'
+import { canResetTarget, hmacCode, isResetExpired, attemptLimitExceeded, generateTempCode, RESET_TTL_MS, type TargetTier } from './reset-authz'
 
 export { canResetTarget, type TargetTier }
+
+/** Server secret that keys the temp-code HMAC (never exposed). Falls back to a derived constant only
+ *  so non-configured environments still function; production always has PAYLOAD_SECRET. */
+const resetSecret = () => process.env.RESET_HMAC_SECRET || process.env.PAYLOAD_SECRET || 'wcc-reset-fallback-key'
 
 /**
  * ADMIN-INITIATED PASSWORD RESET.
@@ -22,11 +25,7 @@ export { canResetTarget, type TargetTier }
  * Head Admin through this portal (they use the established self-service / infrastructure recovery).
  */
 
-const RESET_TTL_MS = 15 * 60 * 1000
-const TEMP_ATTEMPT_LIMIT = 5
-
 const payloadClient = async () => getPayload({ config: await config })
-const hashCode = (code: string) => crypto.createHash('sha256').update(code).digest('hex')
 
 /** The role tier of a target user (for permission decisions + UI). */
 export async function targetTier(userId: number): Promise<TargetTier> {
@@ -53,7 +52,7 @@ export async function resetPlayerPassword(actor: StaffUser, targetUserId: number
   if (!authz.ok) return { ok: false, error: authz.error }
 
   // Crypto-secure one-time 5-digit numeric code.
-  const code = String(crypto.randomInt(0, 100000)).padStart(5, '0')
+  const code = generateTempCode()
   const expiresAt = new Date(Date.now() + RESET_TTL_MS)
 
   const p = await payloadClient()
@@ -63,10 +62,11 @@ export async function resetPlayerPassword(actor: StaffUser, targetUserId: number
   // Revoke every existing session for the target, then record the forced-change state.
   await prisma.$transaction(async (tx) => {
     await tx.$executeRawUnsafe('DELETE FROM payload.users_sessions WHERE _parent_id = $1', targetUserId)
+    const codeHmac = hmacCode(code, resetSecret())
     await tx.passwordResetState.upsert({
       where: { userId: targetUserId },
-      create: { userId: targetUserId, forceChange: true, tempCodeHash: hashCode(code), expiresAt, attempts: 0, issuedByUser: actor.userId },
-      update: { forceChange: true, tempCodeHash: hashCode(code), expiresAt, attempts: 0, issuedByUser: actor.userId },
+      create: { userId: targetUserId, forceChange: true, tempCodeHash: codeHmac, expiresAt, attempts: 0, issuedByUser: actor.userId },
+      update: { forceChange: true, tempCodeHash: codeHmac, expiresAt, attempts: 0, issuedByUser: actor.userId },
     })
     // Audit — records WHO/WHOM/WHEN/why + that sessions were revoked. NEVER the code itself.
     await recordAudit(actor, {
@@ -85,7 +85,8 @@ export async function resetPlayerPassword(actor: StaffUser, targetUserId: number
 export async function pendingResetGate(userId: number): Promise<{ expired: boolean; forceChange: boolean }> {
   const state = await prisma.passwordResetState.findUnique({ where: { userId } })
   if (!state) return { expired: false, forceChange: false }
-  if (state.expiresAt.getTime() < Date.now()) {
+  // Expired temp code OR too many failed attempts → block normal access (reject the sign-in).
+  if (isResetExpired(state.expiresAt, Date.now()) || attemptLimitExceeded(state.attempts)) {
     return { expired: true, forceChange: true }
   }
   return { expired: false, forceChange: state.forceChange }
@@ -97,13 +98,27 @@ export async function needsPermanentPassword(userId: number): Promise<boolean> {
   return !!state?.forceChange
 }
 
-/** Complete the forced change: set the permanent password and clear the reset state. */
+/** Complete the forced change: set the permanent password and clear the reset state (one-time use). */
 export async function completeForcedPasswordChange(userId: number, newPassword: string): Promise<{ ok: boolean; error?: string }> {
   const state = await prisma.passwordResetState.findUnique({ where: { userId } })
   if (!state) return { ok: false, error: 'No pending password change.' }
-  if (state.attempts >= TEMP_ATTEMPT_LIMIT) return { ok: false, error: 'Too many attempts — ask an administrator for a new code.' }
+  if (attemptLimitExceeded(state.attempts)) return { ok: false, error: 'Too many attempts — ask an administrator for a new code.' }
+  if (isResetExpired(state.expiresAt, Date.now())) {
+    // Expired: retire the dead state so the code can never be used again.
+    await prisma.passwordResetState.delete({ where: { userId } }).catch(() => {})
+    return { ok: false, error: 'Your temporary code has expired — ask an administrator for a new one.' }
+  }
   const p = await payloadClient()
   await p.update({ collection: 'users', id: userId, data: { password: newPassword }, overrideAccess: true })
-  await prisma.passwordResetState.delete({ where: { userId } }).catch(() => {})
+  await prisma.passwordResetState.delete({ where: { userId } }).catch(() => {}) // one-time: state gone after use
   return { ok: true }
+}
+
+/** Record a failed temp-code attempt (brute-force guard). Returns whether the code is now dead. */
+export async function recordFailedResetAttempt(userId: number): Promise<{ dead: boolean }> {
+  const state = await prisma.passwordResetState.findUnique({ where: { userId } })
+  if (!state) return { dead: true }
+  const attempts = state.attempts + 1
+  await prisma.passwordResetState.update({ where: { userId }, data: { attempts } })
+  return { dead: attemptLimitExceeded(attempts) }
 }
