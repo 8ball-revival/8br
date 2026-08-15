@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Plus, Wand2, Scale, Trophy, GripVertical, AlertTriangle, CheckCircle2, X, Loader2, Users } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ type ColKey = number | typeof UNASSIGNED
  */
 export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId: number; setup: GroupSetup; groups: BoardGroup[] }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [status, setStatus] = useState<{ ok?: boolean; text: string } | null>(null)
   const [dragId, setDragId] = useState<number | null>(null)
@@ -201,10 +203,10 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
                     type="button"
                     disabled={pending}
                     aria-label={`Remove ${g.name}`}
-                    onClick={() => {
+                    onClick={async () => {
                       const names = g.playerIds.map((id) => entrantById.get(id)?.name).filter(Boolean)
                       const msg = names.length ? `Remove ${g.name}? These entrants return to Unassigned:\n\n${names.join(', ')}` : `Remove ${g.name}?`
-                      if (window.confirm(msg)) act(() => A.removeDraftGroupAction(tournamentId, g.id))
+                      const res = await confirm({ title: `Remove ${g.name}?`, message: msg, confirmLabel: 'Remove group', tone: 'danger' }); if (res.confirmed) act(() => A.removeDraftGroupAction(tournamentId, g.id))
                     }}
                     className="text-muted-foreground hover:text-destructive"
                   >

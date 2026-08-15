@@ -6,6 +6,7 @@ import { Crown, Plus, X, UserRound, Lock } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { TeamView } from '@/lib/competition/teams'
 import type { EligibleAccount, FreeAgentRow, ClosingPlan } from '@/lib/competition/free-agents'
 import {
@@ -19,6 +20,7 @@ const sel = 'rounded-md border border-input bg-card px-2 py-1.5 text-sm text-for
 
 export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationOpen }: { tournamentId: number; teamSize: number; teams: TeamView[]; registrationOpen: boolean }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [eligible, setEligible] = useState<EligibleAccount[]>([])
   const [freeAgents, setFreeAgents] = useState<FreeAgentRow[]>([])
@@ -70,8 +72,8 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                 <span className="text-sm font-semibold text-foreground">{team.name}</span>
                 <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', filled >= teamSize ? 'bg-success/10 text-success' : 'bg-amber-500/10 text-amber-500')}>{filled} of {teamSize}</span>
                 <div className="ml-auto flex gap-1">
-                  <button type="button" disabled={pending} onClick={() => { const n = window.prompt('Rename team', team.name); if (n && n.trim()) run(() => renameTeamAction(team.id, n.trim())) }} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Rename</button>
-                  <button type="button" disabled={pending} onClick={() => { if (window.confirm(`Delete team "${team.name}"? Its players return to the eligible pool.`)) run(() => deleteTeamAction(team.id)) }} className="rounded px-2 py-1 text-xs text-destructive hover:underline">Delete</button>
+                  <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Rename team', confirmLabel: 'Rename', input: { label: 'Team name', defaultValue: team.name, required: true } }); if (res.confirmed && res.value.trim()) run(() => renameTeamAction(team.id, res.value.trim())) }} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Rename</button>
+                  <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Delete this team?', message: `"${team.name}" is deleted and its players return to the eligible pool.`, confirmLabel: 'Delete team', tone: 'danger' }); if (res.confirmed) run(() => deleteTeamAction(team.id)) }} className="rounded px-2 py-1 text-xs text-destructive hover:underline">Delete</button>
                 </div>
               </div>
               <div className="space-y-1.5 p-3">
@@ -88,7 +90,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                         </select>
                       )}
                       {m.userId != null && (
-                        <button type="button" disabled={pending} onClick={() => { if (window.confirm(`Remove ${m.handle || m.name} from ${team.name}?`)) run(() => adminRemoveTeamMemberAction(tournamentId, team.id, m.userId!)) }} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label="Remove"><X className="size-4" /></button>
+                        <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Remove player?', message: `Remove ${m.handle || m.name} from ${team.name}?`, confirmLabel: 'Remove', tone: 'danger' }); if (res.confirmed) run(() => adminRemoveTeamMemberAction(tournamentId, team.id, m.userId!)) }} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label="Remove"><X className="size-4" /></button>
                       )}
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { ShieldCheck, Star, ArrowUp, ArrowDown, Crown } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { promoteToAdminAction, demoteAdminAction, setHeadAdministratorAction, transferOwnershipAction, type RoleResult } from '@/lib/staff/roles-actions'
 
 type Role = 'owner' | 'admin' | 'member'
@@ -33,18 +34,22 @@ export function MemberRoles({
   viewerCanManageAdmins: boolean
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null)
   const isSelf = targetUserId === viewerUserId
 
-  const run = (fn: () => Promise<RoleResult>, confirmText?: string) => {
-    if (confirmText && !window.confirm(confirmText)) return
+  const go = (fn: () => Promise<RoleResult>) => {
     setMsg(null)
     start(async () => {
       const r = await fn()
       if (r.error) setMsg({ text: r.error })
       else { setMsg({ ok: true, text: 'Role updated.' }); router.refresh() }
     })
+  }
+  const run = (fn: () => Promise<RoleResult>, confirmText?: string) => {
+    if (!confirmText) { go(fn); return }
+    void confirm({ title: 'Confirm role change?', message: confirmText, confirmLabel: 'Confirm', cancelLabel: 'Cancel', tone: 'warning' }).then((res) => { if (res.confirmed) go(fn) })
   }
 
   if (!viewerCanManageAdmins) {

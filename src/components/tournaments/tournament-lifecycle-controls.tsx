@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useRouter } from 'next/navigation'
 import { Play, Lock, Unlock, CheckCircle2, GitBranch, RefreshCw, AlertTriangle, Users, Trophy, Swords } from 'lucide-react'
 
@@ -61,11 +62,11 @@ export function TournamentLifecycleControls({
   onNavigate?: (tab: NavTab) => void
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null)
 
-  const act = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; navigate?: NavTab }>, confirm?: string) => {
-    if (confirm && !window.confirm(confirm)) return
+  const go = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; navigate?: NavTab }>) => {
     setMsg(null)
     start(async () => {
       const r = await fn()
@@ -77,14 +78,18 @@ export function TournamentLifecycleControls({
       }
     })
   }
+  // Lifecycle actions that carry a confirmation prompt go through the WCC modal (explicit click).
+  const act = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; navigate?: NavTab }>, confirmText?: string) => {
+    if (!confirmText) { go(fn); return }
+    void confirm({ title: 'Confirm this action?', message: confirmText, confirmLabel: 'Confirm', cancelLabel: 'Cancel', tone: 'warning' }).then((res) => { if (res.confirmed) go(fn) })
+  }
 
-  const recover = (to: State) => {
-    const reason = window.prompt(`Recovery: force this tournament to "${LABEL[to]}"? Enter a reason (Owner action, audited):`)
-    if (reason == null) return
-    if (!reason.trim()) { setMsg({ text: 'A reason is required.' }); return }
+  const recover = async (to: State) => {
+    const res = await confirm({ title: `Recovery: force to "${LABEL[to]}"?`, message: 'Owner recovery action — this is audited. Enter a reason.', confirmLabel: 'Force state', cancelLabel: 'Cancel', tone: 'danger', input: { label: 'Reason (required)', required: true } })
+    if (!res.confirmed) return
     setMsg(null)
     start(async () => {
-      const r = await recoverTournamentStateAction(tournamentId, to, reason)
+      const r = await recoverTournamentStateAction(tournamentId, to, res.value)
       if (r.error) setMsg({ text: r.error })
       else { setMsg({ ok: true, text: r.message ?? 'Recovered.' }); router.refresh() }
     })

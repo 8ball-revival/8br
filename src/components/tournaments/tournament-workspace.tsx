@@ -7,6 +7,7 @@ import { Trophy, Users, GitBranch, ListChecks, Settings2, History, Plus, X, Chev
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Bracket } from '@/components/tournaments/bracket'
 import { TournamentLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
 import { TournamentHistory } from '@/components/tournaments/tournament-history'
@@ -501,6 +502,7 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
 /** Seed-order builder. Keyed on the pool so it re-initialises when entrants/teams change
  *  (no effect needed). Drag to reorder, or use the up/down controls. */
 function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string }[]; seededOrder: number[] | null; run: Run }) {
+  const confirm = useConfirm()
   // Start from the existing draft seeding when present (qualifiers first, in seed order), else the pool.
   const initialOrder = useMemo(() => {
     if (seededOrder && seededOrder.length) {
@@ -594,7 +596,7 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
           </Button>
         )}
         {data.hasBracket && !published && (
-          <Button onClick={() => { if (window.confirm('Publish the playoff bracket?\n\nThis makes the playoff seeds and matchups visible to EVERYONE — all members and logged-out visitors. Groups stay visible too. You can return it to draft afterward.')) run(() => A.publishTournamentBracketAction(data.tournament.id)) }}>
+          <Button onClick={async () => { const r = await confirm({ title: 'Publish the playoff bracket?', message: 'This makes the playoff seeds and matchups visible to EVERYONE — all members and logged-out visitors. Groups stay visible too. You can return it to draft afterward.', confirmLabel: 'Publish bracket', tone: 'warning' }); if (r.confirmed) run(() => A.publishTournamentBracketAction(data.tournament.id)) }}>
             Publish bracket
           </Button>
         )}
@@ -696,6 +698,7 @@ function FlairSettings({ data, run }: { data: TournamentWorkspaceData; run: Run 
 
 function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; run: Run; canManage: boolean; isOwner: boolean }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [race, setRace] = useState(data.tournament.raceLength)
   const [delCode, setDelCode] = useState('')
   const [deleting, startDelete] = useTransition()
@@ -779,7 +782,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
           <Button
             className="mt-3"
             variant="destructive"
-            onClick={() => { if (window.confirm('Cancel this tournament? This is terminal (Owner recovery only).')) run(() => A.setTournamentStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
+            onClick={async () => { const r = await confirm({ title: 'Cancel this tournament?', message: 'This is terminal — the tournament becomes read-only and can only be recovered by the Owner.', confirmLabel: 'Cancel tournament', cancelLabel: 'Keep tournament', tone: 'danger' }); if (r.confirmed) run(() => A.setTournamentStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
           >
             Cancel tournament
           </Button>

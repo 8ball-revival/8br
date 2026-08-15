@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Flag } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { reportTournamentLossAction } from '@/lib/competition/tournament-actions'
 
 /**
@@ -26,6 +27,7 @@ export function TournamentReportLoss({
   raceLength: number
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [myGames, setMyGames] = useState(0)
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null)
@@ -39,12 +41,9 @@ export function TournamentReportLoss({
     )
   }
 
-  const submit = () => {
-    const confirmed = window.confirm(
-      `Report YOURSELF as the loser of ${matchLabel} against ${opponentName}?\n\n` +
-        `Your opponent will be recorded as the winner (${myGames}–${raceLength}) and will advance. This cannot be undone by you.`,
-    )
-    if (!confirmed) return
+  const submit = async () => {
+    const res = await confirm({ title: 'Report yourself as the loser?', tone: 'danger', confirmLabel: 'Report my loss', message: `You will be recorded as losing ${matchLabel} to ${opponentName} (${myGames}–${raceLength}); they advance. This cannot be undone by you.` })
+    if (!res.confirmed) return
     setMsg(null)
     start(async () => {
       const r = await reportTournamentLossAction(matchId, myGames)

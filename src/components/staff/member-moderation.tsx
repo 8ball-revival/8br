@@ -6,6 +6,7 @@ import { AlertTriangle, ShieldBan, Clock, Trash2, RotateCcw, TriangleAlert } fro
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   warnMemberAction,
   timeoutMemberAction,
@@ -42,17 +43,24 @@ export function MemberModeration({
   ipAvailable: boolean
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null)
 
-  const run = (fn: () => Promise<ModResult>, confirmText?: string) => {
-    if (confirmText && !window.confirm(confirmText)) return
+  const go = (fn: () => Promise<ModResult>) => {
     setMsg(null)
     start(async () => {
       const r = await fn()
       if (r.error) setMsg({ text: r.error })
       else { setMsg({ ok: true, text: r.ipShared ? 'Done — note: the IP looked shared/VPN, so IP-protection is weak here.' : 'Done.' }); router.refresh() }
     })
+  }
+
+  // Destructive moderation actions confirm through the WCC modal (danger tone, explicit click — never
+  // an Enter keypress). `confirmText` becomes the modal message; absence runs immediately.
+  const run = (fn: () => Promise<ModResult>, confirmText?: string) => {
+    if (!confirmText) { go(fn); return }
+    void confirm({ title: 'Confirm this action?', message: confirmText, confirmLabel: 'Confirm', cancelLabel: 'Cancel', tone: 'danger' }).then((res) => { if (res.confirmed) go(fn) })
   }
 
   return (
