@@ -29,15 +29,15 @@ export async function recomputeSeasonStandings(seasonId: number): Promise<void> 
         winnerRegistrationId: m.winnerEntrantId ?? null,
       }))
     const rows = computeStandings(roster, groupMatches, SEASON_QUALIFIERS_PER_GROUP)
-    await prisma.$transaction(
-      rows.map((r) =>
-        prisma.seasonStanding.upsert({
+    await prisma.$transaction(async (tx) => {
+      for (const r of rows) {
+        await tx.seasonStanding.upsert({
           where: { groupId_entrantId: { groupId: g.id, entrantId: r.registrationId } },
           create: { seasonId, groupId: g.id, entrantId: r.registrationId, username: r.username, played: r.played, wins: r.wins, losses: r.losses, draws: r.draws, gamesWon: r.gamesWon, gamesLost: r.gamesLost, points: r.points, rank: r.rank, qualified: r.qualified },
           update: { username: r.username, played: r.played, wins: r.wins, losses: r.losses, draws: r.draws, gamesWon: r.gamesWon, gamesLost: r.gamesLost, points: r.points, rank: r.rank, qualified: r.qualified },
-        }),
-      ),
-    )
+        })
+      }
+    })
   }
 }
 
