@@ -47,12 +47,12 @@ export default function HomePage() {
       {/* Full-bleed hero. <main> spans the viewport with no padding, so w-full is edge-to-edge with
           no outer margin. Fixed responsive heights + object-cover keep the image's aspect ratio
           intact (it crops, never stretches), and overflow-hidden guarantees no horizontal scroll.
-          The trophy is dead-centre in the source art, so a centred focal point keeps it in frame at
-          every width. */}
+          The 8-ball centrepiece is dead-centre in the source art, so a centred focal point keeps it
+          in frame at every width. */}
       <section className="relative w-full overflow-hidden h-[240px] sm:h-[320px] lg:h-[440px] xl:h-[520px]">
         <Image
-          src="/assets/branding/8br-banner.png"
-          alt="The 8 Ball Registry champion's trophy displayed on a tournament pool table"
+          src="/assets/branding/8br-banner2.png"
+          alt="The 8 Ball Registry hall — an eight ball mounted in a brass orrery, ringed by record displays"
           fill
           priority
           /* object-cover scales the 2.5:1 art to FILL the shorter hero box, so at narrow widths it
@@ -63,7 +63,7 @@ export default function HomePage() {
           className="object-cover object-center"
         />
         {/* Subtle darkening only — enough to settle the image against the black canvas below
-            without losing the trophy, the shelves, or the lettering on the walls. */}
+            without losing the centrepiece, the brass detail, or the record displays. */}
         <div aria-hidden className="absolute inset-0 bg-black/25" />
       </section>
     </>
