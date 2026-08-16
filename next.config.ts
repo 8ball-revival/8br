@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
         // WCC static brand assets in /public (e.g. the homepage hero banner).
         pathname: '/wcc-*',
       },
+      {
+        // Static brand assets in /public/assets/branding (header logo, homepage banner).
+        pathname: '/assets/branding/**',
+      },
     ],
   },
   webpack: (webpackConfig) => {
