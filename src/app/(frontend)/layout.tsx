@@ -5,7 +5,6 @@ import React from 'react'
 import { SiteHeader } from '@/components/site-header'
 import { DialogProvider } from '@/components/ui/confirm-dialog'
 import { SiteFooter } from '@/components/site-footer'
-import { WccAmbientBackground } from '@/components/wcc-ambient-background'
 import { SITE_NAME, SITE_TITLE_DEFAULT, SITE_DESCRIPTION, SITE_URL } from '@/lib/site'
 import './globals.css'
 
@@ -49,7 +48,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   // Dark is the default; light is opt-in via the header toggle.
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#050505' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
     { media: '(prefers-color-scheme: light)', color: '#fafafa' },
   ],
 }
@@ -69,7 +68,6 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-screen flex-col bg-transparent text-foreground antialiased">
-        <WccAmbientBackground />
         <DialogProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>

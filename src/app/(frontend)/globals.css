@@ -14,7 +14,7 @@
   --radius: 0.5rem;
 
   /* ---- WCC palette (single dark theme) ---- */
-  --background: #050505; /* page background */
+  --background: #000000; /* page background — flat matte black, no image or texture */
   --foreground: #ffffff; /* primary text */
 
   --surface: #0d0d0d; /* primary surface */
@@ -229,13 +229,14 @@
 
   html {
     scroll-behavior: smooth;
-    /* The base canvas colour lives on <html> so the <body> can be transparent and let the fixed
-       ambient background (dark theme) show through. Light theme has no ambient — this colour shows. */
+    /* The base canvas colour lives on <html> and shows through the transparent <body>. This is the
+       whole page background: flat matte black in the dark theme, warm cream in light. There is no
+       image, gradient, or texture layer over it. */
     background-color: var(--background);
   }
 
   body {
-    /* transparent so the fixed .wcc-ambient layer is visible behind page content (dark theme) */
+    /* transparent so the flat canvas colour on <html> is what shows behind page content */
     @apply text-foreground antialiased;
     background-color: transparent;
     font-family: var(--font-sans);
