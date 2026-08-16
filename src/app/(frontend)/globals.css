@@ -86,6 +86,11 @@
   --scrollbar-thumb: #3a3a3a;
   --scrollbar-thumb-hover: var(--brand);
 
+  /* A real gold, sampled from the 8BR logo artwork and lifted for legibility on black. Used for
+     the homepage hero's welcome line and second headline line. Kept separate from the `--gold`
+     aliases below, which are back-compat pointers at the crimson brand colour. */
+  --hero-gold: #dda94a;
+
   /* Back-compat aliases: legacy `gold` tokens now resolve to the WCC crimson so any
      not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
   --gold: var(--brand);
@@ -210,6 +215,7 @@
   --color-gold: var(--brand);
   --color-gold-soft: var(--brand-soft);
   --color-gold-dim: var(--brand-dim);
+  --color-hero-gold: var(--hero-gold);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

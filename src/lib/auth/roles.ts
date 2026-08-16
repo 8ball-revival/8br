@@ -11,10 +11,26 @@
 
 export type Role = 'owner' | 'admin' | 'editor' | 'member'
 
-export const OWNER: Role = 'owner'
-export const ADMIN: Role = 'admin'
-export const EDITOR: Role = 'editor'
-export const MEMBER: Role = 'member'
+// `satisfies` rather than a `: Role` annotation so each keeps its literal type. Payload's generated
+// User type only accepts the roles that are actually selectable (owner/admin/member), so a widened
+// `Role` — which still includes the retired EDITOR — is not assignable at a write boundary.
+export const OWNER = 'owner' satisfies Role
+export const ADMIN = 'admin' satisfies Role
+export const EDITOR = 'editor' satisfies Role
+export const MEMBER = 'member' satisfies Role
+
+/**
+ * Roles that can actually be PERSISTED. EDITOR is retired: it is normalized to MEMBER on read and
+ * is never written, so it is excluded here to match the stored schema.
+ */
+export type PersistedRole = Exclude<Role, 'editor'>
+
+/** Narrow an arbitrary role list to the values that may be written to an account. */
+export function toPersistedRoles(roles: Role[] | string[]): PersistedRole[] {
+  return (roles as string[]).filter((r): r is PersistedRole =>
+    r === OWNER || r === ADMIN || r === MEMBER,
+  )
+}
 
 /** Roles that may reach the staff admin console (capabilities restrict further).
  *  The active model is OWNER / ADMIN / MEMBER — EDITOR is retired (normalized to MEMBER). */

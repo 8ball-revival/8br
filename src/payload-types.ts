@@ -91,8 +91,14 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-branding': SiteBranding;
+    'homepage-hero': HomepageHero;
+  };
+  globalsSelect: {
+    'site-branding': SiteBrandingSelect<false> | SiteBrandingSelect<true>;
+    'homepage-hero': HomepageHeroSelect<false> | HomepageHeroSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -139,7 +145,7 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
-  roles?: ('owner' | 'admin' | 'editor' | 'member')[] | null;
+  roles?: ('owner' | 'admin' | 'member')[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -226,11 +232,7 @@ export interface Rule {
   id: number;
   title: string;
   slug: string;
-  category?: ('general' | 'tournament' | 'cup' | 'tournament' | 'format' | 'conduct') | null;
-  /**
-   * App-level reference to a CompetitionType code (Prisma), e.g. SEASON. Optional.
-   */
-  appliesToCompetitionType?: string | null;
+  category?: ('general' | 'tournament' | 'format' | 'conduct') | null;
   content?: {
     root: {
       type: string;
@@ -402,7 +404,6 @@ export interface RulesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   category?: T;
-  appliesToCompetitionType?: T;
   content?: T;
   effectiveFrom?: T;
   versionLabel?: T;
@@ -449,6 +450,120 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * The site name and logo shown in the header. Save Draft to stage changes; Publish to make them live.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-branding".
+ */
+export interface SiteBranding {
+  id: number;
+  /**
+   * Wordmark text shown beside the logo in the header.
+   */
+  siteName: string;
+  /**
+   * Header logo. Rendered at a fixed height; aspect ratio is preserved.
+   */
+  logo?: (number | null) | Media;
+  /**
+   * Alternative text for the logo. Leave blank if the logo is purely decorative next to the site name (screen readers will then read the site name only).
+   */
+  logoAlt?: string | null;
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * The homepage banner and its wording. Save Draft to stage changes; Publish to make them live.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "homepage-hero".
+ */
+export interface HomepageHero {
+  id: number;
+  /**
+   * Full-width hero image. Displayed edge-to-edge and cropped to the hero height, centred — use artwork whose subject sits near the middle.
+   */
+  bannerImage?: (number | null) | Media;
+  /**
+   * Alternative text describing the banner for screen readers.
+   */
+  bannerAlt?: string | null;
+  /**
+   * Small gold line above the headline. Rendered in uppercase.
+   */
+  welcomeLine?: string | null;
+  /**
+   * First line of the headline (white). Rendered in uppercase.
+   */
+  headlineLine1?: string | null;
+  /**
+   * Second line of the headline (gold). Rendered in uppercase.
+   */
+  headlineLine2?: string | null;
+  /**
+   * Main paragraph under the headline.
+   */
+  description?: string | null;
+  /**
+   * Short closing sentence under the description.
+   */
+  supportingSentence?: string | null;
+  /**
+   * First button label.
+   */
+  primaryButtonLabel?: string | null;
+  /**
+   * First button destination — a site path like /seasons, or https://…
+   */
+  primaryButtonHref?: string | null;
+  /**
+   * Second button label.
+   */
+  secondaryButtonLabel?: string | null;
+  /**
+   * Second button destination — a site path like /tournaments, or https://…
+   */
+  secondaryButtonHref?: string | null;
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-branding_select".
+ */
+export interface SiteBrandingSelect<T extends boolean = true> {
+  siteName?: T;
+  logo?: T;
+  logoAlt?: T;
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "homepage-hero_select".
+ */
+export interface HomepageHeroSelect<T extends boolean = true> {
+  bannerImage?: T;
+  bannerAlt?: T;
+  welcomeLine?: T;
+  headlineLine1?: T;
+  headlineLine2?: T;
+  description?: T;
+  supportingSentence?: T;
+  primaryButtonLabel?: T;
+  primaryButtonHref?: T;
+  secondaryButtonLabel?: T;
+  secondaryButtonHref?: T;
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

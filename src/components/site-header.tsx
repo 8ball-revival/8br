@@ -7,13 +7,16 @@ import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { getCurrentUser } from '@/lib/account/auth'
+import { getSiteBranding } from '@/lib/site-content/service'
 import { signOut } from '@/lib/account/actions'
 import { isStaff } from '@/lib/auth/roles'
 import type { NavItem } from '@/lib/nav'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
-  const user = await getCurrentUser()
+  // Branding is admin-managed (published version only); `getSiteBranding` falls back to the
+  // built-in identity so the header still renders before anything is published.
+  const [user, branding] = await Promise.all([getCurrentUser(), getSiteBranding()])
   // Staff-only Admin entry, appended after the public nav (Home · Seasons · Tournaments · Ladder · …).
   const staffItems: NavItem[] = user && isStaff(user.roles) ? [{ label: 'Admin', href: '/staff' }] : []
   // Display policy: Preferred Name when present, otherwise the CueVerse ID (the account identity).
@@ -24,7 +27,13 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70">
       <div className="mx-auto flex h-16 w-full max-w-[96rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <Logo />
+          <Logo
+            siteName={branding.siteName}
+            logoUrl={branding.logoUrl}
+            logoWidth={branding.logoWidth}
+            logoHeight={branding.logoHeight}
+            logoAlt={branding.logoAlt}
+          />
           <MainNav className="hidden xl:flex" extraItems={staffItems} />
         </div>
 

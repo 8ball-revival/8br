@@ -11,6 +11,8 @@ import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { News } from './collections/News'
 import { Rules } from './collections/Rules'
+import { SiteBranding } from './globals/SiteBranding'
+import { HomepageHero } from './globals/HomepageHero'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -50,6 +52,9 @@ export default buildConfig({
     },
   },
   collections: [Users, Media, News, Rules],
+  // Admin-managed site content. Singletons with drafts enabled: the public site reads only the
+  // published version, so Save Draft never changes what visitors see.
+  globals: [SiteBranding, HomepageHero],
   editor: lexicalEditor(),
   // Transactional email (password-reset links). Enabled once RESEND_API_KEY is set;
   // without it Payload falls back to its console-logging adapter, so dev still works and

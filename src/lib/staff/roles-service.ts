@@ -4,7 +4,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
-import { isOwner, isAdmin, OWNER, ADMIN, MEMBER, type Role } from '@/lib/auth/roles'
+import { isOwner, isAdmin, OWNER, ADMIN, MEMBER, type Role, toPersistedRoles } from '@/lib/auth/roles'
 
 /**
  * SHARED staff role-management service — the single, invariant-enforcing path for Admin
@@ -45,7 +45,14 @@ async function rolesOf(userId: number): Promise<string[]> {
 
 async function setRoles(userId: number, roles: Role[], context?: Record<string, unknown>): Promise<void> {
   const p = await payload()
-  await p.update({ collection: 'users', id: userId, data: { roles }, overrideAccess: true, ...(context ? { context } : {}) })
+  await p.update({
+    collection: 'users',
+    id: userId,
+    // EDITOR is retired and cannot be stored; narrow before writing.
+    data: { roles: toPersistedRoles(roles) },
+    overrideAccess: true,
+    ...(context ? { context } : {}),
+  })
 }
 
 // --------------------------------------------------------------------------- Head Admin designation
