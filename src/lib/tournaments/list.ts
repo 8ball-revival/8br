@@ -1,6 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { resolveIdentity } from '@/lib/stats/identity'
+import { TOURNAMENT_ORDER } from '@/lib/competition/competition-year'
 
 /**
  * Enriched TournamentView list + structured search index, read from the DATABASE (source of
@@ -38,7 +39,7 @@ export interface TournamentListItem {
 
 export async function getTournamentList(): Promise<TournamentListItem[]> {
   const comps = await prisma.tournament.findMany({
-    orderBy: { number: 'asc' },
+    orderBy: TOURNAMENT_ORDER,
     include: { bracketMatches: true },
   })
 

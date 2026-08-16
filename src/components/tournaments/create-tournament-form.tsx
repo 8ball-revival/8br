@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Users, Lock, Sparkles, Check } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN, currentCompetitionYear } from '@/lib/competition/competition-year'
 import { Button } from '@/components/ui/button'
 import { createTournamentAction, saveFlairDefaultAction, getFlairDefaultAction } from '@/lib/competition/tournament-actions'
 import type { CreateTournamentConfig } from '@/lib/competition/tournament-create'
@@ -29,6 +30,8 @@ export function CreateTournamentForm() {
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
+  // Competition Year defaults to the current calendar year; the server re-validates the range.
+  const [competitionYear, setCompetitionYear] = useState(String(currentCompetitionYear()))
   const [race, setRace] = useState(7)
   const [lounge, setLounge] = useState('Social')
 
@@ -70,6 +73,7 @@ export function CreateTournamentForm() {
 
     const cfg: CreateTournamentConfig = {
       name: name.trim(),
+      competitionYear,
       participantFormat: participant,
       teamSize: participant === 'TEAM' ? teamSize : null,
       teamFormation: participant === 'TEAM' ? teamFormation : undefined,
@@ -129,6 +133,22 @@ export function CreateTournamentForm() {
           <div className="mt-4 space-y-4">
             <Labeled label="Tournament name" hint="optional">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 8BR Winter Open" maxLength={80} className={input} />
+            </Labeled>
+            <Labeled label="Competition Year" hint="required">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={competitionYear}
+                onChange={(e) => setCompetitionYear(e.target.value)}
+                min={COMPETITION_YEAR_MIN}
+                max={COMPETITION_YEAR_MAX}
+                step={1}
+                className={cn(input, 'max-w-[140px]')}
+                aria-describedby="competition-year-hint"
+              />
+              <p id="competition-year-hint" className="mt-1 text-[0.7rem] text-muted-foreground/70">
+                Four-digit year this competition belongs to. Past and future years are both allowed.
+              </p>
             </Labeled>
             <div className="grid gap-4 sm:grid-cols-2">
               <Labeled label="Match format">

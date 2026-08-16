@@ -15,7 +15,7 @@ const actor = { userId: 970001, username: 'rand-wf-verify' }
 async function makeTournament(number: number, opts: { formation: 'RANDOM' | 'PICK'; size: number; players: number; state: string }) {
   const t = await prisma.tournament.create({
     data: {
-      slug: `rand-wf-${number}`, name: `Rand WF ${number}`, code: `RWF${number}`, number,
+      slug: `rand-wf-${number}`, name: `Rand WF ${number}`, competitionYear: new Date().getFullYear(), code: `RWF${number}`, number,
       tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize: opts.size, teamFormation: opts.formation,
       lifecycleState: opts.state as never, registrationStatus: opts.state === 'REGISTRATION_OPEN' ? 'OPEN' : 'CLOSED', status: 'UPCOMING', playoffsStatus: 'PENDING',
     },

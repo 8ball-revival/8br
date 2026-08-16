@@ -46,7 +46,7 @@ check('not redacted when viewer may see it', redactPlayoffs(sample, true).bracke
 console.log('\nPublish flow (generate ≠ publish; publish makes visible; idempotent; guards)')
 const t = await prisma.tournament.create({
   data: {
-    slug: 'vis-verify', name: 'Vis Verify', code: 'VIS1', number: 95001,
+    slug: 'vis-verify', name: 'Vis Verify', competitionYear: new Date().getFullYear(), code: 'VIS1', number: 95001,
     tournamentFormat: 'SINGLE_ELIM', participantFormat: 'INDIVIDUAL', raceLength: 5,
     lifecycleState: 'REGISTRATION_CLOSED', registrationStatus: 'CLOSED', status: 'UPCOMING', playoffsStatus: 'PENDING',
   },

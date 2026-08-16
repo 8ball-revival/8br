@@ -18,7 +18,7 @@ const actor = { userId: 960001, username: 'rand-verify' }
 async function makeRandomTeamTournament(number: number, players: number, size: number) {
   const t = await prisma.tournament.create({
     data: {
-      slug: `rand-verify-${number}`, name: `Rand Verify ${number}`, code: `RNV${number}`, number,
+      slug: `rand-verify-${number}`, name: `Rand Verify ${number}`, competitionYear: new Date().getFullYear(), code: `RNV${number}`, number,
       tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize: size, teamFormation: 'RANDOM',
       lifecycleState: 'REGISTRATION_CLOSED', registrationStatus: 'CLOSED', status: 'UPCOMING', playoffsStatus: 'PENDING',
     },
@@ -81,14 +81,14 @@ async function runAccess() {
   console.log('\n--- Password-gated registration ---')
   const priv = await prisma.tournament.create({
     data: {
-      slug: 'access-verify-priv', name: 'Access Verify Priv', code: 'ACV1', number: 96901,
+      slug: 'access-verify-priv', name: 'Access Verify Priv', competitionYear: new Date().getFullYear(), code: 'ACV1', number: 96901,
       tournamentFormat: 'SINGLE_ELIM', participantFormat: 'INDIVIDUAL', accessMode: 'PASSWORD', joinPasswordHash: hashJoinPassword('letmein'),
       lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING',
     },
   })
   const open = await prisma.tournament.create({
     data: {
-      slug: 'access-verify-open', name: 'Access Verify Open', code: 'ACV2', number: 96902,
+      slug: 'access-verify-open', name: 'Access Verify Open', competitionYear: new Date().getFullYear(), code: 'ACV2', number: 96902,
       tournamentFormat: 'SINGLE_ELIM', participantFormat: 'INDIVIDUAL', accessMode: 'OPEN',
       lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING',
     },

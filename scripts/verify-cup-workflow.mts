@@ -14,7 +14,7 @@ check('COMPLETED → REGISTRATION_OPEN REJECTED', !canTransition('COMPLETED', 'R
 // tournaments the direct jump is blocked by a format guard in transitionTournamentState instead.
 check('REGISTRATION_CLOSED → IN_PROGRESS exists at the map level (for Swiss)', canTransition('REGISTRATION_CLOSED', 'IN_PROGRESS'))
 
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', code: 'CWF', number: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-wf', name: 'WF Cup', competitionYear: new Date().getFullYear(), code: 'CWF', number: 99060, lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- temporary entrants are refused server-side ---')

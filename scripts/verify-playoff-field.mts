@@ -15,7 +15,7 @@ const actor = { userId: 940001, username: 'field-verify' }
 
 const t = await prisma.tournament.create({
   data: {
-    slug: 'field-verify', name: 'Field Verify', code: 'FLD1', number: 94001,
+    slug: 'field-verify', name: 'Field Verify', competitionYear: new Date().getFullYear(), code: 'FLD1', number: 94001,
     tournamentFormat: 'SINGLE_ELIM', participantFormat: 'INDIVIDUAL', raceLength: 5,
     lifecycleState: 'REGISTRATION_CLOSED', registrationStatus: 'CLOSED', status: 'UPCOMING', playoffsStatus: 'PENDING',
   },

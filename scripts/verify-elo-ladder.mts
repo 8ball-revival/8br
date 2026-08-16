@@ -25,7 +25,7 @@ const Q = (id: string) => `ELOQA-${id}`
 let tnum = 9500
 async function makeT(opts: { team?: boolean; date?: Date } = {}) {
   const n = tnum++
-  return prisma.tournament.create({ data: { slug: `elo-${n}`, name: `Elo ${n}`, code: `EL${n}`, number: n, tournamentFormat: opts.team ? 'TEAM_KNOCKOUT' : 'SINGLE_ELIM', participantFormat: opts.team ? 'TEAM' : 'INDIVIDUAL', raceLength: 5, lifecycleState: 'COMPLETED', registrationStatus: 'CLOSED', status: 'COMPLETED', ladderAppliedAt: opts.date ?? new Date() } })
+  return prisma.tournament.create({ data: { slug: `elo-${n}`, name: `Elo ${n}`, competitionYear: new Date().getFullYear(), code: `EL${n}`, number: n, tournamentFormat: opts.team ? 'TEAM_KNOCKOUT' : 'SINGLE_ELIM', participantFormat: opts.team ? 'TEAM' : 'INDIVIDUAL', raceLength: 5, lifecycleState: 'COMPLETED', registrationStatus: 'CLOSED', status: 'COMPLETED', ladderAppliedAt: opts.date ?? new Date() } })
 }
 const reg = (tid: number, username: string, playerId: string) => prisma.registration.create({ data: { tournamentId: tid, username, playerId: Q(playerId), status: 'APPROVED' } })
 const playoff = (tid: number, round: number, slot: number, home: number, away: number, winner: number, o: { status?: string; note?: string; date?: Date; h?: number; a?: number } = {}) =>

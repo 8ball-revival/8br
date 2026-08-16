@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Diamond, Lock } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN } from '@/lib/competition/competition-year'
 import { Button } from '@/components/ui/button'
 import { createSeasonAction } from '@/lib/seasons/actions'
 import type { CreateSeasonConfig } from '@/lib/seasons/service'
@@ -21,6 +22,8 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
   const [error, setError] = useState<string | null>(null)
 
   const [subtitle, setSubtitle] = useState('')
+  // Competition Year defaults to the current calendar year; the server re-validates the range.
+  const [competitionYear, setCompetitionYear] = useState(String(year))
   const [lounge, setLounge] = useState('Social')
   const [access, setAccess] = useState<'OPEN' | 'PASSWORD'>('OPEN')
   const [joinPassword, setJoinPassword] = useState('')
@@ -42,6 +45,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
     if (scheduleLater && !date) return setError('Pick a date for the scheduled registration opening.')
 
     const cfg: CreateSeasonConfig = {
+      competitionYear: Number(competitionYear),
       subtitle: subtitle.trim() || null,
       lounge,
       accessMode: access,
@@ -72,6 +76,22 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
               <span className="font-display font-bold text-[var(--gold-soft)]">{officialTitle}</span>
               <p className="mt-1 text-[0.7rem] text-muted-foreground/70">Assigned automatically from the sequence and year.</p>
             </div>
+            <Labeled label="Competition Year" hint="required">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={competitionYear}
+                onChange={(e) => setCompetitionYear(e.target.value)}
+                min={COMPETITION_YEAR_MIN}
+                max={COMPETITION_YEAR_MAX}
+                step={1}
+                className={cn(input, 'max-w-[140px]')}
+                aria-describedby="competition-year-hint"
+              />
+              <p id="competition-year-hint" className="mt-1 text-[0.7rem] text-muted-foreground/70">
+                Four-digit year this competition belongs to. Past and future years are both allowed.
+              </p>
+            </Labeled>
             <Labeled label="Custom subtitle" hint="optional">
               <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. The Winter Classic" maxLength={80} className={input} />
             </Labeled>

@@ -22,7 +22,7 @@ export interface CompRow {
 export async function getCompetitions(): Promise<CompRow[]> {
   const seasons = await prisma.season.findMany({
     include: { _count: { select: { entrants: true } } },
-    orderBy: [{ year: 'desc' }, { number: 'desc' }],
+    orderBy: [{ competitionYear: 'desc' }, { scheduledStartAt: 'desc' }, { number: 'desc' }],
   })
   const tournaments = await prisma.tournament.findMany({
     include: { _count: { select: { registrations: true } } },
@@ -39,7 +39,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
       registration: s.lifecycleState === 'REGISTRATION_OPEN' ? 'open' : 'closed',
       entrants: s._count.entrants, format: s.playoffDoubleElim ? 'Groups → DE' : 'Groups → SE',
       unresolved, waitingFreeAgents: 0, incompleteTeams: 0,
-      manageHref: `/seasons/${s.number}`, year: s.year,
+      manageHref: `/seasons/${s.number}`, year: s.competitionYear,
     })
   }
   for (const t of tournaments) {
@@ -56,7 +56,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
       registration: t.registrationStatus.replace('_', ' ').toLowerCase(),
       entrants: t._count.registrations, format: (t.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase(),
       unresolved, waitingFreeAgents: waiting, incompleteTeams,
-      manageHref: `/tournaments/${t.number}`, year: new Date(t.createdAt).getFullYear(),
+      manageHref: `/tournaments/${t.number}`, year: t.competitionYear,
     })
   }
   return rows

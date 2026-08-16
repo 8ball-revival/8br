@@ -1175,6 +1175,9 @@ model Tournament {
   id                   Int                       @id @default(autoincrement())
   slug                 String                    @unique
   name                 String
+  /// Competition Year — see Season.competitionYear. Required; defaults to the current calendar
+  /// year at creation. Backfilled from scheduledStartAt (else createdAt) for pre-existing rows.
+  competitionYear      Int
   status               TournamentRunState        @default(UPCOMING)
   registrationStatus   RegistrationState         @default(NOT_OPEN)
   registrationOpensAt  DateTime?
@@ -1244,6 +1247,7 @@ model Tournament {
   ratingLedger   RatingLedger[]
 
   @@index([lifecycleState])
+  @@index([competitionYear])
   @@map("comp_tournament")
 }
 
@@ -1829,7 +1833,11 @@ enum SeasonQualification {
 model Season {
   id             Int                  @id @default(autoincrement())
   number         Int                  @unique // public season number (1, 2, ...)
-  year           Int
+  /// Competition Year — the four-digit year the competition belongs to. Required; defaults to the
+  /// current calendar year at creation. Historical and future years are allowed (1900-2100, range
+  /// enforced by a CHECK constraint). Deliberately NOT unique: many competitions share a year.
+  /// Primary sort key for every chronological listing.
+  competitionYear Int
   slug           String               @unique
   subtitle       String? // optional custom subtitle; official title is "8BR Season N - YEAR"
   lifecycleState SeasonLifecycleState @default(REGISTRATION_SCHEDULED)
@@ -1873,6 +1881,7 @@ model Season {
   ratingLedger   RatingLedger[]
 
   @@index([lifecycleState])
+  @@index([competitionYear])
   @@map("season")
 }
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 import { hashJoinPassword } from './join-password'
 import { normalizeFlair, type FlairInput } from './flair'
+import { currentCompetitionYear, parseCompetitionYear } from './competition-year'
 
 export type SeedingMethod = 'rating' | 'rank' | 'random' | 'registration'
 export type TeamFormationInput = 'PICK' | 'RANDOM'
@@ -18,6 +19,8 @@ const SEEDING: SeedingMethod[] = ['rating', 'rank', 'random', 'registration']
 
 export interface CreateTournamentConfig {
   name: string
+  /** Competition Year (four-digit). Omitted = the current calendar year. */
+  competitionYear?: number | string | null
   participantFormat: ParticipantFormat // INDIVIDUAL | TEAM
   teamSize?: number | null // members per team when TEAM (2–6)
   teamFormation?: TeamFormationInput // TEAM only: captains PICK rosters, or RANDOM draw at close
@@ -72,6 +75,13 @@ export async function createTournament(
   const name = cfg.name.trim()
   if (!name) return { ok: false, error: 'A tournament name is required.' }
   if (name.length > 80) return { ok: false, error: 'Tournament name must be 80 characters or fewer.' }
+
+  // Competition Year: required on the record, defaulted here when the caller omits it.
+  const yearResult = parseCompetitionYear(
+    cfg.competitionYear == null || cfg.competitionYear === '' ? currentCompetitionYear() : cfg.competitionYear,
+  )
+  if (!yearResult.ok) return { ok: false, error: yearResult.error }
+  const competitionYear = yearResult.year
 
   if (!SUPPORTED_FORMATS.includes(cfg.tournamentFormat)) {
     return { ok: false, error: 'Unsupported tournament format.' }
@@ -146,6 +156,7 @@ export async function createTournament(
         data: {
           slug,
           name,
+          competitionYear,
           code,
           number: nextNumber,
           gameType: cfg.gameType ?? null,

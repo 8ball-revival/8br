@@ -20,7 +20,7 @@ const actor = { userId: 990981, username: 'gsetup-verify' }
 async function make(number: number, players: number, groupCount: number) {
   const t = await prisma.tournament.create({
     data: {
-      slug: `gsetup-${number}`, name: `GSetup ${number}`, code: `GST${number}`, number,
+      slug: `gsetup-${number}`, name: `GSetup ${number}`, competitionYear: new Date().getFullYear(), code: `GST${number}`, number,
       tournamentFormat: 'GROUPS_PLAYOFFS', groupCount, qualifiersPerGroup: 2, playoffSeeding: 'standing',
       raceLength: 7, participantFormat: 'INDIVIDUAL',
       lifecycleState: 'REGISTRATION_CLOSED', registrationStatus: 'CLOSED', status: 'UPCOMING', groupsStatus: 'PENDING', playoffsStatus: 'PENDING',

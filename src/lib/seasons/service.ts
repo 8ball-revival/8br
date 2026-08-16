@@ -1,6 +1,7 @@
 import 'server-only'
 import type { Prisma, SeasonLifecycleState } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { SEASON_ORDER, currentCompetitionYear, parseCompetitionYear } from '@/lib/competition/competition-year'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { hashJoinPassword, verifyJoinPassword } from '@/lib/competition/join-password'
 import { transitionSeasonState } from './lifecycle'
@@ -33,6 +34,8 @@ export async function seasonRatingsByPlayerId(playerIds: (string | null)[]): Pro
 // ---- Creation -------------------------------------------------------------
 
 export interface CreateSeasonConfig {
+  /** Competition Year (four-digit). Omitted = the current calendar year. */
+  competitionYear?: number | string | null
   subtitle?: string | null
   lounge?: string
   accessMode?: 'OPEN' | 'PASSWORD'
@@ -52,7 +55,11 @@ const clampRace = (v: number | undefined, dflt: number) => {
 }
 
 export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promise<{ ok: boolean; error?: string; number?: number }> {
-  const year = new Date().getFullYear()
+  const yearResult = parseCompetitionYear(
+    cfg.competitionYear == null || cfg.competitionYear === '' ? currentCompetitionYear() : cfg.competitionYear,
+  )
+  if (!yearResult.ok) return { ok: false, error: yearResult.error }
+  const year = yearResult.year
   const opensAt = cfg.registrationOpensAt ? new Date(cfg.registrationOpensAt) : null
   const scheduled = !!opensAt && opensAt.getTime() > Date.now()
   const accessMode = cfg.accessMode === 'PASSWORD' ? 'PASSWORD' : 'OPEN'
@@ -67,7 +74,7 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
     const season = await tx.season.create({
       data: {
         number,
-        year,
+        competitionYear: year,
         slug: `8br-season-${number}-${year}`,
         subtitle: cfg.subtitle?.trim() || null,
         lifecycleState: scheduled ? 'REGISTRATION_SCHEDULED' : 'REGISTRATION_OPEN',
@@ -104,11 +111,11 @@ export interface SeasonSummary {
   isCompleted: boolean
 }
 
-function toSummary(s: { number: number; year: number; subtitle: string | null; lifecycleState: SeasonLifecycleState; entrantsCount: number; championName: string | null; runnerUpName: string | null }): SeasonSummary {
+function toSummary(s: { number: number; competitionYear: number; subtitle: string | null; lifecycleState: SeasonLifecycleState; entrantsCount: number; championName: string | null; runnerUpName: string | null }): SeasonSummary {
   return {
     number: s.number,
-    year: s.year,
-    title: seasonOfficialTitle(s.number, s.year),
+    year: s.competitionYear,
+    title: seasonOfficialTitle(s.number, s.competitionYear),
     subtitle: s.subtitle,
     lifecycleState: s.lifecycleState,
     entrantsCount: s.entrantsCount,
@@ -120,7 +127,7 @@ function toSummary(s: { number: number; year: number; subtitle: string | null; l
 }
 
 export async function listSeasons(): Promise<SeasonSummary[]> {
-  const rows = await prisma.season.findMany({ orderBy: { number: 'desc' } })
+  const rows = await prisma.season.findMany({ orderBy: SEASON_ORDER })
   return rows.map(toSummary)
 }
 
@@ -176,8 +183,8 @@ export async function getSeasonView(number: number): Promise<SeasonView | null> 
   return {
     id: s.id,
     number: s.number,
-    year: s.year,
-    title: seasonOfficialTitle(s.number, s.year),
+    year: s.competitionYear,
+    title: seasonOfficialTitle(s.number, s.competitionYear),
     subtitle: s.subtitle,
     description: s.description,
     lifecycleState: s.lifecycleState,

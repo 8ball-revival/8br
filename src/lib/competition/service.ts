@@ -1,6 +1,7 @@
 import 'server-only'
 import type { Prisma, RegistrationStatus, LiveMatchStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { currentCompetitionYear } from './competition-year'
 import { recordAudit, type Actor } from './audit'
 import { planGroups, type SeedableRegistration, type GroupPlan } from './groups'
 import { roundRobin, type SchedulePlayer } from './schedule'
@@ -16,9 +17,12 @@ import { planDoubleElim } from './bracket-de'
 
 export async function createSeason(
   actor: Actor,
-  data: { slug: string; name: string },
+  data: { slug: string; name: string; competitionYear?: number },
 ): Promise<{ id: number }> {
-  const tournament = await prisma.tournament.create({ data: { slug: data.slug, name: data.name } })
+  const tournament = await prisma.tournament.create({
+    // Competition Year is required; callers that do not supply one get the current year.
+    data: { slug: data.slug, name: data.name, competitionYear: data.competitionYear ?? currentCompetitionYear() },
+  })
   await recordAudit(actor, { action: 'tournament.create', entity: 'Tournament', entityId: tournament.id, newValue: data })
   return { id: tournament.id }
 }

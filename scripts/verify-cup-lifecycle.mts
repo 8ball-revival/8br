@@ -5,7 +5,7 @@ const check=(n:string,c:boolean)=>{ if(c){pass++;console.log('  ✓ '+n)}else{fa
 const actor={userId:990900,username:'cup-verify'}
 
 // Create a synthetic test cup in DRAFT.
-const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', code:'CVERIFY', number:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', status:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug:'zzz-verify-cup', name:'Verify Cup', competitionYear: new Date().getFullYear(), code:'CVERIFY', number:99001, lifecycleState:'DRAFT', registrationStatus:'NOT_OPEN', status:'UPCOMING', playoffsStatus:'PENDING', raceLength:5, participantFormat:'INDIVIDUAL' } })
 const id = cup.id
 try {
   const st = async () => getTournamentState((await prisma.tournament.findUniqueOrThrow({ where:{id} })))

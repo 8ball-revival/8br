@@ -30,7 +30,7 @@ let seq = 0
 async function freshTournament(teamSize: number) {
   seq++
   return prisma.tournament.create({
-    data: { slug: `fa-verify-${seq}`, name: `FA Verify ${seq}`, code: `FAV${seq}`, number: 92000 + seq, tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize, teamFormation: 'PICK', lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING' } })
+    data: { slug: `fa-verify-${seq}`, name: `FA Verify ${seq}`, competitionYear: new Date().getFullYear(), code: `FAV${seq}`, number: 92000 + seq, tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize, teamFormation: 'PICK', lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING' } })
 }
 const cleanup: number[] = []
 async function fresh(teamSize: number) { const t = await freshTournament(teamSize); cleanup.push(t.id); return t.id }

@@ -15,7 +15,7 @@ check('registration OPEN → REGISTRATION_OPEN', D({ registrationStatus: 'OPEN' 
 check('registration CLOSED → REGISTRATION_CLOSED', D({ registrationStatus: 'CLOSED' }) === 'REGISTRATION_CLOSED')
 check('default → DRAFT', D({}) === 'DRAFT')
 
-const cup = await prisma.tournament.create({ data: { slug: 'zzz-verify-rh', name: 'RH Cup', code: 'CRH', number: 99002, lifecycleState: 'IN_PROGRESS', registrationStatus: 'CLOSED', status: 'ACTIVE', playoffsStatus: 'PUBLISHED', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
+const cup = await prisma.tournament.create({ data: { slug: 'zzz-verify-rh', name: 'RH Cup', competitionYear: new Date().getFullYear(), code: 'CRH', number: 99002, lifecycleState: 'IN_PROGRESS', registrationStatus: 'CLOSED', status: 'ACTIVE', playoffsStatus: 'PUBLISHED', raceLength: 5, participantFormat: 'INDIVIDUAL' } })
 const id = cup.id
 try {
   console.log('\n--- Part A: player self-report (loss only) ---')

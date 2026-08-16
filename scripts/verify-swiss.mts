@@ -17,7 +17,7 @@ const RACE = 3
 async function makeTournament(number: number, players: number, rounds: number | null) {
   const t = await prisma.tournament.create({
     data: {
-      slug: `swiss-verify-${number}`, name: `Swiss Verify ${number}`, code: `SWV${number}`, number,
+      slug: `swiss-verify-${number}`, name: `Swiss Verify ${number}`, competitionYear: new Date().getFullYear(), code: `SWV${number}`, number,
       tournamentFormat: 'SWISS', swissRounds: rounds, seedingMethod: 'registration', raceLength: RACE, participantFormat: 'INDIVIDUAL',
       lifecycleState: 'REGISTRATION_CLOSED', registrationStatus: 'CLOSED', status: 'UPCOMING', playoffsStatus: 'PENDING',
     },

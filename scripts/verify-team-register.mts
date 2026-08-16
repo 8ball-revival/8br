@@ -18,7 +18,7 @@ const ID = (u: number) => ({ userId: u, playerId: `p${u}`, name: `Player ${u}`, 
 
 const t = await prisma.tournament.create({
   data: {
-    slug: 'tr-verify', name: 'TR Verify', code: 'TRV1', number: 94001,
+    slug: 'tr-verify', name: 'TR Verify', competitionYear: new Date().getFullYear(), code: 'TRV1', number: 94001,
     tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize: 3, teamFormation: 'PICK',
     lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING',
   },
@@ -101,7 +101,7 @@ try {
   check('set-join-code refused once registration closes', !(await setTeamJoinCode(U(1), tid, 'z')).ok)
 
   // --- Incomplete teams cannot enter (excluded at seeding) ---
-  const t2 = await prisma.tournament.create({ data: { slug: 'tr-verify-2', name: 'TR Verify 2', code: 'TRV2', number: 94002, tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize: 3, teamFormation: 'PICK', lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING' } })
+  const t2 = await prisma.tournament.create({ data: { slug: 'tr-verify-2', name: 'TR Verify 2', competitionYear: new Date().getFullYear(), code: 'TRV2', number: 94002, tournamentFormat: 'SINGLE_ELIM', participantFormat: 'TEAM', teamSize: 3, teamFormation: 'PICK', lifecycleState: 'REGISTRATION_OPEN', registrationStatus: 'OPEN', status: 'UPCOMING', playoffsStatus: 'PENDING' } })
   try {
     await startTeam(U(20), t2.id, 'Full', ID(20), null)
     await joinTeam(U(21), t2.id, (await prisma.tournamentTeam.findFirstOrThrow({ where: { tournamentId: t2.id, name: 'Full' } })).id, ID(21), null)
