@@ -20,7 +20,7 @@ export const Users: CollectionConfig = {
     // panel), so members reset without ever seeing the CMS. Delivery uses the email
     // adapter configured in payload.config.ts (Resend).
     forgotPassword: {
-      generateEmailSubject: () => 'Reset your World Cue Championships password',
+      generateEmailSubject: () => 'Reset your 8 Ball Registry password',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       generateEmailHTML: (args: any) => {
         const token = (args?.token as string) ?? ''
@@ -30,7 +30,7 @@ export const Users: CollectionConfig = {
           <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
             <h1 style="font-size:20px;margin:0 0 12px">Reset your password</h1>
             <p style="margin:0 0 16px;line-height:1.5;color:#444">
-              We received a request to reset the password for your World Cue Championships account. Click the
+              We received a request to reset the password for your 8 Ball Registry account. Click the
               button below to choose a new password. This link expires in 1 hour.
             </p>
             <p style="margin:0 0 24px">

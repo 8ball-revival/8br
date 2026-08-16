@@ -1,6 +1,6 @@
-# World Cue Championships (WCC) — Owner Handover
+# 8 Ball Registry (8BR) — Owner Handover
 
-This is a fresh **World Cue Championships** tournament platform. It ships with **no accounts,
+This is a fresh **8 Ball Registry** tournament platform. It ships with **no accounts,
 no tournaments, empty rankings, and no historical data**. This guide covers first-run setup,
 the backup/reset commands, and the day-to-day tournament workflow.
 
@@ -23,7 +23,7 @@ Copy `.env.example` → `.env` and fill in:
 | `NEXT_PUBLIC_SITE_URL` | Public origin (canonical/OG URLs, admin cookies/CORS). |
 | `SETUP_SECRET` | **Recommended.** Gate for the one-time `/setup` owner-creation page (see §3). |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Optional — enables real password-reset email via Resend. |
-| `WCC_WWW_HOST` / `WCC_APEX_ORIGIN` | Optional www→apex redirect for your domain. |
+| `SITE_WWW_HOST` / `SITE_APEX_ORIGIN` | Optional www→apex redirect for your domain. |
 | `BLOB_READ_WRITE_TOKEN` | Optional — Vercel Blob for media uploads. |
 
 ## 2. First run
@@ -52,13 +52,13 @@ can silently claim ownership before you do.
 
 ```bash
 "C:\Program Files\PostgreSQL\17\bin\pg_dump.exe" --format=custom --no-owner \
-  --file="backups/wcc-backup-YYYYMMDD.dump" "postgresql://USER:PASS@HOST:5432/DB"
+  --file="backups/8br-backup-YYYYMMDD.dump" "postgresql://USER:PASS@HOST:5432/DB"
 ```
 
 Restore:
 
 ```bash
-pg_restore --clean --if-exists --no-owner -d "postgresql://USER:PASS@HOST:5432/DB" backups/wcc-backup-YYYYMMDD.dump
+pg_restore --clean --if-exists --no-owner -d "postgresql://USER:PASS@HOST:5432/DB" backups/8br-backup-YYYYMMDD.dump
 ```
 
 **Full organization reset** (wipes ALL data + ALL accounts; leaves schema + migration history):
@@ -100,15 +100,15 @@ updates the **Rankings** ladder.
 ## 8. Things to do before going live
 
 - Provision your Postgres DB and set all env vars (§1).
-- Set `NEXT_PUBLIC_SITE_URL` to your real domain; configure `WCC_WWW_HOST`/`WCC_APEX_ORIGIN` if desired.
+- Set `NEXT_PUBLIC_SITE_URL` to your real domain; configure `SITE_WWW_HOST`/`SITE_APEX_ORIGIN` if desired.
 - Set `SETUP_SECRET`, deploy, run `/setup`.
 - (Optional) add `RESEND_API_KEY` + a verified `RESEND_FROM_EMAIL` for password-reset email.
-- (Optional) replace the homepage hero banner at `public/wcc-hero-banner.png`.
+- (Optional) replace the homepage hero banner at `public/8br-hero-banner.png`.
 - Rotate any secrets in your `.env*` files.
 
 ## Notes
 
-- The homepage hero banner is `public/wcc-hero-banner.png` (referenced from `src/app/(frontend)/page.tsx`).
+- The homepage hero banner is `public/8br-hero-banner.png` (referenced from `src/app/(frontend)/page.tsx`).
 - Historical Prisma/Payload **migration files** retain old table/enum names (e.g. `comp_season`,
   and the previous `Provenance` enum values). These are immutable applied history and are never
-  shown or executed by the live app — the active schema uses WCC/tournament names.
+  shown or executed by the live app — the active schema uses 8BR/tournament names.

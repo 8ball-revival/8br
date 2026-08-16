@@ -9,7 +9,7 @@ export type SeedingMethod = 'rating' | 'rank' | 'random' | 'registration'
 export type TeamFormationInput = 'PICK' | 'RANDOM'
 export type AccessModeInput = 'OPEN' | 'PASSWORD'
 
-/** Formats the WCC create flow supports end-to-end (creation → completion). */
+/** Formats the 8BR create flow supports end-to-end (creation → completion). */
 // Season Championship (GROUPS_PLAYOFFS) is now its own competition type at /seasons — Tournaments
 // only support these three formats. Creation rejects anything else (backend enforcement).
 const SUPPORTED_FORMATS: TournamentFormat[] = ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS']
@@ -57,7 +57,7 @@ function formatSummaryOf(fmt: TournamentFormat, swissRounds: number | null): str
 }
 
 /**
- * Create a new WCC tournament. The tournament number + immutable code are assigned atomically
+ * Create a new 8BR tournament. The tournament number + immutable code are assigned atomically
  * inside a transaction so concurrent creates cannot collide. The tournament is created EMPTY
  * (no results invented) in DRAFT; the caller opens registration ("start now") or leaves it
  * scheduled. Rosters/entrants and the bracket are built afterward via the manage workspace.
@@ -181,7 +181,7 @@ export async function createTournament(
           eligibilitySummary:
             accessMode === 'PASSWORD'
               ? 'Private — a join password is required to register.'
-              : 'Open to all registered World Cue Championships accounts.',
+              : 'Open to all registered 8 Ball Registry accounts.',
         },
       })
       await recordAudit(

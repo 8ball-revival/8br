@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = {
   title: 'Tournaments',
-  description: 'WCC tournaments — bracket and group-stage events. Browse live and completed tournaments.',
+  description: '8BR tournaments — bracket and group-stage events. Browse live and completed tournaments.',
   alternates: { canonical: "/tournaments" },
 }
 
@@ -28,7 +28,7 @@ export default async function TournamentsPage() {
       <SectionHeader
         eyebrow="Competitions"
         title="Tournaments"
-        description="WCC tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
+        description="8BR tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
       />
       {canManage && (
         <div className="mb-6">

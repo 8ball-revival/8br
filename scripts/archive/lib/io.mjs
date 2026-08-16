@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 export const REPO_ROOT = path.resolve(here, '../../..')
 
-// READ-ONLY source (never written). Overridable for other machines. Defaults to the WCC copy's
+// READ-ONLY source (never written). Overridable for other machines. Defaults to the 8BR copy's
 // internal, self-contained archive inputs (offline snapshot 2026-08-15).
 export const SOURCE_DIR =
   process.env.ARCHIVE_SOURCE_DIR ||

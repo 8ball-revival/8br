@@ -16,7 +16,7 @@ $script:Root    = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $script:DataDir = Join-Path $Root '.local\postgres'
 $script:PgPass  = Join-Path $Root '.local\pgpass.conf'
 $script:LogFile = Join-Path $Root '.local\postgres.log'
-$script:DbName  = 'wcc_dev'
+$script:DbName  = '8br_dev'
 $script:DbUser  = 'postgres'
 
 # --- locate the PostgreSQL 17 binaries --------------------------------------

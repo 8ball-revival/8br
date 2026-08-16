@@ -38,26 +38,26 @@ export async function exportMembersAction(): Promise<ExportResult> {
     ['userId', 'cueverseId', 'preferredName', 'email', 'roles'],
     users.map((u) => [u.id, u.cueverseId, u.preferredName, u.email, u.roles ?? 'member']),
   )
-  return { ok: true, csv, filename: `wcc-members-${new Date().toISOString().slice(0, 10)}.csv` }
+  return { ok: true, csv, filename: `8br-members-${new Date().toISOString().slice(0, 10)}.csv` }
 }
 
 export async function exportSeasonsAction(): Promise<ExportResult> {
   if (!(await headAdminGate())) return { error: 'Head Admin only.' }
   const s = await prisma.season.findMany({ orderBy: { number: 'asc' }, include: { _count: { select: { entrants: true } } } })
   const csv = toCsv(['number', 'subtitle', 'year', 'state', 'champion', 'runnerUp', 'entrants'], s.map((x) => [x.number, x.subtitle, x.year, x.lifecycleState, x.championName, x.runnerUpName, x._count.entrants]))
-  return { ok: true, csv, filename: `wcc-seasons-${new Date().toISOString().slice(0, 10)}.csv` }
+  return { ok: true, csv, filename: `8br-seasons-${new Date().toISOString().slice(0, 10)}.csv` }
 }
 
 export async function exportTournamentsAction(): Promise<ExportResult> {
   if (!(await headAdminGate())) return { error: 'Head Admin only.' }
   const t = await prisma.tournament.findMany({ orderBy: { number: 'asc' } })
   const csv = toCsv(['number', 'code', 'name', 'format', 'state', 'champion', 'runnerUp'], t.map((x) => [x.number, x.code, x.name, x.tournamentFormat, x.lifecycleState, x.championName, x.runnerUpName]))
-  return { ok: true, csv, filename: `wcc-tournaments-${new Date().toISOString().slice(0, 10)}.csv` }
+  return { ok: true, csv, filename: `8br-tournaments-${new Date().toISOString().slice(0, 10)}.csv` }
 }
 
 export async function exportRankingsAction(): Promise<ExportResult> {
   if (!(await headAdminGate())) return { error: 'Head Admin only.' }
   const ladder = await getLadder('all-time')
   const csv = toCsv(['rank', 'playerId', 'name', 'rating', 'wins', 'losses', 'draws', 'winPct'], ladder.map((r) => [r.rank, r.playerId, r.name, r.rating, r.wins, r.losses, r.draws, r.winPct]))
-  return { ok: true, csv, filename: `wcc-rankings-${new Date().toISOString().slice(0, 10)}.csv` }
+  return { ok: true, csv, filename: `8br-rankings-${new Date().toISOString().slice(0, 10)}.csv` }
 }

@@ -1,4 +1,4 @@
-# World Cue Championships (WCC)
+# 8 Ball Registry (8BR)
 
 A standalone **tournament platform** for competitive cue sports. Create bracket or
 group-stage tournaments, run them end-to-end (registration → bracket → results → champion),

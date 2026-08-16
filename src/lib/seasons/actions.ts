@@ -44,7 +44,7 @@ export async function createSeasonAction(cfg: CreateSeasonConfig): Promise<Seaso
   const res = await createSeason(actor, cfg)
   if (!res.ok || !res.number) return { error: res.error ?? 'Could not create the Season.' }
   revalidateSeason(res.number)
-  return { ok: true, number: res.number, message: `Created WCC Season ${res.number}.` }
+  return { ok: true, number: res.number, message: `Created 8BR Season ${res.number}.` }
 }
 
 // ---- Registration (admin) -------------------------------------------------

@@ -1,4 +1,4 @@
-# WCC — Deployment & Recovery
+# 8BR — Deployment & Recovery
 
 Production host: **Vercel** · Database: **managed PostgreSQL (Neon / Vercel Postgres)** · Media: **Vercel Blob**.
 
@@ -15,7 +15,7 @@ Production host: **Vercel** · Database: **managed PostgreSQL (Neon / Vercel Pos
 | `DATABASE_URL` | **Pooled** Postgres connection (app runtime) | Production |
 | `DIRECT_URL` | **Direct** Postgres connection (Prisma migrations) | Production |
 | `PAYLOAD_SECRET` | Payload auth/crypto secret — strong random, **unique to prod** | Production |
-| `NEXT_PUBLIC_SITE_URL` | `https://WCC` — drives canonical URLs, sitemap, Payload serverURL/CORS/CSRF, secure cookies | Production |
+| `NEXT_PUBLIC_SITE_URL` | `https://8BR` — drives canonical URLs, sitemap, Payload serverURL/CORS/CSRF, secure cookies | Production |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob store token (auto-added when the Blob store is linked to the project) | Production |
 
 Generate a production `PAYLOAD_SECRET` locally (do not reuse the dev one):
@@ -40,7 +40,7 @@ The archive, rankings, and identity resolution are **code/fixture-derived** — 
 - **Media backup:** Vercel Blob is durable; for an extra copy, `vercel blob list` + periodic download.
 - **Env var recovery:** re-add from this manifest (values are held only in Vercel + your password manager).
 - **Deployment rollback:** Vercel → Deployments → previous build → "Promote to Production" (instant, no rebuild).
-- **Domain rollback:** Vercel → Domains → reassign `WCC` to a prior deployment, or repoint DNS at the registrar.
+- **Domain rollback:** Vercel → Domains → reassign `8BR` to a prior deployment, or repoint DNS at the registrar.
 
 ## Secrets hygiene
 `.gitignore` excludes all `.env*` (except `.env.example`), `migration-reports/` (claim codes), and `backups/`. No secret, connection string, token, or claim code is tracked in git (verified across the working tree and history).

@@ -4,7 +4,7 @@ export type NavItem = { label: string; href: string }
 
 export const PRIMARY_NAV: NavItem[] = [
   { label: 'Home', href: '/' },
-  // Seasons are WCC's premier competition — listed before Tournaments.
+  // Seasons are 8BR's premier competition — listed before Tournaments.
   { label: 'Seasons', href: '/seasons' },
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Ladder', href: '/rankings' },

@@ -31,7 +31,7 @@ export async function seasonCloseSummary(seasonId: number): Promise<SeasonCloseS
     prisma.seasonPlayoffMatch.count({ where: { seasonId, status: 'COMPLETED', NOT: [{ homeEntrantId: null }, { awayEntrantId: null }] } }),
   ])
   return {
-    seasonTitle: `WCC Season ${s.number} · ${s.year}`,
+    seasonTitle: `8BR Season ${s.number} · ${s.year}`,
     champion: champ?.championName ?? null,
     runnerUp: champ?.runnerUpName ?? null,
     finalScore: champ?.finalScore ?? null,

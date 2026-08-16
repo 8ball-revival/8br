@@ -1,4 +1,4 @@
-# WCC — Competition Administration System
+# 8BR — Competition Administration System
 
 Internal, staff-only tooling to run an entire season from the website:
 registration → group draw → round-robin matches → standings → playoffs, with an

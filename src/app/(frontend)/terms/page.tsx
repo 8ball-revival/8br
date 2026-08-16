@@ -4,7 +4,7 @@ import { ComingSoon } from '@/components/coming-soon'
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Terms of service for World Cue Championships.',
+  description: 'Terms of service for 8 Ball Registry.',
   alternates: { canonical: '/terms' },
 }
 

@@ -5,7 +5,7 @@ import { Moon, Sun } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
-const THEME_EVENT = 'wcc-theme-change'
+const THEME_EVENT = '8br-theme-change'
 
 function subscribe(callback: () => void) {
   window.addEventListener(THEME_EVENT, callback)
@@ -29,7 +29,7 @@ export function ThemeToggle() {
     const next = !isLight
     document.documentElement.classList.toggle('light', next)
     try {
-      localStorage.setItem('wcc-theme', next ? 'light' : 'dark')
+      localStorage.setItem('8br-theme', next ? 'light' : 'dark')
     } catch {
       /* ignore */
     }

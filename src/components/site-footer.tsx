@@ -18,7 +18,7 @@ export function SiteFooter() {
     <footer className="mt-16 border-t border-nav-border bg-nav-bg/40">
       <div className="mx-auto flex w-full max-w-[96rem] flex-col items-center gap-4 px-4 py-6 text-sm sm:px-6 lg:flex-row lg:justify-between lg:gap-6 lg:px-8">
         <p className="text-xs text-muted-foreground">
-          © {year} World Cue Championships. All rights reserved.
+          © {year} 8 Ball Registry. All rights reserved.
         </p>
 
         <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

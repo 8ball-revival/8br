@@ -1,18 +1,18 @@
-# WCC → cueverse.net — Go-Live Runbook
+# 8BR → cueverse.net — Go-Live Runbook
 
-Bring the WCC app live at **https://cueverse.net** on **Vercel + Neon Postgres**, owned entirely by
-the new account **cueversewcc@gmail.com** (shared with none of the 8br.gg services).
+Bring the 8BR app live at **https://cueverse.net** on **Vercel + Neon Postgres**, owned entirely by
+the new account **cueverse8br@gmail.com** (shared with none of the 8br.gg services).
 
 > **Who does what:** Claude prepared the code, config, and this runbook. **You** create the accounts
 > and click through the dashboards (Claude can't create accounts or enter your credentials). Every
 > command below is copy-pasteable; run them from the project root, `C:\Claude\8BR`.
 
 > **Historical note (2026-08-16):** this runbook was written when the project lived at
-> `C:\Users\Cerebro\Documents\WCC`. That folder has been deleted; the canonical project is now
+> `C:\Users\Cerebro\Documents\8BR`. That folder has been deleted; the canonical project is now
 > `C:\Claude\8BR`. Paths below have been updated. The Vercel/GitHub targets described here refer to
-> the temporary WCC deployment and are **not** the current 8br.gg configuration.
+> the temporary 8BR deployment and are **not** the current 8br.gg configuration.
 
-> **Stack reality:** WCC is a Next.js + Payload CMS + PostgreSQL app. It runs on Vercel (Node), **not**
+> **Stack reality:** 8BR is a Next.js + Payload CMS + PostgreSQL app. It runs on Vercel (Node), **not**
 > on WordPress. cueverse.net's DNS will be repointed from WordPress to Vercel — see Step 8's warning.
 
 ---
@@ -21,7 +21,7 @@ the new account **cueversewcc@gmail.com** (shared with none of the 8br.gg servic
 
 - From-email default → `noreply@cueverse.net` (`src/payload.config.ts`).
 - `.env.example` → `NEXT_PUBLIC_SITE_URL=https://cueverse.net`, `RESEND_FROM_EMAIL=noreply@cueverse.net`,
-  `WCC_WWW_HOST=www.cueverse.net`, `WCC_APEX_ORIGIN=https://cueverse.net`.
+  `SITE_WWW_HOST=www.cueverse.net`, `SITE_APEX_ORIGIN=https://cueverse.net`.
 - `next.config.ts` www→apex redirect comment points at cueverse.net (the redirect itself is env-gated).
 - The deploy pipeline (`scripts/deploy-migrate.mjs`, run by `vercel-build`) already auto-applies all
   Prisma + Payload migrations to a fresh database on first deploy — no manual schema work needed.
@@ -39,20 +39,20 @@ Nothing here is wired to 8br: no git remote, no `.vercel`, no live `.env`, no Bl
 
 ## Step 1 — Create the owner Google account
 
-1. Create **cueversewcc@gmail.com** at https://accounts.google.com/signup.
+1. Create **cueverse8br@gmail.com** at https://accounts.google.com/signup.
 2. Turn on 2-Step Verification. **Use this same Google account to sign up for GitHub, Vercel, Neon,
    and Resend** (via "Continue with Google") so everything is owned by one identity.
 
 ## Step 2 — GitHub: new account + repo, then push this copy
 
-1. Sign up at https://github.com/signup with **cueversewcc@gmail.com** (or "Continue with Google").
-2. Create a **private** repo named `cueverse-wcc` (or `wcc`). **Do not** add a README/.gitignore
+1. Sign up at https://github.com/signup with **cueverse8br@gmail.com** (or "Continue with Google").
+2. Create a **private** repo named `cueverse-8br` (or `8br`). **Do not** add a README/.gitignore
    (this project already has them).
 3. Point this local copy at the new repo and push all history (89 commits):
 
    ```bash
    cd /c/Claude/8BR
-   git remote add origin https://github.com/<your-user>/cueverse-wcc.git
+   git remote add origin https://github.com/<your-user>/cueverse-8br.git
    git branch -M main
    git push -u origin main
    ```
@@ -64,7 +64,7 @@ Nothing here is wired to 8br: no git remote, no `.vercel`, no live `.env`, no Bl
 ## Step 3 — Vercel: import the repo
 
 1. Sign up at https://vercel.com/signup with the **GitHub** account from Step 2.
-2. **Add New → Project → Import** `cueverse-wcc`.
+2. **Add New → Project → Import** `cueverse-8br`.
 3. Framework preset: **Next.js** (auto-detected). Build command is already `npm run vercel-build`
    (set in `vercel.json`) — leave defaults.
 4. **Do not deploy yet** — add env vars first (Step 6). If it auto-deploys and fails, that's expected;
@@ -108,8 +108,8 @@ preview deploys to work). Add:
 | `PAYLOAD_SECRET` | the 64-char value from Step 5 |
 | `SETUP_SECRET` | the value from Step 5 (gates `/setup`) |
 | `NEXT_PUBLIC_SITE_URL` | `https://cueverse.net` |
-| `WCC_WWW_HOST` | `www.cueverse.net` |
-| `WCC_APEX_ORIGIN` | `https://cueverse.net` |
+| `SITE_WWW_HOST` | `www.cueverse.net` |
+| `SITE_APEX_ORIGIN` | `https://cueverse.net` |
 | `RESEND_API_KEY` | *(add in Step 10, after Resend is set up — optional for first deploy)* |
 | `RESEND_FROM_EMAIL` | `noreply@cueverse.net` *(add with the key in Step 10)* |
 | `BLOB_READ_WRITE_TOKEN` | *(auto-set when you create a Blob store in Step 11)* |
@@ -135,7 +135,7 @@ so you can launch first and add those after.
 
 > ⚠️ **This takes cueverse.net away from WordPress.** Once DNS moves, the WordPress site at that domain
 > stops serving. If you need any WordPress content, save/migrate it first. (If you'd rather keep
-> WordPress on the root and run WCC on a subdomain instead, tell Claude — that's a small config change.)
+> WordPress on the root and run 8BR on a subdomain instead, tell Claude — that's a small config change.)
 
 1. Vercel → Project → **Settings → Domains** → add `cueverse.net` **and** `www.cueverse.net`.
 2. Vercel shows the exact DNS records. At your **domain registrar / DNS host** (where cueverse.net's
@@ -145,16 +145,16 @@ so you can launch first and add those after.
    - **`www`** → `CNAME` to `cname.vercel-dns.com`.
    - Remove the old WordPress A/CNAME records for these hosts.
 3. Wait for DNS propagation (minutes–hours) and Vercel's automatic SSL to issue. `www.cueverse.net`
-   will 301 → `cueverse.net` via the app's built-in redirect (from `WCC_WWW_HOST`/`WCC_APEX_ORIGIN`).
+   will 301 → `cueverse.net` via the app's built-in redirect (from `SITE_WWW_HOST`/`SITE_APEX_ORIGIN`).
 
 ## Step 9 — Create the owner account (one-time)
 
 1. Once `https://cueverse.net` is live, visit **https://cueverse.net/setup**.
 2. Enter the **SETUP_SECRET** (Step 5), then choose the owner's **CueVerse ID**, optional Preferred
-   Name, **email = cueversewcc@gmail.com**, and a strong password.
+   Name, **email = cueverse8br@gmail.com**, and a strong password.
 3. Submit → you're signed in as the Owner, and `/setup` permanently disables itself.
 4. From then on, `/register` is open to the public and `/login` works normally. CueVerse ID is the
-   login identity (username and CueVerse ID can never diverge — see `WCC_OFFLINE_SNAPSHOT.md`).
+   login identity (username and CueVerse ID can never diverge — see `8BR_OFFLINE_SNAPSHOT.md`).
 
 ## Step 10 — Email (Resend) for password resets
 
@@ -195,7 +195,7 @@ which include 8br-derived **test** accounts):
 ```bash
 # after the schema exists (post first deploy), into the SAME Neon DB — or a fresh one:
 pg_restore --no-owner --no-privileges --data-only \
-  -d "<DIRECT_URL>" backups/wcc-frozen-local-2026-08-15.dump
+  -d "<DIRECT_URL>" backups/8br-frozen-local-2026-08-15.dump
 ```
 
 Only do this if you specifically want that data live. For a public launch under a new brand, prefer
@@ -208,7 +208,7 @@ fresh. (Restoring also brings over test accounts whose passwords you don't contr
 `git push` to `main` → Vercel auto-builds → migrations auto-apply → live. New DB changes go in as
 Prisma/Payload migrations so `deploy-migrate.mjs` applies them on deploy.
 
-## Accounts checklist (all under cueversewcc@gmail.com, none shared with 8br)
+## Accounts checklist (all under cueverse8br@gmail.com, none shared with 8br)
 
-- [ ] Google (cueversewcc@gmail.com) • [ ] GitHub • [ ] Vercel • [ ] Neon Postgres • [ ] Resend
+- [ ] Google (cueverse8br@gmail.com) • [ ] GitHub • [ ] Vercel • [ ] Neon Postgres • [ ] Resend
 - [ ] Domain DNS for cueverse.net repointed to Vercel • [ ] Vercel Blob store

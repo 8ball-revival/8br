@@ -34,7 +34,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
   const [semifinalRaceTo, setSemifinalRaceTo] = useState(9)
   const [finalRaceTo, setFinalRaceTo] = useState(9)
 
-  const officialTitle = useMemo(() => `WCC Season ${nextNumber} · ${year}`, [nextNumber, year])
+  const officialTitle = useMemo(() => `8BR Season ${nextNumber} · ${year}`, [nextNumber, year])
 
   const submit = () => {
     setError(null)

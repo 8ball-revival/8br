@@ -4,7 +4,7 @@ import { ComingSoon } from '@/components/coming-soon'
 
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Get in touch with World Cue Championships.',
+  description: 'Get in touch with 8 Ball Registry.',
   alternates: { canonical: '/contact' },
 }
 

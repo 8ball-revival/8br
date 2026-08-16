@@ -11,7 +11,7 @@ import { SETTINGS_FIELDS, type SiteSettings } from './site-settings-shared'
 export { SETTINGS_FIELDS, type SiteSettings }
 
 const DEFAULTS: SiteSettings = {
-  siteName: SITE_NAME, shortName: 'WCC', description: '', defaultLounge: 'Social',
+  siteName: SITE_NAME, shortName: '8BR', description: '', defaultLounge: 'Social',
   gameRoomLink: 'https://cueverse.gg/play/', contactEmail: '', supportInfo: '', homepageBanner: '',
 }
 

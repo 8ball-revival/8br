@@ -6,15 +6,15 @@
  */
 
 // --- Brand identity (single source of truth) ---
-export const brandName = 'World Cue Championships'
+export const brandName = '8 Ball Registry'
 export const brandTagline = 'Competitive cue sports championships'
-export const brandAbbreviation = 'WCC'
-export const organizationName = 'World Cue Championships'
+export const brandAbbreviation = '8BR'
+export const organizationName = '8 Ball Registry'
 
 /** Default document title (home / root). */
-export const SITE_TITLE_DEFAULT = 'World Cue Championships'
+export const SITE_TITLE_DEFAULT = '8 Ball Registry'
 export const SITE_DESCRIPTION =
-  'World Cue Championships (WCC) — the home of competitive cue sports. Enter standalone tournaments, follow live brackets and standings, and climb the rankings.'
+  '8 Ball Registry (8BR) — the home of competitive cue sports. Enter standalone tournaments, follow live brackets and standings, and climb the rankings.'
 
 // Back-compat aliases (metadata helpers reference these).
 export const SITE_NAME = brandName

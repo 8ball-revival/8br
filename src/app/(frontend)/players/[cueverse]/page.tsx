@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const handle = decodeURIComponent(cueverse)
   return pageMetadata({
     title: handle,
-    description: `Public World Cue Championships profile for ${handle} — Rating, rank, and competitive record.`,
+    description: `Public 8 Ball Registry profile for ${handle} — Rating, rank, and competitive record.`,
     path: `/players/${cueverse}`,
     index: false,
   })

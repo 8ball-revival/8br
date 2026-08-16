@@ -12,7 +12,7 @@ interface Meta { updatedAt: string; home: string; away: string; labels: { home: 
 
 /** The live Season playoff bracket. Members see plain read-only scores; admins get inline score inputs
  *  in each playable matchup (Enter or the Save control saves), with completed matches remaining
- *  editable and downstream-rebuild / stale-edit handled via the WCC dialog. */
+ *  editable and downstream-rebuild / stale-edit handled via the 8BR dialog. */
 export function SeasonLiveBracket({ rounds, canManage }: { rounds: BracketRound[]; canManage: boolean }) {
   const router = useRouter()
   const confirm = useConfirm()

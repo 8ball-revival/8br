@@ -25,7 +25,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
 // check, Payload silently drops the session cookie, and the request resolves as anonymous —
 // surfacing as "Forbidden: staff access required" even for a valid Owner. On Vercel the app is
 // reachable at its *.vercel.app URLs in addition to the custom domain, so trust both:
-// VERCEL_PROJECT_PRODUCTION_URL is the stable production alias (e.g. cueverse-wcc.vercel.app);
+// VERCEL_PROJECT_PRODUCTION_URL is the stable production alias (e.g. cueverse-8br.vercel.app);
 // VERCEL_URL is the per-deployment host (covers preview deployments).
 const withProto = (h?: string) => (h ? (h.startsWith('http') ? h : `https://${h}`) : undefined)
 const allowedOrigins = Array.from(
@@ -64,7 +64,7 @@ export default buildConfig({
     ? {
         email: resendAdapter({
           defaultFromAddress: process.env.RESEND_FROM_EMAIL || 'noreply@cueverse.net',
-          defaultFromName: 'World Cue Championships',
+          defaultFromName: '8 Ball Registry',
           apiKey: process.env.RESEND_API_KEY,
         }),
       }

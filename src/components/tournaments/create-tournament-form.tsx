@@ -128,7 +128,7 @@ export function CreateTournamentForm() {
           <p className={eyebrow}><span className="text-muted-foreground/50">03</span> Basics</p>
           <div className="mt-4 space-y-4">
             <Labeled label="Tournament name" hint="optional">
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. WCC Winter Open" maxLength={80} className={input} />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 8BR Winter Open" maxLength={80} className={input} />
             </Labeled>
             <div className="grid gap-4 sm:grid-cols-2">
               <Labeled label="Match format">

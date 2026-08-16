@@ -86,7 +86,7 @@ export async function unarchiveCompetition(actor: Actor, tournamentId: number, r
 
 // ---------------------------------------------------------------------------
 // Competition locking — retained as no-ops. The imported/locked historical-cup
-// feature was removed in the WCC reset; every tournament is live and editable per
+// feature was removed in the 8BR reset; every tournament is live and editable per
 // its lifecycle state, so there is nothing to lock/unlock. These stubs keep the
 // call sites (teams, actions) stable.
 // ---------------------------------------------------------------------------

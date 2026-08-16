@@ -1,5 +1,5 @@
 /**
- * World Cue Championships — Official Competition Handbook (structured source).
+ * 8 Ball Registry — Official Competition Handbook (structured source).
  *
  * The authoritative rule text lives here as typed data (not invented, transcribed
  * verbatim from the official handbook) and is rendered by
@@ -31,7 +31,7 @@ export interface HandbookSection {
 }
 
 export const HANDBOOK_PREAMBLE =
-  'This Handbook governs all official World Cue Championships competitions. Participation in any official event constitutes acceptance of every rule contained in this Handbook. Where a specific event publishes supplementary rules, those rules apply in addition to this Handbook and must be announced before registration opens.'
+  'This Handbook governs all official 8 Ball Registry competitions. Participation in any official event constitutes acceptance of every rule contained in this Handbook. Where a specific event publishes supplementary rules, those rules apply in addition to this Handbook and must be announced before registration opens.'
 
 export const HANDBOOK: HandbookSection[] = [
   {
@@ -44,7 +44,7 @@ export const HANDBOOK: HandbookSection[] = [
         blocks: [
           {
             k: 'p',
-            text: 'This Handbook applies to every player, spectator, moderator, and administrator participating in an official World Cue Championships event.',
+            text: 'This Handbook applies to every player, spectator, moderator, and administrator participating in an official 8 Ball Registry event.',
           },
           {
             k: 'p',
@@ -1135,7 +1135,7 @@ export const HANDBOOK: HandbookSection[] = [
           },
           {
             k: 'p',
-            text: 'Repeated or deliberate exploit abuse may result in penalties up to and including forfeiture, disqualification, suspension, or permanent removal from future World Cue Championships competitions.',
+            text: 'Repeated or deliberate exploit abuse may result in penalties up to and including forfeiture, disqualification, suspension, or permanent removal from future 8 Ball Registry competitions.',
           },
         ],
       },
@@ -1155,7 +1155,7 @@ export const HANDBOOK: HandbookSection[] = [
         blocks: [
           {
             k: 'p',
-            text: 'Situations not specifically addressed by this section are resolved in a manner consistent with the published rules and principles of World Cue Championships. Tournament staff should avoid creating exceptions that conflict with the principles established in this section.',
+            text: 'Situations not specifically addressed by this section are resolved in a manner consistent with the published rules and principles of 8 Ball Registry. Tournament staff should avoid creating exceptions that conflict with the principles established in this section.',
           },
         ],
       },
@@ -1317,7 +1317,7 @@ export const HANDBOOK: HandbookSection[] = [
         blocks: [
           {
             k: 'p',
-            text: 'Once accepted by tournament staff, recordings may become part of the official historical archive of World Cue Championships and may be used for statistics, historical preservation, promotional content, educational material, or official broadcasts.',
+            text: 'Once accepted by tournament staff, recordings may become part of the official historical archive of 8 Ball Registry and may be used for statistics, historical preservation, promotional content, educational material, or official broadcasts.',
           },
         ],
       },
@@ -1408,7 +1408,7 @@ export const HANDBOOK: HandbookSection[] = [
               'administrative loss;',
               'removal from the current competition;',
               'suspension from future competitions;',
-              'permanent ban from World Cue Championships competitions.',
+              'permanent ban from 8 Ball Registry competitions.',
             ],
           },
           {

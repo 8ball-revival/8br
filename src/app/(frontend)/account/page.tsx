@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = pageMetadata({
   title: 'Your Account',
-  description: 'Manage your World Cue Championships account and competitive identity.',
+  description: 'Manage your 8 Ball Registry account and competitive identity.',
   path: '/account',
   index: false,
 })

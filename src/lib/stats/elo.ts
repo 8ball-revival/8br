@@ -1,5 +1,5 @@
 /**
- * Standard Elo — the WCC Rating system. Pure, deterministic, isomorphic (no DB).
+ * Standard Elo — the 8BR Rating system. Pure, deterministic, isomorphic (no DB).
  *
  * Every player starts at 1500. K = 32. Rating is applied PER completed matchup (group, playoff, or
  * Swiss — all weighted equally); tournament placement, format, phase, score margin, and race length

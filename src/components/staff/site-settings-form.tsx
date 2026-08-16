@@ -40,7 +40,7 @@ export function SiteSettingsForm({ initial }: { initial: SiteSettings }) {
         <p className="eyebrow text-brand">Preview</p>
         <div className="mt-2 rounded-xl border border-border bg-card/50 p-5">
           <p className="font-display text-2xl font-bold">{values.siteName || 'Site name'}</p>
-          <p className="text-sm text-[#d6ae42]">{values.shortName || 'WCC'}</p>
+          <p className="text-sm text-[#d6ae42]">{values.shortName || '8BR'}</p>
           {values.homepageBanner && <p className="mt-3 rounded-md bg-brand/10 px-3 py-2 text-sm text-foreground">{values.homepageBanner}</p>}
           {values.description && <p className="mt-3 text-sm text-muted-foreground">{values.description}</p>}
           <dl className="mt-4 space-y-1 text-xs text-muted-foreground">

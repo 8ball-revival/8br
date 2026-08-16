@@ -15,7 +15,7 @@ import { transitionSeasonState } from './lifecycle'
 /** The official, always-present Season identity — the sequence + year. A custom subtitle never
  *  replaces it. */
 export function seasonOfficialTitle(number: number, year: number): string {
-  return `WCC Season ${number} · ${year}`
+  return `8BR Season ${number} · ${year}`
 }
 
 // ---- Identity / ratings ---------------------------------------------------
@@ -68,7 +68,7 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
       data: {
         number,
         year,
-        slug: `wcc-season-${number}-${year}`,
+        slug: `8br-season-${number}-${year}`,
         subtitle: cfg.subtitle?.trim() || null,
         lifecycleState: scheduled ? 'REGISTRATION_SCHEDULED' : 'REGISTRATION_OPEN',
         lounge: cfg.lounge?.trim() || 'Social',

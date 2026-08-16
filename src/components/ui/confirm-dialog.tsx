@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react'
 
 /**
- * WCC confirmation dialog — one reusable, accessible replacement for window.alert/confirm/prompt.
+ * 8BR confirmation dialog — one reusable, accessible replacement for window.alert/confirm/prompt.
  * Opaque charcoal surface, crimson (or gold/red) accent, focus trap, Escape / backdrop cancel,
  * loading state + inline error while the action runs, optional text input (for reasons / typed names),
  * and focus restoration. Drive it imperatively via `useConfirm()`.

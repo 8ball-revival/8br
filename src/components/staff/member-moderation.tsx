@@ -56,7 +56,7 @@ export function MemberModeration({
     })
   }
 
-  // Destructive moderation actions confirm through the WCC modal (danger tone, explicit click — never
+  // Destructive moderation actions confirm through the 8BR modal (danger tone, explicit click — never
   // an Enter keypress). `confirmText` becomes the modal message; absence runs immediately.
   const run = (fn: () => Promise<ModResult>, confirmText?: string) => {
     if (!confirmText) { go(fn); return }

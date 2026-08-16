@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic' // ladder reflects the latest completed t
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
-  description: 'The World Cue Championships Rating ladder — a standard Elo system over every completed tournament match.',
+  description: 'The 8 Ball Registry Rating ladder — a standard Elo system over every completed tournament match.',
   path: '/rankings',
 })
 

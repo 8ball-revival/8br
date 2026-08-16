@@ -70,7 +70,7 @@ export function SignInForm({ returnTo = '/account' }: { returnTo?: string }) {
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
-          New to World Cue Championships?{' '}
+          New to 8 Ball Registry?{' '}
           <Link href={registerHref} className="font-medium text-brand hover:text-brand-soft">
             Create an account
           </Link>

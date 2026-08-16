@@ -54,7 +54,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
     if (r.error || !r.data) { setMsg({ ok: false, text: r.error ?? 'Export failed.' }); return }
     const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `wcc-season-${view.number}.json`; a.click(); URL.revokeObjectURL(url)
+    const a = document.createElement('a'); a.href = url; a.download = `8br-season-${view.number}.json`; a.click(); URL.revokeObjectURL(url)
   })
 
   return (

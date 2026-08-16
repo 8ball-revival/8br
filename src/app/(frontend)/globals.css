@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /*
-  World Cue Championships (WCC) — public (frontend) design system.
+  8 Ball Registry (8BR) — public (frontend) design system.
   Premium competitive aesthetic: deep black, charcoal surfaces, crimson accent.
   Dark is the default (tokens in :root); `.light` overrides for the optional light theme, toggled
   from the header. The <html> class is set before paint (no flash — see layout.tsx). All colors are
@@ -13,7 +13,7 @@
 :root {
   --radius: 0.5rem;
 
-  /* ---- WCC palette (single dark theme) ---- */
+  /* ---- 8BR palette (single dark theme) ---- */
   --background: #000000; /* page background — flat matte black, no image or texture */
   --foreground: #ffffff; /* primary text */
 
@@ -61,7 +61,7 @@
   --bkt-loser-bg: transparent;
 
   /* Navigation surface (header/footer). Its own tokens so a personal theme can retint the nav
-     without disturbing the page — WCC default keeps them equal to the base surfaces. */
+     without disturbing the page — 8BR default keeps them equal to the base surfaces. */
   --nav-bg: #050505;
   --nav-foreground: #ffffff;
   --nav-border: #2a2a2a;
@@ -72,7 +72,7 @@
   --brand-soft: #e31b3d;
   --brand-dim: #9b0c23;
 
-  /* Fixed competitive-result semantics — WCC-controlled, never overridden by a personal theme, so a
+  /* Fixed competitive-result semantics — 8BR-controlled, never overridden by a personal theme, so a
      winner/loser reads consistently under every theme. */
   --win: #c8102e;
   --loss: #a3a3a3;
@@ -91,7 +91,7 @@
      aliases below, which are back-compat pointers at the crimson brand colour. */
   --hero-gold: #dda94a;
 
-  /* Back-compat aliases: legacy `gold` tokens now resolve to the WCC crimson so any
+  /* Back-compat aliases: legacy `gold` tokens now resolve to the 8BR crimson so any
      not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
   --gold: var(--brand);
   --gold-soft: var(--brand-soft);
@@ -106,7 +106,7 @@
 
 /* ---- Light theme (opt-in via the header toggle) ----
    Inspired by the classic Yahoo Pool lobby: warm cream page, olive nav bar, tan/gray panels, muted
-   gold highlight, dark readable text — but keeping WCC's crimson as the interactive accent. */
+   gold highlight, dark readable text — but keeping 8BR's crimson as the interactive accent. */
 .light {
   --background: #f3efe0; /* warm cream page */
   --foreground: #2a2a20; /* dark olive-black text */
@@ -118,7 +118,7 @@
   --popover: #fbf9ef;
   --popover-foreground: #2a2a20;
 
-  /* WCC crimson stays the accent; hover darkens on the light ground */
+  /* 8BR crimson stays the accent; hover darkens on the light ground */
   --primary: #c8102e;
   --primary-foreground: #ffffff;
   --primary-hover: #a80d27;
@@ -450,84 +450,6 @@
   animation: bkt-reveal 0.2s ease-out;
 }
 
-/* ---------------------------------------------------------------------------
-   Ambient WCC background — a single fixed layer behind the entire app (DARK/default theme only).
-   Static obsidian image + two slowly-animated overlays (scoreboard-dot grid + crimson glow). Purely
-   decorative: fixed, pointer-events none, never scrolls. Hidden entirely in the light theme.
-   --------------------------------------------------------------------------- */
-.wcc-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: -1; /* behind all content (header z-40, cards/dropdowns/modals are 0+), above the canvas */
-  overflow: hidden;
-  pointer-events: none;
-  /* stationary obsidian image + a restrained darkening (keeps texture + grid visible) */
-  background:
-    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.32)),
-    url('/wcc-background.png') center center / cover no-repeat;
-}
-.wcc-ambient::before,
-.wcc-ambient::after {
-  content: '';
-  position: absolute;
-  inset: -8vmax; /* oversized so drift never reveals an edge */
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-/* faint drifting scoreboard-dot grid, masked into a few darker areas */
-.wcc-ambient::before {
-  opacity: 0.19;
-  background-image:
-    radial-gradient(circle, rgba(215, 25, 60, 0.85) 0 0.75px, transparent 1.1px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 0.55px, transparent 0.95px);
-  background-position: 0 0, 6px 6px;
-  background-size: 12px 12px;
-  -webkit-mask-image:
-    radial-gradient(ellipse at 12% 72%, black 0%, transparent 34%),
-    radial-gradient(ellipse at 84% 24%, black 0%, transparent 38%),
-    radial-gradient(ellipse at 78% 86%, black 0%, transparent 27%);
-  mask-image:
-    radial-gradient(ellipse at 12% 72%, black 0%, transparent 34%),
-    radial-gradient(ellipse at 84% 24%, black 0%, transparent 38%),
-    radial-gradient(ellipse at 78% 86%, black 0%, transparent 27%);
-  animation: wcc-grid-drift 52s ease-in-out infinite alternate;
-}
-/* soft crimson atmosphere breathing near the outer edges */
-.wcc-ambient::after {
-  opacity: 0.25;
-  background:
-    radial-gradient(ellipse at 15% 88%, rgba(180, 8, 40, 0.24), transparent 32%),
-    radial-gradient(ellipse at 92% 14%, rgba(225, 15, 55, 0.16), transparent 28%),
-    radial-gradient(ellipse at 70% 68%, rgba(118, 0, 28, 0.12), transparent 36%);
-  filter: blur(28px);
-  animation: wcc-crimson-breathe 38s ease-in-out infinite alternate;
-}
-@keyframes wcc-grid-drift {
-  0%   { transform: translate3d(-1.2%, 0.5%, 0) scale(1.02); opacity: 0.12; }
-  45%  { opacity: 0.22; }
-  100% { transform: translate3d(1.4%, -0.8%, 0) scale(1.045); opacity: 0.16; }
-}
-@keyframes wcc-crimson-breathe {
-  0%   { transform: translate3d(-1.5%, 1%, 0) scale(1.01); opacity: 0.17; }
-  55%  { opacity: 0.30; }
-  100% { transform: translate3d(1.8%, -1.3%, 0) scale(1.08); opacity: 0.20; }
-}
-/* Light theme: no ambient at all (no image, no overlays, no animation). */
-.light .wcc-ambient {
-  display: none;
-}
-/* Pause the overlay animations while the tab is hidden (set by WccAmbientBackground). */
-html[data-ambient-motion='paused'] .wcc-ambient::before,
-html[data-ambient-motion='paused'] .wcc-ambient::after {
-  animation-play-state: paused;
-}
-/* Mobile: keep the static image, drop the animated overlays (performance / battery). */
-@media (max-width: 640px) {
-  .wcc-ambient::before,
-  .wcc-ambient::after {
-    animation: none;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   * {

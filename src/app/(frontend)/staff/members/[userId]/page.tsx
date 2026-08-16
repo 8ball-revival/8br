@@ -15,7 +15,7 @@ import { MemberProfileEditor } from '@/components/staff/member-profile-editor'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getMemberDetail, getActiveRegistrations } from '@/lib/staff/members'
 
-export const metadata: Metadata = { title: 'Member · Admin · World Cue Championships', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Member · Admin · 8 Ball Registry', robots: { index: false, follow: false } }
 
 const TABS = ['overview', 'warnings', 'moderation', 'roles', 'integrity'] as const
 type Tab = (typeof TABS)[number]

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { removePenaltyAction } from '@/lib/moderation/actions'
 
-/** Remove an active penalty early from the Penalties page. Requires a reason via the WCC modal. */
+/** Remove an active penalty early from the Penalties page. Requires a reason via the 8BR modal. */
 export function PenaltyRemoveButton({ penaltyId, userId, type }: { penaltyId: number; userId: number; type: 'TIMEOUT' | 'BAN' }) {
   const router = useRouter()
   const confirm = useConfirm()

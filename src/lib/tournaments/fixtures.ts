@@ -1,5 +1,5 @@
 /**
- * WCC tournament view shapes. The historical fixture data was removed in the reset;
+ * 8BR tournament view shapes. The historical fixture data was removed in the reset;
  * tournaments now come from the DB snapshot (see @/lib/tournaments/service). These shared
  * types describe the public tournament/bracket view model.
  */
@@ -93,7 +93,7 @@ export interface TournamentView {
 }
 
 
-/** No pre-seeded tournaments — WCC starts empty. Tournaments come from the DB snapshot
+/** No pre-seeded tournaments — 8BR starts empty. Tournaments come from the DB snapshot
  *  (see @/lib/tournaments/service). These fixture types remain the shared view shape. */
 const CUPS: TournamentView[] = []
 export function getTournaments(): TournamentView[] {

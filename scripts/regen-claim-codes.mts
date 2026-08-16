@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
 import { prisma } from '../src/lib/prisma.ts'
 
-// Self-contained: write reports inside this WCC project's own migration-reports folder.
+// Self-contained: write reports inside this 8BR project's own migration-reports folder.
 const OUT_DIR = path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), 'migration-reports')
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no ambiguous chars
 const CLAIM_TTL_DAYS = 30

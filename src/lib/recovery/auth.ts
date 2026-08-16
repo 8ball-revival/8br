@@ -14,7 +14,7 @@ import { scryptSync, timingSafeEqual, createHmac } from 'node:crypto'
  * either is missing the route 404s and none of these helpers grant access.
  */
 
-const COOKIE = 'wcc_recovery'
+const COOKIE = '8br_recovery'
 const SESSION_TTL_MS = 20 * 60 * 1000 // ~20 minutes
 
 /** Both env vars present and non-empty. When false the whole feature is disabled. */

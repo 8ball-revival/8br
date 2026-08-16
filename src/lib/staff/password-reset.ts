@@ -11,7 +11,7 @@ export { canResetTarget, type TargetTier }
 
 /** Server secret that keys the temp-code HMAC (never exposed). Falls back to a derived constant only
  *  so non-configured environments still function; production always has PAYLOAD_SECRET. */
-const resetSecret = () => process.env.RESET_HMAC_SECRET || process.env.PAYLOAD_SECRET || 'wcc-reset-fallback-key'
+const resetSecret = () => process.env.RESET_HMAC_SECRET || process.env.PAYLOAD_SECRET || '8br-reset-fallback-key'
 
 /**
  * ADMIN-INITIATED PASSWORD RESET.

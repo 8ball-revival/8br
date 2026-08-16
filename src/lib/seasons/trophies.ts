@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
  *  trophies and team-event awards. Derived on the fly from completed Seasons (no persisted table). */
 export interface SeasonTrophyEntry {
   seasonNumber: number
-  title: string // "WCC Season N"
+  title: string // "8BR Season N"
   date: string | null
   slug: string // /seasons/N
 }
@@ -20,7 +20,7 @@ export async function computeSeasonTrophies(): Promise<Map<string, SeasonTrophyE
   for (const s of seasons) {
     const pid = s.championPlayerId!
     const list = map.get(pid) ?? []
-    list.push({ seasonNumber: s.number, title: `WCC Season ${s.number}`, date: s.completedAt?.toISOString() ?? null, slug: `/seasons/${s.number}` })
+    list.push({ seasonNumber: s.number, title: `8BR Season ${s.number}`, date: s.completedAt?.toISOString() ?? null, slug: `/seasons/${s.number}` })
     map.set(pid, list)
   }
   return map

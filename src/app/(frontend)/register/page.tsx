@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic' // auth-dependent
 
 export const metadata: Metadata = pageMetadata({
   title: 'Create your account',
-  description: 'Create a World Cue Championships account to enter tournaments.',
+  description: 'Create a 8 Ball Registry account to enter tournaments.',
   path: '/register',
   index: false,
 })
@@ -26,7 +26,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
 
   return (
     <Container className="mx-auto max-w-md py-16">
-      <p className="eyebrow text-primary">World Cue Championships</p>
+      <p className="eyebrow text-primary">8 Ball Registry</p>
       <h1 className="mt-2 font-display text-2xl font-bold tracking-tight">Create your account</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Your CueVerse ID is your public identity and your login. You can enter any open tournament

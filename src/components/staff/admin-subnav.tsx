@@ -9,7 +9,7 @@ export interface AdminNavItem { key: string; label: string; href: string }
 
 /** Compact horizontal Admin subnavigation (styled like the Groups/Playoffs toggles). Scrolls
  *  horizontally on small screens and offers an "Admin sections" dropdown for narrow viewports.
- *  No full-height sidebar — the page keeps the normal WCC header/footer/background. */
+ *  No full-height sidebar — the page keeps the normal 8BR header/footer/background. */
 export function AdminSubnav({ items, active }: { items: AdminNavItem[]; active: string }) {
   const [open, setOpen] = useState(false)
   const current = items.find((i) => i.key === active)

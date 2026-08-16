@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = pageMetadata({
   title: brandName,
   description:
-    'World Cue Championships (WCC) — the home of competitive cue sports. Enter the active Season, follow live brackets and standings, and climb the rankings.',
+    '8 Ball Registry (8BR) — the home of competitive cue sports. Enter the active Season, follow live brackets and standings, and climb the rankings.',
   path: '/',
 })
 

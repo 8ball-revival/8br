@@ -11,7 +11,7 @@ archive. Re-run whenever the archive is corrected.
 import csv, json, os, re
 from collections import defaultdict
 
-# Self-contained: resolve inputs inside this WCC project's own archive folder (offline snapshot).
+# Self-contained: resolve inputs inside this 8BR project's own archive folder (offline snapshot).
 HERE = os.path.dirname(__file__)
 ARCHIVE = os.path.join(HERE, "..", "archive", "cueverse-prime", "data", "csv")
 CORR = os.path.join(HERE, "..", "archive", "cueverse-prime", "corrections")

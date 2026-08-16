@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata({ params }: { params: Promise<{ seasonNumber: string }> }): Promise<Metadata> {
   const { seasonNumber } = await params
   const view = await getSeasonView(Number(seasonNumber))
-  return view ? { title: view.title, description: view.description ?? 'WCC Season Championship.' } : { title: 'Season' }
+  return view ? { title: view.title, description: view.description ?? '8BR Season Championship.' } : { title: 'Season' }
 }
 
 export default async function SeasonPage({ params }: { params: Promise<{ seasonNumber: string }> }) {

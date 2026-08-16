@@ -8,7 +8,7 @@ import { pageMetadata } from '@/lib/site'
 export const metadata: Metadata = pageMetadata({
   title: 'Predictions',
   description:
-    'Predictions are coming soon to World Cue Championships — publish match predictions, tournament picks, analysis, and upset calls directly on WCC.',
+    'Predictions are coming soon to 8 Ball Registry — publish match predictions, tournament picks, analysis, and upset calls directly on 8BR.',
   path: '/predictions',
 })
 
@@ -36,8 +36,8 @@ export default function PredictionsPage() {
             <span className="block text-brand-gradient">Coming Soon</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground text-pretty">
-            Soon, registered World Cue Championships members will be able to publish match predictions, tournament picks,
-            analysis, and upset calls directly on WCC.
+            Soon, registered 8 Ball Registry members will be able to publish match predictions, tournament picks,
+            analysis, and upset calls directly on 8BR.
           </p>
           <div className="mt-6 flex justify-center">
             <Badge variant="muted">Under development</Badge>

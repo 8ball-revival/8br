@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { prisma } from '../src/lib/prisma.ts'
 import { resolveIdentity } from '../src/lib/stats/identity.ts'
 
-// Self-contained paths: resolve relative to this WCC project's root (scripts/ is one level down).
+// Self-contained paths: resolve relative to this 8BR project's root (scripts/ is one level down).
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const MAP_FILE = path.join(REPO_ROOT, 'archive', 'migration-inputs', 'fixed accounts.txt')
 const OUT_DIR = path.join(REPO_ROOT, 'migration-reports')

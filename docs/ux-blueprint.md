@@ -1,4 +1,4 @@
-# World Cue Championships — Experience & Information Architecture Blueprint
+# 8 Ball Registry — Experience & Information Architecture Blueprint
 
 > Status: **Proposal / build-from document.** No code changes implied. Infrastructure is frozen and stable (live deployment healthy). This blueprint defines the target UX before feature work resumes. Sections marked **[DECISION]** need your confirmation; everything else is a recommendation you can amend.
 
@@ -12,7 +12,7 @@
 4. **Every entity is addressable, linkable, and shareable** (stable slugs, breadcrumbs, OpenGraph cards, embeddable widgets). Cross-linking density is the difference between a "site" and a "world."
 5. **Separate the three surfaces cleanly:** public experience, authenticated player experience, and staff/admin console — each with its own IA, not bolted onto one nav.
 
-> **Archive taxonomy — LOCKED (final correction).** The competition archive has exactly two top-level sections: **Seasons** (standard group→playoffs league seasons only) and **Cups** (all variety competitions — prize, 2v2/doubles, invitationals, one-offs, special formats, elimination-only, other). Driven by `Competition.archiveCategory` (`season`\|`cup`) + a `format` subtype. No separate Tournaments/Doubles/Invitationals/Special-Events sections. Current official competition is **"World Cue Championships Season 1"** (never "Season 2"); the 2026 archive heading is **"2026 Preseason"**. Build Seasons accurately first; scaffold Cups (routing/nav/model) but defer its full page. **Full spec in §5.5** — it governs §6 (sitemap), §7 (nav), and §12 (phasing).
+> **Archive taxonomy — LOCKED (final correction).** The competition archive has exactly two top-level sections: **Seasons** (standard group→playoffs league seasons only) and **Cups** (all variety competitions — prize, 2v2/doubles, invitationals, one-offs, special formats, elimination-only, other). Driven by `Competition.archiveCategory` (`season`\|`cup`) + a `format` subtype. No separate Tournaments/Doubles/Invitationals/Special-Events sections. Current official competition is **"8 Ball Registry Season 1"** (never "Season 2"); the 2026 archive heading is **"2026 Preseason"**. Build Seasons accurately first; scaffold Cups (routing/nav/model) but defer its full page. **Full spec in §5.5** — it governs §6 (sitemap), §7 (nav), and §12 (phasing).
 
 ---
 
@@ -191,9 +191,9 @@ The competition archive has **exactly two top-level sections: Seasons and Cups.*
 **Classification integrity (non-negotiable):** existing/historical competitions must be **classified accurately** into `season`/`cup` by setting `archiveCategory`/`format`. **Never delete, rename, or rewrite historical competition data** to fit the new structure. A record that doesn't fit gets the correct category/subtype — its history is not edited.
 
 **Current season & 2026 naming:**
-- The official current competition is **"World Cue Championships Season 1"** — **never label it "Season 2."** (This supersedes the `nav.ts` "Season 2 launch" comment currently in code; that comment/label must be corrected when Seasons is implemented.)
+- The official current competition is **"8 Ball Registry Season 1"** — **never label it "Season 2."** (This supersedes the `nav.ts` "Season 2 launch" comment currently in code; that comment/label must be corrected when Seasons is implemented.)
 - Inside Seasons, the 2026 archive heading remains **"2026 Preseason"** and contains **only qualifying standard (group→playoffs) seasons**.
-- "World Cue Championships Season 1" is the live/official season and is presented **separately** from the "2026 Preseason" archive grouping (it is not part of the preseason list).
+- "8 Ball Registry Season 1" is the live/official season and is presented **separately** from the "2026 Preseason" archive grouping (it is not part of the preseason list).
 
 **Routing & nav:** `/seasons` and `/cups` are the two top-level browse surfaces; detail pages (`/seasons/[slug]`, `/cups/[slug]`) render the shared Competition hub template, category-aware. Main nav eventually includes **both Seasons and Cups**.
 
@@ -218,7 +218,7 @@ graph TD
     More["News · Rules · About · Register"]
 
     Home --> Live["Live now / featured matches"]
-    Seasons --> S1["Current: World Cue Championships Season 1 (live, shown separately)"]
+    Seasons --> S1["Current: 8 Ball Registry Season 1 (live, shown separately)"]
     Seasons --> Pre["Archive: 2026 Preseason + prior standard seasons"]
     Seasons --> SNote["standard_season only · archiveCategory=season"]
     Cups --> CupList["All variety competitions · archiveCategory=cup"]
@@ -241,7 +241,7 @@ graph TD
 /compete                       Compete hub — how it works, current + upcoming competitions, CTA to register
   /compete/register            Registration flow (auth-gated steps)
 /seasons                       Seasons archive — standard group→playoffs league seasons ONLY (archiveCategory=season)
-                               Current "World Cue Championships Season 1" shown SEPARATELY from the "2026 Preseason" archive grouping
+                               Current "8 Ball Registry Season 1" shown SEPARATELY from the "2026 Preseason" archive grouping
   /seasons/[slug]              Season hub (shared Competition template)
     …/standings                Group-stage standings / groups
     …/bracket                  Playoffs bracket
@@ -299,7 +299,7 @@ Guiding rule: **staff tools mirror the public entity model** (a staff "competiti
 
 ## 7. Navigation system
 
-- **Global primary nav (persistent):** **Seasons · Cups · Rankings · Players** — plus a **Live** indicator (pulses when matches are in progress) and global **Search**. News/Rules/About/Register in an overflow ("More") to keep the bar to ~4–5 durable items. *Seasons* and *Cups* are the two competition-archive destinations (§5.5); *Register/Compete* is surfaced as a prominent CTA inside the current "World Cue Championships Season 1" hub rather than as its own nav pillar. (Interim state: `nav.ts` today lists Groups/Playoffs/Seasons — these collapse into the Seasons hub as tabs; Cups is added when scaffolded.)
+- **Global primary nav (persistent):** **Seasons · Cups · Rankings · Players** — plus a **Live** indicator (pulses when matches are in progress) and global **Search**. News/Rules/About/Register in an overflow ("More") to keep the bar to ~4–5 durable items. *Seasons* and *Cups* are the two competition-archive destinations (§5.5); *Register/Compete* is surfaced as a prominent CTA inside the current "8 Ball Registry Season 1" hub rather than as its own nav pillar. (Interim state: `nav.ts` today lists Groups/Playoffs/Seasons — these collapse into the Seasons hub as tabs; Cups is added when scaffolded.)
 - **Utility nav (right):** theme toggle, Search, and auth state → Sign in / avatar menu (Dashboard, My matches, Profile, Sign out; Staff/Admin links appear here for privileged roles only).
 - **Local/contextual nav:** tabs within entity hubs (Competition: Overview · Standings · Bracket · Schedule · Entrants; Player: Overview · Matches · Titles · Stats · History).
 - **Breadcrumbs everywhere below top level:** `Archive › 2009 › Winter Cup › Final › J. Smith vs …` — makes the graph walkable and boosts SEO.
@@ -329,7 +329,7 @@ For each: **purpose · primary content · key components · states**.
 - *Purpose:* one shared template, discriminated by `archiveCategory` (§5.5). Seasons show the standard group→playoffs shape; Cups adapt tabs to their `format`.
 - *Content:* header (name, `format`, dates, status, champion if done); tabs — **Seasons:** Overview · Standings/Groups · Bracket · Schedule/Results · Entrants/Seeds. **Cups:** Overview · (Bracket *or* Standings depending on `format`) · Schedule/Results · Entrants. Registration CTA when open.
 - *States:* upcoming (register) · live (highlight current round) · completed (crown champion) · archived.
-- *Note:* the Seasons hub renders "World Cue Championships Season 1" as the live season, distinct from the "2026 Preseason" archive list.
+- *Note:* the Seasons hub renders "8 Ball Registry Season 1" as the live season, distinct from the "2026 Preseason" archive list.
 
 ### 8.4 Match page `/matches/[id]`
 - *Purpose:* the atomic shareable unit; great OG card.
@@ -434,7 +434,7 @@ Create Competition → configure Stages/Formats → open registration → approv
 > Sequenced so each phase ships value and de-risks the next. Not a commitment — a proposed order.
 
 - **Phase 0 — Foundations:** confirm §3 decisions; finalize canonical model & the account↔player claim; design system/tokens; nav shell (4 pillars + Live + Search).
-- **Phase 1 — Profiles & the Seasons archive (read-path):** player profile hub, match page, directory + search. **Build `/seasons` accurately** — standard group→playoffs seasons only (`archiveCategory='season'`), current "World Cue Championships Season 1" rendered *separately* from the "2026 Preseason" archive grouping, and the code's "Season 2" label corrected. **Scaffold Cups without building its full page:** add `archiveCategory`/`format` to `Competition`, classify existing records accurately (no history rewrites, §5.5), add the `/cups` route + nav entry + category-filtered query. *Ships the "world," Seasons-first.*
+- **Phase 1 — Profiles & the Seasons archive (read-path):** player profile hub, match page, directory + search. **Build `/seasons` accurately** — standard group→playoffs seasons only (`archiveCategory='season'`), current "8 Ball Registry Season 1" rendered *separately* from the "2026 Preseason" archive grouping, and the code's "Season 2" label corrected. **Scaffold Cups without building its full page:** add `archiveCategory`/`format` to `Competition`, classify existing records accurately (no history rewrites, §5.5), add the `/cups` route + nav entry + category-filtered query. *Ships the "world," Seasons-first.*
 - **Phase 2 — Cups page + live competition on the unified model:** build out the full `/cups` UI (format filtering); registration → entries → groups → schedule → report/verify → standings; retire `Season*` duplication (S1).
 - **Phase 3 — Rankings & honors:** 8BR Rating engine, leaderboard, snapshots, championships/HoF surfacing.
 - **Phase 4 — Brackets & playoffs**, then **Phase 5 — Live match room + notifications** (D3), then **Phase 6 — API/embeds/i18n**.

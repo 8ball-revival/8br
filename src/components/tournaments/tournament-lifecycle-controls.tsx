@@ -78,7 +78,7 @@ export function TournamentLifecycleControls({
       }
     })
   }
-  // Lifecycle actions that carry a confirmation prompt go through the WCC modal (explicit click).
+  // Lifecycle actions that carry a confirmation prompt go through the 8BR modal (explicit click).
   const act = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string; navigate?: NavTab }>, confirmText?: string) => {
     if (!confirmText) { go(fn); return }
     void confirm({ title: 'Confirm this action?', message: confirmText, confirmLabel: 'Confirm', cancelLabel: 'Cancel', tone: 'warning' }).then((res) => { if (res.confirmed) go(fn) })

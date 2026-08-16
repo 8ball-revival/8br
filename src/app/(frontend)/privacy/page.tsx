@@ -4,7 +4,7 @@ import { ComingSoon } from '@/components/coming-soon'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Privacy policy for World Cue Championships.',
+  description: 'Privacy policy for 8 Ball Registry.',
   alternates: { canonical: '/privacy' },
 }
 

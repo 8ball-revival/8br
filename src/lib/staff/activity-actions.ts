@@ -23,5 +23,5 @@ export async function exportActivityCsvAction(filters: ActivityFilters): Promise
   for (const r of rows) {
     lines.push([r.createdAt, r.actorUsername, r.action, r.category, r.severity, r.entity, r.entityId ?? '', r.reason ?? '', r.oldValue, r.newValue].map(csvCell).join(','))
   }
-  return { ok: true, csv: lines.join('\n'), filename: `wcc-activity-log-${new Date().toISOString().slice(0, 10)}.csv` }
+  return { ok: true, csv: lines.join('\n'), filename: `8br-activity-log-${new Date().toISOString().slice(0, 10)}.csv` }
 }

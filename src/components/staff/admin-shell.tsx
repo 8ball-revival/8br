@@ -21,7 +21,7 @@ const SECTIONS: { key: AdminSection; label: string; href: string; cap?: Capabili
   { key: 'health', label: 'Data & System Health', href: '/staff/health', headAdminOnly: true },
 ]
 
-/** The Admin Portal chrome — rendered INSIDE the normal WCC site shell (header/footer/background are
+/** The Admin Portal chrome — rendered INSIDE the normal 8BR site shell (header/footer/background are
  *  provided by the frontend layout). A compact horizontal subnav replaces the old detached sidebar. */
 export function AdminShell({ actor, active, children }: { actor: StaffUser; active: AdminSection; children: React.ReactNode }) {
   const items: AdminNavItem[] = SECTIONS

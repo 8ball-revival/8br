@@ -1,5 +1,5 @@
 // ============================================================================
-// World Cue Championships (WCC) · Competition data model (Prisma)
+// 8 Ball Registry (8BR) · Competition data model (Prisma)
 // ----------------------------------------------------------------------------
 // Prisma is the SCHEMA AUTHORITY for the competition / records / identity core.
 // It owns the DEFAULT ("public") PostgreSQL schema. Payload CMS owns a SEPARATE
@@ -30,7 +30,7 @@ datasource db {
 // mechanism. See DATA_MODEL.md §Scalability.
 // ============================================================================
 
-/// Distinguishes imported legacy records from records created natively in WCC.
+/// Distinguishes imported legacy records from records created natively in 8BR.
 /// Required on every primary entity so the two are always separable.
 enum Provenance {
   IMPORTED_LEGACY
@@ -577,7 +577,7 @@ model Seed {
 }
 
 /// A competitor's participation / registration in a competition (also powers
-/// per-competition tournament registration for live 8 Ball Revival events).
+/// per-competition tournament registration for live 8 Ball Registry events).
 model CompetitionEntry {
   id            String      @id @default(cuid())
   competitionId String
@@ -1062,7 +1062,7 @@ model IssueReport {
 }
 
 // ============================================================================
-// LIVE TOURNAMENT OPERATIONS  (WCC standalone tournaments, operated through the website)
+// LIVE TOURNAMENT OPERATIONS  (8BR standalone tournaments, operated through the website)
 // ----------------------------------------------------------------------------
 // The active competition domain. Every competition is a standalone Tournament
 // (bracket-only, or group-stage → playoffs). These tables are staff-operated in
@@ -1165,7 +1165,7 @@ enum TournamentBracketKind {
   GRAND_FINAL
 }
 
-/// A standalone WCC tournament. `slug` is the public identifier; `number` is the
+/// A standalone 8BR tournament. `slug` is the public identifier; `number` is the
 /// human-facing tournament number. A tournament is EITHER bracket-only
 /// (tournamentFormat = SINGLE_ELIM / DOUBLE_ELIM / TEAM_KNOCKOUT) OR group-stage →
 /// playoffs (GROUPS_PLAYOFFS): players play round-robin groups, then the top
@@ -1190,7 +1190,7 @@ model Tournament {
   playoffSeeding       String?                   @default("standing")
   playoffDoubleElim    Boolean                   @default(false)
   formatSummary        String                    @default("Single-elimination bracket")
-  eligibilitySummary   String                    @default("Open to all registered World Cue Championships account holders.")
+  eligibilitySummary   String                    @default("Open to all registered 8 Ball Registry account holders.")
   archivedAt           DateTime? // set when the tournament is archived (read-only history)
   code                 String?                   @unique // permanent immutable id, e.g. "T001"
   number               Int?                      @unique // public tournament number
@@ -1319,7 +1319,7 @@ model SwissMatch {
 }
 
 /// An administrator's saved default FLAIR, applied as the starting point when they create a new
-/// tournament ("save as my default" / "restore WCC default"). Keyed by the Payload user id.
+/// tournament ("save as my default" / "restore 8BR default"). Keyed by the Payload user id.
 /// All values are curated/validated the same way as per-tournament flair.
 model TournamentFlairDefault {
   userId      Int      @id // Payload user id
@@ -1831,7 +1831,7 @@ model Season {
   number         Int                  @unique // public season number (1, 2, ...)
   year           Int
   slug           String               @unique
-  subtitle       String? // optional custom subtitle; official title is "WCC Season N - YEAR"
+  subtitle       String? // optional custom subtitle; official title is "8BR Season N - YEAR"
   lifecycleState SeasonLifecycleState @default(REGISTRATION_SCHEDULED)
 
   lounge              String     @default("Social")

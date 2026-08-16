@@ -1,7 +1,7 @@
 {
-  "name": "world-cue-championships",
+  "name": "8-ball-registry",
   "version": "0.1.0",
-  "description": "World Cue Championships (WCC) — a standalone tournament platform for competitive cue sports.",
+  "description": "8 Ball Registry (8BR) — a standalone tournament platform for competitive cue sports.",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

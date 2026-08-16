@@ -13,7 +13,7 @@ the round (0=R1, 2=R2, 4=QF, 6=SF, 8=Final); "seed<TAB>name" lines are R1 entran
 import csv, json, os, re, sys
 from collections import defaultdict
 
-# Self-contained: resolve inputs inside this WCC project's own archive folder (offline snapshot).
+# Self-contained: resolve inputs inside this 8BR project's own archive folder (offline snapshot).
 HERE = os.path.dirname(__file__)
 ARCHIVE = os.path.join(HERE, "..", "archive", "cueverse-prime", "data", "csv")
 CORR = os.path.join(HERE, "..", "archive", "cueverse-prime", "corrections")

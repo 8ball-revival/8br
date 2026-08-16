@@ -21,7 +21,7 @@ export default async function NewSeasonPage() {
 
   return (
     <Container className="py-10">
-      <SectionHeader eyebrow="Premier Competition" title="Create Season" description="Set up a new WCC Season Championship. Groups, qualifiers and the playoff bracket type are decided later in the Season lifecycle." />
+      <SectionHeader eyebrow="Premier Competition" title="Create Season" description="Set up a new 8BR Season Championship. Groups, qualifiers and the playoff bracket type are decided later in the Season lifecycle." />
       <CreateSeasonForm nextNumber={nextNumber} year={year} />
     </Container>
   )

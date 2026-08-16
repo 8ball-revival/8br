@@ -1,14 +1,14 @@
-# WCC — Offline Snapshot
+# 8BR — Offline Snapshot
 
-A **frozen, self-contained, offline copy** of the World Cue Championships project, split off from
+A **frozen, self-contained, offline copy** of the 8 Ball Registry project, split off from
 the working 8 Ball / 8br.gg project so it can be resumed later as a **completely independent
 product** with brand-new accounts, database, and services.
 
 > ⚠️ **This snapshot must never be reconnected to 8br.gg or any account, database, deployment,
 > storage, email, domain, DNS, analytics, or repository used by 8br.gg.** It intentionally ships
 > with **no live credentials** and **no remotes** so it fails safe rather than touching the original
-> project's services. When you resume WCC, create entirely new, separate accounts (see
-> [Future WCC ownership](#future-wcc-ownership)).
+> project's services. When you resume 8BR, create entirely new, separate accounts (see
+> [Future 8BR ownership](#future-8br-ownership)).
 
 ---
 
@@ -18,12 +18,12 @@ product** with brand-new accounts, database, and services.
 |---|---|
 | **Snapshot date** | 2026-08-15 |
 | **Original project path** | *(historical)* `C:\Users\Cerebro\Documents\8BR` — **deleted 2026-08-16** |
-| **WCC snapshot path** | *(historical)* `C:\Users\Cerebro\Documents\WCC` — **deleted 2026-08-16** |
-| **Current project path** | `C:\Claude\8BR` — the canonical project, consolidated from the WCC snapshot |
-| **Git branch @ copy** | `wcc-rebrand-reset` |
+| **8BR snapshot path** | *(historical)* `C:\Users\Cerebro\Documents\8BR` — **deleted 2026-08-16** |
+| **Current project path** | `C:\Claude\8BR` — the canonical project, consolidated from the 8BR snapshot |
+| **Git branch @ copy** | `8br-rebrand-reset` |
 | **Git commit @ copy** | `2f433f5` — "CueVerse ID = canonical identity/login; fix format badge; merge Profile into member Overview" |
 | **Working tree at copy** | **Clean** (all work committed before copying) |
-| **Local Git history copied** | **Yes** — full `.git`, 89 commits, branches `development`, `main`, `wcc-rebrand-reset` |
+| **Local Git history copied** | **Yes** — full `.git`, 89 commits, branches `development`, `main`, `8br-rebrand-reset` |
 | **Original remote** | `origin → https://github.com/8ball-revival/8br.git` **— removed from this copy only** |
 | **Remote in this copy** | **None** (verified: `git remote -v` is empty) |
 | **Node** | v24.18.1 (engines: `^18.20.2 || >=20.9.0`) |
@@ -44,14 +44,14 @@ product** with brand-new accounts, database, and services.
 
 ## Environment variables (names only — **no values are stored in this snapshot**)
 
-Copy `.env.example` to `.env` and fill in your **new** WCC values. Required/used vars:
+Copy `.env.example` to `.env` and fill in your **new** 8BR values. Required/used vars:
 
-- `DATABASE_URL` — Postgres connection (Prisma **and** Payload). Point at a **new** WCC database.
+- `DATABASE_URL` — Postgres connection (Prisma **and** Payload). Point at a **new** 8BR database.
 - `DIRECT_URL` — unpooled connection for migrations (optional locally).
 - `PAYLOAD_SECRET` — Payload token signing secret (generate a fresh long random value).
 - `SETUP_SECRET` — optional gate for the one-time `/setup` first-owner page.
 - `NEXT_PUBLIC_SITE_URL` — canonical/OpenGraph/cookie host.
-- `WCC_WWW_HOST`, `WCC_APEX_ORIGIN` — optional www→apex redirect (both unset = redirect off).
+- `SITE_WWW_HOST`, `SITE_APEX_ORIGIN` — optional www→apex redirect (both unset = redirect off).
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL` — transactional email (password reset). Unset = emails log to console.
 - `BLOB_READ_WRITE_TOKEN` — Payload media storage on Vercel Blob. Unset = media uploads unavailable; app still builds/runs.
 
@@ -59,24 +59,24 @@ With no `.env`, the app **fails safe** (no DB/service connection) rather than re
 
 ## Database snapshot (preservation data)
 
-- **Dump:** `backups/wcc-frozen-local-2026-08-15.dump` (PostgreSQL custom format, all schemas).
+- **Dump:** `backups/8br-frozen-local-2026-08-15.dump` (PostgreSQL custom format, all schemas).
 - **Contents:** both schemas — `payload.*` (users/auth/media metadata/news/rules) and `public.*`
   (competition domain: tournaments, seasons, groups, matches, brackets, teams, registrations,
   rating ledger/rankings, audit log, config). Verified with `pg_restore --list` → 76 table-data
   entries (14 `payload`, 62 `public`).
-- **Sanitized row counts:** `backups/wcc-frozen-rowcounts-2026-08-15.txt` (table names + row estimates
+- **Sanitized row counts:** `backups/8br-frozen-rowcounts-2026-08-15.txt` (table names + row estimates
   only; no data, no secrets).
-- This dump is **preservation data only.** A future WCC session restores it into a **new, dedicated**
-  local or hosted WCC database that has no connection to 8br.gg.
+- This dump is **preservation data only.** A future 8BR session restores it into a **new, dedicated**
+  local or hosted 8BR database that has no connection to 8br.gg.
 
 ### Restore into a NEW local database (example)
 
 ```bash
 # 1) create an empty target DB (do NOT reuse any 8br database)
-createdb wcc            # or: CREATE DATABASE wcc;
+createdb 8br            # or: CREATE DATABASE 8br;
 # 2) restore
-pg_restore --no-owner --no-privileges -d "postgresql://USER:PASS@HOST:PORT/wcc" \
-  "backups/wcc-frozen-local-2026-08-15.dump"
+pg_restore --no-owner --no-privileges -d "postgresql://USER:PASS@HOST:PORT/8br" \
+  "backups/8br-frozen-local-2026-08-15.dump"
 # 3) point .env DATABASE_URL at that new DB, then: npm run dev
 ```
 
@@ -104,7 +104,7 @@ use them were repointed to these internal locations (see [absolute-path audit](#
 
 | Now at | From (original, historical) | Used by |
 |---|---|---|
-| `public/assets/branding/` — `wccbanner.png`, `wcclogo.png`, `wcclogo2.png`, `wccbackground.png` | `Downloads\wcc*.png` | Branding **design references** — preserved, **not** wired into the app (wiring would be a design change). |
+| `public/assets/branding/` — `8brbanner.png`, `8brlogo.png`, `8brlogo2.png`, `8brbackground.png` | `Downloads\8br*.png` | Branding **design references** — preserved, **not** wired into the app (wiring would be a design change). |
 | `archive/migration-inputs/fixed accounts.txt` | `Downloads\fixed accounts.txt` | `scripts/migrate-ranked-accounts-dryrun.mts` |
 | `archive/wayback-seasons/` | `Downloads\Seasons` | `scripts/parse-wayback-brackets.py` |
 | `archive/cueverse-prime/data/csv/` | `Documents\Cueverse Prime\archive_viewer\data\csv` | `scripts/build-archive-seasons.py`, `scripts/archive/lib/io.mjs` |
@@ -118,7 +118,7 @@ use them were repointed to these internal locations (see [absolute-path audit](#
 | `.next/` | build cache | regenerated by `npm run dev` / `npm run build` |
 | `.pgdata/` | local Postgres cluster internals (not portable) | not needed — restore `backups/*.dump` into a fresh DB |
 | `.vercel/` | Vercel deployment link | intentionally omitted (disconnect) |
-| secret `.env` files (`.env`, `.env.local`, `.env.production.local`, `.env.staging.local`, `.env.8br-backup`, `.env.prod.local.txt`) | contained live credentials for 8br services | recreate `.env` from `.env.example` with **new** WCC values |
+| secret `.env` files (`.env`, `.env.local`, `.env.production.local`, `.env.staging.local`, `.env.8br-backup`, `.env.prod.local.txt`) | contained live credentials for 8br services | recreate `.env` from `.env.example` with **new** 8BR values |
 
 `package-lock.json` **is** included, so `npm install` reproduces the exact dependency tree. `node_modules`
 is the only regenerable dependency folder excluded.
@@ -137,7 +137,7 @@ This copy retains **no active connection** to any of these:
 ## Absolute-path audit
 
 Every executable script that referenced an external absolute path was repointed to a project-relative,
-WCC-internal path (edits made **only** in this copy):
+8BR-internal path (edits made **only** in this copy):
 
 - `scripts/migrate-ranked-accounts-dryrun.mts` → `archive/migration-inputs/…` + `migration-reports/` (via `import.meta.url`).
 - `scripts/regen-claim-codes.mts` → `migration-reports/` (via `import.meta.url`).
@@ -150,12 +150,12 @@ runtime/script/test dependency. That folder was deleted on 2026-08-16; the read-
 at `C:\Claude\Archive Viewer`. Legitimate public URLs (CueVerse links, third-party docs) were left
 untouched.
 
-## Future WCC ownership
+## Future 8BR ownership
 
-When WCC resumes it must use **entirely new, separate** accounts — **none shared with 8br.gg,
+When 8BR resumes it must use **entirely new, separate** accounts — **none shared with 8br.gg,
 including the ownership email**. You will need to create (do **not** create these now):
 
-- A new WCC ownership email • a new GitHub account/org + repository • a new Vercel account/project •
+- A new 8BR ownership email • a new GitHub account/org + repository • a new Vercel account/project •
   a new PostgreSQL database • new media storage • a new transactional-email provider • a new domain +
   DNS • new analytics/monitoring (optional) • new environment secrets • new Admin accounts.
 
@@ -165,8 +165,8 @@ including the ownership email**. You will need to create (do **not** create thes
 2. `npm install` (regenerates `node_modules` + Prisma client).
 3. The project now carries its **own** contained PostgreSQL cluster — run `.\dev.ps1`, which starts it
    and then the site. (Historically this step meant creating a new database by hand and restoring
-   `backups/wcc-frozen-local-2026-08-15.dump` into it.)
-4. Copy `.env.example` → `.env` and fill in **new** WCC values (new DB, new `PAYLOAD_SECRET`, etc.).
+   `backups/8br-frozen-local-2026-08-15.dump` into it.)
+4. Copy `.env.example` → `.env` and fill in **new** 8BR values (new DB, new `PAYLOAD_SECRET`, etc.).
 5. `npm run dev`. Visit `/setup` to create the first owner (only works while no account exists) — or
    sign in with a restored account.
 6. **Never** point `.env` at an 8br database or reconnect any 8br service/account.

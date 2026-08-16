@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Seasons',
-  description: 'WCC Season Championships — the premier competition. Current, upcoming, and past Season champions.',
+  description: '8BR Season Championships — the premier competition. Current, upcoming, and past Season champions.',
   alternates: { canonical: '/seasons' },
 }
 
@@ -27,7 +27,7 @@ export default async function SeasonsPage() {
       <SectionHeader
         eyebrow="Premier Competition"
         title="Season Championships"
-        description="WCC's flagship competition: round-robin groups into a championship playoff bracket, crowning a Season Champion."
+        description="8BR's flagship competition: round-robin groups into a championship playoff bracket, crowning a Season Champion."
       />
       {canManage && (
         <div className="mb-6">

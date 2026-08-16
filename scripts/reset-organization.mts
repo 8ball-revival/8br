@@ -1,5 +1,5 @@
 /**
- * WCC organization reset — permanently wipes ALL organization data and ALL accounts,
+ * 8BR organization reset — permanently wipes ALL organization data and ALL accounts,
  * leaving a completely fresh platform (empty tournaments, rankings, predictions, and NO
  * accounts, so the new owner runs /setup to create the first administrator).
  *

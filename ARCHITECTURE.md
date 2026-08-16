@@ -1,4 +1,4 @@
-# WCC — Architecture
+# 8BR — Architecture
 
 Companion to [`PROJECT_PLAN.md`](./PROJECT_PLAN.md). This document records the **as-initialized**
 structure and the major technical decisions. It describes what exists now (the foundation), and the
@@ -27,7 +27,7 @@ Browser ──► Next.js app ─┬─ (frontend) route group  → public site 
 ## 2. Directory structure (as initialized)
 
 ```
-WCC/
+8BR/
 ├─ PROJECT_PLAN.md            # product plan, phases, open decisions
 ├─ ARCHITECTURE.md            # this file
 ├─ DATA_MODEL.md              # competition schema: ER diagram + per-table docs
@@ -112,7 +112,7 @@ Postgres provider is undecided (see PROJECT_PLAN §11–12).
 
 ### 3.4 Styling: Tailwind v4 + shadcn/ui
 Tailwind v4 via `@tailwindcss/postcss`; shadcn/ui configured through `components.json` with a neutral
-placeholder token set in `globals.css`. **Colors are placeholders** — final WCC branding
+placeholder token set in `globals.css`. **Colors are placeholders** — final 8BR branding
 (black/gold or otherwise) is deliberately not locked in. New primitives are added with
 `npx shadcn@latest add <component>`.
 
@@ -134,7 +134,7 @@ policies and the fact/policy boundary live in **[POLICY_FRAMEWORK.md](./POLICY_F
 - **Generated files** (`src/payload-types.ts`, admin `importMap.js`) are never edited by hand — run
   `npm run generate:types` / `npm run generate:importmap`.
 - **No historical records embedded in components** — all record data will be read from PostgreSQL.
-- **Provenance:** future records carry an imported-historical (WCC legacy) vs native-WCC flag so
+- **Provenance:** future records carry an imported-historical (8BR legacy) vs native-8BR flag so
   the two are always distinguishable.
 - The retired term **"Prime"** must not appear in code, routes, DB terminology, UI labels, or sample
   content (only inside untouched historical source records, and the legacy on-disk source path).

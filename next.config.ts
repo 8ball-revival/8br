@@ -13,8 +13,8 @@ const nextConfig: NextConfig = {
         pathname: '/api/media/file/**',
       },
       {
-        // WCC static brand assets in /public (e.g. the homepage hero banner).
-        pathname: '/wcc-*',
+        // 8BR static brand assets in /public (e.g. the homepage hero banner).
+        pathname: '/8br-*',
       },
       {
         // Static brand assets in /public/assets/branding (header logo, homepage banner).
@@ -40,13 +40,13 @@ const nextConfig: NextConfig = {
       { source: '/cups', destination: '/tournaments', permanent: true },
       { source: '/cups/:path*', destination: '/tournaments/:path*', permanent: true },
       // Canonical host (www → apex) for cueverse.net.
-      // Set WCC_WWW_HOST="www.cueverse.net" + WCC_APEX_ORIGIN="https://cueverse.net".
-      ...(process.env.WCC_WWW_HOST && process.env.WCC_APEX_ORIGIN
+      // Set SITE_WWW_HOST="www.cueverse.net" + SITE_APEX_ORIGIN="https://cueverse.net".
+      ...(process.env.SITE_WWW_HOST && process.env.SITE_APEX_ORIGIN
         ? [
             {
               source: '/:path*',
-              has: [{ type: 'host' as const, value: process.env.WCC_WWW_HOST }],
-              destination: `${process.env.WCC_APEX_ORIGIN}/:path*`,
+              has: [{ type: 'host' as const, value: process.env.SITE_WWW_HOST }],
+              destination: `${process.env.SITE_APEX_ORIGIN}/:path*`,
               permanent: true,
             },
           ]

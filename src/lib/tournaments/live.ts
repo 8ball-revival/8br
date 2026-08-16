@@ -499,7 +499,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
   // Staleness only matters while the bracket is generated but the tournament hasn't started.
   const bracketStale = getTournamentState(tournament) === 'BRACKET_GENERATED' ? !(await bracketMatchesEntrants(tournament.id)).ok : false
 
-  // The legacy old-format-cup conversion feature was removed in the WCC reset.
+  // The legacy old-format-cup conversion feature was removed in the 8BR reset.
   const isLegacyConvertible = false
 
   // Group Stage + Playoffs data (only for that format).

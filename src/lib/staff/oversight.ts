@@ -158,7 +158,7 @@ export async function getSystemHealth(commit: string): Promise<SystemHealth> {
     email: process.env.RESEND_API_KEY ? 'configured' : 'not configured',
     commit,
     migrationStatus: 'Prisma schema in sync (dev push model — no pending migrations tracked)',
-    backupNote: 'Backups are created manually via pg_dump into ./backups (see latest wcc-qa2-*.dump).',
+    backupNote: 'Backups are created manually via pg_dump into ./backups (see latest 8br-qa2-*.dump).',
     counts: { users, seasons, tournaments, auditRows, players },
   }
 }

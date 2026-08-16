@@ -24,10 +24,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE_DEFAULT,
-    template: '%s · World Cue Championships',
+    template: '%s · 8 Ball Registry',
   },
   description: SITE_DESCRIPTION,
-  applicationName: 'World Cue Championships',
+  applicationName: '8 Ball Registry',
   // No default canonical here: each page sets its own so pages never wrongly
   // claim to be a duplicate of the homepage.
   openGraph: {
@@ -55,7 +55,7 @@ export const viewport: Viewport = {
 
 // Set the theme class before paint to avoid a flash. Dark is the default (no class); only an explicit
 // "light" preference adds the `.light` class to <html>.
-const themeScript = `try{if(localStorage.getItem('wcc-theme')==='light')document.documentElement.classList.add('light');}catch(e){}`
+const themeScript = `try{if(localStorage.getItem('8br-theme')==='light')document.documentElement.classList.add('light');}catch(e){}`
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
   return (

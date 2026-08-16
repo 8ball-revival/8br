@@ -10,7 +10,7 @@ import { getRecentHumanActions } from '@/lib/staff/activity-log'
 import { formatDateTime } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'Admin · World Cue Championships', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Admin · 8 Ball Registry', robots: { index: false, follow: false } }
 
 function StatCard({ label, value, href, tone }: { label: string; value: number; href?: string; tone?: 'attention' }) {
   const body = (
