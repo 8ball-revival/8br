@@ -8,13 +8,25 @@ import { prisma } from '../src/lib/prisma.ts'
 import { createSeason, addSeasonEntrant, removeSeasonEntrant, closeRegistration, getSeasonView, seasonOfficialTitle } from '../src/lib/seasons/service.ts'
 import { transitionSeasonState, canTransition } from '../src/lib/seasons/lifecycle.ts'
 
+// Every Season must belong to a Competition, so fixtures ensure one exists and reuse it.
+async function fixtureCompetitionId(): Promise<number> {
+  const existing = await prisma.competitionSeries.findFirst({ where: { active: true }, select: { id: true } })
+  if (existing) return existing.id
+  const made = await prisma.competitionSeries.create({
+    data: { name: 'Fixture Competition', shortName: 'FIX', slug: 'fixture-competition', active: true },
+    select: { id: true },
+  })
+  return made.id
+}
+
+
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) } }
 const actor = { userId: 980001, username: 'season-verify' }
 const cleanupNumbers: number[] = []
 
 async function makeSeason() {
-  const r = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', groupStageGames: 10, earlyRaceTo: 7, semifinalRaceTo: 9, finalRaceTo: 9 })
+  const r = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: await fixtureCompetitionId(), groupStageGames: 10, earlyRaceTo: 7, semifinalRaceTo: 9, finalRaceTo: 9 })
   if (r.number) cleanupNumbers.push(r.number)
   return r
 }

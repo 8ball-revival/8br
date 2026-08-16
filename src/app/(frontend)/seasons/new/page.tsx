@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
 import { CreateSeasonForm } from '@/components/seasons/create-season-form'
+import { listActiveCompetitions } from '@/lib/competitions/service'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { prisma } from '@/lib/prisma'
 
@@ -18,11 +19,12 @@ export default async function NewSeasonPage() {
   const last = await prisma.season.findFirst({ orderBy: { number: 'desc' }, select: { number: true } })
   const nextNumber = (last?.number ?? 0) + 1
   const year = new Date().getFullYear()
+  const competitions = await listActiveCompetitions()
 
   return (
     <Container className="py-10">
       <SectionHeader eyebrow="Premier Competition" title="Create Season" description="Set up a new 8BR Season Championship. Groups, qualifiers and the playoff bracket type are decided later in the Season lifecycle." />
-      <CreateSeasonForm nextNumber={nextNumber} year={year} />
+      <CreateSeasonForm nextNumber={nextNumber} year={year} competitions={competitions} />
     </Container>
   )
 }

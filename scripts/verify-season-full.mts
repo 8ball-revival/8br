@@ -15,6 +15,18 @@ import { closeSeason, seasonCloseSummary } from '../src/lib/seasons/close.ts'
 import { deleteSeason } from '../src/lib/seasons/admin.ts'
 import { computeSeasonTrophies } from '../src/lib/seasons/trophies.ts'
 
+// Every Season must belong to a Competition, so fixtures ensure one exists and reuse it.
+async function fixtureCompetitionId(): Promise<number> {
+  const existing = await prisma.competitionSeries.findFirst({ where: { active: true }, select: { id: true } })
+  if (existing) return existing.id
+  const made = await prisma.competitionSeries.create({
+    data: { name: 'Fixture Competition', shortName: 'FIX', slug: 'fixture-competition', active: true },
+    select: { id: true },
+  })
+  return made.id
+}
+
+
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) } }
 const actor = { userId: 990001, username: 'season-full-verify' }
@@ -27,7 +39,7 @@ async function cleanup() {
 
 try {
   // --- Create + register (6 synthetic players, varied ratings) ---
-  const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN' })
+  const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: await fixtureCompetitionId() })
   seasonNumber = c.number!
   const s = await prisma.season.findUnique({ where: { number: seasonNumber } })
   seasonId = s!.id

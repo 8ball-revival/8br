@@ -1830,6 +1830,30 @@ enum SeasonQualification {
   KICKED_OUT
 }
 
+/// A Competition (internally CompetitionSeries) — the recurring competition a Season belongs to,
+/// e.g. 8BRCAM. Named CompetitionSeries in code so it is never confused with an individual
+/// Tournament record; every user-facing label says "Competition".
+///
+/// The icon reuses the existing Payload media system: `iconMediaId` stores a Payload media id as a
+/// plain string (no cross-ORM FK, matching Season.bannerMediaId). No image bytes live in Postgres.
+/// When it is null the UI renders an initials fallback badge from `shortName`.
+model CompetitionSeries {
+  id           Int      @id @default(autoincrement())
+  name         String
+  slug         String   @unique
+  /// Short name / acronym, also the source for the initials fallback badge.
+  shortName    String
+  iconMediaId  String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  seasons Season[]
+
+  @@index([active])
+  @@map("competition_series")
+}
+
 model Season {
   id             Int                  @id @default(autoincrement())
   number         Int                  @unique // public season number (1, 2, ...)
@@ -1838,6 +1862,10 @@ model Season {
   /// enforced by a CHECK constraint). Deliberately NOT unique: many competitions share a year.
   /// Primary sort key for every chronological listing.
   competitionYear Int
+  /// Owning Competition. Required: every Season belongs to exactly one Competition. Restrict on
+  /// delete so removing a Competition can never silently orphan or delete its Seasons.
+  competitionSeriesId Int
+  competitionSeries   CompetitionSeries @relation(fields: [competitionSeriesId], references: [id], onDelete: Restrict)
   slug           String               @unique
   subtitle       String? // optional custom subtitle; official title is "8BR Season N - YEAR"
   lifecycleState SeasonLifecycleState @default(REGISTRATION_SCHEDULED)
@@ -1882,6 +1910,7 @@ model Season {
 
   @@index([lifecycleState])
   @@index([competitionYear])
+  @@index([competitionSeriesId])
   @@map("season")
 }
 

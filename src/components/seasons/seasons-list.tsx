@@ -1,25 +1,55 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Diamond, Search } from 'lucide-react'
 
 import type { SeasonSummary } from '@/lib/seasons/service'
 import { SeasonCard } from './season-card'
 
-/** The Seasons landing list: Active & Upcoming, then Season Championship History, with search + year filter. */
+/**
+ * The Seasons landing list: Active & Upcoming, then Season Championship History.
+ *
+ * All three filters (search, Competition Year, Competition) live in the URL query string rather
+ * than component state, so a filtered view can be linked, bookmarked and survives a refresh.
+ * Filtering is client-side over the already-loaded list; only the query string changes, so there is
+ * no refetch and Competition Year ordering from the server is preserved throughout.
+ */
 export function SeasonsList({ seasons }: { seasons: SeasonSummary[] }) {
-  const [q, setQ] = useState('')
-  const [year, setYear] = useState<'all' | number>('all')
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+
+  const q = params.get('q') ?? ''
+  const year = params.get('year') ?? 'all'
+  const competition = params.get('competition') ?? 'all'
+
+  /** Write one filter into the URL, dropping it entirely when it returns to the default. */
+  const setParam = (key: string, value: string) => {
+    const next = new URLSearchParams(params.toString())
+    if (!value || value === 'all') next.delete(key)
+    else next.set(key, value)
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
 
   const years = useMemo(() => [...new Set(seasons.map((s) => s.year))].sort((a, b) => b - a), [seasons])
+  // Only Competitions actually represented by a Season appear in the filter.
+  const competitions = useMemo(() => {
+    const bySlug = new Map<string, { slug: string; name: string }>()
+    for (const s of seasons) bySlug.set(s.competition.slug, { slug: s.competition.slug, name: s.competition.name })
+    return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [seasons])
+
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase()
+    const needle = q.trim().toLowerCase()
     return seasons.filter((x) => {
-      if (year !== 'all' && x.year !== year) return false
-      if (!s) return true
-      return `${x.title} ${x.subtitle ?? ''} ${x.championName ?? ''}`.toLowerCase().includes(s)
+      if (year !== 'all' && String(x.year) !== year) return false
+      if (competition !== 'all' && x.competition.slug !== competition) return false
+      if (!needle) return true
+      return `${x.title} ${x.subtitle ?? ''} ${x.championName ?? ''} ${x.competition.name}`.toLowerCase().includes(needle)
     })
-  }, [seasons, q, year])
+  }, [seasons, q, year, competition])
 
   const active = filtered.filter((s) => s.isActive)
   const completed = filtered.filter((s) => s.isCompleted)
@@ -31,14 +61,18 @@ export function SeasonsList({ seasons }: { seasons: SeasonSummary[] }) {
           <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => setParam('q', e.target.value)}
             placeholder="Search seasons or champions…"
             className="w-full max-w-xs rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm sm:w-72"
           />
         </div>
-        <select value={String(year)} onChange={(e) => setYear(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+        <select value={year} onChange={(e) => setParam('year', e.target.value)} aria-label="Filter by Competition Year" className="rounded-md border border-border bg-background px-3 py-2 text-sm">
           <option value="all">All years</option>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <select value={competition} onChange={(e) => setParam('competition', e.target.value)} aria-label="Filter by Competition" className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+          <option value="all">All Competitions</option>
+          {competitions.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
         </select>
       </div>
 

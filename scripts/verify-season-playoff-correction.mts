@@ -11,6 +11,18 @@ import * as grp from '../src/lib/seasons/groups.ts'
 import * as gs from '../src/lib/seasons/group-stage.ts'
 import * as po from '../src/lib/seasons/playoffs.ts'
 
+// Every Season must belong to a Competition, so fixtures ensure one exists and reuse it.
+async function fixtureCompetitionId(): Promise<number> {
+  const existing = await prisma.competitionSeries.findFirst({ where: { active: true }, select: { id: true } })
+  if (existing) return existing.id
+  const made = await prisma.competitionSeries.create({
+    data: { name: 'Fixture Competition', shortName: 'FIX', slug: 'fixture-competition', active: true },
+    select: { id: true },
+  })
+  return made.id
+}
+
+
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) } }
 const actor = { userId: 990010, username: 'season-correct-verify' }
@@ -23,7 +35,7 @@ async function cleanup() {
 
 try {
   // 6 synthetic players → 2 groups of 3 → all top-3 qualify → 6-player bracket = 8 slots, 2 byes (seeds 1 & 2).
-  const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN' })
+  const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: await fixtureCompetitionId() })
   const s = await prisma.season.findUnique({ where: { number: c.number! } })
   seasonId = s!.id
   const ratings = [900, 800, 700, 400, 300, 200]

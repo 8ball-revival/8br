@@ -36,6 +36,8 @@ export async function seasonRatingsByPlayerId(playerIds: (string | null)[]): Pro
 export interface CreateSeasonConfig {
   /** Competition Year (four-digit). Omitted = the current calendar year. */
   competitionYear?: number | string | null
+  /** Owning Competition (CompetitionSeries id). REQUIRED — there is no 'Unassigned' Competition. */
+  competitionSeriesId?: number | string | null
   subtitle?: string | null
   lounge?: string
   accessMode?: 'OPEN' | 'PASSWORD'
@@ -60,6 +62,19 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
   )
   if (!yearResult.ok) return { ok: false, error: yearResult.error }
   const year = yearResult.year
+
+  // Competition ownership is required and must reference a real, ACTIVE Competition. Validated here
+  // so the rule holds for every caller, not just the form.
+  const seriesId = Number(cfg.competitionSeriesId)
+  if (!Number.isInteger(seriesId) || seriesId <= 0) {
+    return { ok: false, error: 'Select the Competition this Season belongs to.' }
+  }
+  const series = await prisma.competitionSeries.findUnique({
+    where: { id: seriesId },
+    select: { id: true, active: true },
+  })
+  if (!series) return { ok: false, error: 'That Competition no longer exists.' }
+  if (!series.active) return { ok: false, error: 'That Competition is inactive and cannot take new Seasons.' }
   const opensAt = cfg.registrationOpensAt ? new Date(cfg.registrationOpensAt) : null
   const scheduled = !!opensAt && opensAt.getTime() > Date.now()
   const accessMode = cfg.accessMode === 'PASSWORD' ? 'PASSWORD' : 'OPEN'
@@ -75,6 +90,7 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
       data: {
         number,
         competitionYear: year,
+        competitionSeriesId: seriesId,
         slug: `8br-season-${number}-${year}`,
         subtitle: cfg.subtitle?.trim() || null,
         lifecycleState: scheduled ? 'REGISTRATION_SCHEDULED' : 'REGISTRATION_OPEN',
@@ -99,6 +115,8 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
 // ---- Read views -----------------------------------------------------------
 
 export interface SeasonSummary {
+  /** Owning Competition — always present; the relation is required. */
+  competition: { id: number; name: string; shortName: string; slug: string; iconMediaId: string | null }
   number: number
   year: number
   title: string
@@ -111,9 +129,10 @@ export interface SeasonSummary {
   isCompleted: boolean
 }
 
-function toSummary(s: { number: number; competitionYear: number; subtitle: string | null; lifecycleState: SeasonLifecycleState; entrantsCount: number; championName: string | null; runnerUpName: string | null }): SeasonSummary {
+function toSummary(s: { competitionSeries: { id: number; name: string; shortName: string; slug: string; iconMediaId: string | null }; number: number; competitionYear: number; subtitle: string | null; lifecycleState: SeasonLifecycleState; entrantsCount: number; championName: string | null; runnerUpName: string | null }): SeasonSummary {
   return {
     number: s.number,
+    competition: s.competitionSeries,
     year: s.competitionYear,
     title: seasonOfficialTitle(s.number, s.competitionYear),
     subtitle: s.subtitle,
@@ -127,7 +146,10 @@ function toSummary(s: { number: number; competitionYear: number; subtitle: strin
 }
 
 export async function listSeasons(): Promise<SeasonSummary[]> {
-  const rows = await prisma.season.findMany({ orderBy: SEASON_ORDER })
+  const rows = await prisma.season.findMany({
+    orderBy: SEASON_ORDER,
+    include: { competitionSeries: { select: { id: true, name: true, shortName: true, slug: true, iconMediaId: true } } },
+  })
   return rows.map(toSummary)
 }
 
@@ -143,6 +165,8 @@ export interface SeasonEntrantView {
 
 export interface SeasonView {
   id: number
+  /** Owning Competition — always present; the relation is required. */
+  competition: { id: number; name: string; shortName: string; slug: string; iconMediaId: string | null }
   number: number
   year: number
   title: string
@@ -162,7 +186,10 @@ export interface SeasonView {
 }
 
 export async function getSeasonView(number: number): Promise<SeasonView | null> {
-  const s = await prisma.season.findUnique({ where: { number } })
+  const s = await prisma.season.findUnique({
+    where: { number },
+    include: { competitionSeries: { select: { id: true, name: true, shortName: true, slug: true, iconMediaId: true } } },
+  })
   if (!s) return null
   const rows = await prisma.seasonEntrant.findMany({
     where: { seasonId: s.id, status: { not: 'WITHDRAWN' } },
@@ -182,6 +209,7 @@ export async function getSeasonView(number: number): Promise<SeasonView | null> 
   }))
   return {
     id: s.id,
+    competition: s.competitionSeries,
     number: s.number,
     year: s.competitionYear,
     title: seasonOfficialTitle(s.number, s.competitionYear),

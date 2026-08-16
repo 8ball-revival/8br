@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CompetitionBadge } from '@/components/competitions/competition-badge'
 import { Diamond } from 'lucide-react'
 
 import type { SeasonSummary } from '@/lib/seasons/service'
@@ -26,8 +27,14 @@ export function SeasonCard({ season }: { season: SeasonSummary }) {
             <Diamond className="size-3 shrink-0 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_5px_rgba(230,196,99,0.8)]" aria-hidden />
             Season Championship
           </p>
-          <h3 className="mt-2 truncate font-display text-xl font-bold text-foreground">
-            {season.subtitle?.trim() || season.title}
+          <h3 className="mt-2 flex items-center gap-2 font-display text-xl font-bold text-foreground">
+            <CompetitionBadge
+              name={season.competition.name}
+              shortName={season.competition.shortName}
+              iconMediaId={season.competition.iconMediaId}
+              size={20}
+            />
+            <span className="truncate">{season.subtitle?.trim() || season.title}</span>
           </h3>
           {season.subtitle?.trim() && (
             <p className="truncate text-sm font-semibold text-[var(--gold)]">{season.title}</p>

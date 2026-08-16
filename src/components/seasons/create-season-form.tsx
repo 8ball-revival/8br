@@ -6,6 +6,8 @@ import { Diamond, Lock } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN } from '@/lib/competition/competition-year'
+import { CompetitionSelect } from '@/components/competitions/competition-select'
+import type { CompetitionRef } from '@/lib/competitions/shared'
 import { Button } from '@/components/ui/button'
 import { createSeasonAction } from '@/lib/seasons/actions'
 import type { CreateSeasonConfig } from '@/lib/seasons/service'
@@ -16,7 +18,7 @@ const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase track
 
 /** Create Season — the standalone Season creation form (individual 1v1 only, no format selector, no
  *  groups/qualifiers/bracket-type decisions; those happen later in the Season lifecycle). */
-export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; year: number }) {
+export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumber: number; year: number; competitions: CompetitionRef[] }) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +26,10 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
   const [subtitle, setSubtitle] = useState('')
   // Competition Year defaults to the current calendar year; the server re-validates the range.
   const [competitionYear, setCompetitionYear] = useState(String(year))
+  // Required: a Season must belong to exactly one Competition. No 'Unassigned' option.
+  const [competitionSeriesId, setCompetitionSeriesId] = useState<number | null>(
+    competitions.length === 1 ? competitions[0].id : null,
+  )
   const [lounge, setLounge] = useState('Social')
   const [access, setAccess] = useState<'OPEN' | 'PASSWORD'>('OPEN')
   const [joinPassword, setJoinPassword] = useState('')
@@ -46,6 +52,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
     const cfg: CreateSeasonConfig = {
       competitionYear: Number(competitionYear),
+      competitionSeriesId,
       subtitle: subtitle.trim() || null,
       lounge,
       accessMode: access,
@@ -91,6 +98,14 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
               <p id="competition-year-hint" className="mt-1 text-[0.7rem] text-muted-foreground/70">
                 Four-digit year this competition belongs to. Past and future years are both allowed.
               </p>
+            </Labeled>
+            <Labeled label="Competition" hint="required">
+              <CompetitionSelect
+                competitions={competitions}
+                value={competitionSeriesId}
+                onChange={(id) => setCompetitionSeriesId(id)}
+                inputClassName={input}
+              />
             </Labeled>
             <Labeled label="Custom subtitle" hint="optional">
               <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. The Winter Classic" maxLength={80} className={input} />

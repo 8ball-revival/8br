@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { CompetitionBadge } from '@/components/competitions/competition-badge'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Diamond, Settings2 } from 'lucide-react'
@@ -105,7 +106,16 @@ function SeasonHeader({ view, canManage, number }: { view: Awaited<ReturnType<ty
         <p className="mt-3 flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--gold)]">
           <Diamond className="size-3 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_5px_rgba(230,196,99,0.8)]" aria-hidden /> Season Championship
         </p>
-        <h1 className="mt-1.5 font-display text-3xl font-bold text-foreground">{view.subtitle?.trim() || view.title}</h1>
+        <h1 className="mt-1.5 flex items-center gap-2.5 font-display text-3xl font-bold text-foreground">
+          <CompetitionBadge
+            name={view.competition.name}
+            shortName={view.competition.shortName}
+            iconMediaId={view.competition.iconMediaId}
+            size={28}
+          />
+          <span>{view.subtitle?.trim() || view.title}</span>
+        </h1>
+        <p className="mt-1 text-xs text-muted-foreground">{view.competition.name}</p>
         {view.subtitle?.trim() && <p className="text-base font-semibold text-[var(--gold)]">{view.title}</p>}
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.06] px-2.5 py-1 text-xs font-semibold text-[var(--gold-soft)]">
           <span className="size-1.5 rounded-full bg-[var(--gold-soft)]" /> {SEASON_STATE_LABEL[view.lifecycleState]}
