@@ -23,6 +23,17 @@ next-env.d.ts
 *.sqlite3
 *.db
 
+# project-contained runtime state (C:\Claude\8BR\.local) — never commit.
+# Holds the PostgreSQL 17 cluster data directory, its logs, the generated
+# database password / pgpass file, and archived env files with real secrets.
+/.local/
+
+# database dumps & backups, wherever they land inside the project
+*.dump
+*.dump.gz
+*.sql.gz
+*.tar.gz
+
 # archive pipeline data & generated reports — contains scraped historical PII
 # (thousands of real email addresses / handles). Regenerated locally by the
 # scripts/archive tools; never commit to the repository.

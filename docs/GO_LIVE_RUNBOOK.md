@@ -5,7 +5,12 @@ the new account **cueversewcc@gmail.com** (shared with none of the 8br.gg servic
 
 > **Who does what:** Claude prepared the code, config, and this runbook. **You** create the accounts
 > and click through the dashboards (Claude can't create accounts or enter your credentials). Every
-> command below is copy-pasteable; run them from `C:\Users\Cerebro\Documents\WCC`.
+> command below is copy-pasteable; run them from the project root, `C:\Claude\8BR`.
+
+> **Historical note (2026-08-16):** this runbook was written when the project lived at
+> `C:\Users\Cerebro\Documents\WCC`. That folder has been deleted; the canonical project is now
+> `C:\Claude\8BR`. Paths below have been updated. The Vercel/GitHub targets described here refer to
+> the temporary WCC deployment and are **not** the current 8br.gg configuration.
 
 > **Stack reality:** WCC is a Next.js + Payload CMS + PostgreSQL app. It runs on Vercel (Node), **not**
 > on WordPress. cueverse.net's DNS will be repointed from WordPress to Vercel — see Step 8's warning.
@@ -46,7 +51,7 @@ Nothing here is wired to 8br: no git remote, no `.vercel`, no live `.env`, no Bl
 3. Point this local copy at the new repo and push all history (89 commits):
 
    ```bash
-   cd /c/Users/Cerebro/Documents/WCC
+   cd /c/Claude/8BR
    git remote add origin https://github.com/<your-user>/cueverse-wcc.git
    git branch -M main
    git push -u origin main

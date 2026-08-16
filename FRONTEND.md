@@ -155,8 +155,9 @@ generic `ConfidenceBadge` (`components/confidence-badge.tsx`).
 
 Unlike earlier phases, player pages use **real WCC archive data as preview
 content** (to make the site feel authentic pre-import) — never fabricated. A curated
-snapshot of ~10 players was extracted (read-only) from
-`Documents\Cueverse Prime\archive_viewer` into
+snapshot of ~10 players was extracted (read-only) from what was then
+`Documents\Cueverse Prime\archive_viewer` (that folder was deleted 2026-08-16; the viewer now lives at
+`C:\Claude\Archive Viewer`) into
 `src/lib/preview-data/archive-players.json`, loaded via typed helpers in
 `src/lib/preview-players.ts` (`getPlayerPreview`, `getPlayerPreviewSlugs`,
 `getPlayerIndex`). Shapes mirror the future Prisma models (Player, PlayerAlias,
@@ -312,10 +313,16 @@ link across the site now resolves (no broken preview routes).
 
 ## How to preview locally
 
-From the project root (`C:\Users\Cerebro\Documents\8BR`):
+From the project root (`C:\Claude\8BR`), the launcher starts the contained database and then the site:
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/db/start-db.ps1
+```powershell
+.\dev.ps1
+```
+
+Or run the two steps separately:
+
+```powershell
+.\scripts\db\db-start.ps1
 ```
 ```bash
 npm run dev

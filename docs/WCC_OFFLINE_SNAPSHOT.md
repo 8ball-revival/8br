@@ -17,8 +17,9 @@ product** with brand-new accounts, database, and services.
 | | |
 |---|---|
 | **Snapshot date** | 2026-08-15 |
-| **Original project path** | `C:\Users\Cerebro\Documents\8BR` (unchanged — still the live 8br.gg working project) |
-| **WCC snapshot path** | `C:\Users\Cerebro\Documents\WCC` |
+| **Original project path** | *(historical)* `C:\Users\Cerebro\Documents\8BR` — **deleted 2026-08-16** |
+| **WCC snapshot path** | *(historical)* `C:\Users\Cerebro\Documents\WCC` — **deleted 2026-08-16** |
+| **Current project path** | `C:\Claude\8BR` — the canonical project, consolidated from the WCC snapshot |
 | **Git branch @ copy** | `wcc-rebrand-reset` |
 | **Git commit @ copy** | `2f433f5` — "CueVerse ID = canonical identity/login; fix format badge; merge Profile into member Overview" |
 | **Working tree at copy** | **Clean** (all work committed before copying) |
@@ -28,7 +29,7 @@ product** with brand-new accounts, database, and services.
 | **Node** | v24.18.1 (engines: `^18.20.2 || >=20.9.0`) |
 | **Package manager** | npm 11.16.0 |
 
-## Toolchain / commands (run from `C:\Users\Cerebro\Documents\WCC`)
+## Toolchain / commands (run from `C:\Claude\8BR`)
 
 | Task | Command |
 |---|---|
@@ -96,7 +97,10 @@ pg_restore --no-owner --no-privileges -d "postgresql://USER:PASS@HOST:PORT/wcc" 
 ## External local files copied in (made self-contained)
 
 These lived outside the project on this machine and are now **inside the snapshot**; the scripts that
-use them were repointed to these internal locations (see [absolute-path audit](#absolute-path-audit)):
+use them were repointed to these internal locations (see [absolute-path audit](#absolute-path-audit)).
+
+> The "From" column records where each file **originally** came from. Those source folders under
+> `Documents\` were deleted on 2026-08-16 — the copies inside this project are now the only ones.
 
 | Now at | From (original, historical) | Used by |
 |---|---|---|
@@ -142,7 +146,8 @@ WCC-internal path (edits made **only** in this copy):
 
 Remaining mentions of the old `Documents\Cueverse Prime\...` path are **historical documentation only**
 (`PROJECT_PLAN.md`, `FRONTEND.md`, and a parenthetical in `scripts/archive/README.md`) and are not a
-runtime/script/test dependency. Legitimate public URLs (CueVerse links, third-party docs) were left
+runtime/script/test dependency. That folder was deleted on 2026-08-16; the read-only viewer now lives
+at `C:\Claude\Archive Viewer`. Legitimate public URLs (CueVerse links, third-party docs) were left
 untouched.
 
 ## Future WCC ownership
@@ -156,9 +161,11 @@ including the ownership email**. You will need to create (do **not** create thes
 
 ## Opening this snapshot in a future Claude session
 
-1. Open the folder `C:\Users\Cerebro\Documents\WCC` as the project root.
+1. Open the folder `C:\Claude\8BR` as the project root.
 2. `npm install` (regenerates `node_modules` + Prisma client).
-3. Create a **new** Postgres database and restore `backups/wcc-frozen-local-2026-08-15.dump` into it.
+3. The project now carries its **own** contained PostgreSQL cluster — run `.\dev.ps1`, which starts it
+   and then the site. (Historically this step meant creating a new database by hand and restoring
+   `backups/wcc-frozen-local-2026-08-15.dump` into it.)
 4. Copy `.env.example` → `.env` and fill in **new** WCC values (new DB, new `PAYLOAD_SECRET`, etc.).
 5. `npm run dev`. Visit `/setup` to create the first owner (only works while no account exists) — or
    sign in with a restored account.

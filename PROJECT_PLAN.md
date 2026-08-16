@@ -5,7 +5,8 @@
 
 > Status: **APPROVED ARCHITECTURE — initialization in progress.**
 > Stack approved by owner: TypeScript · Next.js (App Router) · PostgreSQL · Payload CMS 3 (embedded) · Tailwind CSS · shadcn/ui.
-> All work confined to `C:\Users\Cerebro\Documents\8BR`. Updated 2026-07-29 to reflect confirmed brand, competition model, navigation, and homepage direction.
+> All work confined to the project root, now `C:\Claude\8BR`. Updated 2026-07-29 to reflect confirmed brand, competition model, navigation, and homepage direction.
+> *(Path updated 2026-08-16: the original `C:\Users\Cerebro\Documents\8BR` folder was deleted after consolidation.)*
 
 ---
 
@@ -13,7 +14,7 @@
 
 | Item | Result |
 |---|---|
-| Working folder | `C:\Users\Cerebro\Documents\8BR` (no nested WCC folder) |
+| Working folder | `C:\Claude\8BR` (no nested WCC folder) — *was `C:\Users\Cerebro\Documents\8BR`, deleted 2026-08-16* |
 | Node.js | v24.18.0 |
 | npm | 11.16.0 |
 | Git | 2.55.0.windows.2 |
@@ -110,7 +111,7 @@ Color scheme (black-and-gold) is **not locked in**.
 ## 7. Data & legacy archive strategy
 
 **Source (reference only, never modified, never a production data source):**
-`C:\Users\Cerebro\Documents\Cueverse Prime\archive_viewer\` — a mature, already-normalized CSV export (the read-only inspection tool stays untouched). It contains ~1,948 canonical players, 5,572 aliases already linked, 48 seasons, 94 season-divisions, 634 groups, 10,765 group matches, full playoffs/brackets, head-to-head, per-season & career stats, achievements, Hall of Fame, and a **corrections seed** (`player_merges.csv`, `player_splits.csv` with review notes/dates).
+`C:\Claude\Archive Viewer\` — a mature, already-normalized CSV export (the read-only inspection tool stays untouched). *(Originally `C:\Users\Cerebro\Documents\Cueverse Prime\archive_viewer\`, deleted 2026-08-16. A self-contained copy of the CSVs also lives in this repo at `archive/cueverse-prime/`.)* It contains ~1,948 canonical players, 5,572 aliases already linked, 48 seasons, 94 season-divisions, 634 groups, 10,765 group matches, full playoffs/brackets, head-to-head, per-season & career stats, achievements, Hall of Fame, and a **corrections seed** (`player_merges.csv`, `player_splits.csv` with review notes/dates).
 
 **Rules:**
 - The WCC app **imports validated snapshots** into PostgreSQL; it never reads those CSVs as a live production source.
@@ -187,6 +188,8 @@ WCC/
 
 ## 13. Guardrails honored this phase
 
-- Work only inside `C:\Users\Cerebro\Documents\8BR`; no nested WCC folder.
-- Source data at `Documents\Cueverse Prime\archive_viewer` is **not** modified and **not** wired as a production source.
+- Work only inside the project root (`C:\Claude\8BR`); no nested WCC folder.
+- Archive source data is **not** modified and **not** wired as a production source. *(At the time this
+  was written the source was `Documents\Cueverse Prime\archive_viewer`, deleted 2026-08-16; it is now
+  `C:\Claude\Archive Viewer`, with an in-repo copy at `archive/cueverse-prime/`.)*
 - No homepage sections built; no fake player/ranking/match/competition data; no unnecessary packages.

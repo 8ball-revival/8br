@@ -44,7 +44,7 @@ decision on `previous` and appends to history — nothing is overwritten. The da
 | `data/reviewed-staging/` | derived layer: staging + approved decisions (staging never modified) |
 | `reports/archive/` | validation + review reports (Markdown) + machine-readable JSON |
 | `src/app/(internal)/archive-review/` | the authenticated review dashboard (route `/archive-review`) |
-| source (read-only) | `archive/cueverse-prime/data/csv` (+ `corrections/`) — self-contained in this WCC snapshot (originally `Documents/Cueverse Prime/archive_viewer/...`) |
+| source (read-only) | `archive/cueverse-prime/data/csv` (+ `corrections/`) — self-contained in this repo (formerly copied from `Documents/Cueverse Prime/archive_viewer/...`, which was deleted 2026-08-16) |
 
 Override the source with `ARCHIVE_SOURCE_DIR` / `ARCHIVE_CORRECTIONS_DIR`.
 
