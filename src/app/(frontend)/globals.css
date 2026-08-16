@@ -2,7 +2,8 @@
 
 /*
   8 Ball Registry (8BR) — public (frontend) design system.
-  Premium competitive aesthetic: deep black, charcoal surfaces, crimson accent.
+  Premium competitive aesthetic: charcoal-black grounds, dark elevated surfaces, gold accent.
+  Palette recovered verbatim from the deployed 8br.gg theme (commit 7529a31).
   Dark is the default (tokens in :root); `.light` overrides for the optional light theme, toggled
   from the header. The <html> class is set before paint (no flash — see layout.tsx). All colors are
   design tokens — retune the whole site by editing these values in one place.
@@ -13,164 +14,155 @@
 :root {
   --radius: 0.5rem;
 
-  /* ---- 8BR palette (single dark theme) ---- */
-  --background: #000000; /* page background — flat matte black, no image or texture */
-  --foreground: #ffffff; /* primary text */
+  /* ---- Dark theme (default) — the 8br.gg palette, recovered verbatim from the deployed
+     commit 7529a31. Charcoal-black grounds, dark elevated surfaces, gold accent, white
+     primary text, muted-gray secondary text, subtle neutral borders. Values stay in oklch
+     so hue/chroma/lightness relationships hold when a colour is mixed or tinted. ---- */
+  --background: oklch(0.165 0.006 265); /* page ground — near-black charcoal */
+  --foreground: oklch(0.96 0.004 260); /* primary text — white */
 
-  --surface: #0d0d0d; /* primary surface */
-  --card: #171717; /* elevated cards / panels */
-  --card-foreground: #ffffff;
+  --surface: oklch(0.185 0.007 265); /* first elevation above the page */
+  --card: oklch(0.205 0.007 265); /* elevated cards / panels */
+  --card-foreground: oklch(0.96 0.004 260);
 
-  --popover: #171717;
-  --popover-foreground: #ffffff;
+  --popover: oklch(0.185 0.007 265);
+  --popover-foreground: oklch(0.96 0.004 260);
 
-  /* Crimson accent */
-  --primary: #c8102e;
-  --primary-foreground: #ffffff;
-  --primary-hover: #e31b3d;
+  /* Gold accent — the single brand colour. */
+  --primary: oklch(0.8 0.125 84);
+  --primary-foreground: oklch(0.18 0.02 80); /* dark ink on gold */
+  --primary-hover: oklch(0.87 0.1 88);
 
-  --secondary: #1a1a1a;
-  --secondary-foreground: #ffffff;
+  --secondary: oklch(0.245 0.007 265);
+  --secondary-foreground: oklch(0.96 0.004 260);
 
-  --muted: #171717;
+  --muted: oklch(0.245 0.007 265);
 
-  /* Group-stage Discord contact row (dark): opaque matte bg, subtle red-brown borders, muted-silver
-     icons; blurple on icon hover/focus. */
-  --discord-row-bg: #160c0f;
-  --discord-row-border: #32171d;
-  --discord-icon: #8b8d93;
+  /* Group-stage Discord contact row: neutral dark surface + border; the icon active state
+     keeps Discord's own blurple, which is their brand, not ours. */
+  --discord-row-bg: oklch(0.205 0.007 265);
+  --discord-row-border: oklch(0.28 0.007 265);
+  --discord-icon: oklch(0.7 0.01 265);
   --discord-icon-active: #5865f2;
-  --muted-foreground: #a3a3a3; /* secondary text */
+  --muted-foreground: oklch(0.7 0.01 265); /* secondary text — muted gray */
 
-  --accent: #1f1f1f; /* hover surface */
-  --accent-foreground: #ffffff;
+  --accent: oklch(0.27 0.008 265); /* hover surface */
+  --accent-foreground: oklch(0.96 0.004 260);
 
-  /* Semantic status (kept distinct from the brand crimson) */
-  --destructive: #e5484d;
-  --destructive-foreground: #ffffff;
-  --success: #22c55e;
-  --warning: #f59e0b;
+  /* Semantic status. Red is reserved for destructive/error meaning only — never brand. */
+  --destructive: oklch(0.62 0.2 25);
+  --destructive-foreground: oklch(0.98 0.004 260);
+  --success: oklch(0.7 0.14 155);
+  --warning: oklch(0.8 0.13 84);
 
-  --border: #2a2a2a;
-  --input: #2a2a2a;
-  --ring: #e31b3d; /* visible crimson focus ring */
+  --border: oklch(0.28 0.007 265);
+  --input: oklch(0.28 0.007 265);
+  --ring: oklch(0.8 0.125 84); /* gold focus ring */
 
-  /* Bracket match rows: winner = near-black fill; loser = transparent (the row shows the plain card
-     behind it, no grey highlight) so only the advancing side is emphasized. */
-  --bkt-winner-bg: #0c0c0d;
+  /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
+     so only the advancing side is emphasised. */
+  --bkt-winner-bg: oklch(0.205 0.007 265);
   --bkt-loser-bg: transparent;
 
-  /* Navigation surface (header/footer). Its own tokens so a personal theme can retint the nav
-     without disturbing the page — 8BR default keeps them equal to the base surfaces. */
-  --nav-bg: #050505;
-  --nav-foreground: #ffffff;
-  --nav-border: #2a2a2a;
+  /* Navigation surface (header/footer). Own tokens so a personal theme can retint the nav
+     without disturbing the page; the 8br.gg default keeps it level with the page ground. */
+  --nav-bg: oklch(0.165 0.006 265);
+  --nav-foreground: oklch(0.96 0.004 260);
+  --nav-border: oklch(0.28 0.007 265);
 
-  /* Brand accents (used for emphasis, headings, active states) */
-  --brand: #c8102e;
-  --brand-hover: #e31b3d;
-  --brand-soft: #e31b3d;
-  --brand-dim: #9b0c23;
+  /* Brand accents (emphasis, headings, active states) — gold, matching --primary. */
+  --brand: oklch(0.8 0.125 84);
+  --brand-hover: oklch(0.87 0.1 88);
+  --brand-soft: oklch(0.87 0.1 88);
+  --brand-dim: oklch(0.62 0.1 80);
 
-  /* Fixed competitive-result semantics — 8BR-controlled, never overridden by a personal theme, so a
-     winner/loser reads consistently under every theme. */
-  --win: #c8102e;
-  --loss: #a3a3a3;
+  /* Competitive-result semantics: the winner reads gold, the loser recedes to muted. */
+  --win: oklch(0.8 0.125 84);
+  --loss: oklch(0.7 0.01 265);
 
-  /* Gold used for clickable player names (e.g. the group crosstable). Themed per mode for contrast. */
-  --player-name: #d4a94a;
+  /* Clickable player names (e.g. the group crosstable). */
+  --player-name: oklch(0.8 0.125 84);
 
-  /* Themed scrollbars — single source of truth (see .scrollbar-themed). Dark: near-black track, dark
-     gray thumb, crimson hover. */
-  --scrollbar-track: #0a0a0a;
-  --scrollbar-thumb: #3a3a3a;
-  --scrollbar-thumb-hover: var(--brand);
+  /* Themed scrollbars (see .scrollbar-themed): dark track, neutral thumb, gold on hover. */
+  --scrollbar-track: oklch(0.165 0.006 265);
+  --scrollbar-thumb: oklch(0.28 0.007 265);
+  --scrollbar-thumb-hover: var(--gold);
 
-  /* A real gold, sampled from the 8BR logo artwork and lifted for legibility on black. Used for
-     the homepage hero's welcome line and second headline line. Kept separate from the `--gold`
-     aliases below, which are back-compat pointers at the crimson brand colour. */
-  --hero-gold: #dda94a;
+  --gold: oklch(0.8 0.125 84);
+  --gold-soft: oklch(0.87 0.1 88);
+  --gold-dim: oklch(0.62 0.1 80);
 
-  /* Back-compat aliases: legacy `gold` tokens now resolve to the 8BR crimson so any
-     not-yet-migrated `*-gold` utility renders on-brand. Prefer the `brand` tokens. */
-  --gold: var(--brand);
-  --gold-soft: var(--brand-soft);
-  --gold-dim: var(--brand-dim);
-
-  --chart-1: #c8102e;
-  --chart-2: #e31b3d;
-  --chart-3: #a3a3a3;
-  --chart-4: #6b7280;
-  --chart-5: #f59e0b;
+  --chart-1: oklch(0.8 0.125 84);
+  --chart-2: oklch(0.7 0.13 200);
+  --chart-3: oklch(0.68 0.15 300);
+  --chart-4: oklch(0.72 0.15 150);
+  --chart-5: oklch(0.7 0.16 25);
 }
 
-/* ---- Light theme (opt-in via the header toggle) ----
-   Inspired by the classic Yahoo Pool lobby: warm cream page, olive nav bar, tan/gray panels, muted
-   gold highlight, dark readable text — but keeping 8BR's crimson as the interactive accent. */
+/* ---- Light theme (opt-in via the header toggle) — the 8br.gg light palette from 7529a31:
+   near-white page, white cards, a deeper gold that holds contrast on light grounds. ---- */
 .light {
-  --background: #f3efe0; /* warm cream page */
-  --foreground: #2a2a20; /* dark olive-black text */
+  --background: oklch(0.99 0.003 260);
+  --foreground: oklch(0.2 0.006 265);
 
-  --surface: #e7e2cf; /* muted warm gray panel (like the lobby data rows) */
-  --card: #fbf9ef; /* pale cream raised panel */
-  --card-foreground: #2a2a20;
+  --surface: oklch(0.96 0.004 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.006 265);
 
-  --popover: #fbf9ef;
-  --popover-foreground: #2a2a20;
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.006 265);
 
-  /* 8BR crimson stays the accent; hover darkens on the light ground */
-  --primary: #c8102e;
-  --primary-foreground: #ffffff;
-  --primary-hover: #a80d27;
+  --primary: oklch(0.62 0.12 74);
+  --primary-foreground: oklch(0.99 0.004 90);
+  --primary-hover: oklch(0.55 0.1 74);
 
-  --secondary: #e2ddc8;
-  --secondary-foreground: #2a2a20;
+  --secondary: oklch(0.96 0.004 260);
+  --secondary-foreground: oklch(0.22 0.006 265);
 
-  --muted: #e7e2cf;
+  --muted: oklch(0.96 0.004 260);
 
-  /* Group-stage Discord contact row (light): pale crimson-gray bg + borders, muted icons; blurple stays. */
-  --discord-row-bg: #f4eaed;
-  --discord-row-border: #e3cdd2;
-  --discord-icon: #62646a;
+  --discord-row-bg: oklch(0.96 0.004 260);
+  --discord-row-border: oklch(0.9 0.004 260);
+  --discord-icon: oklch(0.48 0.008 265);
   --discord-icon-active: #5865f2;
-  --muted-foreground: #6a6650; /* olive-gray, ≥ AA on cream */
+  --muted-foreground: oklch(0.48 0.008 265);
 
-  --accent: #e0dac2; /* hover surface */
-  --accent-foreground: #2a2a20;
+  --accent: oklch(0.95 0.006 260);
+  --accent-foreground: oklch(0.22 0.006 265);
 
-  --destructive: #c0392b;
-  --destructive-foreground: #ffffff;
-  --success: #3f7d3f;
-  --warning: #b06d13;
+  --destructive: oklch(0.58 0.21 27);
+  --destructive-foreground: oklch(0.99 0.004 260);
+  --success: oklch(0.55 0.14 155);
+  --warning: oklch(0.62 0.13 74);
 
-  --border: #cdc7ac; /* tan divider */
-  --input: #cdc7ac;
-  --ring: #c8102e;
+  --border: oklch(0.9 0.004 260);
+  --input: oklch(0.9 0.004 260);
+  --ring: oklch(0.62 0.12 74);
 
-  /* Bracket two-tone for the cream theme: winner = darker tan, loser = lighter cream (dark text stays readable). */
-  --bkt-winner-bg: #cbc39f;
-  --bkt-loser-bg: #f4eede;
+  --bkt-winner-bg: oklch(0.95 0.006 260);
+  --bkt-loser-bg: transparent;
 
-  /* Olive nav bar with cream text (the Yahoo top-bar cue) */
-  --nav-bg: #5f6136;
-  --nav-foreground: #f3efe0;
-  --nav-border: #4c4e2a;
+  --nav-bg: oklch(0.99 0.003 260);
+  --nav-foreground: oklch(0.2 0.006 265);
+  --nav-border: oklch(0.9 0.004 260);
 
-  --brand: #c8102e;
-  --brand-hover: #a80d27;
-  --brand-soft: #c9a24a; /* muted-gold highlight */
-  --brand-dim: #9b0c23;
+  --brand: oklch(0.62 0.12 74);
+  --brand-hover: oklch(0.55 0.1 74);
+  --brand-soft: oklch(0.7 0.12 78);
+  --brand-dim: oklch(0.55 0.1 74);
 
-  /* Fixed result semantics stay meaningful on light too */
-  --win: #c8102e;
-  --loss: #6a6650;
+  --win: oklch(0.62 0.12 74);
+  --loss: oklch(0.48 0.008 265);
 
+  --player-name: oklch(0.55 0.1 74);
 
-  --player-name: #8a6a12; /* darker gold, readable on cream */
+  --scrollbar-track: oklch(0.96 0.004 260);
+  --scrollbar-thumb: oklch(0.9 0.004 260);
+  --scrollbar-thumb-hover: var(--gold);
 
-  /* Light: light-gray track, medium-gray thumb, crimson hover (brand is crimson in both themes). */
-  --scrollbar-track: #e3e3e7;
-  --scrollbar-thumb: #b0b0b8;
+  --gold: oklch(0.62 0.12 74);
+  --gold-soft: oklch(0.7 0.12 78);
+  --gold-dim: oklch(0.55 0.1 74);
 }
 
 @theme inline {
@@ -211,11 +203,10 @@
   --color-brand-dim: var(--brand-dim);
   --color-win: var(--win);
   --color-loss: var(--loss);
-  /* Legacy gold utilities → crimson */
-  --color-gold: var(--brand);
-  --color-gold-soft: var(--brand-soft);
-  --color-gold-dim: var(--brand-dim);
-  --color-hero-gold: var(--hero-gold);
+  /* Gold utilities map to the gold tokens (brand IS gold, so these agree by construction). */
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-dim: var(--gold-dim);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -288,12 +279,13 @@
   .bracket-loser-row {
     background-color: var(--bkt-loser-bg);
   }
-  /* Loser NAME: plain red (no glow). Winners stay bold white — see the component. */
+  /* Loser NAME recedes to the muted result token; winners stay bold white — see the component.
+     Red is reserved for destructive/error meaning, never for a losing side. */
   .bracket-loser-name {
-    color: #ff2d46;
+    color: var(--loss);
   }
 
-  /* Subtle crimson text-gradient for hero wordmarks (no heavy glow). */
+  /* Subtle gold text-gradient for hero wordmarks (no heavy glow). */
   .text-brand-gradient,
   .text-gold-gradient {
     background: linear-gradient(180deg, var(--brand-soft), var(--brand-dim));
@@ -347,7 +339,7 @@
     background-size: 44px 44px;
   }
 
-  /* Black-track, crimson-thumb scrollbar for scrollable panels */
+  /* Black-track, gold-thumb scrollbar for scrollable panels */
   .scrollbar-brand,
   .scrollbar-gold {
     scrollbar-width: thin;

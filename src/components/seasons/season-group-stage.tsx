@@ -179,7 +179,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
           <thead>
             <tr>
               <th scope="col" rowSpan={2} className={`${th} sticky left-0 top-0 z-30 bg-surface`}>
-                <span className="font-display text-base font-bold" style={{ color: '#ff2d46' }}>{group.name || `Group ${group.code}`}</span>
+                <span className="font-display text-base font-bold" style={{ color: 'var(--gold)' }}>{group.name || `Group ${group.code}`}</span>
               </th>
               {rows.map((p) => (
                 <th key={p.entrantId} scope="col" className={`${th} sticky top-0 z-20 bg-surface font-medium`}>

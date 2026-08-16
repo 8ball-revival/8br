@@ -11,7 +11,7 @@ import type { CreateSeasonConfig } from '@/lib/seasons/service'
 
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
-const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[#d6ae42]'
+const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[var(--gold)]'
 
 /** Create Season — the standalone Season creation form (individual 1v1 only, no format selector, no
  *  groups/qualifiers/bracket-type decisions; those happen later in the Season lifecycle). */
@@ -62,14 +62,14 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-[#8a6d24] bg-surface">
+      <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-[var(--gold-dim)] bg-surface">
         {/* Identity */}
         <section className="p-6">
-          <p className={eyebrow}><Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463]" aria-hidden /> Season Identity</p>
+          <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Season Identity</p>
           <div className="mt-4 space-y-4">
-            <div className="rounded-md border border-[#8a6d24]/50 bg-[#d6ae42]/[0.05] px-3 py-2.5 text-sm">
+            <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.05] px-3 py-2.5 text-sm">
               <span className="text-muted-foreground">Official title: </span>
-              <span className="font-display font-bold text-[#e6c463]">{officialTitle}</span>
+              <span className="font-display font-bold text-[var(--gold-soft)]">{officialTitle}</span>
               <p className="mt-1 text-[0.7rem] text-muted-foreground/70">Assigned automatically from the sequence and year.</p>
             </div>
             <Labeled label="Custom subtitle" hint="optional">
@@ -83,7 +83,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
         {/* Match format */}
         <section className="p-6">
-          <p className={eyebrow}><Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463]" aria-hidden /> Match Format</p>
+          <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Match Format</p>
           <p className="mt-1 text-xs text-muted-foreground">Intended match lengths / labels — never enforced as required winning scores.</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <RaceField label="Group-stage games" value={groupStageGames} onChange={setGroupStageGames} />
@@ -95,7 +95,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
         {/* Basics */}
         <section className="p-6">
-          <p className={eyebrow}><Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463]" aria-hidden /> Basics</p>
+          <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Basics</p>
           <div className="mt-4 space-y-4">
             <Labeled label="Lounge">
               <select value={lounge} onChange={(e) => setLounge(e.target.value)} className={input}>
@@ -114,7 +114,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
         {/* Access */}
         <section className="p-6">
-          <p className={eyebrow}><Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463]" aria-hidden /> Registration Access</p>
+          <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Registration Access</p>
           <Labeled label="Who can register" className="mt-4">
             <Segmented options={[{ v: 'OPEN', l: 'Open to all' }, { v: 'PASSWORD', l: 'Password required' }]} value={access} onChange={(v) => setAccess(v as 'OPEN' | 'PASSWORD')} />
           </Labeled>
@@ -127,7 +127,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
         {/* Schedule */}
         <section className="p-6">
-          <p className={eyebrow}><Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463]" aria-hidden /> Registration Schedule</p>
+          <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Registration Schedule</p>
           <Labeled label="When registration opens" className="mt-4">
             <Segmented options={[{ v: 'now', l: 'Open now' }, { v: 'later', l: 'Schedule for later' }]} value={scheduleLater ? 'later' : 'now'} onChange={(v) => setScheduleLater(v === 'later')} />
           </Labeled>
@@ -142,11 +142,11 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
 
       {/* Review rail */}
       <div>
-        <div className="sticky top-4 overflow-hidden rounded-xl border border-[#8a6d24] bg-surface">
+        <div className="sticky top-4 overflow-hidden rounded-xl border border-[var(--gold-dim)] bg-surface">
           <div className="border-b border-border/60 p-5">
-            <h3 className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#d6ae42]">Review</h3>
-            <p className="font-display text-lg font-bold text-[#f5f1e6]">{subtitle.trim() || officialTitle}</p>
-            {subtitle.trim() && <p className="text-sm font-semibold text-[#d6ae42]">{officialTitle}</p>}
+            <h3 className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[var(--gold)]">Review</h3>
+            <p className="font-display text-lg font-bold text-foreground">{subtitle.trim() || officialTitle}</p>
+            {subtitle.trim() && <p className="text-sm font-semibold text-[var(--gold)]">{officialTitle}</p>}
           </div>
           <dl className="px-5 py-1 text-sm">
             <Row k="Groups" v="Group-stage games " s={`${groupStageGames}`} />
@@ -158,7 +158,7 @@ export function CreateSeasonForm({ nextNumber, year }: { nextNumber: number; yea
           </dl>
           <div className="flex flex-col gap-2 p-5">
             {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-            <Button onClick={submit} disabled={pending} className="bg-[#d6ae42] text-black hover:bg-[#e6c463]">
+            <Button onClick={submit} disabled={pending} className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]">
               <Diamond className="size-4" /> {pending ? 'Creating…' : 'Create Season'}
             </Button>
             <p className="text-center text-[0.7rem] text-muted-foreground/60">A Season number is assigned automatically. Groups, qualifiers and bracket type are decided later.</p>
@@ -206,7 +206,7 @@ function Row({ k, v, s, last }: { k: string; v: string; s?: string; last?: boole
   return (
     <div className={cn('flex justify-between gap-3 py-2.5 text-sm', !last && 'border-b border-border/50')}>
       <dt className="text-muted-foreground">{k}</dt>
-      <dd className="text-right font-semibold">{v}{s && <span className="tabular-nums text-[#d6ae42]">{s}</span>}</dd>
+      <dd className="text-right font-semibold">{v}{s && <span className="tabular-nums text-[var(--gold)]">{s}</span>}</dd>
     </div>
   )
 }

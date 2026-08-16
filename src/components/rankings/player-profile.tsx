@@ -82,7 +82,7 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
           <Stat label="Tournaments" value={profile.tournamentsPlayed} />
           <Stat label="Tournament Wins" value={
             (a?.trophies.length ?? 0) === 0 ? <span className="text-muted-foreground/60">—</span>
-              : <span className="inline-flex items-center gap-1">{Math.min(a!.trophies.length, 5) && [...Array(Math.min(a!.trophies.length, 5))].map((_, i) => <Trophy key={i} className="size-4" style={{ color: '#d4a94a' }} />)}{a!.trophies.length > 5 && <span className="text-sm">×{a!.trophies.length}</span>}</span>
+              : <span className="inline-flex items-center gap-1">{Math.min(a!.trophies.length, 5) && [...Array(Math.min(a!.trophies.length, 5))].map((_, i) => <Trophy key={i} className="size-4" style={{ color: 'var(--gold)' }} />)}{a!.trophies.length > 5 && <span className="text-sm">×{a!.trophies.length}</span>}</span>
           } />
           <Stat label="Record (W–L)" value={a ? `${a.wins}–${a.losses}` : '—'} />
           <Stat label="Win %" value={a ? `${a.winPct.toFixed(1)}%` : '—'} />
@@ -109,7 +109,7 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
                   <td className="px-2.5 py-2 text-muted-foreground">{t.teamName ?? '—'}</td>
                   <td className="px-2.5 py-2 text-center tabular">{t.wins}–{t.losses}{t.draws ? `–${t.draws}` : ''}</td>
                   <td className={cn('px-2.5 py-2 text-center tabular', t.ratingChange > 0 ? 'text-success' : t.ratingChange < 0 ? 'text-destructive' : 'text-muted-foreground')}>{signed(t.ratingChange)}</td>
-                  <td className="px-2.5 py-2 text-center">{t.wonTournament ? <span className="inline-flex items-center gap-1 font-medium text-foreground"><Trophy className="size-3.5" style={{ color: '#d4a94a' }} /> Champion</span> : <span className="text-muted-foreground">{t.placement ?? '—'}</span>}</td>
+                  <td className="px-2.5 py-2 text-center">{t.wonTournament ? <span className="inline-flex items-center gap-1 font-medium text-foreground"><Trophy className="size-3.5" style={{ color: 'var(--gold)' }} /> Champion</span> : <span className="text-muted-foreground">{t.placement ?? '—'}</span>}</td>
                 </tr>
               ))}
             </tbody>

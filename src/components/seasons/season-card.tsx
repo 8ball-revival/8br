@@ -15,33 +15,33 @@ export function SeasonCard({ season }: { season: SeasonSummary }) {
   return (
     <Link
       href={`/seasons/${season.number}`}
-      className="group relative block overflow-hidden rounded-xl border border-[#8a6d24] bg-[#0c0c0d] p-5 shadow-[0_0_0_1px_rgba(198,161,91,0.12)] transition-shadow hover:shadow-[0_0_22px_-4px_rgba(214,174,66,0.45)]"
+      className="group relative block overflow-hidden rounded-xl border border-[var(--gold-dim)] bg-card p-5 shadow-[0_0_0_1px_color-mix(in_oklch,var(--gold)_12%,transparent)] transition-shadow hover:shadow-[0_0_22px_-4px_color-mix(in_oklch,var(--gold)_45%,transparent)]"
     >
       {/* Brighter gold left edge. */}
-      <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#f0d283] via-[#d6ae42] to-[#8a6d24]" />
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[var(--gold-soft)] via-[var(--gold)] to-[var(--gold-dim)]" />
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[#d6ae42]">
-            <Diamond className="size-3 shrink-0 fill-[#e6c463] text-[#e6c463] drop-shadow-[0_0_5px_rgba(230,196,99,0.8)]" aria-hidden />
+          <p className="flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--gold)]">
+            <Diamond className="size-3 shrink-0 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_5px_rgba(230,196,99,0.8)]" aria-hidden />
             Season Championship
           </p>
-          <h3 className="mt-2 truncate font-display text-xl font-bold text-[#f5f1e6]">
+          <h3 className="mt-2 truncate font-display text-xl font-bold text-foreground">
             {season.subtitle?.trim() || season.title}
           </h3>
           {season.subtitle?.trim() && (
-            <p className="truncate text-sm font-semibold text-[#d6ae42]">{season.title}</p>
+            <p className="truncate text-sm font-semibold text-[var(--gold)]">{season.title}</p>
           )}
         </div>
         {!season.subtitle?.trim() && (
-          <span className="shrink-0 rounded-full border border-[#8a6d24]/60 px-2.5 py-1 text-[0.65rem] font-semibold text-[#d6ae42]">
+          <span className="shrink-0 rounded-full border border-[var(--gold-dim)]/60 px-2.5 py-1 text-[0.65rem] font-semibold text-[var(--gold)]">
             #{season.number}
           </span>
         )}
       </div>
 
       {/* Subtle gold divider. */}
-      <div aria-hidden className="my-4 h-px bg-gradient-to-r from-[#8a6d24]/70 via-[#8a6d24]/25 to-transparent" />
+      <div aria-hidden className="my-4 h-px bg-gradient-to-r from-[var(--gold-dim)]/70 via-[var(--gold-dim)]/25 to-transparent" />
 
       {season.isCompleted ? (
         <dl className="space-y-1.5 text-sm">
@@ -51,8 +51,8 @@ export function SeasonCard({ season }: { season: SeasonSummary }) {
         </dl>
       ) : (
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#8a6d24]/50 bg-[#d6ae42]/[0.06] px-2.5 py-1 text-xs font-semibold text-[#e6c463]">
-            <span className="size-1.5 rounded-full bg-[#e6c463]" /> {SEASON_STATE_LABEL[season.lifecycleState]}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.06] px-2.5 py-1 text-xs font-semibold text-[var(--gold-soft)]">
+            <span className="size-1.5 rounded-full bg-[var(--gold-soft)]" /> {SEASON_STATE_LABEL[season.lifecycleState]}
           </span>
           <span className="text-muted-foreground">{phase}</span>
         </div>
@@ -65,7 +65,7 @@ function Row({ k, v, gold }: { k: string; v: string; gold?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
       <dt className="text-muted-foreground">{k}</dt>
-      <dd className={gold ? 'truncate font-semibold text-[#e6c463]' : 'truncate font-medium text-[#f5f1e6]'}>{v}</dd>
+      <dd className={gold ? 'truncate font-semibold text-[var(--gold-soft)]' : 'truncate font-medium text-foreground'}>{v}</dd>
     </div>
   )
 }

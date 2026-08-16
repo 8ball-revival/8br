@@ -50,10 +50,10 @@ function Diamonds({ seasons }: { seasons: SeasonTrophyView[] }) {
     <span className="inline-flex items-center gap-0.5" aria-label={`${seasons.length} Season Championship${seasons.length === 1 ? '' : 's'}`}>
       {seasons.slice(0, 5).map((s) => (
         <Link key={s.seasonNumber} href={s.slug} title={s.title} className="transition-transform hover:scale-110">
-          <Diamond className="size-3.5 fill-[#e6c463] text-[#e6c463] drop-shadow-[0_0_4px_rgba(230,196,99,0.8)]" aria-hidden />
+          <Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_4px_rgba(230,196,99,0.8)]" aria-hidden />
         </Link>
       ))}
-      {seasons.length > 5 && <span className="tabular text-xs font-semibold text-[#e6c463]">×{seasons.length}</span>}
+      {seasons.length > 5 && <span className="tabular text-xs font-semibold text-[var(--gold-soft)]">×{seasons.length}</span>}
     </span>
   )
 }
@@ -65,7 +65,7 @@ function Trophies({ trophies }: { trophies: TrophyEntry[] }) {
     const list = trophies.map(fmt).join('\n')
     return (
       <span className="inline-flex items-center gap-0.5" title={list} aria-label={`${trophies.length} tournament wins`}>
-        <Trophy className="size-4" style={{ color: '#d4a94a' }} aria-hidden />
+        <Trophy className="size-4" style={{ color: 'var(--gold)' }} aria-hidden />
         <span className="tabular text-xs font-semibold text-foreground">×{trophies.length}</span>
       </span>
     )
@@ -74,7 +74,7 @@ function Trophies({ trophies }: { trophies: TrophyEntry[] }) {
     <span className="inline-flex items-center gap-0.5" aria-label={`${trophies.length} tournament win${trophies.length === 1 ? '' : 's'}`}>
       {trophies.map((t) => (
         <Link key={t.tournamentId} href={t.slug} title={fmt(t)} className="transition-transform hover:scale-110" aria-label={`Won ${t.name}`}>
-          <Trophy className="size-4" style={{ color: '#d4a94a' }} aria-hidden />
+          <Trophy className="size-4" style={{ color: 'var(--gold)' }} aria-hidden />
         </Link>
       ))}
     </span>

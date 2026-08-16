@@ -38,7 +38,7 @@ function Slot({ slot, won, dim, edit, matchId, side }: { slot?: BracketSlot; won
           authoritative match.winner, never from the scores). Decorative — the row already reads as the
           winner — so hidden from screen readers. Sits between the seed and the name. */}
       {won && slot?.name && (
-        <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0" style={{ color: '#D6AE42' }} />
+        <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} />
       )}
       <span className="min-w-0 flex-1">
         {hasMembers ? (
@@ -94,7 +94,7 @@ function Slot({ slot, won, dim, edit, matchId, side }: { slot?: BracketSlot; won
           aria-label={`${label} score`}
           className={cn(
             'h-6 w-10 shrink-0 self-center rounded border bg-card/70 text-center text-[0.85rem] tabular outline-none focus-visible:border-brand disabled:opacity-50',
-            edit!.dirty(matchId!) ? 'border-[#c8102e] ring-1 ring-[#c8102e]/40' : 'border-input',
+            edit!.dirty(matchId!) ? 'border-[var(--gold)] ring-1 ring-[var(--gold)]/40' : 'border-input',
           )}
         />
       ) : slot?.score != null ? (
@@ -125,7 +125,7 @@ export function MatchBox({ match, edit }: { match: BracketMatch; edit?: BracketE
         <div className="mt-1 flex items-center justify-between gap-2">
           {err ? <span className="text-[0.6rem] text-destructive">{err}</span> : <span />}
           {dirty && (
-            <button type="button" onClick={() => edit!.save(matchId!)} disabled={saving} aria-label="Save result" className="inline-flex items-center gap-1 rounded bg-[#c8102e] px-1.5 py-0.5 text-[0.6rem] font-semibold text-white hover:opacity-90 disabled:opacity-50">
+            <button type="button" onClick={() => edit!.save(matchId!)} disabled={saving} aria-label="Save result" className="inline-flex items-center gap-1 rounded bg-[var(--gold)] px-1.5 py-0.5 text-[0.6rem] font-semibold text-white hover:opacity-90 disabled:opacity-50">
               {saving ? <span className="size-2.5 animate-spin rounded-full border border-white/40 border-t-white" aria-hidden /> : <Check className="size-3" aria-hidden />} Save
             </button>
           )}

@@ -15,7 +15,7 @@ export default async function SetPasswordPage() {
 
   return (
     <Container className="max-w-md py-16">
-      <div className="rounded-xl border border-brand/40 bg-card/60 p-6" style={{ boxShadow: '0 0 0 1px rgba(200,16,46,0.35), 0 0 30px -10px rgba(200,16,46,0.4)' }}>
+      <div className="rounded-xl border border-brand/40 bg-card/60 p-6" style={{ boxShadow: '0 0 0 1px color-mix(in oklch, var(--gold) 35%, transparent), 0 0 30px -10px color-mix(in oklch, var(--gold) 40%, transparent)' }}>
         <p className="eyebrow text-brand">Security</p>
         <h1 className="mt-1 font-display text-2xl font-bold">Set a permanent password</h1>
         <p className="mt-2 text-sm text-muted-foreground">

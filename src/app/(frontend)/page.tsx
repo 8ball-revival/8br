@@ -82,10 +82,10 @@ export default async function HomePage() {
 
         <Wide className="relative flex min-h-[440px] flex-col justify-end py-12 sm:min-h-[480px] sm:py-14 lg:min-h-[560px] lg:py-20">
           <div className="relative">
-            <p className="eyebrow text-hero-gold">{hero.welcomeLine}</p>
+            <p className="eyebrow text-gold">{hero.welcomeLine}</p>
             <h1 className="mt-3 max-w-2xl text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
               <span className="block">{hero.headlineLine1}</span>
-              <span className="block text-hero-gold">{hero.headlineLine2}</span>
+              <span className="block text-gold">{hero.headlineLine2}</span>
             </h1>
             <p className="mt-4 max-w-xl text-lg text-foreground">{hero.description}</p>
             <p className="mt-3 max-w-xl text-muted-foreground">{hero.supportingSentence}</p>

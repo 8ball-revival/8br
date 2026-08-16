@@ -45,8 +45,8 @@ export function SeasonsList({ seasons }: { seasons: SeasonSummary[] }) {
       <Section title="Active & Upcoming" seasons={active} empty="No active or upcoming Seasons right now." />
 
       <div>
-        <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-[#e6c463]">
-          <Diamond className="size-4 fill-[#e6c463] text-[#e6c463] drop-shadow-[0_0_5px_rgba(230,196,99,0.7)]" aria-hidden />
+        <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-[var(--gold-soft)]">
+          <Diamond className="size-4 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_5px_rgba(230,196,99,0.7)]" aria-hidden />
           Season Championship History
         </h2>
         {completed.length === 0 ? (

@@ -45,7 +45,7 @@ export function CompetitionOversightView({ rows }: { rows: CompRow[] }) {
             {filtered.length === 0 && <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">No competitions match.</td></tr>}
             {filtered.map((r) => (
               <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
-                <td className="px-3 py-2"><span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', r.type === 'Season' ? 'bg-[#d6ae42]/15 text-[#d6ae42]' : 'bg-brand/15 text-brand')}>{r.type}</span></td>
+                <td className="px-3 py-2"><span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', r.type === 'Season' ? 'bg-[var(--gold)]/15 text-[var(--gold)]' : 'bg-brand/15 text-brand')}>{r.type}</span></td>
                 <td className="px-3 py-2 font-medium text-foreground">{r.name}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{r.code}</td>
                 <td className="px-3 py-2 text-xs">{r.phase}</td>

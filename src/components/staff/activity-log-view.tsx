@@ -13,7 +13,7 @@ import { ACTIVITY_CATEGORIES, type ActivityRow, type ActivityFilters } from '@/l
 const SEVERITIES = ['info', 'notice', 'warning', 'critical'] as const
 const sevClass: Record<string, string> = {
   info: 'bg-muted text-muted-foreground', notice: 'bg-sky-500/15 text-sky-400',
-  warning: 'bg-[#d6ae42]/15 text-[#d6ae42]', critical: 'bg-destructive/15 text-destructive',
+  warning: 'bg-[var(--gold)]/15 text-[var(--gold)]', critical: 'bg-destructive/15 text-destructive',
 }
 const input = 'rounded-md border border-input bg-card px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand'
 
@@ -66,7 +66,7 @@ export function ActivityLogView({ rows, total, page, pageSize, filters, canExpor
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <input type="checkbox" checked={!!filters.includeAutomated} onChange={(e) => setParam({ automated: e.target.checked ? '1' : undefined })} className="size-4 accent-[#c8102e]" />
+          <input type="checkbox" checked={!!filters.includeAutomated} onChange={(e) => setParam({ automated: e.target.checked ? '1' : undefined })} className="size-4 accent-[var(--gold)]" />
           Include System &amp; QA events
         </label>
         <div className="flex items-center gap-2">

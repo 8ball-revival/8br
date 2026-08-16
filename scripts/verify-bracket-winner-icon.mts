@@ -1,6 +1,6 @@
 /**
  * Renders playoff bracket cards to static markup and asserts the winner marker + loser styling:
- *  - a completed match's CONFIRMED winner gets exactly one muted-gold circle-check icon (and the
+ *  - a completed match's CONFIRMED winner gets exactly one gold circle-check icon (and the
  *    loser gets none);
  *  - loser names no longer carry `line-through`;
  *  - undecided / unplayed matches get no icon;
@@ -16,8 +16,9 @@ import type { BracketMatch } from '../src/lib/tournaments/service.ts'
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) } }
 const render = (match: BracketMatch) => renderToStaticMarkup(React.createElement(MatchBox, { match }))
-const GOLD = 'D6AE42'
-const countGold = (html: string) => (html.match(/D6AE42/g) ?? []).length
+// The winner marker is themed from the design token, not a hardcoded hex, so assert on the token.
+const GOLD = 'var(--gold)'
+const countGold = (html: string) => (html.match(/var\(--gold\)/g) ?? []).length
 
 // 1) Completed 1v1 match with a confirmed winner (a beats b).
 console.log('Completed match (a wins)')
@@ -26,7 +27,7 @@ console.log('Completed match (a wins)')
   const html = render(m)
   check('exactly one muted-gold circle-check icon', countGold(html) === 1, `found ${countGold(html)}`)
   check('icon uses the lucide circle-check icon', /lucide-circle-check|lucide-check-circle/i.test(html))
-  check('winner marker is decorative (aria-hidden)', /aria-hidden="true"[^>]*D6AE42|D6AE42[^>]*aria-hidden|aria-hidden/i.test(html))
+  check('winner marker is decorative (aria-hidden)', /aria-hidden/i.test(html))
   check('no line-through anywhere on the card', !/line-through/.test(html))
   check('both player profile links intact', html.includes('/players/alice') && html.includes('/players/bob'))
   check('scores preserved', html.includes('>7<') && html.includes('>3<'))

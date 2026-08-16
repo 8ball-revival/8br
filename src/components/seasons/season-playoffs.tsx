@@ -44,7 +44,7 @@ export function SeasonPlayoffs({
         {rounds.length > 0 ? <SeasonLiveBracket rounds={rounds} canManage={canManage} /> : <p className="text-sm text-muted-foreground">The bracket is being prepared.</p>}
         {canManage && canClose && (
           <div className="border-t border-border pt-4">
-            <Button className="bg-[#d6ae42] text-black hover:bg-[#e6c463]" disabled={pending} onClick={async () => {
+            <Button className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]" disabled={pending} onClick={async () => {
               const res = await confirm({
                 title: 'Close Season & Crown Champion?',
                 message: 'This crowns the champion, locks all group and playoff results, applies the Ladder ranking update (genuinely-played matches only — FF/KO/voided/no-contest excluded), and awards the Season Championship.',
@@ -95,7 +95,7 @@ export function SeasonPlayoffs({
           <tbody>
             {seeding.map((r) => (
               <tr key={r.entrantId} className="border-b border-border/50">
-                <td className="px-2 py-1.5 text-center font-semibold tabular-nums text-[#e6c463]">{r.overallSeed ?? '—'}</td>
+                <td className="px-2 py-1.5 text-center font-semibold tabular-nums text-[var(--gold-soft)]">{r.overallSeed ?? '—'}</td>
                 <td className="px-2 py-1.5">{r.name}{r.cueverseId && r.cueverseId !== r.name && <span className="ml-1.5 text-xs text-muted-foreground">{r.cueverseId}</span>}</td>
                 <td className="px-2 py-1.5 text-muted-foreground">{r.group}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.groupPosition}</td>
@@ -125,7 +125,7 @@ export function SeasonPlayoffs({
       </div>
 
       {canManage && (
-        <Button className="bg-[#d6ae42] text-black hover:bg-[#e6c463]" disabled={pending || !hasDraft} title={hasDraft ? undefined : 'Generate the bracket first.'} onClick={async () => {
+        <Button className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]" disabled={pending || !hasDraft} title={hasDraft ? undefined : 'Generate the bracket first.'} onClick={async () => {
           const res = await confirm({
             title: 'Start Playoffs?',
             message: 'This publishes the bracket publicly and permanently locks the participants, seeds and bracket type.',

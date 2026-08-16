@@ -102,13 +102,13 @@ function SeasonHeader({ view, canManage, number }: { view: Awaited<ReturnType<ty
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <Link href="/seasons" className="text-sm text-muted-foreground hover:text-foreground">← Seasons</Link>
-        <p className="mt-3 flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[#d6ae42]">
-          <Diamond className="size-3 fill-[#e6c463] text-[#e6c463] drop-shadow-[0_0_5px_rgba(230,196,99,0.8)]" aria-hidden /> Season Championship
+        <p className="mt-3 flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--gold)]">
+          <Diamond className="size-3 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_5px_rgba(230,196,99,0.8)]" aria-hidden /> Season Championship
         </p>
-        <h1 className="mt-1.5 font-display text-3xl font-bold text-[#f5f1e6]">{view.subtitle?.trim() || view.title}</h1>
-        {view.subtitle?.trim() && <p className="text-base font-semibold text-[#d6ae42]">{view.title}</p>}
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#8a6d24]/50 bg-[#d6ae42]/[0.06] px-2.5 py-1 text-xs font-semibold text-[#e6c463]">
-          <span className="size-1.5 rounded-full bg-[#e6c463]" /> {SEASON_STATE_LABEL[view.lifecycleState]}
+        <h1 className="mt-1.5 font-display text-3xl font-bold text-foreground">{view.subtitle?.trim() || view.title}</h1>
+        {view.subtitle?.trim() && <p className="text-base font-semibold text-[var(--gold)]">{view.title}</p>}
+        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.06] px-2.5 py-1 text-xs font-semibold text-[var(--gold-soft)]">
+          <span className="size-1.5 rounded-full bg-[var(--gold-soft)]" /> {SEASON_STATE_LABEL[view.lifecycleState]}
         </div>
       </div>
       {canManage && (
@@ -127,9 +127,9 @@ function Info({ children }: { children: React.ReactNode }) {
 function CompletedView({ view, rounds, groups }: { view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>; rounds: Awaited<ReturnType<typeof seasonPlayoffRounds>>; groups: Awaited<ReturnType<typeof getSeasonGroupStage>> }) {
   return (
     <div className="mt-8 space-y-8">
-      <div className="rounded-xl border border-[#8a6d24] bg-[#0c0c0d] p-6 text-center">
-        <p className="flex items-center justify-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#d6ae42]"><Diamond className="size-4 fill-[#e6c463] text-[#e6c463] drop-shadow-[0_0_6px_rgba(230,196,99,0.9)]" /> Season Champion</p>
-        <p className="mt-3 font-display text-4xl font-bold text-[#f5f1e6]">{view.championName ?? '—'}</p>
+      <div className="rounded-xl border border-[var(--gold-dim)] bg-card p-6 text-center">
+        <p className="flex items-center justify-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--gold)]"><Diamond className="size-4 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_6px_color-mix(in oklch, var(--gold-soft) 90%, transparent)]" /> Season Champion</p>
+        <p className="mt-3 font-display text-4xl font-bold text-foreground">{view.championName ?? '—'}</p>
         {view.runnerUpName && <p className="mt-1 text-sm text-muted-foreground">def. {view.runnerUpName}{view.finalScore ? ` · ${view.finalScore}` : ''}</p>}
       </div>
       {rounds.length > 0 && <div><h2 className="mb-4 font-display text-lg font-bold text-foreground">Playoff Bracket</h2><div className="w-full"><Bracket rounds={rounds} fluid /></div></div>}

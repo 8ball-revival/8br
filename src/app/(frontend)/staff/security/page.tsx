@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Security · Admin', robots: { index:
 function List({ title, rows, tone }: { title: string; rows: SecurityRow[]; tone?: 'danger' | 'warn' }) {
   return (
     <section className="rounded-lg border border-border bg-card/40 p-4">
-      <p className={`eyebrow ${tone === 'danger' ? 'text-destructive' : tone === 'warn' ? 'text-[#d6ae42]' : 'text-brand'}`}>{title} ({rows.length})</p>
+      <p className={`eyebrow ${tone === 'danger' ? 'text-destructive' : tone === 'warn' ? 'text-[var(--gold)]' : 'text-brand'}`}>{title} ({rows.length})</p>
       {rows.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">None.</p> : (
         <ul className="mt-2 divide-y divide-border text-sm">
           {rows.map((r) => (

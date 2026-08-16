@@ -34,7 +34,10 @@ export const Users: CollectionConfig = {
               button below to choose a new password. This link expires in 1 hour.
             </p>
             <p style="margin:0 0 24px">
-              <a href="${url}" style="display:inline-block;background:#c8102e;color:#fff;font-weight:600;text-decoration:none;padding:10px 18px;border-radius:8px">Reset password</a>
+              <!-- Email clients do not support CSS variables, so the brand gold is inlined as the
+                   sRGB equivalent of the --gold token, oklch(0.8 0.125 84), with the same dark ink
+                   (--primary-foreground) the app uses on gold. Keep in step with globals.css. -->
+              <a href="${url}" style="display:inline-block;background:#e4b756;color:#161107;font-weight:600;text-decoration:none;padding:10px 18px;border-radius:8px">Reset password</a>
             </p>
             <p style="margin:0 0 8px;font-size:12px;color:#666">Or paste this link into your browser:</p>
             <p style="margin:0 0 24px;font-size:12px;word-break:break-all"><a href="${url}" style="color:#0a58ca">${url}</a></p>

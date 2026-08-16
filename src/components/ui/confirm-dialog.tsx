@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useRef, useSt
 
 /**
  * 8BR confirmation dialog — one reusable, accessible replacement for window.alert/confirm/prompt.
- * Opaque charcoal surface, crimson (or gold/red) accent, focus trap, Escape / backdrop cancel,
+ * Opaque charcoal surface, gold (or red) accent, focus trap, Escape / backdrop cancel,
  * loading state + inline error while the action runs, optional text input (for reasons / typed names),
  * and focus restoration. Drive it imperatively via `useConfirm()`.
  */
@@ -26,7 +26,7 @@ export interface ConfirmOptions {
   message?: React.ReactNode
   confirmLabel: string
   cancelLabel?: string
-  /** 'default' = crimson; 'warning' = gold; 'danger' = strong red (irreversible/destructive). */
+  /** 'default' = gold; 'warning' = amber; 'danger' = red (irreversible/destructive). */
   tone?: 'default' | 'warning' | 'danger'
   input?: ConfirmInput
   /** When provided, the dialog runs it on confirm, showing a loading state and any returned error
@@ -114,8 +114,11 @@ function Dialog({ opts, onClose }: { opts: Active; onClose: () => void }) {
     }
   }
 
-  const accent = tone === 'warning' ? '#d6ae42' : tone === 'danger' ? '#e11d2e' : '#c8102e'
-  const glow = tone === 'warning' ? 'rgba(214,174,66,0.35)' : tone === 'danger' ? 'rgba(225,29,46,0.45)' : 'rgba(200,16,46,0.4)'
+  // Theme tokens, not literals, so the dialog follows the design system. Red appears only for the
+  // `danger` tone (destructive intent); the default tone is the gold brand accent.
+  const accent =
+    tone === 'warning' ? 'var(--warning)' : tone === 'danger' ? 'var(--destructive)' : 'var(--gold)'
+  const glow = `color-mix(in oklch, ${accent} 40%, transparent)`
 
   return (
     <div
@@ -131,7 +134,7 @@ function Dialog({ opts, onClose }: { opts: Active; onClose: () => void }) {
         aria-labelledby={titleId}
         aria-describedby={message ? descId : undefined}
         onKeyDown={onKeyDown}
-        className="relative w-full max-w-md rounded-xl border bg-[#0c0c0d] p-5 text-left shadow-2xl"
+        className="relative w-full max-w-md rounded-xl border bg-popover p-5 text-left shadow-2xl"
         style={{ borderColor: accent, boxShadow: `0 0 0 1px ${accent}, 0 0 28px -6px ${glow}` }}
       >
         <h2 id={titleId} className="font-display text-lg font-bold text-foreground">{title}</h2>

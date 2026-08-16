@@ -34,7 +34,7 @@ function SectionCard({ href, icon: Icon, title, desc, gold }: { href: string; ic
   return (
     <Link href={href} className="block rounded-lg border border-border bg-card/40 p-4 transition-colors hover:border-brand/50">
       <div className="flex items-center gap-2">
-        <Icon className={`size-4 ${gold ? 'text-[#d6ae42]' : 'text-brand'}`} />
+        <Icon className={`size-4 ${gold ? 'text-[var(--gold)]' : 'text-brand'}`} />
         <p className="font-semibold text-foreground">{title}</p>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">{desc}</p>

@@ -12,7 +12,7 @@ export function EnterPlayoffsButton({ seasonId }: { seasonId: number }) {
   const [pending, start] = useTransition()
   return (
     <Button
-      className="bg-[#d6ae42] text-black hover:bg-[#e6c463]"
+      className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]"
       disabled={pending}
       onClick={() => start(async () => { const r = await enterSeasonPlayoffSetupAction(seasonId); if (!r.error) router.refresh() })}
     >

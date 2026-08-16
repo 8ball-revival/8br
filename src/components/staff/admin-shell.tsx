@@ -32,7 +32,7 @@ export function AdminShell({ actor, active, children }: { actor: StaffUser; acti
     <Container className="py-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="eyebrow text-brand">Admin Portal</p>
-        <p className="text-xs text-muted-foreground">Signed in as <span className="font-semibold text-foreground">{actor.username}</span> · {actor.isHeadAdmin ? <span className="text-[#d6ae42]">Head Admin</span> : 'Admin'}</p>
+        <p className="text-xs text-muted-foreground">Signed in as <span className="font-semibold text-foreground">{actor.username}</span> · {actor.isHeadAdmin ? <span className="text-[var(--gold)]">Head Admin</span> : 'Admin'}</p>
       </div>
       <AdminSubnav items={items} active={active} />
       <div className="mt-6">{children}</div>
