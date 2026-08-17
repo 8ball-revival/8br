@@ -579,8 +579,17 @@
   line-height: 1.15;
 }
 
+/* Highlighting a row. Hover is the common case; :focus-within covers keyboard users tabbing to a
+   name in that row, and .season-selected is a row the reader has clicked to pin. All three read the
+   same, so the row is lit by whichever way you got to it. */
 .season-matrix tbody tr:hover .season-who,
-.season-matrix tbody tr:hover td { background: color-mix(in oklch, var(--card) 80%, var(--foreground) 6%); }
+.season-matrix tbody tr:hover td,
+.season-matrix tbody tr:focus-within .season-who,
+.season-matrix tbody tr:focus-within td,
+.season-matrix tbody tr.season-selected .season-who,
+.season-matrix tbody tr.season-selected td { background: color-mix(in oklch, var(--card) 80%, var(--foreground) 6%); }
+
+.season-matrix tbody tr { cursor: pointer; }
 
 .season-diag {
   background: repeating-linear-gradient(
@@ -590,9 +599,17 @@
   );
 }
 .season-cell { font-variant-numeric: tabular-nums; }
-.season-score.season-w { color: var(--gold); font-weight: 700; }
+/* Scores are neutral at rest. Painting every win gold turned most of the grid gold and stopped it
+   meaning anything; the weight alone still separates a win from a loss. The gold returns only on the
+   highlighted row, where it answers one question at a time: which of THIS player's matches were
+   wins. */
+.season-score.season-w { color: var(--foreground); font-weight: 700; }
 .season-score.season-l { color: var(--muted-foreground); }
 .season-score.season-d { color: var(--foreground); }
+
+.season-matrix tbody tr:hover .season-score.season-w,
+.season-matrix tbody tr:focus-within .season-score.season-w,
+.season-matrix tbody tr.season-selected .season-score.season-w { color: var(--gold); }
 .season-none { color: color-mix(in oklch, var(--muted-foreground) 55%, transparent); }
 .season-stat { font-variant-numeric: tabular-nums; background: var(--surface); }
 .season-pts {

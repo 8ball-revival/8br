@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 
 import { identityLines, identityText } from '@/lib/identity/display'
@@ -19,6 +22,11 @@ import type { StageGroup, StageStandingRow, StageMatch } from '@/lib/seasons/vie
  *    the same string printed twice.
  *
  * Ordering is always by points under the official tie-break rules. There is no alternative order.
+ *
+ * Scores sit neutral until a row is highlighted, then that player's wins turn gold. Colouring every
+ * win all the time made most of the grid gold, which told you nothing; on one row at a time it
+ * answers a real question — which of these matches did this player win. Hover, keyboard focus and a
+ * click all light the same row; the click pins it so a touch reader can keep it lit.
  */
 export function SeasonStandingsMatrix({
   group,
@@ -33,6 +41,8 @@ export function SeasonStandingsMatrix({
   const rows = orderByPoints(group.standings)
   const h2h = headToHead(group.matches)
   const advancing = rows.filter((r) => qualified.has(r.entrantId)).length
+  /** The row pinned by a click, if any. Clicking it again releases it. */
+  const [pinned, setPinned] = useState<number | null>(null)
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
@@ -84,7 +94,16 @@ export function SeasonStandingsMatrix({
               const lines = identityLines({ cueverseId: r.cueverseId ?? r.username, preferredName: r.preferredName })
               const adv = qualified.has(r.entrantId)
               return (
-                <tr key={r.entrantId} data-entrant={r.entrantId} className={cn(adv && 'season-adv')}>
+                <tr
+                  key={r.entrantId}
+                  data-entrant={r.entrantId}
+                  className={cn(adv && 'season-adv', pinned === r.entrantId && 'season-selected')}
+                  onClick={(e) => {
+                    // A click on a name is a navigation, not a request to pin the row.
+                    if ((e.target as HTMLElement).closest('a')) return
+                    setPinned((cur) => (cur === r.entrantId ? null : r.entrantId))
+                  }}
+                >
                   <th scope="row" className="season-who">
                     <span className="season-who-in">
                       <span className="season-rank">{i + 1}.</span>
@@ -131,6 +150,7 @@ export function SeasonStandingsMatrix({
 
       <footer className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border px-4 py-2.5 text-[0.7rem] text-muted-foreground">
         <span>Ordered by points — Win 2, Draw 1, plus 1 for completing every set.</span>
+        <span>Hover or tap a row to pick out that player&apos;s <i className="not-italic text-[var(--gold)]">wins</i></span>
         <span><i className="not-italic text-[var(--gold)]">▮</i> gold edge = reached the playoffs</span>
         <span><i className="not-italic text-[var(--gold)]">·</i> no match recorded</span>
         <span><i className="not-italic text-[var(--gold)]">–</i> played, score not recorded</span>

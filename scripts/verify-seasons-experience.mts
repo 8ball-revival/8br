@@ -267,6 +267,28 @@ try {
     check('an entrant with no profile renders as text, not a dead link',
       /if \(!slug\) return <span/.test(files[2][1]))
 
+    console.log('')
+    console.log('--- Scores go gold only on the highlighted row ---')
+    const css2 = readFileSync('src/app/(frontend)/globals.css', 'utf8')
+    check('a winning score is neutral at rest',
+      /\.season-score\.season-w \{ color: var\(--foreground\)/.test(css2))
+    // Anchored to the start of a line: a resting rule stands alone, whereas the gold rules are all
+    // prefixed by a `tr:hover` / `tr:focus-within` / `tr.season-selected` selector.
+    check('no rule paints a resting score gold',
+      !/^\.season-score\.season-w \{[^}]*var\(--gold\)/m.test(css2))
+    check('hover lights that row’s wins in gold',
+      /tr:hover \.season-score\.season-w/.test(css2))
+    check('keyboard focus lights the same row',
+      /tr:focus-within \.season-score\.season-w/.test(css2))
+    check('a clicked row stays lit',
+      /tr\.season-selected \.season-score\.season-w/.test(css2))
+    check('clicking a row pins it, and clicking again releases it',
+      files[2][1].includes('cur === r.entrantId ? null : r.entrantId'))
+    check('clicking a NAME navigates instead of pinning',
+      files[2][1].includes("closest('a')"))
+    check('the legend explains what the gold means',
+      /Hover or tap a row/.test(files[2][1]))
+
     check('there is no Division control anywhere',
       files.every(([, src]) => !/\bDivision\b/.test(src)))
     check('there is no Group Order control anywhere',
