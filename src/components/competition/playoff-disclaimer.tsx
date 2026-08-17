@@ -23,11 +23,15 @@ export function PlayoffDisclaimer({
   id,
   value,
   canManage,
+  showValue = true,
 }: {
   kind: 'season' | 'tournament'
   id: number
   value: string | null
   canManage: boolean
+  /** False when the note is already displayed elsewhere (the bracket panel's footer strip), so this
+   *  renders only the editing affordance instead of printing the same sentence twice. */
+  showValue?: boolean
 }) {
   const router = useRouter()
   const [text, setText] = useState(value ?? '')
@@ -54,7 +58,7 @@ export function PlayoffDisclaimer({
 
   return (
     <div className="mt-6">
-      {saved && (
+      {saved && showValue && (
         <p className="flex max-w-3xl items-start gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span className="whitespace-pre-wrap">{saved}</span>

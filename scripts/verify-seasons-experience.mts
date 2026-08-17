@@ -408,12 +408,13 @@ try {
       ['Season', 'label="Season"'],
       ['Player Search', '<PlayerSearch'],
       ['Groups/Playoffs', 'label="View"'],
-      ['Zoom', '<Zoom />'],
+      ['Zoom', '<Zoom'],
+      ['Fit Bracket', '<FitBracket />'],
       ['Previous/Next', 'label="Previous season"'],
     ]
     const at = order.map(([, needle]) => render.indexOf(needle))
     check('every control is present', at.every((i) => i >= 0), order.map(([n], i) => `${n}:${at[i]}`).join(' '))
-    check('the order is Competition, Year, Season, Search, Groups/Playoffs, Zoom, Prev/Next',
+    check('the order is Competition, Year, Season, Search, Groups/Playoffs, Zoom, Fit, Prev/Next',
       at.every((v, i) => i === 0 || at[i - 1] < v), at.join(','))
     check('Next follows Previous', render.indexOf('label="Next season"') > at[at.length - 1])
   }

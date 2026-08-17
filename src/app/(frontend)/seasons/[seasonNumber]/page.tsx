@@ -20,7 +20,7 @@ import { SeasonGroupStage } from '@/components/seasons/season-group-stage'
 import { SeasonPlayoffs } from '@/components/seasons/season-playoffs'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
-import { Bracket } from '@/components/tournaments/bracket'
+import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getCurrentUser } from '@/lib/account/auth'
 import { prisma } from '@/lib/prisma'
@@ -177,6 +177,16 @@ export default async function SeasonPage({
               bracketPublic={bracketPublic}
               canManage={canManage}
               canManageComp={canManageComp}
+              champion={
+                state === 'COMPLETED' && (view.championHandle || view.championName)
+                  ? {
+                      cueverseId: view.championHandle,
+                      preferredName: view.championName,
+                      runnerUp: view.runnerUpHandle || view.runnerUpName,
+                      finalScore: view.finalScore,
+                    }
+                  : null
+              }
             />
           )}
         </div>
@@ -203,19 +213,23 @@ export default async function SeasonPage({
  * finished bracket read-only. With no public bracket the toggle still works and says so plainly.
  */
 async function PlayoffsView({
-  seasonId, state, bracketPublic, canManage, canManageComp,
+  seasonId, state, bracketPublic, canManage, canManageComp, champion,
 }: {
   seasonId: number
   state: string
   bracketPublic: boolean
   canManage: boolean
   canManageComp: boolean
+  champion: { cueverseId: string | null; preferredName: string | null; runnerUp: string | null; finalScore: string | null } | null
 }) {
   if (!bracketPublic) return <GroupsStillInProgress />
   const rounds = await seasonPlayoffRounds(seasonId)
   if (rounds.length === 0) return <GroupsStillInProgress />
+  const note = await playoffDisclaimerOf(seasonId)
 
-  if (state === 'PLAYOFFS_LIVE') {
+  // An admin running LIVE playoffs keeps the editable bracket: that component carries inline score
+  // entry and Close Season, and swapping it for the read-only panel would take those away.
+  if (state === 'PLAYOFFS_LIVE' && canManage) {
     return (
       <div className="season-bracket">
         <SeasonPlayoffs
@@ -227,16 +241,17 @@ async function PlayoffsView({
           hasDraft
           canManage={canManage}
           canClose={canManageComp && !!(await seasonChampion(seasonId))}
-          disclaimer={await playoffDisclaimerOf(seasonId)}
+          disclaimer={note}
         />
       </div>
     )
   }
 
   return (
-    <div className="season-bracket">
-      <div className="w-full"><Bracket rounds={rounds} fluid /></div>
-      <PlayoffDisclaimer kind="season" id={seasonId} value={await playoffDisclaimerOf(seasonId)} canManage={canManageComp} />
+    <div>
+      <SeasonBracketPanel rounds={rounds} note={note} champion={champion} />
+      {/* The note itself lives in the panel footer; this is only the way in to edit it. */}
+      <PlayoffDisclaimer kind="season" id={seasonId} value={note} canManage={canManageComp} showValue={false} />
     </div>
   )
 }

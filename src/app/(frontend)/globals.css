@@ -634,3 +634,92 @@
 
 /* The bracket honours the same zoom, so Groups and Playoffs scale together. */
 .season-bracket { font-size: calc(1rem * var(--season-zoom)); }
+
+/* ---------------------------------------------------------------------------
+   Seasons: the playoff bracket panel.
+
+   Each match cell takes an equal share of its lane's height, so a later round
+   sits centred against the ties that fed it — the geometry that makes a bracket
+   readable — with no script involved. Connectors are borders on those cells:
+   an outgoing elbow on the feeding side, an incoming stub on the receiving one,
+   which meet exactly because both are half the lane gutter wide.
+   --------------------------------------------------------------------------- */
+.bp-tree {
+  --bp-line: color-mix(in oklch, var(--gold) 30%, var(--muted-foreground) 45%);
+  --bp-line-champ: color-mix(in oklch, var(--gold) 70%, transparent);
+  --bp-line-lit: var(--gold);
+}
+
+.bp-lane {
+  padding-inline: calc(var(--bp-lane-gap) / 2);
+  padding-bottom: 1rem;
+}
+/* Faint alternating surfaces read as lanes without drawing a box around each one. */
+.bp-lane-alt { background: color-mix(in oklch, var(--surface) 45%, transparent); }
+.bp-lane-divider { border-right: 1px solid color-mix(in oklch, var(--border) 70%, transparent); }
+
+/* The heading stays legible over whatever scrolls beneath it. */
+.bp-lane-head {
+  background: linear-gradient(180deg, var(--card) 72%, transparent);
+}
+.bp-lane-alt .bp-lane-head {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--surface) 45%, var(--card)) 72%, transparent);
+}
+
+.bp-body { gap: var(--bp-match-gap); }
+.bp-cell {
+  position: relative;
+  flex: 1 0 auto;
+  min-height: calc(var(--bp-row-h) * 2);
+}
+
+/* ---- connectors ---- */
+.bp-feeds > .bp-cell::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  width: calc(var(--bp-lane-gap) / 2);
+  height: 50%;
+  border-right: 1.5px solid var(--bp-line);
+  pointer-events: none;
+}
+.bp-feeds > .bp-cell:nth-child(odd)::after {
+  top: 50%;
+  border-top: 1.5px solid var(--bp-line);
+  border-top-right-radius: 6px;
+}
+.bp-feeds > .bp-cell:nth-child(even)::after {
+  bottom: 50%;
+  border-bottom: 1.5px solid var(--bp-line);
+  border-bottom-right-radius: 6px;
+}
+.bp-receives > .bp-cell::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  width: calc(var(--bp-lane-gap) / 2);
+  top: 50%;
+  border-top: 1.5px solid var(--bp-line);
+  pointer-events: none;
+}
+
+/* The champion's route, and the route of whoever the reader is pointing at. */
+.bp-path-champ { --bp-line: var(--bp-line-champ); }
+.bp-path-lit { --bp-line: var(--bp-line-lit); }
+.bp-path-lit > .bp-card,
+.bp-path-lit .bp-final { border-color: var(--gold); }
+
+/* Unrelated matches recede while one player is singled out — never below readable. */
+.bp-muted { opacity: 0.42; }
+.bp-cell { transition: opacity 0.12s ease-out; }
+
+/* The Final sits slightly proud without becoming a different object. */
+.bp-final {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--gold) 30%, transparent),
+    0 0 22px -8px color-mix(in oklch, var(--gold) 55%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-cell { transition: none; }
+}

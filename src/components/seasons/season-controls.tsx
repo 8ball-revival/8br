@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Minus, Plus, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Maximize2, Minus, Plus, Search } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { identityLines } from '@/lib/identity/display'
@@ -142,7 +142,8 @@ export function SeasonControls({
             </div>
           </Field>
 
-          <Zoom />
+          <Zoom onManual={() => window.dispatchEvent(new Event('8br:bracket-manual-zoom'))} />
+          {view === 'playoffs' && <FitBracket />}
 
           <div className="ml-auto flex items-end gap-1.5">
             <NavButton
@@ -252,7 +253,7 @@ function writeZoom(v: number) {
   for (const cb of zoomListeners) cb()
 }
 
-function Zoom() {
+function Zoom({ onManual }: { onManual?: () => void }) {
   const raw = useSyncExternalStore(subscribeZoom, zoomSnapshot, zoomServerSnapshot)
   const parsed = Number(raw)
   const z = Number.isFinite(parsed) ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parsed)) : 1
@@ -262,8 +263,11 @@ function Zoom() {
     return () => { document.documentElement.style.removeProperty('--season-zoom') }
   }, [z])
 
-  const step = (delta: number) =>
+  const step = (delta: number) => {
+    // Touching zoom is how the reader takes manual control back from a fitted bracket.
+    onManual?.()
     writeZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((z + delta) * 100) / 100)))
+  }
 
   return (
     <Field label="Zoom">
@@ -278,6 +282,29 @@ function Zoom() {
           <Plus className="size-3.5" />
         </ZoomButton>
       </div>
+    </Field>
+  )
+}
+
+
+/**
+ * Scale the bracket down to whatever room the panel has.
+ *
+ * Sits beside Zoom because it answers the same question, and hands control back the moment the
+ * reader touches Zoom afterwards. The measuring happens in the bracket itself — only it knows its
+ * own natural width — so this just asks.
+ */
+function FitBracket() {
+  return (
+    <Field label="Bracket">
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event('8br:bracket-fit'))}
+        title="Scale the bracket to fit the panel"
+        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--gold-dim)] focus-visible:outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
+      >
+        <Maximize2 className="size-3.5" aria-hidden /> Fit Bracket
+      </button>
     </Field>
   )
 }

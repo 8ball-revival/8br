@@ -7,6 +7,7 @@ import { planBracket, type Qualifier } from '@/lib/competition/bracket'
 import { planDoubleElim } from '@/lib/competition/bracket-de'
 import type { BracketRound, BracketMatch as ViewMatch } from '@/lib/tournaments/fixtures'
 import { transitionSeasonState } from './lifecycle'
+import { assignSeeds, persistSeeds, seedsByEntrant } from './playoff-seeds'
 import { isPreGroupPhase } from './shared'
 
 /**
@@ -406,9 +407,21 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
   if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'Generate the bracket during playoff setup.' }
   const seeding = (await loadSeasonSeeding(seasonId)).filter((r) => r.included && r.overallSeed != null)
   if (seeding.length < 2) return { ok: false, error: 'Select at least two players for the playoffs.' }
-  const qualifiers: Qualifier[] = seeding.map((r) => ({ registrationId: r.entrantId, username: r.name, seed: r.overallSeed! }))
 
+  // Bracket seeds are 1..N over the players actually IN the bracket, densified from the
+  // group-derived order. The order itself is untouched, so leaving someone out never promotes
+  // anyone above anyone else — it only closes the gap their absence would leave in the numbering.
+  const seedList = assignSeeds(seeding.map((r) => ({ entrantId: r.entrantId, order: r.overallSeed! })))
+  const seedOfEntrant = new Map(seedList.map((a) => [a.entrantId, a.seed]))
+  const qualifiers: Qualifier[] = seeding.map((r) => ({
+    registrationId: r.entrantId, username: r.name, seed: seedOfEntrant.get(r.entrantId)!,
+  }))
+
+  try {
   await prisma.$transaction(async (tx) => {
+    // Persisted FIRST. A throw here — an incomplete, duplicated or out-of-range set — takes the
+    // whole transaction with it, so a bracket can never exist alongside a broken seeding.
+    await persistSeeds(tx, seasonId, seedList)
     await tx.seasonPlayoffMatch.deleteMany({ where: { seasonId } })
     if (s.playoffDoubleElim) {
       const plan = planDoubleElim(qualifiers)
@@ -441,6 +454,13 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
     await settleByes(tx, seasonId)
     await recordAudit(actor, { action: 'season.playoff.generate', entity: 'Season', entityId: seasonId, newValue: { players: qualifiers.length, doubleElim: s.playoffDoubleElim } }, tx)
   })
+  } catch (e) {
+    // A seeding failure is a refusal, not a crash: the transaction has already rolled back, so the
+    // Season is exactly as it was and the admin gets told what was wrong with it.
+    const { SeedingError } = await import('./playoff-seeds')
+    if (e instanceof SeedingError) return { ok: false, error: `Bracket not generated — ${e.message}` }
+    throw e
+  }
   const n = await prisma.seasonPlayoffMatch.count({ where: { seasonId } })
   return { ok: true, matches: n }
 }
@@ -652,6 +672,10 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
   })
   const cueverseOf = new Map(ents.map((e) => [e.id, e.cueverseId]))
   const preferredOf = new Map(ents.map((e) => [e.id, e.displayName ?? e.username]))
+  // The seed is read from the ENTRANT, so it is the same in every round the player reaches and
+  // cannot be lost by moving them between slots. The per-match column is only a fallback for
+  // brackets built before seeds were stored on the player.
+  const seedOf = await seedsByEntrant(prisma, seasonId)
   const wbRounds = rows.filter((r) => r.round < 100).map((r) => r.round)
   const totalWb = wbRounds.length ? Math.max(...wbRounds) : 0
 
@@ -665,7 +689,8 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
         if (name === 'Bye') return { name: 'Bye' }
         const handle = id != null ? cueverseOf.get(id) ?? undefined : undefined
         const preferred = (id != null ? preferredOf.get(id) : null) ?? name ?? 'TBD'
-        return { name: preferred, ...(handle ? { handle, slug: handle } : {}), ...(seed != null ? { seed } : {}), ...(games != null ? { score: games } : {}) }
+        const shownSeed = (id != null ? seedOf.get(id) : null) ?? seed
+        return { name: preferred, ...(handle ? { handle, slug: handle } : {}), ...(shownSeed != null ? { seed: shownSeed } : {}), ...(games != null ? { score: games } : {}) }
       }
       const m: ViewMatch = { id: r.id, updatedAt: r.updatedAt.toISOString() }
       const a = slot(r.homeEntrantId, r.homeUsername, r.homeSeed, r.homeGames)
