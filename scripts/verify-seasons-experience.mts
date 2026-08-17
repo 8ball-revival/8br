@@ -395,6 +395,18 @@ try {
       controls.includes('border-b border-nav-border') && !controls.includes('border-y'))
     check('both rows share the header background',
       controls.includes('bg-nav-bg/85') && header.includes('bg-nav-bg/85'))
+    check('the admin controls sit in the toolbar, after Text Size',
+      controls.indexOf('<Zoom />') < controls.indexOf('Create Season'))
+    check('Settings comes before Create Season',
+      controls.indexOf('Settings') < controls.indexOf('Create Season'))
+    check('Create Season is the gold one', /bg-\[var\(--gold\)\][^"]*text-black/.test(controls))
+    check('both are admin-gated, not rendered for everyone',
+      /settingsHref && \(/.test(controls) && /createHref && \(/.test(controls))
+    check('the page only supplies them to an admin',
+      page.includes('settingsHref={canManage ?') && page.includes("createHref={canManageComp ?"))
+    check('the old Settings block below the masthead is gone',
+      !/mt-3 flex justify-end/.test(page))
+
     check('Zoom belongs to the Groups view, where the matrices use it',
       controls.includes("view === 'groups' && <Zoom />"))
     check('the controls wrap rather than break out of their row',

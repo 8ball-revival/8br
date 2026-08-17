@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { Settings2 } from 'lucide-react'
 
 import { getSeasonView } from '@/lib/seasons/service'
 import { getSeasonGroupSetup, getSeasonGroupStage } from '@/lib/seasons/views'
@@ -104,6 +102,8 @@ export default async function SeasonPage({
           'use server'
           return searchSeasonEntrantsAction(view.id, q)
         }}
+        settingsHref={canManage ? `/seasons/${number}/settings` : null}
+        createHref={canManageComp ? '/seasons/new' : null}
       />
 
       {/* Full bleed: only small responsive gutters, no centred cap, so the masthead and the tables
@@ -136,17 +136,6 @@ export default async function SeasonPage({
               : null
           }
         />
-        )}
-
-        {canManage && (
-          <div className="mt-3 flex justify-end">
-            <Link
-              href={`/seasons/${number}/settings`}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Settings2 className="size-4" /> Settings
-            </Link>
-          </div>
         )}
 
         {view.description && <p className="mt-4 max-w-3xl text-sm text-muted-foreground">{view.description}</p>}

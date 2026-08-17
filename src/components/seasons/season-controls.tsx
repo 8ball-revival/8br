@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Minus, Plus, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Minus, Plus, Plus as PlusIcon, Search, SlidersHorizontal } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { identityLines } from '@/lib/identity/display'
@@ -28,6 +29,8 @@ export function SeasonControls({
   view,
   neighbours,
   searchPlayers,
+  settingsHref = null,
+  createHref = null,
 }: {
   competitions: CompetitionOption[]
   seasons: SeasonOption[]
@@ -37,6 +40,9 @@ export function SeasonControls({
   view: 'groups' | 'playoffs'
   neighbours: { prev: number | null; next: number | null }
   searchPlayers: (q: string) => Promise<SeasonPlayerHit[]>
+  /** Admin only. Null for everyone else, which is what keeps these out of a member's toolbar. */
+  settingsHref?: string | null
+  createHref?: string | null
 }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -145,6 +151,29 @@ export function SeasonControls({
           {/* Zoom drives the group matrices. The bracket resizes itself to the panel, so on the
               Playoffs view there is nothing here to operate. */}
           {view === 'groups' && <Zoom />}
+
+          {(settingsHref || createHref) && (
+            <Field label="Admin">
+              <div className="flex items-center gap-2">
+                {settingsHref && (
+                  <Link
+                    href={settingsHref}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--gold-dim)] focus-visible:outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
+                  >
+                    <SlidersHorizontal className="size-3.5" aria-hidden /> Settings
+                  </Link>
+                )}
+                {createHref && (
+                  <Link
+                    href={createHref}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--gold-dim)] bg-[var(--gold)] px-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--gold-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
+                  >
+                    <PlusIcon className="size-3.5" aria-hidden /> Create Season
+                  </Link>
+                )}
+              </div>
+            </Field>
+          )}
 
           <div className="ml-auto flex items-end gap-1.5">
             <NavButton
