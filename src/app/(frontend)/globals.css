@@ -650,9 +650,20 @@
   --bp-line-lit: var(--gold);
 }
 
+/* Lanes share out whatever width the panel has. Each may grow to the comfortable card width and
+   shrink to the readable minimum; the cards inside simply fill their lane, so resizing the window
+   resizes the cards themselves rather than leaving them fixed and stranding empty space. Below the
+   minimum the panel scales, and below the scale floor it scrolls. */
 .bp-lane {
+  flex: 1 1 auto;
+  min-width: calc(var(--bp-card-min) + var(--bp-lane-gap));
+  max-width: calc(var(--bp-card-w) + var(--bp-lane-gap));
   padding-inline: calc(var(--bp-lane-gap) / 2);
   padding-bottom: 1rem;
+}
+/* The Final is allowed a little more room than the rounds that feed it. */
+.bp-lane:last-child {
+  max-width: calc(var(--bp-card-w) * 1.06 + var(--bp-lane-gap));
 }
 /* Faint alternating surfaces read as lanes without drawing a box around each one. */
 .bp-lane-alt { background: color-mix(in oklch, var(--surface) 45%, transparent); }

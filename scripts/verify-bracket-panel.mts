@@ -11,7 +11,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import {
-  SeasonBracketPanel, fitScaleFor, naturalBracketWidth, MIN_SCALE, BRACKET_METRICS,
+  SeasonBracketPanel, fitScaleFor, naturalBracketWidth, minimumBracketWidth, MIN_SCALE, BRACKET_METRICS,
 } from '../src/components/seasons/season-bracket-panel.tsx'
 import type { BracketRound } from '../src/lib/tournaments/service.ts'
 
@@ -145,13 +145,14 @@ console.log('--- Fit Bracket, and the theme ---')
   const controls = readFileSync('src/components/seasons/season-controls.tsx', 'utf8')
   const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
 
-  check('Fit sits beside Zoom in the toolbar', controls.includes('Fit Bracket') && controls.includes('<FitBracket />'))
-  check('Fit is offered only on the Playoffs view', controls.includes("view === 'playoffs' && <FitBracket />"))
+  // The bracket sizes itself, so the Playoffs view offers no sizing controls at all.
+  check('no Fit Bracket control remains', !controls.includes('FitBracket'))
+  check('Zoom is offered on the Groups view only', controls.includes("view === 'groups' && <Zoom />"))
+  check('the bracket takes no instructions from the toolbar', !panel.includes('8br:bracket-'))
   check('Fit measures the real panel width and computes the bracket width from its geometry',
     panel.includes('scroller.clientWidth') && panel.includes('naturalBracketWidth'))
   check('Fit never scales a bracket up past its natural size', panel.includes('Math.min(1,'))
-  check('touching Zoom hands manual control back',
-    controls.includes("8br:bracket-manual-zoom") && panel.includes("8br:bracket-manual-zoom"))
+  check('the bracket reports when it has scaled itself', panel.includes('Scaled to'))
   check('a fitted bracket refits whenever the panel changes size', panel.includes('new ResizeObserver(autoFit)'))
 
   check('ordinary connectors are the muted gray-gold', /--bp-line: color-mix\(in oklch, var\(--gold\)[^;]*var\(--muted-foreground\)/.test(css))
@@ -164,6 +165,45 @@ console.log('--- Fit Bracket, and the theme ---')
     /\.bp-final \{\s*box-shadow: 0 0 26px -10px/.test(css) && !/\.bp-final \{[^}]*0 0 0 1px/.test(css))
   check('only the champion’s own row is marked, not the tie',
     /\.bp-champion-row \{\s*box-shadow: inset 2px 0 0 var\(--gold\)/.test(css))
+}
+
+console.log('')
+console.log('--- Cards resize with the window before anything is scaled ---')
+{
+  const html = render(bracketOf(16), null, CHAMPION)
+  const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
+  const wide = BRACKET_METRICS.metricsFor(16)
+  const tight = BRACKET_METRICS.metricsFor(32)
+
+  check('a card fills its lane rather than holding a fixed width',
+    /class="bp-card w-full/.test(html) && !/style="width:var\(--bp-card-w\)"/.test(html))
+  check('lanes share out the panel width', /\.bp-lane \{[^}]*flex: 1 1 auto;/s.test(css))
+  check('a lane may shrink to the readable minimum',
+    /\.bp-lane \{[^}]*min-width: calc\(var\(--bp-card-min\) \+ var\(--bp-lane-gap\)\)/s.test(css))
+  check('and grow no wider than the comfortable size',
+    /\.bp-lane \{[^}]*max-width: calc\(var\(--bp-card-w\) \+ var\(--bp-lane-gap\)\)/s.test(css))
+  check('the Final is allowed a little more room',
+    /\.bp-lane:last-child \{[^}]*max-width: calc\(var\(--bp-card-w\) \* 1\.06/s.test(css))
+  check('both card sizes are published to CSS',
+    html.includes('--bp-card-w:278px') && html.includes('--bp-card-min:190px'))
+  check('a large field flexes over a narrower range',
+    render(bracketOf(32), null, null).includes('--bp-card-min:176px'))
+
+  // The type does not shrink while the cards are still flexing — that is the whole point.
+  check('a card can shrink by roughly a third before anything else gives',
+    wide.cardMin / wide.cardW < 0.72 && wide.cardMin / wide.cardW > 0.6,
+    `${Math.round((wide.cardMin / wide.cardW) * 100)}%`)
+  check('the minimum card is still wide enough for a name and a score', wide.cardMin >= 180)
+  check('the tighter geometry keeps a usable minimum too', tight.cardMin >= 170)
+
+  // Flex first, then scale, then scroll.
+  const floor16 = minimumBracketWidth(4, wide)
+  const natural16 = naturalBracketWidth(4, wide)
+  check('the flexing range is real', floor16 < natural16, `${floor16} .. ${natural16}`)
+  check('no scaling while the cards can still flex', fitScaleFor(natural16, floor16) === 1)
+  check('no scaling right down to the minimum width', fitScaleFor(floor16 + 2, floor16) === 1)
+  check('scaling begins only below that', fitScaleFor(floor16 - 100, floor16) < 1)
+  check('and still stops at the legibility floor', fitScaleFor(120, floor16) === MIN_SCALE)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

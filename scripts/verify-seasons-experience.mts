@@ -395,6 +395,8 @@ try {
       controls.includes('border-b border-nav-border') && !controls.includes('border-y'))
     check('both rows share the header background',
       controls.includes('bg-nav-bg/85') && header.includes('bg-nav-bg/85'))
+    check('Zoom belongs to the Groups view, where the matrices use it',
+      controls.includes("view === 'groups' && <Zoom />"))
     check('the controls wrap rather than break out of their row',
       controls.includes('flex flex-wrap items-end'))
 
@@ -408,13 +410,12 @@ try {
       ['Season', 'label="Season"'],
       ['Player Search', '<PlayerSearch'],
       ['Groups/Playoffs', 'label="View"'],
-      ['Zoom', '<Zoom'],
-      ['Fit Bracket', '<FitBracket />'],
+      ['Zoom', '<Zoom />'],
       ['Previous/Next', 'label="Previous season"'],
     ]
     const at = order.map(([, needle]) => render.indexOf(needle))
     check('every control is present', at.every((i) => i >= 0), order.map(([n], i) => `${n}:${at[i]}`).join(' '))
-    check('the order is Competition, Year, Season, Search, Groups/Playoffs, Zoom, Fit, Prev/Next',
+    check('the order is Competition, Year, Season, Search, Groups/Playoffs, Zoom, Prev/Next',
       at.every((v, i) => i === 0 || at[i - 1] < v), at.join(','))
     check('Next follows Previous', render.indexOf('label="Next season"') > at[at.length - 1])
   }

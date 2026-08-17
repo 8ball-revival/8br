@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Maximize2, Minus, Plus, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Minus, Plus, Search } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { identityLines } from '@/lib/identity/display'
@@ -142,8 +142,9 @@ export function SeasonControls({
             </div>
           </Field>
 
-          <Zoom onManual={() => window.dispatchEvent(new Event('8br:bracket-manual-zoom'))} />
-          {view === 'playoffs' && <FitBracket />}
+          {/* Zoom drives the group matrices. The bracket resizes itself to the panel, so on the
+              Playoffs view there is nothing here to operate. */}
+          {view === 'groups' && <Zoom />}
 
           <div className="ml-auto flex items-end gap-1.5">
             <NavButton
@@ -227,8 +228,11 @@ function NavButton({
 }
 
 /**
- * Zoom scales the group matrices and the bracket through a single CSS variable, so wide tables can
- * be pulled down to fit a laptop or pushed up on an ultrawide without any re-layout.
+ * Text size for the group matrices: one CSS variable scales the type and the cells with it, so a
+ * wide table can be pulled down to fit a laptop or pushed up on an ultrawide without re-layout.
+ *
+ * Labelled "Text Size" rather than "Zoom" because that is what it does here — the bracket sizes
+ * itself, so this only ever affects the tables.
  *
  * Not in the URL: it describes the reader's screen, not the Season. Remembered per browser instead.
  */
@@ -253,7 +257,7 @@ function writeZoom(v: number) {
   for (const cb of zoomListeners) cb()
 }
 
-function Zoom({ onManual }: { onManual?: () => void }) {
+function Zoom() {
   const raw = useSyncExternalStore(subscribeZoom, zoomSnapshot, zoomServerSnapshot)
   const parsed = Number(raw)
   const z = Number.isFinite(parsed) ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parsed)) : 1
@@ -263,22 +267,19 @@ function Zoom({ onManual }: { onManual?: () => void }) {
     return () => { document.documentElement.style.removeProperty('--season-zoom') }
   }, [z])
 
-  const step = (delta: number) => {
-    // Touching zoom is how the reader takes manual control back from a fitted bracket.
-    onManual?.()
+  const step = (delta: number) =>
     writeZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((z + delta) * 100) / 100)))
-  }
 
   return (
-    <Field label="Zoom">
+    <Field label="Text Size">
       <div className="flex h-8 items-center gap-1">
-        <ZoomButton label="Zoom out" disabled={z <= ZOOM_MIN} onClick={() => step(-0.1)}>
+        <ZoomButton label="Decrease text size" disabled={z <= ZOOM_MIN} onClick={() => step(-0.1)}>
           <Minus className="size-3.5" />
         </ZoomButton>
         <output className="tabular min-w-[3rem] text-center text-xs text-muted-foreground">
           {Math.round(z * 100)}%
         </output>
-        <ZoomButton label="Zoom in" disabled={z >= ZOOM_MAX} onClick={() => step(0.1)}>
+        <ZoomButton label="Increase text size" disabled={z >= ZOOM_MAX} onClick={() => step(0.1)}>
           <Plus className="size-3.5" />
         </ZoomButton>
       </div>
@@ -286,28 +287,6 @@ function Zoom({ onManual }: { onManual?: () => void }) {
   )
 }
 
-
-/**
- * Scale the bracket down to whatever room the panel has.
- *
- * Sits beside Zoom because it answers the same question, and hands control back the moment the
- * reader touches Zoom afterwards. The measuring happens in the bracket itself — only it knows its
- * own natural width — so this just asks.
- */
-function FitBracket() {
-  return (
-    <Field label="Bracket">
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event('8br:bracket-fit'))}
-        title="Scale the bracket to fit the panel"
-        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--gold-dim)] focus-visible:outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
-      >
-        <Maximize2 className="size-3.5" aria-hidden /> Fit Bracket
-      </button>
-    </Field>
-  )
-}
 
 function ZoomButton({
   label, disabled, onClick, children,

@@ -23,10 +23,17 @@ import type { BracketRound, BracketMatch, BracketSlot } from '@/lib/tournaments/
  * All sideways movement happens inside this panel. The page body never scrolls horizontally.
  */
 
-/** Card geometry. A bigger field gets narrower cards and tighter gutters so more rounds fit. */
-interface Metrics { cardW: number; rowH: number; matchGap: number; laneGap: number }
-const WIDE: Metrics = { cardW: 278, rowH: 38, matchGap: 10, laneGap: 24 }
-const TIGHT: Metrics = { cardW: 254, rowH: 36, matchGap: 8, laneGap: 20 }
+/**
+ * Card geometry. A bigger field gets narrower cards and tighter gutters so more rounds fit.
+ *
+ * `cardMin`/`cardW` are a RANGE, not a fixed size: the lanes share out whatever width the panel has,
+ * so a card grows and shrinks with the window while the type stays the size it was. Shrinking the
+ * card is what keeps a bracket on screen; shrinking the words is a last resort, and that is what the
+ * scale below the minimum is for.
+ */
+interface Metrics { cardW: number; cardMin: number; rowH: number; matchGap: number; laneGap: number }
+const WIDE: Metrics = { cardW: 278, cardMin: 190, rowH: 38, matchGap: 10, laneGap: 24 }
+const TIGHT: Metrics = { cardW: 254, cardMin: 176, rowH: 36, matchGap: 8, laneGap: 20 }
 const metricsFor = (players: number): Metrics => (players >= 32 ? TIGHT : WIDE)
 
 /**
@@ -49,12 +56,23 @@ export function fitScaleFor(available: number, natural: number): number {
   return Math.min(1, Math.max(MIN_SCALE, (available - 2) / natural))
 }
 
-/** The bracket's width at scale 1, from the lane geometry. */
+/** The bracket's width at scale 1, with cards at their widest. */
 export function naturalBracketWidth(roundCount: number, m: { cardW: number; laneGap: number }): number {
   if (roundCount <= 0) return 0
   const lane = m.cardW + m.laneGap
   const finalLane = Math.round(m.cardW * 1.06) + m.laneGap
   return (roundCount - 1) * lane + finalLane
+}
+
+/**
+ * The narrowest the bracket can get on card width alone, before anything has to be scaled.
+ *
+ * Down to this width the cards simply flex; below it they would stop being readable, so the panel
+ * scales instead — and below the scale floor it scrolls.
+ */
+export function minimumBracketWidth(roundCount: number, m: { cardMin: number; laneGap: number }): number {
+  if (roundCount <= 0) return 0
+  return roundCount * (m.cardMin + m.laneGap)
 }
 
 /** The two geometries, exported so tests can reason about real card sizes. */
@@ -97,9 +115,6 @@ export function SeasonBracketPanel({
   const treeRef = useRef<HTMLDivElement>(null)
   /** The scale in force. 1 until measured; auto-fitting narrows it to whatever the panel allows. */
   const [scale, setScale] = useState(1)
-  /** Set once the reader touches Zoom: from then on the bracket is their size, not ours. */
-  const [manual, setManual] = useState(false)
-
   /** The champion's key, so their whole route can be lit without re-deriving it per card. */
   const championKey = useMemo(
     () => (champion ? champion.cueverseId ?? champion.preferredName ?? null : null),
@@ -113,8 +128,9 @@ export function SeasonBracketPanel({
    * oscillate. The lanes are a known size, so the natural width is simply their sum: every lane is
    * a card plus its two half-gutters, and the Final's card is a little wider.
    */
-  const naturalWidth = useMemo(
-    () => naturalBracketWidth(rounds.length, metrics),
+  // Scaling only has to cover what flexing cannot: the point where even the narrowest cards overflow.
+  const floorWidth = useMemo(
+    () => minimumBracketWidth(rounds.length, metrics),
     [rounds.length, metrics],
   )
 
@@ -127,36 +143,23 @@ export function SeasonBracketPanel({
    */
   const autoFit = useCallback(() => {
     const scroller = scrollerRef.current
-    if (!scroller || !naturalWidth) return
+    if (!scroller || !floorWidth) return
     const available = scroller.clientWidth
     if (!available) return
-    setScale(fitScaleFor(available, naturalWidth))
-  }, [naturalWidth])
+    setScale(fitScaleFor(available, floorWidth))
+  }, [floorWidth])
 
   /**
    * Refit whenever the panel's width changes — a window resize, the sidebar, a zoom of the browser
    * itself. Observing the scroller rather than the window catches all of them.
    */
   useEffect(() => {
-    if (manual) return
     const scroller = scrollerRef.current
     if (!scroller) return
     autoFit()
     const ro = new ResizeObserver(autoFit)
     ro.observe(scroller)
     return () => ro.disconnect()
-  }, [manual, autoFit])
-
-  // The Fit control sits in the Season toolbar, which is a sibling, so it asks through an event.
-  useEffect(() => {
-    const onFit = () => { setManual(false); autoFit() }
-    const onManual = () => setManual(true)
-    window.addEventListener('8br:bracket-fit', onFit)
-    window.addEventListener('8br:bracket-manual-zoom', onManual)
-    return () => {
-      window.removeEventListener('8br:bracket-fit', onFit)
-      window.removeEventListener('8br:bracket-manual-zoom', onManual)
-    }
   }, [autoFit])
 
   /**
@@ -188,13 +191,11 @@ export function SeasonBracketPanel({
         <span className="text-[0.7rem] text-muted-foreground">
           {players} player{players === 1 ? '' : 's'} · {rounds.length} round{rounds.length === 1 ? '' : 's'}
         </span>
-        <span className="ml-auto text-[0.7rem] text-muted-foreground">
-          {manual
-            ? 'Manual zoom — Fit Bracket returns to automatic'
-            : scale < 1
-              ? `Fitted to ${Math.round(scale * 100)}%`
-              : 'Full size'}
-        </span>
+        {scale < 1 && (
+          <span className="ml-auto text-[0.7rem] text-muted-foreground">
+            Scaled to {Math.round(scale * 100)}% to fit
+          </span>
+        )}
       </header>
 
       {/* The ONLY horizontal scroller in this view. */}
@@ -205,9 +206,10 @@ export function SeasonBracketPanel({
           onPointerLeave={() => setFocused(null)}
           onFocusCapture={onFocusIn}
           onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocused(null) }}
-          className="bp-tree flex min-w-min items-stretch"
+          className="bp-tree flex w-full min-w-min items-stretch"
           style={{
             ['--bp-card-w' as string]: `${metrics.cardW}px`,
+            ['--bp-card-min' as string]: `${metrics.cardMin}px`,
             ['--bp-row-h' as string]: `${metrics.rowH}px`,
             ['--bp-match-gap' as string]: `${metrics.matchGap}px`,
             ['--bp-lane-gap' as string]: `${metrics.laneGap}px`,
@@ -286,8 +288,7 @@ function MatchCard({
 }) {
   return (
     <div
-      className="bp-card overflow-hidden rounded-lg border border-border bg-card"
-      style={{ width: 'var(--bp-card-w)' }}
+      className="bp-card w-full overflow-hidden rounded-lg border border-border bg-card"
     >
       <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
       <div className="h-px bg-border" />
@@ -424,7 +425,7 @@ function FinalBlock({
   championKey: string | null
 }) {
   return (
-    <div className="flex flex-col items-center" style={{ width: 'calc(var(--bp-card-w) * 1.06)' }}>
+    <div className="flex w-full flex-col items-center">
       <div className="mb-2 flex items-center gap-2.5">
         <Trophy
           aria-hidden
