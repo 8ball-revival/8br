@@ -5,7 +5,10 @@ import { requireCapability } from '@/lib/competition/staff-auth'
 import {
   createCompetition,
   updateCompetition,
+  deleteCompetition,
   listActiveCompetitions,
+  listCompetitionsForAdmin,
+  type CompetitionAdminRow,
   type CompetitionRef,
   type CreateCompetitionInput,
 } from './service'
@@ -49,4 +52,40 @@ export async function updateCompetitionAction(
 export async function listActiveCompetitionsAction(): Promise<CompetitionRef[]> {
   await requireCapability('manage_competitions')
   return listActiveCompetitions()
+}
+
+/** Staff table rows (every Competition + its Season count). ADMIN/OWNER only. */
+export async function listCompetitionsForAdminAction(): Promise<CompetitionAdminRow[]> {
+  await requireCapability('manage_competitions')
+  return listCompetitionsForAdmin()
+}
+
+/** Delete a Competition. Refused server-side while any Season still belongs to it. */
+export async function deleteCompetitionAction(id: number): Promise<CompetitionActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await deleteCompetition(actor, id)
+  if (!res.ok) return { error: res.error ?? 'Could not delete the Competition.' }
+  revalidatePath('/seasons')
+  revalidatePath('/staff/competitions')
+  return { ok: true }
+}
+
+/**
+ * Attach, replace or remove a Competition icon.
+ *
+ * The file itself is uploaded to the existing Payload Media collection by the client (which is
+ * already authenticated and gated by Media's staff-only `create` access); this action only records
+ * the resulting filename against the Competition. Passing null removes it, so the badge falls back
+ * to initials. Re-gated here so the association cannot be set by a non-admin.
+ */
+export async function setCompetitionIconAction(
+  id: number,
+  filename: string | null,
+): Promise<CompetitionActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await updateCompetition(actor, id, { iconMediaId: filename })
+  if (!res.ok) return { error: res.error ?? 'Could not update the Competition icon.' }
+  revalidatePath('/seasons')
+  revalidatePath('/staff/competitions')
+  return { ok: true, competition: res.competition }
 }

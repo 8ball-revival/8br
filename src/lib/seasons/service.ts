@@ -347,6 +347,10 @@ export async function closeRegistration(actor: Actor, seasonId: number): Promise
 // ---- Settings (lifecycle-aware) + export -----------------------------------
 
 export interface SeasonSettingsPatch {
+  /** Competition Year — always editable (identity, not lifecycle state). */
+  competitionYear?: number | string | null
+  /** Owning Competition. Always editable, but must remain a real, ACTIVE Competition. */
+  competitionSeriesId?: number | string | null
   subtitle?: string | null
   description?: string | null
   lounge?: string
@@ -371,6 +375,21 @@ export async function updateSeasonSettings(actor: Actor, seasonId: number, patch
   const state = s.lifecycleState
   const data: Record<string, unknown> = {}
   // Always editable (even after Close): identity + presentation.
+  if (patch.competitionYear !== undefined && patch.competitionYear !== null && patch.competitionYear !== '') {
+    const y = parseCompetitionYear(patch.competitionYear)
+    if (!y.ok) return { ok: false, error: y.error }
+    data.competitionYear = y.year
+  }
+  if (patch.competitionSeriesId !== undefined && patch.competitionSeriesId !== null && patch.competitionSeriesId !== '') {
+    // Re-validated here, not just in the form: a Season may never point at a missing or inactive
+    // Competition, and the relation can never be cleared.
+    const sid = Number(patch.competitionSeriesId)
+    if (!Number.isInteger(sid) || sid <= 0) return { ok: false, error: 'Select the Competition this Season belongs to.' }
+    const series = await prisma.competitionSeries.findUnique({ where: { id: sid }, select: { id: true, active: true } })
+    if (!series) return { ok: false, error: 'That Competition no longer exists.' }
+    if (!series.active) return { ok: false, error: 'That Competition is inactive and cannot own Seasons.' }
+    data.competitionSeriesId = sid
+  }
   if (patch.subtitle !== undefined) data.subtitle = patch.subtitle?.trim() || null
   if (patch.description !== undefined) data.description = patch.description?.trim() || null
   if (patch.bannerMediaId !== undefined) data.bannerMediaId = patch.bannerMediaId?.trim() || null

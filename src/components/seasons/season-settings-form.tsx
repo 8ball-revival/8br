@@ -8,13 +8,16 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { SeasonView } from '@/lib/seasons/service'
+import type { CompetitionRef } from '@/lib/competitions/shared'
+import { CompetitionSelect } from '@/components/competitions/competition-select'
+import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN } from '@/lib/competition/competition-year'
 import { updateSeasonSettingsAction, exportSeasonDataAction, deleteSeasonAction } from '@/lib/seasons/actions'
 
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /** Season Settings — lifecycle-aware. Registration access/schedule edit only before close; match
  *  format until playoffs begin (warned once live); after Close only identity/description/export. */
-export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: number; view: SeasonView; isHeadAdmin: boolean }) {
+export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }: { seasonId: number; view: SeasonView; isHeadAdmin: boolean; competitions: CompetitionRef[] }) {
   const router = useRouter()
   const confirm = useConfirm()
   const [pending, start] = useTransition()
@@ -26,6 +29,8 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
   const formatWarn = st === 'GROUP_STAGE_LIVE' || st === 'GROUPS_CLOSED'
   const completed = st === 'COMPLETED'
 
+  const [competitionYear, setCompetitionYear] = useState(String(view.year))
+  const [competitionSeriesId, setCompetitionSeriesId] = useState<number | null>(view.competition.id)
   const [subtitle, setSubtitle] = useState(view.subtitle ?? '')
   const [description, setDescription] = useState(view.description ?? '')
   const [lounge, setLounge] = useState(view.lounge)
@@ -40,6 +45,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
     }
     start(async () => {
       const r = await updateSeasonSettingsAction(seasonId, {
+        competitionYear: Number(competitionYear), competitionSeriesId,
         subtitle, description, ...(completed ? {} : { lounge }),
         ...(regEditable ? { accessMode: access as 'OPEN' | 'PASSWORD', joinPassword: access === 'PASSWORD' ? joinPassword : null } : {}),
         ...(formatEditable ? { groupStageGames: fmt.groupStageGames, earlyRaceTo: fmt.earlyRaceTo, semifinalRaceTo: fmt.semifinalRaceTo, finalRaceTo: fmt.finalRaceTo } : {}),
@@ -62,6 +68,12 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin }: { seasonId: 
       {msg && <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>}
 
       <Section title="Identity">
+        <Field label="Competition Year">
+          <input type="number" inputMode="numeric" value={competitionYear} onChange={(e) => setCompetitionYear(e.target.value)} min={COMPETITION_YEAR_MIN} max={COMPETITION_YEAR_MAX} step={1} className={input} />
+        </Field>
+        <Field label="Competition">
+          <CompetitionSelect competitions={competitions} value={competitionSeriesId} onChange={(id) => setCompetitionSeriesId(id)} inputClassName={input} />
+        </Field>
         <Field label="Custom subtitle"><input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={80} className={input} /></Field>
         <Field label="Description / announcement"><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={600} className={cn(input, 'resize-y')} /></Field>
       </Section>

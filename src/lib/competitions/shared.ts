@@ -15,6 +15,11 @@ export interface CompetitionRef {
   active: boolean
 }
 
+/** A Competition plus its Season count — the staff management table row. */
+export interface CompetitionAdminRow extends CompetitionRef {
+  seasonCount: number
+}
+
 export interface CreateCompetitionInput {
   name: string
   shortName?: string | null
@@ -45,7 +50,12 @@ export function competitionInitials(shortName: string, name?: string): string {
   return source.slice(0, 2).toUpperCase()
 }
 
-/** Public URL for a Competition icon, or null when it should fall back to initials. */
+/**
+ * Public URL for a Competition icon, or null when it should fall back to initials.
+ *
+ * `iconMediaId` holds the Payload media FILENAME, which is what Payload's own file route is keyed
+ * on (/api/media/file/<filename>) — the same URL shape the rest of the app already uses.
+ */
 export function competitionIconUrl(iconMediaId: string | null | undefined): string | null {
   return iconMediaId ? `/api/media/file/${iconMediaId}` : null
 }

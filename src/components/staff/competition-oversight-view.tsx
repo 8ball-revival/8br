@@ -1,4 +1,5 @@
 'use client'
+import { CompetitionBadge } from '@/components/competitions/competition-badge'
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -46,7 +47,19 @@ export function CompetitionOversightView({ rows }: { rows: CompRow[] }) {
             {filtered.map((r) => (
               <tr key={`${r.type}-${r.id}`} className="hover:bg-muted/40">
                 <td className="px-3 py-2"><span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', r.type === 'Season' ? 'bg-[var(--gold)]/15 text-[var(--gold)]' : 'bg-brand/15 text-brand')}>{r.type}</span></td>
-                <td className="px-3 py-2 font-medium text-foreground">{r.name}</td>
+                <td className="px-3 py-2 font-medium text-foreground">
+                  <span className="flex items-center gap-2">
+                    {r.competition && (
+                      <CompetitionBadge
+                        name={r.competition.name}
+                        shortName={r.competition.shortName}
+                        iconMediaId={r.competition.iconMediaId}
+                        size={18}
+                      />
+                    )}
+                    <span>{r.name}</span>
+                  </span>
+                </td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{r.code}</td>
                 <td className="px-3 py-2 text-xs">{r.phase}</td>
                 <td className="px-3 py-2 text-xs">{r.registration}</td>

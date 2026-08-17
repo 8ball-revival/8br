@@ -6,7 +6,7 @@ import type { Capability } from '@/lib/auth/roles'
 
 export type AdminSection =
   | 'dashboard' | 'reset' | 'audit' | 'members' | 'penalties'
-  | 'staff' | 'competition' | 'settings' | 'security' | 'health'
+  | 'staff' | 'competition' | 'competitions' | 'settings' | 'security' | 'health'
 
 const SECTIONS: { key: AdminSection; label: string; href: string; cap?: Capability; headAdminOnly?: boolean }[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/staff' },
@@ -16,6 +16,7 @@ const SECTIONS: { key: AdminSection; label: string; href: string; cap?: Capabili
   { key: 'penalties', label: 'Penalties', href: '/staff/penalties', cap: 'moderate_members' },
   { key: 'staff', label: 'Staff Management', href: '/staff/staff', headAdminOnly: true },
   { key: 'competition', label: 'Competition Oversight', href: '/staff/competition', cap: 'manage_competitions' },
+  { key: 'competitions', label: 'Competitions', href: '/staff/competitions', cap: 'manage_competitions' },
   { key: 'settings', label: 'Site Settings', href: '/staff/settings', headAdminOnly: true },
   { key: 'security', label: 'Security', href: '/staff/security', cap: 'view_audit' },
   { key: 'health', label: 'Data & System Health', href: '/staff/health', headAdminOnly: true },

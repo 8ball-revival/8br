@@ -17,11 +17,16 @@ export interface CompRow {
   incompleteTeams: number
   manageHref: string
   year: number
+  /** Owning Competition — Seasons only; Tournaments have no Competition in this release. */
+  competition?: { name: string; shortName: string; iconMediaId: string | null }
 }
 
 export async function getCompetitions(): Promise<CompRow[]> {
   const seasons = await prisma.season.findMany({
-    include: { _count: { select: { entrants: true } } },
+    include: {
+      _count: { select: { entrants: true } },
+      competitionSeries: { select: { name: true, shortName: true, iconMediaId: true } },
+    },
     orderBy: [{ competitionYear: 'desc' }, { scheduledStartAt: 'desc' }, { number: 'desc' }],
   })
   const tournaments = await prisma.tournament.findMany({
@@ -40,6 +45,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
       entrants: s._count.entrants, format: s.playoffDoubleElim ? 'Groups → DE' : 'Groups → SE',
       unresolved, waitingFreeAgents: 0, incompleteTeams: 0,
       manageHref: `/seasons/${s.number}`, year: s.competitionYear,
+      competition: s.competitionSeries,
     })
   }
   for (const t of tournaments) {

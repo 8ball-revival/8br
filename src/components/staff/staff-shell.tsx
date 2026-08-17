@@ -21,6 +21,7 @@ export type StaffSection =
   | 'members'
   | 'penalties'
   | 'staff'
+  | 'competitions'
   | 'tournaments'
 
 // Nav items gated by capability (undefined = any staff). Server-side page guards
@@ -31,6 +32,7 @@ const NAV: { key: StaffSection; label: string; href: string; icon: typeof Layout
   { key: 'audit', label: 'Activity Log', href: '/staff/audit', icon: ScrollText, cap: 'view_audit' },
   { key: 'members', label: 'Player Management', href: '/staff/members', icon: UserCog, cap: 'moderate_members' },
   { key: 'penalties', label: 'Penalties', href: '/staff/penalties', icon: Gavel, cap: 'moderate_members' },
+  { key: 'competitions', label: 'Competitions', href: '/staff/competitions', icon: Trophy, cap: 'manage_competitions' },
   { key: 'staff', label: 'Staff Management', href: '/staff/staff', icon: ShieldCheck, cap: 'manage_staff' },
   { key: 'tournaments', label: 'Competition Oversight', href: '/tournaments', icon: Trophy, cap: 'manage_competitions' },
 ]

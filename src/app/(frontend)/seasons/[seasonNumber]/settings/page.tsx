@@ -6,6 +6,7 @@ import { Container } from '@/components/ui/container'
 import { SectionHeader } from '@/components/section-header'
 import { getSeasonView } from '@/lib/seasons/service'
 import { SeasonSettingsForm } from '@/components/seasons/season-settings-form'
+import { listActiveCompetitions } from '@/lib/competitions/service'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { prisma } from '@/lib/prisma'
 
@@ -21,11 +22,14 @@ export default async function SeasonSettingsPage({ params }: { params: Promise<{
   const season = await prisma.season.findUnique({ where: { id: view.id }, select: { id: true } })
   if (!season) notFound()
 
+  const competitions = await listActiveCompetitions()
+
+
   return (
     <Container className="py-10">
       <Link href={`/seasons/${view.number}`} className="text-sm text-muted-foreground hover:text-foreground">← {view.title}</Link>
       <SectionHeader eyebrow="Season Settings" title={view.title} description={view.subtitle ?? undefined} />
-      <SeasonSettingsForm seasonId={view.id} view={view} isHeadAdmin={access.actor.isHeadAdmin} />
+      <SeasonSettingsForm seasonId={view.id} view={view} isHeadAdmin={access.actor.isHeadAdmin} competitions={competitions} />
     </Container>
   )
 }

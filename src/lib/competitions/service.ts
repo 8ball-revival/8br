@@ -14,10 +14,10 @@ import { recordAudit, type Actor } from '@/lib/competition/audit'
  * When it is absent the UI renders an initials badge derived from `shortName`.
  */
 
-import { slugifyCompetition, type CompetitionRef, type CreateCompetitionInput } from './shared'
+import { slugifyCompetition, type CompetitionAdminRow, type CompetitionRef, type CreateCompetitionInput } from './shared'
 
 // Re-exported so server callers can keep importing everything Competition-related from one place.
-export type { CompetitionRef, CreateCompetitionInput } from './shared'
+export type { CompetitionAdminRow, CompetitionRef, CreateCompetitionInput } from './shared'
 export { slugifyCompetition, competitionInitials, competitionIconUrl } from './shared'
 
 const SELECT = {
@@ -44,6 +44,52 @@ export async function listAllCompetitions(): Promise<CompetitionRef[]> {
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
     select: SELECT,
   })
+}
+
+/** Staff view: every Competition plus how many Seasons it owns (drives the delete guard). */
+export async function listCompetitionsForAdmin(): Promise<CompetitionAdminRow[]> {
+  const rows = await prisma.competitionSeries.findMany({
+    orderBy: [{ active: 'desc' }, { name: 'asc' }],
+    select: { ...SELECT, _count: { select: { seasons: true } } },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    shortName: r.shortName,
+    iconMediaId: r.iconMediaId,
+    active: r.active,
+    seasonCount: r._count.seasons,
+  }))
+}
+
+/**
+ * Delete a Competition. Refused while any Season still belongs to it — the database FK is
+ * ON DELETE RESTRICT, but this returns a readable reason instead of a raw constraint error.
+ */
+export async function deleteCompetition(
+  actor: Actor,
+  id: number,
+): Promise<{ ok: boolean; error?: string }> {
+  const existing = await prisma.competitionSeries.findUnique({
+    where: { id },
+    select: { ...SELECT, _count: { select: { seasons: true } } },
+  })
+  if (!existing) return { ok: false, error: 'Competition not found.' }
+  if (existing._count.seasons > 0) {
+    return {
+      ok: false,
+      error: `This Competition owns ${existing._count.seasons} Season(s) and cannot be deleted. Deactivate it instead.`,
+    }
+  }
+  await prisma.competitionSeries.delete({ where: { id } })
+  await recordAudit(actor, {
+    action: 'competition.delete',
+    entity: 'CompetitionSeries',
+    entityId: id,
+    oldValue: { name: existing.name, slug: existing.slug },
+  })
+  return { ok: true }
 }
 
 /** Only the Competitions that actually own at least one Season — powers the public filter. */
