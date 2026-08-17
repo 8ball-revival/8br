@@ -48,8 +48,10 @@ check('numbers auto-increment', typeof s1.number === 'number' && s2.number === s
 {
   const v = await getSeasonView(s1.number!)
   const year = new Date().getFullYear()
-  // The title is derived from the owning Competition, so assert against that Competition's name.
-  const compName = (await prisma.competitionSeries.findFirst({ where: { active: true }, select: { name: true } }))?.name ?? ''
+  // The title is derived from the owning Competition, so assert against the fixture's OWN
+  // Competition — "the first active one" is whichever the site happens to have, not necessarily
+  // the one this Season was created under.
+  const compName = (await prisma.competitionSeries.findUnique({ where: { slug: FIXTURE_SLUG }, select: { name: true } }))?.name ?? ''
   check('official title is "<Competition> Season N · YEAR"',
     v?.title === seasonOfficialTitle(compName, s1.number!, year), v?.title)
   check('starts in REGISTRATION_OPEN (no future opensAt)', v?.lifecycleState === 'REGISTRATION_OPEN')
