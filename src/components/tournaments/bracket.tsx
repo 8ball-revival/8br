@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { CheckCircle2, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/tournaments/service'
 import { TeamName } from './team-popover'
@@ -47,8 +47,8 @@ function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlo
       onClick={swappable ? () => swap!.pick(matchId!, side!) : undefined}
       onKeyDown={swappable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swap!.pick(matchId!, side!) } } : undefined}
       className={cn(
-        'flex items-center gap-2 px-2.5 py-2',
-        won && 'bracket-winner-row',
+        'flex items-center gap-2 px-2.5 py-1.5',
+        won && 'bracket-winner-row bg-gold/[0.08]',
         dim && 'bracket-loser-row',
         !slot?.name && 'text-muted-foreground',
         swappable && 'cursor-pointer hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
@@ -56,13 +56,7 @@ function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlo
       )}
     >
       {slot?.seed != null && (
-        <span className="tabular w-4 shrink-0 text-right text-[0.72rem] text-muted-foreground/80">{slot.seed}</span>
-      )}
-      {/* Winner marker: only for a completed match's CONFIRMED winner (`won` derives from the
-          authoritative match.winner, never from the scores). Decorative — the row already reads as the
-          winner — so hidden from screen readers. Sits between the seed and the name. */}
-      {won && slot?.name && (
-        <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} />
+        <span className="tabular w-4 shrink-0 text-right text-[0.6rem] text-muted-foreground">{slot.seed}</span>
       )}
       <span className="min-w-0 flex-1">
         {hasMembers ? (
@@ -82,16 +76,24 @@ function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlo
           // differs from the ID. The whole name links to the player's profile (by CueVerse ID), the
           // same target the Rankings ladder uses.
           (() => {
+            // An unfilled or bye slot reads as quiet placeholder text rather than a competitor.
+            if (!slot?.name || slot.name === 'Bye') {
+              return (
+                <span className="block truncate text-sm italic leading-tight text-muted-foreground">
+                  {slot?.name === 'Bye' ? 'bye' : 'TBD'}
+                </span>
+              )
+            }
             const nameEl = (
               <span className={cn(
-                'block truncate text-[1.02rem] leading-snug tracking-tight',
-                won ? 'font-bold text-foreground' : dim ? 'bracket-loser-name font-bold italic' : 'font-medium text-foreground',
+                'block truncate text-sm leading-tight',
+                won ? 'font-semibold text-gold' : dim ? 'text-muted-foreground' : 'text-foreground',
               )}>
                 {label}
               </span>
             )
             const subEl = slot && lines.secondary ? (
-              <span className={cn('block truncate text-[0.75rem] italic leading-tight', dim ? 'text-muted-foreground/70' : 'text-muted-foreground')}>{lines.secondary}</span>
+              <span className="block truncate text-[0.6rem] leading-tight text-muted-foreground">{lines.secondary}</span>
             ) : null
             const profile = slot?.slug ?? slot?.handle
             return profile ? (
@@ -116,12 +118,12 @@ function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlo
           inputMode="numeric"
           aria-label={`${label} score`}
           className={cn(
-            'h-6 w-10 shrink-0 self-center rounded border bg-card/70 text-center text-[0.85rem] tabular outline-none focus-visible:border-brand disabled:opacity-50',
+            'h-5 w-9 shrink-0 self-center rounded border bg-card/70 text-center text-[0.78rem] tabular outline-none focus-visible:border-brand disabled:opacity-50',
             edit!.dirty(matchId!) ? 'border-[var(--gold)] ring-1 ring-[var(--gold)]/40' : 'border-input',
           )}
         />
       ) : slot?.score != null ? (
-        <span className={cn('tabular self-start pt-0.5 text-[0.95rem]', won ? 'font-bold text-foreground' : dim ? 'text-foreground/70' : 'text-muted-foreground')}>{slot.score}</span>
+        <span className={cn('tabular shrink-0 text-sm', won ? 'font-bold text-gold' : 'text-muted-foreground')}>{slot.score}</span>
       ) : null}
     </div>
   )
@@ -135,11 +137,13 @@ export function MatchBox({ match, edit, swap }: { match: BracketMatch; edit?: Br
   const dirty = canEdit && edit!.dirty(matchId!)
   const saving = canEdit && edit!.saving(matchId!)
   const err = canEdit ? edit!.error(matchId!) : null
+  const decided = match.winner === 'a' || match.winner === 'b'
   return (
     <div className="w-full">
-      {/* Frame is transparent (no card fill): only the WINNER row paints a dark background; the loser
-          row stays see-through to the page. */}
-      <div className="overflow-hidden rounded-md border border-border">
+      {/* A plain bordered card. The winner is told by the gold name, the gold score and a faint gold
+          wash on that row — the frame itself stays neutral, so a full bracket reads as a run of
+          results rather than a grid of highlighted boxes. */}
+      <div className="overflow-hidden rounded-md border border-border bg-card">
         <Slot slot={match.a} won={match.winner === 'a'} dim={match.winner === 'b'} edit={canEdit ? edit : undefined} swap={swap} matchId={matchId} side="home" />
         <div className="h-px bg-border" />
         <Slot slot={match.b} won={match.winner === 'b'} dim={match.winner === 'a'} edit={canEdit ? edit : undefined} swap={swap} matchId={matchId} side="away" />
@@ -154,10 +158,14 @@ export function MatchBox({ match, edit, swap }: { match: BracketMatch; edit?: Br
           )}
         </div>
       )}
-      <div className="mt-1 flex items-center justify-center gap-2 text-[0.55rem] uppercase tracking-wide text-muted-foreground">
-        {match.raceLength != null && (match.a || match.b) && <span>Race to {match.raceLength}</span>}
-        {match.note && <span>{match.note}</span>}
-      </div>
+      {/* The race length is worth stating while a tie is still to be played; once it is decided the
+          score says everything, and repeating it under every box only makes the bracket taller. */}
+      {((!decided && match.raceLength != null && (match.a || match.b)) || match.note) && (
+        <div className="mt-0.5 flex items-center justify-center gap-2 text-[0.5rem] uppercase tracking-wide text-muted-foreground/80">
+          {!decided && match.raceLength != null && (match.a || match.b) && <span>Race to {match.raceLength}</span>}
+          {match.note && <span>{match.note}</span>}
+        </div>
+      )}
     </div>
   )
 }
@@ -186,14 +194,14 @@ export function Bracket({
 }) {
   return (
     <div className="scrollbar-themed overflow-x-auto pb-2">
-      <div className="bkt-tree" style={{ ['--bkt-col-max']: fluid ? '22rem' : '14rem' } as CSSProperties}>
+      <div className="bkt-tree" style={{ ['--bkt-col-max']: fluid ? '20rem' : '14rem' } as CSSProperties}>
         {rounds.map((round, ri) => {
           const active = currentRound && round.name.toLowerCase() === currentRound.toLowerCase()
           const isFirst = ri === 0
           const isLast = ri === rounds.length - 1
           return (
             <div key={ri} className="bkt-round">
-              <p className={cn('eyebrow mb-3 text-center', active ? 'text-brand' : 'text-muted-foreground')}>
+              <p className={cn('eyebrow mb-3 text-center', active ? 'text-gold' : 'text-muted-foreground')}>
                 {round.name}
               </p>
               {/* .bkt-feeds draws the outgoing elbow to the next round; .bkt-receives draws the incoming

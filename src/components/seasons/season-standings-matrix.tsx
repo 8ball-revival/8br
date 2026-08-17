@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import { identityLines, identityText } from '@/lib/identity/display'
 import { cn } from '@/lib/utils'
 import type { StageGroup, StageStandingRow, StageMatch } from '@/lib/seasons/views'
@@ -62,10 +64,12 @@ export function SeasonStandingsMatrix({
                 const full = identityText({ cueverseId: c.cueverseId ?? c.username, preferredName: c.preferredName })
                 return (
                   <th key={c.entrantId} scope="col" className="season-head" title={full}>
-                    {/* tabIndex makes the full identity reachable by keyboard, not just hover. */}
-                    <span tabIndex={0} className="season-head-id" aria-label={full}>
+                    {/* A link is focusable in its own right, so the full identity stays reachable by
+                        keyboard as well as hover. Entrants with no profile fall back to a plain
+                        span rather than a link that goes nowhere. */}
+                    <PlayerCell slug={c.slug} label={full} className="season-head-id">
                       {identityLines({ cueverseId: c.cueverseId ?? c.username, preferredName: c.preferredName }).primary}
-                    </span>
+                    </PlayerCell>
                   </th>
                 )
               })}
@@ -84,14 +88,18 @@ export function SeasonStandingsMatrix({
                   <th scope="row" className="season-who">
                     <span className="season-who-in">
                       <span className="season-rank">{i + 1}.</span>
-                      <span className="min-w-0">
+                      <PlayerCell
+                        slug={r.slug}
+                        label={identityText({ cueverseId: r.cueverseId ?? r.username, preferredName: r.preferredName })}
+                        className="min-w-0"
+                      >
                         {/* Preferred name leads here and the ID sits beneath it; with no preferred
                             name the ID becomes the single bold label rather than being repeated. */}
                         <span className={cn('block truncate font-semibold', r.kickedOut && 'text-muted-foreground line-through')}>
                           {lines.secondary ?? lines.primary}
                         </span>
                         {lines.secondary && <span className="season-id block truncate">{lines.primary}</span>}
-                      </span>
+                      </PlayerCell>
                     </span>
                   </th>
 
@@ -128,6 +136,32 @@ export function SeasonStandingsMatrix({
         <span><i className="not-italic text-[var(--gold)]">–</i> played, score not recorded</span>
       </footer>
     </section>
+  )
+}
+
+/**
+ * A name in the matrix, linked to the player's profile when there is one to link to.
+ *
+ * Entrants added without an account have no CueVerse ID and therefore no profile page, so they
+ * render as plain text — a link that 404s is worse than no link.
+ */
+function PlayerCell({
+  slug, label, className, children,
+}: {
+  slug: string | null
+  label: string
+  className?: string
+  children: React.ReactNode
+}) {
+  if (!slug) return <span className={className} aria-label={label}>{children}</span>
+  return (
+    <Link
+      href={`/players/${encodeURIComponent(slug)}`}
+      aria-label={label}
+      className={cn('season-link', className)}
+    >
+      {children}
+    </Link>
   )
 }
 

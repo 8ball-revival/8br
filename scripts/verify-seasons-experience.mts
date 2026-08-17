@@ -258,7 +258,15 @@ try {
     check('the matrix scrolls sideways instead of shrinking',
       files[2][1].includes('overflow-x-auto'))
     check('the column head carries the full identity for hover and focus',
-      files[2][1].includes('title={full}') && files[2][1].includes('aria-label={full}'))
+      files[2][1].includes('title={full}') && files[2][1].includes('label={full}') &&
+      /aria-label=\{label\}/.test(files[2][1]))
+    check('every name in a group links to that player’s profile',
+      files[2][1].includes('href={`/players/${encodeURIComponent(slug)}`}'))
+    check('both the row heads and the column heads are linked',
+      (files[2][1].match(/<PlayerCell/g) ?? []).length >= 2)
+    check('an entrant with no profile renders as text, not a dead link',
+      /if \(!slug\) return <span/.test(files[2][1]))
+
     check('there is no Division control anywhere',
       files.every(([, src]) => !/\bDivision\b/.test(src)))
     check('there is no Group Order control anywhere',
