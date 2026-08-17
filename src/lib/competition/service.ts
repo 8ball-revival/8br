@@ -276,6 +276,14 @@ export async function bulkImportEntrants(actor: Actor, tournamentId: number, raw
       profile = alias?.player ?? null
     }
     if (!profile) { unmatched.push(line); continue }
+    // A typed handle may belong to an account that has since been merged into another. Enter the
+    // canonical account, not the hidden secondary, so the same person cannot be entered twice
+    // under two names.
+    const { resolveCanonicalPlayerId } = await import('@/lib/players/merge')
+    const canonicalId = await resolveCanonicalPlayerId(profile.id)
+    if (canonicalId !== profile.id) {
+      profile = (await prisma.player.findUnique({ where: { id: canonicalId } })) ?? profile
+    }
     const res = await addEntrantByProfile(actor, tournamentId, profile.id)
     if (res.already) duplicates.push(`${line} (${profile.primaryName})`)
     else if (res.ok) added.push(`${line} → ${profile.primaryName}`)

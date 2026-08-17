@@ -29,6 +29,8 @@ import { softDeleteAccount } from '@/lib/moderation/service'
 export interface MergeActionResult {
   ok?: boolean
   error?: string
+  /** Non-fatal note the operator should see, e.g. a login that could not be restored on undo. */
+  warning?: string
 }
 
 function revalidateMember(userId?: number | null) {
@@ -75,7 +77,7 @@ export async function undoMergeAction(
   const res = await undoMerge(actor, mergeId)
   if (!res.ok) return { error: res.error }
   revalidateMember(primaryUserId)
-  return { ok: true }
+  return { ok: true, ...(res.warning ? { warning: res.warning } : {}) }
 }
 
 // --------------------------------------------------------------------------- deletion

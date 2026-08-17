@@ -155,10 +155,21 @@ async function main() {
   const archiveUsers = await prisma.$queryRaw<{ n: bigint }[]>`
     SELECT count(*)::bigint AS n FROM payload.users WHERE email ILIKE '%@archive.8br.invalid'`
   eq('archive accounts', Number(archiveUsers[0].n), ids.size)
+  // A merged secondary is deliberately unlinked from its account — that is how its login is
+  // disabled — so the invariant is about profiles that have NOT been merged away.
+  const { mergedSecondaryPlayerIds } = await import('../src/lib/players/merge.ts')
+  const secondaries = await mergedSecondaryPlayerIds()
   const unlinked = await prisma.player.count({
-    where: { linkedUserId: null, cueverseIdNormalized: { in: [...idSet] } },
+    where: {
+      linkedUserId: null,
+      cueverseIdNormalized: { in: [...idSet] },
+      ...(secondaries.length ? { id: { notIn: secondaries } } : {}),
+    },
   })
-  check('every archive profile is linked to its account', unlinked === 0, `${unlinked} unlinked`)
+  check('every unmerged archive profile is linked to its account', unlinked === 0, `${unlinked} unlinked`)
+  if (secondaries.length) {
+    console.log(`  (${secondaries.length} merged secondar${secondaries.length === 1 ? 'y' : 'ies'} excluded — unlinking is how a merge disables the login)`)
+  }
   const tbd = await prisma.player.count({ where: { primaryName: { in: ['TBD', '-'] } } })
   check('no placeholder became a member', tbd === 0, `${tbd} placeholder profiles`)
 

@@ -287,8 +287,44 @@ async function computeTrophies(): Promise<Map<string, TrophyEntry[]>> {
 }
 
 // ---------------------------------------------------------------- public API
+
+/**
+ * Fold merged secondaries into their primary before anything is aggregated.
+ *
+ * The ledger records the player who actually played, which is right — a merge must not rewrite
+ * history. But every total derived from it has to read under the canonical player, or a merged
+ * account keeps its own ladder row next to the primary and the same person is ranked twice.
+ *
+ * Doing it here, at the one place the ladder loads its rows, is what stops the rankings, the
+ * profile and the trophy lists from disagreeing.
+ */
+async function canonicalizeRows(rows: Row[]): Promise<Row[]> {
+  const { resolveCanonicalPlayerIds } = await import('@/lib/players/merge')
+  const canonical = await resolveCanonicalPlayerIds([...new Set(rows.map((r) => r.playerId))])
+  return rows.map((r) => {
+    const c = canonical.get(r.playerId)
+    return c && c !== r.playerId ? { ...r, playerId: c } : r
+  })
+}
+
+/** Re-key a per-player map onto canonical players, concatenating what merges bring together. */
+async function canonicalizeByPlayer<T>(m: Map<string, T[]>): Promise<Map<string, T[]>> {
+  if (m.size === 0) return m
+  const { resolveCanonicalPlayerIds } = await import('@/lib/players/merge')
+  const canonical = await resolveCanonicalPlayerIds([...m.keys()])
+  const out = new Map<string, T[]>()
+  for (const [pid, list] of m) {
+    const c = canonical.get(pid) ?? pid
+    const existing = out.get(c)
+    if (existing) existing.push(...list)
+    else out.set(c, [...list])
+  }
+  return out
+}
+
 async function loadRows(): Promise<Row[]> {
-  return prisma.ratingLedger.findMany({ orderBy: { sequence: 'asc' } }) as unknown as Row[]
+  const rows = (await prisma.ratingLedger.findMany({ orderBy: { sequence: 'asc' } })) as unknown as Row[]
+  return canonicalizeRows(rows)
 }
 
 /** The ranked ladder for a view, sorted by Rating → Tournament Wins → Win% → Wins → Name. */
@@ -299,9 +335,10 @@ export async function getLadder(view: LadderView, now: Date = new Date()): Promi
   const stats = view === 'current' ? computeCurrent(rows, cutoff) : computeAllTime(rows)
   const allTimeLatest = computeLatestByPlayer(rows) // idle always from latest match ever
   const identities = await loadIdentities([...stats.keys()])
-  const trophies = await computeTrophies()
+  // Titles follow the same rule as the results: a primary inherits what its secondaries won.
+  const trophies = await canonicalizeByPlayer(await computeTrophies())
   const { computeSeasonTrophies } = await import('@/lib/seasons/trophies')
-  const seasonTrophies = await computeSeasonTrophies()
+  const seasonTrophies = await canonicalizeByPlayer(await computeSeasonTrophies())
 
   const list: LadderRow[] = [...stats.values()].map((s) => {
     const idn = identities.get(s.playerId)

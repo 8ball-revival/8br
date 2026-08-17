@@ -29,6 +29,16 @@ export interface MergeSnapshot {
   secondaryWasActive: boolean
   /** Whether the secondary's account was already blocked before the merge. */
   secondaryWasBlocked: boolean
+  /**
+   * The account the secondary profile was linked to.
+   *
+   * Disabling the login goes through `softDeleteAccount`, which also clears `Player.linkedUserId`.
+   * That means undo cannot read the account back off the Player — by then it is null — so the id
+   * has to be remembered here or the login can never be restored.
+   */
+  secondaryUserId?: number | null
+  /** `Player.linkStatus` before the merge, so undo restores what was there. */
+  secondaryLinkStatus?: string | null
   mergedAt: string
 }
 
@@ -48,6 +58,7 @@ export interface MergedAccountRow extends MergeCandidate {
 const PLAYER_SELECT = {
   id: true,
   linkedUserId: true,
+  linkStatus: true,
   cueverseId: true,
   primaryName: true,
   active: true,
@@ -268,6 +279,8 @@ export async function mergeAccounts(
   const snapshot: MergeSnapshot = {
     secondaryWasActive: secondary.active,
     secondaryWasBlocked: wasBlocked,
+    secondaryUserId,
+    secondaryLinkStatus: secondary.linkStatus ?? null,
     mergedAt: new Date().toISOString(),
   }
 
@@ -331,7 +344,7 @@ export async function undoMerge(
   actor: Actor,
   mergeId: string,
   reason?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; warning?: string }> {
   const merge = await prisma.playerMerge.findUnique({
     where: { id: mergeId },
     include: { mergedPlayer: { select: PLAYER_SELECT } },
@@ -350,11 +363,41 @@ export async function undoMerge(
   const restoreActive = snapshot?.secondaryWasActive ?? true
   const wasBlocked = snapshot?.secondaryWasBlocked ?? false
 
-  const secondaryUserId = merge.mergedPlayer.linkedUserId ? Number(merge.mergedPlayer.linkedUserId) : null
+  // The live column is null whenever we disabled the login, because that unlinks the profile. The
+  // snapshot is the only place the account id survives, so prefer whichever is actually present.
+  // Merges recorded before the snapshot carried the id fall back to the audit trail, which has
+  // always logged it — without that, undoing an older merge could never restore its login.
+  const liveUserId = merge.mergedPlayer.linkedUserId ? Number(merge.mergedPlayer.linkedUserId) : null
+  const secondaryUserId =
+    liveUserId ?? snapshot?.secondaryUserId ?? (await secondaryUserIdFromAudit(mergeId))
+
+  // Re-linking can only fail if another profile claimed the account while this one was merged.
+  // Restoring `active` still matters in that case, so the link is attempted separately.
+  const needsRelink = liveUserId == null && secondaryUserId != null
+  let relinkBlockedBy: string | null = null
+  if (needsRelink) {
+    const holder = await prisma.player.findFirst({
+      where: { linkedUserId: String(secondaryUserId) },
+      select: { id: true },
+    })
+    if (holder && holder.id !== merge.mergedPlayerId) relinkBlockedBy = holder.id
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.playerMerge.delete({ where: { id: mergeId } })
-    await tx.player.update({ where: { id: merge.mergedPlayerId }, data: { active: restoreActive } })
+    await tx.player.update({
+      where: { id: merge.mergedPlayerId },
+      data: {
+        active: restoreActive,
+        ...(needsRelink && !relinkBlockedBy
+          ? {
+              linkedUserId: String(secondaryUserId),
+              linkStatus: (snapshot?.secondaryLinkStatus as 'VERIFIED' | null) ?? 'VERIFIED',
+              linkedAt: new Date(),
+            }
+          : {}),
+      },
+    })
   })
 
   // Only lift the login block if WE applied it.
@@ -366,10 +409,29 @@ export async function undoMerge(
     action: 'player.merge.undo',
     entity: 'Player',
     entityId: merge.canonicalPlayerId,
-    oldValue: { mergeId, secondaryPlayerId: merge.mergedPlayerId, snapshot },
+    oldValue: { mergeId, secondaryPlayerId: merge.mergedPlayerId, snapshot, relinkBlockedBy },
     reason,
   })
-  return { ok: true }
+  return relinkBlockedBy
+    ? { ok: true, warning: `The account is now linked to another profile, so ${merge.mergedPlayer.primaryName} was reactivated without its login.` }
+    : { ok: true }
+}
+
+/**
+ * Recover a legacy merge's account id from the audit trail.
+ *
+ * `player.merge` has always logged `secondaryUserId`, so merges made before the snapshot carried it
+ * can still be undone completely.
+ */
+async function secondaryUserIdFromAudit(mergeId: string): Promise<number | null> {
+  const row = await prisma.auditLog.findFirst({
+    where: { action: 'player.merge', newValue: { path: ['mergeId'], equals: mergeId } },
+    orderBy: { createdAt: 'desc' },
+    select: { newValue: true },
+  }).catch(() => null)
+  const raw = (row?.newValue as { secondaryUserId?: unknown } | null)?.secondaryUserId
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
 }
 
 async function isAccountBlocked(userId: number): Promise<boolean> {

@@ -73,6 +73,7 @@ function MergePanel({
   const [picked, setPicked] = useState<MergeCandidate | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   async function search(term: string) {
     setQ(term)
@@ -104,9 +105,11 @@ function MergePanel({
 
   async function undo(mergeId: string) {
     setBusy(true)
+    setWarning(null)
     const res = await undoMergeAction(mergeId, userId)
     setBusy(false)
     if (res.error) return setError(res.error)
+    if (res.warning) setWarning(res.warning)
     router.refresh()
   }
 
@@ -210,6 +213,12 @@ function MergePanel({
             </div>
           )}
         </>
+      )}
+
+      {warning && (
+        <p role="status" className="mt-3 max-w-xl rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          {warning}
+        </p>
       )}
 
       {error && (
