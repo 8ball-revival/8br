@@ -111,15 +111,19 @@ console.log('--- A 32-player bracket switches to the tighter geometry ---')
   const big = render(bracketOf(32), null, null)
 
   check('the larger field renders every round', (big.match(/bp-lane /g) ?? []).length === 5)
-  check('a 16-player bracket uses the roomier card', wide.includes('--bp-card-w:278px'))
-  check('a 32-player bracket narrows the card', big.includes('--bp-card-w:254px'))
+  check('a 16-player bracket uses the roomier card', wide.includes('--bp-card-w:208px'))
+  check('a 32-player bracket narrows the card', big.includes('--bp-card-w:190px'))
   check('rows shorten too', big.includes('--bp-row-h:36px') && wide.includes('--bp-row-h:38px'))
   check('spacing tightens with them',
     big.includes('--bp-match-gap:8px') && big.includes('--bp-lane-gap:20px'))
-  check('the card width is within the 250–260px target for a large field',
-    Number(/--bp-card-w:(\d+)px/.exec(big)![1]) >= 250 && Number(/--bp-card-w:(\d+)px/.exec(big)![1]) <= 260)
-  check('and within 275–280px for a 16-player field',
-    Number(/--bp-card-w:(\d+)px/.exec(wide)![1]) >= 275 && Number(/--bp-card-w:(\d+)px/.exec(wide)![1]) <= 280)
+  // Compact cards: the earlier 278/254 pair, reduced by about a quarter.
+  check('a large field sits near 190px',
+    Number(/--bp-card-w:(\d+)px/.exec(big)![1]) >= 185 && Number(/--bp-card-w:(\d+)px/.exec(big)![1]) <= 200)
+  check('a 16-player field sits near 208px',
+    Number(/--bp-card-w:(\d+)px/.exec(wide)![1]) >= 200 && Number(/--bp-card-w:(\d+)px/.exec(wide)![1]) <= 215)
+  check('both are about a quarter narrower than the original 278/254',
+    Math.abs(Number(/--bp-card-w:(\d+)px/.exec(wide)![1]) / 278 - 0.75) < 0.03 &&
+    Math.abs(Number(/--bp-card-w:(\d+)px/.exec(big)![1]) / 254 - 0.75) < 0.03)
   check('all 32 seeds are rendered',
     new Set([...big.matchAll(/, seed (\d+)/g)].map((m) => Number(m[1]))).size === 32)
 }
@@ -182,19 +186,18 @@ console.log('--- Cards resize with the window before anything is scaled ---')
     /\.bp-lane \{[^}]*min-width: calc\(var\(--bp-card-min\) \+ var\(--bp-lane-gap\)\)/s.test(css))
   check('and grow no wider than the comfortable size',
     /\.bp-lane \{[^}]*max-width: calc\(var\(--bp-card-w\) \+ var\(--bp-lane-gap\)\)/s.test(css))
-  check('the Final is allowed a little more room',
-    /\.bp-lane:last-child \{[^}]*max-width: calc\(var\(--bp-card-w\) \* 1\.06/s.test(css))
+  check('the Final gets no extra width', !/\.bp-lane:last-child \{[^}]*max-width/s.test(css))
   check('both card sizes are published to CSS',
-    html.includes('--bp-card-w:278px') && html.includes('--bp-card-min:190px'))
+    html.includes('--bp-card-w:208px') && html.includes('--bp-card-min:143px'))
   check('a large field flexes over a narrower range',
-    render(bracketOf(32), null, null).includes('--bp-card-min:176px'))
+    render(bracketOf(32), null, null).includes('--bp-card-min:132px'))
 
   // The type does not shrink while the cards are still flexing — that is the whole point.
   check('a card can shrink by roughly a third before anything else gives',
     wide.cardMin / wide.cardW < 0.72 && wide.cardMin / wide.cardW > 0.6,
     `${Math.round((wide.cardMin / wide.cardW) * 100)}%`)
-  check('the minimum card is still wide enough for a name and a score', wide.cardMin >= 180)
-  check('the tighter geometry keeps a usable minimum too', tight.cardMin >= 170)
+  check('the minimum card is still wide enough for a name and a score', wide.cardMin >= 138)
+  check('the tighter geometry keeps a usable minimum too', tight.cardMin >= 128)
 
   // Flex first, then scale, then scroll.
   const floor16 = minimumBracketWidth(4, wide)

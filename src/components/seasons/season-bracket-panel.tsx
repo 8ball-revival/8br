@@ -32,8 +32,8 @@ import type { BracketRound, BracketMatch, BracketSlot } from '@/lib/tournaments/
  * scale below the minimum is for.
  */
 interface Metrics { cardW: number; cardMin: number; rowH: number; matchGap: number; laneGap: number }
-const WIDE: Metrics = { cardW: 278, cardMin: 190, rowH: 38, matchGap: 10, laneGap: 24 }
-const TIGHT: Metrics = { cardW: 254, cardMin: 176, rowH: 36, matchGap: 8, laneGap: 20 }
+const WIDE: Metrics = { cardW: 208, cardMin: 143, rowH: 38, matchGap: 10, laneGap: 24 }
+const TIGHT: Metrics = { cardW: 190, cardMin: 132, rowH: 36, matchGap: 8, laneGap: 20 }
 const metricsFor = (players: number): Metrics => (players >= 32 ? TIGHT : WIDE)
 
 /**
@@ -59,9 +59,7 @@ export function fitScaleFor(available: number, natural: number): number {
 /** The bracket's width at scale 1, with cards at their widest. */
 export function naturalBracketWidth(roundCount: number, m: { cardW: number; laneGap: number }): number {
   if (roundCount <= 0) return 0
-  const lane = m.cardW + m.laneGap
-  const finalLane = Math.round(m.cardW * 1.06) + m.laneGap
-  return (roundCount - 1) * lane + finalLane
+  return roundCount * (m.cardW + m.laneGap)
 }
 
 /**
@@ -298,7 +296,7 @@ function MatchCard({
 }
 
 function SlotRow({
-  slot, won, lost, activeKey, championKey = null, large = false,
+  slot, won, lost, activeKey, championKey = null,
 }: {
   slot?: BracketSlot
   won: boolean
@@ -306,7 +304,6 @@ function SlotRow({
   activeKey: string | null
   /** When this row holds the champion, it carries the gold edge — the opponent's does not. */
   championKey?: string | null
-  large?: boolean
 }) {
   const lines = identityLines(fromNameHandle(slot))
   const isPlayer = !!slot?.name && slot.name !== 'Bye'
@@ -340,24 +337,20 @@ function SlotRow({
         isChampion && 'bp-champion-row',
         'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--gold)]/60',
       )}
-      style={{ height: large ? 'calc(var(--bp-row-h) * 1.5)' : 'var(--bp-row-h)' }}
+      style={{ height: 'var(--bp-row-h)' }}
     >
-      <SeedBadge seed={slot?.seed} large={large} />
+      <SeedBadge seed={slot?.seed} />
       <span className="min-w-0 flex-1">
         {profile ? (
           <Link href={`/players/${encodeURIComponent(profile)}`} className="block min-w-0 hover:underline">
-            <NameLines lines={lines} won={won} lost={lost} large={large} />
+            <NameLines lines={lines} won={won} lost={lost} />
           </Link>
         ) : (
-          <NameLines lines={lines} won={won} lost={lost} large={large} />
+          <NameLines lines={lines} won={won} lost={lost} />
         )}
       </span>
       {slot?.score != null && (
-        <span className={cn(
-          'tabular shrink-0',
-          large ? 'text-2xl' : 'text-sm',
-          won ? 'font-bold text-gold' : 'text-muted-foreground',
-        )}>
+        <span className={cn('tabular shrink-0 text-sm', won ? 'font-bold text-gold' : 'text-muted-foreground')}>
           {slot.score}
         </span>
       )}
@@ -366,24 +359,22 @@ function SlotRow({
 }
 
 function NameLines({
-  lines, won, lost, large,
+  lines, won, lost,
 }: {
   lines: { primary: string; secondary: string | null }
   won: boolean
   lost: boolean
-  large?: boolean
 }) {
   return (
     <>
       <span className={cn(
-        'block truncate leading-tight',
-        large ? 'text-lg' : 'text-[0.82rem]',
+        'block truncate text-[0.82rem] leading-tight',
         won ? 'font-bold text-gold' : lost ? 'text-muted-foreground' : 'text-foreground',
       )}>
         {lines.primary}
       </span>
       {lines.secondary && (
-        <span className={cn('block truncate leading-tight text-muted-foreground', large ? 'text-xs' : 'text-[0.58rem]')}>
+        <span className="block truncate text-[0.58rem] leading-tight text-muted-foreground">
           {lines.secondary}
         </span>
       )}
@@ -392,10 +383,10 @@ function NameLines({
 }
 
 /** The seed, as a small circular badge. Every seeded player carries one, in every round. */
-function SeedBadge({ seed, large }: { seed?: number; large?: boolean }) {
+function SeedBadge({ seed }: { seed?: number }) {
   // Plain numerals, one colour, no enclosure. The width is still reserved when a slot has no seed —
   // a bye, or an undecided tie — so names stay aligned down the column either way.
-  const size = large ? 'w-6 text-[0.68rem]' : 'w-[19px] text-[0.58rem]'
+  const size = 'w-[19px] text-[0.58rem]'
   if (seed == null) return <span className={cn('shrink-0', size)} aria-hidden />
   return (
     <span
@@ -412,9 +403,9 @@ function SeedBadge({ seed, large }: { seed?: number; large?: boolean }) {
 /**
  * The Final, given the weight it deserves without becoming a second banner.
  *
- * A trophy and the title sit above a slightly larger card carrying the same two rows as every other
- * matchup — same seeds, same names, same scores — so it stays part of the bracket rather than a
- * summary pasted beside it.
+ * A trophy and the title sit above a card built exactly like every other matchup — same width, same
+ * rows, same type — so the Final reads as the last tie in the bracket rather than a summary pasted
+ * beside it. The occasion is carried by the trophy and the champion's gold row, not by scale.
  */
 function FinalBlock({
   match, activeKey, championKey,
@@ -441,9 +432,9 @@ function FinalBlock({
           the player they beat is not framed in it too. The trophy, the title and the soft bloom
           behind the card carry the occasion instead. */}
       <div className="bp-final w-full overflow-hidden rounded-xl border border-border bg-card">
-        <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} large />
+        <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
         <div className="h-px bg-border" />
-        <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} championKey={championKey} large />
+        <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} championKey={championKey} />
       </div>
     </div>
   )

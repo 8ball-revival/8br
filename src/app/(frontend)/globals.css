@@ -661,10 +661,7 @@
   padding-inline: calc(var(--bp-lane-gap) / 2);
   padding-bottom: 1rem;
 }
-/* The Final is allowed a little more room than the rounds that feed it. */
-.bp-lane:last-child {
-  max-width: calc(var(--bp-card-w) * 1.06 + var(--bp-lane-gap));
-}
+/* The Final gets no extra room: its card is the same size as every other tie. */
 /* Faint alternating surfaces read as lanes without drawing a box around each one. */
 .bp-lane-alt { background: color-mix(in oklch, var(--surface) 45%, transparent); }
 .bp-lane-divider { border-right: 1px solid color-mix(in oklch, var(--border) 70%, transparent); }
