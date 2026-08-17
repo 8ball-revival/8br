@@ -15,6 +15,7 @@ import { prisma } from '../src/lib/prisma.ts'
 import {
   loadSeasonSeeding, enterSeasonPlayoffSetup, setSeasonPlayoffIncluded,
   setSeasonBracketSlot, swapSeasonBracketSlots, generateSeasonBracket, setSeasonPlayoffField,
+  setSeasonPlayoffDisclaimer,
 } from '../src/lib/seasons/playoffs.ts'
 
 let pass = 0, fail = 0
@@ -205,6 +206,49 @@ async function main() {
   await prisma.seasonPlayoffMatch.update({ where: { id: first.id }, data: { status: 'COMPLETED', homeGames: 9, awayGames: 3 } })
   const blocked = await setSeasonBracketSlot(actor, season.id, first.id, 'home', entrants[0])
   check('moving a player out of a completed tie is refused', !blocked.ok, 'it was allowed')
+
+  console.log('')
+  console.log('--- Bracket disclaimer ---')
+  {
+    const read = async () =>
+      (await prisma.season.findUnique({ where: { id: season.id }, select: { playoffDisclaimer: true } }))?.playoffDisclaimer ?? null
+
+    check('a season starts with no note', (await read()) === null)
+
+    const note = 'Pairings are archived; the individual scores were never recorded and are approximate.'
+    const set = await setSeasonPlayoffDisclaimer(actor, season.id, note)
+    check('a note can be saved during playoff setup', set.ok, set.error)
+    check('the note is stored verbatim', (await read()) === note)
+
+    check('surrounding whitespace is trimmed',
+      (await setSeasonPlayoffDisclaimer(actor, season.id, '   spaced   ')).ok && (await read()) === 'spaced')
+
+    // The note describes the bracket, so it must stay editable exactly when placement STOPS being
+    // editable — you generally only learn what needs saying once the bracket is up.
+    await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFFS_LIVE' } })
+    const live = await setSeasonPlayoffDisclaimer(actor, season.id, 'Edited after publication.')
+    check('the note is still editable after the bracket is published', live.ok, live.error)
+
+    await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'COMPLETED' } })
+    const done = await setSeasonPlayoffDisclaimer(actor, season.id, 'Edited after the season closed.')
+    check('the note is still editable after the season closes', done.ok, done.error)
+    check('the last edit stuck', (await read()) === 'Edited after the season closed.')
+
+    check('over-long text is capped rather than rejected',
+      (await setSeasonPlayoffDisclaimer(actor, season.id, 'x'.repeat(900))).ok && ((await read()) ?? '').length === 500)
+
+    check('blank text clears the note', (await setSeasonPlayoffDisclaimer(actor, season.id, '   ')).ok && (await read()) === null)
+    check('null clears the note', (await setSeasonPlayoffDisclaimer(actor, season.id, null)).ok && (await read()) === null)
+
+    // Before a bracket exists there is nothing to annotate.
+    await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'GROUP_STAGE_LIVE' } })
+    const early = await setSeasonPlayoffDisclaimer(actor, season.id, 'Too soon.')
+    check('a note is refused before the playoffs exist', !early.ok, 'it was allowed')
+    await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFF_SETUP' } })
+
+    const missing = await setSeasonPlayoffDisclaimer(actor, 99999999, 'nowhere')
+    check('an unknown season is refused', !missing.ok, 'it was allowed')
+  }
 
   console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 }

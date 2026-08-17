@@ -7,6 +7,7 @@ import { planBracket, type Qualifier } from '@/lib/competition/bracket'
 import { planDoubleElim } from '@/lib/competition/bracket-de'
 import type { BracketRound, BracketMatch as ViewMatch } from '@/lib/tournaments/fixtures'
 import { transitionSeasonState } from './lifecycle'
+import { isPreGroupPhase } from './shared'
 
 /**
  * SEASON PLAYOFFS — locked-seed selection, private draft bracket (single/double elim), publish, and
@@ -227,6 +228,35 @@ export async function setSeasonPlayoffField(
     await invalidateDraft(tx, seasonId)
   })
   return { ok: true, changed }
+}
+
+/**
+ * Set (or clear) the note shown under this Season's playoff bracket.
+ *
+ * Deliberately editable at ANY point from playoff setup onwards, including after the bracket is
+ * published and after the Season is closed. Locking placement is about protecting the record;
+ * this is about describing it, and you usually only know what needs saying once the bracket is up.
+ */
+export async function setSeasonPlayoffDisclaimer(
+  actor: Actor,
+  seasonId: number,
+  text: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (!s) return { ok: false, error: 'Season not found.' }
+  if (isPreGroupPhase(s.lifecycleState) || s.lifecycleState === 'GROUP_STAGE_LIVE' || s.lifecycleState === 'GROUPS_CLOSED') {
+    return { ok: false, error: 'There is no playoff bracket to annotate yet.' }
+  }
+  const value = (text ?? '').trim().slice(0, 500) || null
+
+  await prisma.$transaction(async (tx) => {
+    await tx.season.update({ where: { id: seasonId }, data: { playoffDisclaimer: value } })
+    await recordAudit(actor, {
+      action: value ? 'season.playoff.disclaimer' : 'season.playoff.disclaimer.clear',
+      entity: 'Season', entityId: seasonId, newValue: { length: value?.length ?? 0 },
+    }, tx)
+  })
+  return { ok: true }
 }
 
 /**

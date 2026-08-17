@@ -191,6 +191,13 @@ export async function setSeasonPlayoffFieldAction(seasonId: number, included: bo
   revalidateSeason(await seasonNumberOf(seasonId))
   return { ok: true, message: included ? `Added ${r.changed} player(s).` : `Cleared ${r.changed} player(s).` }
 }
+export async function setSeasonPlayoffDisclaimerAction(seasonId: number, text: string | null): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonPlayoffDisclaimer(actor, seasonId, text)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId))
+  return { ok: true, message: text?.trim() ? 'Note saved.' : 'Note removed.' }
+}
 export async function swapSeasonBracketSlotsAction(
   seasonId: number,
   a: { matchId: number; side: 'home' | 'away' },

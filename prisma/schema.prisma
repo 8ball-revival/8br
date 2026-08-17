@@ -1889,6 +1889,10 @@ model Season {
   finalRaceTo     Int @default(9)
 
   playoffDoubleElim Boolean @default(false) // decided at playoff setup, not creation
+  /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
+  /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
+  /// that the pairings are archived but the scores are not, and have been approximated.
+  playoffDisclaimer String?
 
   ratingSnapshotAt DateTime? // set when registration closes (locks seeding ratings)
   ladderAppliedAt  DateTime? // idempotency guard for close -> Ladder

@@ -13,6 +13,7 @@ import { SeasonRegistration } from '@/components/seasons/season-registration'
 import { SeasonGroupSetup } from '@/components/seasons/season-group-setup'
 import { SeasonGroupStage } from '@/components/seasons/season-group-stage'
 import { SeasonPlayoffs } from '@/components/seasons/season-playoffs'
+import { PlayoffDisclaimer } from '@/components/seasons/playoff-disclaimer'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { Bracket } from '@/components/tournaments/bracket'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -79,17 +80,22 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonN
 
       {state === 'PLAYOFF_SETUP' && (
         canManageComp
-          ? <SeasonPlayoffs seasonId={view.id} phase="setup" seeding={await loadSeasonSeeding(view.id)} rounds={await seasonPlayoffRounds(view.id)} doubleElim={await playoffTypeOf(view.id)} hasDraft={(await prisma.seasonPlayoffMatch.count({ where: { seasonId: view.id } })) > 0} canManage canClose={false} />
+          ? <SeasonPlayoffs seasonId={view.id} phase="setup" seeding={await loadSeasonSeeding(view.id)} rounds={await seasonPlayoffRounds(view.id)} doubleElim={await playoffTypeOf(view.id)} hasDraft={(await prisma.seasonPlayoffMatch.count({ where: { seasonId: view.id } })) > 0} canManage canClose={false} disclaimer={await playoffDisclaimerOf(view.id)} />
           : <><Info>Group stage complete — the playoff field is being finalized.</Info><SeasonGroupStage seasonId={view.id} groups={await getSeasonGroupStage(view.id)} groupStageGames={view.format.groupStageGames} canManage={false} canClose={false} canReopen={false} /></>
       )}
 
       {state === 'PLAYOFFS_LIVE' && (
-        <SeasonPlayoffs seasonId={view.id} phase="live" seeding={[]} rounds={await seasonPlayoffRounds(view.id)} doubleElim={false} hasDraft canManage={canManage} canClose={canManageComp && !!(await seasonChampion(view.id))} />
+        <SeasonPlayoffs seasonId={view.id} phase="live" seeding={[]} rounds={await seasonPlayoffRounds(view.id)} doubleElim={false} hasDraft canManage={canManage} canClose={canManageComp && !!(await seasonChampion(view.id))} disclaimer={await playoffDisclaimerOf(view.id)} />
       )}
 
-      {state === 'COMPLETED' && <CompletedView view={view} rounds={await seasonPlayoffRounds(view.id)} groups={await getSeasonGroupStage(view.id)} />}
+      {state === 'COMPLETED' && <CompletedView view={view} rounds={await seasonPlayoffRounds(view.id)} groups={await getSeasonGroupStage(view.id)} disclaimer={await playoffDisclaimerOf(view.id)} canManage={canManageComp} />}
     </Container>
   )
+}
+
+async function playoffDisclaimerOf(seasonId: number): Promise<string | null> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { playoffDisclaimer: true } })
+  return s?.playoffDisclaimer ?? null
 }
 
 async function playoffTypeOf(seasonId: number): Promise<boolean> {
@@ -134,7 +140,7 @@ function Info({ children }: { children: React.ReactNode }) {
   return <div className="mt-8 rounded-lg border border-border bg-card/40 p-6 text-sm text-muted-foreground">{children}</div>
 }
 
-function CompletedView({ view, rounds, groups }: { view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>; rounds: Awaited<ReturnType<typeof seasonPlayoffRounds>>; groups: Awaited<ReturnType<typeof getSeasonGroupStage>> }) {
+function CompletedView({ view, rounds, groups, disclaimer, canManage }: { view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>; rounds: Awaited<ReturnType<typeof seasonPlayoffRounds>>; groups: Awaited<ReturnType<typeof getSeasonGroupStage>>; disclaimer: string | null; canManage: boolean }) {
   return (
     <div className="mt-8 space-y-8">
       <div className="rounded-xl border border-[var(--gold-dim)] bg-card p-6 text-center">
@@ -142,7 +148,13 @@ function CompletedView({ view, rounds, groups }: { view: NonNullable<Awaited<Ret
         <p className="mt-3 font-display text-4xl font-bold text-foreground">{view.championName ?? '—'}</p>
         {view.runnerUpName && <p className="mt-1 text-sm text-muted-foreground">def. {view.runnerUpName}{view.finalScore ? ` · ${view.finalScore}` : ''}</p>}
       </div>
-      {rounds.length > 0 && <div><h2 className="mb-4 font-display text-lg font-bold text-foreground">Playoff Bracket</h2><div className="w-full"><Bracket rounds={rounds} fluid /></div></div>}
+      {rounds.length > 0 && (
+        <div>
+          <h2 className="mb-4 font-display text-lg font-bold text-foreground">Playoff Bracket</h2>
+          <div className="w-full"><Bracket rounds={rounds} fluid /></div>
+          <PlayoffDisclaimer seasonId={view.id} value={disclaimer} canManage={canManage} />
+        </div>
+      )}
       {groups.length > 0 && (
         <div>
           <h2 className="mb-4 font-display text-lg font-bold text-foreground">Final Group Standings</h2>
