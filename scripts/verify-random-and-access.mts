@@ -114,5 +114,12 @@ await runBlocked(9604, 8, 3, 1, 2) // 8 of 3 → add 1 (to 9 = 3 teams) or remov
 await runBlocked(9605, 10, 4, 2, 2) // 10 of 4 → add 2 (to 12 = 3 teams) or remove 2 (to 8 = 2 teams)
 await runAccess()
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
+// Deleting a Tournament directly leaves the derived snapshot cache listing one that no longer
+// exists. The app's own delete action rebuilds it; a test that bypasses that action must too, or it
+// leaves a phantom tournament behind for whatever runs next.
+{
+  const { regenerateTournamentSnapshot } = await import('../src/lib/tournaments/migrate.ts')
+  await regenerateTournamentSnapshot().catch(() => {})
+}
 await prisma.$disconnect()
 process.exit(fail === 0 ? 0 : 1)

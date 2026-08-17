@@ -10,6 +10,77 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { getOnThisDayEvents, initialsOf } from '../src/lib/stats/on-this-day.ts'
 
+const OTD_FIXTURE = 'zzotd'
+
+/**
+ * A completed Season match dated a year and a day in the past, so "On This Day" has something real
+ * to find. Returns null if a Competition to hang it off does not exist.
+ *
+ * Stamped at NOON UTC: midnight lands on the previous day west of Greenwich, which would put the
+ * fixture on the wrong calendar date and make the anniversary lookup miss it.
+ */
+async function makeOnThisDayFixture(): Promise<{ completedAt: Date } | null> {
+  const series = await prisma.competitionSeries.findFirst({ where: { active: true }, select: { id: true } })
+  if (!series) return null
+  const now = new Date()
+  const completedAt = new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), now.getUTCDate(), 12))
+  const last = await prisma.season.findFirst({ orderBy: { number: 'desc' }, select: { number: true } })
+  const number = (last?.number ?? 0) + 1
+  const season = await prisma.season.create({
+    data: {
+      number, competitionYear: completedAt.getUTCFullYear(), competitionSeriesId: series.id,
+      // NOT 'COMPLETED': a completed Season is picked up by the rating-ledger rebuild, which then
+      // holds a reference that stops this fixture being deleted. On This Day reads the match, so a
+      // live Season with a finished match is all that is needed.
+      slug: `${OTD_FIXTURE}-season-${number}`, lifecycleState: 'GROUP_STAGE_LIVE',
+    },
+    select: { id: true },
+  })
+  const mk = async (name: string) => prisma.player.create({
+    data: { primaryName: name, cueverseId: name, active: true }, select: { id: true },
+  })
+  const [pa, pb] = [await mk(`${OTD_FIXTURE}_a`), await mk(`${OTD_FIXTURE}_b`)]
+  const ea = await prisma.seasonEntrant.create({ data: { seasonId: season.id, playerId: pa.id, username: `${OTD_FIXTURE}_a` }, select: { id: true } })
+  const eb = await prisma.seasonEntrant.create({ data: { seasonId: season.id, playerId: pb.id, username: `${OTD_FIXTURE}_b` }, select: { id: true } })
+  const group = await prisma.seasonGroup.create({ data: { seasonId: season.id, code: 'A', ordinal: 0, published: true }, select: { id: true } })
+  await prisma.seasonMatch.create({
+    data: {
+      seasonId: season.id, groupId: group.id, round: 1,
+      homeEntrantId: ea.id, awayEntrantId: eb.id,
+      homeUsername: `${OTD_FIXTURE}_a`, awayUsername: `${OTD_FIXTURE}_b`,
+      homeGames: 7, awayGames: 3, status: 'COMPLETED', winnerEntrantId: ea.id, loserEntrantId: eb.id,
+      completedAt,
+    },
+  })
+  return { completedAt }
+}
+
+/** Remove everything makeOnThisDayFixture created. */
+async function dropOnThisDayFixture() {
+  const seasons = await prisma.season.findMany({ where: { slug: { startsWith: OTD_FIXTURE } }, select: { id: true } })
+  const ids = seasons.map((s) => s.id)
+  const players = await prisma.player.findMany({
+    where: { primaryName: { startsWith: OTD_FIXTURE } }, select: { id: true },
+  })
+  // Rating rows reference the Season and would block its deletion, so they go first. Failures are
+  // reported rather than swallowed - a silent cleanup failure is how residue accumulates.
+  try {
+    if (ids.length) await prisma.ratingLedger.deleteMany({ where: { seasonId: { in: ids } } })
+    if (players.length) await prisma.ratingLedger.deleteMany({ where: { playerId: { in: players.map((p) => p.id) } } })
+    if (ids.length) {
+      await prisma.seasonMatch.deleteMany({ where: { seasonId: { in: ids } } })
+      await prisma.seasonStanding.deleteMany({ where: { seasonId: { in: ids } } })
+      await prisma.seasonGroupPlayer.deleteMany({ where: { group: { seasonId: { in: ids } } } })
+      await prisma.seasonGroup.deleteMany({ where: { seasonId: { in: ids } } })
+      await prisma.seasonEntrant.deleteMany({ where: { seasonId: { in: ids } } })
+      await prisma.season.deleteMany({ where: { id: { in: ids } } })
+    }
+    if (players.length) await prisma.player.deleteMany({ where: { id: { in: players.map((p) => p.id) } } })
+  } catch (e) {
+    console.error('  ! On This Day fixture cleanup failed:', e instanceof Error ? e.message : e)
+  }
+}
+
 let pass = 0, fail = 0
 const check = (n: string, ok: boolean, d = '') => {
   if (ok) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) }
@@ -78,15 +149,19 @@ async function main() {
   check('only returns earlier years', today.every((e) => e.year < new Date().getFullYear()))
   check('every event carries a stored description', today.every((e) => e.description.trim().length > 0))
 
-  // Find a real completed result and ask for the anniversary of it, one year on.
-  const row = await prisma.$queryRawUnsafe<Array<{ d: Date }>>(`
-    SELECT d FROM (
-      SELECT "completedAt" d FROM "public"."season_match"          WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-      UNION ALL SELECT "completedAt" FROM "public"."season_playoff_match"   WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-      UNION ALL SELECT "completedAt" FROM "public"."comp_tournament_match"  WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-      UNION ALL SELECT "completedAt" FROM "public"."comp_playoff_match"     WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-    ) u LIMIT 1`)
-  check('found a real completed result to test the populated state', !!row[0])
+  // Build a completed result to test the populated state against. An empty site is a legitimate
+  // state, so the fixture is created here rather than borrowed from whatever happens to be seeded.
+  const fixture = await makeOnThisDayFixture()
+  const row = fixture
+    ? [{ d: fixture.completedAt }]
+    : await prisma.$queryRawUnsafe<Array<{ d: Date }>>(`
+        SELECT d FROM (
+          SELECT "completedAt" d FROM "public"."season_match"          WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
+          UNION ALL SELECT "completedAt" FROM "public"."season_playoff_match"   WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
+          UNION ALL SELECT "completedAt" FROM "public"."comp_tournament_match"  WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
+          UNION ALL SELECT "completedAt" FROM "public"."comp_playoff_match"     WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
+        ) u LIMIT 1`)
+  check('found a completed result to test the populated state', !!row[0])
   if (row[0]) {
     const src = new Date(row[0].d)
     const anniversary = new Date(src)
@@ -106,9 +181,11 @@ async function main() {
     check('empty state: a quiet date returns no events', Array.isArray(none))
   }
 
+  await dropOnThisDayFixture()
+
   console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
   await prisma.$disconnect()
   process.exit(fail === 0 ? 0 : 1)
 }
 
-main().catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })
+main().catch(async (e) => { console.error(e); await dropOnThisDayFixture().catch(() => {}); await prisma.$disconnect(); process.exit(1) })

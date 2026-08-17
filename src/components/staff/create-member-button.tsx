@@ -6,6 +6,7 @@ import { UserPlus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { createMemberAction } from '@/lib/staff/create-member'
+import { TEMPORARY_PASSWORD } from '@/lib/account/validation'
 
 const input =
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
@@ -13,10 +14,10 @@ const input =
 /**
  * "Create New Member" — opens an inline panel on the Member Management page.
  *
- * Only the fields public signup collects are required (CueVerse ID, email, password); Preferred
- * Name is optional, exactly as it is for a member registering themselves. The server action
- * re-validates all of it and is gated on `manage_players`, so this component decides only what to
- * show.
+ * Only the CueVerse ID is required. Email is not collected at all - the server derives a reserved,
+ * non-deliverable address from the handle, and the member can set a real one from My Account. The
+ * temporary password is fixed and displayed rather than typed. The server action re-validates
+ * everything and is gated on `manage_players`, so this component decides only what to show.
  *
  * New accounts are always created as `member`. Promoting someone is a separate, Owner-gated action
  * in Staff Management — minting staff is deliberately not possible from here.
@@ -30,14 +31,10 @@ export function CreateMemberButton() {
 
   const [cueverseId, setCueverseId] = useState('')
   const [preferredName, setPreferredName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
 
   const reset = () => {
     setCueverseId('')
     setPreferredName('')
-    setEmail('')
-    setPassword('')
     setError(null)
   }
 
@@ -45,7 +42,7 @@ export function CreateMemberButton() {
     setError(null)
     setDone(null)
     setPending(true)
-    const res = await createMemberAction({ cueverseId, preferredName, email, password })
+    const res = await createMemberAction({ cueverseId, preferredName })
     setPending(false)
     if (res.error) return setError(res.error)
     setDone(`Created @${cueverseId.trim()}.`)
@@ -73,8 +70,8 @@ export function CreateMemberButton() {
         <div className="mt-4 max-w-2xl rounded-lg border border-border bg-card p-4">
           <p className="text-sm font-semibold text-foreground">New member account</p>
           <p className="mt-1 text-[0.7rem] text-muted-foreground">
-            The CueVerse ID is both the public identity and the login handle. The member can change
-            their password from My Account after signing in.
+            The CueVerse ID is both the public identity and the login handle. Email is not needed here
+            — the member can add one from My Account, along with a password of their own.
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -87,14 +84,23 @@ export function CreateMemberButton() {
               <input value={preferredName} onChange={(e) => setPreferredName(e.target.value)} className={cn(input, 'mt-1')} />
             </label>
             <label className="text-[0.7rem] text-muted-foreground">
-              Email <span className="text-destructive">*</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" className={cn(input, 'mt-1')} />
-            </label>
-            <label className="text-[0.7rem] text-muted-foreground">
-              Temporary password <span className="text-destructive">*</span>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className={cn(input, 'mt-1')} />
+              Temporary password
+              {/* Fixed and shown, not typed: whoever creates the account reads it out. Because it is
+                  the same for everyone, the member should change it at first sign-in. */}
+              <input
+                value={TEMPORARY_PASSWORD}
+                readOnly
+                aria-readonly="true"
+                tabIndex={-1}
+                className={cn(input, 'mt-1 cursor-default font-mono text-muted-foreground')}
+              />
             </label>
           </div>
+
+          <p className="mt-2 text-[0.7rem] text-muted-foreground">
+            Every new account starts on <strong className="font-mono text-foreground">{TEMPORARY_PASSWORD}</strong>. It is
+            the same for everyone, so ask the member to change it from My Account when they first sign in.
+          </p>
 
           {error && (
             <p role="alert" className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">

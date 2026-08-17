@@ -14,6 +14,8 @@ import {
   validateEmail,
   validatePassword,
   validatePreferredName,
+  generatedEmailFor,
+  TEMPORARY_PASSWORD,
 } from '@/lib/account/validation'
 
 /**
@@ -31,8 +33,10 @@ import {
 
 export interface CreateMemberInput {
   cueverseId: string
-  email: string
-  password: string
+  /** Optional. Left blank, a reserved non-deliverable address is derived from the CueVerse ID. */
+  email?: string
+  /** Optional. Left blank, the account starts on the shared temporary password. */
+  password?: string
   preferredName?: string
 }
 
@@ -46,15 +50,19 @@ export interface CreateMemberResult {
 export async function createMember(actor: Actor, input: CreateMemberInput): Promise<CreateMemberResult> {
   const cueverseId = normalizeCueverseId(input.cueverseId ?? '')
   const preferredName = (input.preferredName ?? '').trim()
-  const email = (input.email ?? '').trim()
-  const password = input.password ?? ''
+  const supplied = (input.email ?? '').trim()
+  const password = input.password || TEMPORARY_PASSWORD
 
+  // The CueVerse ID is the only thing staff must supply. Email is validated when given and derived
+  // when not, so a member can be created from a handle alone.
   const err =
     validateCueverseId(cueverseId) ||
     (preferredName ? validatePreferredName(preferredName) : null) ||
-    validateEmail(email) ||
+    (supplied ? validateEmail(supplied) : null) ||
     validatePassword(password)
   if (err) return { error: err }
+
+  const email = supplied || generatedEmailFor(cueverseId)
 
   const username = cueverseLoginKey(cueverseId)
   const p = await getPayload({ config: await config })

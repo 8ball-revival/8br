@@ -128,5 +128,12 @@ async function run() {
 await run()
 await prisma.auditLog.deleteMany({ where: { actorUsername: 'gsetup-verify' } }).catch(() => {})
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
+// Deleting a Tournament directly leaves the derived snapshot cache listing one that no longer
+// exists. The app's own delete action rebuilds it; a test that bypasses that action must too, or it
+// leaves a phantom tournament behind for whatever runs next.
+{
+  const { regenerateTournamentSnapshot } = await import('../src/lib/tournaments/migrate.ts')
+  await regenerateTournamentSnapshot().catch(() => {})
+}
 await prisma.$disconnect()
 if (fail > 0) process.exit(1)

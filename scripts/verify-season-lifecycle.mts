@@ -10,6 +10,8 @@ import { transitionSeasonState, canTransition } from '../src/lib/seasons/lifecyc
 
 // Every Season must belong to a Competition, so fixtures ensure one exists and reuse it.
 const FIXTURE_SLUG = 'zz-fixture-competition'
+/** Throwaway entrants, so the suite never depends on who is registered on the site. */
+const FIXTURE_PLAYER = 'zzseason_player'
 
 async function fixtureCompetitionId(): Promise<number> {
   // Use a DEDICATED fixture Competition, never whatever real Competition happens to be active.
@@ -62,8 +64,16 @@ console.log('Admin entrant management + rating snapshot')
 {
   const season = await prisma.season.findUnique({ where: { number: s1.number } })
   const seasonId = season!.id
-  // Use a couple of real players from the DB (with rating history if any).
-  const players = await prisma.player.findMany({ where: { active: true }, take: 3, select: { id: true, primaryName: true } })
+  // Create the entrants this check needs rather than borrowing whoever happens to be registered.
+  // A site with only the Admin account is a legitimate state, and the test must still exercise
+  // entrant management.
+  const players = []
+  for (let n = 1; n <= 3; n++) {
+    players.push(await prisma.player.create({
+      data: { primaryName: `${FIXTURE_PLAYER}${n}`, cueverseId: `${FIXTURE_PLAYER}${n}`, active: true },
+      select: { id: true, primaryName: true },
+    }))
+  }
   check('have players to add', players.length >= 2, `found ${players.length}`)
   for (const p of players.slice(0, 3)) await addSeasonEntrant(actor, seasonId, p.id)
   let v = await getSeasonView(s1.number!)
@@ -110,6 +120,7 @@ for (const n of cleanupNumbers) {
 await prisma.auditLog.deleteMany({ where: { actorUsername: 'season-verify' } }).catch(() => {})
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
+await prisma.player.deleteMany({ where: { primaryName: { startsWith: FIXTURE_PLAYER } } }).catch(() => {})
 await dropFixtureCompetition()
 await prisma.$disconnect()
 process.exit(fail === 0 ? 0 : 1)

@@ -3,6 +3,31 @@
 export const USERNAME_MIN = 3
 export const USERNAME_MAX = 24
 export const PASSWORD_MIN = 8
+
+/**
+ * The temporary password every staff-created account starts on.
+ *
+ * It is deliberately fixed and shown in the form so whoever creates the account can pass it on. That
+ * also means it is a SHARED secret: any account still on it can be signed into by anyone who knows
+ * it, so members should change it from My Account at first sign-in.
+ */
+export const TEMPORARY_PASSWORD = 'Luna8ear'
+
+/**
+ * Address used when an account is created without one.
+ *
+ * Payload authenticates on email, so a row must have one, but staff creating a member should not have
+ * to invent it. `.invalid` is reserved by RFC 2606 and can never resolve, so a generated address can
+ * never reach a real person. A member can set a real address later from My Account.
+ */
+export function generatedEmailFor(cueverseId: string): string {
+  return `${cueverseLoginKey(cueverseId)}@member.8br.invalid`
+}
+
+/** True for an address minted by {@link generatedEmailFor}. */
+export function isGeneratedEmail(email: string | null | undefined): boolean {
+  return /@member\.8br\.invalid$/i.test((email ?? '').trim())
+}
 const USERNAME_RE = /^[a-z0-9_-]{3,24}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
