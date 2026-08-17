@@ -4,6 +4,9 @@ import Link from 'next/link'
 
 import { Wide } from '@/components/primitives'
 import { getHomepageHero } from '@/lib/site-content/service'
+import { getRegistryStats } from '@/lib/stats/registry-stats'
+import { getOnThisDayEvents } from '@/lib/stats/on-this-day'
+import { ByTheNumbers } from '@/components/home/by-the-numbers'
 import { pageMetadata, brandName } from '@/lib/site'
 
 // The hero is admin-managed: publishing must show up without a redeploy, so the page is rendered
@@ -51,7 +54,12 @@ const secondaryBtn =
  * responsive behaviour are not editable from the admin.
  */
 export default async function HomePage() {
-  const hero = await getHomepageHero()
+  // Fetched in parallel: the hero, the registry totals and today's historical results.
+  const [hero, stats, events] = await Promise.all([
+    getHomepageHero(),
+    getRegistryStats(),
+    getOnThisDayEvents(),
+  ])
 
   return (
     <>
@@ -100,6 +108,8 @@ export default async function HomePage() {
           </div>
         </Wide>
       </section>
+
+      <ByTheNumbers stats={stats} events={events} />
     </>
   )
 }
