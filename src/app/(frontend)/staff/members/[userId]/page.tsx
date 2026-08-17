@@ -10,6 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
 import { StatusBadge } from '@/components/staff/status-badge'
 import { MemberModeration } from '@/components/staff/member-moderation'
+import { AccountActions } from '@/components/staff/account-actions'
+import { listMergedAccounts } from '@/lib/players/merge'
+import { planAccountDeletionAction } from '@/lib/players/merge-actions'
+import { prisma } from '@/lib/prisma'
 import { MemberRoles } from '@/components/staff/member-roles'
 import { MemberProfileEditor } from '@/components/staff/member-profile-editor'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -17,19 +21,14 @@ import { getMemberDetail, getActiveRegistrations } from '@/lib/staff/members'
 
 export const metadata: Metadata = { title: 'Member · Admin · 8 Ball Registry', robots: { index: false, follow: false } }
 
-const TABS = ['overview', 'warnings', 'moderation', 'roles', 'integrity'] as const
-type Tab = (typeof TABS)[number]
+type Props = { params: Promise<{ userId: string }> }
 
-type Props = { params: Promise<{ userId: string }>; searchParams: Promise<{ tab?: string }> }
-
-export default async function MemberDetailPage({ params, searchParams }: Props) {
+export default async function MemberDetailPage({ params }: Props) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
   if (!access.actor.can('moderate_members')) return <AdminDenied actor={access.actor} active="members" label="Member Management" />
 
   const userId = Number((await params).userId)
-  const tab = ((await searchParams).tab ?? 'overview') as Tab
-  const active: Tab = TABS.includes(tab) ? tab : 'overview'
 
   const m = await getMemberDetail(userId, { includeEmail: true }) // authorized staff view
   if (!m) notFound()
@@ -41,6 +40,16 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
   const ipAvailable = !!fwd && fwd !== '::1' && fwd !== '127.0.0.1'
 
   const activePenalty = m.penalties.find((p) => p.active) ?? null
+
+  // Account Actions data. The deletion plan is only computed for operators who could act on it.
+  const profile = await prisma.player.findUnique({
+    where: { linkedUserId: String(userId) },
+    select: { id: true },
+  })
+  const canMerge = access.actor.can('manage_players')
+  const canDelete = access.actor.can('delete_account')
+  const merged = profile && canMerge ? await listMergedAccounts(profile.id) : []
+  const deletionPlan = canDelete ? await planAccountDeletionAction(userId) : null
 
   return (
     <AdminShell actor={access.actor} active="members">
@@ -61,19 +70,24 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
         {m.slug && <Link href={`/players/${m.slug}`} className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-soft">Public profile <ExternalLink className="size-3.5" /></Link>}
       </div>
 
-      <nav className="mt-5 flex flex-wrap gap-1 border-b border-border">
-        {TABS.map((t) => (
-          <Link key={t} href={`/staff/members/${userId}?tab=${t}`} aria-current={t === active ? 'page' : undefined}
-            className={`rounded-t-md px-3 py-2 text-sm font-medium ${t === active ? 'border-b-2 border-brand text-brand' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tabLabel(t)}
-          </Link>
-        ))}
-      </nav>
+      <div className="mt-6 max-w-3xl space-y-8">
+        <Section title="Profile">
+          <Overview m={m} activePenalty={activePenalty} />
+        </Section>
 
-      <div className="mt-6 max-w-3xl">
-        {active === 'overview' && <Overview m={m} activePenalty={activePenalty} />}
-        {active === 'warnings' && <Warnings m={m} />}
-        {active === 'moderation' && (
+        <Section title="Roles">
+          <MemberRoles
+            targetUserId={userId}
+            targetUsername={m.cueverseId ?? `#${m.userId}`}
+            targetRole={m.role}
+            targetIsHeadAdmin={m.headAdmin}
+            viewerUserId={access.actor.userId}
+            viewerIsOwner={access.actor.isOwner}
+            viewerCanManageAdmins={access.actor.canManageAdmins()}
+          />
+        </Section>
+
+        <Section title="Moderation">
           <MemberModeration
             userId={userId}
             status={m.status}
@@ -84,26 +98,36 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
             canPurge={access.actor.can('purge_account')}
             ipAvailable={ipAvailable}
           />
-        )}
-        {active === 'roles' && (
-          <MemberRoles
-            targetUserId={userId}
-            targetUsername={m.cueverseId ?? `#${m.userId}`}
-            targetRole={m.role}
-            targetIsHeadAdmin={m.headAdmin}
-            viewerUserId={access.actor.userId}
-            viewerIsOwner={access.actor.isOwner}
-            viewerCanManageAdmins={access.actor.canManageAdmins()}
-          />
-        )}
-        {active === 'integrity' && <Integrity m={m} />}
+        </Section>
+
+        <Section title="Integrity Log">
+          <Integrity m={m} />
+        </Section>
+
+        <AccountActions
+          userId={userId}
+          playerId={profile?.id ?? null}
+          displayName={m.cueverseId ?? m.preferredName ?? `#${m.userId}`}
+          merged={merged}
+          deletionPlan={deletionPlan}
+          canMerge={canMerge}
+          canDelete={canDelete}
+        />
       </div>
     </AdminShell>
   )
 }
 
-function tabLabel(t: Tab): string {
-  return t === 'integrity' ? 'Integrity Log' : t.charAt(0).toUpperCase() + t.slice(1)
+/** Compact titled section — replaces the old tab strip so everything reads on one page. */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="mb-3 border-b border-border pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -134,21 +158,6 @@ function Overview({ m, activePenalty }: { m: any; activePenalty: any }) {
         />
       </div>
     </div>
-  )
-}
-
-function Warnings({ m }: { m: any }) {
-  if (m.warnings.length === 0) return <Empty>No warnings.</Empty>
-  return (
-    <ul className="space-y-2">
-      {m.warnings.map((w: any) => (
-        <li key={w.id} className="rounded-lg border border-border bg-card/40 p-3 text-sm">
-          <div className="flex items-center justify-between gap-2"><span className="font-medium">{w.reason}</span><span className="text-xs text-muted-foreground">{new Date(w.createdAt).toLocaleString()}</span></div>
-          {w.internalNotes && <p className="mt-1 text-xs text-muted-foreground"><span className="font-medium">Internal:</span> {w.internalNotes}</p>}
-          <p className="mt-1 text-xs text-muted-foreground">by {w.staffUsername}</p>
-        </li>
-      ))}
-    </ul>
   )
 }
 

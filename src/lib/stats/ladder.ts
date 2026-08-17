@@ -415,13 +415,20 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
   })
   if (!player) return null
 
-  const rows = (await prisma.ratingLedger.findMany({ where: { playerId: player.id }, orderBy: { sequence: 'asc' } })) as unknown as Row[]
+  // Roll up any accounts merged into this one: their ledger rows are read under the primary so a
+  // merged player's history appears here rather than being stranded on a hidden profile.
+  const { expandCanonicalPlayerIds } = await import('@/lib/players/merge')
+  const playerIds = await expandCanonicalPlayerIds(player.id)
+
+  const rows = (await prisma.ratingLedger.findMany({ where: { playerId: { in: playerIds } }, orderBy: { sequence: 'asc' } })) as unknown as Row[]
   const [allTimeLadder, currentLadder] = await Promise.all([getLadder('all-time', now), getLadder('current', now)])
-  const allTime = allTimeLadder.find((r) => r.playerId === player.id) ?? null
-  const current = currentLadder.find((r) => r.playerId === player.id) ?? null
+  const allTime = allTimeLadder.find((r) => playerIds.includes(r.playerId)) ?? null
+  const current = currentLadder.find((r) => playerIds.includes(r.playerId)) ?? null
   const trophyTids = new Set((allTime?.trophies ?? []).map((t) => t.tournamentId))
 
-  const tids = [...new Set(rows.map((r) => r.tournamentId))]
+  // Season ledger rows carry seasonId, not tournamentId, so nulls are legitimate here and must be
+  // filtered out — passing one into `in` is a query error.
+  const tids = [...new Set(rows.map((r) => r.tournamentId))].filter((id): id is number => id != null)
   const tournaments = tids.length ? await prisma.tournament.findMany({ where: { id: { in: tids } }, select: { id: true, number: true, name: true, ladderAppliedAt: true, tournamentFormat: true, participantFormat: true } }) : []
   const tById = new Map(tournaments.map((t) => [t.id, t]))
   const scores = await scoresForKeys(rows.map((r) => r.matchKey))
