@@ -13,9 +13,20 @@ export const PRIMARY_NAV: NavItem[] = [
 ]
 
 /** Slim footer links. */
-export const FOOTER_LINKS: NavItem[] = [
+/**
+ * Footer links. `active: false` means "not configured yet" — the footer HIDES those rather than
+ * rendering a link that goes nowhere. Give one a real destination and flip the flag to publish it.
+ */
+export interface FooterLink extends NavItem {
+  active?: boolean
+}
+
+export const FOOTER_LINKS: FooterLink[] = [
+  // No /about route exists yet, so this stays hidden rather than 404ing.
+  { label: 'About', href: '/about', active: false },
   { label: 'Contact', href: '/contact' },
-  { label: 'Discord', href: '#' },
+  // Placeholder '#' — hidden until a real invite URL is set.
+  { label: 'Discord', href: '#', active: false },
   { label: 'Privacy Policy', href: '/privacy' },
   { label: 'Terms of Service', href: '/terms' },
 ]

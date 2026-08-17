@@ -24,15 +24,10 @@ export const metadata: Metadata = pageMetadata({
 /**
  * Homepage-only styling.
  *
- * The footer is rendered by the shared (frontend) layout as a sibling of <main>, so a page cannot
- * remove it from its own subtree. These rules are emitted as part of THIS page's output instead:
- * they exist only while `/` is rendered and disappear as soon as another route takes over, so no
- * other page is affected and the layout itself is untouched.
+ * Emitted as part of THIS page's output, so the rules exist only while `/` is rendered and vanish
+ * as soon as another route takes over — no other page is affected and the layout is untouched.
  */
 const HOME_CSS = `
-/* Drop the footer for this route only. */
-body > footer { display: none !important; }
-
 /* Tailwind's min-h-screen is 100vh, which on mobile is taller than the visible area
    while the URL bar is showing and leaves a small phantom scroll. This is a floor,
    not a cap — the page still grows normally when content exceeds the viewport. */
