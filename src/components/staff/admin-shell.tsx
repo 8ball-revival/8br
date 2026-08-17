@@ -8,18 +8,30 @@ export type AdminSection =
   | 'dashboard' | 'reset' | 'audit' | 'members' | 'penalties'
   | 'staff' | 'competition' | 'competitions' | 'settings' | 'security' | 'health'
 
-const SECTIONS: { key: AdminSection; label: string; href: string; cap?: Capability; headAdminOnly?: boolean }[] = [
+/**
+ * Every Admin section. `hiddenFromNav` removes an entry from the visible tab strip WITHOUT touching
+ * its route, capability, data or actions — direct navigation keeps working for anyone authorized,
+ * so a section can be brought back later by flipping one flag.
+ */
+const SECTIONS: {
+  key: AdminSection
+  label: string
+  href: string
+  cap?: Capability
+  headAdminOnly?: boolean
+  hiddenFromNav?: boolean
+}[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/staff' },
-  { key: 'reset', label: 'Reset Player Password', href: '/staff/reset-password', cap: 'moderate_members' },
-  { key: 'audit', label: 'Activity Log', href: '/staff/audit', cap: 'view_audit' },
-  { key: 'members', label: 'Player Management', href: '/staff/members', cap: 'moderate_members' },
-  { key: 'penalties', label: 'Penalties', href: '/staff/penalties', cap: 'moderate_members' },
-  { key: 'staff', label: 'Staff Management', href: '/staff/staff', headAdminOnly: true },
-  { key: 'competition', label: 'Competition Oversight', href: '/staff/competition', cap: 'manage_competitions' },
+  { key: 'reset', label: 'Reset Player Password', href: '/staff/reset-password', cap: 'moderate_members', hiddenFromNav: true },
+  { key: 'audit', label: 'Activity Log', href: '/staff/audit', cap: 'view_audit', hiddenFromNav: true },
+  { key: 'members', label: 'Players', href: '/staff/members', cap: 'moderate_members' },
+  { key: 'penalties', label: 'Penalties', href: '/staff/penalties', cap: 'moderate_members', hiddenFromNav: true },
+  { key: 'staff', label: 'Staff Management', href: '/staff/staff', headAdminOnly: true, hiddenFromNav: true },
+  { key: 'competition', label: 'Competition Oversight', href: '/staff/competition', cap: 'manage_competitions', hiddenFromNav: true },
   { key: 'competitions', label: 'Competitions', href: '/staff/competitions', cap: 'manage_competitions' },
-  { key: 'settings', label: 'Site Settings', href: '/staff/settings', headAdminOnly: true },
-  { key: 'security', label: 'Security', href: '/staff/security', cap: 'view_audit' },
-  { key: 'health', label: 'Data & System Health', href: '/staff/health', headAdminOnly: true },
+  { key: 'settings', label: 'Site Settings', href: '/staff/settings', headAdminOnly: true, hiddenFromNav: true },
+  { key: 'security', label: 'Security', href: '/staff/security', cap: 'view_audit', hiddenFromNav: true },
+  { key: 'health', label: 'Data & System Health', href: '/staff/health', headAdminOnly: true, hiddenFromNav: true },
 ]
 
 /** The Admin Portal chrome — rendered INSIDE the normal 8BR site shell (header/footer/background are
@@ -27,6 +39,10 @@ const SECTIONS: { key: AdminSection; label: string; href: string; cap?: Capabili
 export function AdminShell({ actor, active, children }: { actor: StaffUser; active: AdminSection; children: React.ReactNode }) {
   const items: AdminNavItem[] = SECTIONS
     .filter((s) => (s.headAdminOnly ? actor.isHeadAdmin || actor.can('manage_staff') : s.cap ? actor.can(s.cap) : true))
+    // Hidden sections stay reachable by URL; they are only dropped from the tab strip. The section
+    // currently being viewed is always shown, so someone who navigates straight to a hidden route
+    // can still see where they are rather than landing on an unlabelled page.
+    .filter((s) => !s.hiddenFromNav || s.key === active)
     .map((s) => ({ key: s.key, label: s.label, href: s.href }))
 
   return (

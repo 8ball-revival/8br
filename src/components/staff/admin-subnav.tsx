@@ -7,9 +7,10 @@ import { cn } from '@/lib/utils'
 
 export interface AdminNavItem { key: string; label: string; href: string }
 
-/** Compact horizontal Admin subnavigation (styled like the Groups/Playoffs toggles). Scrolls
- *  horizontally on small screens and offers an "Admin sections" dropdown for narrow viewports.
- *  No full-height sidebar — the page keeps the normal 8BR header/footer/background. */
+/** Compact Admin subnavigation (styled like the Groups/Playoffs toggles). The tab strip WRAPS
+ *  rather than scrolling horizontally — with a short section list a scroll affordance is just
+ *  noise, and wrapping keeps every tab reachable at any width. Narrow viewports still get the
+ *  "Admin sections" dropdown. No full-height sidebar — the page keeps the normal 8BR chrome. */
 export function AdminSubnav({ items, active }: { items: AdminNavItem[]; active: string }) {
   const [open, setOpen] = useState(false)
   const current = items.find((i) => i.key === active)
@@ -33,14 +34,14 @@ export function AdminSubnav({ items, active }: { items: AdminNavItem[]; active: 
       </div>
 
       {/* Desktop / tablet: horizontal scroll strip */}
-      <nav aria-label="Admin sections" className="scrollbar-themed hidden gap-1 overflow-x-auto rounded-lg border border-border bg-card/40 p-1 sm:flex">
+      <nav aria-label="Admin sections" className="hidden flex-wrap gap-1 rounded-lg border border-border bg-card/40 p-1 sm:flex">
         {items.map((i) => (
           <Link
             key={i.key}
             href={i.href}
             aria-current={i.key === active ? 'page' : undefined}
             className={cn(
-              'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+              'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
               i.key === active ? 'bg-brand text-white' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >

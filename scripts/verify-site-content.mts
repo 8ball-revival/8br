@@ -100,6 +100,15 @@ async function main() {
         /* best effort */
       }
     }
+    // Creating a user also provisions a linked Player profile (one account = one profile).
+    // Deleting the user does NOT cascade to it, so remove the profiles too — otherwise every run
+    // leaves orphan players behind and they pile up in Player Management.
+    try {
+      const { prisma } = await import('../src/lib/prisma.ts')
+      await prisma.player.deleteMany({ where: { cueverseId: { startsWith: 'zzverify_' } } })
+    } catch {
+      /* best effort */
+    }
   }
 
   try {
