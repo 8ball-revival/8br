@@ -13,7 +13,7 @@ const initial: FormResult = {}
 /**
  * My Account settings — self-service editing of the public profile (Preferred Name,
  * Discord, Time Zone), the private email, and the password. CueVerse ID is edited via its
- * own cooldown form (rendered separately) and is intentionally not here. Email is private.
+ * own form (rendered separately) and is intentionally not here. Email is private.
  */
 export function AccountSettings({
   profile,

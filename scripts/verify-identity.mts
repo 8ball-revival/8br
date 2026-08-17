@@ -1,7 +1,7 @@
 /**
  * Identity model verification — the CueVerse-ID-as-canonical-identity invariants at the service +
  * database layer. Uses UNLINKED Player rows (linkedUserId = null) so it exercises the full Prisma-side
- * logic (validation, case-insensitive uniqueness, cooldown, admin override, case-only recasing,
+ * logic (validation, case-insensitive uniqueness, admin override, case-only recasing,
  * whitespace normalization, audit, and the DB UNIQUE-index concurrent-claim guard) WITHOUT booting
  * Payload (tsx can't load the CMS). The Payload username projection/sync is covered separately by
  * scripts/identity-integrity.mts (asserts username == normalized CueVerse ID for every real account)
@@ -78,14 +78,20 @@ async function run() {
   check('recasing updates display capitalization', bDU.cueverseId === `${TAG}DELTA`)
   check('recasing keeps the same normalized key', bDU.cueverseIdNormalized === cueverseLoginKey(`${TAG}Delta`))
 
-  // --- cooldown: enforced for player-initiated, bypassed by admin override ---
-  const cd = await mkPlayer(`${TAG}Cool`, new Date()) // just changed → inside cooldown
+  // --- no waiting period: a member may rename as often as they like ---
+  const cd = await mkPlayer(`${TAG}Cool`, new Date()) // changed a moment ago
   const cdState = cueverseCooldownState(new Date())
-  check('cooldown state reports not-yet-changeable', cdState.canChange === false && cdState.nextAvailableAt != null)
-  const blocked = await changeCueverseId(actor, cd.id, `${TAG}Cooler`, { override: false })
-  check('player-initiated change blocked during cooldown', blocked.ok === false)
-  const overridden = await changeCueverseId(actor, cd.id, `${TAG}Cooler`, { override: true })
-  check('admin override bypasses cooldown', overridden.ok === true)
+  check('a just-renamed account can rename again immediately', cdState.canChange === true && cdState.nextAvailableAt === null)
+  const again = await changeCueverseId(actor, cd.id, `${TAG}Cooler`, { override: false })
+  check('a player-initiated change straight after another is allowed', again.ok === true, again.ok ? '' : (again as { error?: string }).error)
+  const overridden = await changeCueverseId(actor, cd.id, `${TAG}Coolest`, { override: true })
+  check('an admin change is still allowed', overridden.ok === true, overridden.ok ? '' : (overridden as { error?: string }).error)
+
+  // --- a rename leaves the previous identity searchable ---
+  const aliases = await prisma.playerAlias.findMany({ where: { playerId: cd.id }, select: { alias: true } })
+  check('the previous CueVerse ID is kept as a searchable alias',
+    aliases.some((a) => a.alias === cueverseLoginKey(`${TAG}Cool`).replace(/[^a-z0-9]/g, '')),
+    aliases.map((a) => a.alias).join(',') || '(none)')
 
   // --- DB-level guard: the UNIQUE index blocks a concurrent duplicate that slips past the check ---
   let indexBlocked = false
@@ -102,7 +108,12 @@ async function run() {
 try {
   await run()
 } finally {
-  // Exact cleanup: only rows this script created.
+  // Exact cleanup: only rows this script created. Aliases first — a rename now records one.
+  const mine = await prisma.player.findMany({
+    where: { OR: [{ cueverseId: { startsWith: TAG } }, { cueverseIdNormalized: { startsWith: TAG.toLowerCase() } }] },
+    select: { id: true },
+  }).catch(() => [])
+  if (mine.length) await prisma.playerAlias.deleteMany({ where: { playerId: { in: mine.map((m) => m.id) } } }).catch(() => {})
   await prisma.player.deleteMany({ where: { cueverseId: { startsWith: TAG } } }).catch(() => {})
   await prisma.player.deleteMany({ where: { cueverseIdNormalized: { startsWith: TAG.toLowerCase() } } }).catch(() => {})
   await prisma.auditLog.deleteMany({ where: { actorUsername: 'identity-verify' } }).catch(() => {})

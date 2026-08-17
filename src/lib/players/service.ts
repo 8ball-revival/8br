@@ -22,15 +22,16 @@ import { recordAudit } from '@/lib/competition/audit'
  * Every identity create/change path routes through here so the two stores can never diverge.
  */
 
-const COOLDOWN_DAYS = 7
-
 export type AccountActor = { userId: number; username: string }
 
-/** Whether the CueVerse ID can be changed now, and when it next can (7-day cooldown). */
-export function cueverseCooldownState(changedAt: Date | null | undefined): { canChange: boolean; nextAvailableAt: Date | null } {
-  if (!changedAt) return { canChange: true, nextAvailableAt: null }
-  const nextAvailableAt = new Date(changedAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
-  return { canChange: nextAvailableAt <= new Date(), nextAvailableAt }
+/**
+ * Whether the CueVerse ID can be changed now.
+ *
+ * There is no waiting period: a member may rename whenever they like. The shape is kept so callers
+ * do not all have to change, and `cueverseIdChangedAt` is still recorded — it is history, not a gate.
+ */
+export function cueverseCooldownState(_changedAt: Date | null | undefined): { canChange: boolean; nextAvailableAt: Date | null } {
+  return { canChange: true, nextAvailableAt: null }
 }
 
 /** The Player record linked to a Payload account, or null. */
@@ -135,8 +136,7 @@ export interface ChangeCueverseResult {
 
 /**
  * Change the account's canonical CueVerse ID. This is the ONLY supported way to change identity.
- * It validates format, enforces case-insensitive uniqueness, applies the 7-day cooldown (unless an
- * admin passes override), updates the Player (display + normalized) AND the Payload login username in
+ * It validates format, enforces case-insensitive uniqueness, updates the Player (display + normalized) AND the Payload login username in
  * one logical operation (with compensating rollback on cross-ORM failure), preserves the linked
  * account and every relationship (all keyed by immutable IDs), and writes an audit entry recording
  * the previous and new IDs. A case-only recasing (same normalized key) is allowed and updates the
@@ -162,15 +162,6 @@ export async function changeCueverseId(
 
   // No-op: identical value (same casing too).
   if (newId === oldId) return { ok: true }
-
-  // Cooldown applies to player-initiated changes (admins pass override). A case-only recasing is
-  // treated as a normal change for cooldown purposes (no special exemption defined).
-  if (!opts.override && profile.cueverseIdChangedAt) {
-    const nextAllowed = new Date(profile.cueverseIdChangedAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
-    if (nextAllowed > new Date()) {
-      return { ok: false, error: `You can change your CueVerse ID again after ${nextAllowed.toDateString()}.` }
-    }
-  }
 
   // Uniqueness (case-insensitive), excluding this player's own row — so a case-only recasing is allowed.
   if (!caseOnly && !(await isCueverseIdAvailable(newId, profileId))) {
@@ -203,6 +194,18 @@ export async function changeCueverseId(
         data: { cueverseId: oldId || null, cueverseIdNormalized: oldKey || null, cueverseIdChangedAt: profile.cueverseIdChangedAt },
       }).catch(() => {})
       return { ok: false, error: sync.conflict ? 'That CueVerse ID is already taken.' : 'Could not update the login identity — no change was made.', conflict: sync.conflict }
+    }
+  }
+
+  // Keep the previous identity searchable. Without this a rename strands everyone who knows the
+  // player by their old handle — the search paths already match aliases, so recording one is all it
+  // takes. A case-only recasing adds nothing: the normalized key did not move.
+  if (!caseOnly && oldKey) {
+    const aliasKey = oldKey.replace(/[^a-z0-9]/g, '')
+    if (aliasKey) {
+      await prisma.playerAlias
+        .create({ data: { playerId: profileId, alias: aliasKey } })
+        .catch(() => null) // already recorded, or claimed elsewhere — never block the rename
     }
   }
 

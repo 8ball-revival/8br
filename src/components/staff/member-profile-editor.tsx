@@ -19,7 +19,7 @@ export interface ProfileInitial {
   email: string
 }
 
-/** Admin editor for a player's safe profile fields — no cooldown. There is no separate Username:
+/** Admin editor for a player's safe profile fields. There is no separate Username:
  *  CueVerse ID IS the account identity and login name. Derived stats are never here. */
 export function MemberProfileEditor({ initial }: { initial: ProfileInitial }) {
   const router = useRouter()
@@ -59,7 +59,7 @@ export function MemberProfileEditor({ initial }: { initial: ProfileInitial }) {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {field('preferredName', 'Preferred Name')}
-        {field('cueverseId', 'CueVerse ID', { hint: 'Account identity + login name. Admin edit — no 7-day cooldown; must be unique.' })}
+        {field('cueverseId', 'CueVerse ID', { hint: 'Account identity + login name. Must be unique.' })}
         {field('timeZone', 'Time Zone', { hint: 'e.g. America/New_York' })}
         {field('discord', 'Discord')}
       </div>

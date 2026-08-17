@@ -56,10 +56,10 @@ export default async function AccountPage() {
             />
             {profile && (
               <div className="border-t border-border pt-4">
-                {(() => {
-                  const cd = cueverseCooldownState(profile.cueverseIdChangedAt)
-                  return <CueverseIdForm current={profile.cueverseId} canChange={cd.canChange} nextAvailableAt={cd.nextAvailableAt ? cd.nextAvailableAt.toISOString() : null} />
-                })()}
+                <CueverseIdForm
+                  current={profile.cueverseId}
+                  canChange={cueverseCooldownState(profile.cueverseIdChangedAt).canChange}
+                />
               </div>
             )}
             <div className="border-t border-border pt-4">

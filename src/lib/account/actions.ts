@@ -336,7 +336,7 @@ export async function registerSeason2(_prev: FormResult, formData: FormData): Pr
 }
 
 /** Self-service: update my public profile fields (Preferred Name, Discord, Time Zone).
- *  CueVerse ID is intentionally NOT here — it stays on the dedicated 7-day cooldown path. */
+ *  CueVerse ID is intentionally NOT here — it stays on its own dedicated path. */
 export async function updateMyProfileAction(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in.' }
@@ -399,7 +399,7 @@ export async function changeMyPasswordAction(_prev: FormResult, formData: FormDa
 }
 
 /** Self-service: change my own CueVerse ID (the site-wide display identity). Enforces the
- *  7-day cooldown server-side. Requires a linked Player Profile. */
+ *  Requires a linked Player Profile. */
 export async function changeMyCueverseId(_prev: FormResult, formData: FormData): Promise<FormResult> {
   const user = await getCurrentUser()
   if (!user) return { error: 'Please sign in.' }

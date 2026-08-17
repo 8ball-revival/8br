@@ -19,8 +19,7 @@ export interface ProfilePatch {
 export interface ProfileResult { ok?: boolean; error?: string }
 
 /**
- * ADMIN edit of a player's safe profile fields — NO cooldown (CueVerse ID change uses the override
- * path so the 7-day member cooldown does not apply to staff). Admins may edit Members; only the Head
+ * ADMIN edit of a player's safe profile fields. Admins may edit Members; only the Head
  * Admin may edit Admin/Head-Admin accounts. Derived stats (rating, W/L/D, achievements, bracket
  * results) are never editable here. Audited; no secrets recorded.
  */
@@ -65,7 +64,7 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
     })
   }
 
-  // 2) CueVerse ID — admin override (no cooldown). Routes through the identity service, which also
+  // 2) CueVerse ID — admin override. Routes through the identity service, which also
   //    syncs the login username. A collision returns a clear inline conflict error (no private data).
   let cueverseChanged = false
   if (player && patch.cueverseId != null && patch.cueverseId.trim() && patch.cueverseId.trim() !== player.cueverseId) {
