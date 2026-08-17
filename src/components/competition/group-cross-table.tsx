@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
+import { identityLines, identityText } from '@/lib/identity/display'
 import type { PublicGroupView, PublicGroupFixture } from '@/lib/competition/public'
 
 type Tone = 'win' | 'loss' | 'pending' | 'none' | 'self'
@@ -13,7 +15,8 @@ type Tone = 'win' | 'loss' | 'pending' | 'none' | 'self'
  * cell is that head-to-head, with the standings frozen on the right. Colour-coded
  * (green win / red loss / yellow pending / grey not played), row+column highlight
  * on hover, and clicking a played cell opens the match details. Reuses the resolved
- * public group data (display names / CueVerse IDs only — no private data).
+ * public group data (CueVerse IDs / preferred names only — no private data). Column headers show
+ * the CueVerse ID alone for width; row headers carry the preferred name beneath it.
  */
 export function GroupCrossTable({ group }: { group: PublicGroupView }) {
   const [hoverId, setHoverId] = useState<number | null>(null)
@@ -23,10 +26,15 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
   const standingById = new Map(group.standings.map((s) => [s.registrationId, s]))
   const players = useMemo(() => {
     if (group.standings.length === group.players.length && group.standings.length > 0) {
-      return [...group.standings].sort((a, b) => a.rank - b.rank).map((s) => ({ id: s.registrationId, name: s.displayName }))
+      return [...group.standings].sort((a, b) => a.rank - b.rank)
+        .map((s) => ({ id: s.registrationId, identity: { cueverseId: s.cueverseId, preferredName: s.displayName } }))
     }
-    return group.players.map((p) => ({ id: p.registrationId, name: p.displayName }))
+    return group.players.map((p) => ({ id: p.registrationId, identity: { cueverseId: p.cueverseId, preferredName: p.displayName } }))
   }, [group])
+
+  const identityById = useMemo(() => new Map(players.map((p) => [p.id, p.identity])), [players])
+  const identityOf = (registrationId: number, fallback: string) =>
+    identityText(identityById.get(registrationId) ?? { preferredName: fallback })
 
   // Fixture lookup by unordered pair.
   const byPair = useMemo(() => {
@@ -82,9 +90,9 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                     className={cn('h-10 min-w-14 px-2 text-center text-[0.7rem] font-medium', hl(c.id) ? 'bg-brand/10 text-brand' : 'text-muted-foreground')}
                     onMouseEnter={() => setHoverId(c.id)}
                     onMouseLeave={() => setHoverId(null)}
-                    title={c.name}
+                    title={identityText(c.identity)}
                   >
-                    <span className="block max-w-16 truncate">{c.name}</span>
+                    <span className="block max-w-16 truncate">{identityLines(c.identity).primary}</span>
                   </th>
                 ))}
               </tr>
@@ -98,7 +106,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                     onMouseEnter={() => setHoverId(row.id)}
                     onMouseLeave={() => setHoverId(null)}
                   >
-                    <span className="block max-w-40 truncate">{row.name}</span>
+                    <PlayerName identity={row.identity} size="sm" className="max-w-40" emphasis="plain" />
                   </th>
                   {players.map((col) => {
                     const { text, tone, fixture } = cell(row.id, col.id)
@@ -175,9 +183,15 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
             </div>
             <p className="mt-1 text-xs text-muted-foreground">{group.name} · Round {selected.round}</p>
             <div className="mt-4 flex items-center justify-between gap-3">
-              <span className={cn('font-medium', selected.winner === 'home' && 'text-success')}>{selected.homeName}</span>
+              {/* Resolve through the table's own identities so the modal names people the same way
+                  the grid does, rather than falling back to the fixture's stored name. */}
+              <span className={cn('font-medium', selected.winner === 'home' && 'text-success')}>
+                {identityOf(selected.homeRegistrationId, selected.homeName)}
+              </span>
               <span className="tabular text-lg font-bold">{selected.homeGames}–{selected.awayGames}</span>
-              <span className={cn('text-right font-medium', selected.winner === 'away' && 'text-success')}>{selected.awayName}</span>
+              <span className={cn('text-right font-medium', selected.winner === 'away' && 'text-success')}>
+                {identityOf(selected.awayRegistrationId, selected.awayName)}
+              </span>
             </div>
             <div className="mt-3">
               <Badge variant={selected.status === 'DISPUTED' ? 'destructive' : 'success'}>

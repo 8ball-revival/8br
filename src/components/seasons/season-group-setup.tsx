@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Plus, RotateCcw, Shuffle, Trash2, Play, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
+import { identityText } from '@/lib/identity/display'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { GroupSetupView, SetupPlayer } from '@/lib/seasons/views'
@@ -126,10 +128,10 @@ function Panel({ title, count, tone, children, onRename, onDelete }: { title: st
 function PlayerRow({ p, groups, currentGroup, onMove, onRemove, removeTitle }: { p: SetupPlayer; groups: { id: number; label: string }[]; currentGroup: number | null; onMove: (gid: number | null) => void; onRemove: (() => void) | null; removeTitle?: string }) {
   return (
     <li className="flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5 text-sm">
-      <span className="min-w-0 flex-1 truncate">{p.name}{p.cueverseId && p.cueverseId !== p.name && <span className="ml-1.5 text-xs text-muted-foreground">{p.cueverseId}</span>}</span>
+      <PlayerName identity={{ cueverseId: p.cueverseId, preferredName: p.name }} size="sm" className="min-w-0 flex-1" />
       <span className="tabular shrink-0 text-xs font-semibold text-muted-foreground">{p.rating ?? '—'}</span>
       <select
-        aria-label={`Move ${p.name} to group`}
+        aria-label={`Move ${identityText({ cueverseId: p.cueverseId, preferredName: p.name })} to group`}
         value={currentGroup ?? ''}
         onChange={(e) => onMove(e.target.value === '' ? null : Number(e.target.value))}
         className="shrink-0 rounded border border-input bg-card px-1.5 py-1 text-xs"
@@ -137,7 +139,7 @@ function PlayerRow({ p, groups, currentGroup, onMove, onRemove, removeTitle }: {
         <option value="">Unassigned</option>
         {groups.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
       </select>
-      {onRemove && <button aria-label={removeTitle ? `${removeTitle}: ${p.name}` : `Remove ${p.name} from group`} title={removeTitle ?? 'Remove from group'} onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-3.5" /></button>}
+      {onRemove && <button aria-label={removeTitle ? `${removeTitle}: ${identityText({ cueverseId: p.cueverseId, preferredName: p.name })}` : `Remove ${identityText({ cueverseId: p.cueverseId, preferredName: p.name })} from group`} title={removeTitle ?? 'Remove from group'} onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-3.5" /></button>}
     </li>
   )
 }

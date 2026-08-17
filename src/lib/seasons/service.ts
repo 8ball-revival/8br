@@ -130,12 +130,15 @@ export interface SeasonSummary {
   lifecycleState: SeasonLifecycleState
   entrantsCount: number
   championName: string | null
+  /** The champion's CueVerse ID — the half that identifies them, so it leads wherever they appear. */
+  championHandle: string | null
   runnerUpName: string | null
+  runnerUpHandle: string | null
   isActive: boolean
   isCompleted: boolean
 }
 
-function toSummary(s: { competitionSeries: { id: number; name: string; shortName: string; slug: string; iconMediaId: string | null }; number: number; competitionYear: number; subtitle: string | null; lifecycleState: SeasonLifecycleState; entrantsCount: number; championName: string | null; runnerUpName: string | null }): SeasonSummary {
+function toSummary(s: { competitionSeries: { id: number; name: string; shortName: string; slug: string; iconMediaId: string | null }; number: number; competitionYear: number; subtitle: string | null; lifecycleState: SeasonLifecycleState; entrantsCount: number; championName: string | null; championHandle: string | null; runnerUpName: string | null; runnerUpHandle: string | null }): SeasonSummary {
   return {
     number: s.number,
     competition: s.competitionSeries,
@@ -145,7 +148,9 @@ function toSummary(s: { competitionSeries: { id: number; name: string; shortName
     lifecycleState: s.lifecycleState,
     entrantsCount: s.entrantsCount,
     championName: s.championName,
+    championHandle: s.championHandle,
     runnerUpName: s.runnerUpName,
+    runnerUpHandle: s.runnerUpHandle,
     isActive: s.lifecycleState !== 'COMPLETED',
     isCompleted: s.lifecycleState === 'COMPLETED',
   }
@@ -187,7 +192,9 @@ export interface SeasonView {
   entrants: SeasonEntrantView[]
   entrantsCount: number
   championName: string | null
+  championHandle: string | null
   runnerUpName: string | null
+  runnerUpHandle: string | null
   finalScore: string | null
 }
 
@@ -230,7 +237,9 @@ export async function getSeasonView(number: number): Promise<SeasonView | null> 
     entrants,
     entrantsCount: entrants.filter((e) => !e.withdrawn).length,
     championName: s.championName,
+    championHandle: s.championHandle,
     runnerUpName: s.runnerUpName,
+    runnerUpHandle: s.runnerUpHandle,
     finalScore: s.finalScore,
   }
 }
@@ -253,7 +262,7 @@ export async function searchSeasonCandidates(seasonId: number, query: string, li
   const match = q
     ? { OR: [{ primaryName: { contains: q, mode: 'insensitive' as const } }, { cueverseId: { contains: q, mode: 'insensitive' as const } }, { aliases: { some: { alias: { contains: nk } } } }] }
     : {}
-  const rows = await prisma.player.findMany({ where: { active: true, managementOnly: false, ...match }, orderBy: { primaryName: 'asc' }, take: Math.max(limit, entered.size + limit), select: { id: true, primaryName: true, cueverseId: true } })
+  const rows = await prisma.player.findMany({ where: { active: true, managementOnly: false, ...match }, orderBy: [{ cueverseId: 'asc' }, { primaryName: 'asc' }], take: Math.max(limit, entered.size + limit), select: { id: true, primaryName: true, cueverseId: true } })
   return rows.filter((r) => !entered.has(r.id)).slice(0, limit).map((r) => ({ playerId: r.id, primaryName: r.primaryName, cueverseId: r.cueverseId }))
 }
 

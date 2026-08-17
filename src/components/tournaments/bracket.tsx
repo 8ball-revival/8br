@@ -6,6 +6,7 @@ import { CheckCircle2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BracketMatch, BracketRound, BracketSlot } from '@/lib/tournaments/service'
 import { TeamName } from './team-popover'
+import { identityLines, fromNameHandle } from '@/lib/identity/display'
 
 /** Optional admin inline-edit API for the SEASON live playoff bracket. Tournaments never pass this,
  *  so their brackets stay read-only and unchanged. */
@@ -29,7 +30,10 @@ export interface BracketEditApi {
 }
 
 function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlot; won?: boolean; dim?: boolean; edit?: BracketEditApi; swap?: BracketSwapApi; matchId?: number; side?: 'home' | 'away' }) {
-  const label = slot?.name ?? 'TBD'
+  // The CueVerse ID is what tells competitors apart (the archive has two Mikes in one group and
+  // several different Chis), so it is the line that leads; the preferred name sits beneath it.
+  const lines = identityLines(fromNameHandle(slot))
+  const label = slot ? lines.primary : 'TBD'
   const hasMembers = !!slot?.members?.length
   const editable = !!edit && matchId != null && side != null && !!slot?.name && slot.name !== 'Bye'
   const swappable = !!swap && matchId != null && side != null && slot?.name !== 'Bye'
@@ -74,10 +78,9 @@ function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlo
             dim={dim}
           />
         ) : (
-          // 1v1 slot: Preferred Name on top; the CueVerse ID sits beneath it in italic (only when a
-          // preferred name has actually been chosen, i.e. it differs from the ID — otherwise the ID
-          // is the single primary line and needs no italic echo). The whole name links to the player's
-          // profile (by CueVerse ID), the same target the Rankings ladder uses.
+          // 1v1 slot: CueVerse ID on top, preferred name beneath it in italic when one exists and
+          // differs from the ID. The whole name links to the player's profile (by CueVerse ID), the
+          // same target the Rankings ladder uses.
           (() => {
             const nameEl = (
               <span className={cn(
@@ -87,8 +90,8 @@ function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlo
                 {label}
               </span>
             )
-            const subEl = slot?.handle && slot.handle !== slot.name ? (
-              <span className={cn('block truncate text-[0.75rem] italic leading-tight', dim ? 'text-muted-foreground/70' : 'text-muted-foreground')}>{slot.handle}</span>
+            const subEl = slot && lines.secondary ? (
+              <span className={cn('block truncate text-[0.75rem] italic leading-tight', dim ? 'text-muted-foreground/70' : 'text-muted-foreground')}>{lines.secondary}</span>
             ) : null
             const profile = slot?.slug ?? slot?.handle
             return profile ? (

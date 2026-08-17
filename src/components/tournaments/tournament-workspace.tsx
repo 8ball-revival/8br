@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Bracket } from '@/components/tournaments/bracket'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
+import { PlayerName } from '@/components/identity/player-name'
+import { fromNameHandle } from '@/lib/identity/display'
 import { TournamentLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
 import { TournamentHistory } from '@/components/tournaments/tournament-history'
 import { FlairEditor, FlairPreview, type FlairValue } from '@/components/tournaments/flair-editor'
@@ -263,7 +265,7 @@ function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
                   onClick={() => run(async () => { const r = await A.addTournamentEntrantsAction(tournamentId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
                   className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
                 >
-                  <span>{c.primaryName}{c.cueverseId && c.cueverseId.toLowerCase() !== c.primaryName.toLowerCase() && <span className="ml-1 text-xs text-muted-foreground">({c.cueverseId})</span>}</span>
+                  <PlayerName identity={{ cueverseId: c.cueverseId, preferredName: c.primaryName }} inline />
                   <Plus className="size-3.5 text-muted-foreground" />
                 </button>
               </li>
@@ -298,7 +300,10 @@ function EntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceData; r
           {data.entrants.map((e, i) => (
             <li key={e.registrationId} className={cn('flex items-center gap-3 px-3 py-2 text-sm', e.withdrawn && 'opacity-50')}>
               <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate">{e.name}{e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}{e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}</span>
+              <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                <PlayerName identity={fromNameHandle(e)} size="sm" className="min-w-0" />
+                {e.withdrawn && <span className="shrink-0 text-xs text-destructive">withdrawn</span>}
+              </span>
               <span className="tabular w-14 shrink-0 text-right text-xs font-semibold text-foreground">{e.rating != null ? e.rating : <span className="font-normal text-muted-foreground">—</span>}</span>
               {!disabled && (
                 e.withdrawn ? (
@@ -364,10 +369,9 @@ function RandomEntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceD
           {data.entrants.map((e, i) => (
             <li key={e.registrationId} className={cn('flex items-center gap-3 px-3 py-2 text-sm', e.withdrawn && 'opacity-50')}>
               <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate">
-                {e.name}
-                {e.handle && <span className="ml-2 text-xs text-muted-foreground">{e.handle}</span>}
-                {e.withdrawn && <span className="ml-2 text-xs text-destructive">withdrawn</span>}
+              <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                <PlayerName identity={fromNameHandle(e)} size="sm" className="min-w-0" />
+                {e.withdrawn && <span className="shrink-0 text-xs text-destructive">withdrawn</span>}
               </span>
               {generated && e.teamName && (
                 <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-foreground">{e.teamName}</span>
@@ -1017,7 +1021,9 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
               {s.standings.map((r) => (
                 <tr key={r.registrationId} className={cn('border-t border-border/60', r.rank === 1 && 'bg-brand/10')}>
                   <td className="py-1.5 tabular">{r.rank}</td>
-                  <td className={cn('py-1.5', r.rank === 1 && 'font-medium text-brand')}>{r.name}</td>
+                  <td className={cn('py-1.5', r.rank === 1 && 'font-medium text-brand')}>
+                    <PlayerName identity={fromNameHandle(r)} size="sm" emphasis="plain" />
+                  </td>
                   <td className="py-1.5 text-center tabular font-medium">{r.points}</td>
                   <td className="py-1.5 text-center tabular">{r.played}</td>
                   <td className="py-1.5 text-center tabular">{r.gameW - r.gameL > 0 ? `+${r.gameW - r.gameL}` : r.gameW - r.gameL}</td>

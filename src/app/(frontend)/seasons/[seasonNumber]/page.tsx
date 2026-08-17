@@ -14,6 +14,7 @@ import { SeasonGroupSetup } from '@/components/seasons/season-group-setup'
 import { SeasonGroupStage } from '@/components/seasons/season-group-stage'
 import { SeasonPlayoffs } from '@/components/seasons/season-playoffs'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
+import { identityLines, identityText } from '@/lib/identity/display'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { Bracket } from '@/components/tournaments/bracket'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -145,8 +146,21 @@ function CompletedView({ view, rounds, groups, disclaimer, canManage }: { view: 
     <div className="mt-8 space-y-8">
       <div className="rounded-xl border border-[var(--gold-dim)] bg-card p-6 text-center">
         <p className="flex items-center justify-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--gold)]"><Diamond className="size-4 fill-[var(--gold-soft)] text-[var(--gold-soft)] drop-shadow-[0_0_6px_color-mix(in oklch, var(--gold-soft) 90%, transparent)]" /> Season Champion</p>
-        <p className="mt-3 font-display text-4xl font-bold text-foreground">{view.championName ?? '—'}</p>
-        {view.runnerUpName && <p className="mt-1 text-sm text-muted-foreground">def. {view.runnerUpName}{view.finalScore ? ` · ${view.finalScore}` : ''}</p>}
+        {/* CueVerse ID headlines the champion; the preferred name sits beneath it. */}
+        <p className="mt-3 font-display text-4xl font-bold text-foreground">
+          {identityLines({ cueverseId: view.championHandle, preferredName: view.championName }).primary}
+        </p>
+        {identityLines({ cueverseId: view.championHandle, preferredName: view.championName }).secondary && (
+          <p className="mt-0.5 text-base text-muted-foreground">
+            {identityLines({ cueverseId: view.championHandle, preferredName: view.championName }).secondary}
+          </p>
+        )}
+        {(view.runnerUpName || view.runnerUpHandle) && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            def. {identityText({ cueverseId: view.runnerUpHandle, preferredName: view.runnerUpName })}
+            {view.finalScore ? ` · ${view.finalScore}` : ''}
+          </p>
+        )}
       </div>
       {rounds.length > 0 && (
         <div>

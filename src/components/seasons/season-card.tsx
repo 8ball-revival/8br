@@ -4,6 +4,7 @@ import { Diamond } from 'lucide-react'
 
 import type { SeasonSummary } from '@/lib/seasons/service'
 import { SEASON_STATE_LABEL } from '@/lib/seasons/shared'
+import { identityText } from '@/lib/identity/display'
 
 /**
  * Prestige Season card — deliberately grander than an ordinary Tournament card: fully-opaque charcoal
@@ -52,7 +53,7 @@ export function SeasonCard({ season }: { season: SeasonSummary }) {
 
       {season.isCompleted ? (
         <dl className="space-y-1.5 text-sm">
-          <Row k="Champion" v={season.championName ?? '—'} gold />
+          <Row k="Champion" v={season.championName || season.championHandle ? identityText({ cueverseId: season.championHandle, preferredName: season.championName }) : '—'} gold />
           <Row k="Runner-up" v={season.runnerUpName ?? '—'} />
           <Row k="Entrants" v={String(season.entrantsCount)} />
         </dl>

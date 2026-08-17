@@ -8,6 +8,8 @@ import { Plus, Wand2, Scale, Trophy, GripVertical, AlertTriangle, CheckCircle2, 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
+import { identityText } from '@/lib/identity/display'
 import * as A from '@/lib/competition/tournament-actions'
 import { addEntrantByPlayerAction, searchEntrantCandidatesAction } from '@/lib/competition/actions'
 import { EntrantQuickAdd } from '@/components/competition/entrant-quick-add'
@@ -87,17 +89,16 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
       >
         <GripVertical className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-foreground">{e.name}</span>
-          {e.cueverseId && e.cueverseId !== e.name && <span className="block truncate text-[0.7rem] text-muted-foreground">{e.cueverseId}</span>}
+          <PlayerName identity={{ cueverseId: e.cueverseId, preferredName: e.name }} size="sm" className="text-foreground" />
         </span>
-        <label className="sr-only" htmlFor={`move-${regId}`}>Move {e.name} to…</label>
+        <label className="sr-only" htmlFor={`move-${regId}`}>Move {identityText({ cueverseId: e.cueverseId, preferredName: e.name })} to…</label>
         <select
           id={`move-${regId}`}
           value={currentCol === UNASSIGNED ? UNASSIGNED : String(currentCol)}
           disabled={pending}
           onChange={(ev) => moveTo(regId, ev.target.value === UNASSIGNED ? UNASSIGNED : Number(ev.target.value))}
           className="max-w-[7rem] shrink-0 rounded border border-input bg-card px-1.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`Move ${e.name} to a group`}
+          aria-label={`Move ${identityText({ cueverseId: e.cueverseId, preferredName: e.name })} to a group`}
         >
           <option value={UNASSIGNED}>Unassigned</option>
           {groups.map((g) => <option key={g.id} value={String(g.id)}>{g.name}</option>)}

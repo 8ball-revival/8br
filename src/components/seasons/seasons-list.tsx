@@ -47,7 +47,8 @@ export function SeasonsList({ seasons }: { seasons: SeasonSummary[] }) {
       if (year !== 'all' && String(x.year) !== year) return false
       if (competition !== 'all' && x.competition.slug !== competition) return false
       if (!needle) return true
-      return `${x.title} ${x.subtitle ?? ''} ${x.championName ?? ''} ${x.competition.name}`.toLowerCase().includes(needle)
+      // Search the champion by either half of their identity, not just the preferred name.
+      return `${x.title} ${x.subtitle ?? ''} ${x.championName ?? ''} ${x.championHandle ?? ''} ${x.competition.name}`.toLowerCase().includes(needle)
     })
   }, [seasons, q, year, competition])
 

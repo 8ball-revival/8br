@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
+import { identityLines, identityText, fromNameHandle } from '@/lib/identity/display'
 import { GroupCrosstable } from '@/components/tournaments/group-crosstable'
 import { ViewToggle } from '@/components/tournaments/view-toggle'
 import { canViewPlayoffs, redactPlayoffs, redactDraftGroups } from '@/lib/competition/playoff-visibility'
@@ -465,10 +466,12 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
           <PlayerAvatar name={cup.champion.name} size="sm" />
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {cup.champion.name}
+              {identityLines(fromNameHandle(cup.champion)).primary}
               {cup.finalScore && <span className="ml-2 tabular text-xs font-normal text-muted-foreground">{cup.finalScore}</span>}
             </p>
-            {cup.champion.handle && <p className="text-xs text-muted-foreground">{cup.champion.handle}</p>}
+            {identityLines(fromNameHandle(cup.champion)).secondary && (
+              <p className="text-xs text-muted-foreground">{identityLines(fromNameHandle(cup.champion)).secondary}</p>
+            )}
           </div>
           <span className="eyebrow ml-2 text-[0.55rem] text-brand">Champion</span>
         </div>
@@ -478,14 +481,12 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
           {cup.runnerUp && (
             <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Runner-up:</span> {cup.runnerUp.name}
-              {cup.runnerUp.handle && cup.runnerUp.handle !== cup.runnerUp.name && <span className="ml-1 text-xs">({cup.runnerUp.handle})</span>}
+              <span className="font-medium text-foreground">Runner-up:</span> {identityText(fromNameHandle(cup.runnerUp))}
             </p>
           )}
           {cup.thirdPlace && (
             <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Third:</span> {cup.thirdPlace.name}
-              {cup.thirdPlace.handle && cup.thirdPlace.handle !== cup.thirdPlace.name && <span className="ml-1 text-xs">({cup.thirdPlace.handle})</span>}
+              <span className="font-medium text-foreground">Third:</span> {identityText(fromNameHandle(cup.thirdPlace))}
             </p>
           )}
         </div>

@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { Plus, Search } from 'lucide-react'
 
+import { PlayerName } from '@/components/identity/player-name'
+
 export interface QuickAddCandidate {
   playerId: string
   primaryName: string
@@ -95,12 +97,7 @@ export function EntrantQuickAdd({
                 onClick={() => choose(c)}
                 className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
               >
-                <span>
-                  {c.primaryName}
-                  {c.cueverseId && c.cueverseId.toLowerCase() !== c.primaryName.toLowerCase() && (
-                    <span className="ml-1 text-xs text-muted-foreground">({c.cueverseId})</span>
-                  )}
-                </span>
+                <PlayerName identity={{ cueverseId: c.cueverseId, preferredName: c.primaryName }} inline />
                 <Plus className="size-3.5 text-muted-foreground" />
               </button>
             </li>

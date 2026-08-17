@@ -2,10 +2,10 @@
 
 import { useMemo, useState, useTransition, useEffect, useId } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Info } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { StageGroup, StageMatch, StageStandingRow } from '@/lib/seasons/views'
@@ -83,10 +83,6 @@ function DiscordIcon({ name, discord }: { name: string; discord: string | null }
   return <span title={`${name} has no Discord linked`} aria-disabled className={`${base} cursor-default opacity-40`}><DiscordLogo className="size-4" /></span>
 }
 
-function PlayerName({ label, slug, className = '' }: { label: string; slug: string | null; className?: string }) {
-  if (slug) return <Link href={`/players/${encodeURIComponent(slug)}`} title={label} className={`text-foreground hover:underline ${className}`}>{label}</Link>
-  return <span title={label} className={`text-foreground ${className}`}>{label}</span>
-}
 
 const th = 'border border-border px-2.5 py-1.5 text-center align-middle'
 const td = 'border border-border px-2.5 py-1.5 text-center align-middle tabular'
@@ -183,7 +179,12 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
               </th>
               {rows.map((p) => (
                 <th key={p.entrantId} scope="col" className={`${th} sticky top-0 z-20 bg-surface font-medium`}>
-                  <PlayerName label={p.preferredName ?? p.cueverseId ?? p.username} slug={p.slug} className="block truncate" />
+                  <PlayerName
+                    identity={{ cueverseId: p.cueverseId ?? p.username, preferredName: p.preferredName }}
+                    href={p.slug ? `/players/${encodeURIComponent(p.slug)}` : null}
+                    size="sm"
+                    className="text-foreground"
+                  />
                 </th>
               ))}
               <th scope="col" colSpan={2} className={`${th} sticky top-0 z-20 border-l-2 border-l-border bg-surface text-xs uppercase tracking-wide text-muted-foreground`}>Sets</th>
@@ -215,8 +216,13 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
               return (
                 <tr key={row.entrantId}>
                   <th scope="row" className={`${td} sticky left-0 z-10 text-center font-medium ${rowBg}`}>
-                    <span className={cn('mx-auto block max-w-full truncate text-base font-bold', row.kickedOut && 'text-muted-foreground line-through')}>
-                      <PlayerName label={row.cueverseId ?? row.username} slug={row.slug} className="text-inherit" />
+                    <span className={cn('mx-auto block max-w-full text-base', row.kickedOut && 'text-muted-foreground line-through')}>
+                      <PlayerName
+                        identity={{ cueverseId: row.cueverseId ?? row.username, preferredName: row.preferredName }}
+                        href={row.slug ? `/players/${encodeURIComponent(row.slug)}` : null}
+                        size="lg"
+                        className="text-foreground"
+                      />
                     </span>
                     {row.kickedOut && <span className="text-[0.6rem] font-bold text-destructive">KO</span>}
                   </th>

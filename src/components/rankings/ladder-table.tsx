@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Trophy, Flame, Snowflake, ChevronsRight, ChevronsLeft, Diamond } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
 
 // Local, client-safe row shape (structurally matches LadderRow in the server-only ladder service).
 interface TrophyEntry { tournamentId: number; number: number | null; name: string; date: string | null; slug: string }
@@ -141,14 +142,12 @@ export function LadderTable({ rows }: { rows: LadderRowView[] }) {
             <tr key={r.playerId} className={cn('border-b border-border/50 last:border-0 hover:bg-card/30', idx % 2 === 0 ? 'bg-surface' : 'bg-transparent')}>
               <td className={cn(TD, 'text-center')}><span className={cn('tabular font-semibold', r.rank <= 3 ? 'text-brand' : 'text-muted-foreground')}>{r.rank}</span></td>
               <td className={TD}>
-                {r.slug ? (
-                  <Link href={`/players/${encodeURIComponent(r.slug)}`} className="font-medium text-foreground hover:text-brand">
-                    {r.name}
-                    {r.cueverseId && r.cueverseId !== r.name && <span className="ml-1.5 text-xs text-muted-foreground">{r.cueverseId}</span>}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-foreground">{r.name}</span>
-                )}
+                <PlayerName
+                  identity={{ cueverseId: r.cueverseId, preferredName: r.name }}
+                  href={r.slug ? `/players/${encodeURIComponent(r.slug)}` : null}
+                  size="sm"
+                  className="text-foreground"
+                />
               </td>
               <td className={cn(TD, 'text-center tabular')}>{r.wins}</td>
               <td className={cn(TD, 'text-center tabular')}>{r.losses}</td>

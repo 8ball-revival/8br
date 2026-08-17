@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Trophy, Flame, Snowflake } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { identityLines } from '@/lib/identity/display'
 
 // Client-safe shapes (structurally match the server-only ladder profile types).
 interface TrophyEntry { tournamentId: number; number: number | null; name: string; date: string | null; slug: string }
@@ -58,8 +59,15 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{profile.name}</h1>
-        {profile.cueverseId && profile.cueverseId !== profile.name && <p className="text-sm text-muted-foreground">{profile.cueverseId}</p>}
+        {/* The CueVerse ID is the headline identity; the preferred name sits under it. */}
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+          {identityLines({ cueverseId: profile.cueverseId, preferredName: profile.name }).primary}
+        </h1>
+        {identityLines({ cueverseId: profile.cueverseId, preferredName: profile.name }).secondary && (
+          <p className="text-sm text-muted-foreground">
+            {identityLines({ cueverseId: profile.cueverseId, preferredName: profile.name }).secondary}
+          </p>
+        )}
       </div>
 
       <div role="tablist" aria-label="Profile sections" className="mb-4 inline-flex rounded-lg border border-border bg-card/40 p-1">

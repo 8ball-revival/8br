@@ -643,8 +643,15 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
   const rows = await prisma.seasonPlayoffMatch.findMany({ where: { seasonId }, orderBy: [{ round: 'asc' }, { slot: 'asc' }] })
   if (!rows.length) return []
   const entrantIds = [...new Set(rows.flatMap((r) => [r.homeEntrantId, r.awayEntrantId]).filter((x): x is number => x != null))]
-  const ents = await prisma.seasonEntrant.findMany({ where: { id: { in: entrantIds } }, select: { id: true, cueverseId: true } })
+  // Resolve BOTH halves of the identity from the entrant rather than trusting the denormalised
+  // name copied onto the match: the ID is what the bracket leads with, and a later rename must not
+  // leave the bracket showing a stale one.
+  const ents = await prisma.seasonEntrant.findMany({
+    where: { id: { in: entrantIds } },
+    select: { id: true, cueverseId: true, displayName: true, username: true },
+  })
   const cueverseOf = new Map(ents.map((e) => [e.id, e.cueverseId]))
+  const preferredOf = new Map(ents.map((e) => [e.id, e.displayName ?? e.username]))
   const wbRounds = rows.filter((r) => r.round < 100).map((r) => r.round)
   const totalWb = wbRounds.length ? Math.max(...wbRounds) : 0
 
@@ -657,7 +664,8 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
         if (id == null && name == null) return undefined
         if (name === 'Bye') return { name: 'Bye' }
         const handle = id != null ? cueverseOf.get(id) ?? undefined : undefined
-        return { name: name ?? 'TBD', ...(handle ? { handle, slug: handle } : {}), ...(seed != null ? { seed } : {}), ...(games != null ? { score: games } : {}) }
+        const preferred = (id != null ? preferredOf.get(id) : null) ?? name ?? 'TBD'
+        return { name: preferred, ...(handle ? { handle, slug: handle } : {}), ...(seed != null ? { seed } : {}), ...(games != null ? { score: games } : {}) }
       }
       const m: ViewMatch = { id: r.id, updatedAt: r.updatedAt.toISOString() }
       const a = slot(r.homeEntrantId, r.homeUsername, r.homeSeed, r.homeGames)

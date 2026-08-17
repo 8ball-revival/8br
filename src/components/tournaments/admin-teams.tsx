@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Crown, Plus, X, UserRound, Lock } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
+import { fromNameHandle, identityText } from '@/lib/identity/display'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { TeamView } from '@/lib/competition/teams'
@@ -80,17 +82,17 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                 {team.members.map((m) => (
                   <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
                     {m.captain && <Crown className="size-3.5 text-brand" aria-label="Captain" />}
-                    <span className="font-medium text-foreground">{m.handle || m.name}</span>
+                    <PlayerName identity={fromNameHandle(m)} size="sm" className="text-foreground" />
                     {m.captain && <span className="text-[0.6rem] uppercase tracking-wide text-brand">Captain</span>}
                     <div className="ml-auto flex items-center gap-1.5">
                       {m.userId != null && (
                         <select className={cn(sel, 'py-1 text-xs')} defaultValue="" disabled={pending} onChange={(e) => { const nv = Number(e.target.value); if (nv) run(() => adminReplaceTeamMemberAction(tournamentId, team.id, m.userId!, nv)) }}>
                           <option value="">Replace with…</option>
-                          {eligible.map((a) => <option key={a.userId} value={a.userId}>{a.handle || a.name}</option>)}
+                          {eligible.map((a) => <option key={a.userId} value={a.userId}>{identityText(fromNameHandle(a))}</option>)}
                         </select>
                       )}
                       {m.userId != null && (
-                        <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Remove player?', message: `Remove ${m.handle || m.name} from ${team.name}?`, confirmLabel: 'Remove', tone: 'danger' }); if (res.confirmed) run(() => adminRemoveTeamMemberAction(tournamentId, team.id, m.userId!)) }} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label="Remove"><X className="size-4" /></button>
+                        <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Remove player?', message: `Remove ${identityText(fromNameHandle(m))} from ${team.name}?`, confirmLabel: 'Remove', tone: 'danger' }); if (res.confirmed) run(() => adminRemoveTeamMemberAction(tournamentId, team.id, m.userId!)) }} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label="Remove"><X className="size-4" /></button>
                       )}
                     </div>
                   </div>
@@ -100,7 +102,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                     <span className="text-xs text-muted-foreground">Open slot</span>
                     <select className={cn(sel, 'ml-auto py-1 text-xs')} defaultValue="" disabled={pending} onChange={(e) => { const uid = Number(e.target.value); if (uid) run(() => adminAddTeamMemberAction(tournamentId, team.id, uid)) }}>
                       <option value="">Add a player…</option>
-                      {eligible.map((a) => <option key={a.userId} value={a.userId}>{a.handle || a.name}</option>)}
+                      {eligible.map((a) => <option key={a.userId} value={a.userId}>{identityText(fromNameHandle(a))}</option>)}
                     </select>
                   </div>
                 ))}
@@ -124,7 +126,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
             <p className="text-sm text-muted-foreground">No free agents waiting.</p>
           ) : (
             <ul className="flex flex-wrap gap-2">
-              {freeAgents.map((f) => <li key={f.id} className="rounded-md border border-border bg-card px-2.5 py-1 text-xs">{f.handle || f.name}</li>)}
+              {freeAgents.map((f) => <li key={f.id} className="rounded-md border border-border bg-card px-2.5 py-1 text-xs">{identityText(fromNameHandle(f))}</li>)}
             </ul>
           )}
           <p className="mt-2 text-xs text-muted-foreground">Free agents are placed automatically when you close registration (preview below).</p>
@@ -154,7 +156,7 @@ function CreateTeam({ tournamentId, teamSize, eligible, pending, run }: { tourna
             <label className="mb-1 block text-xs text-muted-foreground">{i === 0 ? 'Captain' : `Player ${i + 1}`}</label>
             <select className={cn(sel, 'w-40')} value={picks[i] ?? ''} onChange={(e) => set(i, Number(e.target.value))}>
               <option value="">—</option>
-              {eligible.filter((a) => !chosen.includes(a.userId) || a.userId === picks[i]).map((a) => <option key={a.userId} value={a.userId}>{a.handle || a.name}</option>)}
+              {eligible.filter((a) => !chosen.includes(a.userId) || a.userId === picks[i]).map((a) => <option key={a.userId} value={a.userId}>{identityText(fromNameHandle(a))}</option>)}
             </select>
           </div>
         ))}
@@ -210,12 +212,12 @@ function CloseRegistration({ tournamentId, onDone }: { tournamentId: number; onD
               </div>
               {plan.fills.length > 0 && (
                 <Section title="Free agents filling incomplete teams">
-                  {plan.fills.map((f) => <li key={f.teamId}><b>{f.teamName}</b> ← {f.assigned.map((a) => a.handle || a.name).join(', ')}</li>)}
+                  {plan.fills.map((f) => <li key={f.teamId}><b>{f.teamName}</b> ← {f.assigned.map((a) => identityText(fromNameHandle(a))).join(', ')}</li>)}
                 </Section>
               )}
               {plan.newTeams.length > 0 && (
                 <Section title="New teams from free agents">
-                  {plan.newTeams.map((t, i) => <li key={i}><b>{t.name}</b>: {t.members.map((m) => m.handle || m.name).join(', ')} <span className="text-muted-foreground">(captain: {t.members[0].handle || t.members[0].name})</span></li>)}
+                  {plan.newTeams.map((t, i) => <li key={i}><b>{t.name}</b>: {t.members.map((m) => identityText(fromNameHandle(m))).join(', ')} <span className="text-muted-foreground">(captain: {identityText(fromNameHandle(t.members[0]))})</span></li>)}
                 </Section>
               )}
               {plan.stillIncomplete.length > 0 && (
@@ -225,7 +227,7 @@ function CloseRegistration({ tournamentId, onDone }: { tournamentId: number; onD
               )}
               {plan.unplaced.length > 0 && (
                 <Section title="Players who cannot be placed" tone="warn">
-                  {plan.unplaced.map((u) => <li key={u.userId}>{u.handle || u.name}</li>)}
+                  {plan.unplaced.map((u) => <li key={u.userId}>{identityText(fromNameHandle(u))}</li>)}
                   <li className="list-none pt-1 text-xs text-muted-foreground">Not enough remaining players to form another team of {plan.teamSize}. They won&apos;t be placed unless more players register — retained as “Not Placed”.</li>
                 </Section>
               )}

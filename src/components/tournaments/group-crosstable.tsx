@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import Link from 'next/link'
 import { Info } from 'lucide-react'
 
 import { GROUP_STAGE_GAMES } from '@/lib/competition/match-format'
+import { PlayerName } from '@/components/identity/player-name'
 
 // Local, client-safe prop types (structurally compatible with live.ts's WorkspaceGroup). We deliberately
 // do NOT import from '@/lib/tournaments/live' — it is a `server-only` module, and importing even a type
@@ -23,14 +23,6 @@ export interface XGroup { id: number; name: string; players: XPlayer[]; standing
  */
 
 // ---- small helpers ----------------------------------------------------------
-function PlayerName({ label, title, slug, className = '' }: { label: string; title?: string; slug: string | null; className?: string }) {
-  const hover = title ?? label
-  // Every name uses the same text colour — no name is highlighted/ranked by colour.
-  if (slug) {
-    return <Link href={`/players/${encodeURIComponent(slug)}`} title={hover} className={`text-foreground hover:underline ${className}`}>{label}</Link>
-  }
-  return <span title={hover} className={`text-foreground ${className}`}>{label}</span>
-}
 
 /** Official Discord logo mark (lucide has no brand icons). Inherits colour via currentColor. */
 function DiscordLogo({ className }: { className?: string }) {
@@ -132,7 +124,12 @@ export function GroupCrosstable({ group, qualifiersPerGroup }: { group: XGroup; 
               </th>
               {players.map((p) => (
                 <th key={p.registrationId} scope="col" className={`${th} sticky top-0 z-20 bg-surface font-medium`}>
-                  <PlayerName label={p.preferredName ?? p.cueverseId} title={p.preferredName ?? p.cueverseId} slug={p.slug} className="block truncate" />
+                  <PlayerName
+                    identity={{ cueverseId: p.cueverseId, preferredName: p.preferredName }}
+                    href={p.slug ? `/players/${encodeURIComponent(p.slug)}` : null}
+                    size="sm"
+                    className="text-foreground"
+                  />
                 </th>
               ))}
               <th scope="col" colSpan={2} className={`${th} sticky top-0 z-20 border-l-2 border-l-border bg-surface text-xs uppercase tracking-wide text-muted-foreground`}>Sets</th>
@@ -170,7 +167,12 @@ export function GroupCrosstable({ group, qualifiersPerGroup }: { group: XGroup; 
               return (
                 <tr key={row.registrationId}>
                   <th scope="row" className={`${td} sticky left-0 z-10 text-center font-medium ${rowBg}`}>
-                    <PlayerName label={row.cueverseId} title={row.cueverseId} slug={row.slug} className="mx-auto block max-w-full truncate text-base font-bold" />
+                    <PlayerName
+                      identity={{ cueverseId: row.cueverseId, preferredName: row.preferredName }}
+                      href={row.slug ? `/players/${encodeURIComponent(row.slug)}` : null}
+                      size="lg"
+                      className="mx-auto max-w-full text-foreground"
+                    />
                   </th>
                   {players.map((col) => {
                     if (col.registrationId === row.registrationId) {

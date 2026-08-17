@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Bracket } from '@/components/tournaments/bracket'
 import { SeasonLiveBracket } from '@/components/seasons/season-live-bracket'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
+import { PlayerName } from '@/components/identity/player-name'
+import { identityText } from '@/lib/identity/display'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { BracketRound } from '@/lib/tournaments/service'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
@@ -163,13 +165,15 @@ export function SeasonPlayoffs({
                     type="checkbox"
                     checked={r.included}
                     disabled={!canManage || pending}
-                    aria-label={`Include ${r.name} in the playoff bracket`}
+                    aria-label={`Include ${identityText({ cueverseId: r.cueverseId, preferredName: r.name })} in the playoff bracket`}
                     onChange={(e) => run(() => setSeasonPlayoffIncludedAction(seasonId, r.entrantId, e.target.checked))}
                     className="size-4 accent-[var(--gold)]"
                   />
                 </td>
                 <td className="px-2 py-1.5 text-center font-semibold tabular-nums text-[var(--gold-soft)]">{r.overallSeed ?? '—'}</td>
-                <td className="px-2 py-1.5">{r.name}{r.cueverseId && r.cueverseId !== r.name && <span className="ml-1.5 text-xs text-muted-foreground">{r.cueverseId}</span>}</td>
+                <td className="px-2 py-1.5">
+                  <PlayerName identity={{ cueverseId: r.cueverseId, preferredName: r.name }} size="sm" />
+                </td>
                 <td className="px-2 py-1.5 text-muted-foreground">{r.group}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.groupPosition}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.points}</td>

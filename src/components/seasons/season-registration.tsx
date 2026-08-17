@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Lock, Plus, Search, UserPlus, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { PlayerName } from '@/components/identity/player-name'
+import { identityText } from '@/lib/identity/display'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
@@ -119,13 +121,15 @@ export function SeasonRegistration({
           {entrants.map((e, i) => (
             <li key={e.entrantId} className="flex items-center gap-3 px-3 py-2 text-sm">
               <span className="tabular w-8 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate">
-                {e.slug ? <Link href={`/players/${encodeURIComponent(e.slug)}`} className="font-medium text-foreground hover:text-brand">{e.name}</Link> : <span className="font-medium text-foreground">{e.name}</span>}
-                {e.cueverseId && e.cueverseId !== e.name && <span className="ml-1.5 text-xs text-muted-foreground">{e.cueverseId}</span>}
-              </span>
+              <PlayerName
+                identity={{ cueverseId: e.cueverseId, preferredName: e.name }}
+                href={e.slug ? `/players/${encodeURIComponent(e.slug)}` : null}
+                size="sm"
+                className="min-w-0 flex-1 text-foreground"
+              />
               <span className="tabular w-16 shrink-0 text-right font-semibold text-foreground">{e.rating != null ? e.rating : <span className="font-normal text-muted-foreground">—</span>}</span>
               {canManage && isOpen && (
-                <button aria-label={`Remove ${e.name}`} onClick={() => run(() => removeSeasonEntrantAction(seasonId, e.entrantId))} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
+                <button aria-label={`Remove ${identityText({ cueverseId: e.cueverseId, preferredName: e.name })}`} onClick={() => run(() => removeSeasonEntrantAction(seasonId, e.entrantId))} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
               )}
             </li>
           ))}
@@ -175,7 +179,7 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
           {candidates.map((c) => (
             <li key={c.playerId}>
               <button onMouseDown={(e) => e.preventDefault()} onClick={() => run(async () => { const r = await addSeasonEntrantAction(seasonId, c.playerId); setQ(''); setCandidates([]); setOpen(false); return r })} className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted">
-                <span>{c.primaryName}{c.cueverseId && c.cueverseId.toLowerCase() !== c.primaryName.toLowerCase() && <span className="ml-1 text-xs text-muted-foreground">({c.cueverseId})</span>}</span>
+                <PlayerName identity={{ cueverseId: c.cueverseId, preferredName: c.primaryName }} inline />
                 <Plus className="size-3.5 text-muted-foreground" />
               </button>
             </li>

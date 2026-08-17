@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSy
 import Link from 'next/link'
 import { Crown } from 'lucide-react'
 
+import { fromNameHandle, identityText } from '@/lib/identity/display'
+
 import { cn } from '@/lib/utils'
 
 export interface PopoverMember { name: string; handle?: string; slug?: string; rating?: number | null; captain?: boolean }
@@ -141,7 +143,7 @@ export function TeamName({
           </div>
           <ul className="space-y-1">
             {members.map((m, i) => {
-              const id = m.handle || m.name
+              const id = identityText(fromNameHandle(m))
               return (
                 <li key={i} className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-1.5">

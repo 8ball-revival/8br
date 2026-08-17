@@ -8,6 +8,8 @@ import { Users, Lock, LockOpen, CheckCircle2, Crown, Shield, X, Search, UserRoun
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ProfileCompletionNotice } from '@/components/identity/profile-completion-notice'
+import { PlayerName } from '@/components/identity/player-name'
+import { fromNameHandle, identityText } from '@/lib/identity/display'
 import { startTeamAction, joinTeamAction, withdrawFromTeamAction, removeTeamMemberAction, setTeamJoinCodeAction, registerFreeAgentAction, withdrawFreeAgentAction, type FormResult } from '@/lib/account/actions'
 import type { SignupIdentity } from '@/components/account/register-form'
 
@@ -138,7 +140,7 @@ function RulesAck() {
 
 function StartOrJoin({ number, identity, joinableTeams, allowFree, requiresPassword }: { number: number; identity: SignupIdentity; joinableTeams: JoinableTeamView[]; allowFree: boolean; requiresPassword: boolean }) {
   const [mode, setMode] = useState<'start' | 'join' | 'free'>('start')
-  const captainLabel = identity.cueverseId || identity.preferredName
+  const captainLabel = identityText({ cueverseId: identity.cueverseId, preferredName: identity.preferredName })
   const tabs: { id: 'start' | 'join' | 'free'; label: string }[] = [
     { id: 'start', label: 'Start a new team' },
     { id: 'join', label: 'Join an existing team' },
@@ -270,12 +272,12 @@ function MyTeamCard({ number, team, currentUserId, registrationOpen }: { number:
           <li key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
             <span className="flex items-center gap-2">
               {m.captain && <Crown className="size-3.5 text-brand" aria-label="Captain" />}
-              <span className="font-medium text-foreground">{m.handle || m.name}</span>
+              <PlayerName identity={fromNameHandle(m)} size="sm" className="text-foreground" />
               {m.captain && <span className="text-[0.65rem] uppercase tracking-wide text-brand">Captain</span>}
               {m.userId === currentUserId && <span className="text-[0.65rem] text-muted-foreground">(you)</span>}
             </span>
             {team.isCaptain && registrationOpen && m.userId != null && m.userId !== currentUserId && (
-              <RemoveMemberButton number={number} memberUserId={m.userId} name={m.handle || m.name} />
+              <RemoveMemberButton number={number} memberUserId={m.userId} name={identityText(fromNameHandle(m))} />
             )}
           </li>
         ))}

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Users } from 'lucide-react'
 
 import { PublicPlayerIdentity } from '@/components/identity/public-player-identity'
+import { matchesIdentity } from '@/lib/identity/display'
 
 export interface EntrantListItem {
   name: string
@@ -33,7 +34,9 @@ export function EntrantList({
   const numbered = useMemo(() => entrants.map((e, i) => ({ ...e, num: i + 1 })), [entrants])
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return s ? numbered.filter((e) => `${e.name} ${e.cueverseId ?? ''}`.toLowerCase().includes(s)) : numbered
+    // Search either half of the identity: typing a preferred name must still find a player whose
+    // CueVerse ID is what the row leads with.
+    return s ? numbered.filter((e) => matchesIdentity({ cueverseId: e.cueverseId, preferredName: e.name }, s)) : numbered
   }, [q, numbered])
 
   const body = (

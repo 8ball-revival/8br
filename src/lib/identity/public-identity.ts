@@ -1,10 +1,16 @@
+import { identityText, NO_IDENTITY } from './display'
+
 /**
  * SHARED public-identity helper — the single formatter for how a player appears on every
- * LIVE/current public surface: `Preferred Name (CueVerse ID)`.
+ * LIVE/current public surface: `CueVerse ID (Preferred Name)`.
  *
- * Rules:
- *  - With a linked profile → `Preferred Name (CueVerse ID)`; the whole label links to the
- *    public profile (when a slug is available).
+ * The ID leads because it is the half that actually identifies someone. Preferred names collide
+ * constantly in the archive — two Mikes in one 2005 group, half a dozen Chis across the years —
+ * and a name on its own cannot be told apart at a glance.
+ *
+ * Rules (shared with `./display`, which this delegates to):
+ *  - With a CueVerse ID → `CueVerse ID (Preferred Name)`, the name dropped when it merely
+ *    repeats the ID; the whole label links to the public profile when a slug is available.
  *  - CueVerse ID missing → just the Preferred Name.
  *  - Manual/account-less entrant (no profile) → the submitted competition identity, as-is.
  * Email is NEVER part of a public identity. Historical/frozen records are formatted from
@@ -14,7 +20,7 @@
 export interface PublicIdentity {
   preferredName: string
   cueverseId: string | null
-  /** Rendered label: "Preferred Name (CueVerse ID)" or just the name. */
+  /** Rendered label: "CueVerse ID (Preferred Name)", or just the ID when the name adds nothing. */
   label: string
   /** Profile slug for /players/<slug>, when the identity resolves to a canonical profile. */
   slug: string | null
@@ -26,12 +32,8 @@ export function slugifyIdentity(preferredName: string, cueverseId?: string | nul
 }
 
 export function formatIdentityLabel(preferredName: string, cueverseId?: string | null): string {
-  const name = (preferredName || '').trim()
-  const id = (cueverseId || '').trim()
-  // Show "Preferred Name (CueVerse ID)" only when the Preferred Name is DISTINCT from the ID.
-  // With no (or a duplicate) Preferred Name, fall back to just the CueVerse ID.
-  if (name && id && name.toLowerCase() !== id.toLowerCase()) return `${name} (${id})`
-  return id || name || 'Unknown'
+  const label = identityText({ cueverseId, preferredName })
+  return label === NO_IDENTITY ? 'Unknown' : label
 }
 
 /** Build a PublicIdentity from resolved profile/registration parts. */
