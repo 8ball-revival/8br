@@ -42,13 +42,23 @@ export function CreateMemberButton() {
     setError(null)
     setDone(null)
     setPending(true)
-    const res = await createMemberAction({ cueverseId, preferredName })
-    setPending(false)
-    if (res.error) return setError(res.error)
-    setDone(`Created @${cueverseId.trim()}.`)
-    reset()
-    setOpen(false)
-    router.refresh()
+    // The button must always come back. A server action that throws rather than returning an error
+    // used to leave this stuck on "Creating…" with nothing on screen to explain why.
+    try {
+      const res = await createMemberAction({ cueverseId, preferredName })
+      if (res.error) {
+        setError(res.error)
+        return
+      }
+      setDone(`Created @${cueverseId.trim()}.`)
+      reset()
+      setOpen(false)
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? `Could not create the member: ${e.message}` : 'Could not create the member.')
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
