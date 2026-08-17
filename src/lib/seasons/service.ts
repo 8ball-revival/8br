@@ -5,6 +5,7 @@ import { SEASON_ORDER, currentCompetitionYear, parseCompetitionYear } from '@/li
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { hashJoinPassword, verifyJoinPassword } from '@/lib/competition/join-password'
 import { transitionSeasonState } from './lifecycle'
+import { isPreGroupPhase } from './shared'
 
 /**
  * SEASON SERVICE — creation, registration, and read views for the standalone Season domain.
@@ -256,16 +257,32 @@ export async function searchSeasonCandidates(seasonId: number, query: string, li
   return rows.filter((r) => !entered.has(r.id)).slice(0, limit).map((r) => ({ playerId: r.id, primaryName: r.primaryName, cueverseId: r.cueverseId }))
 }
 
-async function requireRegistrationOpen(seasonId: number): Promise<{ ok: true } | { ok: false; error: string }> {
+/**
+ * Can an ADMIN still add or remove entrants?
+ *
+ * Through the whole pre-group phase, which now includes Group Setup. Registration and group building
+ * used to be strictly sequential, and for a season being played that is the right shape — but when a
+ * season is being reconstructed from an archive the roster and the groups are discovered together,
+ * and being sent back to a separate registration step to add one missing player is pure friction.
+ *
+ * Nothing is relaxed once the group stage is live: the fixtures exist by then, and adding a player
+ * would mean a schedule that does not match the results already being entered.
+ *
+ * Self-registration is unaffected — `registerSelf` still demands REGISTRATION_OPEN, so widening this
+ * never lets a member add themselves after registration has closed.
+ */
+async function requireEntrantsEditable(seasonId: number): Promise<{ ok: true } | { ok: false; error: string }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
   if (!s) return { ok: false, error: 'Season not found.' }
-  if (s.lifecycleState !== 'REGISTRATION_OPEN') return { ok: false, error: 'Registration is not open for this Season.' }
+  if (!isPreGroupPhase(s.lifecycleState)) {
+    return { ok: false, error: 'Entrants can only be changed before the group stage goes live.' }
+  }
   return { ok: true }
 }
 
 /** Admin adds an entrant from an existing registered account (by canonical player id). */
 export async function addSeasonEntrant(actor: Actor, seasonId: number, playerId: string): Promise<{ ok: boolean; error?: string }> {
-  const gate = await requireRegistrationOpen(seasonId)
+  const gate = await requireEntrantsEditable(seasonId)
   if (!gate.ok) return gate
   const player = await prisma.player.findUnique({ where: { id: playerId }, select: { id: true, primaryName: true, cueverseId: true, linkedUserId: true } })
   if (!player) return { ok: false, error: 'Player not found.' }
@@ -288,7 +305,7 @@ export async function addSeasonEntrant(actor: Actor, seasonId: number, playerId:
 }
 
 export async function removeSeasonEntrant(actor: Actor, seasonId: number, entrantId: number): Promise<{ ok: boolean; error?: string }> {
-  const gate = await requireRegistrationOpen(seasonId)
+  const gate = await requireEntrantsEditable(seasonId)
   if (!gate.ok) return gate
   const e = await prisma.seasonEntrant.findFirst({ where: { id: entrantId, seasonId } })
   if (!e) return { ok: false, error: 'Entrant not found.' }

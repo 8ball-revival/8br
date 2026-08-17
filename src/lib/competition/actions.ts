@@ -137,6 +137,21 @@ export async function addEntrantAction(_prev: ActionResult, fd: FormData): Promi
   return { ok: true, message: `Added ${added} entrant(s)${already ? `, ${already} already in` : ''}.` }
 }
 
+/**
+ * Add one entrant by player id.
+ *
+ * The form-driven `addEntrantAction` above is still what the Entrants tab posts; this is the direct
+ * call the group screen's quick-add uses, so a missing player can be added where you notice they are
+ * missing instead of stepping back to a separate registration tab.
+ */
+export async function addEntrantByPlayerAction(tournamentId: number, playerId: string): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await svc.addEntrantByProfile(actor, tournamentId, playerId)
+  if (!res.ok) return { error: res.error ?? 'Could not add that entrant.' }
+  revalidateAll()
+  return { ok: true, message: res.already ? 'Already entered.' : 'Entrant added.' }
+}
+
 export async function removeEntrantAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const res = await svc.removeEntrant(actor, num(fd, 'tournamentId'), num(fd, 'registrationId'), str(fd, 'reason') || undefined)

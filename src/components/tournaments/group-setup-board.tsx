@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import * as A from '@/lib/competition/tournament-actions'
+import { addEntrantByPlayerAction, searchEntrantCandidatesAction } from '@/lib/competition/actions'
+import { EntrantQuickAdd } from '@/components/competition/entrant-quick-add'
 
 // Local, client-safe shapes (structurally compatible with live.ts — not imported to keep the
 // server-only module out of this client bundle).
@@ -136,8 +138,14 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
         <Stat label="Matches" value={setup.totalMatches} />
       </div>
 
-      {/* Toolbar */}
+      {/* Toolbar. Adding an entrant lives here too: registration and group building are one screen,
+          so a missing player is added where you notice they are missing. */}
       <div className="flex flex-wrap items-center gap-2">
+        <EntrantQuickAdd
+          disabled={pending}
+          search={(q) => searchEntrantCandidatesAction(tournamentId, q)}
+          add={async (playerId) => { const r = await addEntrantByPlayerAction(tournamentId, playerId); router.refresh(); return r }}
+        />
         <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => A.autoAssignGroupsAction(tournamentId))}><Wand2 className="size-4" /> Auto-assign</Button>
         <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => A.autoBalanceGroupsAction(tournamentId))}><Scale className="size-4" /> Auto-balance</Button>
         <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => A.addDraftGroupAction(tournamentId))}><Plus className="size-4" /> Add group</Button>

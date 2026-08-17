@@ -178,6 +178,31 @@ export async function setSeasonQualificationAction(seasonId: number, entrantId: 
   if (!r.ok) return { error: r.error }
   revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
 }
+export async function setSeasonPlayoffIncludedAction(seasonId: number, entrantId: number, included: boolean): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonPlayoffIncluded(actor, seasonId, entrantId, included)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
+export async function setSeasonPlayoffFieldAction(seasonId: number, included: boolean): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonPlayoffField(actor, seasonId, included)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId))
+  return { ok: true, message: included ? `Added ${r.changed} player(s).` : `Cleared ${r.changed} player(s).` }
+}
+export async function setSeasonSeedOrderAction(seasonId: number, orderedEntrantIds: number[]): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonSeedOrder(actor, seasonId, orderedEntrantIds)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
+export async function setSeasonBracketSlotAction(seasonId: number, matchId: number, side: 'home' | 'away', entrantId: number | null): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.setSeasonBracketSlot(actor, seasonId, matchId, side, entrantId)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+}
 export async function setSeasonPlayoffTypeAction(seasonId: number, doubleElim: boolean): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonPlayoffType(actor, seasonId, doubleElim)

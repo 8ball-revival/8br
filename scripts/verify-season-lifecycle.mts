@@ -95,9 +95,46 @@ console.log('Admin entrant management + rating snapshot')
   const snaps = await prisma.seasonEntrant.findMany({ where: { seasonId, status: 'APPROVED' }, select: { ratingSnapshot: true } })
   check('every approved entrant has a locked rating snapshot', snaps.length > 0 && snaps.every((e) => e.ratingSnapshot != null))
 
-  // Re-adding after close is blocked (registration not open).
-  const blocked = await addSeasonEntrant(actor, seasonId, players[0].id)
-  check('adding after close is rejected', !blocked.ok)
+  // Re-adding someone who is STILL entered is refused. (An entrant that was removed is a different
+  // case — adding them back reactivates the withdrawal, which is deliberate.)
+  const stillIn = await prisma.seasonEntrant.findFirst({
+    where: { seasonId, status: 'APPROVED' }, select: { playerId: true },
+  })
+  const dupe = await addSeasonEntrant(actor, seasonId, stillIn!.playerId!)
+  check('adding someone already entered is rejected', !dupe.ok, 'it was allowed')
+}
+
+console.log('Entrants stay editable until the group stage goes live')
+{
+  // Registration and group building are one screen now, so an admin must be able to fix the roster
+  // during Group Setup rather than stepping back to a separate registration phase. What must NOT be
+  // possible is changing it once fixtures exist.
+  const s3 = await makeSeason()
+  const season = await prisma.season.findUnique({ where: { number: s3.number } })
+  const id = season!.id
+  const fresh = []
+  for (let n = 10; n <= 13; n++) {
+    fresh.push(await prisma.player.create({
+      data: { primaryName: `${FIXTURE_PLAYER}${n}`, cueverseId: `${FIXTURE_PLAYER}${n}`, active: true },
+      select: { id: true },
+    }))
+  }
+  check('added while registration is open', (await addSeasonEntrant(actor, id, fresh[0].id)).ok)
+  await closeRegistration(actor, id)
+  const afterClose = await addSeasonEntrant(actor, id, fresh[1].id)
+  check('added after registration closes', afterClose.ok, afterClose.error)
+
+  await transitionSeasonState(actor, id, 'GROUP_SETUP')
+  const inSetup = await addSeasonEntrant(actor, id, fresh[2].id)
+  check('added during Group Setup', inSetup.ok, inSetup.error)
+  const rows = await prisma.seasonEntrant.findMany({ where: { seasonId: id, status: 'APPROVED' }, select: { id: true } })
+  check('removed during Group Setup', (await removeSeasonEntrant(actor, id, rows[0].id)).ok)
+
+  await transitionSeasonState(actor, id, 'GROUP_STAGE_LIVE')
+  const live = await addSeasonEntrant(actor, id, fresh[3].id)
+  check('refused once the group stage is live', !live.ok, 'it was allowed')
+  const removeLive = await removeSeasonEntrant(actor, id, rows[1].id)
+  check('removal refused once the group stage is live', !removeLive.ok, 'it was allowed')
 }
 
 console.log('Lifecycle transitions')

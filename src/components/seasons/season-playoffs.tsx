@@ -10,11 +10,11 @@ import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { BracketRound } from '@/lib/tournaments/service'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
 import {
-  setSeasonQualificationAction, setSeasonPlayoffTypeAction, generateSeasonBracketAction,
+  setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, setSeasonSeedOrderAction, setSeasonBracketSlotAction,
+  setSeasonPlayoffTypeAction, generateSeasonBracketAction,
   startSeasonPlayoffsAction, closeSeasonAction,
 } from '@/lib/seasons/actions'
 
-const QUAL_LABEL: Record<string, string> = { AUTOMATIC: 'Automatic Qualifier', WILDCARD: 'Wildcard', DISQUALIFIED: 'Disqualified', KICKED_OUT: 'Kicked Out', NOT_SELECTED: 'Not Selected' }
 
 /** Playoff setup (locked seeding + selection + generate/start) OR the live public bracket with inline
  *  admin score entry. */
@@ -36,6 +36,11 @@ export function SeasonPlayoffs({
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
     start(async () => { const r = await fn(); setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' }); router.refresh() })
+
+  // Kicked-out players are never selectable, so they do not count towards the header's all/none state.
+  const selectable = seeding.filter((r) => r.qualification !== 'KICKED_OUT')
+  const allIncluded = selectable.length > 0 && selectable.every((r) => r.included)
+  const someIncluded = selectable.some((r) => r.included)
 
   if (phase === 'live') {
     return (
@@ -80,6 +85,49 @@ export function SeasonPlayoffs({
         <div className="rounded-lg border border-brand/30 bg-card/40 p-4">
           <p className="eyebrow mb-3 text-muted-foreground">Draft bracket (private preview)</p>
           <div className="w-full"><Bracket rounds={rounds} fluid /></div>
+
+          {/* Generated seeding is a starting point, not a verdict. Any slot can be reassigned; picking
+              someone who already sits elsewhere swaps the two, so nobody is duplicated or dropped. */}
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">Rearrange the bracket</summary>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Choosing a player who is already in another tie swaps them over. Ties that already have a
+              result cannot be changed here.
+            </p>
+            <div className="mt-3 space-y-4">
+              {rounds.map((rd) => (
+                <div key={rd.name}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand">{rd.name}</p>
+                  <div className="mt-1.5 space-y-1.5">
+                    {rd.matches.filter((m) => m.id != null).map((m, mi) => (
+                      <div key={m.id} className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="w-8 shrink-0 text-muted-foreground">#{mi + 1}</span>
+                        {(['home', 'away'] as const).map((side) => (
+                          <select
+                            key={side}
+                            aria-label={`${rd.name} match ${mi + 1} ${side} player`}
+                            disabled={pending}
+                            value={entrantIdFor(seeding, side === 'home' ? m.a?.name : m.b?.name) ?? ''}
+                            onChange={(e) => run(() => setSeasonBracketSlotAction(
+                              seasonId, m.id!, side, e.target.value === '' ? null : Number(e.target.value),
+                            ))}
+                            className="min-w-[9rem] rounded border border-input bg-card px-1.5 py-1"
+                          >
+                            <option value="">&mdash; empty &mdash;</option>
+                            {seeding.filter((r) => r.included).map((r) => (
+                              <option key={r.entrantId} value={r.entrantId}>
+                                {r.overallSeed ? `${r.overallSeed}. ` : ''}{r.name}
+                              </option>
+                            ))}
+                          </select>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
         </div>
       )}
 
@@ -87,35 +135,71 @@ export function SeasonPlayoffs({
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-border bg-card/50 text-left text-xs text-muted-foreground">
             <tr>
+              <th className="px-2 py-2 text-center">
+                {/* Select-all: with everyone in by default, clearing the column and ticking back the
+                    handful who actually played is usually the quicker way round. */}
+                {canManage ? (
+                  <label className="inline-flex cursor-pointer flex-col items-center gap-0.5">
+                    <input
+                      type="checkbox"
+                      ref={(el) => { if (el) el.indeterminate = someIncluded && !allIncluded }}
+                      checked={allIncluded}
+                      disabled={pending || selectable.length === 0}
+                      aria-label={allIncluded ? 'Remove everyone from the playoff bracket' : 'Add everyone to the playoff bracket'}
+                      title={allIncluded ? 'Uncheck all' : 'Check all'}
+                      onChange={(e) => run(() => setSeasonPlayoffFieldAction(seasonId, e.target.checked))}
+                      className="size-4 accent-[var(--gold)]"
+                    />
+                    <span className="text-[0.6rem] font-normal normal-case text-muted-foreground">All</span>
+                  </label>
+                ) : 'In'}
+              </th>
               <th className="px-2 py-2 text-center">Seed</th><th className="px-2 py-2">Player</th><th className="px-2 py-2">Group</th>
               <th className="px-2 py-2 text-center">Pos</th><th className="px-2 py-2 text-center">Pts</th><th className="px-2 py-2 text-center">Record</th>
-              <th className="px-2 py-2">Qualification</th>{canManage && <th className="px-2 py-2" />}
+              {canManage && <th className="px-2 py-2 text-center">Move</th>}
             </tr>
           </thead>
           <tbody>
-            {seeding.map((r) => (
-              <tr key={r.entrantId} className="border-b border-border/50">
+            {seeding.map((r, i) => (
+              <tr key={r.entrantId} className={cn('border-b border-border/50', !r.included && 'opacity-55')}>
+                <td className="px-2 py-1.5 text-center">
+                  {/* One switch: in the bracket, or not. A reconstructed season had whatever field it
+                      had, so automatic/wildcard/disqualified is a distinction without a difference. */}
+                  <input
+                    type="checkbox"
+                    checked={r.included}
+                    disabled={!canManage || pending}
+                    aria-label={`Include ${r.name} in the playoff bracket`}
+                    onChange={(e) => run(() => setSeasonPlayoffIncludedAction(seasonId, r.entrantId, e.target.checked))}
+                    className="size-4 accent-[var(--gold)]"
+                  />
+                </td>
                 <td className="px-2 py-1.5 text-center font-semibold tabular-nums text-[var(--gold-soft)]">{r.overallSeed ?? '—'}</td>
                 <td className="px-2 py-1.5">{r.name}{r.cueverseId && r.cueverseId !== r.name && <span className="ml-1.5 text-xs text-muted-foreground">{r.cueverseId}</span>}</td>
                 <td className="px-2 py-1.5 text-muted-foreground">{r.group}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.groupPosition}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.points}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums text-muted-foreground">{r.record}</td>
-                <td className="px-2 py-1.5"><QualBadge q={r.qualification} /></td>
                 {canManage && (
-                  <td className="px-2 py-1.5 text-right">
-                    {r.qualification === 'KICKED_OUT' ? <span className="text-xs text-muted-foreground">—</span>
-                      : r.included ? (
-                        <button className="text-xs text-muted-foreground hover:text-destructive" disabled={pending} onClick={async () => {
-                          const res = await confirm({ title: `Disqualify ${r.name}?`, message: 'The player is removed from the playoff field and any draft bracket is invalidated.', confirmLabel: 'Disqualify', tone: 'danger', input: { label: 'Reason (required)', placeholder: 'Why is this player disqualified?', required: true }, action: async (reason) => setSeasonQualificationAction(seasonId, r.entrantId, 'disqualify', reason) })
-                          if (res.confirmed) router.refresh()
-                        }}>Disqualify</button>
-                      ) : (
-                        <button className="text-xs text-brand hover:underline" disabled={pending} onClick={async () => {
-                          const res = await confirm({ title: `Add ${r.name} as a Wildcard?`, message: 'The player is added to the playoff field. A note is optional.', confirmLabel: 'Add Wildcard', input: { label: 'Note (optional)', placeholder: 'Optional — why this wildcard?' }, action: async (note) => setSeasonQualificationAction(seasonId, r.entrantId, 'wildcard', note || undefined) })
-                          if (res.confirmed) router.refresh()
-                        }}>Wildcard</button>
-                      )}
+                  <td className="px-2 py-1.5 text-center whitespace-nowrap">
+                    {r.included ? (
+                      <>
+                        <button
+                          type="button" disabled={pending || i === 0}
+                          aria-label={`Move ${r.name} up the seeding`}
+                          title="Move up"
+                          onClick={() => run(() => setSeasonSeedOrderAction(seasonId, reorder(seeding, i, -1)))}
+                          className="px-1 text-muted-foreground hover:text-brand disabled:opacity-30"
+                        >&uarr;</button>
+                        <button
+                          type="button" disabled={pending}
+                          aria-label={`Move ${r.name} down the seeding`}
+                          title="Move down"
+                          onClick={() => run(() => setSeasonSeedOrderAction(seasonId, reorder(seeding, i, 1)))}
+                          className="px-1 text-muted-foreground hover:text-brand disabled:opacity-30"
+                        >&darr;</button>
+                      </>
+                    ) : <span className="text-xs text-muted-foreground">&mdash;</span>}
                   </td>
                 )}
               </tr>
@@ -139,11 +223,30 @@ export function SeasonPlayoffs({
   )
 }
 
-function QualBadge({ q }: { q: string }) {
-  const tone = q === 'AUTOMATIC' ? 'text-success' : q === 'WILDCARD' ? 'text-brand' : q === 'KICKED_OUT' || q === 'DISQUALIFIED' ? 'text-destructive' : 'text-muted-foreground'
-  return <span className={cn('text-xs font-medium', tone)}>{QUAL_LABEL[q] ?? q}</span>
-}
 
 function Toast({ msg }: { msg: { ok: boolean; text: string } }) {
   return <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>
+}
+
+/**
+ * The included field in its current order, with one player nudged up or down.
+ *
+ * Excluded players are not part of the seeding at all, so they are skipped rather than swapped
+ * through — moving someone "up" past an excluded row would otherwise appear to do nothing.
+ */
+function reorder(rows: { entrantId: number; included: boolean }[], index: number, delta: number): number[] {
+  const ids = rows.filter((r) => r.included).map((r) => r.entrantId)
+  const id = rows[index].entrantId
+  const at = ids.indexOf(id)
+  const to = at + delta
+  if (at < 0 || to < 0 || to >= ids.length) return ids
+  ids.splice(at, 1)
+  ids.splice(to, 0, id)
+  return ids
+}
+
+/** The entrant behind a bracket slot's displayed name, so a slot can preselect its current player. */
+function entrantIdFor(rows: { entrantId: number; name: string }[], name: string | undefined): number | null {
+  if (!name || name === 'Bye' || name === 'TBD') return null
+  return rows.find((r) => r.name === name)?.entrantId ?? null
 }

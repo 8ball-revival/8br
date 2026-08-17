@@ -11,7 +11,9 @@ import type { GroupSetupView, SetupPlayer } from '@/lib/seasons/views'
 import {
   generateSeasonGroupsAction, moveSeasonEntrantAction, addSeasonGroupAction, removeSeasonGroupAction,
   renameSeasonGroupAction, resetSeasonGroupsAction, publishSeasonGroupsAction,
+  searchSeasonPlayersAction, addSeasonEntrantAction, removeSeasonEntrantAction,
 } from '@/lib/seasons/actions'
+import { EntrantQuickAdd } from '@/components/competition/entrant-quick-add'
 
 /** Private Group Setup board (admin only): rating snake-seeded generation, then drag/dropdown moves,
  *  add/remove/rename/reset, and the Group Stage Live publish once valid. */
@@ -40,6 +42,19 @@ export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: G
         <Button size="sm" disabled={pending} onClick={() => run(() => generateSeasonGroupsAction(seasonId, numGroups))}>
           <Shuffle className="size-4" /> {hasGroups ? 'Regenerate Groups' : 'Generate Groups'}
         </Button>
+        <div className="ml-auto">
+          {/* Registration and group building are one screen: a missing player is added here rather
+              than by stepping back into a separate registration phase. */}
+          <label className="mb-1 block text-xs font-semibold text-foreground">Add entrant</label>
+          <EntrantQuickAdd
+            disabled={pending}
+            search={(q) => searchSeasonPlayersAction(seasonId, q)}
+            add={async (playerId) => { const r = await addSeasonEntrantAction(seasonId, playerId); router.refresh(); return r }}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card/40 p-4">
         {hasGroups && (
           <>
             <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => addSeasonGroupAction(seasonId))}><Plus className="size-4" /> Add Group</Button>
@@ -59,7 +74,7 @@ export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: G
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             <Panel title="Unassigned" tone="muted">
               {view.unassigned.length === 0 ? <Empty>All entrants assigned.</Empty> : view.unassigned.map((p) => (
-                <PlayerRow key={p.entrantId} p={p} groups={groupOptions} currentGroup={null} onMove={(gid) => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, gid))} onRemove={null} />
+                <PlayerRow key={p.entrantId} p={p} groups={groupOptions} currentGroup={null} onMove={(gid) => run(() => moveSeasonEntrantAction(seasonId, p.entrantId, gid))} onRemove={() => run(() => removeSeasonEntrantAction(seasonId, p.entrantId))} removeTitle="Remove from the Season" />
               ))}
             </Panel>
             {view.groups.map((g) => (
@@ -108,7 +123,7 @@ function Panel({ title, count, tone, children, onRename, onDelete }: { title: st
   )
 }
 
-function PlayerRow({ p, groups, currentGroup, onMove, onRemove }: { p: SetupPlayer; groups: { id: number; label: string }[]; currentGroup: number | null; onMove: (gid: number | null) => void; onRemove: (() => void) | null }) {
+function PlayerRow({ p, groups, currentGroup, onMove, onRemove, removeTitle }: { p: SetupPlayer; groups: { id: number; label: string }[]; currentGroup: number | null; onMove: (gid: number | null) => void; onRemove: (() => void) | null; removeTitle?: string }) {
   return (
     <li className="flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5 text-sm">
       <span className="min-w-0 flex-1 truncate">{p.name}{p.cueverseId && p.cueverseId !== p.name && <span className="ml-1.5 text-xs text-muted-foreground">{p.cueverseId}</span>}</span>
@@ -122,7 +137,7 @@ function PlayerRow({ p, groups, currentGroup, onMove, onRemove }: { p: SetupPlay
         <option value="">Unassigned</option>
         {groups.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
       </select>
-      {onRemove && <button aria-label={`Remove ${p.name} from group`} onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-3.5" /></button>}
+      {onRemove && <button aria-label={removeTitle ? `${removeTitle}: ${p.name}` : `Remove ${p.name} from group`} title={removeTitle ?? 'Remove from group'} onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-destructive"><X className="size-3.5" /></button>}
     </li>
   )
 }

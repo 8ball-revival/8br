@@ -7,7 +7,6 @@ import { planBracket, type Qualifier } from '@/lib/competition/bracket'
 import { planDoubleElim } from '@/lib/competition/bracket-de'
 import type { BracketRound, BracketMatch as ViewMatch } from '@/lib/tournaments/fixtures'
 import { transitionSeasonState } from './lifecycle'
-import { SEASON_QUALIFIERS_PER_GROUP } from './group-stage'
 
 /**
  * SEASON PLAYOFFS — locked-seed selection, private draft bracket (single/double elim), publish, and
@@ -38,7 +37,7 @@ const winPctOf = (gw: number, gl: number) => (gw + gl === 0 ? 0 : gw / (gw + gl)
  *  manually reordered — this order is derived, not editable. */
 export async function loadSeasonSeeding(seasonId: number): Promise<SeasonSeedRow[]> {
   const standings = await prisma.seasonStanding.findMany({ where: { seasonId }, include: { group: { select: { code: true, name: true } } } })
-  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, displayName: true, username: true, cueverseId: true, ratingSnapshot: true, kickedOut: true, playoffIncluded: true, qualification: true } })
+  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, displayName: true, username: true, cueverseId: true, ratingSnapshot: true, kickedOut: true, playoffIncluded: true, qualification: true, playoffSeed: true } })
   const entById = new Map(entrants.map((e) => [e.id, e]))
 
   const rows = standings
@@ -57,15 +56,24 @@ export async function loadSeasonSeeding(seasonId: number): Promise<SeasonSeedRow
         rating: e.ratingSnapshot ?? 1500,
         included: e.playoffIncluded,
         qualification: e.qualification,
+        manualSeed: e.playoffSeed,
         kicked: e.kickedOut,
       }
     })
     .filter((r): r is NonNullable<typeof r> => !!r)
 
-  // Tier: winners=1, 2nd=2, 3rd=3, wildcards=4 (wildcards follow auto-qualifiers regardless of position).
+  // Seeding is a SUGGESTION, not a rule. Group finish gives a sensible default order, but a season
+  // being reconstructed from an archive was seeded however it was seeded at the time, so an explicit
+  // `playoffSeed` always wins. Anyone without one falls in behind, in the default order.
   const tierOf = (r: (typeof rows)[number]) => (r.qualification === 'WILDCARD' ? 4 : r.groupPosition)
   const included = rows.filter((r) => r.included && !r.kicked)
-  included.sort((a, b) => tierOf(a) - tierOf(b) || b.points - a.points || b.winPct - a.winPct || b.rating - a.rating || a.entrantId - b.entrantId)
+  included.sort((a, b) => {
+    const am = a.manualSeed, bm = b.manualSeed
+    if (am != null && bm != null) return am - bm
+    if (am != null) return -1
+    if (bm != null) return 1
+    return tierOf(a) - tierOf(b) || b.points - a.points || b.winPct - a.winPct || b.rating - a.rating || a.entrantId - b.entrantId
+  })
   const seedByEntrant = new Map(included.map((r, i) => [r.entrantId, i + 1]))
 
   return rows
@@ -87,20 +95,29 @@ export async function loadSeasonSeeding(seasonId: number): Promise<SeasonSeedRow
 
 // ---- Enter setup + default qualifiers -------------------------------------
 
-/** Open the playoff setup phase and auto-select the top-three eligible players from every group as
- *  Automatic Qualifiers. */
+/**
+ * Open the playoff setup phase with EVERY eligible entrant already in the field.
+ *
+ * Selecting only the top few per group assumes the modern qualification rules, which is wrong for a
+ * season being reconstructed — the archived bracket decides who played, and that is easier to reach
+ * by unticking the handful who did not than by hunting down everyone who did. Kicked-out players
+ * stay out.
+ */
 export async function enterSeasonPlayoffSetup(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
   if (!s) return { ok: false, error: 'Season not found.' }
   if (s.lifecycleState !== 'GROUPS_CLOSED') return { ok: false, error: 'Open playoff setup from the Groups Closed phase.' }
-  const standings = await prisma.seasonStanding.findMany({ where: { seasonId }, select: { entrantId: true, rank: true } })
-  const kicked = new Set((await prisma.seasonEntrant.findMany({ where: { seasonId, kickedOut: true }, select: { id: true } })).map((e) => e.id))
-  const auto = standings.filter((s2) => s2.rank <= SEASON_QUALIFIERS_PER_GROUP && !kicked.has(s2.entrantId)).map((s2) => s2.entrantId)
+  const eligible = await prisma.seasonEntrant.findMany({
+    where: { seasonId, kickedOut: false, status: 'APPROVED' }, select: { id: true },
+  })
 
   await prisma.$transaction(async (tx) => {
-    await tx.seasonEntrant.updateMany({ where: { seasonId, kickedOut: false }, data: { playoffIncluded: false, qualification: 'NOT_SELECTED', qualificationReason: null } })
-    if (auto.length) await tx.seasonEntrant.updateMany({ where: { seasonId, id: { in: auto } }, data: { playoffIncluded: true, qualification: 'AUTOMATIC' } })
-    await recordAudit(actor, { action: 'season.playoff.setup', entity: 'Season', entityId: seasonId, newValue: { autoQualifiers: auto.length } }, tx)
+    await tx.seasonEntrant.updateMany({ where: { seasonId, kickedOut: true }, data: { playoffIncluded: false, qualification: 'KICKED_OUT' } })
+    await tx.seasonEntrant.updateMany({
+      where: { seasonId, kickedOut: false, status: 'APPROVED' },
+      data: { playoffIncluded: true, qualification: 'AUTOMATIC', qualificationReason: null, playoffSeed: null },
+    })
+    await recordAudit(actor, { action: 'season.playoff.setup', entity: 'Season', entityId: seasonId, newValue: { included: eligible.length } }, tx)
     const t = await transitionSeasonState(actor, seasonId, 'PLAYOFF_SETUP', { tx })
     if (!t.ok) throw new Error(t.error)
   })
@@ -133,6 +150,174 @@ export async function setSeasonQualification(actor: Actor, seasonId: number, ent
     await tx.seasonEntrant.update({ where: { id: entrantId }, data })
     await recordAudit(actor, { action: `season.playoff.${action}`, entity: 'Season', entityId: seasonId, newValue: { entrantId }, reason: reason?.trim() }, tx)
     await invalidateDraft(tx, seasonId) // selection changed → any draft bracket is stale
+  })
+  return { ok: true }
+}
+
+/**
+ * Include or exclude a player from the playoff field.
+ *
+ * A season being reconstructed from an archive had whatever field it had; there is no useful
+ * distinction here between an automatic qualifier, a wildcard and a disqualification, so this is a
+ * single switch. The stored qualification is kept in step for anything that still reads it.
+ */
+export async function setSeasonPlayoffIncluded(
+  actor: Actor,
+  seasonId: number,
+  entrantId: number,
+  included: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'The playoff field can only be changed during playoff setup.' }
+  const e = await prisma.seasonEntrant.findFirst({ where: { id: entrantId, seasonId }, select: { id: true } })
+  if (!e) return { ok: false, error: 'Entrant not found.' }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.seasonEntrant.update({
+      where: { id: entrantId },
+      data: {
+        playoffIncluded: included,
+        qualification: included ? 'AUTOMATIC' : 'NOT_SELECTED',
+        qualificationReason: null,
+        // Dropping someone releases their seed so the rest close up rather than leaving a hole.
+        ...(included ? {} : { playoffSeed: null }),
+      },
+    })
+    await recordAudit(actor, {
+      action: included ? 'season.playoff.include' : 'season.playoff.exclude',
+      entity: 'Season', entityId: seasonId, newValue: { entrantId },
+    }, tx)
+    await invalidateDraft(tx, seasonId)
+  })
+  return { ok: true }
+}
+
+/**
+ * Put the whole eligible field in or out at once.
+ *
+ * With everyone included by default, clearing the column and ticking back the handful who actually
+ * played is usually the quicker way to reproduce an archived bracket. Kicked-out players are never
+ * swept back in.
+ */
+export async function setSeasonPlayoffField(
+  actor: Actor,
+  seasonId: number,
+  included: boolean,
+): Promise<{ ok: boolean; error?: string; changed?: number }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'The playoff field can only be changed during playoff setup.' }
+
+  let changed = 0
+  await prisma.$transaction(async (tx) => {
+    const res = await tx.seasonEntrant.updateMany({
+      where: { seasonId, kickedOut: false, status: 'APPROVED' },
+      data: {
+        playoffIncluded: included,
+        qualification: included ? 'AUTOMATIC' : 'NOT_SELECTED',
+        qualificationReason: null,
+        // Clearing the field also clears the seeding; it is meaningless with nobody in it.
+        ...(included ? {} : { playoffSeed: null }),
+      },
+    })
+    changed = res.count
+    await recordAudit(actor, {
+      action: included ? 'season.playoff.includeAll' : 'season.playoff.excludeAll',
+      entity: 'Season', entityId: seasonId, newValue: { changed },
+    }, tx)
+    await invalidateDraft(tx, seasonId)
+  })
+  return { ok: true, changed }
+}
+
+/**
+ * Write an explicit seed order over the whole included field.
+ *
+ * Seeding is never locked: the caller sends the order it wants and it is stored verbatim, so an
+ * archived bracket can be reproduced exactly rather than being forced into what the group tables
+ * imply.
+ */
+export async function setSeasonSeedOrder(
+  actor: Actor,
+  seasonId: number,
+  orderedEntrantIds: number[],
+): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'Seeding can only be changed during playoff setup.' }
+  const valid = new Set((await prisma.seasonEntrant.findMany({
+    where: { id: { in: orderedEntrantIds }, seasonId }, select: { id: true },
+  })).map((e) => e.id))
+  const order = orderedEntrantIds.filter((id) => valid.has(id))
+  if (order.length !== orderedEntrantIds.length) return { ok: false, error: 'That seeding refers to someone who is not in this Season.' }
+
+  await prisma.$transaction(async (tx) => {
+    for (const [i, id] of order.entries()) {
+      await tx.seasonEntrant.update({ where: { id }, data: { playoffSeed: i + 1 } })
+    }
+    await recordAudit(actor, { action: 'season.playoff.seed', entity: 'Season', entityId: seasonId, newValue: { seeds: order.length } }, tx)
+    await invalidateDraft(tx, seasonId)
+  })
+  return { ok: true }
+}
+
+/**
+ * Put a player into a bracket slot, after the bracket has been generated.
+ *
+ * If they already occupy another slot the two SWAP, which is what moving someone in a bracket
+ * actually means — anything else would silently duplicate or drop a player. Passing null clears the
+ * slot. Only ever touches an unpublished draft or a live bracket's un-played ties.
+ */
+export async function setSeasonBracketSlot(
+  actor: Actor,
+  seasonId: number,
+  matchId: number,
+  side: 'home' | 'away',
+  entrantId: number | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (s?.lifecycleState !== 'PLAYOFF_SETUP' && s?.lifecycleState !== 'PLAYOFFS_LIVE') {
+    return { ok: false, error: 'The bracket can only be rearranged during playoff setup or while playoffs are live.' }
+  }
+  const target = await prisma.seasonPlayoffMatch.findFirst({ where: { id: matchId, seasonId } })
+  if (!target) return { ok: false, error: 'Bracket match not found.' }
+  if (target.status === 'COMPLETED') return { ok: false, error: 'That tie already has a result — clear it before moving players.' }
+
+  const seedOf = async (id: number | null) =>
+    id == null ? null : (await prisma.seasonEntrant.findUnique({ where: { id }, select: { playoffSeed: true } }))?.playoffSeed ?? null
+  const nameOf = async (id: number | null) => {
+    if (id == null) return null
+    const e = await prisma.seasonEntrant.findUnique({ where: { id }, select: { displayName: true, username: true } })
+    return e ? (e.displayName?.trim() || e.username) : null
+  }
+
+  // Whoever currently sits where we are putting this player.
+  const displaced = side === 'home' ? target.homeEntrantId : target.awayEntrantId
+
+  await prisma.$transaction(async (tx) => {
+    if (entrantId != null) {
+      // Find any other slot this player already occupies and put the displaced player there.
+      const elsewhere = await tx.seasonPlayoffMatch.findFirst({
+        where: { seasonId, id: { not: matchId }, OR: [{ homeEntrantId: entrantId }, { awayEntrantId: entrantId }] },
+      })
+      if (elsewhere) {
+        const isHome = elsewhere.homeEntrantId === entrantId
+        await tx.seasonPlayoffMatch.update({
+          where: { id: elsewhere.id },
+          data: isHome
+            ? { homeEntrantId: displaced, homeUsername: await nameOf(displaced), homeSeed: await seedOf(displaced) }
+            : { awayEntrantId: displaced, awayUsername: await nameOf(displaced), awaySeed: await seedOf(displaced) },
+        })
+      }
+    }
+    await tx.seasonPlayoffMatch.update({
+      where: { id: matchId },
+      data: side === 'home'
+        ? { homeEntrantId: entrantId, homeUsername: await nameOf(entrantId), homeSeed: await seedOf(entrantId) }
+        : { awayEntrantId: entrantId, awayUsername: await nameOf(entrantId), awaySeed: await seedOf(entrantId) },
+    })
+    await recordAudit(actor, {
+      action: 'season.playoff.slot', entity: 'Season', entityId: seasonId,
+      newValue: { matchId, side, entrantId, displaced },
+    }, tx)
   })
   return { ok: true }
 }
