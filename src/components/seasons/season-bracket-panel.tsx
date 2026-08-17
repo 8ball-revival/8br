@@ -29,6 +29,37 @@ const WIDE: Metrics = { cardW: 278, rowH: 38, matchGap: 10, laneGap: 24 }
 const TIGHT: Metrics = { cardW: 254, rowH: 36, matchGap: 8, laneGap: 20 }
 const metricsFor = (players: number): Metrics => (players >= 32 ? TIGHT : WIDE)
 
+/**
+ * How far the bracket may be shrunk to fit before legibility gives out.
+ *
+ * At 0.62 a 278px card is still ~172px and the names are around 8.5px — small, but readable. Below
+ * that the bracket stops shrinking and the panel scrolls instead, which is the same trade the group
+ * tables make rather than squeezing their cells into illegibility.
+ */
+export const MIN_SCALE = 0.62
+
+/**
+ * The scale that fits `natural` pixels of bracket into `available` pixels of panel.
+ *
+ * Pure, so the rule can be tested without a browser: never magnified past 1, never shrunk past the
+ * legibility floor, and left alone entirely when the width has not been measured yet.
+ */
+export function fitScaleFor(available: number, natural: number): number {
+  if (!available || !natural) return 1
+  return Math.min(1, Math.max(MIN_SCALE, (available - 2) / natural))
+}
+
+/** The bracket's width at scale 1, from the lane geometry. */
+export function naturalBracketWidth(roundCount: number, m: { cardW: number; laneGap: number }): number {
+  if (roundCount <= 0) return 0
+  const lane = m.cardW + m.laneGap
+  const finalLane = Math.round(m.cardW * 1.06) + m.laneGap
+  return (roundCount - 1) * lane + finalLane
+}
+
+/** The two geometries, exported so tests can reason about real card sizes. */
+export const BRACKET_METRICS = { WIDE, TIGHT, metricsFor }
+
 /** Identity key for a slot — what "the same player in a later round" means. */
 const keyOf = (slot?: BracketSlot): string | null =>
   slot?.name && slot.name !== 'Bye' ? (slot.slug ?? slot.handle ?? slot.name) : null
@@ -64,7 +95,10 @@ export function SeasonBracketPanel({
   const [focused, setFocused] = useState<string | null>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const treeRef = useRef<HTMLDivElement>(null)
-  const [fitScale, setFitScale] = useState<number | null>(null)
+  /** The scale in force. 1 until measured; auto-fitting narrows it to whatever the panel allows. */
+  const [scale, setScale] = useState(1)
+  /** Set once the reader touches Zoom: from then on the bracket is their size, not ours. */
+  const [manual, setManual] = useState(false)
 
   /** The champion's key, so their whole route can be lit without re-deriving it per card. */
   const championKey = useMemo(
@@ -73,38 +107,57 @@ export function SeasonBracketPanel({
   )
 
   /**
-   * Fit the bracket to the panel: the tree's real width against the scroller's real width.
-   * Scaling above 1 is deliberately not offered — a bracket blown up past its natural size looks
-   * broken, and Zoom already covers wanting it larger.
+   * The bracket's width at scale 1, computed from the geometry rather than measured.
+   *
+   * Measuring the rendered tree would feed its own scaled width back into the next calculation and
+   * oscillate. The lanes are a known size, so the natural width is simply their sum: every lane is
+   * a card plus its two half-gutters, and the Final's card is a little wider.
    */
-  const fit = useCallback(() => {
-    const scroller = scrollerRef.current
-    const tree = treeRef.current
-    if (!scroller || !tree) return
-    const available = scroller.clientWidth
-    const natural = tree.scrollWidth / (fitScale ?? 1)
-    if (!available || !natural) return
-    setFitScale(Math.min(1, Math.max(0.4, (available - 2) / natural)))
-  }, [fitScale])
+  const naturalWidth = useMemo(
+    () => naturalBracketWidth(rounds.length, metrics),
+    [rounds.length, metrics],
+  )
 
+  /**
+   * Scale the bracket to the width available, exactly as the group tables fill theirs.
+   *
+   * Clamped at both ends: never magnified past its natural size, and never shrunk below the point
+   * where names and scores stop being readable. Past that floor the bracket keeps its size and the
+   * panel's own scroller takes over, which is the same bargain the group matrices strike.
+   */
+  const autoFit = useCallback(() => {
+    const scroller = scrollerRef.current
+    if (!scroller || !naturalWidth) return
+    const available = scroller.clientWidth
+    if (!available) return
+    setScale(fitScaleFor(available, naturalWidth))
+  }, [naturalWidth])
+
+  /**
+   * Refit whenever the panel's width changes — a window resize, the sidebar, a zoom of the browser
+   * itself. Observing the scroller rather than the window catches all of them.
+   */
   useEffect(() => {
-    if (fitScale == null) return
-    const onResize = () => fit()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [fitScale, fit])
+    if (manual) return
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    autoFit()
+    const ro = new ResizeObserver(autoFit)
+    ro.observe(scroller)
+    return () => ro.disconnect()
+  }, [manual, autoFit])
 
   // The Fit control sits in the Season toolbar, which is a sibling, so it asks through an event.
   useEffect(() => {
-    const onFit = () => fit()
-    const onManual = () => setFitScale(null)
+    const onFit = () => { setManual(false); autoFit() }
+    const onManual = () => setManual(true)
     window.addEventListener('8br:bracket-fit', onFit)
     window.addEventListener('8br:bracket-manual-zoom', onManual)
     return () => {
       window.removeEventListener('8br:bracket-fit', onFit)
       window.removeEventListener('8br:bracket-manual-zoom', onManual)
     }
-  }, [fit])
+  }, [autoFit])
 
   /**
    * Highlighting is delegated from the tree rather than bound per row.
@@ -126,7 +179,7 @@ export function SeasonBracketPanel({
   return (
     <section
       aria-label="Playoff bracket"
-      className="w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--gold-dim)_55%,transparent)] bg-card"
+      className="w-full overflow-hidden rounded-2xl border border-border bg-card"
     >
       <header className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5">
         <h2 className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[var(--gold)]">
@@ -135,11 +188,13 @@ export function SeasonBracketPanel({
         <span className="text-[0.7rem] text-muted-foreground">
           {players} player{players === 1 ? '' : 's'} · {rounds.length} round{rounds.length === 1 ? '' : 's'}
         </span>
-        {fitScale != null && (
-          <span className="ml-auto text-[0.7rem] text-muted-foreground">
-            Fitted to {Math.round(fitScale * 100)}% — Zoom takes manual control
-          </span>
-        )}
+        <span className="ml-auto text-[0.7rem] text-muted-foreground">
+          {manual
+            ? 'Manual zoom — Fit Bracket returns to automatic'
+            : scale < 1
+              ? `Fitted to ${Math.round(scale * 100)}%`
+              : 'Full size'}
+        </span>
       </header>
 
       {/* The ONLY horizontal scroller in this view. */}
@@ -156,7 +211,8 @@ export function SeasonBracketPanel({
             ['--bp-row-h' as string]: `${metrics.rowH}px`,
             ['--bp-match-gap' as string]: `${metrics.matchGap}px`,
             ['--bp-lane-gap' as string]: `${metrics.laneGap}px`,
-            ...(fitScale != null ? { zoom: fitScale } : {}),
+            // `zoom` scales layout as well as text, so the connectors and cards stay aligned.
+            ...(scale !== 1 ? { zoom: scale } : {}),
           }}
         >
           {rounds.map((round, ri) => {
@@ -194,9 +250,9 @@ export function SeasonBracketPanel({
                         )}
                       >
                         {isFinal && champion ? (
-                          <FinalBlock match={m} champion={champion} activeKey={activeKey} />
+                          <FinalBlock match={m} activeKey={activeKey} championKey={championKey} />
                         ) : (
-                          <MatchCard match={m} activeKey={activeKey} onChampPath={onChampPath} />
+                          <MatchCard match={m} activeKey={activeKey} championKey={championKey} />
                         )}
                       </div>
                     )
@@ -221,40 +277,43 @@ export function SeasonBracketPanel({
 /* ---------------------------------------------------------------- an ordinary matchup */
 
 function MatchCard({
-  match, activeKey, onChampPath,
+  match, activeKey, championKey,
 }: {
   match: BracketMatch
   activeKey: string | null
-  onChampPath: boolean
+  /** Who won the Season, so their row alone can be marked as they advance. */
+  championKey: string | null
 }) {
   return (
     <div
-      className={cn(
-        'bp-card overflow-hidden rounded-lg border bg-card',
-        onChampPath ? 'border-[var(--gold-dim)]' : 'border-border',
-      )}
+      className="bp-card overflow-hidden rounded-lg border border-border bg-card"
       style={{ width: 'var(--bp-card-w)' }}
     >
-      <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} />
+      <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
       <div className="h-px bg-border" />
-      <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} />
+      <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} championKey={championKey} />
     </div>
   )
 }
 
 function SlotRow({
-  slot, won, lost, activeKey, large = false,
+  slot, won, lost, activeKey, championKey = null, large = false,
 }: {
   slot?: BracketSlot
   won: boolean
   lost: boolean
   activeKey: string | null
+  /** When this row holds the champion, it carries the gold edge — the opponent's does not. */
+  championKey?: string | null
   large?: boolean
 }) {
   const lines = identityLines(fromNameHandle(slot))
   const isPlayer = !!slot?.name && slot.name !== 'Bye'
   const k = keyOf(slot)
   const lit = k != null && activeKey === k
+  // A thin gold rule down the left of the champion's row, the same edge the group tables use to mark
+  // a qualifier. It traces their route through the bracket without boxing in the player they beat.
+  const isChampion = k != null && championKey === k
 
   if (!isPlayer) {
     return (
@@ -277,11 +336,12 @@ function SlotRow({
         'flex cursor-pointer items-center gap-2.5 px-2.5 outline-none transition-colors',
         won && 'bg-gold/[0.07]',
         lit && 'bg-gold/[0.16]',
+        isChampion && 'bp-champion-row',
         'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--gold)]/60',
       )}
       style={{ height: large ? 'calc(var(--bp-row-h) * 1.5)' : 'var(--bp-row-h)' }}
     >
-      <SeedBadge seed={slot?.seed} highlight={won || lit} large={large} />
+      <SeedBadge seed={slot?.seed} large={large} />
       <span className="min-w-0 flex-1">
         {profile ? (
           <Link href={`/players/${encodeURIComponent(profile)}`} className="block min-w-0 hover:underline">
@@ -331,19 +391,15 @@ function NameLines({
 }
 
 /** The seed, as a small circular badge. Every seeded player carries one, in every round. */
-function SeedBadge({ seed, highlight, large }: { seed?: number; highlight: boolean; large?: boolean }) {
-  const size = large ? 'size-6 text-[0.68rem]' : 'size-[19px] text-[0.58rem]'
+function SeedBadge({ seed, large }: { seed?: number; large?: boolean }) {
+  // Plain numerals, one colour, no enclosure. The width is still reserved when a slot has no seed —
+  // a bye, or an undecided tie — so names stay aligned down the column either way.
+  const size = large ? 'w-6 text-[0.68rem]' : 'w-[19px] text-[0.58rem]'
   if (seed == null) return <span className={cn('shrink-0', size)} aria-hidden />
   return (
     <span
       aria-hidden
-      className={cn(
-        'tabular flex shrink-0 items-center justify-center rounded-full border font-bold leading-none',
-        size,
-        highlight
-          ? 'border-[var(--gold-dim)] bg-[color-mix(in_oklch,var(--gold)_16%,transparent)] text-[var(--gold-soft)]'
-          : 'border-border bg-surface text-muted-foreground',
-      )}
+      className={cn('tabular shrink-0 text-center font-bold leading-none text-foreground', size)}
     >
       {seed}
     </span>
@@ -360,11 +416,12 @@ function SeedBadge({ seed, highlight, large }: { seed?: number; highlight: boole
  * summary pasted beside it.
  */
 function FinalBlock({
-  match, champion, activeKey,
+  match, activeKey, championKey,
 }: {
   match: BracketMatch
-  champion: { cueverseId: string | null; preferredName: string | null; runnerUp: string | null; finalScore: string | null }
   activeKey: string | null
+  /** Carried through so the champion's gold edge runs to the last round, not just up to it. */
+  championKey: string | null
 }) {
   return (
     <div className="flex flex-col items-center" style={{ width: 'calc(var(--bp-card-w) * 1.06)' }}>
@@ -379,18 +436,14 @@ function FinalBlock({
         </p>
       </div>
 
-      <div className="bp-final w-full overflow-hidden rounded-xl border border-[var(--gold)] bg-card">
-        <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} large />
-        <div className="h-px bg-[var(--gold-dim)]/40" />
-        <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} large />
+      {/* Neutral border, like every other card: the gold marks the CHAMPION'S row, not the tie, so
+          the player they beat is not framed in it too. The trophy, the title and the soft bloom
+          behind the card carry the occasion instead. */}
+      <div className="bp-final w-full overflow-hidden rounded-xl border border-border bg-card">
+        <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} large />
+        <div className="h-px bg-border" />
+        <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} championKey={championKey} large />
       </div>
-
-      {champion.runnerUp && (
-        <p className="mt-2 text-center text-[0.66rem] text-muted-foreground">
-          def. <span className="text-foreground">{champion.runnerUp}</span>
-          {champion.finalScore && <span className="text-[var(--gold)]"> · {champion.finalScore}</span>}
-        </p>
-      )}
     </div>
   )
 }

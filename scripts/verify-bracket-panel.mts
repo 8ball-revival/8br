@@ -10,7 +10,9 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
-import { SeasonBracketPanel } from '../src/components/seasons/season-bracket-panel.tsx'
+import {
+  SeasonBracketPanel, fitScaleFor, naturalBracketWidth, MIN_SCALE, BRACKET_METRICS,
+} from '../src/components/seasons/season-bracket-panel.tsx'
 import type { BracketRound } from '../src/lib/tournaments/service.ts'
 
 let pass = 0, fail = 0
@@ -83,8 +85,8 @@ console.log('--- A 16-player bracket ---')
   check('the note is a footer strip inside the panel, not a detached box',
     html.includes('Scores were not archived') && html.lastIndexOf('Scores were not archived') > html.lastIndexOf('bp-lane'))
   check('the Final gets its own treatment', html.includes('bp-final') && html.includes('Season Champion'))
-  check('the champion strip names the runner-up and score',
-    html.includes('player_02') && html.includes('7–3'))
+  check('the Final shows both players and their scores on its own rows, so nothing is repeated',
+    html.includes('player_01') && html.includes('player_02') && !/def\. <span/.test(html))
   check('the champion route is marked on every round it passes through',
     (html.match(/bp-path-champ/g) ?? []).length === 4, String((html.match(/bp-path-champ/g) ?? []).length))
 }
@@ -145,12 +147,12 @@ console.log('--- Fit Bracket, and the theme ---')
 
   check('Fit sits beside Zoom in the toolbar', controls.includes('Fit Bracket') && controls.includes('<FitBracket />'))
   check('Fit is offered only on the Playoffs view', controls.includes("view === 'playoffs' && <FitBracket />"))
-  check('Fit measures the real widths rather than guessing',
-    panel.includes('scroller.clientWidth') && panel.includes('tree.scrollWidth'))
+  check('Fit measures the real panel width and computes the bracket width from its geometry',
+    panel.includes('scroller.clientWidth') && panel.includes('naturalBracketWidth'))
   check('Fit never scales a bracket up past its natural size', panel.includes('Math.min(1,'))
   check('touching Zoom hands manual control back',
     controls.includes("8br:bracket-manual-zoom") && panel.includes("8br:bracket-manual-zoom"))
-  check('a fitted bracket refits when the window changes', panel.includes("window.addEventListener('resize'"))
+  check('a fitted bracket refits whenever the panel changes size', panel.includes('new ResizeObserver(autoFit)'))
 
   check('ordinary connectors are the muted gray-gold', /--bp-line: color-mix\(in oklch, var\(--gold\)[^;]*var\(--muted-foreground\)/.test(css))
   check('the champion route is brighter', /--bp-line-champ: color-mix\(in oklch, var\(--gold\) 70%/.test(css))
@@ -158,8 +160,10 @@ console.log('--- Fit Bracket, and the theme ---')
     /\.bp-muted \{ opacity: 0\.4[0-9]; \}/.test(css))
   check('no crimson anywhere in the bracket',
     !/crimson|--brand\b|#dc2626|red-[456]00/.test(panel))
-  check('the champion glow is restrained, not neon',
-    /box-shadow:[\s\S]{0,160}?22px -8px/.test(css))
+  check('the Final glows softly rather than being ringed',
+    /\.bp-final \{\s*box-shadow: 0 0 26px -10px/.test(css) && !/\.bp-final \{[^}]*0 0 0 1px/.test(css))
+  check('only the champion’s own row is marked, not the tie',
+    /\.bp-champion-row \{\s*box-shadow: inset 2px 0 0 var\(--gold\)/.test(css))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

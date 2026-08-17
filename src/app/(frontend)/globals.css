@@ -705,6 +705,13 @@
 
 /* The champion's route, and the route of whoever the reader is pointing at. */
 .bp-path-champ { --bp-line: var(--bp-line-champ); }
+
+/* The champion is marked on their OWN row: a thin gold rule down its left edge, the same device the
+   group tables use for a qualifier. Drawn as an inset shadow rather than a border so it adds no
+   width and cannot shift the row, and it stops at that row — the player they beat is left alone. */
+.bp-champion-row {
+  box-shadow: inset 2px 0 0 var(--gold);
+}
 .bp-path-lit { --bp-line: var(--bp-line-lit); }
 .bp-path-lit > .bp-card,
 .bp-path-lit .bp-final { border-color: var(--gold); }
@@ -713,11 +720,11 @@
 .bp-muted { opacity: 0.42; }
 .bp-cell { transition: opacity 0.12s ease-out; }
 
-/* The Final sits slightly proud without becoming a different object. */
+/* The Final sits slightly proud without becoming a different object. A soft bloom only — the crisp
+   ring that used to sit on this card framed the runner-up as well as the winner, which is exactly
+   what the champion's own row edge is for. */
 .bp-final {
-  box-shadow:
-    0 0 0 1px color-mix(in oklch, var(--gold) 30%, transparent),
-    0 0 22px -8px color-mix(in oklch, var(--gold) 55%, transparent);
+  box-shadow: 0 0 26px -10px color-mix(in oklch, var(--gold) 55%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
