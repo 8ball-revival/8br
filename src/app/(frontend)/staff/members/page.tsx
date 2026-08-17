@@ -11,6 +11,7 @@ import { PublicPlayerIdentity } from '@/components/identity/public-player-identi
 import { StatusBadge } from '@/components/staff/status-badge'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { listMembers } from '@/lib/staff/members'
+import { CreateMemberButton } from '@/components/staff/create-member-button'
 
 export const metadata: Metadata = { title: 'Members · Admin · 8 Ball Registry', robots: { index: false, follow: false } }
 
@@ -35,6 +36,12 @@ export default async function MembersPage({ searchParams }: SP) {
         view their profile, competitions, warnings, moderation, and integrity log. Email is private and shown only inside a
         member&apos;s account section.
       </p>
+
+      {access.actor.can('manage_players') && (
+        <div className="mt-5">
+          <CreateMemberButton />
+        </div>
+      )}
 
       <form method="get" className="mt-5 flex flex-wrap items-center gap-2">
         <Input name="q" defaultValue={q} placeholder="Search members…" className="w-64" />
