@@ -8,6 +8,7 @@ import { updateProfile, changeCueverseId } from '@/lib/players/service'
 import { targetTier } from '@/lib/staff/password-reset'
 import { recordAudit } from '@/lib/competition/audit'
 import { validateEmail, validatePreferredName, validateCueverseId, validateDiscord, validateTimeZone } from '@/lib/account/validation'
+import { propagateIdentityChange, identityChanged } from '@/lib/players/identity-propagation'
 
 export interface ProfilePatch {
   preferredName?: string
@@ -16,7 +17,12 @@ export interface ProfilePatch {
   discord?: string
   email?: string
 }
-export interface ProfileResult { ok?: boolean; error?: string }
+export interface ProfileResult {
+  ok?: boolean
+  error?: string
+  /** How many competition records were re-labelled by the change, for operator feedback. */
+  propagated?: number
+}
 
 /**
  * ADMIN edit of a player's safe profile fields. Admins may edit Members; only the Head
@@ -85,6 +91,28 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
     }
   }
 
+  // Push the new identity out to every competition record that copied the old one. Without this a
+  // rename only lands on the profile, and the same person shows up under two names depending on which
+  // page you are looking at.
+  let propagated = 0
+  if (player) {
+    const after = await prisma.player.findUnique({
+      where: { id: player.id },
+      select: { cueverseId: true, primaryName: true },
+    })
+    const change = {
+      playerId: player.id,
+      oldCueverseId: before.cueverseId,
+      newCueverseId: after?.cueverseId ?? before.cueverseId,
+      oldPreferredName: before.preferredName,
+      newPreferredName: after?.primaryName ?? before.preferredName,
+    }
+    if (identityChanged(change)) {
+      const report = await propagateIdentityChange(change)
+      propagated = report.total
+    }
+  }
+
   // Audit the CHANGED profile fields (email/username changes noted as booleans — no value logged).
   await recordAudit(actorRef, {
     action: 'account.profile.update',
@@ -98,9 +126,15 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
       discord: patch.discord ?? before.discord,
       cueverseIdChanged: cueverseChanged,
       emailChanged,
+      competitionRecordsRelabelled: propagated,
     },
   })
 
   revalidatePath(`/staff/members/${userId}`)
-  return { ok: true }
+  revalidatePath('/staff/members')
+  if (propagated > 0) {
+    // Anything that displays a player's name is now stale.
+    for (const path of ['/', '/seasons', '/tournaments', '/rankings', '/players']) revalidatePath(path, 'layout')
+  }
+  return { ok: true, propagated }
 }
