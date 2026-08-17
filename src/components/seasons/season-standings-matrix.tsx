@@ -82,14 +82,16 @@ export function SeasonStandingsMatrix({
               return (
                 <tr key={r.entrantId} data-entrant={r.entrantId} className={cn(adv && 'season-adv')}>
                   <th scope="row" className="season-who">
-                    <span className="season-rank">{i + 1}.</span>
-                    <span className="min-w-0">
-                      {/* Preferred name leads here and the ID sits beneath it; with no preferred
-                          name the ID becomes the single bold label rather than being repeated. */}
-                      <span className={cn('block truncate font-semibold', r.kickedOut && 'text-muted-foreground line-through')}>
-                        {lines.secondary ?? lines.primary}
+                    <span className="season-who-in">
+                      <span className="season-rank">{i + 1}.</span>
+                      <span className="min-w-0">
+                        {/* Preferred name leads here and the ID sits beneath it; with no preferred
+                            name the ID becomes the single bold label rather than being repeated. */}
+                        <span className={cn('block truncate font-semibold', r.kickedOut && 'text-muted-foreground line-through')}>
+                          {lines.secondary ?? lines.primary}
+                        </span>
+                        {lines.secondary && <span className="season-id block truncate">{lines.primary}</span>}
                       </span>
-                      {lines.secondary && <span className="season-id block truncate">{lines.primary}</span>}
                     </span>
                   </th>
 

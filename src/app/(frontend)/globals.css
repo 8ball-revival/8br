@@ -530,16 +530,22 @@
 }
 .season-stat-head { background: var(--surface); }
 
+/* Kept a plain table cell on purpose. `display: flex` here takes the <th> out of the table's cell
+   layout, so the browser wraps it in an ANONYMOUS cell and the body rows end up one column wider
+   than the header — which reads as a blank gap before the first score column. The flex row lives on
+   an inner span instead, where it cannot disturb the table. */
 .season-who {
   position: sticky;
   left: 0;
   z-index: 3;
+  text-align: left !important;
+  background: var(--card);
+}
+.season-who-in {
   display: flex;
   align-items: center;
   gap: calc(0.4rem * var(--season-zoom));
-  text-align: left !important;
-  background: var(--card);
-  max-width: var(--season-who-w);
+  min-width: 0;
 }
 .season-rank {
   flex: none;
