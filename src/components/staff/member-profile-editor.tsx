@@ -64,19 +64,6 @@ export function MemberProfileEditor({ initial }: { initial: ProfileInitial }) {
         {field('discord', 'Discord')}
       </div>
 
-      <div className="rounded-lg border border-destructive/25 bg-destructive/[0.04] p-4">
-        <h3 className="eyebrow text-destructive">Private account details</h3>
-        <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-[0.7rem] uppercase tracking-wide text-muted-foreground">Account ID</label>
-            <input value={`#${initial.userId}`} disabled readOnly className={cn(input, 'cursor-not-allowed opacity-70')} />
-            <p className="mt-1 text-[0.7rem] text-muted-foreground">Immutable internal identifier.</p>
-          </div>
-          {field('email', 'Email (private)', { type: 'email' })}
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">Email is private — visible only to authorized staff here and never on public pages. Ladder rating, records, achievements, and bracket results are derived from results and cannot be edited.</p>
-      </div>
-
       <Button disabled={!dirty || pending} onClick={save}><Save className="size-4" /> {pending ? 'Saving…' : 'Save profile'}</Button>
     </div>
   )
