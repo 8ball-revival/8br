@@ -86,7 +86,26 @@ console.log('Empty / placeholder slots')
   check('empty slots read as TBD', html.includes('TBD'))
 }
 
-// 6) A bye reads as a bye rather than as a competitor.
+// 6) The champion's crown. It belongs to the winner of the FINAL and to nobody else, so it stays
+//    one-per-bracket rather than becoming another per-row status marker.
+console.log('Champion crown')
+{
+  const decidedFinal: BracketMatch = { a: { name: 'Ada', score: 9, slug: 'ada' }, b: { name: 'Bo', score: 4, slug: 'bo' }, winner: 'a' }
+  const withCrown = renderToStaticMarkup(React.createElement(MatchBox, { match: decidedFinal, isFinal: true }))
+  check('the final’s winner gets exactly one crown', (withCrown.match(/lucide-crown/g) ?? []).length === 1)
+  check('the crown is announced, not silent', withCrown.includes('aria-label="Champion"'))
+  check('the crown sits on the winning row',
+    /bracket-winner-row[\s\S]{0,400}?lucide-crown/.test(withCrown))
+
+  const notFinal = renderToStaticMarkup(React.createElement(MatchBox, { match: decidedFinal }))
+  check('an earlier round never crowns anyone', !/lucide-crown/.test(notFinal))
+
+  const undecidedFinal: BracketMatch = { a: { name: 'Ada', slug: 'ada' }, b: { name: 'Bo', slug: 'bo' } }
+  const noWinnerYet = renderToStaticMarkup(React.createElement(MatchBox, { match: undecidedFinal, isFinal: true }))
+  check('an unfinished final crowns nobody', !/lucide-crown/.test(noWinnerYet))
+}
+
+// 7) A bye reads as a bye rather than as a competitor.
 console.log('Bye slot')
 {
   const m: BracketMatch = { a: { name: 'Ivy', seed: 1, slug: 'ivy' }, b: { name: 'Bye' } }

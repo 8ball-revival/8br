@@ -371,7 +371,10 @@
     --bkt-col-max: 20rem;
     display: flex;
     gap: var(--bkt-gap);
-    justify-content: safe center;
+    /* Left-aligned, not centred. A centred tree drifts further right with every extra round, so a
+       large bracket starts well off the left edge and the eye has to hunt for round one. Anchored
+       left, the opening round is always in the same place and the tree simply grows rightwards. */
+    justify-content: flex-start;
     align-items: stretch;
     min-width: min-content;
   }
@@ -392,7 +395,7 @@
     display: flex;
     flex: 1 0 auto;
     align-items: center;
-    min-height: 3.5rem;
+    min-height: 3.9rem;
     padding-block: 0.4rem;
   }
   .bkt-feeds > .bkt-cell::after {
