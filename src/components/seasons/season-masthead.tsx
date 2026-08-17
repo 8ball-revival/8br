@@ -53,7 +53,7 @@ export function SeasonMasthead({
       aria-label={`${competitionName} Season ${number}, ${year}`}
       className="w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--gold-dim)_60%,transparent)] bg-card"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.05fr)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)_minmax(0,1.45fr)]">
         <Identity
           competitionShortName={competitionShortName}
           number={number}
@@ -94,18 +94,18 @@ function Identity({
   playoffsHref: string
 }) {
   return (
-    <div className="flex flex-col gap-3 p-5 sm:p-6">
+    <div className="flex flex-col gap-2 px-4 py-3.5">
       <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-[var(--gold)]">
         {competitionShortName}
       </p>
       <div>
-        <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
+        <h1 className="font-display text-2xl font-bold leading-tight tracking-tight text-foreground">
           Season {number} <span className="text-[var(--gold)]">·</span> {year}
         </h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone={state === 'COMPLETED' ? 'gold' : 'live'}>{SEASON_STATE_LABEL[state]}</Pill>
         <Pill>{entrants} entrant{entrants === 1 ? '' : 's'}</Pill>
         <Pill>{groups} group{groups === 1 ? '' : 's'}</Pill>
@@ -113,9 +113,9 @@ function Identity({
 
       <Link
         href={playoffsHref}
-        className="mt-auto inline-flex w-fit items-center gap-2 rounded-lg border border-[var(--gold-dim)] bg-[color-mix(in_oklch,var(--gold)_10%,transparent)] px-4 py-2 text-sm font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[color-mix(in_oklch,var(--gold)_18%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
+        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--gold-dim)] bg-[color-mix(in_oklch,var(--gold)_10%,transparent)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[color-mix(in_oklch,var(--gold)_18%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
       >
-        View Playoffs <ArrowRight className="size-4" aria-hidden />
+        View Playoffs <ArrowRight className="size-3.5" aria-hidden />
       </Link>
     </div>
   )
@@ -154,25 +154,35 @@ function Champion({
   const runnerUp = identityLines({ cueverseId: runnerUpCueverseId, preferredName: runnerUpName })
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 bg-[radial-gradient(120%_120%_at_50%_0%,color-mix(in_oklch,var(--gold)_11%,transparent),transparent_70%)] p-5 text-center sm:p-6">
-      <ChampionTrophy />
-      <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.22em] text-[var(--gold)]">
-        Season Champion
-      </p>
-      <p className="font-display text-4xl font-bold leading-none tracking-tight text-foreground sm:text-5xl">
-        {primary}
-      </p>
-      {secondary && <p className="text-sm text-muted-foreground">{secondary}</p>}
-
-      {finalScore && (
-        <p className="tabular mt-1 text-2xl font-bold text-[var(--gold)]">{finalScore}</p>
-      )}
-      {(runnerUpName || runnerUpCueverseId) && (
-        <p className="text-sm text-muted-foreground">
-          def. <span className="text-foreground">{runnerUp.primary}</span>
-          {runnerUp.secondary && <span className="text-muted-foreground"> ({runnerUp.secondary})</span>}
+    // Laid out sideways: the trophy and its label on the left, the winner on the right. Stacking
+    // them made the section tall enough to set the height of the whole masthead, which meant
+    // shrinking the trophy to compensate. Across the width, the trophy keeps its presence and the
+    // section costs barely more height than a line of text.
+    <div className="flex h-full items-center justify-center gap-3 bg-[radial-gradient(120%_120%_at_50%_0%,color-mix(in_oklch,var(--gold)_11%,transparent),transparent_70%)] px-4 py-3.5">
+      <div className="flex shrink-0 flex-col items-center gap-1">
+        <ChampionTrophy />
+        <p className="whitespace-nowrap text-[0.55rem] font-extrabold uppercase tracking-[0.16em] text-[var(--gold)]">
+          Season Champion
         </p>
-      )}
+      </div>
+
+      <div className="min-w-0">
+        <p className="truncate font-display text-2xl font-bold leading-none tracking-tight text-foreground">
+          {primary}
+        </p>
+        {secondary && <p className="truncate text-xs text-muted-foreground">{secondary}</p>}
+
+        {/* Score and runner-up share one line — two short facts about the same match. */}
+        <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground">
+          {finalScore && <span className="tabular text-lg font-bold text-[var(--gold)]">{finalScore}</span>}
+          {(runnerUpName || runnerUpCueverseId) && (
+            <span className="truncate">
+              def. <span className="text-foreground">{runnerUp.primary}</span>
+              {runnerUp.secondary && <span className="text-muted-foreground"> ({runnerUp.secondary})</span>}
+            </span>
+          )}
+        </p>
+      </div>
     </div>
   )
 }
@@ -187,7 +197,7 @@ function Champion({
  */
 function ChampionTrophy() {
   return (
-    <span className="relative flex size-16 items-center justify-center sm:size-[4.5rem]">
+    <span className="relative flex size-12 items-center justify-center">
       <span
         aria-hidden
         className="absolute inset-0 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--gold)_28%,transparent),transparent_68%)]"
@@ -195,7 +205,7 @@ function ChampionTrophy() {
       <Trophy
         aria-hidden
         strokeWidth={1.5}
-        className="relative size-12 fill-[color-mix(in_oklch,var(--gold)_32%,transparent)] text-[var(--gold-soft)] drop-shadow-[0_0_6px_color-mix(in_oklch,var(--gold)_70%,transparent)] sm:size-14"
+        className="relative size-9 fill-[color-mix(in_oklch,var(--gold)_32%,transparent)] text-[var(--gold-soft)] drop-shadow-[0_0_6px_color-mix(in_oklch,var(--gold)_70%,transparent)]"
       />
     </span>
   )
@@ -218,20 +228,22 @@ const STAGE_NOTE: Record<SeasonState, string> = {
 
 function InProgress({ state }: { state: SeasonState }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 p-5 text-center sm:p-6">
-      <span className="relative flex size-14 items-center justify-center">
+    <div className="flex h-full items-center justify-center gap-4 px-4 py-3.5">
+      <div className="flex shrink-0 flex-col items-center gap-1">
         <Trophy aria-hidden strokeWidth={1.5} className="size-11 text-[var(--gold-dim)]/60" />
-      </span>
-      <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.22em] text-muted-foreground">
-        Season In Progress
-      </p>
-      <p className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-        {SEASON_STATE_LABEL[state]}
-      </p>
-      <p className="max-w-xs text-sm text-muted-foreground">{STAGE_NOTE[state]}</p>
-      <p className="text-xs text-muted-foreground/80">
-        A champion appears here once the final is decided.
-      </p>
+        <p className="whitespace-nowrap text-[0.55rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
+          Season In Progress
+        </p>
+      </div>
+      <div className="min-w-0">
+        <p className="font-display text-xl font-bold leading-tight tracking-tight text-foreground">
+          {SEASON_STATE_LABEL[state]}
+        </p>
+        <p className="text-xs text-muted-foreground">{STAGE_NOTE[state]}</p>
+        <p className="mt-0.5 text-[0.7rem] text-muted-foreground/80">
+          A champion appears here once the final is decided.
+        </p>
+      </div>
     </div>
   )
 }
@@ -246,20 +258,23 @@ function Glance({ glance }: { glance: SeasonGlance }) {
     { label: 'Total Matches', value: glance.totalMatches, Icon: Swords },
   ]
   return (
-    <div className="flex h-full flex-col gap-3 p-5 sm:p-6">
+    <div className="flex h-full flex-col justify-center gap-2 px-4 py-3.5">
       <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
         Season at a Glance
       </p>
-      {/* Four equal cells, so no figure looks more important than another. */}
-      <div className="grid flex-1 grid-cols-2 gap-2.5">
+      {/* One row of four equal cells. A 2x2 grid was most of the masthead's height and made no
+          figure easier to read than a single row does. */}
+      <div className="grid grid-cols-4 gap-2">
         {cards.map(({ label, value, Icon }) => (
           <div
             key={label}
-            className="flex flex-col justify-center gap-1 rounded-lg border border-border bg-surface px-3 py-3"
+            className="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-surface px-2.5 py-2"
           >
-            <span className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
               <Icon className="size-3.5 shrink-0 text-[var(--gold-dim)]" aria-hidden />
-              {label}
+              {/* The label wraps to a second line rather than truncating: "Games per Match" is not
+                  guessable from "Games per…", and the tile has the height to spare. */}
+              <span className="min-w-0">{label}</span>
             </span>
             <span className="tabular font-display text-2xl font-bold leading-none text-foreground">
               {value}

@@ -373,6 +373,14 @@ try {
     check('the sections stack on narrow screens',
       mast.includes('grid-cols-1 lg:grid-cols-'))
 
+    check('the masthead renders only on the Groups view',
+      /\{activeView === 'groups' && \(\s*<SeasonMasthead/.test(page))
+    check('nothing is reserved for it on Playoffs',
+      page.includes("activeView === 'groups' ? 'mt-6' : 'mt-0'"))
+    check('the glance figures sit in one row of four', mast.includes('grid grid-cols-4'))
+    check('the champion is laid out sideways so the trophy keeps its size',
+      mast.includes('flex h-full items-center justify-center') && !mast.includes('flex h-full flex-col items-center'))
+
     check('the global header is measurable', header.includes('data-site-header'))
     check('the header sits above the clamped bar',
       /z-50/.test(header) && /sticky z-40/.test(controls))
