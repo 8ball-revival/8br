@@ -278,6 +278,10 @@ model Player {
   discord             String? // public contact (community norm — shown publicly)
   timeZone            String?
   active              Boolean          @default(true) // staff can mark a profile inactive
+  /// Management-only account: a real login for running the site, not a competitor. Kept out of the
+  /// member list and out of every entrant/free-agent selector, so it can never be added to a Season
+  /// or Tournament by accident. Distinct from `active`, which hides a profile outright.
+  managementOnly      Boolean          @default(false)
   // Account linking: a Payload user may CLAIM this canonical identity without
   // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
   // @unique enforces one account ↔ at most one profile (both directions).

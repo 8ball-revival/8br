@@ -74,49 +74,31 @@ async function main() {
   eq('real (non-fixture) competitions', comps.length, 1)
   check('it is 8BRCAM and active', comps[0]?.slug === '8brcam' && comps[0]?.active === true, JSON.stringify(comps[0]))
 
-  console.log('\n--- Everything else is empty ---')
+  console.log('\n--- No archive-era data survived ---')
+  // The reset cleared the imported history; the site is being rebuilt by hand on top of it. So this
+  // asserts the ARCHIVE is gone rather than that the site is empty - Seasons and Tournaments created
+  // since are exactly what is supposed to be here.
+  eq('imported 8BRCAM seasons', await prisma.season.count({ where: { slug: { startsWith: '8brcam-' } } }), 0)
+  eq('archive-created accounts', await one(prisma.$queryRaw`
+    SELECT count(*)::bigint n FROM payload.users WHERE email ILIKE '%@archive.8br.invalid'`), 0)
+  eq('archive-created profiles', await one(prisma.$queryRaw`
+    SELECT count(*)::bigint n FROM public."Player" WHERE "cueverseId" ~ '^[pP][0-9]{4}$'`), 0)
+
+  // The archive-shaped legacy graph was emptied and nothing in the product writes to it.
   const zero: Array<[string, number]> = [
-    ['real seasons', await prisma.season.count({ where: notFixtureText('slug') })],
-    ['entrants on a real season', await prisma.seasonEntrant.count({ where: { season: notFixtureText('slug') } })],
-    ['groups on a real season', await prisma.seasonGroup.count({ where: { season: notFixtureText('slug') } })],
-    ['group players on a real season', await prisma.seasonGroupPlayer.count({ where: { group: { season: notFixtureText('slug') } } })],
-    ['matches on a real season', await prisma.seasonMatch.count({ where: { season: notFixtureText('slug') } })],
-    ['standings on a real season', await prisma.seasonStanding.count({ where: { season: notFixtureText('slug') } })],
-    ['playoff matches on a real season', await prisma.seasonPlayoffMatch.count({ where: { season: notFixtureText('slug') } })],
-    ['real tournaments', await prisma.tournament.count({ where: notFixtureText('slug') })],
-    ['registrations', await prisma.registration.count()],
-    ['tournament teams', await prisma.tournamentTeam.count()],
-    ['tournament team members', await prisma.tournamentTeamMember.count()],
-    ['tournament groups', await prisma.tournamentGroup.count()],
-    ['tournament group players', await prisma.groupPlayer.count()],
-    ['tournament matches', await prisma.tournamentMatch.count()],
-    ['tournament standings', await prisma.standing.count()],
-    ['tournament playoff matches', await prisma.playoffMatch.count()],
-    ['swiss matches', await prisma.swissMatch.count()],
-    ['bracket matches', await prisma.tournamentBracketMatch.count()],
-    ['free agents', await prisma.tournamentFreeAgent.count()],
-    ['rating rows for a real player', await prisma.ratingLedger.count({ where: notFixtureText('playerName') })],
+    ['legacy competitions', await prisma.competition.count()],
+    ['legacy matches', await prisma.match.count()],
+    ['legacy standing rows', await prisma.standingRow.count()],
     ['championships', await prisma.championship.count()],
-    ['achievements', await prisma.achievement.count()],
-    ['aliases on a real player', await prisma.playerAlias.count({ where: { player: notFixtureText('primaryName') } })],
-    ['player merges', await prisma.playerMerge.count()],
-    ['player splits', await prisma.playerSplit.count()],
     ['player season stats', await prisma.playerSeasonStat.count()],
     ['player career stats', await prisma.playerCareerStat.count()],
     ['hall of fame entries', await prisma.hallOfFameEntry.count()],
     ['competitors', await prisma.competitor.count()],
-    ['teams', await prisma.team.count()],
-    ['team memberships', await prisma.teamMembership.count()],
-    ['legacy competitions', await prisma.competition.count()],
-    ['legacy matches', await prisma.match.count()],
-    ['legacy standing rows', await prisma.standingRow.count()],
     ['ranking snapshots', await prisma.rankingSnapshot.count()],
-    ['moderation rows', await prisma.memberModeration.count()],
-    ['penalties', await prisma.penalty.count()],
-    ['warnings', await prisma.warning.count()],
     ['account claims', await prisma.accountClaim.count()],
   ]
   for (const [name, n] of zero) eq(name, n, 0)
+
 
   console.log('\n--- No orphaned or dangling references ---')
   eq('real profiles with no account', await prisma.player.count({ where: { linkedUserId: null, ...(notFixtureText('primaryName') as object) } }), 0)
@@ -133,19 +115,22 @@ async function main() {
   eq('staff designations for a missing account', await one(prisma.$queryRaw`
     SELECT count(*)::bigint n FROM public.staff_designation d
     WHERE NOT EXISTS (SELECT 1 FROM payload.users u WHERE u.id = d."userId")`), 0)
-  eq('archive-created accounts left behind', await one(prisma.$queryRaw`
-    SELECT count(*)::bigint n FROM payload.users WHERE email ILIKE '%@archive.8br.invalid'`), 0)
-  eq('archive-created profiles left behind', await one(prisma.$queryRaw`
-    SELECT count(*)::bigint n FROM public."Player" WHERE "cueverseId" ILIKE 'p0%' OR "cueverseId" ILIKE 'p1%'`), 0)
 
   console.log('\n--- Generated summaries hold nothing ---')
   // The snapshot is a singleton cache the app maintains, not per-tournament data. After the reset it
   // may exist again, but it must be empty - asserting the row is absent would fail the moment the
   // app rebuilt its cache.
+  // The cache legitimately fills as tournaments are created; what it must never hold is a
+  // tournament that no longer exists.
   const snaps = await prisma.$queryRaw<{ payload: unknown }[]>`
     SELECT payload FROM public.comp_tournament_snapshot`
-  check('the tournament snapshot cache is empty',
-    snaps.every((s) => !Array.isArray(s.payload) || s.payload.length === 0),
+  const cachedNumbers = snaps.flatMap((row) =>
+    Array.isArray(row.payload) ? (row.payload as Array<{ number?: number }>).map((c) => c.number) : [])
+      .filter((n): n is number => typeof n === 'number')
+  const liveNumbers = new Set(
+    (await prisma.tournament.findMany({ select: { number: true } })).map((t) => t.number))
+  check('the tournament snapshot cache lists no tournament that has been deleted',
+    cachedNumbers.every((n) => liveNumbers.has(n)),
     JSON.stringify(snaps).slice(0, 120))
 
   console.log('\n--- Audit trail ---')

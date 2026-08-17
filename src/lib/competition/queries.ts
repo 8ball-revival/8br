@@ -86,7 +86,8 @@ export async function searchEntrantCandidates(tournamentId: number, query: strin
       }
     : {}
   const rows = await prisma.player.findMany({
-    where: { active: true, ...match },
+    // Management-only accounts run the site; they are never entrants.
+    where: { active: true, managementOnly: false, ...match },
     orderBy: { primaryName: 'asc' },
     take: Math.max(limit, entered.size + limit), // room to drop the already-entered before trimming
     select: { id: true, primaryName: true, cueverseId: true, linkedUserId: true },

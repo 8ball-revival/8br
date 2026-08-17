@@ -161,6 +161,8 @@ export async function searchMergeCandidates(
   const excluded = new Set([primaryPlayerId, ...(await mergedSecondaryPlayerIds())])
   const rows = await prisma.player.findMany({
     where: {
+      // A management-only account is not a competitor, so it is never a merge candidate either.
+      managementOnly: false,
       OR: [
         { primaryName: { contains: term, mode: 'insensitive' } },
         { cueverseId: { contains: term, mode: 'insensitive' } },

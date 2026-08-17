@@ -92,7 +92,7 @@ export async function listEligibleAccounts(tournamentId: number): Promise<Eligib
     (await prisma.tournamentTeamMember.findMany({ where: { team: { tournamentId, withdrawn: false }, userId: { not: null } }, select: { userId: true } })).map((m) => m.userId!),
   )
   const freeAgents = new Set((await prisma.tournamentFreeAgent.findMany({ where: { tournamentId, status: 'WAITING' }, select: { userId: true } })).map((f) => f.userId))
-  const players = await prisma.player.findMany({ where: { active: true, linkedUserId: { not: null } }, orderBy: { primaryName: 'asc' }, select: { id: true, primaryName: true, cueverseId: true, linkedUserId: true } })
+  const players = await prisma.player.findMany({ where: { active: true, managementOnly: false, linkedUserId: { not: null } }, orderBy: { primaryName: 'asc' }, select: { id: true, primaryName: true, cueverseId: true, linkedUserId: true } })
   const linkedIds = players.map((p) => Number(p.linkedUserId)).filter(Number.isFinite)
   const blocked = new Set<number>()
   if (linkedIds.length) for (const m of await prisma.memberModeration.findMany({ where: { userId: { in: linkedIds }, status: { in: ['DELETED', 'BANNED'] } }, select: { userId: true } })) blocked.add(m.userId)

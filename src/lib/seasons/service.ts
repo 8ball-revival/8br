@@ -252,7 +252,7 @@ export async function searchSeasonCandidates(seasonId: number, query: string, li
   const match = q
     ? { OR: [{ primaryName: { contains: q, mode: 'insensitive' as const } }, { cueverseId: { contains: q, mode: 'insensitive' as const } }, { aliases: { some: { alias: { contains: nk } } } }] }
     : {}
-  const rows = await prisma.player.findMany({ where: { active: true, ...match }, orderBy: { primaryName: 'asc' }, take: Math.max(limit, entered.size + limit), select: { id: true, primaryName: true, cueverseId: true } })
+  const rows = await prisma.player.findMany({ where: { active: true, managementOnly: false, ...match }, orderBy: { primaryName: 'asc' }, take: Math.max(limit, entered.size + limit), select: { id: true, primaryName: true, cueverseId: true } })
   return rows.filter((r) => !entered.has(r.id)).slice(0, limit).map((r) => ({ playerId: r.id, primaryName: r.primaryName, cueverseId: r.cueverseId }))
 }
 

@@ -78,6 +78,14 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   const users = res.docs as any[]
   const userIds = users.map((u) => Number(u.id))
 
+  // Management-only accounts (the head-admin login) run the site rather than compete, so they are
+  // not part of the member roster. They stay reachable at /staff/members/<id> and from My Account.
+  const managementProfiles = await prisma.player.findMany({
+    where: { managementOnly: true, linkedUserId: { not: null } },
+    select: { linkedUserId: true },
+  })
+  const managementUserIds = new Set(managementProfiles.map((m) => Number(m.linkedUserId)))
+
   const [profiles, mods, heads, activePenalties] = await Promise.all([
     prisma.player.findMany({ where: { linkedUserId: { in: userIds.map(String) } }, select: { id: true, linkedUserId: true, primaryName: true, cueverseId: true } }),
     prisma.memberModeration.findMany({ where: { userId: { in: userIds } } }),
@@ -99,7 +107,9 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   const countByUser = new Map<number, number>()
   for (const r of regByUser) if (r.userId != null) countByUser.set(r.userId, r._count._all)
 
-  const rows: MemberRow[] = users.map((u) => {
+  const rows: MemberRow[] = users
+    .filter((u) => !managementUserIds.has(Number(u.id)))
+    .map((u) => {
     const uid = Number(u.id)
     const prof = profByUser.get(String(uid)) ?? null
     const eff = effectiveStatus(modByUser.get(uid))
