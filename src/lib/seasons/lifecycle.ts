@@ -39,13 +39,32 @@ export async function transitionSeasonState(
     return { ok: false, error: `Invalid transition: ${SEASON_STATE_LABEL[from]} → ${SEASON_STATE_LABEL[to]}.` }
   }
 
+  // Only a CLOSED Season feeds Rankings, Records, ratings and championship totals. Reopening one
+  // must therefore withdraw its contribution immediately rather than leaving stale numbers standing
+  // until it happens to be closed again. `ladderAppliedAt` is cleared for the same reason: it
+  // records that the ladder currently includes this Season, and after a reopen it no longer does.
+  const reopened = from === 'COMPLETED' && to !== 'COMPLETED'
+
   const run = async (t: import('@prisma/client').Prisma.TransactionClient) => {
-    await t.season.update({ where: { id: seasonId }, data: { lifecycleState: to, ...(to === 'COMPLETED' ? { completedAt: new Date() } : {}) } })
+    await t.season.update({
+      where: { id: seasonId },
+      data: {
+        lifecycleState: to,
+        ...(to === 'COMPLETED' ? { completedAt: new Date() } : {}),
+        ...(reopened ? { ladderAppliedAt: null } : {}),
+      },
+    })
     await recordAudit(
       actor,
       { action: opts.recovery && !canTransition(from, to) ? 'season.state.recovery' : 'season.state', entity: 'Season', entityId: seasonId, oldValue: { state: from }, newValue: { state: to }, reason: opts.reason },
       t,
     )
+    if (reopened) {
+      // A full deterministic replay across every still-completed competition — the same pipeline
+      // close and delete use, so reopening can never leave the ladder in a bespoke state.
+      const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+      await rebuildRatingLedger(t)
+    }
   }
   if (opts.tx) await run(opts.tx)
   else await prisma.$transaction(run)
@@ -60,4 +79,26 @@ export async function requireSeasonState(seasonId: number, allowed: SeasonState[
     return { ok: false, error: `This action is not available while the Season is ${SEASON_STATE_LABEL[s.lifecycleState]}.` }
   }
   return { ok: true, state: s.lifecycleState }
+}
+
+/**
+ * Keep a Season's Rankings/Records contribution in step with its data.
+ *
+ * Only a CLOSED Season contributes, so this is a no-op for one that is still being played. For a
+ * closed Season it replays the whole ledger, which is how an edit to a finished Season is reflected
+ * in ratings, career totals and championship counts without any bespoke incremental arithmetic.
+ *
+ * Safe to call after any write that could change a Season's results. Cheap when it does nothing.
+ */
+export async function syncSeasonRankingContribution(
+  seasonId: number,
+  tx?: import('@prisma/client').Prisma.TransactionClient,
+): Promise<{ rebuilt: boolean }> {
+  const db = tx ?? prisma
+  const s = await db.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (s?.lifecycleState !== 'COMPLETED') return { rebuilt: false }
+  const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+  if (tx) await rebuildRatingLedger(tx)
+  else await prisma.$transaction(async (t) => { await rebuildRatingLedger(t) })
+  return { rebuilt: true }
 }

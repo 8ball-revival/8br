@@ -287,3 +287,15 @@ export async function exportSeasonDataAction(seasonId: number): Promise<{ ok: bo
   if (!data) return { ok: false, error: 'Season not found.' }
   return { ok: true, data }
 }
+
+/**
+ * Player search inside the Season on screen, for the browser's search box.
+ *
+ * Deliberately public and read-only: it returns only the entrants of the Season already being
+ * displayed, which is information that page shows anyway. Distinct from `searchSeasonPlayersAction`,
+ * which searches the whole member registry to ADD someone and is admin-gated.
+ */
+export async function searchSeasonEntrantsAction(seasonId: number, query: string): Promise<import('./browse').SeasonPlayerHit[]> {
+  const { searchSeasonPlayers } = await import('./browse')
+  return searchSeasonPlayers(seasonId, query)
+}
