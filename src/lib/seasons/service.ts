@@ -18,7 +18,9 @@ import { transitionSeasonState } from './lifecycle'
 export function seasonOfficialTitle(competitionName: string, number: number, year: number): string {
   // "<Competition> Season <n> · <year>". The Competition supplies the leading name, so a Season
   // always reads as belonging to the competition that owns it rather than to the site brand.
-  return `${(competitionName || '').trim() || 'Season'} Season ${number} · ${year}`
+  // With no name we drop the prefix entirely rather than padding it — "Season Season 1" reads as a bug.
+  const prefix = (competitionName || '').trim()
+  return `${prefix ? `${prefix} ` : ''}Season ${number} · ${year}`
 }
 
 // ---- Identity / ratings ---------------------------------------------------

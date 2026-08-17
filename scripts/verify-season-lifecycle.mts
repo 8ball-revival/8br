@@ -9,14 +9,23 @@ import { createSeason, addSeasonEntrant, removeSeasonEntrant, closeRegistration,
 import { transitionSeasonState, canTransition } from '../src/lib/seasons/lifecycle.ts'
 
 // Every Season must belong to a Competition, so fixtures ensure one exists and reuse it.
+const FIXTURE_SLUG = 'zz-fixture-competition'
+
 async function fixtureCompetitionId(): Promise<number> {
-  const existing = await prisma.competitionSeries.findFirst({ where: { active: true }, select: { id: true } })
+  // Use a DEDICATED fixture Competition, never whatever real Competition happens to be active.
+  // Adopting a real one left test Seasons hanging off an operator-visible Competition.
+  const existing = await prisma.competitionSeries.findFirst({ where: { slug: FIXTURE_SLUG }, select: { id: true } })
   if (existing) return existing.id
   const made = await prisma.competitionSeries.create({
-    data: { name: 'Fixture Competition', shortName: 'FIX', slug: 'fixture-competition', active: true },
+    data: { name: 'zz Fixture Competition', shortName: 'ZZFIX', slug: FIXTURE_SLUG, active: true },
     select: { id: true },
   })
   return made.id
+}
+
+/** Remove the fixture Competition once its Seasons are gone, so no test row survives a run. */
+async function dropFixtureCompetition() {
+  await prisma.competitionSeries.deleteMany({ where: { slug: FIXTURE_SLUG, seasons: { none: {} } } }).catch(() => {})
 }
 
 
@@ -99,5 +108,6 @@ for (const n of cleanupNumbers) {
 await prisma.auditLog.deleteMany({ where: { actorUsername: 'season-verify' } }).catch(() => {})
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
+await dropFixtureCompetition()
 await prisma.$disconnect()
 process.exit(fail === 0 ? 0 : 1)
