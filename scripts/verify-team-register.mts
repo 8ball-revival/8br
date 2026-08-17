@@ -13,8 +13,12 @@ import { startTeam, joinTeam, listJoinableTeams, getMyTeamMembership, withdrawFr
 let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
 
-const U = (u: number) => ({ userId: u, username: `u${u}` })
-const ID = (u: number) => ({ userId: u, playerId: `p${u}`, name: `Player ${u}`, handle: `ph${u}` })
+// Offset into a range that cannot collide with a REAL account. These fixtures previously used
+// ids 1..n, which meant the suite silently depended on the moderation state of whoever happened to
+// hold user id 1 — archiving that account broke the whole file.
+const UID = (u: number) => 900000 + u
+const U = (u: number) => ({ userId: UID(u), username: `u${u}` })
+const ID = (u: number) => ({ userId: UID(u), playerId: `p${u}`, name: `Player ${u}`, handle: `ph${u}` })
 
 const t = await prisma.tournament.create({
   data: {
@@ -30,10 +34,10 @@ try {
   // --- Start teams (open + protected) ---
   check('start open team "Zion"', (await startTeam(U(1), tid, 'Zion', ID(1), null)).ok)
   check('start protected team "Falcons" (with code)', (await startTeam(U(2), tid, 'Falcons', ID(2), 'secret')).ok)
-  const myA = await getMyTeamMembership(1, tid)
+  const myA = await getMyTeamMembership(UID(1), tid)
   check('captain is first member + captain flag', myA?.isCaptain === true && myA?.members.length === 1)
   check('new team is incomplete (1 of 3)', myA?.complete === false && myA?.spaces === 2)
-  check('open team is not protected; protected team is', myA?.protected === false && (await getMyTeamMembership(2, tid))?.protected === true)
+  check('open team is not protected; protected team is', myA?.protected === false && (await getMyTeamMembership(UID(2), tid))?.protected === true)
 
   // --- Duplicate team name (case-insensitive) ---
   check('duplicate team name rejected (ignores case)', !(await startTeam(U(3), tid, 'ziON', ID(3), null)).ok)
@@ -54,7 +58,7 @@ try {
 
   // --- Full team ---
   check('fill Zion to capacity', (await joinTeam(U(5), tid, await teamId('Zion'), ID(5), null)).ok)
-  const zion = await getMyTeamMembership(1, tid)
+  const zion = await getMyTeamMembership(UID(1), tid)
   check('Zion is now complete (3 of 3)', zion?.complete === true && zion?.spaces === 0)
   check('joining a FULL team rejected', !(await joinTeam(U(6), tid, await teamId('Zion'), ID(6), null)).ok)
   const list = await listJoinableTeams(tid)
@@ -62,26 +66,26 @@ try {
 
   // --- Member withdraws ---
   check('member withdraws from team', (await withdrawFromTeam(U(3), tid)).ok)
-  check('withdrawn player has no membership', (await getMyTeamMembership(3, tid)) === null)
-  check('Zion back to 2 of 3', (await getMyTeamMembership(1, tid))?.members.length === 2)
+  check('withdrawn player has no membership', (await getMyTeamMembership(UID(3), tid)) === null)
+  check('Zion back to 2 of 3', (await getMyTeamMembership(UID(1), tid))?.members.length === 2)
 
   // --- Captain removes a member (authorization) ---
-  check('non-captain cannot remove a member', !(await removeTeamMember(U(5), tid, 1)).ok)
-  check('captain removes a member', (await removeTeamMember(U(1), tid, 5)).ok)
-  check('removed player has no membership', (await getMyTeamMembership(5, tid)) === null)
-  check('captain cannot remove self via remove (use withdraw)', !(await removeTeamMember(U(1), tid, 1)).ok)
+  check('non-captain cannot remove a member', !(await removeTeamMember(U(5), tid, UID(1))).ok)
+  check('captain removes a member', (await removeTeamMember(U(1), tid, UID(5))).ok)
+  check('removed player has no membership', (await getMyTeamMembership(UID(5), tid)) === null)
+  check('captain cannot remove self via remove (use withdraw)', !(await removeTeamMember(U(1), tid, UID(1))).ok)
 
   // --- Captain withdraws → promotion ---
   check('captain of Falcons withdraws (promotes next member)', (await withdrawFromTeam(U(2), tid)).ok)
-  check('promoted member is now captain', (await getMyTeamMembership(4, tid))?.isCaptain === true)
-  check('former captain has no membership', (await getMyTeamMembership(2, tid)) === null)
+  check('promoted member is now captain', (await getMyTeamMembership(UID(4), tid))?.isCaptain === true)
+  check('former captain has no membership', (await getMyTeamMembership(UID(2), tid)) === null)
 
   // --- Join code set / change / remove (captain only) ---
   check('non-captain cannot set a join code', !(await setTeamJoinCode(U(5), tid, 'x')).ok)
   check('captain sets a join code', (await setTeamJoinCode(U(1), tid, 'newcode')).ok)
-  check('team is now protected', (await getMyTeamMembership(1, tid))?.protected === true)
+  check('team is now protected', (await getMyTeamMembership(UID(1), tid))?.protected === true)
   check('new code is enforced on join', !(await joinTeam(U(7), tid, await teamId('Zion'), ID(7), 'wrong')).ok && (await joinTeam(U(8), tid, await teamId('Zion'), ID(8), 'newcode')).ok)
-  check('captain removes the join code (opens team)', (await setTeamJoinCode(U(1), tid, null)).ok && (await getMyTeamMembership(1, tid))?.protected === false)
+  check('captain removes the join code (opens team)', (await setTeamJoinCode(U(1), tid, null)).ok && (await getMyTeamMembership(UID(1), tid))?.protected === false)
 
   // --- Captain withdraws as the last member → disband ---
   check('solo captain "Falcons" (now Player 4) withdraws → disband', (await withdrawFromTeam(U(4), tid)).ok)
@@ -97,7 +101,7 @@ try {
   check('start team refused once registration closes', !(await startTeam(U(9), tid, 'Late', ID(9), null)).ok)
   check('join refused once registration closes', !(await joinTeam(U(9), tid, await teamId('Zion'), ID(9), null)).ok)
   check('withdraw refused once registration closes (rosters locked)', !(await withdrawFromTeam(U(1), tid)).ok)
-  check('remove-member refused once registration closes', !(await removeTeamMember(U(1), tid, 8)).ok)
+  check('remove-member refused once registration closes', !(await removeTeamMember(U(1), tid, UID(8))).ok)
   check('set-join-code refused once registration closes', !(await setTeamJoinCode(U(1), tid, 'z')).ok)
 
   // --- Incomplete teams cannot enter (excluded at seeding) ---
