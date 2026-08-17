@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Bracket } from '@/components/tournaments/bracket'
 import { SeasonLiveBracket } from '@/components/seasons/season-live-bracket'
-import { PlayoffDisclaimer } from '@/components/seasons/playoff-disclaimer'
+import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { BracketRound } from '@/lib/tournaments/service'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
@@ -52,7 +52,7 @@ export function SeasonPlayoffs({
       <div className="mt-8 space-y-6">
         {msg && <Toast msg={msg} />}
         {rounds.length > 0 ? <SeasonLiveBracket rounds={rounds} canManage={canManage} /> : <p className="text-sm text-muted-foreground">The bracket is being prepared.</p>}
-        <PlayoffDisclaimer seasonId={seasonId} value={disclaimer} canManage={canManage} />
+        <PlayoffDisclaimer kind="season" id={seasonId} value={disclaimer} canManage={canManage} />
         {canManage && canClose && (
           <div className="border-t border-border pt-4">
             <Button className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]" disabled={pending} onClick={async () => {
@@ -122,7 +122,7 @@ export function SeasonPlayoffs({
           <p className="mt-3 text-xs text-muted-foreground">
             Placement is locked once the bracket is published.
           </p>
-          <PlayoffDisclaimer seasonId={seasonId} value={disclaimer} canManage={canManage} />
+          <PlayoffDisclaimer kind="season" id={seasonId} value={disclaimer} canManage={canManage} />
         </div>
       )}
 

@@ -187,6 +187,8 @@ export interface TournamentWorkspaceData {
     // curated flair (badge + plain-text description; per-tournament colors/banner removed)
     description: string | null
     badge: string | null
+    /** Free-text note shown under the playoff bracket; null for almost every tournament. */
+    playoffDisclaimer: string | null
   }
   isTournament: boolean
   isHistorical: boolean
@@ -533,6 +535,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       requiresJoinPassword: tournament.accessMode === 'PASSWORD',
       raceLength: tournament.raceLength,
       qualifiersPerGroup: tournament.qualifiersPerGroup ?? null,
+      playoffDisclaimer: tournament.playoffDisclaimer ?? null,
       status: tournament.status,
       playoffsStatus: tournament.playoffsStatus,
       registrationStatus: tournament.registrationStatus,

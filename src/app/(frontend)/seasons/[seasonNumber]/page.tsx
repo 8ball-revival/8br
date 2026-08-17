@@ -13,7 +13,7 @@ import { SeasonRegistration } from '@/components/seasons/season-registration'
 import { SeasonGroupSetup } from '@/components/seasons/season-group-setup'
 import { SeasonGroupStage } from '@/components/seasons/season-group-stage'
 import { SeasonPlayoffs } from '@/components/seasons/season-playoffs'
-import { PlayoffDisclaimer } from '@/components/seasons/playoff-disclaimer'
+import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { Bracket } from '@/components/tournaments/bracket'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -152,7 +152,7 @@ function CompletedView({ view, rounds, groups, disclaimer, canManage }: { view: 
         <div>
           <h2 className="mb-4 font-display text-lg font-bold text-foreground">Playoff Bracket</h2>
           <div className="w-full"><Bracket rounds={rounds} fluid /></div>
-          <PlayoffDisclaimer seasonId={view.id} value={disclaimer} canManage={canManage} />
+          <PlayoffDisclaimer kind="season" id={view.id} value={disclaimer} canManage={canManage} />
         </div>
       )}
       {groups.length > 0 && (

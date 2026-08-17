@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Bracket } from '@/components/tournaments/bracket'
+import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { TournamentLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
 import { TournamentHistory } from '@/components/tournaments/tournament-history'
 import { FlairEditor, FlairPreview, type FlairValue } from '@/components/tournaments/flair-editor'
@@ -495,6 +496,9 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
           <Bracket rounds={data.bracketRounds} />
         ) : (
           <p className="text-sm text-muted-foreground">No bracket yet — build one from the seed order above.</p>
+        )}
+        {data.bracketRounds.length > 0 && (
+          <PlayoffDisclaimer kind="tournament" id={data.tournament.id} value={data.tournament.playoffDisclaimer} canManage />
         )}
       </div>
     </div>

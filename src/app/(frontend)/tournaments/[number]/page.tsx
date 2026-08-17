@@ -7,6 +7,7 @@ import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { PlayerAvatar } from '@/components/primitives'
 import { Bracket } from '@/components/tournaments/bracket'
+import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { GroupCrosstable } from '@/components/tournaments/group-crosstable'
 import { ViewToggle } from '@/components/tournaments/view-toggle'
 import { canViewPlayoffs, redactPlayoffs, redactDraftGroups } from '@/lib/competition/playoff-visibility'
@@ -238,6 +239,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
               )}
               {myMatch && <div className="mb-6"><TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchLabel} raceLength={myMatch.raceLength} /></div>}
               <Bracket rounds={data.bracketRounds} fluid />
+              <PlayoffDisclaimer kind="tournament" id={data.tournament.id} value={data.tournament.playoffDisclaimer} canManage={false} />
             </div>
           ) : (
             <div id="panel-groups" role={showToggle ? 'tabpanel' : undefined} aria-labelledby={showToggle ? 'tab-groups' : undefined}>
@@ -264,6 +266,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
           <section className="mt-8">
             <h2 className="eyebrow mb-4 text-foreground">Bracket</h2>
             <Bracket rounds={data.bracketRounds} />
+            <PlayoffDisclaimer kind="tournament" id={data.tournament.id} value={data.tournament.playoffDisclaimer} canManage={false} />
           </section>
         </>
       )}

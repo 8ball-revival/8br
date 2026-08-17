@@ -1563,3 +1563,35 @@ function diffSubset<T extends Record<string, unknown>>(obj: T, keys: Partial<T>)
   for (const k of Object.keys(keys) as (keyof T)[]) out[k] = obj[k]
   return out
 }
+
+/**
+ * Set (or clear) the note shown under a tournament's playoff bracket.
+ *
+ * Mirrors `setSeasonPlayoffDisclaimer`. Requires a bracket to exist — there is nothing to annotate
+ * before then — but is deliberately NOT gated on lifecycle beyond that: the note describes the
+ * bracket rather than changing it, and the case that most needs one is a finished tournament
+ * reconstructed from an archive whose scores were never recorded.
+ */
+export async function setTournamentPlayoffDisclaimer(
+  actor: Actor,
+  tournamentId: number,
+  text: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { id: true } })
+  if (!t) return { ok: false, error: 'Tournament not found.' }
+
+  const hasBracket =
+    (await prisma.playoffMatch.count({ where: { tournamentId } })) > 0 ||
+    (await prisma.tournamentBracketMatch.count({ where: { tournamentId } })) > 0
+  if (!hasBracket) return { ok: false, error: 'There is no bracket to annotate yet.' }
+
+  const value = (text ?? '').trim().slice(0, 500) || null
+  await prisma.$transaction(async (tx) => {
+    await tx.tournament.update({ where: { id: tournamentId }, data: { playoffDisclaimer: value } })
+    await recordAudit(actor, {
+      action: value ? 'tournament.playoff.disclaimer' : 'tournament.playoff.disclaimer.clear',
+      entity: 'Tournament', entityId: tournamentId, newValue: { length: value?.length ?? 0 },
+    }, tx)
+  })
+  return { ok: true }
+}

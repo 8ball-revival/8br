@@ -5,22 +5,27 @@ import { useRouter } from 'next/navigation'
 import { Info } from 'lucide-react'
 
 import { setSeasonPlayoffDisclaimerAction } from '@/lib/seasons/actions'
+import { setTournamentPlayoffDisclaimerAction } from '@/lib/competition/tournament-actions'
 
 /**
- * The note shown under a Season's playoff bracket.
+ * The note shown under a playoff bracket, for either a Season or a Tournament.
  *
- * Most brackets carry nothing here. It exists so a reconstructed season can say plainly where its
- * bracket came from — that the pairings are archived but the scores were not recorded, say — rather
- * than letting an approximation pass as fact.
+ * Most brackets carry nothing here. It exists so a reconstructed competition can say plainly where
+ * its bracket came from — that the pairings are archived but the scores were not recorded, say —
+ * rather than letting an approximation pass as fact.
  *
- * Visible to everyone once set; only an admin sees the editor.
+ * Visible to everyone once set; only an admin sees the editor. `kind` + `id` are passed rather than
+ * a save callback because this renders from server components too, where a closure is not
+ * serializable — the component picks the matching server action itself.
  */
 export function PlayoffDisclaimer({
-  seasonId,
+  kind,
+  id,
   value,
   canManage,
 }: {
-  seasonId: number
+  kind: 'season' | 'tournament'
+  id: number
   value: string | null
   canManage: boolean
 }) {
@@ -32,11 +37,13 @@ export function PlayoffDisclaimer({
 
   const saved = (value ?? '').trim()
   const dirty = text.trim() !== saved
+  const persist = (t: string | null) =>
+    kind === 'season' ? setSeasonPlayoffDisclaimerAction(id, t) : setTournamentPlayoffDisclaimerAction(id, t)
 
   function save() {
     setError(null)
     start(async () => {
-      const r = await setSeasonPlayoffDisclaimerAction(seasonId, text.trim() || null)
+      const r = await persist(text.trim() || null)
       if (r.error) { setError(r.error); return }
       setOpen(false)
       router.refresh()
@@ -99,7 +106,7 @@ export function PlayoffDisclaimer({
             {saved && (
               <button
                 type="button"
-                onClick={() => { setText(''); start(async () => { await setSeasonPlayoffDisclaimerAction(seasonId, null); setOpen(false); router.refresh() }) }}
+                onClick={() => { setText(''); start(async () => { await persist(null); setOpen(false); router.refresh() }) }}
                 disabled={pending}
                 className="ml-auto text-xs text-muted-foreground hover:text-destructive"
               >

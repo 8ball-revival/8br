@@ -134,6 +134,21 @@ export async function setTournamentRaceLengthAction(tournamentId: number, raceLe
   return { ok: true, message: `Race length set to ${raceLength}.` }
 }
 
+/**
+ * Set (or clear) the note shown under this tournament's playoff bracket.
+ *
+ * Mirrors the Season equivalent, including the deliberate lack of a lifecycle gate beyond
+ * "a bracket exists": the note describes the bracket, and you usually only learn what needs
+ * saying after the fact, often long after the tournament is finished.
+ */
+export async function setTournamentPlayoffDisclaimerAction(tournamentId: number, text: string | null): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await svc.setTournamentPlayoffDisclaimer(actor, tournamentId, text)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: text?.trim() ? 'Note saved.' : 'Note removed.' }
+}
+
 // ---- Bracket --------------------------------------------------------------
 
 /** States in which the bracket may be built, regenerated, or corrected: after registration closes

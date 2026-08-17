@@ -1196,6 +1196,9 @@ model Tournament {
   qualifiersPerGroup   Int                       @default(2)
   playoffSeeding       String?                   @default("standing")
   playoffDoubleElim    Boolean                   @default(false)
+  /// Free-text note shown under the playoff bracket. Same purpose as Season.playoffDisclaimer:
+  /// a reconstructed tournament can say plainly which parts are archived and which were filled in.
+  playoffDisclaimer    String?
   formatSummary        String                    @default("Single-elimination bracket")
   eligibilitySummary   String                    @default("Open to all registered 8 Ball Registry account holders.")
   archivedAt           DateTime? // set when the tournament is archived (read-only history)
