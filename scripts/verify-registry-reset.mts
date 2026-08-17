@@ -30,10 +30,18 @@ const one = async (sql: Promise<{ n: bigint }[]>) => Number((await sql)[0].n)
 
 async function main() {
   console.log('--- Admin identity ---')
+  // The reset left exactly one account, but the site is meant to grow from there - members get added
+  // straight afterwards. So the durable invariant is that there is exactly one OWNER and it is intact,
+  // not that the roster has stayed at one.
   const users = await prisma.$queryRaw<{ id: number; username: string }[]>`
     SELECT id, username FROM payload.users ORDER BY id`
-  eq('users', users.length, 1)
-  const adminId = users[0]?.id
+  const owners = await prisma.$queryRaw<{ id: number; username: string }[]>`
+    SELECT DISTINCT u.id, u.username FROM payload.users u
+    JOIN payload.users_roles r ON r.parent_id = u.id
+    WHERE r.value = 'owner' ORDER BY u.id`
+  eq('owner accounts', owners.length, 1)
+  console.log(`  (${users.length} account${users.length === 1 ? '' : 's'} on the site)`)
+  const adminId = owners[0]?.id
   check('the surviving account holds the owner role',
     (await one(prisma.$queryRaw`SELECT count(*)::bigint n FROM payload.users_roles
       WHERE parent_id = ${adminId} AND value = 'owner'`)) > 0)
@@ -47,13 +55,16 @@ async function main() {
     (await prisma.memberModeration.count({ where: { userId: adminId } })) === 0)
 
   console.log('\n--- Players ---')
-  eq('real (non-fixture) players', await prisma.player.count({ where: notFixtureText('primaryName') }), 1)
-  eq('profiles linked to an account', await prisma.player.count({ where: { linkedUserId: { not: null } } }), 1)
+  // One account, one profile: the pairing must stay exact however many members are added.
+  const accounts = Number((await prisma.$queryRaw<{ n: bigint }[]>`
+    SELECT count(*)::bigint n FROM payload.users`)[0].n)
+  eq('real profiles, one per account', await prisma.player.count({ where: notFixtureText('primaryName') }), accounts)
+  eq('profiles linked to an account', await prisma.player.count({ where: { linkedUserId: { not: null } } }), accounts)
   const p = await prisma.player.findFirst({
-    where: { linkedUserId: { not: null } },
+    where: { linkedUserId: String(adminId) },
     select: { id: true, linkedUserId: true, cueverseId: true, active: true, linkStatus: true },
   })
-  check('the one profile is linked to the Admin', p?.linkedUserId === String(adminId), String(p?.linkedUserId))
+  check('the Admin has a linked profile', Boolean(p), 'none found')
   check('it is active and verified', p?.active === true && p?.linkStatus === 'VERIFIED')
 
   console.log('\n--- Competitions ---')
