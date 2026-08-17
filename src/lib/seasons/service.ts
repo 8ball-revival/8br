@@ -15,8 +15,10 @@ import { transitionSeasonState } from './lifecycle'
 
 /** The official, always-present Season identity — the sequence + year. A custom subtitle never
  *  replaces it. */
-export function seasonOfficialTitle(number: number, year: number): string {
-  return `8BR Season ${number} · ${year}`
+export function seasonOfficialTitle(competitionName: string, number: number, year: number): string {
+  // "<Competition> Season <n> · <year>". The Competition supplies the leading name, so a Season
+  // always reads as belonging to the competition that owns it rather than to the site brand.
+  return `${(competitionName || '').trim() || 'Season'} Season ${number} · ${year}`
 }
 
 // ---- Identity / ratings ---------------------------------------------------
@@ -71,10 +73,11 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
   }
   const series = await prisma.competitionSeries.findUnique({
     where: { id: seriesId },
-    select: { id: true, active: true },
+    select: { id: true, active: true, name: true },
   })
   if (!series) return { ok: false, error: 'That Competition no longer exists.' }
   if (!series.active) return { ok: false, error: 'That Competition is inactive and cannot take new Seasons.' }
+  const seriesName = series.name
   const opensAt = cfg.registrationOpensAt ? new Date(cfg.registrationOpensAt) : null
   const scheduled = !!opensAt && opensAt.getTime() > Date.now()
   const accessMode = cfg.accessMode === 'PASSWORD' ? 'PASSWORD' : 'OPEN'
@@ -106,7 +109,7 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
         finalRaceTo: clampRace(cfg.finalRaceTo, 9),
       },
     })
-    await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: { number, year, title: seasonOfficialTitle(number, year) } }, tx)
+    await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: { number, year, title: seasonOfficialTitle(seriesName, number, year) } }, tx)
     return season
   })
   return { ok: true, number: created.number }
@@ -134,7 +137,7 @@ function toSummary(s: { competitionSeries: { id: number; name: string; shortName
     number: s.number,
     competition: s.competitionSeries,
     year: s.competitionYear,
-    title: seasonOfficialTitle(s.number, s.competitionYear),
+    title: seasonOfficialTitle(s.competitionSeries?.name ?? '', s.number, s.competitionYear),
     subtitle: s.subtitle,
     lifecycleState: s.lifecycleState,
     entrantsCount: s.entrantsCount,
@@ -212,7 +215,7 @@ export async function getSeasonView(number: number): Promise<SeasonView | null> 
     competition: s.competitionSeries,
     number: s.number,
     year: s.competitionYear,
-    title: seasonOfficialTitle(s.number, s.competitionYear),
+    title: seasonOfficialTitle(s.competitionSeries?.name ?? '', s.number, s.competitionYear),
     subtitle: s.subtitle,
     description: s.description,
     lifecycleState: s.lifecycleState,

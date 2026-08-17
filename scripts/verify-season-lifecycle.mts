@@ -39,7 +39,10 @@ check('numbers auto-increment', typeof s1.number === 'number' && s2.number === s
 {
   const v = await getSeasonView(s1.number!)
   const year = new Date().getFullYear()
-  check('official title is "8BR Season N · YEAR"', v?.title === seasonOfficialTitle(s1.number!, year), v?.title)
+  // The title is derived from the owning Competition, so assert against that Competition's name.
+  const compName = (await prisma.competitionSeries.findFirst({ where: { active: true }, select: { name: true } }))?.name ?? ''
+  check('official title is "<Competition> Season N · YEAR"',
+    v?.title === seasonOfficialTitle(compName, s1.number!, year), v?.title)
   check('starts in REGISTRATION_OPEN (no future opensAt)', v?.lifecycleState === 'REGISTRATION_OPEN')
   check('match format defaults captured', v?.format.groupStageGames === 10 && v?.format.earlyRaceTo === 7 && v?.format.finalRaceTo === 9)
 }

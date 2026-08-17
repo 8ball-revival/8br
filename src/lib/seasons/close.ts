@@ -19,7 +19,7 @@ export interface SeasonCloseSummary {
 }
 
 export async function seasonCloseSummary(seasonId: number): Promise<SeasonCloseSummary | null> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true, competitionYear: true, subtitle: true } })
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true, competitionYear: true, subtitle: true, competitionSeries: { select: { name: true } } } })
   if (!s) return null
   const champ = await seasonChampion(seasonId)
   const [entrants, completedGroup, noContest, forfeits, kicked, completedPlayoff] = await Promise.all([
@@ -31,7 +31,7 @@ export async function seasonCloseSummary(seasonId: number): Promise<SeasonCloseS
     prisma.seasonPlayoffMatch.count({ where: { seasonId, status: 'COMPLETED', NOT: [{ homeEntrantId: null }, { awayEntrantId: null }] } }),
   ])
   return {
-    seasonTitle: `8BR Season ${s.number} · ${s.competitionYear}`,
+    seasonTitle: `${s.competitionSeries?.name ?? 'Season'} Season ${s.number} · ${s.competitionYear}`,
     champion: champ?.championName ?? null,
     runnerUp: champ?.runnerUpName ?? null,
     finalScore: champ?.finalScore ?? null,

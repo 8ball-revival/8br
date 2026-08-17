@@ -43,7 +43,17 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
   const [semifinalRaceTo, setSemifinalRaceTo] = useState(9)
   const [finalRaceTo, setFinalRaceTo] = useState(9)
 
-  const officialTitle = useMemo(() => `8BR Season ${nextNumber} · ${year}`, [nextNumber, year])
+  // The official title is DERIVED from the three fields above it — Competition, number and
+  // Competition Year — so the preview updates live as the operator changes any of them. It is not
+  // a site-brand default: with no Competition chosen yet there is nothing to prefix.
+  const competitionName = competitions.find((c) => c.id === competitionSeriesId)?.name ?? ''
+  const officialTitle = useMemo(
+    () =>
+      competitionName
+        ? `${competitionName} Season ${nextNumber} · ${competitionYear}`
+        : `Season ${nextNumber} · ${competitionYear}`,
+    [competitionName, nextNumber, competitionYear],
+  )
 
   const submit = () => {
     setError(null)
@@ -81,7 +91,11 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
             <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.05] px-3 py-2.5 text-sm">
               <span className="text-muted-foreground">Official title: </span>
               <span className="font-display font-bold text-[var(--gold-soft)]">{officialTitle}</span>
-              <p className="mt-1 text-[0.7rem] text-muted-foreground/70">Assigned automatically from the sequence and year.</p>
+              <p className="mt-1 text-[0.7rem] text-muted-foreground/70">
+                {competitionName
+                  ? 'Assigned automatically from the Competition, sequence and year.'
+                  : 'Select a Competition below — its name leads the official title.'}
+              </p>
             </div>
             <Labeled label="Competition Year" hint="required">
               <input
