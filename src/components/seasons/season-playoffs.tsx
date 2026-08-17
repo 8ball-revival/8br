@@ -10,7 +10,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { BracketRound } from '@/lib/tournaments/service'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
 import {
-  setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, setSeasonSeedOrderAction, setSeasonBracketSlotAction,
+  setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, setSeasonBracketSlotAction,
   setSeasonPlayoffTypeAction, generateSeasonBracketAction,
   startSeasonPlayoffsAction, closeSeasonAction,
 } from '@/lib/seasons/actions'
@@ -156,11 +156,10 @@ export function SeasonPlayoffs({
               </th>
               <th className="px-2 py-2 text-center">Seed</th><th className="px-2 py-2">Player</th><th className="px-2 py-2">Group</th>
               <th className="px-2 py-2 text-center">Pos</th><th className="px-2 py-2 text-center">Pts</th><th className="px-2 py-2 text-center">Record</th>
-              {canManage && <th className="px-2 py-2 text-center">Move</th>}
             </tr>
           </thead>
           <tbody>
-            {seeding.map((r, i) => (
+            {seeding.map((r) => (
               <tr key={r.entrantId} className={cn('border-b border-border/50', !r.included && 'opacity-55')}>
                 <td className="px-2 py-1.5 text-center">
                   {/* One switch: in the bracket, or not. A reconstructed season had whatever field it
@@ -180,28 +179,6 @@ export function SeasonPlayoffs({
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.groupPosition}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums">{r.points}</td>
                 <td className="px-2 py-1.5 text-center tabular-nums text-muted-foreground">{r.record}</td>
-                {canManage && (
-                  <td className="px-2 py-1.5 text-center whitespace-nowrap">
-                    {r.included ? (
-                      <>
-                        <button
-                          type="button" disabled={pending || i === 0}
-                          aria-label={`Move ${r.name} up the seeding`}
-                          title="Move up"
-                          onClick={() => run(() => setSeasonSeedOrderAction(seasonId, reorder(seeding, i, -1)))}
-                          className="px-1 text-muted-foreground hover:text-brand disabled:opacity-30"
-                        >&uarr;</button>
-                        <button
-                          type="button" disabled={pending}
-                          aria-label={`Move ${r.name} down the seeding`}
-                          title="Move down"
-                          onClick={() => run(() => setSeasonSeedOrderAction(seasonId, reorder(seeding, i, 1)))}
-                          className="px-1 text-muted-foreground hover:text-brand disabled:opacity-30"
-                        >&darr;</button>
-                      </>
-                    ) : <span className="text-xs text-muted-foreground">&mdash;</span>}
-                  </td>
-                )}
               </tr>
             ))}
           </tbody>
@@ -228,22 +205,6 @@ function Toast({ msg }: { msg: { ok: boolean; text: string } }) {
   return <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>
 }
 
-/**
- * The included field in its current order, with one player nudged up or down.
- *
- * Excluded players are not part of the seeding at all, so they are skipped rather than swapped
- * through — moving someone "up" past an excluded row would otherwise appear to do nothing.
- */
-function reorder(rows: { entrantId: number; included: boolean }[], index: number, delta: number): number[] {
-  const ids = rows.filter((r) => r.included).map((r) => r.entrantId)
-  const id = rows[index].entrantId
-  const at = ids.indexOf(id)
-  const to = at + delta
-  if (at < 0 || to < 0 || to >= ids.length) return ids
-  ids.splice(at, 1)
-  ids.splice(to, 0, id)
-  return ids
-}
 
 /** The entrant behind a bracket slot's displayed name, so a slot can preselect its current player. */
 function entrantIdFor(rows: { entrantId: number; name: string }[], name: string | undefined): number | null {

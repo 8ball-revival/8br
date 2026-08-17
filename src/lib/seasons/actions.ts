@@ -191,12 +191,6 @@ export async function setSeasonPlayoffFieldAction(seasonId: number, included: bo
   revalidateSeason(await seasonNumberOf(seasonId))
   return { ok: true, message: included ? `Added ${r.changed} player(s).` : `Cleared ${r.changed} player(s).` }
 }
-export async function setSeasonSeedOrderAction(seasonId: number, orderedEntrantIds: number[]): Promise<SeasonActionResult> {
-  const actor = await requireCapability('manage_competitions')
-  const r = await po.setSeasonSeedOrder(actor, seasonId, orderedEntrantIds)
-  if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
-}
 export async function setSeasonBracketSlotAction(seasonId: number, matchId: number, side: 'home' | 'away', entrantId: number | null): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonBracketSlot(actor, seasonId, matchId, side, entrantId)

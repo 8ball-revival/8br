@@ -37,7 +37,7 @@ const winPctOf = (gw: number, gl: number) => (gw + gl === 0 ? 0 : gw / (gw + gl)
  *  manually reordered — this order is derived, not editable. */
 export async function loadSeasonSeeding(seasonId: number): Promise<SeasonSeedRow[]> {
   const standings = await prisma.seasonStanding.findMany({ where: { seasonId }, include: { group: { select: { code: true, name: true } } } })
-  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, displayName: true, username: true, cueverseId: true, ratingSnapshot: true, kickedOut: true, playoffIncluded: true, qualification: true, playoffSeed: true } })
+  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, displayName: true, username: true, cueverseId: true, ratingSnapshot: true, kickedOut: true, playoffIncluded: true, qualification: true } })
   const entById = new Map(entrants.map((e) => [e.id, e]))
 
   const rows = standings
@@ -56,28 +56,32 @@ export async function loadSeasonSeeding(seasonId: number): Promise<SeasonSeedRow
         rating: e.ratingSnapshot ?? 1500,
         included: e.playoffIncluded,
         qualification: e.qualification,
-        manualSeed: e.playoffSeed,
         kicked: e.kickedOut,
       }
     })
     .filter((r): r is NonNullable<typeof r> => !!r)
 
-  // Seeding is a SUGGESTION, not a rule. Group finish gives a sensible default order, but a season
-  // being reconstructed from an archive was seeded however it was seeded at the time, so an explicit
-  // `playoffSeed` always wins. Anyone without one falls in behind, in the default order.
-  const tierOf = (r: (typeof rows)[number]) => (r.qualification === 'WILDCARD' ? 4 : r.groupPosition)
-  const included = rows.filter((r) => r.included && !r.kicked)
-  included.sort((a, b) => {
-    const am = a.manualSeed, bm = b.manualSeed
-    if (am != null && bm != null) return am - bm
-    if (am != null) return -1
-    if (bm != null) return 1
-    return tierOf(a) - tierOf(b) || b.points - a.points || b.winPct - a.winPct || b.rating - a.rating || a.entrantId - b.entrantId
-  })
-  const seedByEntrant = new Map(included.map((r, i) => [r.entrantId, i + 1]))
+  // Seeding is dictated by the GROUP RESULTS and by nothing else.
+  //
+  // It is computed across every eligible entrant, not just the ones picked for the bracket, so
+  // choosing who plays cannot move anybody's seed — drop the number 3 seed and the number 4 seed is
+  // still the number 4 seed. Order is group finish, then points, then game win percentage, then name.
+  //
+  // Head-to-head does not appear here because it cannot: it only means something between two players
+  // in the SAME group, and `groupPosition` already has it applied — computeStandings settles a points
+  // tie on head-to-head before anything else.
+  const eligible = rows.filter((r) => !r.kicked)
+  eligible.sort((a, b) =>
+    a.groupPosition - b.groupPosition ||
+    b.points - a.points ||
+    b.winPct - a.winPct ||
+    (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0) ||
+    a.entrantId - b.entrantId)
+  const seedByEntrant = new Map(eligible.map((r, i) => [r.entrantId, i + 1]))
 
   return rows
-    .sort((a, b) => (seedByEntrant.get(a.entrantId) ?? 1e9) - (seedByEntrant.get(b.entrantId) ?? 1e9) || tierOf(a) - tierOf(b) || b.points - a.points)
+    // Kicked-out players have no seed, so they fall to the bottom in a stable, readable order.
+    .sort((a, b) => (seedByEntrant.get(a.entrantId) ?? 1e9) - (seedByEntrant.get(b.entrantId) ?? 1e9) || a.groupPosition - b.groupPosition || b.points - a.points)
     .map((r) => ({
       entrantId: r.entrantId,
       name: r.name,
@@ -179,8 +183,6 @@ export async function setSeasonPlayoffIncluded(
         playoffIncluded: included,
         qualification: included ? 'AUTOMATIC' : 'NOT_SELECTED',
         qualificationReason: null,
-        // Dropping someone releases their seed so the rest close up rather than leaving a hole.
-        ...(included ? {} : { playoffSeed: null }),
       },
     })
     await recordAudit(actor, {
@@ -215,8 +217,6 @@ export async function setSeasonPlayoffField(
         playoffIncluded: included,
         qualification: included ? 'AUTOMATIC' : 'NOT_SELECTED',
         qualificationReason: null,
-        // Clearing the field also clears the seeding; it is meaningless with nobody in it.
-        ...(included ? {} : { playoffSeed: null }),
       },
     })
     changed = res.count
@@ -227,36 +227,6 @@ export async function setSeasonPlayoffField(
     await invalidateDraft(tx, seasonId)
   })
   return { ok: true, changed }
-}
-
-/**
- * Write an explicit seed order over the whole included field.
- *
- * Seeding is never locked: the caller sends the order it wants and it is stored verbatim, so an
- * archived bracket can be reproduced exactly rather than being forced into what the group tables
- * imply.
- */
-export async function setSeasonSeedOrder(
-  actor: Actor,
-  seasonId: number,
-  orderedEntrantIds: number[],
-): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
-  if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'Seeding can only be changed during playoff setup.' }
-  const valid = new Set((await prisma.seasonEntrant.findMany({
-    where: { id: { in: orderedEntrantIds }, seasonId }, select: { id: true },
-  })).map((e) => e.id))
-  const order = orderedEntrantIds.filter((id) => valid.has(id))
-  if (order.length !== orderedEntrantIds.length) return { ok: false, error: 'That seeding refers to someone who is not in this Season.' }
-
-  await prisma.$transaction(async (tx) => {
-    for (const [i, id] of order.entries()) {
-      await tx.seasonEntrant.update({ where: { id }, data: { playoffSeed: i + 1 } })
-    }
-    await recordAudit(actor, { action: 'season.playoff.seed', entity: 'Season', entityId: seasonId, newValue: { seeds: order.length } }, tx)
-    await invalidateDraft(tx, seasonId)
-  })
-  return { ok: true }
 }
 
 /**

@@ -13,7 +13,7 @@
  */
 import { prisma } from '../src/lib/prisma.ts'
 import {
-  loadSeasonSeeding, enterSeasonPlayoffSetup, setSeasonPlayoffIncluded, setSeasonSeedOrder,
+  loadSeasonSeeding, enterSeasonPlayoffSetup, setSeasonPlayoffIncluded,
   setSeasonBracketSlot, generateSeasonBracket, setSeasonPlayoffField,
 } from '../src/lib/seasons/playoffs.ts'
 
@@ -101,23 +101,46 @@ async function main() {
   seeding = await loadSeasonSeeding(season.id)
   check('nobody is left in the field', seeding.every((r) => !r.included),
     `${seeding.filter((r) => r.included).length} still in`)
-  check('clearing the field also clears the seeding', seeding.every((r) => r.overallSeed == null))
+  // Seeds come from the group results, so clearing the field must NOT disturb them.
+  check('clearing the field leaves every seed intact', seeding.every((r) => r.overallSeed != null),
+    `${seeding.filter((r) => r.overallSeed == null).length} lost their seed`)
   const all = await setSeasonPlayoffField(actor, season.id, true)
   check('and re-selected in one go', all.ok, all.error)
   seeding = await loadSeasonSeeding(season.id)
   check('everyone is back in', seeding.filter((r) => r.included).length === 8)
   check('and seeded again', seeding.filter((r) => r.overallSeed != null).length === 8)
 
-  console.log('\n--- Seeding can be overwritten ---')
-  const reversed = [...entrants].reverse()
-  const seeded = await setSeasonSeedOrder(actor, season.id, reversed)
-  check('an explicit order is accepted', seeded.ok, seeded.error)
+  console.log('\n--- Seeding is dictated by the group results ---')
+  // The point of this block: choosing the playoff field must not move anybody's seed.
   seeding = await loadSeasonSeeding(season.id)
-  const order = seeding.filter((r) => r.included).sort((a, b) => a.overallSeed! - b.overallSeed!).map((r) => r.entrantId)
-  check('the manual order wins over group finish', JSON.stringify(order) === JSON.stringify(reversed),
-    `got ${order.join(',')}`)
-  check('the player who finished LAST is now seed 1',
-    seeding.find((r) => r.entrantId === entrants[7])?.overallSeed === 1)
+  const seedOf = (id: number) => (loadedSeeding().find((r) => r.entrantId === id)?.overallSeed ?? null)
+  function loadedSeeding() { return seeding }
+  const before1 = seedOf(entrants[0])
+  const before5 = seedOf(entrants[4])
+  check('the group winner is seed 1', before1 === 1, `got ${before1}`)
+
+  await setSeasonPlayoffIncluded(actor, season.id, entrants[0], false)
+  seeding = await loadSeasonSeeding(season.id)
+  check('dropping the top seed does NOT renumber anyone else', seedOf(entrants[4]) === before5,
+    `seed 5 became ${seedOf(entrants[4])}`)
+  check('the excluded player keeps their seed', seedOf(entrants[0]) === before1,
+    `it became ${seedOf(entrants[0])}`)
+  check('they are simply out of the field', seeding.find((r) => r.entrantId === entrants[0])?.included === false)
+  await setSeasonPlayoffIncluded(actor, season.id, entrants[0], true)
+  seeding = await loadSeasonSeeding(season.id)
+  check('and putting them back changes nothing either', seedOf(entrants[0]) === before1 && seedOf(entrants[4]) === before5)
+
+  console.log('\n--- Points: 2 a win, 1 a tie, 1 for completing the group ---')
+  const { computeStandings } = await import('../src/lib/competition/standings.ts')
+  const roster = [1, 2, 3].map((n) => ({ registrationId: n, username: `p${n}` }))
+  const table = computeStandings(roster, [
+    { homeRegistrationId: 1, awayRegistrationId: 2, homeUsername: 'p1', awayUsername: 'p2', homeGames: 7, awayGames: 3, winnerRegistrationId: 1 },
+    { homeRegistrationId: 1, awayRegistrationId: 3, homeUsername: 'p1', awayUsername: 'p3', homeGames: 5, awayGames: 5, winnerRegistrationId: null },
+  ], 2)
+  const p1row = table.find((r) => r.registrationId === 1)!
+  check('a win and a tie with a full slate scores 2 + 1 + 1 = 4', p1row.points === 4, `got ${p1row.points}`)
+  const p3row = table.find((r) => r.registrationId === 3)!
+  check('a single tie without the full slate scores 1', p3row.points === 1, `got ${p3row.points}`)
 
   console.log('\n--- The generated bracket can be rearranged ---')
   const gen = await generateSeasonBracket(actor, season.id)
