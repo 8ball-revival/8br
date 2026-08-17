@@ -14,7 +14,7 @@
 import { prisma } from '../src/lib/prisma.ts'
 import {
   loadSeasonSeeding, enterSeasonPlayoffSetup, setSeasonPlayoffIncluded,
-  setSeasonBracketSlot, generateSeasonBracket, setSeasonPlayoffField,
+  setSeasonBracketSlot, swapSeasonBracketSlots, generateSeasonBracket, setSeasonPlayoffField,
 } from '../src/lib/seasons/playoffs.ts'
 
 let pass = 0, fail = 0
@@ -171,6 +171,35 @@ async function main() {
     `${occupancy.length} slots, ${new Set(occupancy).size} distinct`)
   check('nobody was dropped', new Set(occupancy).size === new Set(
     before.flatMap((m) => [m.homeEntrantId, m.awayEntrantId]).filter((x): x is number => x != null)).size)
+
+  console.log('\n--- Click one slot, click another, they swap ---')
+  const s1 = { matchId: before[0].id, side: 'home' as const }
+  const s2 = { matchId: before[2].id, side: 'away' as const }
+  const cur = await prisma.seasonPlayoffMatch.findMany({ where: { seasonId: season.id }, select: { id: true, homeEntrantId: true, awayEntrantId: true } })
+  const at = (m: { matchId: number; side: 'home' | 'away' }) => {
+    const row = cur.find((r) => r.id === m.matchId)!
+    return m.side === 'home' ? row.homeEntrantId : row.awayEntrantId
+  }
+  const was1 = at(s1), was2 = at(s2)
+  const sw = await swapSeasonBracketSlots(actor, season.id, s1, s2)
+  check('two slots swap', sw.ok, sw.error)
+  const now = await prisma.seasonPlayoffMatch.findMany({ where: { seasonId: season.id }, select: { id: true, homeEntrantId: true, awayEntrantId: true } })
+  const nowAt = (m: { matchId: number; side: 'home' | 'away' }) => {
+    const row = now.find((r) => r.id === m.matchId)!
+    return m.side === 'home' ? row.homeEntrantId : row.awayEntrantId
+  }
+  check('the first slot now holds the second player', nowAt(s1) === was2)
+  check('the second slot now holds the first player', nowAt(s2) === was1)
+  const occ2 = now.flatMap((m) => [m.homeEntrantId, m.awayEntrantId]).filter((x): x is number => x != null)
+  check('a swap duplicates nobody', new Set(occ2).size === occ2.length)
+
+  console.log('\n--- Placement locks once the bracket is published ---')
+  await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFFS_LIVE' } })
+  const late = await swapSeasonBracketSlots(actor, season.id, s1, s2)
+  check('swapping is refused after publication', !late.ok, 'it was allowed')
+  const lateSet = await setSeasonBracketSlot(actor, season.id, before[0].id, 'home', entrants[1])
+  check('assigning a slot is refused after publication', !lateSet.ok, 'it was allowed')
+  await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFF_SETUP' } })
 
   console.log('\n--- A decided tie is protected ---')
   await prisma.seasonPlayoffMatch.update({ where: { id: first.id }, data: { status: 'COMPLETED', homeGames: 9, awayGames: 3 } })

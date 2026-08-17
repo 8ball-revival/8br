@@ -230,6 +230,66 @@ export async function setSeasonPlayoffField(
 }
 
 /**
+ * Swap the occupants of two bracket slots.
+ *
+ * This is what "move Luis onto Alexander" actually means: both slots keep an occupant and nobody is
+ * duplicated or lost. Either slot may be empty, in which case the player simply moves across.
+ *
+ * Only while the bracket is still a draft — see setSeasonBracketSlot for why.
+ */
+export async function swapSeasonBracketSlots(
+  actor: Actor,
+  seasonId: number,
+  a: { matchId: number; side: 'home' | 'away' },
+  b: { matchId: number; side: 'home' | 'away' },
+): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (s?.lifecycleState !== 'PLAYOFF_SETUP') {
+    return { ok: false, error: 'The bracket is published — playoff placement can no longer be changed.' }
+  }
+  if (a.matchId === b.matchId && a.side === b.side) return { ok: true }
+
+  const [ma, mb] = await Promise.all([
+    prisma.seasonPlayoffMatch.findFirst({ where: { id: a.matchId, seasonId } }),
+    prisma.seasonPlayoffMatch.findFirst({ where: { id: b.matchId, seasonId } }),
+  ])
+  if (!ma || !mb) return { ok: false, error: 'Bracket match not found.' }
+  if (ma.status === 'COMPLETED' || mb.status === 'COMPLETED') {
+    return { ok: false, error: 'That tie already has a result — clear it before moving players.' }
+  }
+
+  const read = (m: typeof ma, side: 'home' | 'away') =>
+    side === 'home'
+      ? { entrantId: m.homeEntrantId, username: m.homeUsername, seed: m.homeSeed }
+      : { entrantId: m.awayEntrantId, username: m.awayUsername, seed: m.awaySeed }
+  const write = (side: 'home' | 'away', v: { entrantId: number | null; username: string | null; seed: number | null }) =>
+    side === 'home'
+      ? { homeEntrantId: v.entrantId, homeUsername: v.username, homeSeed: v.seed }
+      : { awayEntrantId: v.entrantId, awayUsername: v.username, awaySeed: v.seed }
+
+  const va = read(ma, a.side)
+  const vb = read(mb, b.side)
+
+  await prisma.$transaction(async (tx) => {
+    if (a.matchId === b.matchId) {
+      // Both slots are the same tie — one update carries both sides.
+      await tx.seasonPlayoffMatch.update({
+        where: { id: a.matchId },
+        data: { ...write(a.side, vb), ...write(b.side, va) },
+      })
+    } else {
+      await tx.seasonPlayoffMatch.update({ where: { id: a.matchId }, data: write(a.side, vb) })
+      await tx.seasonPlayoffMatch.update({ where: { id: b.matchId }, data: write(b.side, va) })
+    }
+    await recordAudit(actor, {
+      action: 'season.playoff.swap', entity: 'Season', entityId: seasonId,
+      newValue: { a, b, moved: [va.entrantId, vb.entrantId] },
+    }, tx)
+  })
+  return { ok: true }
+}
+
+/**
  * Put a player into a bracket slot, after the bracket has been generated.
  *
  * If they already occupy another slot the two SWAP, which is what moving someone in a bracket
@@ -244,8 +304,10 @@ export async function setSeasonBracketSlot(
   entrantId: number | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
-  if (s?.lifecycleState !== 'PLAYOFF_SETUP' && s?.lifecycleState !== 'PLAYOFFS_LIVE') {
-    return { ok: false, error: 'The bracket can only be rearranged during playoff setup or while playoffs are live.' }
+  // Placement is fixed at publication. Once the bracket is public, who plays whom is part of the
+  // record; corrections after that are results, not reshuffles.
+  if (s?.lifecycleState !== 'PLAYOFF_SETUP') {
+    return { ok: false, error: 'The bracket is published — playoff placement can no longer be changed.' }
   }
   const target = await prisma.seasonPlayoffMatch.findFirst({ where: { id: matchId, seasonId } })
   if (!target) return { ok: false, error: 'Bracket match not found.' }

@@ -191,6 +191,16 @@ export async function setSeasonPlayoffFieldAction(seasonId: number, included: bo
   revalidateSeason(await seasonNumberOf(seasonId))
   return { ok: true, message: included ? `Added ${r.changed} player(s).` : `Cleared ${r.changed} player(s).` }
 }
+export async function swapSeasonBracketSlotsAction(
+  seasonId: number,
+  a: { matchId: number; side: 'home' | 'away' },
+  b: { matchId: number; side: 'home' | 'away' },
+): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await po.swapSeasonBracketSlots(actor, seasonId, a, b)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Swapped.' }
+}
 export async function setSeasonBracketSlotAction(seasonId: number, matchId: number, side: 'home' | 'away', entrantId: number | null): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonBracketSlot(actor, seasonId, matchId, side, entrantId)

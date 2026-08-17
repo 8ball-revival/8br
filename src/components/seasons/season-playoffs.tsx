@@ -10,7 +10,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { BracketRound } from '@/lib/tournaments/service'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
 import {
-  setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, setSeasonBracketSlotAction,
+  setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, swapSeasonBracketSlotsAction,
   setSeasonPlayoffTypeAction, generateSeasonBracketAction,
   startSeasonPlayoffsAction, closeSeasonAction,
 } from '@/lib/seasons/actions'
@@ -34,6 +34,8 @@ export function SeasonPlayoffs({
   const confirm = useConfirm()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  /** The slot picked up for a swap, if any. */
+  const [picked, setPicked] = useState<{ matchId: number; side: 'home' | 'away' } | null>(null)
   const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
     start(async () => { const r = await fn(); setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' }); router.refresh() })
 
@@ -83,51 +85,39 @@ export function SeasonPlayoffs({
 
       {canManage && hasDraft && rounds.length > 0 && (
         <div className="rounded-lg border border-brand/30 bg-card/40 p-4">
-          <p className="eyebrow mb-3 text-muted-foreground">Draft bracket (private preview)</p>
-          <div className="w-full"><Bracket rounds={rounds} fluid /></div>
-
-          {/* Generated seeding is a starting point, not a verdict. Any slot can be reassigned; picking
-              someone who already sits elsewhere swaps the two, so nobody is duplicated or dropped. */}
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-foreground">Rearrange the bracket</summary>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choosing a player who is already in another tie swaps them over. Ties that already have a
-              result cannot be changed here.
+          <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <p className="eyebrow text-muted-foreground">Draft bracket (private preview)</p>
+            <p className="text-xs text-muted-foreground">
+              {picked
+                ? 'Now click the slot to swap it with — or click it again to cancel.'
+                : 'Click a player, then click another slot to swap them.'}
             </p>
-            <div className="mt-3 space-y-4">
-              {rounds.map((rd) => (
-                <div key={rd.name}>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand">{rd.name}</p>
-                  <div className="mt-1.5 space-y-1.5">
-                    {rd.matches.filter((m) => m.id != null).map((m, mi) => (
-                      <div key={m.id} className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="w-8 shrink-0 text-muted-foreground">#{mi + 1}</span>
-                        {(['home', 'away'] as const).map((side) => (
-                          <select
-                            key={side}
-                            aria-label={`${rd.name} match ${mi + 1} ${side} player`}
-                            disabled={pending}
-                            value={entrantIdFor(seeding, side === 'home' ? m.a?.name : m.b?.name) ?? ''}
-                            onChange={(e) => run(() => setSeasonBracketSlotAction(
-                              seasonId, m.id!, side, e.target.value === '' ? null : Number(e.target.value),
-                            ))}
-                            className="min-w-[9rem] rounded border border-input bg-card px-1.5 py-1"
-                          >
-                            <option value="">&mdash; empty &mdash;</option>
-                            {seeding.filter((r) => r.included).map((r) => (
-                              <option key={r.entrantId} value={r.entrantId}>
-                                {r.overallSeed ? `${r.overallSeed}. ` : ''}{r.name}
-                              </option>
-                            ))}
-                          </select>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
+            {picked && (
+              <button type="button" onClick={() => setPicked(null)} className="text-xs text-brand hover:underline">
+                Cancel
+              </button>
+            )}
+          </div>
+          <div className="w-full">
+            <Bracket
+              rounds={rounds}
+              fluid
+              swap={{
+                selected: picked,
+                pick: (matchId, side) => {
+                  // First click picks a slot up; the second swaps the two and clears the selection.
+                  if (!picked) { setPicked({ matchId, side }); return }
+                  if (picked.matchId === matchId && picked.side === side) { setPicked(null); return }
+                  const from = picked
+                  setPicked(null)
+                  run(() => swapSeasonBracketSlotsAction(seasonId, from, { matchId, side }))
+                },
+              }}
+            />
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Placement is locked once the bracket is published.
+          </p>
         </div>
       )}
 
@@ -206,8 +196,3 @@ function Toast({ msg }: { msg: { ok: boolean; text: string } }) {
 }
 
 
-/** The entrant behind a bracket slot's displayed name, so a slot can preselect its current player. */
-function entrantIdFor(rows: { entrantId: number; name: string }[], name: string | undefined): number | null {
-  if (!name || name === 'Bye' || name === 'TBD') return null
-  return rows.find((r) => r.name === name)?.entrantId ?? null
-}

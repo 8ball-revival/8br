@@ -9,6 +9,16 @@ import { TeamName } from './team-popover'
 
 /** Optional admin inline-edit API for the SEASON live playoff bracket. Tournaments never pass this,
  *  so their brackets stay read-only and unchanged. */
+/**
+ * Click-to-swap on a DRAFT bracket. Click one slot to pick it up, click another to swap the two.
+ *
+ * Optional everywhere: tournaments and published season brackets pass nothing and stay read-only.
+ */
+export interface BracketSwapApi {
+  selected: { matchId: number; side: 'home' | 'away' } | null
+  pick(matchId: number, side: 'home' | 'away'): void
+}
+
 export interface BracketEditApi {
   draft(matchId: number): { home: string; away: string }
   set(matchId: number, side: 'home' | 'away', value: string): void
@@ -18,17 +28,27 @@ export interface BracketEditApi {
   save(matchId: number): void
 }
 
-function Slot({ slot, won, dim, edit, matchId, side }: { slot?: BracketSlot; won?: boolean; dim?: boolean; edit?: BracketEditApi; matchId?: number; side?: 'home' | 'away' }) {
+function Slot({ slot, won, dim, edit, swap, matchId, side }: { slot?: BracketSlot; won?: boolean; dim?: boolean; edit?: BracketEditApi; swap?: BracketSwapApi; matchId?: number; side?: 'home' | 'away' }) {
   const label = slot?.name ?? 'TBD'
   const hasMembers = !!slot?.members?.length
   const editable = !!edit && matchId != null && side != null && !!slot?.name && slot.name !== 'Bye'
+  const swappable = !!swap && matchId != null && side != null && slot?.name !== 'Bye'
+  const picked = !!swap?.selected && swap.selected.matchId === matchId && swap.selected.side === side
   return (
     <div
+      role={swappable ? 'button' : undefined}
+      tabIndex={swappable ? 0 : undefined}
+      aria-pressed={swappable ? picked : undefined}
+      title={swappable ? (picked ? 'Click another slot to swap' : `Move ${slot?.name ?? 'this slot'}`) : undefined}
+      onClick={swappable ? () => swap!.pick(matchId!, side!) : undefined}
+      onKeyDown={swappable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swap!.pick(matchId!, side!) } } : undefined}
       className={cn(
         'flex items-center gap-2 px-2.5 py-2',
         won && 'bracket-winner-row',
         dim && 'bracket-loser-row',
         !slot?.name && 'text-muted-foreground',
+        swappable && 'cursor-pointer hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
+        picked && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_16%,transparent)]',
       )}
     >
       {slot?.seed != null && (
@@ -104,7 +124,7 @@ function Slot({ slot, won, dim, edit, matchId, side }: { slot?: BracketSlot; won
   )
 }
 
-export function MatchBox({ match, edit }: { match: BracketMatch; edit?: BracketEditApi }) {
+export function MatchBox({ match, edit, swap }: { match: BracketMatch; edit?: BracketEditApi; swap?: BracketSwapApi }) {
   // Editable only when this is a real, both-sides-known Season playoff matchup.
   const bothKnown = !!match.a?.name && match.a.name !== 'Bye' && !!match.b?.name && match.b.name !== 'Bye'
   const canEdit = !!edit && match.id != null && bothKnown
@@ -117,9 +137,9 @@ export function MatchBox({ match, edit }: { match: BracketMatch; edit?: BracketE
       {/* Frame is transparent (no card fill): only the WINNER row paints a dark background; the loser
           row stays see-through to the page. */}
       <div className="overflow-hidden rounded-md border border-border">
-        <Slot slot={match.a} won={match.winner === 'a'} dim={match.winner === 'b'} edit={canEdit ? edit : undefined} matchId={matchId} side="home" />
+        <Slot slot={match.a} won={match.winner === 'a'} dim={match.winner === 'b'} edit={canEdit ? edit : undefined} swap={swap} matchId={matchId} side="home" />
         <div className="h-px bg-border" />
-        <Slot slot={match.b} won={match.winner === 'b'} dim={match.winner === 'a'} edit={canEdit ? edit : undefined} matchId={matchId} side="away" />
+        <Slot slot={match.b} won={match.winner === 'b'} dim={match.winner === 'a'} edit={canEdit ? edit : undefined} swap={swap} matchId={matchId} side="away" />
       </div>
       {canEdit && (dirty || err) && (
         <div className="mt-1 flex items-center justify-between gap-2">
@@ -149,6 +169,7 @@ export function Bracket({
   currentRound,
   fluid = false,
   edit,
+  swap,
 }: {
   rounds: BracketRound[]
   currentRound?: string
@@ -157,6 +178,8 @@ export function Bracket({
   fluid?: boolean
   /** SEASON live playoffs only: enables admin inline score entry per matchup. */
   edit?: BracketEditApi
+  /** SEASON draft bracket only: click one slot then another to swap them. */
+  swap?: BracketSwapApi
 }) {
   return (
     <div className="scrollbar-themed overflow-x-auto pb-2">
@@ -175,7 +198,7 @@ export function Bracket({
               <div className={cn('bkt-body', !isLast && 'bkt-feeds', !isFirst && 'bkt-receives')}>
                 {round.matches.map((m, mi) => (
                   <div key={mi} className="bkt-cell">
-                    <MatchBox match={m} edit={edit} />
+                    <MatchBox match={m} edit={edit} swap={swap} />
                   </div>
                 ))}
               </div>
