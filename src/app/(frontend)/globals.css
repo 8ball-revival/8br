@@ -469,6 +469,11 @@
    size before the control has mounted.
    --------------------------------------------------------------------------- */
 :root {
+  /* Height of the global site header (h-16 plus its 1px bottom border). The Season control bar
+     clamps to this, so the value must be right on the FIRST paint — a JS-measured offset would
+     leave the bar at top:0 until hydration and briefly overlap the nav. Script refines it from the
+     real element afterwards, which only matters if the header wraps at some width. */
+  --site-header-h: calc(4rem + 1px);
   --season-zoom: 1;
   --season-cell-w: calc(3.9rem * var(--season-zoom));
   --season-cell-h: calc(2.15rem * var(--season-zoom));

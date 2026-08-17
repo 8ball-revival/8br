@@ -8,10 +8,12 @@ import { getSeasonGroupSetup, getSeasonGroupStage } from '@/lib/seasons/views'
 import { loadSeasonSeeding, seasonPlayoffRounds, seasonChampion } from '@/lib/seasons/playoffs'
 import {
   getSeasonBrowseData, seasonNeighbours, seasonPlayoffParticipants, hasPublicPlayoffBracket,
+  getSeasonGlance,
 } from '@/lib/seasons/browse'
 import { searchSeasonEntrantsAction } from '@/lib/seasons/actions'
 import { SeasonControls } from '@/components/seasons/season-controls'
-import { SeasonHeadline, SeasonGroupsView, GroupsStillInProgress } from '@/components/seasons/season-presentation'
+import { SeasonGroupsView, GroupsStillInProgress } from '@/components/seasons/season-presentation'
+import { SeasonMasthead } from '@/components/seasons/season-masthead'
 import { SeasonRegistration } from '@/components/seasons/season-registration'
 import { SeasonGroupSetup } from '@/components/seasons/season-group-setup'
 import { SeasonGroupStage } from '@/components/seasons/season-group-stage'
@@ -68,13 +70,21 @@ export default async function SeasonPage({
     : false
 
   const state = view.lifecycleState
-  const [browse, neighbours, groups, qualified, bracketPublic] = await Promise.all([
+  const [browse, neighbours, groups, qualified, bracketPublic, glance] = await Promise.all([
     getSeasonBrowseData(competition),
     seasonNeighbours(number, competition),
     getSeasonGroupStage(view.id),
     seasonPlayoffParticipants(view.id),
     hasPublicPlayoffBracket(view.id, state),
+    getSeasonGlance(view.id, view.format.groupStageGames),
   ])
+
+  // The masthead's "View Playoffs" switches the same toggle the control bar drives, so it is built
+  // from the URL already on screen rather than a second source of truth.
+  const playoffsParams = new URLSearchParams()
+  if (competition) playoffsParams.set('competition', competition)
+  playoffsParams.set('view', 'playoffs')
+  const playoffsHref = `/seasons/${number}?${playoffsParams.toString()}`
 
   // Admins keep editing the group tables through the existing stage component; everyone else gets
   // the read-only matrix. Rendering both would show the same group twice.
@@ -96,36 +106,43 @@ export default async function SeasonPage({
         }}
       />
 
-      <div className="mx-auto w-full max-w-[120rem] px-3 pb-16 sm:px-5">
-        <div className="flex items-start justify-between gap-4">
-          <SeasonHeadline
-            competitionName={view.competition.name}
-            number={number}
-            year={view.year}
-            subtitle={view.subtitle}
-            state={state}
-            entrantsCount={view.entrantsCount}
-            groupCount={groups.length}
-            champion={
-              state === 'COMPLETED' && (view.championHandle || view.championName)
-                ? {
-                    cueverseId: view.championHandle,
-                    preferredName: view.championName,
-                    runnerUp: view.runnerUpHandle || view.runnerUpName,
-                    finalScore: view.finalScore,
-                  }
-                : null
-            }
-          />
-          {canManage && (
+      {/* Full bleed: only small responsive gutters, no centred cap, so the masthead and the tables
+          below it use the whole viewport. */}
+      <div className="w-full max-w-none px-3 pb-16 pt-4 sm:px-5">
+        <SeasonMasthead
+          competitionName={view.competition.name}
+          competitionShortName={view.competition.shortName}
+          number={number}
+          year={view.year}
+          subtitle={view.subtitle}
+          state={state}
+          glance={glance}
+          playoffsHref={playoffsHref}
+          champion={
+            // A champion is shown ONLY for a closed Season with a recorded winner. Anything earlier
+            // would be presenting a provisional leader as the champion.
+            state === 'COMPLETED' && (view.championHandle || view.championName)
+              ? {
+                  cueverseId: view.championHandle,
+                  preferredName: view.championName,
+                  runnerUpCueverseId: view.runnerUpHandle,
+                  runnerUpName: view.runnerUpName,
+                  finalScore: view.finalScore,
+                }
+              : null
+          }
+        />
+
+        {canManage && (
+          <div className="mt-3 flex justify-end">
             <Link
               href={`/seasons/${number}/settings`}
-              className="mt-8 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               <Settings2 className="size-4" /> Settings
             </Link>
-          )}
-        </div>
+          </div>
+        )}
 
         {view.description && <p className="mt-4 max-w-3xl text-sm text-muted-foreground">{view.description}</p>}
 

@@ -24,7 +24,13 @@ export async function SiteHeader() {
   const displayName = user ? (user.preferredName || user.cueverseId || user.username) : ''
   const cueverse = user ? (user.cueverseId || user.username) : ''
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70">
+    // `data-site-header` is the hook the Season control bar measures itself against, so a bar that
+    // clamps beneath this one tracks the REAL rendered height rather than a hardcoded guess that
+    // would drift the moment the header wraps or changes at a breakpoint.
+    <header
+      data-site-header
+      className="sticky top-0 z-50 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70"
+    >
       <div className="mx-auto flex h-16 w-full max-w-[96rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Logo

@@ -69,9 +69,18 @@ export function SeasonControls({
     return inYear.length ? Math.max(...inYear.map((s) => s.number)) : current.number
   }
 
+  // Clamped to the global header: same background, one hairline between them, and a sticky offset
+  // read from --site-header-h so the two rows travel as one unit from the first paint onwards.
+  useTrackSiteHeaderHeight()
+
   return (
-    <div className="sticky top-0 z-40 border-y border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-[120rem] px-3 sm:px-5">
+    <div
+      style={{ top: 'var(--site-header-h)' }}
+      className="sticky z-40 border-b border-nav-border bg-nav-bg/85 backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70"
+    >
+      <div className="w-full max-w-none px-3 sm:px-5">
+        {/* Wraps on narrow screens rather than overflowing, so the bar never detaches from the
+            header above it. */}
         <div className="flex flex-wrap items-end gap-2.5 py-2.5 sm:gap-3">
           <Field label="Competition" htmlFor="f-comp">
             <select
@@ -155,6 +164,34 @@ export function SeasonControls({
       </div>
     </div>
   )
+}
+
+
+/**
+ * Keep `--site-header-h` matching the global header's REAL rendered height.
+ *
+ * The stylesheet already carries a correct default, so this is a correction rather than the source
+ * of truth: it only matters when the header ends up a different height than the default assumes —
+ * a wrapped nav on a narrow screen, or a future change to its padding. A ResizeObserver keeps the
+ * two rows joined through any of that, at any width.
+ *
+ * Writing a CSS variable rather than React state is deliberate: the sticky offset then never
+ * depends on a render pass, so it cannot be briefly wrong while the page hydrates.
+ */
+function useTrackSiteHeaderHeight(): void {
+  useEffect(() => {
+    const header = document.querySelector<HTMLElement>('[data-site-header]')
+    if (!header) return
+    const apply = () => {
+      const h = Math.round(header.getBoundingClientRect().height)
+      document.documentElement.style.setProperty('--site-header-h', `${h}px`)
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(header)
+    window.addEventListener('resize', apply)
+    return () => { ro.disconnect(); window.removeEventListener('resize', apply) }
+  }, [])
 }
 
 const SELECT =

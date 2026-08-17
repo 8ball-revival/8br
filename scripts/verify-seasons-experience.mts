@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import {
   getSeasonBrowseData, newestSeasonNumber, seasonNeighbours, seasonPlayoffParticipants,
-  hasPublicPlayoffBracket, searchSeasonPlayers,
+  hasPublicPlayoffBracket, searchSeasonPlayers, getSeasonGlance,
 } from '../src/lib/seasons/browse.ts'
 import { transitionSeasonState } from '../src/lib/seasons/lifecycle.ts'
 
@@ -304,6 +304,110 @@ try {
     check('changing a control rewrites the URL', controls.includes('router.push') && controls.includes('/seasons/${seasonNumber}'))
     check('the Playoffs toggle is never disabled', !/aria-pressed[^>]*disabled/.test(controls))
     check('the landing page redirects to the newest Season', files[4][1].includes('redirect(`/seasons/'))
+  }
+
+  console.log('')
+  console.log('--- Season at a Glance is counted, never derived ---')
+  {
+    const s = await season(a, 970008, 2098, 'PLAYOFFS_LIVE')
+    const mk = async (n: string) => (await prisma.seasonEntrant.create({
+      data: { seasonId: s.id, username: n, cueverseId: n, status: 'APPROVED' }, select: { id: true },
+    })).id
+    const [g1, g2, g3] = [await mk('zzg1'), await mk('zzg2'), await mk('zzg3')]
+    const grp = await prisma.seasonGroup.create({
+      data: { seasonId: s.id, code: 'A', ordinal: 0, published: true }, select: { id: true },
+    })
+
+    const empty = await getSeasonGlance(s.id, 10)
+    check('a Season with no matches reports none', empty.totalMatches === 0, String(empty.totalMatches))
+    check('entrants are counted from the roster', empty.entrants === 3, String(empty.entrants))
+    check('groups are counted from published groups', empty.groups === 1, String(empty.groups))
+    check('games per match is the Season’s own setting', empty.gamesPerMatch === 10)
+
+    await prisma.seasonMatch.create({
+      data: { seasonId: s.id, groupId: grp.id, round: 1, homeEntrantId: g1, awayEntrantId: g2, homeUsername: 'zzg1', awayUsername: 'zzg2' },
+    })
+    await prisma.seasonMatch.create({
+      data: { seasonId: s.id, groupId: grp.id, round: 1, homeEntrantId: g1, awayEntrantId: g3, homeUsername: 'zzg1', awayUsername: 'zzg3' },
+    })
+    // A contested tie counts; a bye does not — nobody played it.
+    await prisma.seasonPlayoffMatch.create({
+      data: { seasonId: s.id, round: 1, slot: 0, homeEntrantId: g1, awayEntrantId: g2, homeUsername: 'zzg1', awayUsername: 'zzg2' },
+    })
+    await prisma.seasonPlayoffMatch.create({
+      data: { seasonId: s.id, round: 1, slot: 1, homeEntrantId: g3, awayEntrantId: null, homeUsername: 'zzg3', awayUsername: 'Bye' },
+    })
+
+    const filled = await getSeasonGlance(s.id, 10)
+    check('total matches counts group fixtures plus contested ties',
+      filled.totalMatches === 3, String(filled.totalMatches))
+    check('a bye is not counted as a match', filled.totalMatches !== 4)
+  }
+
+  console.log('')
+  console.log('--- The masthead, and the header it clamps to ---')
+  {
+    const mast = readFileSync('src/components/seasons/season-masthead.tsx', 'utf8')
+    const page = readFileSync('src/app/(frontend)/seasons/[seasonNumber]/page.tsx', 'utf8')
+    const controls = readFileSync('src/components/seasons/season-controls.tsx', 'utf8')
+    const header = readFileSync('src/components/site-header.tsx', 'utf8')
+    const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
+
+    check('the champion is a trophy, not the old diamond',
+      mast.includes('Trophy') && !mast.includes('Diamond'))
+    check('the trophy is drawn, never a raster image',
+      !/<img|\.png|\.jpe?g|\.webp/i.test(mast))
+    check('the trophy glow is built from the theme tokens',
+      /drop-shadow-\[[^"]*var\(--gold\)/.test(mast))
+    check('a champion shows only for a COMPLETED Season',
+      /state === 'COMPLETED' && \(view\.championHandle \|\| view\.championName\)/.test(page))
+    check('an unfinished Season says so instead',
+      mast.includes('Season In Progress') && mast.includes('STAGE_NOTE'))
+    check('the four glance cards are present',
+      ['Entrants', 'Groups', 'Games per Match', 'Total Matches'].every((l) => mast.includes(`'${l}'`)))
+    check('View Playoffs switches the view in the URL', page.includes("playoffsParams.set('view', 'playoffs')"))
+    check('the masthead spans the full width', page.includes('w-full max-w-none px-3'))
+    check('the old centred cap is gone from the Season page', !page.includes('max-w-[120rem]'))
+    check('one gold outer border, charcoal dividers inside',
+      /border border-\[color-mix\(in_oklch,var\(--gold-dim\)/.test(mast) && mast.includes('border-t border-border lg:border-l'))
+    check('the sections stack on narrow screens',
+      mast.includes('grid-cols-1 lg:grid-cols-'))
+
+    check('the global header is measurable', header.includes('data-site-header'))
+    check('the header sits above the clamped bar',
+      /z-50/.test(header) && /sticky z-40/.test(controls))
+    check('the control bar clamps to the header height variable',
+      controls.includes("top: 'var(--site-header-h)'"))
+    check('that variable has a correct default before any JS runs',
+      /--site-header-h: calc\(4rem \+ 1px\)/.test(css))
+    check('the default matches the header it measures', /h-16/.test(header))
+    check('script keeps the variable true to the rendered header',
+      controls.includes('ResizeObserver') && controls.includes('--site-header-h'))
+    check('exactly one border sits between the two rows',
+      controls.includes('border-b border-nav-border') && !controls.includes('border-y'))
+    check('both rows share the header background',
+      controls.includes('bg-nav-bg/85') && header.includes('bg-nav-bg/85'))
+    check('the controls wrap rather than break out of their row',
+      controls.includes('flex flex-wrap items-end'))
+
+    // The control order is part of the contract. Measured on where each control is USED in the
+    // render block — the helper components are declared further down the file, so a naive search for
+    // their definitions would read them out of order.
+    const render = controls.slice(controls.indexOf('<div className="flex flex-wrap items-end'))
+    const order: [string, string][] = [
+      ['Competition', 'label="Competition"'],
+      ['Year', 'label="Year"'],
+      ['Season', 'label="Season"'],
+      ['Player Search', '<PlayerSearch'],
+      ['Groups/Playoffs', 'label="View"'],
+      ['Zoom', '<Zoom />'],
+      ['Previous/Next', 'label="Previous season"'],
+    ]
+    const at = order.map(([, needle]) => render.indexOf(needle))
+    check('every control is present', at.every((i) => i >= 0), order.map(([n], i) => `${n}:${at[i]}`).join(' '))
+    check('the order is Competition, Year, Season, Search, Groups/Playoffs, Zoom, Prev/Next',
+      at.every((v, i) => i === 0 || at[i - 1] < v), at.join(','))
+    check('Next follows Previous', render.indexOf('label="Next season"') > at[at.length - 1])
   }
 
   console.log('')

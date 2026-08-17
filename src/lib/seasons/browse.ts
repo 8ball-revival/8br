@@ -216,3 +216,31 @@ export async function searchSeasonPlayers(seasonId: number, query: string, limit
       inPlayoffs: inPlayoffs.has(e.id),
     }))
 }
+
+export interface SeasonGlance {
+  entrants: number
+  groups: number
+  gamesPerMatch: number
+  /** Every real matchup this Season holds: group fixtures plus contested playoff ties. */
+  totalMatches: number
+}
+
+/**
+ * The "Season at a Glance" figures, counted from the rows the Season actually holds.
+ *
+ * `totalMatches` is a count, never a formula: an archived Season can have an irregular group stage,
+ * a withdrawal, or a bracket that does not halve cleanly, so anything derived from entrant counts
+ * would drift from what is really recorded. Byes and unfilled bracket slots are excluded — a player
+ * advancing unopposed did not play a match.
+ */
+export async function getSeasonGlance(seasonId: number, gamesPerMatch: number): Promise<SeasonGlance> {
+  const [entrants, groups, groupMatches, playoffMatches] = await Promise.all([
+    prisma.seasonEntrant.count({ where: { seasonId, status: { not: 'WITHDRAWN' } } }),
+    prisma.seasonGroup.count({ where: { seasonId, published: true } }),
+    prisma.seasonMatch.count({ where: { seasonId } }),
+    prisma.seasonPlayoffMatch.count({
+      where: { seasonId, homeEntrantId: { not: null }, awayEntrantId: { not: null } },
+    }),
+  ])
+  return { entrants, groups, gamesPerMatch, totalMatches: groupMatches + playoffMatches }
+}
