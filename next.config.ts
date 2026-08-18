@@ -8,6 +8,34 @@ const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
   images: {
+    /*
+      Media is served from /api/media/file/** and normally referenced with a relative path, which is
+      what localPatterns below allows. But once NEXT_PUBLIC_SITE_URL is configured, Payload returns
+      ABSOLUTE urls for uploads (https://8br.gg/api/media/file/...), and an absolute url is a REMOTE
+      one as far as the optimizer is concerned — localPatterns does not apply to it. With no
+      remotePatterns declared the optimizer refuses the request outright, and every next/image brand
+      asset renders as a broken image while the underlying file serves perfectly well on its own.
+
+      That is exactly what happened on the first production deploy: the header logo and the homepage
+      hero banner 400'd through /_next/image, while /api/media/file/8br-logo.png returned 200.
+
+      So the site's own origin is declared here too. It is derived from NEXT_PUBLIC_SITE_URL rather
+      than hardcoded, so staging and any future domain keep working without another edit.
+    */
+    remotePatterns: (() => {
+      const raw = process.env.NEXT_PUBLIC_SITE_URL
+      if (!raw) return []
+      try {
+        const url = new URL(raw)
+        return [{
+          protocol: url.protocol.replace(':', '') as 'http' | 'https',
+          hostname: url.hostname,
+          pathname: '/api/media/file/**',
+        }]
+      } catch {
+        return []
+      }
+    })(),
     localPatterns: [
       {
         pathname: '/api/media/file/**',
