@@ -2554,3 +2554,36 @@ model MediaUpload {
   @@index([filename])
   @@map("media_upload")
 }
+
+/// Site configuration as key/value rows.
+///
+/// Declared here because the production build reconciles the database with this schema using
+/// `prisma db push --accept-data-loss`. A table that exists in the database but NOT in this file is
+/// drift, and db push resolves drift by DROPPING it. This table holds the "Create an Account" mode
+/// and its registration code, so omitting it would have wiped the launch configuration on the first
+/// deploy — silently, because db push reports a dropped table as success.
+///
+/// The table itself is created by 20260818_140000_site_setting_and_registration_mode; this model
+/// exists so the schema and the database agree about it.
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("site_setting")
+}
+
+/// Failed registration-code attempts, for rate limiting.
+///
+/// Declared for the same reason as SiteSetting: undeclared tables are dropped by db push. Losing
+/// this one would be less damaging — it holds only recent failures — but it would silently reset
+/// every rate limit on each deploy.
+model RegistrationAttempt {
+  id         BigInt   @id @default(autoincrement())
+  clientHash String   @map("client_hash")
+  createdAt  DateTime @default(now())
+
+  // Named to match the index the migration created, so db push has nothing at all to do.
+  @@index([clientHash, createdAt], map: "registration_attempt_client_created_idx")
+  @@map("registration_attempt")
+}
