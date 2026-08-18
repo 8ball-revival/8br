@@ -3,6 +3,7 @@ import { ArrowRight, Clock, MessageSquare } from 'lucide-react'
 
 import { formatDate } from '@/lib/format'
 import type { HomeArticle } from '@/lib/home/news'
+import { ArticleFallback } from './article-fallback'
 
 /**
  * The Break, on the homepage.
@@ -11,22 +12,9 @@ import type { HomeArticle } from '@/lib/home/news'
  * shows an image surface whether or not the article has a cover, because a row where one card has a
  * picture and the next has a blank rectangle looks broken rather than sparse.
  *
- * The fallback is not invented artwork. It is the article's own initial and category rendered over
- * the site's existing felt-green field — built from CSS and the stored text, so nothing is
- * generated, hotlinked, or shown as a missing image.
+ * Where there is no cover, `ArticleFallback` supplies one from the site's own palette — see that file
+ * for why the categories are distinguished by an icon rather than by a coloured field.
  */
-
-const FALLBACK_GRADIENTS = [
-  'from-[#0b3d2c] via-[#07281d] to-[#04150f]',
-  'from-[#1b2a4a] via-[#111c33] to-[#080f1c]',
-  'from-[#3a2a10] via-[#241a0a] to-[#120d05]',
-  'from-[#2b1230] via-[#1b0b1f] to-[#0e0512]',
-] as const
-
-/** A stable choice of fallback field, so an article's card looks the same on every render. */
-function fallbackFor(article: HomeArticle): string {
-  return FALLBACK_GRADIENTS[article.id % FALLBACK_GRADIENTS.length]
-}
 
 function ImageSurface({
   article, priority, className,
@@ -47,18 +35,13 @@ function ImageSurface({
   }
 
   return (
-    <div
-      className={`${className} relative flex items-center justify-center overflow-hidden bg-gradient-to-br ${fallbackFor(article)}`}
-      // Decorative: the headline beside it already says what the article is.
-      aria-hidden
-    >
-      <span className="font-display text-5xl font-bold text-white/10 select-none">
-        {article.title.trim().charAt(0).toUpperCase()}
-      </span>
-      <span className="absolute bottom-2 right-3 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/25">
-        {article.categoryName ?? '8 Ball Registry'}
-      </span>
-    </div>
+    <ArticleFallback
+      title={article.title}
+      categorySlug={article.categorySlug}
+      categoryName={article.categoryName}
+      variant={priority ? 'feature' : 'thumb'}
+      className={className}
+    />
   )
 }
 
@@ -146,12 +129,15 @@ function EmptySlot({ variant }: { variant: 'feature' | 'secondary' }) {
         feature ? 'flex-col' : 'flex-col sm:flex-row',
       ].join(' ')}
     >
-      <div
+      <ArticleFallback
+        title="8"
+        categorySlug={null}
+        categoryName="8 Ball Registry"
+        variant={feature ? 'feature' : 'thumb'}
         className={[
-          'bg-gradient-to-br from-[#0b3d2c] via-[#07281d] to-[#04150f] opacity-40',
+          'opacity-60',
           feature ? 'h-48 w-full sm:h-64' : 'h-32 w-full shrink-0 sm:h-auto sm:w-40',
         ].join(' ')}
-        aria-hidden
       />
       <div className="flex flex-1 flex-col justify-center p-4">
         <p className="font-display text-base font-semibold text-muted-foreground">More to come</p>

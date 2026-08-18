@@ -9,7 +9,7 @@ import { getOnThisDayEvents } from '@/lib/stats/on-this-day'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
 import { NewsPanel } from '@/components/home/news-panel'
 import { Top10Panel } from '@/components/home/top10-panel'
-import { CueVersePromoCard, CueVerseTop5Card } from '@/components/home/cueverse-cards'
+import { CompetitionCenter } from '@/components/home/competition-center'
 import { RecentResultsCard } from '@/components/home/recent-results'
 import { getHomeNews } from '@/lib/home/news'
 import { getTop10, getTop10Options } from '@/lib/home/top10'
@@ -123,35 +123,34 @@ export default async function HomePage() {
       </section>
 
       {/*
-        Below the hero: the editorial area is the largest thing on the page, with the registry's own
-        Top 10 beside it. 68/32 on a large desktop, stacking to one column when that split would make
-        either side too narrow to read.
+        Below the hero: a main column and a sidebar, each packing its own sections tightly.
+
+        Each column packs its own sections, so the sidebar puts Recent Results directly under the
+        Top 10 rather than waiting for the taller main column to finish — which is what avoids the
+        large dead space a plain two-column grid leaves.
+
+        The `contents` wrappers plus explicit `order` are what let one markup serve both layouts. On a
+        phone the grid is a single column, the wrappers collapse, and all four sections become direct
+        grid items ordered 1-4: Competition Center, Top 10, News, Recent Results. From `lg` up each
+        wrapper becomes its own flex column and the same order values sort within it.
+
+        The order values are not decoration. `contents` flattens each wrapper's children as a block,
+        so document order alone gives Competition Center, News, Top 10, Recent Results — News above
+        the Top 10, which is not the required stacking.
       */}
       <section className="py-10 lg:py-12">
         <Wide>
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,68fr)_minmax(0,32fr)]">
-            <NewsPanel featured={news.featured} latest={news.latest} second={news.second} />
-            <Top10Panel options={top10Options} initial={top10} />
-          </div>
-        </Wide>
-      </section>
-
-      {/*
-        Three tiles of compatible height. items-stretch rather than per-card heights so they stay
-        level as their contents differ.
-      */}
-      <section aria-labelledby="competition-center-heading" className="border-t border-border py-10 lg:py-12">
-        <Wide>
-          <h2
-            id="competition-center-heading"
-            className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-brand"
-          >
-            Competition Center
-          </h2>
-          <div className="mt-4 grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <CueVersePromoCard />
-            <CueVerseTop5Card snapshot={cueverse} />
-            <RecentResultsCard results={results} />
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,68fr)_minmax(0,32fr)] lg:items-start">
+            <div className="contents lg:flex lg:flex-col lg:gap-10">
+              <div className="order-1 min-w-0"><CompetitionCenter snapshot={cueverse} /></div>
+              <div className="order-3 min-w-0">
+                <NewsPanel featured={news.featured} latest={news.latest} second={news.second} />
+              </div>
+            </div>
+            <div className="contents lg:flex lg:flex-col lg:gap-10">
+              <div className="order-2 min-w-0"><Top10Panel options={top10Options} initial={top10} /></div>
+              <div className="order-4 min-w-0"><RecentResultsCard results={results} /></div>
+            </div>
           </div>
         </Wide>
       </section>

@@ -16,28 +16,37 @@ import type { Top10Option, Top10Result, Top10Row } from '@/lib/home/top10'
  *
  * The panel renders server-provided rows for the visitor's saved mode, then swaps modes in place via
  * a Server Action. No navigation, no page reload, and no ranking logic in the browser.
+ *
+ * Presented as part of the page rather than as a floating tile: no card background, no enclosing
+ * border, no rounded shell. It sits on the page ground with a heading, a hairline under the control,
+ * and minimal row separators — the same way the rest of the homepage's sections read.
  */
 
 const STORAGE_KEY = '8br.top10.mode'
 
-/** Ranks 1–3 get metal accents; everything below is neutral so the top is what stands out. */
-function rankTreatment(rank: number): { row: string; badge: string } {
-  if (rank === 1) return { row: 'border-brand/30 bg-brand/[0.06]', badge: 'bg-brand/15 text-brand' }
-  if (rank === 2) return { row: 'border-border', badge: 'bg-[#c0c4cc]/15 text-[#c8ccd4]' }
-  if (rank === 3) return { row: 'border-border', badge: 'bg-[#b08d57]/15 text-[#c49a63]' }
-  return { row: 'border-border', badge: 'bg-muted text-muted-foreground' }
+/**
+ * Rank treatment.
+ *
+ * The accent lives on the rank badge, never as a fill across the whole row. A tinted first-place row
+ * read as a different sort of object from the nine beneath it, which is not what a leaderboard is
+ * saying. Gold, then silver, then bronze, then neutral.
+ */
+function rankBadge(rank: number): string {
+  if (rank === 1) return 'bg-brand/15 text-brand'
+  if (rank === 2) return 'bg-[#c0c4cc]/15 text-[#c8ccd4]'
+  if (rank === 3) return 'bg-[#b08d57]/15 text-[#c49a63]'
+  return 'bg-muted text-muted-foreground'
 }
 
 function Row({ row }: { row: Top10Row }) {
-  const treatment = rankTreatment(row.rank)
   // Preferred name leads, CueVerse ID beneath. With no preferred name the ID is the only line.
   const primary = row.name
   const secondary = row.handle && row.handle !== row.name ? row.handle : null
 
   return (
-    <li className={`flex items-center gap-3 border-b px-3 py-2 last:border-b-0 ${treatment.row}`}>
+    <li className="flex items-center gap-3 border-b border-border/60 py-2 last:border-b-0">
       <span
-        className={`inline-flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums ${treatment.badge}`}
+        className={`inline-flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums ${rankBadge(row.rank)}`}
       >
         {row.rank === 1 ? <Crown className="size-3.5" aria-hidden /> : row.rank}
       </span>
@@ -104,12 +113,12 @@ export function Top10Panel({
   const activeLabel = options.find((o) => o.value === mode)?.label ?? 'All Competitions'
 
   return (
-    <section
-      aria-labelledby="home-top10-heading"
-      className="flex min-w-0 flex-col rounded-lg border border-border bg-card/40"
-    >
-      <div className="border-b border-border p-4">
-        <h2 id="home-top10-heading" className="font-display text-sm font-bold uppercase tracking-[0.14em]">
+    <section aria-labelledby="home-top10-heading" className="flex min-w-0 flex-col">
+      <div className="border-b border-border pb-2">
+        <h2
+          id="home-top10-heading"
+          className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-brand"
+        >
           8 Ball Registry Top 10
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -122,7 +131,7 @@ export function Top10Panel({
           value={mode}
           disabled={pending}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-3 w-full rounded-md border border-input bg-card px-2.5 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/40"
+          className="mt-2.5 w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/40"
         >
           {groups.map((group) => {
             const items = options.filter((o) => o.group === group)
@@ -138,24 +147,24 @@ export function Top10Panel({
 
       <div className={`flex-1 ${pending ? 'opacity-60' : ''}`} aria-busy={pending}>
         {result.unavailable ? (
-          <div className="flex h-full flex-col justify-center gap-2 p-4">
+          <div className="flex h-full flex-col justify-center gap-2 py-4">
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <Info className="size-3.5" aria-hidden />Not available yet
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">{result.unavailable}</p>
           </div>
         ) : result.rows.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">
+          <p className="py-4 text-sm text-muted-foreground">
             No completed competitions have produced a ranking for this view yet.
           </p>
         ) : (
-          <ol className="divide-border">
+          <ol className="mt-1">
             {result.rows.map((row) => <Row key={`${row.rank}-${row.playerId ?? row.name}`} row={row} />)}
           </ol>
         )}
       </div>
 
-      <div className="border-t border-border p-3">
+      <div className="mt-2 border-t border-border pt-2.5">
         <Link
           href={result.href}
           className="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-sm text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"

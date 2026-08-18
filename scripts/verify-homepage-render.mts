@@ -15,7 +15,7 @@ import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared
 
 import { Top10Panel } from '../src/components/home/top10-panel.tsx'
 import { NewsPanel } from '../src/components/home/news-panel.tsx'
-import { CueVersePromoCard, CueVerseTop5Card } from '../src/components/home/cueverse-cards.tsx'
+import { CompetitionCenter } from '../src/components/home/competition-center.tsx'
 import { RecentResultsCard } from '../src/components/home/recent-results.tsx'
 import { ByTheNumbers } from '../src/components/home/by-the-numbers.tsx'
 import type { Top10Option, Top10Result } from '../src/lib/home/top10.ts'
@@ -102,6 +102,16 @@ section('Top 10 panel')
   check('...at the destination for this mode', html.includes('href="/seasons"'))
   check('players link to their profile', html.includes('/players/xlx_cerebro_xlx'))
   check('the metric is tabular so digits line up', html.includes('tabular-nums'))
+
+  // Embedded, not a floating tile.
+  check('there is no enclosing card background', !html.includes('bg-card/40'))
+  check('there is no rounded card shell around the panel', !/<section[^>]*rounded-lg/.test(html))
+  check('the first-place row has no brown or gold row fill', !html.includes('bg-brand/[0.06]'))
+  check('rows use minimal separators', html.includes('border-b border-border/60'))
+  check('the heading sits on the page as a gold kicker',
+    html.includes('uppercase tracking-[0.2em] text-brand'))
+  check('there is a restrained divider under the dropdown', html.includes('border-b border-border pb-2'))
+  check('the dropdown control is transparent, not a card', html.includes('bg-transparent'))
 }
 {
   const unavailable: Top10Result = {
@@ -157,9 +167,44 @@ section('News panel')
   const noCover = render(React.createElement(NewsPanel, {
     featured: article(1), latest: article(2), second: article(3),
   }))
-  check('an article with no cover still gets an image surface', noCover.includes('bg-gradient-to-br'))
+  check('an article with no cover still gets an image surface', noCover.includes('radial-gradient'))
   check('...and never a broken image element', !/<img[^>]*src=""/.test(noCover))
   check('the fallback is marked decorative', noCover.includes('aria-hidden'))
+
+  // The flat category-coloured blocks are gone.
+  for (const [name, hex] of [['green', '#0b3d2c'], ['blue', '#1b2a4a'], ['brown', '#3a2a10'], ['purple', '#2b1230']]) {
+    check(`the ${name} placeholder field is gone`, !noCover.includes(hex))
+  }
+  check('the fallback is black or near-black', noCover.includes('#0a0a0b'))
+  check('...with a charcoal panel', noCover.includes('#1a1a1d') || noCover.includes('#101012'))
+  check('...restrained gold accents', noCover.includes('rgba(201,162,39') || noCover.includes('border-brand/'))
+  check('...archive linework', noCover.includes('br-rule') && noCover.includes('pattern'))
+  check('...and a faint 8-ball watermark', /<text[^>]*>\s*8\s*<\/text>/.test(noCover))
+  check('the category is shown as an icon and a label, not a colour field',
+    noCover.includes('lucide') && /uppercase tracking-\[0\.\d+em\]/.test(noCover))
+
+  // Category icons are distinguishable without relying on a colour.
+  const predictions = render(React.createElement(NewsPanel, {
+    featured: article(1, { categorySlug: 'predictions', categoryName: 'Predictions' }),
+    latest: null, second: null,
+  }))
+  check('a predictions article gets the target icon', predictions.includes('lucide-target'))
+  const history = render(React.createElement(NewsPanel, {
+    featured: article(1, { categorySlug: 'history', categoryName: 'History' }), latest: null, second: null,
+  }))
+  check('a history article gets the archive icon', history.includes('lucide-archive'))
+  const community = render(React.createElement(NewsPanel, {
+    featured: article(1, { categorySlug: 'community', categoryName: 'Community' }), latest: null, second: null,
+  }))
+  check('a community article gets the people icon', community.includes('lucide-users'))
+  const analysis = render(React.createElement(NewsPanel, {
+    featured: article(1, { categorySlug: 'analysis', categoryName: 'Analysis' }), latest: null, second: null,
+  }))
+  check('an analysis article gets the chart icon', analysis.includes('lucide-chart-column'))
+  const unknown = render(React.createElement(NewsPanel, {
+    featured: article(1, { categorySlug: 'something-new', categoryName: 'Something New' }), latest: null, second: null,
+  }))
+  check('an unrecognised category falls back to the newspaper icon', unknown.includes('lucide-newspaper'))
 
   const mixed = render(React.createElement(NewsPanel, {
     featured: article(1, { coverMediaId: 'a.jpg' }),
@@ -172,72 +217,74 @@ section('News panel')
   const empty = render(React.createElement(NewsPanel, { featured: null, latest: null, second: null }))
   check('an empty position shows a neutral placeholder', empty.includes('More to come'))
   check('...and fabricates no headline', !empty.includes('headline'))
-  check('...while keeping an image surface so the layout holds', empty.includes('bg-gradient-to-br'))
+  check('...while keeping an image surface so the layout holds', empty.includes('radial-gradient'))
 }
 
-// =========================================================================== CueVerse
-section('CueVerse cards')
+// =========================================================================== Competition Center
+section('Competition Center (CueVerse)')
+
+const SNAPSHOT = {
+  fetchedAt: '2026-08-18T10:00:00.000Z',
+  sourceUpdatedAt: null,
+  playersOnline: 8,
+  tablesActive: 2,
+  stale: false,
+  ageHours: 2,
+  entries: [
+    { rank: 1, name: 'Crazy_One', rating: 2535, wins: 154, losses: 8, provisional: false },
+    { rank: 2, name: 'Stu', rating: 2116, wins: 920, losses: 509, provisional: false },
+    { rank: 3, name: 'Clutch-P', rating: 2037, wins: 180, losses: 123, provisional: false },
+    { rank: 4, name: 'fsm_brian', rating: 2027, wins: 288, losses: 58, provisional: false },
+    { rank: 5, name: 'Starkiller', rating: 1961, wins: 595, losses: 249, provisional: false },
+  ],
+}
 
 {
-  const html = render(React.createElement(CueVersePromoCard))
-  check('the card links to cueverse.gg', html.includes('href="https://cueverse.gg/"'))
-  check('it opens in a new tab', html.includes('target="_blank"'))
+  const html = render(React.createElement(CompetitionCenter, { snapshot: SNAPSHOT }))
+
+  check('the section is titled Competition Center', html.includes('Competition Center'))
+  check('the promotion links to cueverse.gg', html.includes('href="https://cueverse.gg/"'))
+  check('...opening in a new tab', html.includes('target="_blank"'))
   check('...safely', html.includes('rel="noopener noreferrer"'))
-  check('the official logo is served locally', html.includes('/assets/cueverse/cueverse-'))
-  check('...and not hotlinked from cueverse.gg', !html.includes('cueverse.gg/brand/'))
-  check('the wordmark carries the brand name as alt text', html.includes('alt="CueVerse"'))
-  check('the label copy is present', html.includes('Free online multiplayer pool'))
-  check('the heading copy is present', html.includes('Play 8 Ball Pool Online Free'))
-  check('the supporting copy is present', html.includes('Real-time multiplayer 8-ball and 9-ball pool'))
-  check('the call to action is present', html.includes('Continue Playing'))
+  check('the leaderboard link points at the leaderboard', html.includes('https://cueverse.gg/#leaderboard'))
   check('an external destination is announced to screen readers', html.includes('opens cueverse.gg in a new tab'))
-  check('the card uses CueVerse navy, not registry gold', html.includes('#0a1628'))
-  check('...with a teal accent', html.includes('#2fd4c7'))
-  check('it has a visible focus state', html.includes('focus-visible:ring-'))
-  check('image dimensions are given so nothing shifts', html.includes('width="399"') && html.includes('height="268"'))
-}
-{
-  const snapshot = {
-    fetchedAt: '2026-08-18T10:00:00.000Z',
-    sourceUpdatedAt: null,
-    playersOnline: 8,
-    tablesActive: 2,
-    stale: false,
-    ageHours: 2,
-    entries: [
-      { rank: 1, name: 'Crazy_One', rating: 2535, wins: 154, losses: 8, provisional: false },
-      { rank: 2, name: 'Stu', rating: 2116, wins: 920, losses: 509, provisional: false },
-      { rank: 3, name: 'Clutch-P', rating: 2037, wins: 180, losses: 123, provisional: false },
-      { rank: 4, name: 'fsm_brian', rating: 2027, wins: 288, losses: 58, provisional: false },
-      { rank: 5, name: 'Starkiller', rating: 1961, wins: 595, losses: 249, provisional: false },
-    ],
-  }
-  const html = render(React.createElement(CueVerseTop5Card, { snapshot }))
-  check('the title is CUEVERSE TOP 5', html.includes('CueVerse Top 5'))
-  check('the subtitle says these are in-game ratings', html.includes('Current in-game ratings'))
-  check('the update time is shown', html.includes('Updated'))
-  check('all five rows render', snapshot.entries.every((e) => html.includes(e.name)))
+
+  check('the official logo is served locally', html.includes('/assets/cueverse/cueverse-'))
+  check('...and not hotlinked', !html.includes('cueverse.gg/brand/'))
+  check('the wordmark carries the brand name as alt text', html.includes('alt="CueVerse"'))
+  check('logo dimensions are given so nothing shifts', html.includes('width="399"') && html.includes('height="268"'))
+
+  // The recolour: the panel must be in the site's palette, with no CueVerse chrome anywhere.
+  check('there is no navy card background', !html.includes('#0a1628'))
+  check('there is no cyan or teal accent colour', !html.includes('#2fd4c7'))
+  check('there is no CueVerse-blue border', !html.includes('#1d3a5c'))
+  check('no CueVerse-blue text colour survives', !html.includes('#9fb3cc') && !html.includes('#7e93ad'))
+  check('the headings use the site gold', html.includes('text-brand'))
+  check('the surfaces use the site card colour', html.includes('bg-card/40'))
+  check('the borders are the site neutral border', html.includes('border-border'))
+  check('the call to action is a gold action link', /text-brand[^"]*">\s*Continue Playing/.test(html)
+    || (html.includes('Continue Playing') && html.includes('text-brand')))
+
+  check('all five rows render', SNAPSHOT.entries.every((e) => html.includes(e.name)))
   check('ratings are shown', html.includes('2535'))
   check('the secondary statistic is shown', html.includes('154') && html.includes('920'))
-  check('the leaderboard link points at the CueVerse leaderboard', html.includes('https://cueverse.gg/#leaderboard'))
-  check('...opening safely in a new tab', html.includes('rel="noopener noreferrer"'))
-  check('no stale warning on a fresh snapshot', !html.includes('Last successful update'))
-  check('the card is visually distinct from the registry ranking', html.includes('#0a1628'))
+  check('rank emphasis is gold for first place', html.includes('bg-brand/15 text-brand'))
+  check('rows below first are neutral', html.includes('bg-muted text-muted-foreground'))
+  check('rows use the shared divider treatment', html.includes('divide-y divide-border'))
+  check('the update time is shown', html.includes('Updated'))
+  check('the subtitle says these are in-game ratings', html.includes('Current in-game ratings'))
+  check('the panel is labelled as external', html.includes('external'))
 }
 {
-  const stale = render(React.createElement(CueVerseTop5Card, {
-    snapshot: {
-      fetchedAt: '2026-08-10T10:00:00.000Z', sourceUpdatedAt: null, playersOnline: null, tablesActive: null,
-      stale: true, ageHours: 100,
-      entries: [{ rank: 1, name: 'Crazy_One', rating: 2535, wins: null, losses: null, provisional: false }],
-    },
+  const stale = render(React.createElement(CompetitionCenter, {
+    snapshot: { ...SNAPSHOT, stale: true, ageHours: 100, entries: [SNAPSHOT.entries[0]] },
   }))
   check('a stale snapshot is flagged', stale.includes('Last successful update'))
+  check('...using the site warning colour rather than a CueVerse one', stale.includes('text-warning'))
   check('...and still shows the data it has', stale.includes('Crazy_One'))
-  check('a row without a record omits it rather than inventing one', !stale.includes('null'))
 }
 {
-  const none = render(React.createElement(CueVerseTop5Card, { snapshot: null }))
+  const none = render(React.createElement(CompetitionCenter, { snapshot: null }))
   check('with no snapshot the card says it is unavailable', none.includes('unavailable right now'))
   check('...invents no players', !none.includes('<ol'))
   check('...and keeps the direct leaderboard link', none.includes('https://cueverse.gg/#leaderboard'))
