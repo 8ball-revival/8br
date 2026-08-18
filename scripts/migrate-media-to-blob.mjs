@@ -50,7 +50,9 @@ if (!hasToken && !DRY_RUN) {
 } else {
   const prisma = new PrismaClient()
   let blob = null
-  if (hasToken && !DRY_RUN) blob = await import('@vercel/blob')
+  // Imported whenever a token exists, including for a dry run: consulting the store is a read, and
+  // without it a dry run would claim it was going to upload files that are already present.
+  if (hasToken) blob = await import('@vercel/blob')
 
   try {
     // Payload's media collection is the authority on which files the application knows about. A file

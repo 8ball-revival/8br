@@ -1,0 +1,51 @@
+{
+  "ranAt": "2026-08-18T21:25:25.228Z",
+  "dryRun": true,
+  "note": "Filenames are stable and the application resolves media by filename through /api/media/file/<filename>, so no database value needs rewriting after this transfer.",
+  "counts": {
+    "discovered": 5,
+    "uploaded": 3,
+    "skipped": 2,
+    "missing": 0,
+    "failed": 0
+  },
+  "orphansOnDisk": [],
+  "problems": [],
+  "files": [
+    {
+      "filename": "8br-banner2.png",
+      "action": "skipped",
+      "bytes": 2257709,
+      "sha256": "0c441f61dd3dc6cad8b8dcf995d94f836d94c9da88acf9e3b04999e9c584d67f",
+      "reason": "already in Blob with a matching size"
+    },
+    {
+      "filename": "8br-logo.png",
+      "action": "skipped",
+      "bytes": 2654976,
+      "sha256": "1533abfa60dccd54b1b95106110ca7728db221d6ab96489fc4389345427f6109",
+      "reason": "already in Blob with a matching size"
+    },
+    {
+      "filename": "screenshot-2026-08-18-1120142-msyzn5ws0nz27k.png",
+      "action": "would-upload",
+      "bytes": 845379,
+      "sha256": "038d51f59b2af67e8d310fbf32432c282640db0ab76695083c59abf1a4e6c17e",
+      "contentType": "image/png"
+    },
+    {
+      "filename": "screenshot-2026-08-18-1120142-msyzou53d2daki.png",
+      "action": "would-upload",
+      "bytes": 845379,
+      "sha256": "038d51f59b2af67e8d310fbf32432c282640db0ab76695083c59abf1a4e6c17e",
+      "contentType": "image/png"
+    },
+    {
+      "filename": "screenshot-2026-08-18-1120142-msyzplhho8cydn.png",
+      "action": "would-upload",
+      "bytes": 845379,
+      "sha256": "038d51f59b2af67e8d310fbf32432c282640db0ab76695083c59abf1a4e6c17e",
+      "contentType": "image/png"
+    }
+  ]
+}

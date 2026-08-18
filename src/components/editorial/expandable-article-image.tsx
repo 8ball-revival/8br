@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Maximize2, Minus, Plus, RotateCcw, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -151,7 +152,20 @@ function Lightbox({ src, alt, caption, onClose }: {
     }
   }, [onClose])
 
-  return (
+  /*
+    Rendered into document.body rather than in place.
+
+    z-index alone was not enough. The dialog carries z-100 and the site header only z-50, but an
+    ancestor of the article creates its own stacking context, so the dialog's z-index was being
+    resolved INSIDE that context and the sticky header painted over it. The symptom was specific and
+    nasty: the image showed correctly, but the top strip of the dialog — the close button and every
+    zoom control — sat underneath the header, where elementFromPoint returned the header's container
+    and a real click never reached the button. Keyboard and Escape still worked, which is exactly why
+    a behavioural test passed while the thing was unusable with a mouse.
+
+    A portal moves the dialog out to the body, where its z-index competes with the header directly.
+  */
+  return createPortal((
     <div
       ref={dialogRef}
       role="dialog"
@@ -224,7 +238,7 @@ function Lightbox({ src, alt, caption, onClose }: {
         </p>
       )}
     </div>
-  )
+  ), document.body)
 }
 
 const LightboxButton = function LightboxButton({
