@@ -12,6 +12,8 @@ import { getModerationQueue, listAllArticles, getEditorialSettings } from '@/lib
 import { publishedWhere } from '@/lib/editorial/service'
 import { ModerationQueue } from '@/components/editorial/moderation-queue'
 import { EditorialSettingsForm } from '@/components/editorial/editorial-settings-form'
+import { CueVerseRefreshPanel } from '@/components/home/cueverse-refresh'
+import { readLatestSnapshot } from '@/lib/cueverse/service'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +47,7 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
   const search = (sp.q ?? '').trim()
   const page = Number.parseInt(sp.page ?? '1', 10) || 1
 
-  const [queue, listing, settings, candidates] = await Promise.all([
+  const [queue, listing, settings, candidates, cueverse] = await Promise.all([
     getModerationQueue(),
     listAllArticles({ state, search, page }),
     getEditorialSettings(),
@@ -55,6 +57,9 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
       take: 40,
       select: { id: true, title: true },
     }),
+    // Uncached read: an administrator looking at this page wants the current state, not a
+    // fifteen-minute-old copy of it.
+    readLatestSnapshot(),
   ])
 
   return (
@@ -139,6 +144,19 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
               showDiscussed: settings.showDiscussed,
             }}
             candidates={candidates}
+          />
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="mb-3 border-b border-border pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          External data
+        </h2>
+        <div className="max-w-2xl">
+          <CueVerseRefreshPanel
+            fetchedAt={cueverse?.fetchedAt ?? null}
+            entries={cueverse?.entries.length ?? 0}
+            stale={cueverse?.stale ?? false}
           />
         </div>
       </section>

@@ -7,7 +7,14 @@ import { getHomepageHero } from '@/lib/site-content/service'
 import { getRegistryStats } from '@/lib/stats/registry-stats'
 import { getOnThisDayEvents } from '@/lib/stats/on-this-day'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
-import { HomepageEditorial } from '@/components/editorial/homepage-editorial'
+import { NewsPanel } from '@/components/home/news-panel'
+import { Top10Panel } from '@/components/home/top10-panel'
+import { CueVersePromoCard, CueVerseTop5Card } from '@/components/home/cueverse-cards'
+import { RecentResultsCard } from '@/components/home/recent-results'
+import { getHomeNews } from '@/lib/home/news'
+import { getTop10, getTop10Options } from '@/lib/home/top10'
+import { getRecentResults } from '@/lib/home/results'
+import { getLatestSnapshot } from '@/lib/cueverse/service'
 import { pageMetadata, brandName } from '@/lib/site'
 
 // The hero is admin-managed: publishing must show up without a redeploy, so the page is rendered
@@ -50,12 +57,22 @@ const secondaryBtn =
  * responsive behaviour are not editable from the admin.
  */
 export default async function HomePage() {
-  // Fetched in parallel: the hero, the registry totals and today's historical results.
-  const [hero, stats, events] = await Promise.all([
+  // Everything the page needs, fetched together. Each of these is independently cached, so a busy
+  // homepage is a handful of cache reads rather than a dozen aggregate queries.
+  const [hero, stats, events, news, top10Options, results, cueverse] = await Promise.all([
     getHomepageHero(),
     getRegistryStats(),
     getOnThisDayEvents(),
+    getHomeNews(),
+    getTop10Options(),
+    getRecentResults(),
+    // Read from our own snapshot table. The homepage never calls CueVerse.
+    getLatestSnapshot(),
   ])
+
+  // The panel's default view. A device with a saved preference swaps to it after mount, which is why
+  // this is rendered rather than guessed at on the client — the first paint is real content.
+  const top10 = await getTop10('all-competitions')
 
   return (
     <>
@@ -105,9 +122,39 @@ export default async function HomePage() {
         </Wide>
       </section>
 
-      {/* The Break sits directly under the banner: what is happening now, before the standing
-          numbers. It renders nothing at all until something has been published. */}
-      <HomepageEditorial />
+      {/*
+        Below the hero: the editorial area is the largest thing on the page, with the registry's own
+        Top 10 beside it. 68/32 on a large desktop, stacking to one column when that split would make
+        either side too narrow to read.
+      */}
+      <section className="py-10 lg:py-12">
+        <Wide>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,68fr)_minmax(0,32fr)]">
+            <NewsPanel featured={news.featured} latest={news.latest} second={news.second} />
+            <Top10Panel options={top10Options} initial={top10} />
+          </div>
+        </Wide>
+      </section>
+
+      {/*
+        Three tiles of compatible height. items-stretch rather than per-card heights so they stay
+        level as their contents differ.
+      */}
+      <section aria-labelledby="competition-center-heading" className="border-t border-border py-10 lg:py-12">
+        <Wide>
+          <h2
+            id="competition-center-heading"
+            className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-brand"
+          >
+            Competition Center
+          </h2>
+          <div className="mt-4 grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <CueVersePromoCard />
+            <CueVerseTop5Card snapshot={cueverse} />
+            <RecentResultsCard results={results} />
+          </div>
+        </Wide>
+      </section>
 
       <ByTheNumbers stats={stats} events={events} />
     </>

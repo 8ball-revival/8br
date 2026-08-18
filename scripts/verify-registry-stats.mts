@@ -8,7 +8,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-registry-stats.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
-import { getOnThisDayEvents, initialsOf } from '../src/lib/stats/on-this-day.ts'
+import { computeOnThisDay, initialsOf } from '../src/lib/stats/on-this-day.ts'
 
 const OTD_FIXTURE = 'zzotd'
 
@@ -112,8 +112,35 @@ async function main() {
       UNION ALL SELECT "homeGames","awayGames" FROM "public"."comp_playoff_match" WHERE "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL) y`))
   check('Games Played', stats.gamesPlayed === games, `${stats.gamesPlayed} vs ${games}`)
 
-  const players = n(await prisma.$queryRawUnsafe(`SELECT count(DISTINCT "playerId") n FROM "public"."rating_ledger"`))
-  check('Players', stats.players === players, `${stats.players} vs ${players}`)
+  // Unique canonical participants, resolved through merges — the same rule the service applies:
+  // entering a competition is what makes somebody a participant, not having a rated match.
+  const players = n(await prisma.$queryRawUnsafe(`
+    SELECT count(*) n FROM (
+      SELECT DISTINCT coalesce(
+               'player:' || coalesce(pm."canonicalPlayerId", e."playerId"),
+               'name:' || lower(btrim(e."username"))
+             ) AS identity
+        FROM "public"."season_entrant" e
+        LEFT JOIN "public"."PlayerMerge" pm
+          ON pm."mergedPlayerId" = e."playerId" AND pm."status" = 'APPROVED'
+       WHERE e."playerId" IS NOT NULL OR btrim(coalesce(e."username", '')) <> ''
+      UNION
+      SELECT DISTINCT coalesce(
+               'player:' || coalesce(pm."canonicalPlayerId", r."playerId"),
+               'name:' || lower(btrim(r."username"))
+             )
+        FROM "public"."comp_registration" r
+        LEFT JOIN "public"."PlayerMerge" pm
+          ON pm."mergedPlayerId" = r."playerId" AND pm."status" = 'APPROVED'
+       WHERE r."playerId" IS NOT NULL OR btrim(coalesce(r."username", '')) <> ''
+    ) p`))
+  check('Players counts unique canonical participants', stats.players === players, `${stats.players} vs ${players}`)
+
+  // The ledger-derived figure is a lower bound: an entrant with no recorded match is a participant
+  // but has no ledger row. Asserting the relationship documents why the two differ.
+  const rated = n(await prisma.$queryRawUnsafe(`SELECT count(DISTINCT "playerId") n FROM "public"."rating_ledger"`))
+  check('Players is at least the number with a rated match', stats.players >= rated,
+        `${stats.players} participants, ${rated} with ledger rows`)
 
   const champs = n(await prisma.$queryRawUnsafe(`
     SELECT count(*) n FROM (
@@ -125,7 +152,12 @@ async function main() {
     SELECT count(DISTINCT lower(btrim(p."country"))) n FROM "public"."Player" p
     WHERE p."country" IS NOT NULL AND btrim(p."country") <> ''
       AND EXISTS (SELECT 1 FROM "public"."rating_ledger" r WHERE r."playerId" = p."id")`))
-  check('Countries', stats.countries === countries, `${stats.countries} vs ${countries}`)
+  // Countries is deliberately FIXED at 8 rather than derived — the one intentionally constant figure
+  // on the homepage. The derived count is still read above so the divergence is visible here rather
+  // than being a silent surprise if the instruction is ever revisited.
+  check('Countries is the fixed figure', stats.countries === 8, `${stats.countries}`)
+  check('Countries is not the derived count', countries !== stats.countries || countries === 8,
+        `derived ${countries}, shown ${stats.countries}`)
 
   console.log('\n--- Years of History ---')
   const since = n(await prisma.$queryRawUnsafe(`
@@ -145,7 +177,7 @@ async function main() {
   check('initials from a handle', initialsOf('sixohtwo') === 'SI')
   check('initials never blank', initialsOf(null) === '—')
 
-  const today = await getOnThisDayEvents()
+  const today = await computeOnThisDay()
   check('only returns earlier years', today.every((e) => e.year < new Date().getFullYear()))
   check('every event carries a stored description', today.every((e) => e.description.trim().length > 0))
 
@@ -166,7 +198,7 @@ async function main() {
     const src = new Date(row[0].d)
     const anniversary = new Date(src)
     anniversary.setFullYear(src.getFullYear() + 1)
-    const found = await getOnThisDayEvents(anniversary)
+    const found = await computeOnThisDay(anniversary)
     check('populated state: finds the anniversary of a real result', found.length > 0, `${found.length} event(s)`)
     if (found[0]) {
       check('describes a real scoreline', /\d+–\d+/.test(found[0].description), found[0].description)
@@ -177,7 +209,7 @@ async function main() {
     quiet.setFullYear(src.getFullYear() + 1)
     quiet.setDate(src.getDate() === 1 ? 2 : 1)
     quiet.setMonth(src.getMonth())
-    const none = await getOnThisDayEvents(quiet)
+    const none = await computeOnThisDay(quiet)
     check('empty state: a quiet date returns no events', Array.isArray(none))
   }
 

@@ -13,16 +13,46 @@ import type { RegistryStats } from '@/lib/stats/registry-stats'
 import type { OnThisDayEvent } from '@/lib/stats/on-this-day'
 import { OnThisDayCard } from './on-this-day-card'
 
-const HEADING = '8 BALL REGISTRY BY THE NUMBERS'
-const EMPTY_ON_THIS_DAY = 'No events recorded for this date yet'
-
 /**
  * "By the Numbers" + "On This Day", the closing block of the homepage.
  *
+ * One row on desktop: seven equal statistic cards and a double-width On This Day of exactly the same
+ * height. The equal widths come from an eight-column grid where On This Day spans two, so the tiles
+ * cannot drift apart as numbers get longer, and `items-stretch` makes every card adopt the row's
+ * height rather than each sizing to its own content.
+ *
+ * Below the desktop breakpoint the row scrolls horizontally instead of squeezing eight cards into
+ * unreadable slivers, and on a phone it becomes two columns with On This Day spanning both.
+ *
  * Every figure comes from the live competition database (see lib/stats/registry-stats.ts); nothing
- * here reads an archive file or a static total. Server-rendered, so the cards arrive filled in
- * rather than as seven client fetches.
+ * here reads an archive file or a static total. Server-rendered, so the cards arrive filled in.
  */
+
+const HEADING = '8 Ball Registry by the Numbers'
+
+/** Group separators make a five-figure total readable at a glance. */
+const format = (n: number): string => n.toLocaleString('en-US')
+
+function StatCard({
+  label, value, sub, Icon,
+}: { label: string; value: number; sub: string | null; Icon: typeof Crown }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-4 text-center">
+      <span
+        aria-hidden
+        className="inline-flex size-9 items-center justify-center rounded-full bg-brand/10 text-brand"
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className="font-display text-2xl font-bold leading-none tabular-nums">{format(value)}</span>
+      <span className="text-[0.6rem] font-semibold uppercase leading-tight tracking-[0.14em] text-muted-foreground">
+        {label}
+      </span>
+      {sub && <span className="text-[0.65rem] leading-none text-muted-foreground/80">{sub}</span>}
+    </div>
+  )
+}
+
 export function ByTheNumbers({
   stats,
   events,
@@ -46,28 +76,33 @@ export function ByTheNumbers({
   ]
 
   return (
-    <section className="border-t border-border py-12 lg:py-16">
+    <section aria-labelledby="by-the-numbers-heading" className="border-t border-border py-10 lg:py-12">
       <Wide>
-        <h2 className="font-display text-2xl font-bold uppercase tracking-tight text-foreground sm:text-3xl">
+        <h2
+          id="by-the-numbers-heading"
+          className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-brand"
+        >
           {HEADING}
         </h2>
 
-        {/* Stats grid beside the larger On This Day card on wide screens; stacked below it. */}
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:col-span-2 lg:grid-cols-3">
-            {cards.map(({ label, value, sub, Icon }) => (
-              <div key={label} className="rounded-xl border border-border bg-card p-4">
-                <Icon className="size-4 text-gold" aria-hidden />
-                <p className="mt-3 font-display text-2xl font-bold tabular-nums text-foreground sm:text-3xl">
-                  {value.toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
-                {sub && <p className="mt-0.5 text-[0.7rem] text-gold">{sub}</p>}
-              </div>
-            ))}
-          </div>
+        {/*
+          One row from the small breakpoint upward. The track minimums are what keep the cards
+          readable: nine tracks with a floor of 8.5rem (and 17rem for the double-width card) need
+          roughly 1320px, so anything narrower overflows and the container scrolls rather than
+          squeezing eight cards into slivers. `-mx-4 px-4` lets that scroll reach the edge of the
+          viewport instead of stopping inside the container's padding.
 
-          <OnThisDayCard events={events} emptyText={EMPTY_ON_THIS_DAY} />
+          A phone gets two columns instead, because a scrolling row of nine is not a thing to hand
+          somebody on a 390px screen.
+        */}
+        <div className="mt-4 -mx-4 overflow-x-auto px-4 pb-2 sm:pb-1 xl:mx-0 xl:overflow-visible xl:px-0 xl:pb-0">
+          <div className="grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:grid-cols-[repeat(7,minmax(8.5rem,1fr))_minmax(17rem,2fr)]">
+            {cards.map((c) => <StatCard key={c.label} {...c} />)}
+            {/* Both columns on a phone, two tracks of nine above that — always the same height. */}
+            <div className="col-span-2 sm:col-span-1">
+              <OnThisDayCard events={events} />
+            </div>
+          </div>
         </div>
       </Wide>
     </section>

@@ -2456,3 +2456,70 @@ model EditorialSettings {
 
   @@map("editorial_settings")
 }
+
+// ============================================================================
+// CueVerse leaderboard mirror
+//
+// A local copy of the public CueVerse top-5, refreshed on a schedule rather than
+// on demand. The homepage reads only from here, so a CueVerse outage, a slow
+// response or a markup change can never delay or break a page render.
+//
+// Only public leaderboard data is stored. Nothing here is joined to an 8 Ball
+// Registry player: the two identity spaces are deliberately separate, and
+// guessing that a CueVerse name is a particular member would be a claim the data
+// does not support.
+// ============================================================================
+
+/// One successful fetch of the CueVerse leaderboard. Snapshots accumulate so a
+/// bad import can be rolled back to the previous good one, and so the "updated"
+/// line on the homepage is a fact rather than an assumption.
+model CueVerseSnapshot {
+  id Int @id @default(autoincrement())
+
+  /// Which external service this came from. Present so a second provider could
+  /// be added later without the reader having to guess what a row means.
+  provider String @default("cueverse")
+
+  /// When this application successfully fetched it.
+  fetchedAt DateTime @default(now())
+  /// When the SOURCE says its data was current, when it tells us. Usually null.
+  sourceUpdatedAt DateTime?
+
+  /// Digest of the normalised entries. Lets a repeat fetch recognise that
+  /// nothing changed without comparing rows one by one.
+  checksum String?
+
+  /// The raw response, for diagnosing a shape change. Bounded before storage.
+  raw Json?
+
+  /// Live figures the same endpoint reports. Public, and useful context.
+  playersOnline Int?
+  tablesActive  Int?
+
+  entries CueVerseSnapshotEntry[]
+
+  @@index([provider, fetchedAt])
+  @@map("cueverse_snapshot")
+}
+
+/// One leaderboard row, stored in the source's own order.
+model CueVerseSnapshotEntry {
+  id         Int              @id @default(autoincrement())
+  snapshotId Int
+  snapshot   CueVerseSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  /// Position as supplied by the source. Never recomputed from the rating.
+  rank Int
+  /// The display name exactly as supplied, after sanitisation.
+  name String
+
+  rating Int
+  /// Secondary public statistics. Null when the source omits them.
+  wins        Int?
+  losses      Int?
+  provisional Boolean @default(false)
+
+  @@unique([snapshotId, rank])
+  @@index([snapshotId])
+  @@map("cueverse_snapshot_entry")
+}
