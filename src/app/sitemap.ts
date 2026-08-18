@@ -15,7 +15,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/playoffs', priority: 0.7 },
     { path: '/seasons', priority: 0.7 },
     { path: '/seasons/ego-tournament-1', priority: 0.6 },
-    { path: '/rules', priority: 0.6 },
     { path: '/competitions', priority: 0.4 },
     { path: '/players', priority: 0.4 },
     { path: '/rankings', priority: 0.4 },

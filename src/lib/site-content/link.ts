@@ -6,7 +6,7 @@
  * obfuscation (`JaVaScRiPt:`, or a tab wedged inside the scheme).
  *
  * Allowed:
- *   - internal site paths: `/seasons`, `/tournaments?year=2026`, `/rules#formats`
+ *   - internal site paths: `/seasons`, `/tournaments?year=2026`, `/players`
  *   - absolute http(s) URLs: `https://example.com`
  *   - bare fragments / queries: `#section`, `?tab=all`
  *

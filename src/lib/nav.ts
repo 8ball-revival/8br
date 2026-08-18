@@ -9,7 +9,6 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Ladder', href: '/rankings' },
   // Predictions: coming in a future release — hidden from nav until implemented.
-  { label: 'Rules', href: '/rules' },
 ]
 
 /** Slim footer links. */

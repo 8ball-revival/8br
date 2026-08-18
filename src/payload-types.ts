@@ -70,7 +70,6 @@ export interface Config {
     users: User;
     media: Media;
     news: News;
-    rules: Rule;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -81,7 +80,6 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
-    rules: RulesSelect<false> | RulesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -226,36 +224,6 @@ export interface News {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "rules".
- */
-export interface Rule {
-  id: number;
-  title: string;
-  slug: string;
-  category?: ('general' | 'tournament' | 'format' | 'conduct') | null;
-  content?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  effectiveFrom?: string | null;
-  versionLabel?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -289,10 +257,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'news';
         value: number | News;
-      } | null)
-    | ({
-        relationTo: 'rules';
-        value: number | Rule;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -392,21 +356,6 @@ export interface NewsSelect<T extends boolean = true> {
   publishedAt?: T;
   relatedCompetitionSlug?: T;
   relatedPlayerLegacyId?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "rules_select".
- */
-export interface RulesSelect<T extends boolean = true> {
-  title?: T;
-  slug?: T;
-  category?: T;
-  content?: T;
-  effectiveFrom?: T;
-  versionLabel?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;

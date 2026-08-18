@@ -95,7 +95,6 @@ export default async function AccountPage() {
             <div className="flex flex-wrap gap-2">
               <Button asChild><Link href="/tournaments">Browse tournaments</Link></Button>
               <Button asChild variant="ghost"><Link href="/rankings">Rankings</Link></Button>
-              <Button asChild variant="ghost"><Link href="/rules">Rules &amp; format</Link></Button>
             </div>
           </CardContent>
         </Card>
