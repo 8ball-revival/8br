@@ -1,10 +1,16 @@
-import { seededShuffle } from './prng'
-
 /** Minimal registration shape the group engine needs (ORM-agnostic, testable). */
 export interface SeedableRegistration {
   id: number
   username: string
   seed: number | null
+  /**
+   * When this entrant was added to the competition.
+   *
+   * This is the ordering the draw uses. Optional only so older callers and fixtures still typecheck;
+   * when absent the autoincrement id carries the same information, because an entrant added later
+   * always has a higher id.
+   */
+  enteredAt?: Date | null
 }
 
 export interface GroupAssignmentPlayer {
@@ -38,30 +44,39 @@ export function groupCode(ordinal: number): string {
 }
 
 /**
- * Deterministic base ordering: explicit manual seed first (ascending), then
- * username (case-insensitive), then id — a total order with no ties, so the
- * result never depends on input order or wall-clock.
+ * Entrant order: the order people were added to the competition.
+ *
+ * The first entrant is first, the second is second, and so on. Two entrants can share a timestamp if
+ * they were added in the same instant, so the autoincrement id breaks the tie — and the id alone is a
+ * correct fallback, because a later entrant always has a higher one. Either way the result is a total
+ * order with no ties, so the draw never depends on the order rows came back from the database.
+ *
+ * This deliberately ignores the manual `seed` field. That value is playoff seeding; the group draw is
+ * by entry order.
  */
 export function orderRegistrations(regs: readonly SeedableRegistration[]): SeedableRegistration[] {
   return regs.slice().sort((a, b) => {
-    const as = a.seed ?? Number.POSITIVE_INFINITY
-    const bs = b.seed ?? Number.POSITIVE_INFINITY
-    if (as !== bs) return as - bs
-    const an = a.username.toLowerCase()
-    const bn = b.username.toLowerCase()
-    if (an !== bn) return an < bn ? -1 : 1
+    const at = a.enteredAt ? a.enteredAt.getTime() : null
+    const bt = b.enteredAt ? b.enteredAt.getTime() : null
+    if (at != null && bt != null && at !== bt) return at - bt
     return a.id - b.id
   })
 }
 
 /**
- * Distribute approved registrations into `numGroups` using serpentine ("snake")
- * seeding over a deterministic ordering — balanced group sizes (differ by at most
- * one) and evenly spread seeds. Reproducible: the same (registrations, numGroups,
- * seed) always produces the same plan, and the seed is returned for recording.
+ * Distribute approved registrations into `numGroups` using serpentine ("snake") assignment over
+ * ENTRANT ORDER — the order people were added to the competition.
  *
- * `seed` (a recorded string) shuffles the base order deterministically so groups
- * are not simply alphabetical, while remaining fully replayable.
+ * There is no shuffle. Generating groups twice from the same entrant list produces the same groups,
+ * and an organiser reading the entrant list can see in advance where each person will land. That is
+ * the point: the draw is predictable and explainable rather than random.
+ *
+ * Serpentine is kept because it is what keeps group sizes within one of each other and spreads the
+ * early entrants across groups instead of packing them into Group A. With three groups, entrants
+ * 1-2-3 go A-B-C and entrants 4-5-6 go C-B-A, so the first entrant and the fourth are not both in A.
+ *
+ * `seed` is still accepted and recorded on the generated groups, because it identifies WHICH draw
+ * produced them and existing rows carry it. It no longer influences the result.
  */
 export function planGroups(
   registrations: readonly SeedableRegistration[],
@@ -73,7 +88,6 @@ export function planGroups(
     throw new Error('Not enough players for the requested number of groups')
 
   const ordered = orderRegistrations(registrations)
-  const shuffled = seededShuffle(ordered, seed)
 
   const groups: GroupAssignment[] = Array.from({ length: numGroups }, (_, i) => ({
     code: groupCode(i),
@@ -83,7 +97,7 @@ export function planGroups(
   }))
 
   // Serpentine assignment: 0..N-1, then N-1..0, repeating.
-  shuffled.forEach((reg, index) => {
+  ordered.forEach((reg, index) => {
     const pass = Math.floor(index / numGroups)
     const posInPass = index % numGroups
     const groupIdx = pass % 2 === 0 ? posInPass : numGroups - 1 - posInPass

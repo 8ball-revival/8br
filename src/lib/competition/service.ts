@@ -448,12 +448,21 @@ export async function setRegistrationState(
 // Group generation
 // ---------------------------------------------------------------------------
 
+/**
+ * Approved entrants, in the order they were added.
+ *
+ * The ordering is explicit rather than left to the database. Without an ORDER BY, Postgres is free to
+ * return rows however it likes — usually insertion order, but not after an update rewrites a row, and
+ * that is precisely the kind of difference nobody notices until a draw comes out wrong. Ordering here
+ * as well as in orderRegistrations costs nothing and means the engine is handed what it expects.
+ */
 async function approvedSeedables(tournamentId: number): Promise<SeedableRegistration[]> {
   const regs = await prisma.registration.findMany({
     where: { tournamentId, status: 'APPROVED' },
-    select: { id: true, username: true, seed: true },
+    select: { id: true, username: true, seed: true, createdAt: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   })
-  return regs.map((r) => ({ id: r.id, username: r.username, seed: r.seed }))
+  return regs.map((r) => ({ id: r.id, username: r.username, seed: r.seed, enteredAt: r.createdAt }))
 }
 
 /** Non-persisting preview of a group draw. */
