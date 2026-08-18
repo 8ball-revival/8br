@@ -9,7 +9,9 @@ import {
 import { generateUniqueSlug, isSlugAvailable, retireSlug, slugKeyOf, isValidSlug } from './slug'
 import {
   type EditorialActor, canEditArticleAsync, canPublishNow, canMarkOfficial, canFeature,
+  canAttributeAuthor, canBackdate,
 } from './permissions'
+import { resolveCanonicalPlayerId } from '@/lib/players/merge'
 
 /**
  * The Break — the article lifecycle.
@@ -94,6 +96,18 @@ export interface ArticleInput {
   commentsEnabled?: boolean
   /** Explicit slug. Optional — derived from the title when absent. */
   slug?: string | null
+  /**
+   * Attribute the article to somebody else. Owner-only; ignored for anybody else, exactly like
+   * `official` and `featured`. Absent or null means "the person writing it".
+   */
+  authorPlayerId?: string | null
+  /**
+   * The date the article carries. ISO, or null for "whenever it is published".
+   *
+   * A past date backdates it — Owner-only. A future date schedules it, which anybody who can publish
+   * may do. Held on the draft so publishing later uses it without having to be told again.
+   */
+  publishAt?: string | null
 }
 
 interface NormalisedInput {
@@ -150,6 +164,71 @@ async function normalise(input: ArticleInput, actor: EditorialActor): Promise<No
     seoDescription: input.seoDescription ? cleanText(input.seoDescription).slice(0, 320) : null,
     commentsEnabled: input.commentsEnabled !== false,
   }
+}
+
+// --------------------------------------------------------------------------- authorship
+
+interface Byline {
+  playerId: string
+  name: string
+  handle: string | null
+}
+
+/**
+ * Whose name goes on the article.
+ *
+ * Defaults to the person writing. An Owner may name somebody else — the case this exists for is
+ * relaying a member's post from Discord, where the words are genuinely theirs and the byline should
+ * say so. Anybody else asking for it is ignored rather than refused, which is how `official` and
+ * `featured` already behave: a request the client is not entitled to make is not an error, it is
+ * simply not honoured.
+ *
+ * The named player is validated properly. It must exist, be active, and not be a merged-away
+ * secondary — a byline pointing at a profile the site no longer shows would be a dead end for a
+ * reader who clicked it.
+ */
+async function resolveByline(actor: EditorialActor, requested: string | null | undefined): Promise<Byline> {
+  const mine: Byline = { playerId: actor.playerId, name: actor.name, handle: actor.handle }
+  if (!requested || requested === actor.playerId) return mine
+  if (!canAttributeAuthor(actor)) return mine
+
+  const canonicalId = await resolveCanonicalPlayerId(requested)
+  const player = await prisma.player.findUnique({
+    where: { id: canonicalId },
+    select: { id: true, primaryName: true, cueverseId: true, active: true },
+  })
+  if (!player) throw new EditorialError('That member no longer exists.')
+  if (!player.active) throw new EditorialError('That profile is inactive, so it cannot be given a byline.')
+
+  return { playerId: player.id, name: player.primaryName, handle: player.cueverseId }
+}
+
+/** Dates outside this window are a typo, not an intention. */
+const EARLIEST_PUBLISH = Date.UTC(1990, 0, 1)
+const LATEST_PUBLISH_MS = 5 * 365 * 24 * 3600 * 1000
+
+/**
+ * The publication date an actor is asking for.
+ *
+ * Returns undefined when they did not ask for one, which the caller distinguishes from null — the
+ * first means "leave it alone", the second means "clear it".
+ *
+ * A past date is Owner-only and is ignored rather than refused for anybody else, matching how every
+ * other privileged field on this input behaves. Being ignored means falling back to "now", which is
+ * what somebody without the permission asked for in substance.
+ */
+function resolvePublishAt(actor: EditorialActor, requested: string | null | undefined): Date | null | undefined {
+  if (requested === undefined) return undefined
+  if (requested === null || requested === '') return null
+
+  const when = new Date(requested)
+  if (Number.isNaN(when.getTime())) throw new EditorialError('That publication date could not be read.')
+  if (when.getTime() < EARLIEST_PUBLISH) throw new EditorialError('That publication date is too far in the past.')
+  if (when.getTime() > Date.now() + LATEST_PUBLISH_MS) throw new EditorialError('That publication date is too far in the future.')
+
+  const backdated = when.getTime() < Date.now()
+  if (backdated && !canBackdate(actor)) return null
+  return when
 }
 
 // --------------------------------------------------------------------------- tags
@@ -232,6 +311,8 @@ async function recordAction(
 /** Start a new article. Always a DRAFT — publishing is a separate, separately-authorised step. */
 export async function createArticle(actor: EditorialActor, input: ArticleInput): Promise<number> {
   const data = await normalise(input, actor)
+  const byline = await resolveByline(actor, input.authorPlayerId)
+  const publishAt = resolvePublishAt(actor, input.publishAt)
 
   return prisma.$transaction(async (db) => {
     const slug = input.slug && isValidSlug(input.slug)
@@ -240,9 +321,9 @@ export async function createArticle(actor: EditorialActor, input: ArticleInput):
 
     const article = await db.article.create({
       data: {
-        authorPlayerId: actor.playerId,
-        authorNameSnapshot: actor.name,
-        authorHandleSnapshot: actor.handle,
+        authorPlayerId: byline.playerId,
+        authorNameSnapshot: byline.name,
+        authorHandleSnapshot: byline.handle,
         title: data.title,
         slug,
         slugKey: slugKeyOf(slug),
@@ -257,12 +338,22 @@ export async function createArticle(actor: EditorialActor, input: ArticleInput):
         // Only an administrator can set these, and only ever deliberately.
         official: canMarkOfficial(actor) ? !!input.official : false,
         featured: canFeature(actor) ? !!input.featured : false,
+        // Held on the draft. It has no effect on visibility while the state is DRAFT — that needs
+        // PUBLISHED as well — but it is what publishing will use.
+        publishAt: publishAt ?? null,
         state: 'DRAFT',
       },
       select: { id: true },
     })
 
     await setTags(db, article.id, input.tags)
+    // Recorded whenever the byline is not the writer's own, so the audit trail always knows who
+    // actually posted it even though the public page does not say.
+    if (byline.playerId !== actor.playerId) {
+      await recordAction(db, 'article.attributed', actor, {
+        articleId: article.id, authorPlayerId: byline.playerId, authorName: byline.handle ?? byline.name,
+      })
+    }
     return article.id
   })
 }
@@ -299,6 +390,15 @@ export async function updateArticle(
   const data = await normalise(input, actor)
   const live = existing.state === 'PUBLISHED' || existing.state === 'ARCHIVED'
   const mayEditLive = await canPublishNow(actor, existing.authorPlayerId)
+
+  // Reassigning the byline is only considered when the Owner actually asked for a different one.
+  // An absent field means "leave it alone" — the editor does not send it for anybody who is not
+  // entitled to change it, and a missing field must never blank an existing author.
+  const wantsReassign = canAttributeAuthor(actor)
+    && input.authorPlayerId != null
+    && input.authorPlayerId !== existing.authorPlayerId
+  const byline = wantsReassign ? await resolveByline(actor, input.authorPlayerId) : null
+  const publishAt = resolvePublishAt(actor, input.publishAt)
 
   return prisma.$transaction(async (db) => {
     if (live && !mayEditLive) {
@@ -341,6 +441,18 @@ export async function updateArticle(
         commentsEnabled: data.commentsEnabled,
         ...(canMarkOfficial(actor) ? { official: !!input.official } : {}),
         ...(canFeature(actor) ? { featured: !!input.featured } : {}),
+        ...(byline ? {
+          authorPlayerId: byline.playerId,
+          authorNameSnapshot: byline.name,
+          authorHandleSnapshot: byline.handle,
+        } : {}),
+        ...(publishAt !== undefined ? {
+          publishAt,
+          // publishedAt is "when this first went live" and normally never moves. Backdating is the
+          // one case where it must: an imported article that says 2019 on the page but 2026 in its
+          // structured data would be telling two different stories to a reader and to a crawler.
+          ...(publishAt && existing.state === 'PUBLISHED' ? { publishedAt: publishAt } : {}),
+        } : {}),
         revision: { increment: 1 },
         // Editing a rejected article puts it back in the author's hands as a draft, so they are not
         // stuck looking at a rejection they have already addressed.
@@ -349,6 +461,12 @@ export async function updateArticle(
     })
 
     await setTags(db, articleId, input.tags)
+    if (byline) {
+      await recordAction(db, 'article.attributed', actor, {
+        articleId, authorPlayerId: byline.playerId, authorName: byline.handle ?? byline.name,
+        previousAuthorPlayerId: existing.authorPlayerId,
+      })
+    }
     return { pending: false }
   })
 }
@@ -421,6 +539,27 @@ export async function withdrawSubmission(actor: EditorialActor, articleId: numbe
 }
 
 /**
+ * Settle on a publication time.
+ *
+ * An explicitly passed time wins, then whatever the draft already carries, then now. A past time
+ * from somebody who may not backdate falls back to now rather than being refused — the same
+ * "ignored, not obeyed" rule the privileged fields on ArticleInput follow.
+ */
+function resolveWhen(
+  actor: EditorialActor,
+  explicit: Date | string | null | undefined,
+  stored: Date | null,
+): Date {
+  const raw = explicit ?? stored ?? new Date()
+  // Accepts a string as well as a Date. The action layer converts before calling in, but a helper
+  // that throws a TypeError on a string is one refactor away from turning a publish into a 500.
+  const chosen = raw instanceof Date ? raw : new Date(raw)
+  if (Number.isNaN(chosen.getTime())) throw new EditorialError('That publication time is not valid.')
+  if (chosen.getTime() < Date.now() && !canBackdate(actor)) return new Date()
+  return chosen
+}
+
+/**
  * Publish, now or at a chosen time.
  *
  * `publishAt` in the future is a schedule; the state is PUBLISHED either way, and the article simply
@@ -434,7 +573,10 @@ export async function publishArticle(
 ): Promise<void> {
   const article = await prisma.article.findUnique({
     where: { id: articleId },
-    select: { authorPlayerId: true, state: true, body: true, publishedAt: true, official: true },
+    select: {
+      authorPlayerId: true, state: true, body: true, publishedAt: true, official: true,
+      publishAt: true,
+    },
   })
   if (!article) throw new EditorialError('That article no longer exists.')
   if (article.state === 'SOFT_DELETED') throw new EditorialError('That article has been deleted.')
@@ -443,8 +585,9 @@ export async function publishArticle(
   }
   if (isEmptyDocument(sanitizeDocument(article.body))) throw new EditorialError('The article needs some content.')
 
-  const when = publishAt ?? new Date()
-  if (Number.isNaN(when.getTime())) throw new EditorialError('That publication time is not valid.')
+  // An explicit time wins; otherwise the date already set on the draft; otherwise now. That order is
+  // what lets somebody set the date once in the editor and then simply press Publish.
+  const when = resolveWhen(actor, publishAt, article.publishAt)
 
   await prisma.$transaction(async (db) => {
     await db.article.update({
@@ -454,8 +597,8 @@ export async function publishArticle(
         publishAt: when,
         // `publishedAt` is the first time it went live and never moves again; `publishAt` is the
         // scheduling knob. Keeping them separate is what lets an article be rescheduled without
-        // rewriting its history.
-        publishedAt: article.publishedAt ?? when,
+        // rewriting its history — except when backdating, where the historical date IS the history.
+        publishedAt: when < new Date() ? when : article.publishedAt ?? when,
         approvedAt: new Date(),
         reviewerPlayerId: actor.playerId,
         reviewFeedback: null,
@@ -484,7 +627,7 @@ export async function approveArticle(
   const article = await prisma.article.findUnique({
     where: { id: articleId },
     select: {
-      state: true, publishedAt: true, pendingBody: true, pendingTitle: true,
+      state: true, publishedAt: true, publishAt: true, pendingBody: true, pendingTitle: true,
       pendingExcerpt: true, pendingSubmittedAt: true,
     },
   })
@@ -512,13 +655,13 @@ export async function approveArticle(
     }
 
     if (article.state !== 'PENDING_REVIEW') throw new EditorialError('That article is not awaiting review.')
-    const when = publishAt ?? new Date()
+    const when = resolveWhen(actor, publishAt, article.publishAt)
     await db.article.update({
       where: { id: articleId },
       data: {
         state: 'PUBLISHED',
         publishAt: when,
-        publishedAt: article.publishedAt ?? when,
+        publishedAt: when < new Date() ? when : article.publishedAt ?? when,
         approvedAt: new Date(),
         reviewerPlayerId: actor.playerId,
         reviewFeedback: null,

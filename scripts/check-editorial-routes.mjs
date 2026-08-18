@@ -5,8 +5,8 @@
  *
  * Complements the verify suites rather than repeating them: those exercise the service layer
  * directly, this one proves the ROUTES exist, resolve, and hide what they should. It needs the
- * dev server up, and it expects the demo articles to be absent — the content-specific rows are
- * skipped automatically when nothing is published.
+ * dev server up, and it works against a site with real content or none at all: only routes that
+ * exist regardless of what is published are checked.
  *
  * Two kinds of expectation:
  *
@@ -70,19 +70,23 @@ const report = (ok, label) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
 }
 
-// Routes that only exist while the demo articles are present.
-const CONTENT_ROUTES = [
+/**
+ * Routes whose existence depends on WHICH articles are published, rather than on the routing being
+ * wired up. They named fixtures that no longer exist, so they are not part of the default run — a
+ * check that fails because somebody deleted a demo article is noise, not a signal.
+ */
+const CONTENT_ROUTES = new Set([
   '/news/season-1-playoffs-the-bracket-the-seeds-and-the-shape-of-the-draw',
   '/news/registration-for-the-next-season-opens-on-monday',
   '/news/tag/zzsmoke-playoffs',
   '/news/author/zzsmoke_writer',
   '/news/archive/2026',
   '/news/archive/2026/08',
-]
-const hasContent = (await (await fetch(`${BASE}/news`)).text()).includes('No articles have been published') === false
+])
+const withDemo = process.argv.includes('--with-demo-content')
 
 for (const [path, expected] of routes) {
-  if (!hasContent && CONTENT_ROUTES.includes(path)) { console.log(`skip      ${path} (no published articles)`); continue }
+  if (!withDemo && CONTENT_ROUTES.has(path)) continue
   const res = await fetch(`${BASE}${path}`, { redirect: 'follow' })
   const body = await res.text()
   const isNotFound = notFoundShown(body)
@@ -108,6 +112,6 @@ report(badView.status === 400, `${badView.status}  POST /api/news/view rejects a
 const draftProbe = await fetch(`${BASE}/news/a-draft-nobody-published`)
 report(notFoundShown(await draftProbe.text()), '     an unknown article shows the not-found page')
 
-const total = routes.length + 4 - (hasContent ? 0 : CONTENT_ROUTES.length)
+const total = routes.length + 4 - (withDemo ? 0 : CONTENT_ROUTES.size)
 console.log(`\n${failures === 0 ? 'PASS' : 'FAIL'} — ${total - failures}/${total} route checks`)
 process.exit(failures === 0 ? 0 : 1)

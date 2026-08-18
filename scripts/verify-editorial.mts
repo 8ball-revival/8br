@@ -13,7 +13,7 @@
  */
 import { prisma } from '../src/lib/prisma.ts'
 import type { EditorialActor } from '../src/lib/editorial/permissions.ts'
-import { canPublishNow, canEditArticle, canMarkOfficial, canFeature, canComment, canViewUnpublished, canCreateArticle } from '../src/lib/editorial/permissions.ts'
+import { canPublishNow, canEditArticle, canMarkOfficial, canFeature, canComment, canViewUnpublished, canCreateArticle, canAttributeAuthor, canBackdate } from '../src/lib/editorial/permissions.ts'
 import {
   createArticle, updateArticle, autosaveDraft, submitForReview, withdrawSubmission,
   publishArticle, approveArticle, rejectArticle, archiveArticle, restoreArticle,
@@ -25,7 +25,7 @@ import {
   resolveReport, getCommentThread, recountComments, EDIT_WINDOW_MS, RATE_LIMITS,
 } from '../src/lib/editorial/comments.ts'
 import { linkifyComment, MAX_COMMENT_LENGTH } from '../src/lib/editorial/comment-format.ts'
-import { listArticles, getArticleById, listMyArticles, getModerationQueue, listAuthors, listArchiveMonths, relatedArticles } from '../src/lib/editorial/queries.ts'
+import { listArticles, getArticleById, listMyArticles, getModerationQueue, listAuthors, listArchiveMonths, relatedArticles, listBylineCandidates } from '../src/lib/editorial/queries.ts'
 import { slugify, isValidSlug, RESERVED_SLUGS } from '../src/lib/editorial/slug-format.ts'
 import { generateUniqueSlug, isSlugAvailable, resolveSlug } from '../src/lib/editorial/slug.ts'
 import { createPreviewToken, readPreviewToken } from '../src/lib/editorial/preview.ts'
@@ -84,12 +84,17 @@ async function mkPlayer(tag: string, opts: { trusted?: boolean } = {}) {
   return p.id
 }
 
-const actorFor = (playerId: string, tag: string, opts: { admin?: boolean; trusted?: boolean } = {}): EditorialActor => ({
+const actorFor = (
+  playerId: string,
+  tag: string,
+  opts: { admin?: boolean; owner?: boolean; trusted?: boolean } = {},
+): EditorialActor => ({
   playerId,
   name: `${PREFIX}${tag}`,
   handle: `${PREFIX}${tag}`,
-  isAdmin: !!opts.admin,
-  isTrustedAuthor: !!opts.admin || !!opts.trusted,
+  isAdmin: !!opts.admin || !!opts.owner,
+  isOwner: !!opts.owner,
+  isTrustedAuthor: !!opts.admin || !!opts.owner || !!opts.trusted,
 })
 
 /** Create an article through the real service and remember it for cleanup. */
@@ -782,6 +787,255 @@ check('an empty slug is rejected', !isValidSlug(''))
     check('...with the article counted by name',
       after.dependencies.some((d) => d.label === 'Articles written' && d.count === 1))
     void written
+  }
+
+  // ========================================================================= attribution
+  section('Author attribution (Owner only)')
+
+  const ownerId = await mkPlayer('owner')
+  const owner = actorFor(ownerId, 'owner', { owner: true })
+  const ghostId = await mkPlayer('ghostwritten')
+
+  check('an Owner may attribute an article to somebody else', canAttributeAuthor(owner))
+  check('an administrator may NOT', !canAttributeAuthor(admin))
+  check('a Trusted Author may not', !canAttributeAuthor(trusted))
+  check('a member may not', !canAttributeAuthor(member))
+  check('a visitor may not', !canAttributeAuthor(null))
+
+  {
+    const id = await mkArticle(owner, 'Relayed from Discord', 'Their words, posted by the Owner.', {
+      authorPlayerId: ghostId,
+    })
+    const row = await prisma.article.findUnique({
+      where: { id },
+      select: { authorPlayerId: true, authorNameSnapshot: true, authorHandleSnapshot: true },
+    })
+    check('the article is stored against the named member', row?.authorPlayerId === ghostId)
+    check('...with their name snapshotted, not the Owner\'s', row?.authorNameSnapshot === `${PREFIX}ghostwritten`)
+    check('...and their handle', row?.authorHandleSnapshot === `${PREFIX}ghostwritten`)
+
+    await publishArticle(owner, id, null)
+    const card = (await listArticles({ page: 1, search: 'Relayed from Discord' })).items[0]
+    check('the public byline is the named member', card?.author.handle === `${PREFIX}ghostwritten`)
+    check('...and nothing on the card names the Owner', card?.author.playerId === ghostId)
+
+    // Accountability: the public page says nothing, but the record does.
+    const record = await prisma.editorialModerationRecord.findFirst({
+      where: { articleId: id, action: 'article.attributed' },
+      select: { actorPlayerId: true },
+    })
+    check('who actually posted it is recorded', record?.actorPlayerId === ownerId)
+
+    check('it appears under the named member\'s articles', (await listMyArticles(actorFor(ghostId, 'ghostwritten'))).some((a) => a.id === id))
+    check('...and not under the Owner\'s', !(await listMyArticles(owner)).some((a) => a.id === id))
+  }
+
+  {
+    // The important one: the field on the wire is a request, not an instruction.
+    const id = await mkArticle(member, 'A member tries to sign somebody else\'s name', 'Body.', {
+      authorPlayerId: ghostId,
+    })
+    const row = await prisma.article.findUnique({ where: { id }, select: { authorPlayerId: true } })
+    check('a member asking to attribute is ignored, not obeyed', row?.authorPlayerId === memberId)
+  }
+  {
+    const id = await mkArticle(admin, 'An administrator tries the same', 'Body.', { authorPlayerId: ghostId })
+    const row = await prisma.article.findUnique({ where: { id }, select: { authorPlayerId: true } })
+    check('an administrator asking to attribute is ignored too', row?.authorPlayerId === adminId)
+  }
+  {
+    const id = await mkArticle(trusted, 'A Trusted Author tries', 'Body.', { authorPlayerId: ghostId })
+    const row = await prisma.article.findUnique({ where: { id }, select: { authorPlayerId: true } })
+    check('a Trusted Author asking to attribute is ignored', row?.authorPlayerId === trustedId)
+  }
+
+  {
+    // Reassigning after the fact.
+    const id = await mkArticle(owner, 'Posted under the wrong name', 'Body.')
+    const before = await prisma.article.findUnique({ where: { id }, select: { authorPlayerId: true } })
+    check('it starts as the Owner\'s', before?.authorPlayerId === ownerId)
+
+    await updateArticle(owner, id, { title: 'Posted under the wrong name', bodySource: 'Body.', authorPlayerId: ghostId })
+    const after = await prisma.article.findUnique({
+      where: { id },
+      select: { authorPlayerId: true, authorHandleSnapshot: true },
+    })
+    check('an Owner can reassign the byline afterwards', after?.authorPlayerId === ghostId)
+    check('...and the snapshot follows', after?.authorHandleSnapshot === `${PREFIX}ghostwritten`)
+
+    // Leaving the field out must not blank anything.
+    await updateArticle(owner, id, { title: 'Posted under the wrong name', bodySource: 'Edited body.' })
+    const kept = await prisma.article.findUnique({ where: { id }, select: { authorPlayerId: true } })
+    check('an update that omits the field leaves the byline alone', kept?.authorPlayerId === ghostId)
+  }
+
+  {
+    // A member cannot quietly take an article off somebody by sending the field.
+    const id = await mkArticle(owner, 'Owner article somebody else wants', 'Body.', { authorPlayerId: memberId })
+    await updateArticle(member, id, {
+      title: 'Owner article somebody else wants', bodySource: 'Body.', authorPlayerId: ghostId,
+    })
+    const row = await prisma.article.findUnique({ where: { id }, select: { authorPlayerId: true } })
+    check('the assigned author cannot hand the article on', row?.authorPlayerId === memberId)
+  }
+
+  {
+    const gone = await mkPlayer('archived_author')
+    await prisma.player.update({ where: { id: gone }, data: { active: false } })
+    await refuses('attributing to an inactive profile is refused',
+      () => createArticle(owner, { title: 'To a ghost', bodySource: 'Body.', authorPlayerId: gone }),
+      /inactive/i)
+    await refuses('attributing to a profile that does not exist is refused',
+      () => createArticle(owner, { title: 'To nobody', bodySource: 'Body.', authorPlayerId: 'no-such-player-id' }),
+      /no longer exists/i)
+  }
+
+  {
+    const candidates = await listBylineCandidates()
+    check('the picker lists active members', candidates.some((c) => c.playerId === ghostId))
+    check('...and the Owner themselves', candidates.some((c) => c.playerId === ownerId))
+    check('...but not an inactive profile', !candidates.some((c) => c.name === `${PREFIX}archived_author`))
+    check('every candidate carries a usable label', candidates.every((c) => !!(c.handle ?? c.name)))
+  }
+
+  {
+    // An attributed member keeps the ordinary rules: they are not suddenly a Trusted Author.
+    const id = await mkArticle(owner, 'Attributed, then edited by them', 'Body.', { authorPlayerId: ghostId })
+    await publishArticle(owner, id, null)
+    const ghost = actorFor(ghostId, 'ghostwritten')
+    const res = await updateArticle(ghost, id, { title: 'Attributed, then edited by them', bodySource: 'Their edit.' })
+    check('the named member editing their published article still goes to review', res.pending === true)
+  }
+
+  // ========================================================================= backdating
+  section('Publication date (backdating is Owner only)')
+
+  check('an Owner may backdate', canBackdate(owner))
+  check('an administrator may not', !canBackdate(admin))
+  check('a Trusted Author may not', !canBackdate(trusted))
+  check('a member may not', !canBackdate(member))
+
+  const YEARS_AGO = new Date('2019-03-04T17:00:00.000Z')
+
+  {
+    const id = await mkArticle(owner, 'Written in 2019, posted today', 'Body.', {
+      publishAt: YEARS_AGO.toISOString(),
+    })
+    check('the date is held on the draft',
+      (await prisma.article.findUnique({ where: { id }, select: { publishAt: true } }))?.publishAt?.getTime() === YEARS_AGO.getTime())
+    check('...but a draft with a past date is still not public',
+      !isPubliclyVisible((await prisma.article.findUnique({ where: { id }, select: { state: true, publishAt: true } }))!))
+
+    // Publishing with no explicit time must use the date already chosen, not "now".
+    await publishArticle(owner, id, null)
+    const row = await prisma.article.findUnique({
+      where: { id },
+      select: { state: true, publishAt: true, publishedAt: true },
+    })
+    check('publishing uses the date set in the editor', row?.publishAt?.getTime() === YEARS_AGO.getTime())
+    check('...the article is live immediately', isPubliclyVisible(row!))
+    check('...and publishedAt matches, so the page and its structured data agree',
+      row?.publishedAt?.getTime() === YEARS_AGO.getTime())
+
+    const card = (await listArticles({ page: 1, search: 'Written in 2019' })).items[0]
+    check('the listing shows the historical date', card?.publishAt?.getTime() === YEARS_AGO.getTime())
+
+    const months = await listArchiveMonths()
+    check('it files under March 2019 in the archive',
+      months.some((m) => m.year === 2019 && m.month === 3))
+
+    const slug = (await prisma.article.findUnique({ where: { id }, select: { slug: true } }))!.slug
+    const feed = await feedItems(50)
+    const entry = feed.find((i) => i.slug === slug)
+    check('the feed carries it', entry != null)
+    check('...with the historical date', entry?.publishAt.getTime() === YEARS_AGO.getTime())
+  }
+
+  {
+    // The guard that matters: a past date from somebody without the permission is ignored.
+    const before = Date.now()
+    const id = await mkArticle(trusted, 'A Trusted Author tries to backdate', 'Body.', {
+      publishAt: YEARS_AGO.toISOString(),
+    })
+    const draft = await prisma.article.findUnique({ where: { id }, select: { publishAt: true } })
+    check('a Trusted Author asking to backdate is ignored, not obeyed', draft?.publishAt === null)
+
+    await publishArticle(trusted, id, YEARS_AGO)
+    const row = await prisma.article.findUnique({ where: { id }, select: { publishAt: true } })
+    check('...and passing a past date straight to publish is clamped to now',
+      (row?.publishAt?.getTime() ?? 0) >= before)
+  }
+  {
+    const before = Date.now()
+    const id = await mkArticle(admin, 'An administrator tries to backdate', 'Body.', {
+      publishAt: YEARS_AGO.toISOString(),
+    })
+    await publishArticle(admin, id, null)
+    const row = await prisma.article.findUnique({ where: { id }, select: { publishAt: true } })
+    check('an administrator cannot backdate either', (row?.publishAt?.getTime() ?? 0) >= before)
+  }
+
+  {
+    // Forward scheduling stays open to anybody who can publish — it is not a backdate.
+    const soon = new Date(Date.now() + 2 * 24 * 3600 * 1000)
+    const id = await mkArticle(trusted, 'A Trusted Author schedules ahead', 'Body.', {
+      publishAt: soon.toISOString(),
+    })
+    const draft = await prisma.article.findUnique({ where: { id }, select: { publishAt: true } })
+    check('a future date is kept for a Trusted Author', draft?.publishAt?.getTime() === soon.getTime())
+    await publishArticle(trusted, id, null)
+    const row = await prisma.article.findUnique({ where: { id }, select: { state: true, publishAt: true } })
+    check('...and publishing schedules rather than going live', isScheduled(row!))
+  }
+
+  {
+    // Changing the date after the fact.
+    const id = await mkArticle(owner, 'Dated wrong at first', 'Body.')
+    await publishArticle(owner, id, null)
+    const older = new Date('2021-07-19T12:00:00.000Z')
+    await updateArticle(owner, id, { title: 'Dated wrong at first', bodySource: 'Body.', publishAt: older.toISOString() })
+    const row = await prisma.article.findUnique({
+      where: { id }, select: { publishAt: true, publishedAt: true },
+    })
+    check('an Owner can correct the date afterwards', row?.publishAt?.getTime() === older.getTime())
+    check('...and publishedAt follows it', row?.publishedAt?.getTime() === older.getTime())
+
+    // Omitting the field must not clear the date.
+    await updateArticle(owner, id, { title: 'Dated wrong at first', bodySource: 'Edited.' })
+    const kept = await prisma.article.findUnique({ where: { id }, select: { publishAt: true } })
+    check('an update that omits the date leaves it alone', kept?.publishAt?.getTime() === older.getTime())
+
+    // Explicit null clears it.
+    await updateArticle(owner, id, { title: 'Dated wrong at first', bodySource: 'Edited.', publishAt: null })
+    const cleared = await prisma.article.findUnique({ where: { id }, select: { publishAt: true } })
+    check('an explicit null clears the date', cleared?.publishAt === null)
+  }
+
+  {
+    await refuses('an unreadable date is refused',
+      () => createArticle(owner, { title: 'Bad date', bodySource: 'Body.', publishAt: 'the third of never' }),
+      /could not be read/i)
+    await refuses('a date before 1990 is refused',
+      () => createArticle(owner, { title: 'Too old', bodySource: 'Body.', publishAt: '1850-01-01T00:00:00.000Z' }),
+      /too far in the past/i)
+    await refuses('a date decades ahead is refused',
+      () => createArticle(owner, { title: 'Too far', bodySource: 'Body.', publishAt: '2200-01-01T00:00:00.000Z' }),
+      /too far in the future/i)
+  }
+
+  {
+    // The two Owner powers compose: somebody else's words, under their name, on the day they said it.
+    const id = await mkArticle(owner, 'Their post, their name, their date', 'Straight from Discord.', {
+      authorPlayerId: ghostId,
+      publishAt: YEARS_AGO.toISOString(),
+    })
+    await publishArticle(owner, id, null)
+    const row = await prisma.article.findUnique({
+      where: { id }, select: { authorPlayerId: true, publishAt: true, state: true },
+    })
+    check('an Owner can attribute and backdate in one go',
+      row?.authorPlayerId === ghostId && row?.publishAt?.getTime() === YEARS_AGO.getTime())
+    check('...and it is live', isPubliclyVisible(row!))
   }
 
   // ========================================================================= pages

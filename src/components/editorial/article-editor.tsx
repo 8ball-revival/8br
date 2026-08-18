@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Save, Send, Eye, Upload, CheckCircle2, Clock, History, Trash2, Archive, AlertTriangle, Link2,
+  UserPen, CalendarClock,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/components/ui/confirm-dialog'
-import { formatDateTime } from '@/lib/format'
+import { formatDate, formatDateTime } from '@/lib/format'
 import { buildDocument } from '@/lib/editorial/richtext'
 import { slugify } from '@/lib/editorial/slug-format'
 import { RichText } from '@/components/editorial/rich-text'
@@ -20,7 +21,18 @@ import {
   restoreRevisionAction, checkSlugAction, createPreviewLinkAction,
 } from '@/lib/editorial/actions'
 
+/**
+ * Has this instant already passed?
+ *
+ * Module scope on purpose. Reading the clock while rendering makes a component's output depend on
+ * when React happened to render it, so this is only ever called from an event handler or an effect.
+ */
+function hasPassed(when: Date): boolean {
+  return when.getTime() < Date.now()
+}
+
 export interface EditorCategory { id: number; name: string; adminOnly: boolean }
+export interface EditorMember { playerId: string; name: string; handle: string | null }
 export interface EditorRevision { id: number; revision: number; title: string; editorName: string; note: string | null; createdAt: string }
 
 export interface EditorArticle {
@@ -42,6 +54,9 @@ export interface EditorArticle {
   publishAt: string | null
   reviewFeedback: string | null
   hasPendingEdit: boolean
+  /** Whose name goes on the article. Defaults to the person writing it. */
+  authorPlayerId: string
+  authorLabel: string
 }
 
 /**
@@ -61,6 +76,11 @@ export function ArticleEditor({
   revisions = [],
   canPublish,
   isAdmin,
+  members = [],
+  canAttributeAuthor = false,
+  canBackdate = false,
+  selfPlayerId,
+  initialTab = 'write',
 }: {
   initial: EditorArticle
   categories: EditorCategory[]
@@ -68,6 +88,16 @@ export function ArticleEditor({
   /** Whether this person may publish this article without review. Decided on the server. */
   canPublish: boolean
   isAdmin: boolean
+  /** Members who can be given a byline. Only sent to somebody allowed to change it. */
+  members?: EditorMember[]
+  /** Owner only. The server decides this; the picker merely reflects it. */
+  canAttributeAuthor?: boolean
+  /** Owner only. Whether a publication date in the past may be set. */
+  canBackdate?: boolean
+  /** The signed-in author's own player id, so "you" can be labelled and listed first. */
+  selfPlayerId: string
+  /** Which section opens first. Lets a link point straight at settings rather than the prose. */
+  initialTab?: 'write' | 'preview' | 'settings' | 'history'
 }) {
   const router = useRouter()
   const confirm = useConfirm()
@@ -75,7 +105,7 @@ export function ArticleEditor({
 
   const [articleId, setArticleId] = useState(initial.id)
   const [form, setForm] = useState(initial)
-  const [tab, setTab] = useState<'write' | 'preview' | 'settings' | 'history'>('write')
+  const [tab, setTab] = useState<'write' | 'preview' | 'settings' | 'history'>(initialTab)
   const [message, setMessage] = useState<{ ok?: boolean; text: string } | null>(null)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [slugState, setSlugState] = useState<{ checking: boolean; available: boolean | null }>({ checking: false, available: null })
@@ -101,7 +131,11 @@ export function ArticleEditor({
     featured: form.featured,
     commentsEnabled: form.commentsEnabled,
     slug: form.slug || null,
-  }), [form])
+    // Sent only when this person may actually set it. The server ignores it otherwise, but there is
+    // no reason for the field to be on the wire at all for somebody who cannot use it.
+    authorPlayerId: canAttributeAuthor ? form.authorPlayerId : null,
+    publishAt: canBackdate ? form.publishAt : undefined,
+  }), [form, canAttributeAuthor, canBackdate])
 
   // --------------------------------------------------------------- autosave
 
@@ -201,11 +235,27 @@ export function ArticleEditor({
   }
 
   const publish = () => {
+    // A date already chosen in Settings is what the article will carry; the confirmation says so
+    // rather than letting somebody discover it afterwards on the published page.
+    const dated = canBackdate && form.publishAt ? new Date(form.publishAt) : null
+    const backdated = dated != null && hasPassed(dated)
+
     void confirm({
       title: 'Publish this article?',
-      message: 'It becomes visible to everybody immediately.',
-      confirmLabel: 'Publish', cancelLabel: 'Cancel',
-    }).then((r) => { if (r.confirmed) run(() => publishArticleAction(articleId!, null), 'Published.') })
+      message: dated
+        ? backdated
+          ? `It becomes visible immediately, dated ${formatDate(dated.toISOString())}.`
+          : `It stays hidden until ${formatDateTime(dated.toISOString())}, then appears on its own.`
+        : 'It becomes visible to everybody immediately.',
+      confirmLabel: dated && !backdated ? 'Schedule' : 'Publish',
+      cancelLabel: 'Cancel',
+    }).then((r) => {
+      if (!r.confirmed) return
+      run(
+        () => publishArticleAction(articleId!, dated ? dated.toISOString() : null),
+        dated ? (backdated ? `Published, dated ${formatDate(dated.toISOString())}.` : 'Scheduled.') : 'Published.',
+      )
+    })
   }
 
   const schedule = () => {
@@ -279,6 +329,11 @@ export function ArticleEditor({
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <StateBadge state={form.state} publishAt={form.publishAt} />
+          {/* Shown whenever the byline is not the writer's own, so an attributed article can never
+              be published under somebody else's name by accident. */}
+          {form.authorPlayerId !== selfPlayerId && (
+            <Badge variant="gold"><UserPen className="mr-1 size-3" aria-hidden />By {form.authorLabel}</Badge>
+          )}
           {form.hasPendingEdit && <Badge variant="muted">Edit awaiting review</Badge>}
           {savedAt && <span className="text-muted-foreground">Saved {formatDateTime(savedAt.toISOString())}</span>}
         </div>
@@ -375,6 +430,22 @@ export function ArticleEditor({
 
       {tab === 'settings' && (
         <div className="mt-5 space-y-4">
+          {canBackdate && (
+            <PublicationDate
+              value={form.publishAt}
+              onChange={(publishAt) => setForm((f) => ({ ...f, publishAt }))}
+            />
+          )}
+
+          {canAttributeAuthor && (
+            <AuthorPicker
+              members={members}
+              selfPlayerId={selfPlayerId}
+              value={form.authorPlayerId}
+              onChange={(playerId, label) => setForm((f) => ({ ...f, authorPlayerId: playerId, authorLabel: label }))}
+            />
+          )}
+
           <Field label="Web address" htmlFor="slug" hint="Changing this after publication keeps the old address working as a redirect.">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">/news/</span>
@@ -600,6 +671,164 @@ function StateBadge({ state, publishAt }: { state: string; publishAt: string | n
     case 'ARCHIVED': return <Badge variant="muted">Archived</Badge>
     default: return <Badge variant="muted">Draft</Badge>
   }
+}
+
+/**
+ * The date the article carries.
+ *
+ * Owner-only, because a date in the past is a claim about when something was said. It doubles as
+ * the scheduling control: past backdates, future schedules, blank means "whenever I publish it".
+ *
+ * The preview underneath is not decoration. The input is in the browser's local time while the site
+ * renders every date in UTC, so an evening in Phoenix can land on the following day once published.
+ * Showing the rendered date as it is typed makes that visible instead of surprising.
+ */
+function PublicationDate({
+  value, onChange,
+}: { value: string | null; onChange: (value: string | null) => void }) {
+  // Read once, at mount. A date typed now is being compared against "roughly now", and re-reading
+  // the clock on every keystroke would make the preview flip mid-render for no benefit.
+  const [mountedAt] = useState(() => Date.now())
+  // <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" in local time, with no zone.
+  const toLocalInput = (iso: string | null): string => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  const parsed = value ? new Date(value) : null
+  const valid = parsed != null && !Number.isNaN(parsed.getTime())
+  const backdated = valid && parsed.getTime() < mountedAt
+
+  return (
+    <fieldset className="rounded-lg border border-border p-4">
+      <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Publication date
+      </legend>
+
+      <p className="mb-3 text-xs text-muted-foreground">
+        Leave this blank to use the moment you publish. Set a date in the past to publish something
+        written years ago under the date it was written; set one in the future to schedule it.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor="publishAt" className="sr-only">Publication date and time</label>
+        <input
+          id="publishAt"
+          type="datetime-local"
+          value={toLocalInput(value)}
+          onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+          className="rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+        />
+        {value && (
+          <Button size="sm" variant="ghost" onClick={() => onChange(null)}>Clear</Button>
+        )}
+      </div>
+
+      <p className={`mt-3 flex items-center gap-1.5 text-sm ${valid ? 'text-brand' : 'text-muted-foreground'}`}>
+        <CalendarClock className="size-4 shrink-0" aria-hidden />
+        {!valid
+          ? 'Dated the moment you publish it.'
+          : backdated
+            ? <>Will read <span className="font-medium">{formatDate(parsed.toISOString())}</span> and go live as soon as you publish.</>
+            : <>Hidden until <span className="font-medium">{formatDateTime(parsed.toISOString())}</span>, then it appears on its own.</>}
+      </p>
+    </fieldset>
+  )
+}
+
+/**
+ * Who the article is published as.
+ *
+ * Owner-only, and shown only when the server said so — the picker reflects a permission, it does not
+ * grant one. The default is always the person writing, so an Owner who never opens this tab publishes
+ * under their own name, which is the common case.
+ *
+ * A filter box sits above the list because this is a roster, not a short menu: it is usable with
+ * thirty members and still usable with three hundred. The filter matches CueVerse ID and preferred
+ * name together, since either may be what the Owner remembers.
+ */
+function AuthorPicker({
+  members, selfPlayerId, value, onChange,
+}: {
+  members: EditorMember[]
+  selfPlayerId: string
+  value: string
+  onChange: (playerId: string, label: string) => void
+}) {
+  const [filter, setFilter] = useState('')
+
+  const labelFor = (m: EditorMember) => m.handle ?? m.name
+  // The signed-in author leads the list: attributing to somebody else is the exception, and getting
+  // back to the default should never mean scrolling for it.
+  const ordered = useMemo(() => {
+    const self = members.filter((m) => m.playerId === selfPlayerId)
+    const rest = members.filter((m) => m.playerId !== selfPlayerId)
+    return [...self, ...rest]
+  }, [members, selfPlayerId])
+
+  const shown = useMemo(() => {
+    const q = filter.trim().toLowerCase()
+    if (!q) return ordered
+    return ordered.filter((m) => `${m.handle ?? ''} ${m.name}`.toLowerCase().includes(q))
+  }, [ordered, filter])
+
+  const chosen = members.find((m) => m.playerId === value)
+  const isSelf = value === selfPlayerId
+
+  return (
+    <fieldset className="rounded-lg border border-border p-4">
+      <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Author</legend>
+
+      <p className="mb-3 text-xs text-muted-foreground">
+        Whose name appears on the article. Use this when you are posting somebody else&apos;s words —
+        a Discord message, say — so the byline credits them rather than you.
+      </p>
+
+      <div className="space-y-2">
+        <label htmlFor="author-filter" className="sr-only">Filter members</label>
+        <input
+          id="author-filter"
+          type="search"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter by CueVerse ID or name…"
+          className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+        />
+
+        <label htmlFor="author" className="sr-only">Author</label>
+        <select
+          id="author"
+          value={value}
+          onChange={(e) => {
+            const m = members.find((x) => x.playerId === e.target.value)
+            if (m) onChange(m.playerId, labelFor(m))
+          }}
+          size={Math.min(8, Math.max(3, shown.length))}
+          className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm"
+        >
+          {shown.map((m) => (
+            <option key={m.playerId} value={m.playerId}>
+              {labelFor(m)}
+              {m.playerId === selfPlayerId ? ' — you' : m.handle && m.name !== m.handle ? ` (${m.name})` : ''}
+            </option>
+          ))}
+        </select>
+
+        {shown.length === 0 && (
+          <p className="text-xs text-muted-foreground">Nobody matches that.</p>
+        )}
+      </div>
+
+      <p className={`mt-3 text-sm ${isSelf ? 'text-muted-foreground' : 'text-brand'}`}>
+        {isSelf
+          ? 'Publishing under your own name.'
+          : <>Publishing as <span className="font-medium">{chosen ? labelFor(chosen) : value}</span>. Readers will see only their byline.</>}
+      </p>
+    </fieldset>
+  )
 }
 
 /**

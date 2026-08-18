@@ -4,9 +4,11 @@ import { notFound, redirect } from 'next/navigation'
 import { pageMetadata } from '@/lib/site'
 import { prisma } from '@/lib/prisma'
 import { resolveSlug } from '@/lib/editorial/slug'
-import { listRevisions } from '@/lib/editorial/queries'
+import { listRevisions, listBylineCandidates } from '@/lib/editorial/queries'
 import { serializeArticleBody, sanitizeDocument } from '@/lib/editorial/richtext'
-import { currentEditorialActor, canEditArticle, canPublishNow } from '@/lib/editorial/permissions'
+import {
+  currentEditorialActor, canEditArticle, canPublishNow, canAttributeAuthor, canBackdate,
+} from '@/lib/editorial/permissions'
 import { ArticleEditor, type EditorArticle } from '@/components/editorial/article-editor'
 
 export const dynamic = 'force-dynamic'
@@ -36,6 +38,8 @@ export default async function EditArticlePage({ params }: Props) {
       official: true, featured: true, commentsEnabled: true, state: true, publishAt: true,
       reviewFeedback: true, pendingSubmittedAt: true, pendingBody: true, pendingTitle: true,
       pendingExcerpt: true, authorPlayerId: true,
+      authorNameSnapshot: true, authorHandleSnapshot: true,
+      authorPlayer: { select: { primaryName: true, cueverseId: true } },
       tags: { select: { tag: { select: { name: true } } } },
     },
   })
@@ -45,13 +49,15 @@ export default async function EditArticlePage({ params }: Props) {
   if (!canEditArticle(actor, row.authorPlayerId)) notFound()
   if (row.state === 'SOFT_DELETED') notFound()
 
-  const [categories, revisions] = await Promise.all([
+  const mayAttribute = canAttributeAuthor(actor)
+  const [categories, revisions, members] = await Promise.all([
     prisma.articleCategory.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true, adminOnly: true },
     }),
     listRevisions(row.id),
+    mayAttribute ? listBylineCandidates() : Promise.resolve([]),
   ])
 
   // Load a pending proposal back into the editor rather than the live text, so somebody returning to
@@ -76,6 +82,13 @@ export default async function EditArticlePage({ params }: Props) {
     publishAt: row.publishAt ? row.publishAt.toISOString() : null,
     reviewFeedback: row.reviewFeedback,
     hasPendingEdit: pending,
+    // An article whose author has been archived keeps its snapshot byline; the picker falls back to
+    // the signed-in user so saving cannot silently blank it.
+    authorPlayerId: row.authorPlayerId ?? actor.playerId,
+    authorLabel: row.authorPlayer?.cueverseId
+      ?? row.authorHandleSnapshot
+      ?? row.authorPlayer?.primaryName
+      ?? row.authorNameSnapshot,
   }
 
   return (
@@ -85,6 +98,10 @@ export default async function EditArticlePage({ params }: Props) {
       revisions={revisions.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))}
       canPublish={await canPublishNow(actor, row.authorPlayerId)}
       isAdmin={actor.isAdmin}
+      members={members}
+      canAttributeAuthor={mayAttribute}
+      canBackdate={canBackdate(actor)}
+      selfPlayerId={actor.playerId}
     />
   )
 }

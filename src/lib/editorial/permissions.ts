@@ -15,7 +15,10 @@ import { resolveCanonicalPlayerId, expandCanonicalPlayerIds } from '@/lib/player
  *
  * Four kinds of actor:
  *
- *  - Administrator  — owner/admin. May do anything, including marking content official.
+ *  - Owner          — everything an administrator can do, plus attributing an article to somebody
+ *                     else. That last one is the ability to publish words under another member's
+ *                     name, which is why it sits above Administrator rather than beside it.
+ *  - Administrator  — admin. May do anything else, including marking content official.
  *  - Trusted Author — publishes their OWN work without review. Never official, never pinned.
  *  - Member         — drafts and submissions only. Their edits to published work go back to review.
  *  - Visitor        — reads published content and nothing else.
@@ -29,6 +32,8 @@ export interface EditorialActor {
   /** CueVerse ID: the site-wide default display identity. */
   handle: string | null
   isAdmin: boolean
+  /** Owner only. Separate from isAdmin because attribution is an Owner-only power. */
+  isOwner: boolean
   isTrustedAuthor: boolean
 }
 
@@ -60,6 +65,7 @@ export const currentEditorialActor = cache(async function currentEditorialActor(
 
   const staff = await resolveStaffAccess()
   const isAdmin = staff.status === 'ok' && staff.actor.can('manage_competitions')
+  const isOwner = staff.status === 'ok' && staff.actor.isOwner
 
   // A management-only profile exists to run the site, not to compete. It may still act as an
   // administrator — that is the whole point of it — but it is not a member author.
@@ -80,6 +86,7 @@ export const currentEditorialActor = cache(async function currentEditorialActor(
     name: player.primaryName,
     handle: player.cueverseId,
     isAdmin,
+    isOwner,
     // An administrator can always publish; the flag is what matters for everyone else.
     isTrustedAuthor: isAdmin || player.blogTrustedAuthor,
   }
@@ -147,6 +154,28 @@ export async function canPublishNow(
   })
   return !!fresh?.blogTrustedAuthor && fresh.active
 }
+
+/**
+ * May this actor publish an article under somebody else's name?
+ *
+ * Owner only, and deliberately not granted to administrators. Attribution means putting words in a
+ * member's mouth: the byline, the author page and the feed all say they wrote it, and nothing on the
+ * public page distinguishes it from something they typed themselves. That is a reasonable thing for
+ * the person who runs the site to do when relaying a post from Discord, and it is not a power to
+ * hand out more widely. Who actually created the article is recorded either way.
+ */
+export const canAttributeAuthor = (a: EditorialActor | null): boolean => !!a?.isOwner
+
+/**
+ * May this actor set a publication date in the past?
+ *
+ * Owner only, for the same reason attribution is. Forward scheduling is available to anybody who can
+ * publish — choosing when your own work goes out is unremarkable. Backdating is different: it makes
+ * the site assert that something was said before it was, which would let a prediction be written
+ * after the result and filed before it. That is a thing the person running the site may legitimately
+ * need when importing years-old writing, and not a thing to hand out more widely.
+ */
+export const canBackdate = (a: EditorialActor | null): boolean => !!a?.isOwner
 
 /** Only administrators mark content as speaking for 8 Ball Registry. */
 export const canMarkOfficial = (a: EditorialActor | null): boolean => !!a?.isAdmin

@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client'
 import { publishedWhere } from './service'
 import { sanitizeDocument, readingTimeMinutes, type RichDocument } from './richtext'
 import { slugKeyOf } from './slug'
-import { resolveCanonicalPlayerIds } from '@/lib/players/merge'
+import { resolveCanonicalPlayerIds, mergedSecondaryPlayerIds } from '@/lib/players/merge'
 import { authoredPlayerIds, type EditorialActor } from './permissions'
 
 /**
@@ -537,6 +537,30 @@ export async function listAllArticles(filters: { state?: string; search?: string
     }),
   ])
   return { items, total, page, pageCount: Math.max(1, Math.ceil(total / 25)) }
+}
+
+/**
+ * Members who can be given a byline, for the Owner's author picker.
+ *
+ * Active profiles only, and merged-away secondaries are excluded — attributing an article to a
+ * profile the site no longer shows would give readers a byline that leads nowhere. Ordered by
+ * CueVerse ID, which is the identity this site leads with everywhere.
+ *
+ * A profile with no CueVerse ID is still listed under its preferred name: an archive-era member who
+ * has never claimed an account is exactly the sort of person whose writing gets relayed by hand.
+ */
+export async function listBylineCandidates(): Promise<
+  { playerId: string; name: string; handle: string | null }[]
+> {
+  const merged = new Set(await mergedSecondaryPlayerIds())
+  const players = await prisma.player.findMany({
+    where: { active: true },
+    orderBy: [{ cueverseId: 'asc' }, { primaryName: 'asc' }],
+    select: { id: true, primaryName: true, cueverseId: true },
+  })
+  return players
+    .filter((p) => !merged.has(p.id))
+    .map((p) => ({ playerId: p.id, name: p.primaryName, handle: p.cueverseId }))
 }
 
 /** The revision history for one article, newest first. */

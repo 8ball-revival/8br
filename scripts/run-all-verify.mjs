@@ -22,7 +22,7 @@ const suites = readdirSync(path.join(ROOT, 'scripts'))
 /** A suite needs the ESM wrapper if anything it pulls in reaches Payload. */
 function needsEsm(file) {
   const src = readFileSync(path.join(ROOT, 'scripts', file), 'utf8')
-  return /payload|staff-auth|account\/auth|editorial\/(permissions|comments|service|queries|pages)|staff\/members|moderation/.test(src)
+  return /payload|staff-auth|account\/auth|editorial\/(permissions|comments|service|queries|pages|actions)|editorial\/article-editor|staff\/members|moderation/.test(src)
 }
 
 const results = []

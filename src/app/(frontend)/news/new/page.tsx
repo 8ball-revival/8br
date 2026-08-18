@@ -3,7 +3,10 @@ import { redirect } from 'next/navigation'
 
 import { pageMetadata } from '@/lib/site'
 import { prisma } from '@/lib/prisma'
-import { currentEditorialActor, canCreateArticle, canPublishNow } from '@/lib/editorial/permissions'
+import {
+  currentEditorialActor, canCreateArticle, canPublishNow, canAttributeAuthor, canBackdate,
+} from '@/lib/editorial/permissions'
+import { listBylineCandidates } from '@/lib/editorial/queries'
 import { ArticleEditor, type EditorArticle } from '@/components/editorial/article-editor'
 
 export const dynamic = 'force-dynamic'
@@ -15,8 +18,8 @@ export const metadata: Metadata = pageMetadata({
   index: false,
 })
 
-const BLANK: EditorArticle = {
-  id: null, title: '', slug: '', bodySource: '', excerpt: '', categoryId: null, tags: [],
+const BLANK = {
+  id: null, title: '', slug: '', bodySource: '', excerpt: '', categoryId: null, tags: [] as string[],
   coverMediaId: null, coverAlt: '', seoTitle: '', seoDescription: '',
   official: false, featured: false, commentsEnabled: true,
   state: 'DRAFT', publishAt: null, reviewFeedback: null, hasPendingEdit: false,
@@ -28,18 +31,34 @@ export default async function NewArticlePage() {
   // permissions live.
   if (!canCreateArticle(actor)) redirect('/login?next=/news/new')
 
-  const categories = await prisma.articleCategory.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    select: { id: true, name: true, adminOnly: true },
-  })
+  const mayAttribute = canAttributeAuthor(actor)
+  const [categories, members] = await Promise.all([
+    prisma.articleCategory.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, adminOnly: true },
+    }),
+    // The roster is loaded only for somebody entitled to use it — there is no reason to ship a list
+    // of every member to a browser that cannot do anything with it.
+    mayAttribute ? listBylineCandidates() : Promise.resolve([]),
+  ])
+
+  const initial: EditorArticle = {
+    ...BLANK,
+    authorPlayerId: actor!.playerId,
+    authorLabel: actor!.handle ?? actor!.name,
+  }
 
   return (
     <ArticleEditor
-      initial={BLANK}
+      initial={initial}
       categories={categories}
       canPublish={await canPublishNow(actor, actor!.playerId)}
       isAdmin={!!actor!.isAdmin}
+      members={members}
+      canAttributeAuthor={mayAttribute}
+      canBackdate={canBackdate(actor)}
+      selfPlayerId={actor!.playerId}
     />
   )
 }
