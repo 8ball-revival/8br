@@ -34,10 +34,18 @@ for (const [label, id] of [
   check(`${label} section present`, html.includes(`aria-labelledby="${id}"`))
 }
 
-// Order on the page is the order in the markup, which is what a screen reader and a phone both follow.
-const order = ['home-news-heading', 'home-top10-heading', 'competition-center-heading', 'by-the-numbers-heading']
+// Markup order: the main column's sections, then the sidebar's, then the full-width block. That is
+// what a screen reader follows. The VISUAL and mobile order is set by CSS `order` on top of this and
+// is verified by measuring the rendered page, since a string search cannot see a flex order.
+const order = [
+  'competition-center-heading',
+  'home-news-heading',
+  'home-top10-heading',
+  'home-results-heading',
+  'by-the-numbers-heading',
+]
 const positions = order.map((id) => html.indexOf(`aria-labelledby="${id}"`))
-check('sections appear in the required order', positions.every((p, i) => p > 0 && (i === 0 || p > positions[i - 1])),
+check('sections appear in document order', positions.every((p, i) => p > 0 && (i === 0 || p > positions[i - 1])),
   positions.join(' < '))
 
 check('brand name is written in full', html.includes('8 Ball Registry'))
