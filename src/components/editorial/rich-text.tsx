@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { isExternalHref, type BlockNode, type InlineNode, type RichDocument } from '@/lib/editorial/richtext'
+import { ExpandableArticleImage } from './expandable-article-image'
 
 /**
  * Render an article body.
@@ -18,19 +19,27 @@ export function RichText({ doc, className, skipFirstMediaId }: {
   /**
    * A media id already rendered above the body, typically the featured image.
    *
-   * The featured image falls back to the first image in the body, so on most articles the cover and
-   * the body's opening image are the SAME FILE — and rendering both showed it twice. Only the first
-   * matching block is dropped: an author who deliberately uses the same image again later still gets
-   * it, and an article whose cover was uploaded separately is untouched because nothing matches.
+   * The featured image falls back to the FIRST image in the body, so on any article where the author
+   * simply pasted a picture the cover and the body's opening image are the same file, and rendering
+   * both showed it twice.
+   *
+   * The rule is deliberately narrow: drop the body's first image only when that first image IS the
+   * cover. That is exactly the auto-promotion case. If the author explicitly chose some other image
+   * as the cover, the body's first image is a different file, nothing matches, and every inline image
+   * they placed on purpose is kept — including one that happens to repeat the cover further down.
    */
   skipFirstMediaId?: string | null
 }) {
-  // Find the one block to drop, then drop it by index. Written as a lookup rather than a filter with
-  // a running flag because a variable reassigned during render is exactly what React forbids.
-  const coverIndex = skipFirstMediaId
-    ? doc.blocks.findIndex((b) => b.t === 'img' && b.mediaId === skipFirstMediaId)
-    : -1
-  const blocks = coverIndex === -1 ? doc.blocks : doc.blocks.filter((_, i) => i !== coverIndex)
+  // Written as an index lookup rather than a filter with a running flag: a variable reassigned during
+  // render is exactly what React forbids.
+  const firstImageIndex = doc.blocks.findIndex((b) => b.t === 'img')
+  const first = firstImageIndex === -1 ? null : doc.blocks[firstImageIndex]
+  const promoted = !!skipFirstMediaId
+    && !!first
+    && first.t === 'img'
+    && first.mediaId === skipFirstMediaId
+
+  const blocks = promoted ? doc.blocks.filter((_, i) => i !== firstImageIndex) : doc.blocks
 
   return (
     <div className={className}>
@@ -88,20 +97,17 @@ function Block({ node }: { node: BlockNode }) {
       return <hr className="my-8 border-border" />
 
     case 'img':
+      // Body images use the same viewer as the featured image, so every image in an article enlarges
+      // the same way. Placement is unchanged: it still sits exactly where the author put it.
+      // Payload serves media by filename from its own route; no external host is involved.
       return (
-        <figure className="mb-6">
-          {/* Payload serves media by filename from its own route; no external host is involved. */}
-          {/* eslint-disable-next-line @next/next/no-img-element -- Payload media, not a static asset */}
-          <img
-            src={`/api/media/file/${node.mediaId}`}
-            alt={node.alt}
-            className="w-full rounded-lg border border-border"
-            loading="lazy"
-          />
-          {node.caption && (
-            <figcaption className="mt-2 text-center text-xs text-muted-foreground">{node.caption}</figcaption>
-          )}
-        </figure>
+        <ExpandableArticleImage
+          className="mb-6"
+          src={`/api/media/file/${node.mediaId}`}
+          alt={node.alt}
+          caption={node.caption}
+          previewClassName="max-h-[70vh]"
+        />
       )
 
     default:

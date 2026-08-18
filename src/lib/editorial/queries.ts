@@ -100,6 +100,29 @@ export interface ListFilters {
   officialOnly?: boolean
   /** Put pinned articles first. The index does; a filtered view does not. */
   honourPins?: boolean
+  /** Reading order. Newest first when unset. */
+  sort?: ArticleSort
+}
+
+/**
+ * The orders the News index can be read in.
+ *
+ * Author sorting uses the SNAPSHOT columns on the article rather than a join to the player. Two
+ * reasons: it sorts on the byline actually printed on the card, so the order matches what a reader
+ * sees; and a historical article keeps the name it was published under even if that member later
+ * changes their CueVerse ID.
+ */
+export type ArticleSort = 'newest' | 'oldest' | 'author' | 'author-desc'
+
+export const ARTICLE_SORTS: { id: ArticleSort; label: string }[] = [
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'author', label: 'Author A–Z' },
+  { id: 'author-desc', label: 'Author Z–A' },
+]
+
+export function parseArticleSort(value: string | null | undefined): ArticleSort {
+  return ARTICLE_SORTS.some((s) => s.id === value) ? value as ArticleSort : 'newest'
 }
 
 export interface ArticlePage {
@@ -146,15 +169,94 @@ function listWhere(filters: ListFilters, now: Date): Prisma.ArticleWhereInput {
   return where
 }
 
+/**
+ * A page of articles ordered by author name.
+ *
+ * Sorted in JavaScript rather than by the database, because this database was created with the `C`
+ * collation — plain byte order, in which every capitalised name sorts before every lowercase one.
+ * Under it "Author A-Z" would list Starkiller before sixohtwo, which reads as broken. Postgres would
+ * need `ORDER BY lower(...)` and Prisma cannot express an expression in `orderBy`, so the comparison
+ * happens here with `localeCompare`, which is case-insensitive and handles accents properly too.
+ *
+ * That means reading the id and byline of every matching article to order them before slicing out a
+ * page. It is four small columns and no joins, which is comfortably affordable at this scale, and it
+ * is the only way to page correctly: sorting just the rows of one page would order that page
+ * internally while leaving the wrong articles ON it.
+ */
+async function listByAuthor(
+  where: Prisma.ArticleWhereInput,
+  sort: 'author' | 'author-desc',
+  page: number,
+): Promise<ArticlePage> {
+  const direction = sort === 'author' ? 1 : -1
+
+  const all = await prisma.article.findMany({
+    where,
+    select: { id: true, authorHandleSnapshot: true, authorNameSnapshot: true, publishAt: true },
+  })
+
+  const nameOf = (a: typeof all[number]) =>
+    (a.authorHandleSnapshot ?? a.authorNameSnapshot ?? '').trim()
+
+  all.sort((a, b) => {
+    const an = nameOf(a)
+    const bn = nameOf(b)
+    // An article with no recorded byline sorts last in both directions, rather than leading the list
+    // as an empty string would.
+    if (!an && !bn) return 0
+    if (!an) return 1
+    if (!bn) return -1
+
+    const byName = an.localeCompare(bn, undefined, { sensitivity: 'base' })
+    if (byName !== 0) return byName * direction
+
+    // Within one author, newest first, then id so paging cannot repeat or drop an article.
+    const at = a.publishAt?.getTime() ?? 0
+    const bt = b.publishAt?.getTime() ?? 0
+    return bt - at || b.id - a.id
+  })
+
+  const pageIds = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((a) => a.id)
+  const rows = pageIds.length
+    ? await prisma.article.findMany({ where: { id: { in: pageIds } }, select: CARD_SELECT })
+    : []
+
+  // `IN` returns rows in whatever order it likes, so restore the order that was just computed.
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const items = pageIds.map((id) => byId.get(id)).filter((r) => r != null).map(toCard)
+
+  return {
+    items,
+    total: all.length,
+    page,
+    pageCount: Math.max(1, Math.ceil(all.length / PAGE_SIZE)),
+  }
+}
+
 /** One page of published articles, newest first. */
 export async function listArticles(filters: ListFilters = {}): Promise<ArticlePage> {
   const now = new Date()
   const page = Math.max(1, Math.trunc(filters.page ?? 1))
   const where = listWhere(filters, now)
 
-  const orderBy: Prisma.ArticleOrderByWithRelationInput[] = filters.honourPins
-    ? [{ pinned: 'desc' }, { pinOrder: 'asc' }, { publishAt: 'desc' }, { id: 'desc' }]
-    : [{ publishAt: 'desc' }, { id: 'desc' }]
+  const sort = filters.sort ?? 'newest'
+
+  // Pins lead only the default reading order. Asking for "Author A–Z" and getting the pinned articles
+  // first regardless would not be the order that was asked for.
+  const pinsFirst: Prisma.ArticleOrderByWithRelationInput[] =
+    filters.honourPins && sort === 'newest' ? [{ pinned: 'desc' }, { pinOrder: 'asc' }] : []
+
+  // `id` is the final tie-break in every order, so paging is stable: without it two articles sharing a
+  // timestamp could swap between pages and one would be shown twice while another vanished.
+  const orderBy: Prisma.ArticleOrderByWithRelationInput[] = [
+    ...pinsFirst,
+    ...(sort === 'oldest' ? [{ publishAt: 'asc' as const }] : [{ publishAt: 'desc' as const }]),
+    { id: 'desc' },
+  ]
+
+  if (sort === 'author' || sort === 'author-desc') {
+    return listByAuthor(where, sort, page)
+  }
 
   const [total, rows] = await Promise.all([
     prisma.article.count({ where }),

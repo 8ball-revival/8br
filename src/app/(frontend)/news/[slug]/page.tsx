@@ -7,6 +7,7 @@ import { absoluteUrl, brandName } from '@/lib/site'
 import { formatDate } from '@/lib/format'
 import { Badge } from '@/components/ui/badge'
 import { RichText } from '@/components/editorial/rich-text'
+import { ExpandableArticleImage } from '@/components/editorial/expandable-article-image'
 import { ArticleCardView } from '@/components/editorial/article-card'
 import { CommentThread, type ClientComment } from '@/components/editorial/comment-thread'
 import { ViewCounter } from '@/components/editorial/view-counter'
@@ -92,8 +93,40 @@ export default async function ArticlePage({ params }: Props) {
   const mayEdit = canEditArticle(actor, article.author.playerId)
   const scheduled = isScheduled(state)
 
+  /*
+    Which image heads the article.
+
+    An explicitly chosen cover wins. Otherwise the article's first inline image is promoted, which is
+    the existing fallback and the reason most pasted-in articles have a cover at all. Either way the
+    resulting id is handed to RichText, which drops the body's first image only when that image IS
+    this one — so a promoted image appears once, and images the author placed deliberately all stay.
+  */
+  const firstInlineImage = article.body.blocks.find(
+    (b): b is Extract<typeof b, { t: 'img' }> => b.t === 'img',
+  )
+  const featured = article.coverMediaId
+    ? {
+      mediaId: article.coverMediaId,
+      src: `/api/media/file/${article.coverMediaId}`,
+      alt: article.coverAlt ?? '',
+      caption: null as string | null,
+    }
+    : firstInlineImage
+      ? {
+        mediaId: firstInlineImage.mediaId,
+        src: `/api/media/file/${firstInlineImage.mediaId}`,
+        alt: firstInlineImage.alt,
+        caption: firstInlineImage.caption,
+      }
+      : null
+  const hasMedia = featured != null
+
   return (
-    <article className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+    /*
+      Same max width and gutters as the header's inner container (see site-header), so the article
+      lines up with the navigation above it instead of sitting in a narrower well of its own.
+    */
+    <article className="mx-auto w-full max-w-[96rem] px-4 py-8 sm:px-6 lg:px-8">
       {visible && <ViewCounter articleId={article.id} />}
 
       {!visible && (
@@ -116,7 +149,29 @@ export default async function ArticlePage({ params }: Props) {
         )}
       </nav>
 
-      <header>
+      {/*
+        Two columns once there is room, one below that.
+
+        Three grid children with explicit placement, rather than nesting the body inside a left
+        column. That is what lets ONE dom order serve both layouts: header, then image, then body.
+        Stacked on mobile that is exactly the order wanted — the preview sits after the metadata and
+        before the article. On desktop the image is moved to a right-hand rail spanning both rows.
+
+        `minmax(0, 1fr)` on the text track is load-bearing: a grid track is auto-sized to its content
+        by default, so an unbroken title or a wide code block would push the column past its share and
+        force the whole page to scroll sideways. The 0 minimum lets it shrink instead.
+
+        With no image, `hasMedia` is false, the grid classes are never applied, and the article is a
+        single readable column — no empty rail.
+      */}
+      <div
+        className={
+          hasMedia
+            ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(21rem,26rem)] lg:items-start lg:gap-8 xl:gap-12'
+            : ''
+        }
+      >
+      <header className="min-w-0 lg:col-start-1 lg:row-start-1">
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           {article.official && (
             <Badge variant="gold"><ShieldCheck className="mr-1 size-3" aria-hidden />Official</Badge>
@@ -133,16 +188,19 @@ export default async function ArticlePage({ params }: Props) {
         )}
 
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-3 text-xs text-muted-foreground">
-          <span>
-            By{' '}
+          {/* Named explicitly and set in gold: who wrote a piece should not be the least visible
+              thing in the metadata row. Matches the byline on the article cards. */}
+          <span className="inline-flex items-center gap-1.5">
+            <span>Author</span>
             <Link
               href={`/news/author/${encodeURIComponent(article.author.handle ?? article.author.name)}`}
-              className="font-medium text-foreground hover:text-brand"
+              className="font-semibold text-[var(--gold)] hover:underline"
+              style={{ textDecorationColor: 'var(--gold)' }}
             >
               {article.author.handle ?? article.author.name}
             </Link>
             {article.author.handle && article.author.name !== article.author.handle && (
-              <span className="ml-1 opacity-70">({article.author.name})</span>
+              <span className="opacity-70">({article.author.name})</span>
             )}
           </span>
           {article.publishAt && (
@@ -165,18 +223,30 @@ export default async function ArticlePage({ params }: Props) {
         </div>
       </header>
 
-      {article.coverMediaId && (
-        <figure className="mt-6">
-          {/* eslint-disable-next-line @next/next/no-img-element -- Payload media, not a static asset */}
-          <img
-            src={`/api/media/file/${article.coverMediaId}`}
-            alt={article.coverAlt ?? ''}
-            className="w-full rounded-lg border border-border"
+      {featured && (
+        <aside
+          className={[
+            'mt-6 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:mt-0',
+            // Sticky only where there is a column to be sticky in, and offset below the fixed header
+            // so it can never slide underneath it. Capped well under the viewport so it cannot run
+            // into the footer.
+            'lg:sticky lg:top-20',
+          ].join(' ')}
+        >
+          <ExpandableArticleImage
+            src={featured.src}
+            alt={featured.alt}
+            caption={featured.caption}
+            // Bounded so a tall archival graphic stays a preview rather than a wall. Smaller caps on
+            // phones, where 70vh of image would push the article off the screen entirely.
+            previewClassName="max-h-[18rem] xs:max-h-[22rem] sm:max-h-[25rem] lg:max-h-[70vh]"
           />
-        </figure>
+        </aside>
       )}
 
-      <RichText doc={article.body} className="mt-8 text-[0.975rem]" skipFirstMediaId={article.coverMediaId} />
+      <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+      {/* ~70-80 characters at this size: the extra width goes to the media column, not the prose. */}
+      <RichText doc={article.body} className="mt-8 max-w-[68ch] text-[0.975rem]" skipFirstMediaId={featured?.mediaId ?? null} />
 
       {article.tags.length > 0 && (
         <div className="mt-10 flex flex-wrap items-center gap-1.5 border-t border-border pt-5">
@@ -192,6 +262,8 @@ export default async function ArticlePage({ params }: Props) {
           ))}
         </div>
       )}
+      </div>{/* /article text column */}
+      </div>{/* /two-column grid */}
 
       <RelatedCompetitions relations={article.relations} />
 

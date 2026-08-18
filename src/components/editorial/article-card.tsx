@@ -110,20 +110,33 @@ export function ArticleCardView({
 /**
  * Author and date.
  *
+ * The author is named explicitly and set in bold gold, because on a wall of cards the byline was the
+ * first thing to disappear — it read as one more grey item in a row of metadata, indistinguishable
+ * from the date and the reading time. The word "Author" removes the guesswork about what the name is,
+ * and the gold makes it the thing the eye lands on.
+ *
  * CueVerse ID leads wherever an identity is shown on this site, with the preferred name after it —
  * two members can share a first name, and the handle is the one thing that is unique.
  */
 function Byline({ article }: { article: Card }) {
   const label = article.author.handle ?? article.author.name
+  const name = (
+    <strong className="font-semibold text-[var(--gold)]">{label}</strong>
+  )
   return (
     <>
-      {article.author.playerId ? (
-        <Link href={`/news/author/${encodeURIComponent(label)}`} className="hover:text-brand">
-          {label}
-        </Link>
-      ) : (
-        <span>{label}</span>
-      )}
+      <span className="inline-flex items-center gap-1">
+        <span className="text-muted-foreground">Author</span>
+        {article.author.playerId ? (
+          <Link
+            href={`/news/author/${encodeURIComponent(label)}`}
+            className="hover:underline"
+            style={{ textDecorationColor: 'var(--gold)' }}
+          >
+            {name}
+          </Link>
+        ) : name}
+      </span>
       {article.publishAt && (
         <time dateTime={article.publishAt.toISOString()}>{formatDate(article.publishAt.toISOString())}</time>
       )}
