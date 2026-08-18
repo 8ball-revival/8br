@@ -14,6 +14,7 @@ import { planAccountDeletionAction } from '@/lib/players/merge-actions'
 import { prisma } from '@/lib/prisma'
 import { MemberRoles } from '@/components/staff/member-roles'
 import { MemberProfileEditor } from '@/components/staff/member-profile-editor'
+import { MemberTrustedAuthor } from '@/components/staff/member-trusted-author'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getMemberDetail } from '@/lib/staff/members'
 
@@ -56,6 +57,7 @@ export default async function MemberDetailPage({ params }: Props) {
             {m.cueverseId && <span>@{m.cueverseId}</span>}
             <Badge variant={m.role === 'owner' ? 'gold' : m.role === 'admin' ? 'success' : 'muted'}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</Badge>
             {m.headAdmin && <Badge variant="default">Head Administrator</Badge>}
+            {m.trustedAuthor && <Badge variant="gold">Trusted Author</Badge>}
             <StatusBadge status={m.status} />
           </p>
         </div>
@@ -76,6 +78,16 @@ export default async function MemberDetailPage({ params }: Props) {
             viewerUserId={access.actor.userId}
             viewerIsOwner={access.actor.isOwner}
             viewerCanManageAdmins={access.actor.canManageAdmins()}
+          />
+        </Section>
+
+        <Section title="Publishing">
+          <MemberTrustedAuthor
+            targetUserId={userId}
+            targetLabel={m.cueverseId ?? m.preferredName ?? `#${m.userId}`}
+            trusted={m.trustedAuthor}
+            hasProfile={!!profile}
+            canManage={canMerge}
           />
         </Section>
 

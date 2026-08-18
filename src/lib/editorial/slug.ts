@@ -1,5 +1,9 @@
+import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import { slugKeyOf, isValidSlug, RESERVED_SLUGS, slugify, MAX_SLUG_LENGTH } from './slug-format'
+
 /**
- * Article URLs.
+ * Article URLs — the database half.
  *
  * A slug is derived from the title, but it is not owned by the title: once an article has been
  * published its URL has been shared, linked and indexed, and the site is responsible for that link
@@ -9,57 +13,11 @@
  * Uniqueness is enforced case-insensitively on `slugKey` (a UNIQUE index), while `slug` keeps the
  * author's casing for display. Both the live slug and every retired one share the same namespace —
  * a new article can never claim a URL that still redirects somewhere else.
- */
-import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@prisma/client'
-
-/** Longest slug we will generate. Long enough to stay readable, short enough for a tidy URL. */
-export const MAX_SLUG_LENGTH = 80
-
-/**
- * Words that would collide with a route under /news, plus a few that would be confusing.
  *
- * Checked against the whole slug rather than its first segment, because article slugs have no
- * segments — /news/<slug> is the entire shape.
+ * The shaping rules live in `slug-format.ts` so the editor can apply the identical ones in the
+ * browser; they are re-exported here so callers only need one import.
  */
-export const RESERVED_SLUGS = new Set([
-  'new', 'edit', 'mine', 'drafts', 'draft', 'preview', 'search', 'page', 'feed', 'rss', 'atom',
-  'sitemap', 'category', 'categories', 'tag', 'tags', 'author', 'authors', 'archive', 'archives',
-  'moderation', 'settings', 'export', 'admin', 'api', 'comment', 'comments', 'report', 'reports',
-  'about', 'index', 'all', 'official', 'featured',
-])
-
-/**
- * Turn arbitrary text into a URL fragment.
- *
- * Accented Latin is folded to ASCII so "Peña" becomes "pena" rather than being deleted. Text with no
- * Latin characters at all — a title written entirely in another script — folds to nothing, which the
- * caller handles by falling back to a generic slug rather than producing an empty URL.
- */
-export function slugify(input: string): string {
-  return String(input ?? '')
-    .normalize('NFKD')
-    // Drop combining marks left behind by the decomposition above.
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/['\u2018\u2019\u02bc`]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, MAX_SLUG_LENGTH)
-    .replace(/-+$/g, '')
-}
-
-/** The case-insensitive uniqueness key for a slug. */
-export const slugKeyOf = (slug: string): string => slug.trim().toLowerCase()
-
-/** A slug is well-formed if it survives its own slugify unchanged and is not reserved. */
-export function isValidSlug(slug: string): boolean {
-  if (!slug || slug.length > MAX_SLUG_LENGTH) return false
-  if (RESERVED_SLUGS.has(slugKeyOf(slug))) return false
-  // A purely numeric slug would be indistinguishable from an id in a URL.
-  if (/^\d+$/.test(slug)) return false
-  return slugify(slug) === slugKeyOf(slug)
-}
+export { slugify, slugKeyOf, isValidSlug, RESERVED_SLUGS, MAX_SLUG_LENGTH } from './slug-format'
 
 type Db = Prisma.TransactionClient | typeof prisma
 

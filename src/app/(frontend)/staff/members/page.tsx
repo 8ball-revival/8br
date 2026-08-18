@@ -21,21 +21,22 @@ const STATUSES: (MemberStatus | 'ALL')[] = ['ALL', 'ACTIVE', 'TIMED_OUT', 'BANNE
 
 type SortKey = 'cueverseId' | 'preferredName'
 type SortDir = 'asc' | 'desc'
-type SP = { searchParams: Promise<{ q?: string; status?: string; merged?: string; sort?: string; dir?: string }> }
+type SP = { searchParams: Promise<{ q?: string; status?: string; merged?: string; trusted?: string; sort?: string; dir?: string }> }
 
 export default async function MembersPage({ searchParams }: SP) {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok') return <StaffGate access={access} />
   if (!access.actor.can('moderate_members')) return <AdminDenied actor={access.actor} active="members" label="Member Management" />
 
-  const { q = '', status = 'ALL', merged = '', sort = '', dir = '' } = await searchParams
+  const { q = '', status = 'ALL', merged = '', trusted = '', sort = '', dir = '' } = await searchParams
   const statusFilter = (STATUSES as string[]).includes(status) ? (status as MemberStatus | 'ALL') : 'ALL'
   const showMerged = merged === '1'
+  const trustedOnly = trusted === '1'
   // Editing a profile is the same capability the member page gates on.
   const canEditProfiles = access.actor.can('moderate_members')
   const sortKey: SortKey | null = sort === 'cueverseId' || sort === 'preferredName' ? sort : null
   const sortDir: SortDir = dir === 'desc' ? 'desc' : 'asc'
-  const all = await listMembers({ q, status: statusFilter })
+  const all = await listMembers({ q, status: statusFilter, trustedOnly })
 
   // Merged secondaries are hidden by default. The filter reveals them, labelled and linked to the
   // primary they belong to, so the relationship is always visible rather than implied.
@@ -98,6 +99,10 @@ export default async function MembersPage({ searchParams }: SP) {
           <input type="checkbox" name="merged" value="1" defaultChecked={showMerged} className="size-4 accent-[var(--gold)]" />
           Show merged accounts
         </label>
+        <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" name="trusted" value="1" defaultChecked={trustedOnly} className="size-4 accent-[var(--gold)]" />
+          Trusted Authors only
+        </label>
         {/* Carry the chosen sort through a filter submit, so searching does not silently reset it. */}
         {sortKey && <input type="hidden" name="sort" value={sortKey} />}
         {sortKey && <input type="hidden" name="dir" value={sortDir} />}
@@ -108,8 +113,8 @@ export default async function MembersPage({ searchParams }: SP) {
         <table className="w-full min-w-[620px] text-sm">
           <thead className="bg-card/60 text-left text-xs text-muted-foreground uppercase">
             <tr>
-              <SortHeader label="CueVerse ID" col="cueverseId" sortKey={sortKey} sortDir={sortDir} q={q} status={status} merged={merged} />
-              <SortHeader label="Preferred name" col="preferredName" sortKey={sortKey} sortDir={sortDir} q={q} status={status} merged={merged} />
+              <SortHeader label="CueVerse ID" col="cueverseId" sortKey={sortKey} sortDir={sortDir} q={q} status={status} merged={merged} trusted={trusted} />
+              <SortHeader label="Preferred name" col="preferredName" sortKey={sortKey} sortDir={sortDir} q={q} status={status} merged={merged} trusted={trusted} />
               <th className="px-4 py-2.5 font-medium">Status</th>
             </tr>
           </thead>
@@ -125,6 +130,7 @@ export default async function MembersPage({ searchParams }: SP) {
                 <td className="px-4 py-2.5 align-top">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge status={m.status} />
+                    {m.trustedAuthor && <Badge variant="gold">Trusted Author</Badge>}
                     {mergedUserIds.has(m.userId) && (
                       <>
                         <Badge variant="muted">Merged</Badge>
@@ -165,7 +171,7 @@ export default async function MembersPage({ searchParams }: SP) {
  * back again. The other filters are carried through in the link so sorting never resets a search.
  */
 function SortHeader({
-  label, col, sortKey, sortDir, q, status, merged,
+  label, col, sortKey, sortDir, q, status, merged, trusted,
 }: {
   label: string
   col: SortKey
@@ -174,6 +180,7 @@ function SortHeader({
   q: string
   status: string
   merged: string
+  trusted: string
 }) {
   const active = sortKey === col
   const nextDir: SortDir = active && sortDir === 'asc' ? 'desc' : 'asc'
@@ -181,6 +188,7 @@ function SortHeader({
   if (q) params.set('q', q)
   if (status && status !== 'ALL') params.set('status', status)
   if (merged) params.set('merged', merged)
+  if (trusted) params.set('trusted', trusted)
   params.set('sort', col)
   params.set('dir', nextDir)
 

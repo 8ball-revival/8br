@@ -214,7 +214,20 @@ function pushText(out: InlineNode[], value: string): void {
 
 // --------------------------------------------------------------------------- block parsing
 
-const IMAGE_LINE = /^!\[([^\]]*)\]\(media:([A-Za-z0-9_-]+)(?:\s+"([^"]*)")?\)$/
+const IMAGE_LINE = /^!\[([^\]]*)\]\(media:([^)\s]+)(?:\s+"([^"]*)")?\)$/
+
+/**
+ * A Payload media reference.
+ *
+ * The stored value is the uploaded FILENAME — that is what Payload's own file route is keyed on —
+ * so dots have to survive. Everything that could climb out of that route does not: no slashes, no
+ * backslashes, and no ".." anywhere in the string.
+ */
+export function isMediaId(value: string): boolean {
+  if (!value || value.length > 128) return false
+  if (value.includes('..') || value.includes('/') || value.includes('\\')) return false
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)
+}
 
 /**
  * Parse the authoring format into a document.
@@ -251,7 +264,7 @@ export function parseArticleBody(source: string): RichDocument {
 
     if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim())) { push({ t: 'hr' }); i += 1; continue }
 
-    const image = IMAGE_LINE.exec(line.trim())
+    const image = imageLine(line)
     if (image) {
       push({
         t: 'img',
@@ -313,8 +326,21 @@ function startsBlock(line: string): boolean {
     /^\d{1,3}[.)]\s+/.test(line) ||
     /^```/.test(t) ||
     /^(-{3,}|\*{3,}|_{3,})$/.test(t) ||
-    IMAGE_LINE.test(t)
+    imageLine(t) != null
   )
+}
+
+/**
+ * An image line, if this line is one.
+ *
+ * A line that looks like an image but names an unusable media id is NOT an image line — it stays
+ * ordinary text, the same as any other construct the parser does not recognise. Block detection and
+ * block parsing share this function so the two can never disagree about what a line is; when they
+ * did, a rejected image vanished instead of degrading to text.
+ */
+function imageLine(line: string): RegExpExecArray | null {
+  const m = IMAGE_LINE.exec(line.trim())
+  return m && isMediaId(m[2]) ? m : null
 }
 
 // --------------------------------------------------------------------------- serialising back
@@ -410,7 +436,7 @@ function sanitizeBlock(input: unknown): BlockNode | null {
     case 'hr':
       return { t: 'hr' }
     case 'img': {
-      const mediaId = typeof n.mediaId === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(n.mediaId) ? n.mediaId : null
+      const mediaId = typeof n.mediaId === 'string' && isMediaId(n.mediaId) ? n.mediaId : null
       if (!mediaId) return null
       return {
         t: 'img',

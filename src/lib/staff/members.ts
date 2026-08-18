@@ -30,6 +30,9 @@ export interface MemberRow {
   timeoutUntil: string | null
   activePenalty: { type: PenaltyType; endAt: string | null } | null
   registrationCount: number
+  /// Trusted Author: may publish to The Break without review. Read from the canonical Player, so it
+  /// is the same value the editorial permission check uses rather than a second copy of it.
+  trustedAuthor: boolean
 }
 
 export interface MemberDetail extends MemberRow {
@@ -71,7 +74,7 @@ function effectiveStatus(row: { status: MemberStatus; timeoutUntil: Date | null 
   return { status: row.status, timeoutUntil: row.timeoutUntil ? row.timeoutUntil.toISOString() : null }
 }
 
-export async function listMembers(opts: { q?: string; status?: MemberStatus | 'ALL' } = {}): Promise<MemberRow[]> {
+export async function listMembers(opts: { q?: string; status?: MemberStatus | 'ALL'; trustedOnly?: boolean } = {}): Promise<MemberRow[]> {
   const p = await payload()
   const res = await p.find({ collection: 'users', limit: 1000, overrideAccess: true, depth: 0 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,7 +90,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   const managementUserIds = new Set(managementProfiles.map((m) => Number(m.linkedUserId)))
 
   const [profiles, mods, heads, activePenalties] = await Promise.all([
-    prisma.player.findMany({ where: { linkedUserId: { in: userIds.map(String) } }, select: { id: true, linkedUserId: true, primaryName: true, cueverseId: true } }),
+    prisma.player.findMany({ where: { linkedUserId: { in: userIds.map(String) } }, select: { id: true, linkedUserId: true, primaryName: true, cueverseId: true, blogTrustedAuthor: true } }),
     prisma.memberModeration.findMany({ where: { userId: { in: userIds } } }),
     prisma.staffDesignation.findMany({ where: { userId: { in: userIds }, headAdmin: true }, select: { userId: true } }),
     prisma.penalty.findMany({ where: { userId: { in: userIds }, removedAt: null }, select: { userId: true, type: true, endAt: true } }),
@@ -126,6 +129,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
       timeoutUntil: eff.timeoutUntil,
       activePenalty: penByUser.get(uid) ?? null,
       registrationCount: countByUser.get(uid) ?? 0,
+      trustedAuthor: prof?.blogTrustedAuthor ?? false,
     }
   })
 
@@ -134,6 +138,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   // There is no separate "username" concept to search.
   return rows
     .filter((r) => (opts.status && opts.status !== 'ALL' ? r.status === opts.status : true))
+    .filter((r) => (opts.trustedOnly ? r.trustedAuthor : true))
     .filter((r) => (q ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} #${r.userId}`.toLowerCase().includes(q) : true))
     .sort((a, b) => (a.cueverseId ?? '').localeCompare(b.cueverseId ?? '') || a.userId - b.userId)
 }
@@ -145,7 +150,7 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
   if (!u) return null
 
   const [profile, mod, head, warnings, penalties, regs] = await Promise.all([
-    prisma.player.findUnique({ where: { linkedUserId: String(userId) }, select: { id: true, primaryName: true, cueverseId: true, discord: true, timeZone: true } }),
+    prisma.player.findUnique({ where: { linkedUserId: String(userId) }, select: { id: true, primaryName: true, cueverseId: true, discord: true, timeZone: true, blogTrustedAuthor: true } }),
     prisma.memberModeration.findUnique({ where: { userId } }),
     prisma.staffDesignation.findUnique({ where: { userId }, select: { headAdmin: true } }),
     prisma.warning.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
@@ -176,6 +181,7 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
       return active ? { type: active.type, endAt: active.endAt ? active.endAt.toISOString() : null } : null
     })(),
     registrationCount: regs.length,
+    trustedAuthor: profile?.blogTrustedAuthor ?? false,
     warnings: warnings.map((w) => ({ id: w.id, reason: w.reason, internalNotes: w.internalNotes, staffUsername: w.staffUsername, createdAt: w.createdAt.toISOString() })),
     penalties: penalties.map((pen) => ({
       id: pen.id,

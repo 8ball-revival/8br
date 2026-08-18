@@ -11,7 +11,7 @@
 import {
   parseArticleBody, sanitizeDocument, buildDocument, serializeArticleBody, safeHref, isExternalHref,
   documentToPlainText, deriveExcerpt, readingTimeMinutes, isEmptyDocument, referencedMediaIds,
-  cleanText, MAX_BLOCKS, MAX_LIST_ITEMS,
+  cleanText, isMediaId, MAX_BLOCKS, MAX_LIST_ITEMS,
   type RichDocument, type BlockNode, type InlineNode,
 } from '../src/lib/editorial/richtext.ts'
 
@@ -128,6 +128,18 @@ check('*** is a horizontal rule', first('***').t === 'hr')
   check('an image without a caption has caption null', img.t === 'img' && img.caption === null)
 }
 check('an http image URL is not an image block', first('![a](https://evil.test/x.png)').t === 'p')
+{
+  // Payload media ids are filenames, so dots must survive; anything that could climb out of the
+  // media route must not.
+  const img = first('![a](media:break-shot-2026.jpg)')
+  check('a filename media id is accepted', img.t === 'img' && img.mediaId === 'break-shot-2026.jpg')
+  check('a traversing media id is not an image', first('![a](media:../../secret.env)').t === 'p')
+  check('a media id with a slash is not an image', first('![a](media:sub/dir.png)').t === 'p')
+  check('isMediaId accepts a plain filename', isMediaId('photo_01.png'))
+  check('isMediaId rejects traversal', !isMediaId('..%2Fx.png') && !isMediaId('../x.png'))
+  check('isMediaId rejects a backslash', !isMediaId('a\b.png'))
+  check('isMediaId rejects a leading dot', !isMediaId('.env'))
+}
 
 check('blank input yields no blocks', parseArticleBody('').blocks.length === 0)
 check('whitespace-only input yields no blocks', parseArticleBody('   \n\n  \t ').blocks.length === 0)

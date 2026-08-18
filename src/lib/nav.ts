@@ -8,7 +8,9 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Seasons', href: '/seasons' },
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Ladder', href: '/rankings' },
-  // Predictions: coming in a future release — hidden from nav until implemented.
+  // The Break — the site's publishing and community section. Labelled "News" in navigation because
+  // that is what a visitor is looking for; "The Break" is the section's name, used on the page.
+  { label: 'News', href: '/news' },
 ]
 
 /** Slim footer links. */
