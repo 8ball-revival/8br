@@ -9,7 +9,6 @@ import sharp from 'sharp'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
-import { News } from './collections/News'
 import { SiteBranding } from './globals/SiteBranding'
 import { HomepageHero } from './globals/HomepageHero'
 
@@ -50,7 +49,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, News],
+  collections: [Users, Media],
   // Admin-managed site content. Singletons with drafts enabled: the public site reads only the
   // published version, so Save Draft never changes what visitors see.
   globals: [SiteBranding, HomepageHero],

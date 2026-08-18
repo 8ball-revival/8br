@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Save, Send, Eye, Upload, CheckCircle2, Clock, History, Trash2, Archive, AlertTriangle,
+  Save, Send, Eye, Upload, CheckCircle2, Clock, History, Trash2, Archive, AlertTriangle, Link2,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import { RichText } from '@/components/editorial/rich-text'
 import {
   createArticleAction, updateArticleAction, autosaveDraftAction, submitForReviewAction,
   withdrawSubmissionAction, publishArticleAction, archiveArticleAction, deleteArticleAction,
-  restoreRevisionAction, checkSlugAction,
+  restoreRevisionAction, checkSlugAction, createPreviewLinkAction,
 } from '@/lib/editorial/actions'
 
 export interface EditorCategory { id: number; name: string; adminOnly: boolean }
@@ -107,8 +107,12 @@ export function ArticleEditor({
 
   const dirty = useRef(false)
   const latest = useRef(form)
-  latest.current = form
-  useEffect(() => { dirty.current = true }, [form])
+  // Written in an effect rather than during render: the autosave timer needs the newest form, and a
+  // ref assigned mid-render is read before React has committed the change it belongs to.
+  useEffect(() => {
+    latest.current = form
+    dirty.current = true
+  }, [form])
 
   useEffect(() => {
     // Autosave only touches drafts, and only after the author stops typing. It deliberately does not
@@ -139,9 +143,11 @@ export function ArticleEditor({
 
   useEffect(() => {
     const candidate = form.slug || slugify(form.title)
-    if (!candidate) { setSlugState({ checking: false, available: null }); return }
-    setSlugState((s) => ({ ...s, checking: true }))
+    // Everything happens inside the debounce, including clearing the state for an empty slug: an
+    // effect that calls setState on its way in makes React render twice for every keystroke.
     const timer = window.setTimeout(() => {
+      if (!candidate) { setSlugState({ checking: false, available: null }); return }
+      setSlugState({ checking: true, available: null })
       void checkSlugAction(candidate, articleId ?? undefined).then((r) => {
         setSlugState({ checking: false, available: r.data?.available ?? null })
       })
@@ -218,6 +224,27 @@ export function ArticleEditor({
   }
 
   const submit = () => run(() => submitForReviewAction(articleId!), 'Sent for review.')
+
+  /**
+   * A shareable link to an unpublished draft.
+   *
+   * Copied straight to the clipboard rather than shown in a dialog, because the link IS the
+   * credential and the fewer places it is displayed the better.
+   */
+  const shareDraft = () => {
+    setMessage(null)
+    start(async () => {
+      const r = await createPreviewLinkAction(articleId!)
+      if (r.error || !r.data) { setMessage({ text: r.error ?? 'That link could not be created.' }); return }
+      const url = `${window.location.origin}${r.data}`
+      try {
+        await navigator.clipboard.writeText(url)
+        setMessage({ ok: true, text: 'Preview link copied. It expires in three days.' })
+      } catch {
+        setMessage({ ok: true, text: url })
+      }
+    })
+  }
 
   const remove = () => {
     void confirm({
@@ -499,6 +526,12 @@ export function ArticleEditor({
               <Send className="size-4" aria-hidden />Submit for review
             </Button>
           )
+        )}
+
+        {!isNew && form.state !== 'PUBLISHED' && (
+          <Button variant="ghost" disabled={pending} onClick={shareDraft}>
+            <Link2 className="size-4" aria-hidden />Copy preview link
+          </Button>
         )}
 
         {!isNew && form.state === 'PUBLISHED' && (

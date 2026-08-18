@@ -6,7 +6,7 @@ import type { Capability } from '@/lib/auth/roles'
 
 export type AdminSection =
   | 'dashboard' | 'reset' | 'audit' | 'members' | 'penalties'
-  | 'staff' | 'competition' | 'competitions' | 'settings' | 'security' | 'health'
+  | 'staff' | 'competition' | 'competitions' | 'news' | 'settings' | 'security' | 'health'
 
 /**
  * Every Admin section. `hiddenFromNav` removes an entry from the visible tab strip WITHOUT touching
@@ -29,6 +29,8 @@ const SECTIONS: {
   { key: 'staff', label: 'Staff Management', href: '/staff/staff', headAdminOnly: true, hiddenFromNav: true },
   { key: 'competition', label: 'Competition Oversight', href: '/staff/competition', cap: 'manage_competitions', hiddenFromNav: true },
   { key: 'competitions', label: 'Competitions', href: '/staff/competitions', cap: 'manage_competitions' },
+  // The Break: article review, comment reports, and what the homepage editorial band shows.
+  { key: 'news', label: 'Editorial', href: '/staff/news', cap: 'manage_competitions' },
   { key: 'settings', label: 'Site Settings', href: '/staff/settings', headAdminOnly: true, hiddenFromNav: true },
   { key: 'security', label: 'Security', href: '/staff/security', cap: 'view_audit', hiddenFromNav: true },
   { key: 'health', label: 'Data & System Health', href: '/staff/health', headAdminOnly: true, hiddenFromNav: true },

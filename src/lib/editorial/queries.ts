@@ -4,7 +4,8 @@ import { Prisma } from '@prisma/client'
 import { publishedWhere } from './service'
 import { sanitizeDocument, readingTimeMinutes, type RichDocument } from './richtext'
 import { slugKeyOf } from './slug'
-import type { EditorialActor } from './permissions'
+import { resolveCanonicalPlayerIds } from '@/lib/players/merge'
+import { authoredPlayerIds, type EditorialActor } from './permissions'
 
 /**
  * Reads for The Break.
@@ -86,7 +87,11 @@ export interface ListFilters {
   page?: number
   categorySlug?: string
   tagSlug?: string
-  authorPlayerId?: string
+  /**
+   * One or more player ids. More than one because an account merge does not repoint rows: a
+   * member's back catalogue is their canonical id plus every profile merged into it.
+   */
+  authorPlayerIds?: string[]
   /** Free text across title, excerpt and author. */
   search?: string
   year?: number
@@ -111,7 +116,7 @@ function listWhere(filters: ListFilters, now: Date): Prisma.ArticleWhereInput {
 
   if (filters.categorySlug) and.push({ category: { slug: slugKeyOf(filters.categorySlug) } })
   if (filters.tagSlug) and.push({ tags: { some: { tag: { slug: slugKeyOf(filters.tagSlug) } } } })
-  if (filters.authorPlayerId) and.push({ authorPlayerId: filters.authorPlayerId })
+  if (filters.authorPlayerIds?.length) and.push({ authorPlayerId: { in: filters.authorPlayerIds } })
   if (filters.officialOnly) and.push({ official: true })
 
   if (filters.year) {
@@ -380,21 +385,32 @@ export async function listAuthors() {
   const ids = grouped.map((g) => g.authorPlayerId).filter((id): id is string => id != null)
   if (!ids.length) return []
 
+  // Roll each row up to the surviving profile, so a member who has been merged appears once with a
+  // complete count rather than twice with half of one each.
+  const canonical = await resolveCanonicalPlayerIds(ids)
+  const totals = new Map<string, { count: number; last: Date | null }>()
+  for (const g of grouped) {
+    if (!g.authorPlayerId) continue
+    const key = canonical.get(g.authorPlayerId) ?? g.authorPlayerId
+    const acc = totals.get(key) ?? { count: 0, last: null }
+    acc.count += g._count._all
+    if (g._max.publishAt && (!acc.last || g._max.publishAt > acc.last)) acc.last = g._max.publishAt
+    totals.set(key, acc)
+  }
+
   const players = await prisma.player.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: [...totals.keys()] } },
     select: { id: true, primaryName: true, cueverseId: true, blogTrustedAuthor: true },
   })
-  const byId = new Map(players.map((p) => [p.id, p]))
 
-  return grouped
-    .filter((g) => g.authorPlayerId && byId.has(g.authorPlayerId))
-    .map((g) => ({
-      playerId: g.authorPlayerId as string,
-      name: byId.get(g.authorPlayerId as string)!.primaryName,
-      handle: byId.get(g.authorPlayerId as string)!.cueverseId,
-      trusted: byId.get(g.authorPlayerId as string)!.blogTrustedAuthor,
-      articleCount: g._count._all,
-      lastPublishedAt: g._max.publishAt,
+  return players
+    .map((p) => ({
+      playerId: p.id,
+      name: p.primaryName,
+      handle: p.cueverseId,
+      trusted: p.blogTrustedAuthor,
+      articleCount: totals.get(p.id)!.count,
+      lastPublishedAt: totals.get(p.id)!.last,
     }))
     .sort((a, b) => b.articleCount - a.articleCount || a.name.localeCompare(b.name))
 }
@@ -417,8 +433,9 @@ export async function listArchiveMonths(): Promise<{ year: number; month: number
 
 /** Everything one author has written, in whatever state — their own workspace. */
 export async function listMyArticles(actor: EditorialActor) {
+  const mine = await authoredPlayerIds(actor)
   return prisma.article.findMany({
-    where: { authorPlayerId: actor.playerId, state: { not: 'SOFT_DELETED' } },
+    where: { authorPlayerId: { in: mine }, state: { not: 'SOFT_DELETED' } },
     orderBy: [{ updatedAt: 'desc' }],
     select: {
       id: true, slug: true, title: true, state: true, publishAt: true, updatedAt: true,

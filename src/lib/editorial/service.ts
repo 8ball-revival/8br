@@ -8,7 +8,7 @@ import {
 } from './richtext'
 import { generateUniqueSlug, isSlugAvailable, retireSlug, slugKeyOf, isValidSlug } from './slug'
 import {
-  type EditorialActor, canEditArticle, canPublishNow, canMarkOfficial, canFeature,
+  type EditorialActor, canEditArticleAsync, canPublishNow, canMarkOfficial, canFeature,
 } from './permissions'
 
 /**
@@ -293,7 +293,7 @@ export async function updateArticle(
     select: { id: true, authorPlayerId: true, state: true, slug: true, title: true, publishAt: true },
   })
   if (!existing) throw new EditorialError('That article no longer exists.')
-  if (!canEditArticle(actor, existing.authorPlayerId)) throw new EditorialError('You cannot edit that article.')
+  if (!(await canEditArticleAsync(actor, existing.authorPlayerId))) throw new EditorialError('You cannot edit that article.')
   if (existing.state === 'SOFT_DELETED') throw new EditorialError('That article has been deleted.')
 
   const data = await normalise(input, actor)
@@ -370,7 +370,7 @@ export async function autosaveDraft(
     select: { authorPlayerId: true, state: true },
   })
   if (!existing) throw new EditorialError('That article no longer exists.')
-  if (!canEditArticle(actor, existing.authorPlayerId)) throw new EditorialError('You cannot edit that article.')
+  if (!(await canEditArticleAsync(actor, existing.authorPlayerId))) throw new EditorialError('You cannot edit that article.')
   if (existing.state !== 'DRAFT' && existing.state !== 'REJECTED') return
 
   const body = buildDocument(String(bodySource ?? ''))
@@ -392,7 +392,7 @@ export async function submitForReview(actor: EditorialActor, articleId: number):
     select: { authorPlayerId: true, state: true, title: true, body: true },
   })
   if (!article) throw new EditorialError('That article no longer exists.')
-  if (!canEditArticle(actor, article.authorPlayerId)) throw new EditorialError('You cannot submit that article.')
+  if (!(await canEditArticleAsync(actor, article.authorPlayerId))) throw new EditorialError('You cannot submit that article.')
   if (article.state !== 'DRAFT' && article.state !== 'REJECTED') {
     throw new EditorialError('Only a draft can be submitted for review.')
   }
@@ -414,7 +414,7 @@ export async function withdrawSubmission(actor: EditorialActor, articleId: numbe
     select: { authorPlayerId: true, state: true },
   })
   if (!article) throw new EditorialError('That article no longer exists.')
-  if (!canEditArticle(actor, article.authorPlayerId)) throw new EditorialError('You cannot withdraw that article.')
+  if (!(await canEditArticleAsync(actor, article.authorPlayerId))) throw new EditorialError('You cannot withdraw that article.')
   if (article.state !== 'PENDING_REVIEW') throw new EditorialError('That article is not awaiting review.')
 
   await prisma.article.update({ where: { id: articleId }, data: { state: 'DRAFT', submittedAt: null } })
@@ -644,7 +644,7 @@ export async function restoreRevision(actor: EditorialActor, articleId: number, 
     select: { authorPlayerId: true, state: true },
   })
   if (!article) throw new EditorialError('That article no longer exists.')
-  if (!canEditArticle(actor, article.authorPlayerId)) throw new EditorialError('You cannot edit that article.')
+  if (!(await canEditArticleAsync(actor, article.authorPlayerId))) throw new EditorialError('You cannot edit that article.')
 
   const revision = await prisma.articleRevision.findUnique({
     where: { id: revisionId },
@@ -732,7 +732,7 @@ export async function setArticleRelations(
 ): Promise<void> {
   const article = await prisma.article.findUnique({ where: { id: articleId }, select: { authorPlayerId: true } })
   if (!article) throw new EditorialError('That article no longer exists.')
-  if (!canEditArticle(actor, article.authorPlayerId)) throw new EditorialError('You cannot edit that article.')
+  if (!(await canEditArticleAsync(actor, article.authorPlayerId))) throw new EditorialError('You cannot edit that article.')
 
   await prisma.$transaction(async (db) => {
     await db.articleRelation.deleteMany({ where: { articleId } })

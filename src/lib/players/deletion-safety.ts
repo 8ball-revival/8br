@@ -12,6 +12,10 @@ import { prisma } from '@/lib/prisma'
  * That is why this checks the soft references explicitly and treats ANY dependent row as
  * disqualifying: archival is always safe, permanent deletion is only offered when there is
  * genuinely nothing to lose.
+ *
+ * Editorial content is counted for a related but distinct reason. Articles and comments SetNull on
+ * their author, so the database would happily allow the delete and simply blank the byline on
+ * published work — a silent loss rather than a loud one.
  */
 
 export interface DependencyCount {
@@ -58,6 +62,23 @@ export async function assessAccountDeletion(
     )
   }
   add('Staff designation', await prisma.staffDesignation.count({ where: { userId } }))
+
+  // ---- editorial content ----
+  //
+  // Articles and comments SetNull on the author rather than cascading, so a hard delete would not be
+  // blocked by the database — it would quietly blank a byline on published work instead. That is
+  // precisely the outcome this assessment exists to prevent, so any editorial history counts as a
+  // dependency and pushes the account to archival.
+  if (playerId) {
+    const [articles, comments, mentions] = await Promise.all([
+      prisma.article.count({ where: { authorPlayerId: playerId } }),
+      prisma.articleComment.count({ where: { authorPlayerId: playerId } }),
+      prisma.articleRelation.count({ where: { playerId } }),
+    ])
+    add('Articles written', articles)
+    add('Comments posted', comments)
+    add('Articles referencing them', mentions)
+  }
 
   // ---- foreign-key dependents on the Player profile ----
   if (playerId) {

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/account/auth'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { resolveMemberStatus } from '@/lib/moderation/service'
+import { resolveCanonicalPlayerId, expandCanonicalPlayerIds } from '@/lib/players/merge'
 
 /**
  * Who may do what in The Break.
@@ -29,26 +30,6 @@ export interface EditorialActor {
   handle: string | null
   isAdmin: boolean
   isTrustedAuthor: boolean
-}
-
-/**
- * Follow an approved account merge to the surviving profile.
- *
- * A merged-away secondary must never become the author of anything, or the byline would point at a
- * profile the site no longer shows. The chain is walked (not just one hop) because merges can be
- * applied one after another, and bounded so a cycle introduced by bad data cannot hang a request.
- */
-async function canonicalPlayerId(startId: string): Promise<string> {
-  let id = startId
-  for (let hop = 0; hop < 8; hop += 1) {
-    const merge = await prisma.playerMerge.findFirst({
-      where: { mergedPlayerId: id, status: 'APPROVED' },
-      select: { canonicalPlayerId: true },
-    })
-    if (!merge || merge.canonicalPlayerId === id) return id
-    id = merge.canonicalPlayerId
-  }
-  return id
 }
 
 /**
@@ -84,7 +65,10 @@ export const currentEditorialActor = cache(async function currentEditorialActor(
   // administrator — that is the whole point of it — but it is not a member author.
   if (linked.managementOnly && !isAdmin) return null
 
-  const playerId = await canonicalPlayerId(linked.id)
+  // A merged-away secondary must never become the author of anything, or the byline would point at
+  // a profile the site no longer shows. This is the site's own merge resolver, not a second copy of
+  // the same walk.
+  const playerId = await resolveCanonicalPlayerId(linked.id)
   const player = await prisma.player.findUnique({
     where: { id: playerId },
     select: { id: true, primaryName: true, cueverseId: true, active: true, blogTrustedAuthor: true },
@@ -104,11 +88,41 @@ export const currentEditorialActor = cache(async function currentEditorialActor(
 /** Anyone signed in with a usable account may start a draft. */
 export const canCreateArticle = (a: EditorialActor | null): boolean => a != null
 
-/** Only the author may edit their own work; administrators may edit anything. */
+/**
+ * Only the author may edit their own work; administrators may edit anything.
+ *
+ * Synchronous, so it can be used while rendering. It compares against the actor's canonical id,
+ * which is correct for anything written since a merge; for older work written under a secondary
+ * profile, `authoredPlayerIds` widens the comparison — see `canEditArticleAsync`.
+ */
 export function canEditArticle(a: EditorialActor | null, authorPlayerId: string | null): boolean {
   if (!a) return false
   if (a.isAdmin) return true
   return authorPlayerId != null && authorPlayerId === a.playerId
+}
+
+/**
+ * Every player id whose editorial history belongs to this actor — their canonical profile plus any
+ * profile merged into it.
+ *
+ * Merges do not repoint rows (that is what makes undo possible), so an article written before a
+ * merge still carries the secondary's id. Reads expand through this so a member's back catalogue
+ * stays under one byline instead of splitting at the merge.
+ */
+export async function authoredPlayerIds(a: EditorialActor): Promise<string[]> {
+  return expandCanonicalPlayerIds(a.playerId)
+}
+
+/** The merge-aware form of `canEditArticle`, for a server action that is about to write. */
+export async function canEditArticleAsync(
+  a: EditorialActor | null,
+  authorPlayerId: string | null,
+): Promise<boolean> {
+  if (!a) return false
+  if (a.isAdmin) return true
+  if (authorPlayerId == null) return false
+  if (authorPlayerId === a.playerId) return true
+  return (await authoredPlayerIds(a)).includes(authorPlayerId)
 }
 
 /**
@@ -124,7 +138,9 @@ export async function canPublishNow(
 ): Promise<boolean> {
   if (!a) return false
   if (a.isAdmin) return true
-  if (authorPlayerId == null || authorPlayerId !== a.playerId) return false
+  if (authorPlayerId == null) return false
+  // Their own work includes anything written under a profile since merged into theirs.
+  if (authorPlayerId !== a.playerId && !(await authoredPlayerIds(a)).includes(authorPlayerId)) return false
   const fresh = await prisma.player.findUnique({
     where: { id: a.playerId },
     select: { blogTrustedAuthor: true, active: true },

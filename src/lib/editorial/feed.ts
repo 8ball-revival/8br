@@ -26,7 +26,6 @@ export function xmlEscape(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;')
     // A control character is not legal in XML at all, and would make the whole document unparseable.
-    // eslint-disable-next-line no-control-regex -- deliberately matching control characters
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
 }
 

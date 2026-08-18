@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { pageMetadata } from '@/lib/site'
 import { ArticleListing } from '@/components/editorial/article-listing'
+import { expandCanonicalPlayerIds } from '@/lib/players/merge'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,10 +46,13 @@ export default async function AuthorPage({ params, searchParams }: Props) {
 
   const page = Number.parseInt((await searchParams).page ?? '1', 10) || 1
   const label = p.cueverseId ?? p.primaryName
+  // Include anything written under a profile that has since been merged into this one, so a member's
+  // back catalogue does not split in half at the merge.
+  const authorPlayerIds = await expandCanonicalPlayerIds(p.id)
 
   return (
     <ArticleListing
-      filters={{ page, authorPlayerId: p.id }}
+      filters={{ page, authorPlayerIds }}
       heading={label}
       lede={
         <>

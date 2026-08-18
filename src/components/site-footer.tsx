@@ -4,6 +4,7 @@ import { MessageCircle, AtSign, Video, Camera, type LucideIcon } from 'lucide-re
 import { FOOTER_LINKS } from '@/lib/nav'
 import { isSafeLinkDestination, safeHref } from '@/lib/site-content/link'
 import { brandName } from '@/lib/site'
+import { navPages } from '@/lib/editorial/pages'
 
 /**
  * Site footer: copyright, legal/navigation links, and social icons.
@@ -43,9 +44,16 @@ const SOCIAL: SocialLink[] = [
 const publishable = <T extends { href: string; active?: boolean }>(l: T): boolean =>
   l.active !== false && l.href.trim() !== '#' && isSafeLinkDestination(l.href)
 
-export function SiteFooter() {
+export async function SiteFooter() {
   const year = new Date().getFullYear()
-  const links = FOOTER_LINKS.filter(publishable)
+  // Standalone pages an administrator has opted into the navigation. Read here rather than
+  // hard-coded, so publishing an About page puts it in the footer without a code change. A database
+  // that is unavailable costs the site a few links, never the footer.
+  const pages = await navPages().catch(() => [])
+  const links = [
+    ...FOOTER_LINKS.filter(publishable),
+    ...pages.map((p) => ({ label: p.title, href: `/pages/${p.slug}` })),
+  ]
   const socials = SOCIAL.filter(publishable)
 
   return (

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
-import { slugKeyOf, isValidSlug, RESERVED_SLUGS, slugify, MAX_SLUG_LENGTH } from './slug-format'
+import { slugKeyOf, RESERVED_SLUGS, slugify, MAX_SLUG_LENGTH } from './slug-format'
 
 /**
  * Article URLs — the database half.

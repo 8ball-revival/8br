@@ -129,6 +129,27 @@ export async function setArticleRelationsAction(
   return res
 }
 
+/**
+ * A signed, expiring link to an unpublished article.
+ *
+ * Only somebody who could already read the article may mint one, so the link never grants access
+ * that the person creating it did not have.
+ */
+export async function createPreviewLinkAction(articleId: number): Promise<ActionResult<string>> {
+  return run(async (actor) => {
+    const article = await prisma.article.findUnique({
+      where: { id: articleId },
+      select: { authorPlayerId: true },
+    })
+    if (!article) throw new EditorialError('That article no longer exists.')
+    if (!actor.isAdmin && article.authorPlayerId !== actor.playerId) {
+      throw new EditorialError('You cannot share that article.')
+    }
+    const { createPreviewToken } = await import('./preview')
+    return `/news/preview?token=${createPreviewToken(articleId)}`
+  })
+}
+
 /** Live slug check for the editor, plus the suggestion it would use. */
 export async function checkSlugAction(
   slug: string,

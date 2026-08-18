@@ -7,6 +7,7 @@ import { getHomepageHero } from '@/lib/site-content/service'
 import { getRegistryStats } from '@/lib/stats/registry-stats'
 import { getOnThisDayEvents } from '@/lib/stats/on-this-day'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
+import { HomepageEditorial } from '@/components/editorial/homepage-editorial'
 import { pageMetadata, brandName } from '@/lib/site'
 
 // The hero is admin-managed: publishing must show up without a redeploy, so the page is rendered
@@ -103,6 +104,10 @@ export default async function HomePage() {
           </div>
         </Wide>
       </section>
+
+      {/* The Break sits directly under the banner: what is happening now, before the standing
+          numbers. It renders nothing at all until something has been published. */}
+      <HomepageEditorial />
 
       <ByTheNumbers stats={stats} events={events} />
     </>

@@ -63,7 +63,6 @@ export function cleanText(input: unknown): string {
   if (typeof input !== 'string') return ''
   return input
     .replace(/\r\n?/g, '\n')
-    // eslint-disable-next-line no-control-regex -- deliberately matching control characters
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
     .slice(0, MAX_TEXT_PER_NODE)
