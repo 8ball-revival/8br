@@ -109,10 +109,8 @@ export default async function SeasonPage({
       {/* Full bleed: only small responsive gutters, no centred cap, so the masthead and the tables
           below it use the whole viewport. */}
       <div className="w-full max-w-none px-3 pb-16 pt-4 sm:px-5">
-        {/* The masthead belongs to the Groups view. On Playoffs the bracket is the whole point and
-            wants the height, so the masthead is not rendered at all — no wrapper, no reserved gap —
-            and the bracket starts directly under the control bar. Switching back restores it. */}
-        {activeView === 'groups' && (
+        {/* Shown on both views: it identifies the Season you are looking at, and switching to the
+            bracket should not take that away. */}
         <SeasonMasthead
           competitionName={view.competition.name}
           competitionShortName={view.competition.shortName}
@@ -136,11 +134,10 @@ export default async function SeasonPage({
               : null
           }
         />
-        )}
 
         {view.description && <p className="mt-4 max-w-3xl text-sm text-muted-foreground">{view.description}</p>}
 
-        <div className={activeView === 'groups' ? 'mt-6' : 'mt-0'}>
+        <div className="mt-6">
           {activeView === 'groups' ? (
             adminEditsGroups ? (
               <SeasonGroupStage

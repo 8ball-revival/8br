@@ -373,10 +373,12 @@ try {
     check('the sections stack on narrow screens',
       mast.includes('grid-cols-1 lg:grid-cols-'))
 
-    check('the masthead renders only on the Groups view',
-      /\{activeView === 'groups' && \(\s*<SeasonMasthead/.test(page))
-    check('nothing is reserved for it on Playoffs',
-      page.includes("activeView === 'groups' ? 'mt-6' : 'mt-0'"))
+    // The masthead identifies the Season being looked at, so switching to the bracket must not
+    // take it away. It renders on both views.
+    check('the masthead renders on both views, not just Groups',
+      /<SeasonMasthead/.test(page) && !/activeView === 'groups' && \(\s*<SeasonMasthead/.test(page))
+    check('the content below it keeps one consistent gap',
+      page.includes('<div className="mt-6">') && !page.includes("? 'mt-6' : 'mt-0'"))
     check('the glance figures sit in one row of four', mast.includes('grid grid-cols-4'))
     check('the champion is laid out sideways so the trophy keeps its size',
       mast.includes('flex h-full items-center justify-center') && !mast.includes('flex h-full flex-col items-center'))

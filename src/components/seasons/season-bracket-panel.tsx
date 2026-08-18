@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Trophy } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { identityLines, fromNameHandle } from '@/lib/identity/display'
@@ -249,11 +248,12 @@ export function SeasonBracketPanel({
                           activeKey != null && !onActivePath && 'bp-muted',
                         )}
                       >
-                        {isFinal && champion ? (
-                          <FinalBlock match={m} activeKey={activeKey} championKey={championKey} />
-                        ) : (
-                          <MatchCard match={m} activeKey={activeKey} championKey={championKey} />
-                        )}
+                        <MatchCard
+                          match={m}
+                          activeKey={activeKey}
+                          championKey={championKey}
+                          isFinal={isFinal && champion != null}
+                        />
                       </div>
                     )
                   })}
@@ -277,16 +277,21 @@ export function SeasonBracketPanel({
 /* ---------------------------------------------------------------- an ordinary matchup */
 
 function MatchCard({
-  match, activeKey, championKey,
+  match, activeKey, championKey, isFinal = false,
 }: {
   match: BracketMatch
   activeKey: string | null
   /** Who won the Season, so their row alone can be marked as they advance. */
   championKey: string | null
+  /** The decided Final. Same card as every other tie, with a soft bloom behind it. */
+  isFinal?: boolean
 }) {
   return (
     <div
-      className="bp-card w-full overflow-hidden rounded-lg border border-border bg-card"
+      className={cn(
+        'bp-card w-full overflow-hidden rounded-lg border border-border bg-card',
+        isFinal && 'bp-final',
+      )}
     >
       <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
       <div className="h-px bg-border" />
@@ -398,44 +403,3 @@ function SeedBadge({ seed }: { seed?: number }) {
   )
 }
 
-/* ---------------------------------------------------------------- the Final */
-
-/**
- * The Final, given the weight it deserves without becoming a second banner.
- *
- * A trophy and the title sit above a card built exactly like every other matchup — same width, same
- * rows, same type — so the Final reads as the last tie in the bracket rather than a summary pasted
- * beside it. The occasion is carried by the trophy and the champion's gold row, not by scale.
- */
-function FinalBlock({
-  match, activeKey, championKey,
-}: {
-  match: BracketMatch
-  activeKey: string | null
-  /** Carried through so the champion's gold edge runs to the last round, not just up to it. */
-  championKey: string | null
-}) {
-  return (
-    <div className="flex w-full flex-col items-center">
-      <div className="mb-2 flex items-center gap-2.5">
-        <Trophy
-          aria-hidden
-          strokeWidth={1.5}
-          className="size-8 shrink-0 fill-[color-mix(in_oklch,var(--gold)_30%,transparent)] text-[var(--gold-soft)] drop-shadow-[0_0_7px_color-mix(in_oklch,var(--gold)_60%,transparent)]"
-        />
-        <p className="whitespace-nowrap text-[0.66rem] font-extrabold uppercase tracking-[0.18em] text-[var(--gold-soft)]">
-          Season Champion
-        </p>
-      </div>
-
-      {/* Neutral border, like every other card: the gold marks the CHAMPION'S row, not the tie, so
-          the player they beat is not framed in it too. The trophy, the title and the soft bloom
-          behind the card carry the occasion instead. */}
-      <div className="bp-final w-full overflow-hidden rounded-xl border border-border bg-card">
-        <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
-        <div className="h-px bg-border" />
-        <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} championKey={championKey} />
-      </div>
-    </div>
-  )
-}

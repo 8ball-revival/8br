@@ -84,7 +84,10 @@ console.log('--- A 16-player bracket ---')
 
   check('the note is a footer strip inside the panel, not a detached box',
     html.includes('Scores were not archived') && html.lastIndexOf('Scores were not archived') > html.lastIndexOf('bp-lane'))
-  check('the Final gets its own treatment', html.includes('bp-final') && html.includes('Season Champion'))
+  // The Final is the same card as every other tie now — no trophy, no title above it, no extra
+  // size. Only a soft bloom behind it marks the decided Final.
+  check('the Final is marked by a soft bloom and nothing else',
+    html.includes('bp-final') && !html.includes('Season Champion') && !/lucide-trophy/.test(html))
   check('the Final shows both players and their scores on its own rows, so nothing is repeated',
     html.includes('player_01') && html.includes('player_02') && !/def\. <span/.test(html))
   check('the champion route is marked on every round it passes through',
