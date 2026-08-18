@@ -88,10 +88,7 @@ async function main() {
   check('the refusal explains why', /owns \d+ Season/.test(blocked.error ?? ''))
 
   // Remove the Season, then the Competition should delete cleanly.
-  if (owned.number != null) {
-    const season = await prisma.season.findUnique({ where: { number: owned.number }, select: { id: true } })
-    if (season) await prisma.season.delete({ where: { id: season.id } })
-  }
+  if (owned.id != null) await prisma.season.delete({ where: { id: owned.id } }).catch(() => {})
   const freed = await deleteCompetition(actor, id)
   check('deletes once no Seasons remain', freed.ok === true, freed.error)
   if (freed.ok) made.pop()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Diamond, Lock } from 'lucide-react'
 
@@ -9,7 +9,7 @@ import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN } from '@/lib/competition/co
 import { CompetitionSelect } from '@/components/competitions/competition-select'
 import type { CompetitionRef } from '@/lib/competitions/shared'
 import { Button } from '@/components/ui/button'
-import { createSeasonAction } from '@/lib/seasons/actions'
+import { createSeasonAction, suggestSeasonNumberAction } from '@/lib/seasons/actions'
 import type { CreateSeasonConfig } from '@/lib/seasons/service'
 
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
@@ -30,6 +30,17 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
   const [competitionSeriesId, setCompetitionSeriesId] = useState<number | null>(
     competitions.length === 1 ? competitions[0].id : null,
   )
+  /**
+   * The Season number.
+   *
+   * Unique only within a Competition and year, so the suggestion has to follow both. `numberTouched`
+   * is the important part: once an administrator types a number it is theirs, and changing the
+   * Competition or year afterwards must never quietly overwrite it.
+   */
+  const [seasonNumber, setSeasonNumber] = useState(String(nextNumber))
+  const [numberTouched, setNumberTouched] = useState(false)
+  const [numberError, setNumberError] = useState<string | null>(null)
+
   const [lounge, setLounge] = useState('Social')
   const [access, setAccess] = useState<'OPEN' | 'PASSWORD'>('OPEN')
   const [joinPassword, setJoinPassword] = useState('')
@@ -43,26 +54,53 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
   const [semifinalRaceTo, setSemifinalRaceTo] = useState(9)
   const [finalRaceTo, setFinalRaceTo] = useState(9)
 
-  // The official title is DERIVED from the three fields above it — Competition, number and
-  // Competition Year — so the preview updates live as the operator changes any of them. It is not
-  // a site-brand default: with no Competition chosen yet there is nothing to prefix.
+  /**
+   * Refresh the suggested number when the Competition or year changes — but only while the field is
+   * still automatic. A number the administrator typed is left exactly as they left it.
+   */
+  const pending_suggest = useRef<AbortController | null>(null)
+  useEffect(() => {
+    if (numberTouched) return
+    const y = Number(competitionYear)
+    if (competitionSeriesId == null || !Number.isInteger(y)) return
+    pending_suggest.current?.abort()
+    const ac = new AbortController()
+    pending_suggest.current = ac
+    void suggestSeasonNumberAction(competitionSeriesId, y)
+      .then((n) => { if (!ac.signal.aborted) setSeasonNumber(String(n)) })
+      .catch(() => { /* keep the current suggestion if the lookup fails */ })
+    return () => ac.abort()
+  }, [competitionSeriesId, competitionYear, numberTouched])
+
+  // The official title is DERIVED from Competition, number and year, so the preview and the Review
+  // panel update the instant any of the three changes. It is not a site-brand default: with no
+  // Competition chosen yet there is nothing to prefix.
   const competitionName = competitions.find((c) => c.id === competitionSeriesId)?.name ?? ''
+  const shownNumber = seasonNumber.trim() === '' ? '—' : seasonNumber.trim()
   const officialTitle = useMemo(
     () =>
       competitionName
-        ? `${competitionName} Season ${nextNumber} · ${competitionYear}`
-        : `Season ${nextNumber} · ${competitionYear}`,
-    [competitionName, nextNumber, competitionYear],
+        ? `${competitionName} Season ${shownNumber} · ${competitionYear}`
+        : `Season ${shownNumber} · ${competitionYear}`,
+    [competitionName, shownNumber, competitionYear],
   )
 
   const submit = () => {
     setError(null)
+    setNumberError(null)
+    // Mirrors the server rule so the common mistakes are answered without a round trip; the server
+    // and the database both check it again regardless.
+    const n = Number(seasonNumber.trim())
+    if (seasonNumber.trim() === '' || !Number.isFinite(n)) return setNumberError('Enter a Season number.')
+    if (!Number.isInteger(n)) return setNumberError('Season number must be a whole number, not a decimal.')
+    if (n < 1) return setNumberError('Season number must be 1 or greater.')
     if (access === 'PASSWORD' && joinPassword.trim().length < 4) return setError('Set a join password of at least 4 characters.')
     if (scheduleLater && !date) return setError('Pick a date for the scheduled registration opening.')
 
     const cfg: CreateSeasonConfig = {
       competitionYear: Number(competitionYear),
       competitionSeriesId,
+      number: n,
       subtitle: subtitle.trim() || null,
       lounge,
       accessMode: access,
@@ -76,8 +114,19 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
     }
     start(async () => {
       const r = await createSeasonAction(cfg)
-      if (r.error || !r.number) return setError(r.error ?? 'Could not create the Season.')
-      router.push(`/seasons/${r.number}`)
+      if (r.error || r.id == null) {
+        // A number clash belongs beside the number, with the next free one offered. Everything else
+        // already typed stays on screen.
+        if (r.suggestion != null) {
+          setNumberError(r.error ?? 'That Season number is taken.')
+          setSeasonNumber(String(r.suggestion))
+          setNumberTouched(false)
+          return
+        }
+        return setError(r.error ?? 'Could not create the Season.')
+      }
+      // Routed by database id: the number is a label and may point at several Seasons.
+      router.push(`/seasons/${r.id}`)
     })
   }
 
@@ -93,7 +142,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
               <span className="font-display font-bold text-[var(--gold-soft)]">{officialTitle}</span>
               <p className="mt-1 text-[0.7rem] text-muted-foreground/70">
                 {competitionName
-                  ? 'Assigned automatically from the Competition, sequence and year.'
+                  ? 'Built from the Competition, Season number and year below.'
                   : 'Select a Competition below — its name leads the official title.'}
               </p>
             </div>
@@ -120,6 +169,26 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
                 onChange={(id) => setCompetitionSeriesId(id)}
                 inputClassName={input}
               />
+            </Labeled>
+            <Labeled label="Season Number" hint="required">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={seasonNumber}
+                onChange={(e) => { setNumberTouched(true); setSeasonNumber(e.target.value); setNumberError(null) }}
+                min={1}
+                step={1}
+                className={cn(input, 'max-w-[140px]', numberError && 'border-destructive')}
+                aria-describedby="season-number-hint"
+                aria-invalid={numberError ? true : undefined}
+              />
+              <p id="season-number-hint" className="mt-1 text-[0.7rem] text-muted-foreground/70">
+                {numberTouched
+                  ? 'Set by you — changing the Competition or year will not overwrite it.'
+                  : 'Suggested from the highest number this Competition has used in this year.'}
+                {' '}Only has to be unique within this Competition and year.
+              </p>
+              {numberError && <p role="alert" className="mt-1 text-[0.7rem] text-destructive">{numberError}</p>}
             </Labeled>
             <Labeled label="Custom subtitle" hint="optional">
               <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. The Winter Classic" maxLength={80} className={input} />

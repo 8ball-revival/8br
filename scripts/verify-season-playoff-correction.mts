@@ -45,8 +45,13 @@ async function cleanup() {
 try {
   // 6 synthetic players → 2 groups of 3 → all top-3 qualify → 6-player bracket = 8 slots, 2 byes (seeds 1 & 2).
   const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: await fixtureCompetitionId() })
-  const s = await prisma.season.findUnique({ where: { number: c.number! } })
-  seasonId = s!.id
+  seasonId = c.id!
+  {
+    // Same guard as the full-season suite: never operate on a Season outside the fixture.
+    const owner = await prisma.season.findUnique({ where: { id: seasonId }, select: { competitionSeriesId: true } })
+    const fixture = await prisma.competitionSeries.findFirstOrThrow({ where: { slug: FIXTURE_SLUG }, select: { id: true } })
+    if (owner?.competitionSeriesId !== fixture.id) throw new Error(`REFUSING: Season ${seasonId} is not a fixture Season`)
+  }
   const ratings = [900, 800, 700, 400, 300, 200]
   const ents = []
   for (let i = 0; i < 6; i++) ents.push(await prisma.seasonEntrant.create({ data: { seasonId, playerId: `scv-p${i + 1}`, username: `SCV${i + 1}`, displayName: `Player ${i + 1}`, cueverseId: `scv${i + 1}`, status: 'APPROVED' } }))

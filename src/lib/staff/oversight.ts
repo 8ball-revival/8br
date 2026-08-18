@@ -44,7 +44,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
       registration: s.lifecycleState === 'REGISTRATION_OPEN' ? 'open' : 'closed',
       entrants: s._count.entrants, format: s.playoffDoubleElim ? 'Groups → DE' : 'Groups → SE',
       unresolved, waitingFreeAgents: 0, incompleteTeams: 0,
-      manageHref: `/seasons/${s.number}`, year: s.competitionYear,
+      manageHref: `/seasons/${s.id}`, year: s.competitionYear,
       competition: s.competitionSeries,
     })
   }

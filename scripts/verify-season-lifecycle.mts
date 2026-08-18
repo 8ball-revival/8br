@@ -34,11 +34,11 @@ async function dropFixtureCompetition() {
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) } }
 const actor = { userId: 980001, username: 'season-verify' }
-const cleanupNumbers: number[] = []
+const cleanupIds: number[] = []
 
 async function makeSeason() {
   const r = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: await fixtureCompetitionId(), groupStageGames: 10, earlyRaceTo: 7, semifinalRaceTo: 9, finalRaceTo: 9 })
-  if (r.number) cleanupNumbers.push(r.number)
+  if (r.id) cleanupIds.push(r.id)
   return r
 }
 
@@ -46,9 +46,13 @@ console.log('Season creation + numbering')
 const s1 = await makeSeason()
 const s2 = await makeSeason()
 check('createSeason succeeds', s1.ok && s2.ok)
-check('numbers auto-increment', typeof s1.number === 'number' && s2.number === s1.number! + 1, `${s1.number} then ${s2.number}`)
+// Numbers are scoped to a Competition and year, so two Seasons made back to back in the same
+// Competition and year still run 1, 2 — but each is identified by its own id.
+check('numbers increment within the Competition and year',
+  typeof s1.number === 'number' && s2.number === s1.number! + 1, `${s1.number} then ${s2.number}`)
+check('each Season has its own immutable id', !!s1.id && !!s2.id && s1.id !== s2.id)
 {
-  const v = await getSeasonView(s1.number!)
+  const v = await getSeasonView(s1.id!)
   const year = new Date().getFullYear()
   // The title is derived from the owning Competition, so assert against the fixture's OWN
   // Competition — "the first active one" is whichever the site happens to have, not necessarily
@@ -62,7 +66,7 @@ check('numbers auto-increment', typeof s1.number === 'number' && s2.number === s
 
 console.log('Admin entrant management + rating snapshot')
 {
-  const season = await prisma.season.findUnique({ where: { number: s1.number } })
+  const season = await prisma.season.findUnique({ where: { id: s1.id } })
   const seasonId = season!.id
   // Create the entrants this check needs rather than borrowing whoever happens to be registered.
   // A site with only the Admin account is a legitimate state, and the test must still exercise
@@ -76,14 +80,14 @@ console.log('Admin entrant management + rating snapshot')
   }
   check('have players to add', players.length >= 2, `found ${players.length}`)
   for (const p of players.slice(0, 3)) await addSeasonEntrant(actor, seasonId, p.id)
-  let v = await getSeasonView(s1.number!)
+  let v = await getSeasonView(s1.id!)
   check('entrants added', (v?.entrantsCount ?? 0) === Math.min(3, players.length))
   check('entrants show a live rating (number or null, not undefined)', (v?.entrants ?? []).every((e) => e.rating === null || typeof e.rating === 'number'))
 
   // Remove one.
   const first = v!.entrants[0]
   await removeSeasonEntrant(actor, seasonId, first.entrantId)
-  v = await getSeasonView(s1.number!)
+  v = await getSeasonView(s1.id!)
   check('entrant removed (count drops)', (v?.entrantsCount ?? 0) === Math.min(3, players.length) - 1)
 
   // Close registration → snapshot + state.
@@ -110,7 +114,7 @@ console.log('Entrants stay editable until the group stage goes live')
   // during Group Setup rather than stepping back to a separate registration phase. What must NOT be
   // possible is changing it once fixtures exist.
   const s3 = await makeSeason()
-  const season = await prisma.season.findUnique({ where: { number: s3.number } })
+  const season = await prisma.season.findUnique({ where: { id: s3.id } })
   const id = season!.id
   const fresh = []
   for (let n = 10; n <= 13; n++) {
@@ -142,7 +146,7 @@ console.log('Lifecycle transitions')
   check('REGISTRATION_CLOSED → GROUP_SETUP allowed', canTransition('REGISTRATION_CLOSED', 'GROUP_SETUP'))
   check('GROUP_STAGE_LIVE → PLAYOFFS_LIVE NOT allowed', !canTransition('GROUP_STAGE_LIVE', 'PLAYOFFS_LIVE'))
   check('no CANCELLED state exists in the machine', !canTransition('PLAYOFFS_LIVE', 'COMPLETED') === false) // COMPLETED is allowed; sanity
-  const season = await prisma.season.findUnique({ where: { number: s1.number } })
+  const season = await prisma.season.findUnique({ where: { id: s1.id } })
   const bad = await transitionSeasonState(actor, season!.id, 'PLAYOFFS_LIVE')
   check('invalid transition is rejected server-side', !bad.ok)
   const good = await transitionSeasonState(actor, season!.id, 'GROUP_SETUP')
@@ -150,9 +154,8 @@ console.log('Lifecycle transitions')
 }
 
 // Cleanup
-for (const n of cleanupNumbers) {
-  const s = await prisma.season.findUnique({ where: { number: n } })
-  if (s) await prisma.season.delete({ where: { id: s.id } }).catch(() => {})
+for (const id of cleanupIds) {
+  await prisma.season.delete({ where: { id } }).catch(() => {})
 }
 await prisma.auditLog.deleteMany({ where: { actorUsername: 'season-verify' } }).catch(() => {})
 

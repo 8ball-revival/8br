@@ -35,7 +35,8 @@ export function SeasonControls({
   competitions: CompetitionOption[]
   seasons: SeasonOption[]
   years: number[]
-  current: { number: number; year: number }
+  /** The Season on screen. `id` addresses it; `number` and `year` only label it. */
+  current: { id: number; number: number; year: number }
   competitionSlug: string | null
   view: 'groups' | 'playoffs'
   neighbours: { prev: number | null; next: number | null }
@@ -49,15 +50,15 @@ export function SeasonControls({
   const [, startNav] = useTransition()
 
   /** Rebuild the URL, keeping whatever is not being changed. */
-  const urlFor = (overrides: { season?: number; competition?: string | null; view?: 'groups' | 'playoffs' }) => {
+  const urlFor = (overrides: { seasonId?: number; competition?: string | null; view?: 'groups' | 'playoffs' }) => {
     const next = new URLSearchParams(params.toString())
     const comp = overrides.competition !== undefined ? overrides.competition : competitionSlug
     if (comp) next.set('competition', comp)
     else next.delete('competition')
     next.set('view', overrides.view ?? view)
-    const seasonNumber = overrides.season ?? current.number
+    const seasonId = overrides.seasonId ?? current.id
     const qs = next.toString()
-    return `/seasons/${seasonNumber}${qs ? `?${qs}` : ''}`
+    return `/seasons/${seasonId}${qs ? `?${qs}` : ''}`
   }
 
   const go = (href: string) => startNav(() => router.push(href))
@@ -69,10 +70,12 @@ export function SeasonControls({
     [seasons, current.year],
   )
 
-  /** Newest Season in a year — the same rule the landing page uses, applied locally. */
+  /** Newest Season in a year — the same rule the landing page uses, applied locally. Returns an id,
+   *  because a number no longer identifies a Season on its own. */
   const newestIn = (year: number) => {
     const inYear = seasons.filter((s) => s.year === year)
-    return inYear.length ? Math.max(...inYear.map((s) => s.number)) : current.number
+    if (!inYear.length) return current.id
+    return [...inYear].sort((a, b) => b.number - a.number || a.id - b.id)[0].id
   }
 
   // Clamped to the global header: same background, one hairline between them, and a sticky offset
@@ -107,7 +110,7 @@ export function SeasonControls({
             <select
               id="f-year"
               value={current.year}
-              onChange={(e) => go(urlFor({ season: newestIn(Number(e.target.value)) }))}
+              onChange={(e) => go(urlFor({ seasonId: newestIn(Number(e.target.value)) }))}
               className={SELECT}
             >
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -117,12 +120,12 @@ export function SeasonControls({
           <Field label="Season" htmlFor="f-season">
             <select
               id="f-season"
-              value={current.number}
-              onChange={(e) => go(urlFor({ season: Number(e.target.value) }))}
+              value={current.id}
+              onChange={(e) => go(urlFor({ seasonId: Number(e.target.value) }))}
               className={SELECT}
             >
               {seasonsForYear.map((s) => (
-                <option key={s.number} value={s.number}>{s.title}</option>
+                <option key={s.id} value={s.id}>{s.title}</option>
               ))}
             </select>
           </Field>
@@ -179,14 +182,14 @@ export function SeasonControls({
             <NavButton
               label="Previous season"
               disabled={neighbours.prev == null}
-              onClick={() => neighbours.prev != null && go(urlFor({ season: neighbours.prev }))}
+              onClick={() => neighbours.prev != null && go(urlFor({ seasonId: neighbours.prev }))}
             >
               <ArrowLeft className="size-4" />
             </NavButton>
             <NavButton
               label="Next season"
               disabled={neighbours.next == null}
-              onClick={() => neighbours.next != null && go(urlFor({ season: neighbours.next }))}
+              onClick={() => neighbours.next != null && go(urlFor({ seasonId: neighbours.next }))}
             >
               <ArrowRight className="size-4" />
             </NavButton>

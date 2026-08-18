@@ -14,13 +14,19 @@ export interface SeasonTrophyEntry {
 export async function computeSeasonTrophies(): Promise<Map<string, SeasonTrophyEntry[]>> {
   const seasons = await prisma.season.findMany({
     where: { lifecycleState: 'COMPLETED', championPlayerId: { not: null } },
-    select: { number: true, championPlayerId: true, completedAt: true, competitionSeries: { select: { name: true } } },
+    select: { id: true, number: true, competitionYear: true, championPlayerId: true, completedAt: true, competitionSeries: { select: { name: true } } },
   })
   const map = new Map<string, SeasonTrophyEntry[]>()
   for (const s of seasons) {
     const pid = s.championPlayerId!
     const list = map.get(pid) ?? []
-    list.push({ seasonNumber: s.number, title: `${s.competitionSeries?.name ?? 'Season'} Season ${s.number}`, date: s.completedAt?.toISOString() ?? null, slug: `/seasons/${s.number}` })
+    // Title carries the Competition and year because a bare number no longer identifies a Season.
+    list.push({
+      seasonNumber: s.number,
+      title: `${s.competitionSeries?.name ?? 'Season'} Season ${s.number} · ${s.competitionYear}`,
+      date: s.completedAt?.toISOString() ?? null,
+      slug: `/seasons/${s.id}`,
+    })
     map.set(pid, list)
   }
   return map

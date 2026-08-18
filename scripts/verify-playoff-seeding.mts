@@ -190,7 +190,7 @@ try {
   console.log('')
   console.log('--- Season 1: the repair, on the real data ---')
   {
-    const s1 = await prisma.season.findUnique({ where: { number: 1 }, select: { id: true, lifecycleState: true } })
+    const s1 = await prisma.season.findFirst({ where: { number: 1, competitionYear: 2005, competitionSeries: { slug: '8brcam' } }, select: { id: true, lifecycleState: true } })
     if (!s1) {
       check('Season 1 is present', false, 'missing')
     } else {

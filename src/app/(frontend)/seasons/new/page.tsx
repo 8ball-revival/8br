@@ -6,7 +6,7 @@ import { SectionHeader } from '@/components/section-header'
 import { CreateSeasonForm } from '@/components/seasons/create-season-form'
 import { listActiveCompetitions } from '@/lib/competitions/service'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
-import { prisma } from '@/lib/prisma'
+import { suggestSeasonNumber } from '@/lib/seasons/numbering'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +16,12 @@ export default async function NewSeasonPage() {
   const access = await resolveStaffAccess()
   if (access.status !== 'ok' || !access.actor.can('manage_competitions')) notFound()
 
-  const last = await prisma.season.findFirst({ orderBy: { number: 'desc' }, select: { number: true } })
-  const nextNumber = (last?.number ?? 0) + 1
   const year = new Date().getFullYear()
   const competitions = await listActiveCompetitions()
+  // The opening suggestion is scoped to the Competition the form will preselect and the current
+  // year — not a global sequence. The form re-asks whenever either changes.
+  const preselected = competitions.length === 1 ? competitions[0].id : null
+  const nextNumber = preselected == null ? 1 : await suggestSeasonNumber(preselected, year)
 
   return (
     <Container className="py-10">

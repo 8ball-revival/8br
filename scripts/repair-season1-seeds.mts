@@ -23,7 +23,7 @@ import { assignSeeds, validateSeedSet, persistSeeds } from '../src/lib/seasons/p
 const APPLY = process.argv.includes('--apply')
 const SEASON_NUMBER = 1
 
-const season = await prisma.season.findUnique({ where: { number: SEASON_NUMBER }, select: { id: true, lifecycleState: true } })
+const season = await prisma.season.findFirst({ where: { number: SEASON_NUMBER, competitionYear: 2005, competitionSeries: { slug: '8brcam' } }, select: { id: true, lifecycleState: true } })
 if (!season) { console.error(`Season ${SEASON_NUMBER} not found.`); process.exit(1) }
 
 /** Everything that must NOT change, captured so it can be compared afterwards. */

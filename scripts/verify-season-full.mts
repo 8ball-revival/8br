@@ -41,6 +41,20 @@ const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log(
 const actor = { userId: 990001, username: 'season-full-verify' }
 let seasonId = 0, seasonNumber = 0
 
+/**
+ * Refuse to touch a Season that is not this suite's own.
+ *
+ * A destructive test must be certain what it is destroying. This asserts the target belongs to the
+ * throwaway fixture Competition before anything deletes it.
+ */
+async function assertFixtureSeason(id: number, fixtureCompId: number) {
+  const s = await prisma.season.findUnique({ where: { id }, select: { competitionSeriesId: true, slug: true } })
+  if (!s) throw new Error(`Fixture Season ${id} not found`)
+  if (s.competitionSeriesId !== fixtureCompId) {
+    throw new Error(`REFUSING to operate on Season ${id} (${s.slug}) — it is not in the fixture Competition`)
+  }
+}
+
 async function cleanup() {
   if (seasonId) { await prisma.season.delete({ where: { id: seasonId } }).catch(() => {}) }
   await prisma.auditLog.deleteMany({ where: { actorUsername: actor.username } }).catch(() => {})
@@ -48,10 +62,14 @@ async function cleanup() {
 
 try {
   // --- Create + register (6 synthetic players, varied ratings) ---
-  const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: await fixtureCompetitionId() })
+  const fixtureCompId = await fixtureCompetitionId()
+  const c = await createSeason(actor, { lounge: 'Social', accessMode: 'OPEN', competitionSeriesId: fixtureCompId })
   seasonNumber = c.number!
-  const s = await prisma.season.findUnique({ where: { number: seasonNumber } })
-  seasonId = s!.id
+  // Use the id createSeason returns. NEVER look a Season up by number here: numbers are unique only
+  // within a Competition and year, so a lookup by number alone can return somebody else's Season —
+  // and this suite deletes what it finds.
+  seasonId = c.id!
+  await assertFixtureSeason(seasonId, fixtureCompId)
   const ratings = [900, 800, 700, 400, 300, 200]
   const ents = []
   for (let i = 0; i < 6; i++) ents.push(await prisma.seasonEntrant.create({ data: { seasonId, playerId: `sfv-p${i + 1}`, username: `SFV${i + 1}`, displayName: `Player ${i + 1}`, cueverseId: `sfv${i + 1}`, status: 'APPROVED' } }))

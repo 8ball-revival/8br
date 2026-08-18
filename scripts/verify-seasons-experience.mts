@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import {
-  getSeasonBrowseData, newestSeasonNumber, seasonNeighbours, seasonPlayoffParticipants,
+  getSeasonBrowseData, newestSeasonId, seasonNeighbours, seasonPlayoffParticipants,
   hasPublicPlayoffBracket, searchSeasonPlayers, getSeasonGlance,
 } from '../src/lib/seasons/browse.ts'
 import { transitionSeasonState } from '../src/lib/seasons/lifecycle.ts'
@@ -67,17 +67,19 @@ try {
   const b = await comp(COMP_B, 'zzb')
   // Deliberately out of order, and with a HIGHER number in an EARLIER year, so a naive
   // "highest number wins" rule would pick the wrong one.
-  await season(a, 970001, 2091, 'REGISTRATION_OPEN')
+  const a2091 = await season(a, 970001, 2091, 'REGISTRATION_OPEN')
   const newestA = await season(a, 970002, 2092, 'REGISTRATION_OPEN')
-  await season(a, 970050, 2090, 'REGISTRATION_OPEN')
-  await season(b, 970003, 2093, 'REGISTRATION_OPEN')
+  const a2090 = await season(a, 970050, 2090, 'REGISTRATION_OPEN')
+  const b2093 = await season(b, 970003, 2093, 'REGISTRATION_OPEN')
 
+  // These return Season IDS now, not numbers: a number identifies a Season only alongside its
+  // Competition and year, so it could never address one on its own.
   check('newest within a Competition is the latest YEAR, not the highest number',
-    (await newestSeasonNumber(COMP_A)) === newestA.number, String(await newestSeasonNumber(COMP_A)))
+    (await newestSeasonId(COMP_A)) === newestA.id, String(await newestSeasonId(COMP_A)))
   check('newest across all Competitions is the latest year overall',
-    (await newestSeasonNumber(null)) === 970003, String(await newestSeasonNumber(null)))
+    (await newestSeasonId(null)) === b2093.id, String(await newestSeasonId(null)))
   check('an unknown Competition yields nothing to open',
-    (await newestSeasonNumber('zzsx-nope')) === null)
+    (await newestSeasonId('zzsx-nope')) === null)
 
   console.log('')
   console.log('--- Competition filtering ---')
@@ -106,7 +108,9 @@ try {
     check('an inactive Competition is not offered',
       !refreshed.competitions.some((c) => c.slug === 'zzsx-inactive'))
     // Drop the inactive fixture's Season first — the Competition cannot go while it holds one.
-    const inactiveSeason = await prisma.season.findUnique({ where: { number: 970004 }, select: { id: true } })
+    // Scoped by the fixture slug, not the number alone: a number identifies a Season only
+    // alongside its Competition and year.
+    const inactiveSeason = await prisma.season.findFirst({ where: { slug: 'zzsx-season-970004' }, select: { id: true } })
     if (inactiveSeason) await prisma.season.delete({ where: { id: inactiveSeason.id } })
     await prisma.competitionSeries.deleteMany({ where: { slug: { in: ['zzsx-empty', 'zzsx-inactive'] } } })
     void emptyId
@@ -115,19 +119,19 @@ try {
   console.log('')
   console.log('--- Previous/Next walks chronological order inside the filter ---')
   {
-    // Within Competition A: 2090/#970050 → 2091/#970001 → 2092/#970002.
-    const mid = await seasonNeighbours(970001, COMP_A)
-    check('previous is the older Season', mid.prev === 970050, String(mid.prev))
-    check('next is the newer Season', mid.next === 970002, String(mid.next))
+    // Within Competition A: 2090 → 2091 → 2092. Walked by id, in both directions.
+    const mid = await seasonNeighbours(a2091.id, COMP_A)
+    check('previous is the older Season', mid.prev === a2090.id, String(mid.prev))
+    check('next is the newer Season', mid.next === newestA.id, String(mid.next))
 
-    const oldest = await seasonNeighbours(970050, COMP_A)
+    const oldest = await seasonNeighbours(a2090.id, COMP_A)
     check('the oldest Season has no previous', oldest.prev === null)
-    const newest = await seasonNeighbours(970002, COMP_A)
+    const newest = await seasonNeighbours(newestA.id, COMP_A)
     check('the newest Season has no next in its Competition', newest.next === null, String(newest.next))
 
     // Unfiltered, the newest in A is followed by the one in B.
-    const unfiltered = await seasonNeighbours(970002, null)
-    check('without a filter the arrows cross Competitions', unfiltered.next === 970003, String(unfiltered.next))
+    const unfiltered = await seasonNeighbours(newestA.id, null)
+    check('without a filter the arrows cross Competitions', unfiltered.next === b2093.id, String(unfiltered.next))
   }
 
   console.log('')
@@ -225,7 +229,7 @@ try {
       'src/components/seasons/season-standings-matrix.tsx',
       'src/components/seasons/season-presentation.tsx',
       'src/app/(frontend)/seasons/page.tsx',
-      'src/app/(frontend)/seasons/[seasonNumber]/page.tsx',
+      'src/app/(frontend)/seasons/[seasonId]/page.tsx',
     ].map((f) => [f, readFileSync(f, 'utf8')] as const)
 
     // Prose may MENTION the offline viewer — it was the visual reference. What must not exist is a
@@ -301,7 +305,10 @@ try {
     check('an absent or unknown view defaults to Groups', page.includes("? 'playoffs' : 'groups'"))
     check('the Competition filter is read from the URL', page.includes('sp.competition'))
     const controls = files[1][1]
-    check('changing a control rewrites the URL', controls.includes('router.push') && controls.includes('/seasons/${seasonNumber}'))
+    // URLs are built from the Season's immutable id, never its display number.
+    check('changing a control rewrites the URL', controls.includes('router.push') && controls.includes('/seasons/${seasonId}'))
+    check('and addresses the Season by id, not by its number',
+      !/\/seasons\/\$\{seasonNumber\}/.test(controls))
     check('the Playoffs toggle is never disabled', !/aria-pressed[^>]*disabled/.test(controls))
     check('the landing page redirects to the newest Season', files[4][1].includes('redirect(`/seasons/'))
   }
@@ -348,7 +355,7 @@ try {
   console.log('--- The masthead, and the header it clamps to ---')
   {
     const mast = readFileSync('src/components/seasons/season-masthead.tsx', 'utf8')
-    const page = readFileSync('src/app/(frontend)/seasons/[seasonNumber]/page.tsx', 'utf8')
+    const page = readFileSync('src/app/(frontend)/seasons/[seasonId]/page.tsx', 'utf8')
     const controls = readFileSync('src/components/seasons/season-controls.tsx', 'utf8')
     const header = readFileSync('src/components/site-header.tsx', 'utf8')
     const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
@@ -437,7 +444,7 @@ try {
   console.log('')
   console.log('--- Points ordering, on real Season 1 data (read-only) ---')
   {
-    const s1 = await prisma.season.findUnique({ where: { number: 1 }, select: { id: true, lifecycleState: true } })
+    const s1 = await prisma.season.findFirst({ where: { number: 1, competitionYear: 2005, competitionSeries: { slug: '8brcam' } }, select: { id: true, lifecycleState: true } })
     if (!s1) {
       check('Season 1 is present as the real-data validation case', false, 'it is missing')
     } else {

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { newestSeasonNumber, getSeasonBrowseData } from '@/lib/seasons/browse'
+import { newestSeasonId, getSeasonBrowseData } from '@/lib/seasons/browse'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 
 export const dynamic = 'force-dynamic'
@@ -23,8 +23,9 @@ export const metadata: Metadata = {
  * almost always wants. The canonical per-Season URLs are untouched, so every existing link still
  * resolves; this page simply chooses which one to open.
  *
- * "Newest" is Competition Year descending, then Season number descending — the same rule the
- * pickers use, so the landing page and the controls can never disagree.
+ * "Newest" is Competition Year descending, then Season number descending, with the Competition name
+ * and Season id breaking ties — the same rule the pickers use, so the landing page and the controls
+ * can never disagree. The redirect targets the Season's immutable id, not its number.
  */
 export default async function SeasonsPage({
   searchParams,
@@ -34,7 +35,7 @@ export default async function SeasonsPage({
   const sp = await searchParams
   const competition = sp.competition ?? null
 
-  const newest = await newestSeasonNumber(competition)
+  const newest = await newestSeasonId(competition)
   if (newest != null) {
     const qs = new URLSearchParams()
     if (competition) qs.set('competition', competition)

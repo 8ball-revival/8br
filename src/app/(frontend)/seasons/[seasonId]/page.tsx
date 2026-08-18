@@ -25,9 +25,9 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: Promise<{ seasonNumber: string }> }): Promise<Metadata> {
-  const { seasonNumber } = await params
-  const view = await getSeasonView(Number(seasonNumber))
+export async function generateMetadata({ params }: { params: Promise<{ seasonId: string }> }): Promise<Metadata> {
+  const { seasonId } = await params
+  const view = await getSeasonView(Number(seasonId))
   return view ? { title: view.title, description: view.description ?? '8BR Season Championship.' } : { title: 'Season' }
 }
 
@@ -45,15 +45,18 @@ export async function generateMetadata({ params }: { params: Promise<{ seasonNum
 export default async function SeasonPage({
   params, searchParams,
 }: {
-  params: Promise<{ seasonNumber: string }>
+  params: Promise<{ seasonId: string }>
   searchParams: Promise<{ view?: string; competition?: string }>
 }) {
-  const { seasonNumber } = await params
+  const { seasonId } = await params
   const sp = await searchParams
-  const number = Number(seasonNumber)
-  if (!Number.isFinite(number)) notFound()
-  const view = await getSeasonView(number)
+  // The URL carries the immutable database id. The displayed Season number is a separate, editable
+  // label that is only unique within its Competition and year, so it could never address a Season.
+  const id = Number(seasonId)
+  if (!Number.isInteger(id) || id <= 0) notFound()
+  const view = await getSeasonView(id)
   if (!view) notFound()
+  const number = view.number
 
   // Groups is the default whenever no view is supplied, or an unrecognised one is.
   const activeView: 'groups' | 'playoffs' = sp.view === 'playoffs' ? 'playoffs' : 'groups'
@@ -70,7 +73,7 @@ export default async function SeasonPage({
   const state = view.lifecycleState
   const [browse, neighbours, groups, qualified, bracketPublic, glance] = await Promise.all([
     getSeasonBrowseData(competition),
-    seasonNeighbours(number, competition),
+    seasonNeighbours(id, competition),
     getSeasonGroupStage(view.id),
     seasonPlayoffParticipants(view.id),
     hasPublicPlayoffBracket(view.id, state),
@@ -82,7 +85,7 @@ export default async function SeasonPage({
   const playoffsParams = new URLSearchParams()
   if (competition) playoffsParams.set('competition', competition)
   playoffsParams.set('view', 'playoffs')
-  const playoffsHref = `/seasons/${number}?${playoffsParams.toString()}`
+  const playoffsHref = `/seasons/${id}?${playoffsParams.toString()}`
 
   // Admins keep editing the group tables through the existing stage component; everyone else gets
   // the read-only matrix. Rendering both would show the same group twice.
@@ -94,7 +97,7 @@ export default async function SeasonPage({
         competitions={browse.competitions}
         seasons={browse.seasons}
         years={browse.years}
-        current={{ number, year: view.year }}
+        current={{ id, number, year: view.year }}
         competitionSlug={competition}
         view={activeView}
         neighbours={neighbours}
@@ -102,7 +105,7 @@ export default async function SeasonPage({
           'use server'
           return searchSeasonEntrantsAction(view.id, q)
         }}
-        settingsHref={canManage ? `/seasons/${number}/settings` : null}
+        settingsHref={canManage ? `/seasons/${id}/settings` : null}
         createHref={canManageComp ? '/seasons/new' : null}
       />
 
@@ -179,7 +182,6 @@ export default async function SeasonPage({
 
         <AdminSurfaces
           view={view}
-          number={number}
           state={state}
           canManage={canManage}
           canManageComp={canManageComp}
@@ -250,10 +252,9 @@ async function PlayoffsView({
  * here — they render above instead, so an admin edits in place rather than in a duplicate table.
  */
 async function AdminSurfaces({
-  view, number, state, canManage, canManageComp, isLoggedIn, registered,
+  view, state, canManage, canManageComp, isLoggedIn, registered,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>
-  number: number
   state: string
   canManage: boolean
   canManageComp: boolean
@@ -264,7 +265,6 @@ async function AdminSurfaces({
     return (
       <SeasonRegistration
         seasonId={view.id}
-        seasonNumber={number}
         entrants={view.entrants.map((e) => ({ entrantId: e.entrantId, name: e.name, cueverseId: e.cueverseId, slug: e.slug, rating: e.rating }))}
         canManage={canManage}
         isOpen={state === 'REGISTRATION_OPEN'}

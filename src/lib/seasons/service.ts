@@ -3,6 +3,9 @@ import type { Prisma, SeasonLifecycleState } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { SEASON_ORDER, currentCompetitionYear, parseCompetitionYear } from '@/lib/competition/competition-year'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
+import {
+  parseSeasonNumber, suggestSeasonNumber, isSeasonNumberTaken, conflictFor, isSeasonNumberCollision,
+} from './numbering'
 import { hashJoinPassword, verifyJoinPassword } from '@/lib/competition/join-password'
 import { transitionSeasonState } from './lifecycle'
 import { isPreGroupPhase } from './shared'
@@ -43,6 +46,8 @@ export interface CreateSeasonConfig {
   competitionYear?: number | string | null
   /** Owning Competition (CompetitionSeries id). REQUIRED — there is no 'Unassigned' Competition. */
   competitionSeriesId?: number | string | null
+  /** Season number, unique within this Competition and year. Omitted = the next one going spare. */
+  number?: number | string | null
   subtitle?: string | null
   lounge?: string
   accessMode?: 'OPEN' | 'PASSWORD'
@@ -61,7 +66,10 @@ const clampRace = (v: number | undefined, dflt: number) => {
   return Number.isFinite(n) && n >= 1 && n <= 99 ? n : dflt
 }
 
-export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promise<{ ok: boolean; error?: string; number?: number }> {
+export async function createSeason(
+  actor: Actor,
+  cfg: CreateSeasonConfig,
+): Promise<{ ok: boolean; error?: string; id?: number; number?: number; suggestion?: number }> {
   const yearResult = parseCompetitionYear(
     cfg.competitionYear == null || cfg.competitionYear === '' ? currentCompetitionYear() : cfg.competitionYear,
   )
@@ -76,7 +84,7 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
   }
   const series = await prisma.competitionSeries.findUnique({
     where: { id: seriesId },
-    select: { id: true, active: true, name: true },
+    select: { id: true, active: true, name: true, slug: true },
   })
   if (!series) return { ok: false, error: 'That Competition no longer exists.' }
   if (!series.active) return { ok: false, error: 'That Competition is inactive and cannot take new Seasons.' }
@@ -88,16 +96,32 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
     return { ok: false, error: 'Set a join password of at least 4 characters.' }
   }
 
-  // Allocate the next public Season number atomically against concurrent creates.
-  const created = await prisma.$transaction(async (tx) => {
-    const last = await tx.season.findFirst({ orderBy: { number: 'desc' }, select: { number: true } })
-    const number = (last?.number ?? 0) + 1
+  // The Season number is unique within this Competition and year only. An omitted number takes the
+  // next one going spare there; a supplied one is validated and used as given.
+  const parsed = cfg.number == null || cfg.number === ''
+    ? { ok: true as const, value: await suggestSeasonNumber(seriesId, year) }
+    : parseSeasonNumber(cfg.number)
+  if (!parsed.ok) return { ok: false, error: parsed.error }
+  const number = parsed.value
+
+  // Checked before submitting so the administrator gets a sentence rather than a constraint error.
+  // The database index below is still the authority — two simultaneous creates can both pass here.
+  if (await isSeasonNumberTaken(seriesId, year, number)) {
+    const c = await conflictFor(seriesId, year, number)
+    return { ok: false, error: c.error, suggestion: c.suggestion }
+  }
+
+  let created
+  try {
+  created = await prisma.$transaction(async (tx) => {
     const season = await tx.season.create({
       data: {
         number,
         competitionYear: year,
         competitionSeriesId: seriesId,
-        slug: `8br-season-${number}-${year}`,
+        // The slug carries the Competition too: with per-Competition numbering, "season-1-2026"
+        // alone would collide the moment a second Competition ran its own Season 1 that year.
+        slug: `${series.slug}-season-${number}-${year}`,
         subtitle: cfg.subtitle?.trim() || null,
         lifecycleState: scheduled ? 'REGISTRATION_SCHEDULED' : 'REGISTRATION_OPEN',
         lounge: cfg.lounge?.trim() || 'Social',
@@ -112,10 +136,19 @@ export async function createSeason(actor: Actor, cfg: CreateSeasonConfig): Promi
         finalRaceTo: clampRace(cfg.finalRaceTo, 9),
       },
     })
-    await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: { number, year, title: seasonOfficialTitle(seriesName, number, year) } }, tx)
+    await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: { number, year, competitionSeriesId: seriesId, title: seasonOfficialTitle(seriesName, number, year) } }, tx)
     return season
   })
-  return { ok: true, number: created.number }
+  } catch (e) {
+    // Lost the race: the composite index rejected the duplicate. Answer in the same words the
+    // pre-flight check uses, and hand back a fresh suggestion so nothing has to be worked out again.
+    if (isSeasonNumberCollision(e)) {
+      const c = await conflictFor(seriesId, year, number)
+      return { ok: false, error: c.error, suggestion: c.suggestion }
+    }
+    throw e
+  }
+  return { ok: true, id: created.id, number: created.number }
 }
 
 // ---- Read views -----------------------------------------------------------
@@ -198,9 +231,16 @@ export interface SeasonView {
   finalScore: string | null
 }
 
-export async function getSeasonView(number: number): Promise<SeasonView | null> {
+/**
+ * A Season by its immutable database id.
+ *
+ * Deliberately NOT by number: a number is only unique within a Competition and year now, so it
+ * cannot identify a Season on its own. The id never changes, which is what keeps a Season's URL and
+ * every relationship stable when its display identity is edited.
+ */
+export async function getSeasonView(id: number): Promise<SeasonView | null> {
   const s = await prisma.season.findUnique({
-    where: { number },
+    where: { id },
     include: { competitionSeries: { select: { id: true, name: true, shortName: true, slug: true, iconMediaId: true } } },
   })
   if (!s) return null
@@ -330,10 +370,10 @@ export async function removeSeasonEntrant(actor: Actor, seasonId: number, entran
 export async function registerSelf(
   userId: number,
   identity: { playerId?: string | null; name: string; handle?: string | null },
-  seasonNumber: number,
+  seasonId: number,
   joinPassword?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.season.findUnique({ where: { number: seasonNumber } })
+  const s = await prisma.season.findUnique({ where: { id: seasonId } })
   if (!s) return { ok: false, error: 'Season not found.' }
   if (s.lifecycleState !== 'REGISTRATION_OPEN') return { ok: false, error: 'Registration is not open for this Season.' }
   if (s.accessMode === 'PASSWORD' && !verifyJoinPassword((joinPassword ?? '').trim(), s.joinPasswordHash)) {
@@ -382,6 +422,8 @@ export interface SeasonSettingsPatch {
   competitionYear?: number | string | null
   /** Owning Competition. Always editable, but must remain a real, ACTIVE Competition. */
   competitionSeriesId?: number | string | null
+  /** Season number — a display label, editable at any point including after the Season closes. */
+  number?: number | string | null
   subtitle?: string | null
   description?: string | null
   lounge?: string
@@ -400,8 +442,15 @@ const FORMAT_EDITABLE = new Set(['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN', 
 
 /** Update Season settings with server-enforced, lifecycle-aware gating. Fields the current phase does
  *  not permit are silently ignored (the UI hides them; this is the authoritative backstop). */
-export async function updateSeasonSettings(actor: Actor, seasonId: number, patch: SeasonSettingsPatch): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true, accessMode: true } })
+export async function updateSeasonSettings(
+  actor: Actor,
+  seasonId: number,
+  patch: SeasonSettingsPatch,
+): Promise<{ ok: boolean; error?: string; suggestion?: number }> {
+  const s = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { lifecycleState: true, accessMode: true, number: true, competitionYear: true, competitionSeriesId: true },
+  })
   if (!s) return { ok: false, error: 'Season not found.' }
   const state = s.lifecycleState
   const data: Record<string, unknown> = {}
@@ -420,6 +469,24 @@ export async function updateSeasonSettings(actor: Actor, seasonId: number, patch
     if (!series) return { ok: false, error: 'That Competition no longer exists.' }
     if (!series.active) return { ok: false, error: 'That Competition is inactive and cannot own Seasons.' }
     data.competitionSeriesId = sid
+  }
+  // The Season number is display identity, so it is editable at any point in the lifecycle — a
+  // finished Season included. Renumbering changes a label and nothing else: no match, playoff,
+  // seed, ranking or historical result is recalculated, because none of them reference it.
+  if (patch.number !== undefined && patch.number !== null && patch.number !== '') {
+    const parsed = parseSeasonNumber(patch.number)
+    if (!parsed.ok) return { ok: false, error: parsed.error }
+    // Checked against wherever the Season will END UP, which may be a Competition or year this same
+    // save is moving it to.
+    const targetSeries = (data.competitionSeriesId as number | undefined) ?? s.competitionSeriesId
+    const targetYear = (data.competitionYear as number | undefined) ?? s.competitionYear
+    if (parsed.value !== s.number || targetSeries !== s.competitionSeriesId || targetYear !== s.competitionYear) {
+      if (await isSeasonNumberTaken(targetSeries, targetYear, parsed.value, seasonId)) {
+        const c = await conflictFor(targetSeries, targetYear, parsed.value)
+        return { ok: false, error: c.error, suggestion: c.suggestion }
+      }
+    }
+    data.number = parsed.value
   }
   if (patch.subtitle !== undefined) data.subtitle = patch.subtitle?.trim() || null
   if (patch.description !== undefined) data.description = patch.description?.trim() || null
@@ -446,7 +513,19 @@ export async function updateSeasonSettings(actor: Actor, seasonId: number, patch
     if (patch.finalRaceTo !== undefined) data.finalRaceTo = clamp(patch.finalRaceTo, 9)
   }
   if (Object.keys(data).length === 0) return { ok: true }
-  await prisma.season.update({ where: { id: seasonId }, data })
+  try {
+    await prisma.season.update({ where: { id: seasonId }, data })
+  } catch (e) {
+    // The composite index has the final word here too, in case another save claimed the same
+    // Competition/year/number between the check above and this write.
+    if (isSeasonNumberCollision(e)) {
+      const targetSeries = (data.competitionSeriesId as number | undefined) ?? s.competitionSeriesId
+      const targetYear = (data.competitionYear as number | undefined) ?? s.competitionYear
+      const c = await conflictFor(targetSeries, targetYear, (data.number as number | undefined) ?? s.number)
+      return { ok: false, error: c.error, suggestion: c.suggestion }
+    }
+    throw e
+  }
   await recordAudit(actor, { action: 'season.settings.update', entity: 'Season', entityId: seasonId, newValue: { fields: Object.keys(data) } })
   return { ok: true }
 }

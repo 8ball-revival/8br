@@ -42,18 +42,23 @@ export function isValidCompetitionYear(raw: unknown): boolean {
 }
 
 /**
- * Default chronological ordering, newest first:
+ * Default chronological ordering for Seasons, newest first:
  *   1. competitionYear descending
- *   2. the competition's own start/event date descending, when it has one
- *   3. name/title, so equal years and missing dates still order stably
+ *   2. Season number descending
+ *   3. Competition name, then Season id
  *
- * Prisma sorts NULLs last on `desc` by default, which is what we want: a scheduled competition
- * with a real date outranks one that has none.
+ * Number comes before the scheduled date because it is the identity people read: "2026 Season 3"
+ * should sit above "2026 Season 2" whatever order they were scheduled in.
+ *
+ * The last two entries are the tie-breaker that per-Competition numbering makes necessary — two
+ * Competitions can each hold "2026 Season 1", and without them the order between those two would be
+ * arbitrary and could differ between requests.
  */
 export const SEASON_ORDER = [
   { competitionYear: 'desc' as const },
-  { scheduledStartAt: 'desc' as const },
   { number: 'desc' as const },
+  { competitionSeries: { name: 'asc' as const } },
+  { id: 'asc' as const },
 ]
 
 export const TOURNAMENT_ORDER = [

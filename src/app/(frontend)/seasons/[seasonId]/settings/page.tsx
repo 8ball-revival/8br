@@ -13,9 +13,9 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Season Settings', robots: { index: false } }
 
-export default async function SeasonSettingsPage({ params }: { params: Promise<{ seasonNumber: string }> }) {
-  const { seasonNumber } = await params
-  const view = await getSeasonView(Number(seasonNumber))
+export default async function SeasonSettingsPage({ params }: { params: Promise<{ seasonId: string }> }) {
+  const { seasonId } = await params
+  const view = await getSeasonView(Number(seasonId))
   if (!view) notFound()
   const access = await resolveStaffAccess()
   if (access.status !== 'ok' || !access.actor.can('manage_competitions')) notFound()
@@ -27,7 +27,7 @@ export default async function SeasonSettingsPage({ params }: { params: Promise<{
 
   return (
     <Container className="py-10">
-      <Link href={`/seasons/${view.number}`} className="text-sm text-muted-foreground hover:text-foreground">← {view.title}</Link>
+      <Link href={`/seasons/${view.id}`} className="text-sm text-muted-foreground hover:text-foreground">← {view.title}</Link>
       <SectionHeader eyebrow="Season Settings" title={view.title} description={view.subtitle ?? undefined} />
       <SeasonSettingsForm seasonId={view.id} view={view} isHeadAdmin={access.actor.isHeadAdmin} competitions={competitions} />
     </Container>

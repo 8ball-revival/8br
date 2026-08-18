@@ -1862,7 +1862,11 @@ model CompetitionSeries {
 
 model Season {
   id             Int                  @id @default(autoincrement())
-  number         Int                  @unique // public season number (1, 2, ...)
+  /// Public Season number, unique only WITHIN a Competition and year — see the composite key at the
+  /// bottom of the model. "8BR Season 1 - 2005", "8BR Retro Season 1 - 2026" and "8BR Season 1 -
+  /// 2026" are all valid at once. Never a global identifier: routes and relationships use `id`.
+  /// A CHECK constraint keeps it a positive whole number.
+  number         Int
   /// Competition Year — the four-digit year the competition belongs to. Required; defaults to the
   /// current calendar year at creation. Historical and future years are allowed (1900-2100, range
   /// enforced by a CHECK constraint). Deliberately NOT unique: many competitions share a year.
@@ -1918,6 +1922,8 @@ model Season {
   playoffMatches SeasonPlayoffMatch[]
   ratingLedger   RatingLedger[]
 
+  /// The numbering rule, enforced by the database so a race between two creates cannot slip past it.
+  @@unique([competitionSeriesId, competitionYear, number], name: "season_competition_year_number")
   @@index([lifecycleState])
   @@index([competitionYear])
   @@index([competitionSeriesId])

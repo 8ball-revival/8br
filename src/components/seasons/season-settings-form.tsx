@@ -32,11 +32,22 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
   const [competitionYear, setCompetitionYear] = useState(String(view.year))
   const [competitionSeriesId, setCompetitionSeriesId] = useState<number | null>(view.competition.id)
   const [subtitle, setSubtitle] = useState(view.subtitle ?? '')
+  // Display identity only. Editable at any point in the lifecycle, a finished Season included —
+  // renumbering changes a label, never a result.
+  const [seasonNumber, setSeasonNumber] = useState(String(view.number))
+  const [numberError, setNumberError] = useState<string | null>(null)
   const [description, setDescription] = useState(view.description ?? '')
   const [lounge, setLounge] = useState(view.lounge)
   const [access, setAccess] = useState(view.accessMode === 'PASSWORD' ? 'PASSWORD' : 'OPEN')
   const [joinPassword, setJoinPassword] = useState('')
   const [fmt, setFmt] = useState(view.format)
+
+  // The official title is derived, so the preview follows Competition, number and year as they are
+  // edited — the administrator sees the new name before saving it.
+  const competitionName =
+    competitions.find((c) => c.id === competitionSeriesId)?.name ?? view.competition.name
+  const previewTitle =
+    `${competitionName} Season ${seasonNumber.trim() === '' ? '—' : seasonNumber.trim()} · ${competitionYear}`
 
   const save = async () => {
     if (formatWarn) {
@@ -46,10 +57,17 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
     start(async () => {
       const r = await updateSeasonSettingsAction(seasonId, {
         competitionYear: Number(competitionYear), competitionSeriesId,
+        number: Number(seasonNumber),
         subtitle, description, ...(completed ? {} : { lounge }),
         ...(regEditable ? { accessMode: access as 'OPEN' | 'PASSWORD', joinPassword: access === 'PASSWORD' ? joinPassword : null } : {}),
         ...(formatEditable ? { groupStageGames: fmt.groupStageGames, earlyRaceTo: fmt.earlyRaceTo, semifinalRaceTo: fmt.semifinalRaceTo, finalRaceTo: fmt.finalRaceTo } : {}),
       })
+      if (r.error && r.suggestion != null) {
+        setNumberError(r.error)
+        setSeasonNumber(String(r.suggestion))
+        setMsg(null)
+        return
+      }
       setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: r.message ?? 'Saved.' })
       if (!r.error) router.refresh()
     })
@@ -74,6 +92,27 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
         <Field label="Competition">
           <CompetitionSelect competitions={competitions} value={competitionSeriesId} onChange={(id) => setCompetitionSeriesId(id)} inputClassName={input} />
         </Field>
+        <Field label="Season Number">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={seasonNumber}
+            onChange={(e) => { setSeasonNumber(e.target.value); setNumberError(null) }}
+            min={1}
+            step={1}
+            className={cn(input, numberError && 'border-destructive')}
+            aria-invalid={numberError ? true : undefined}
+          />
+          <p className="mt-1 text-[0.7rem] text-muted-foreground/70">
+            Only has to be unique within this Competition and year. Changing it renames the Season —
+            it does not touch groups, playoffs, results or rankings.
+          </p>
+          {numberError && <p role="alert" className="mt-1 text-[0.7rem] text-destructive">{numberError}</p>}
+        </Field>
+        <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.05] px-3 py-2.5 text-sm">
+          <span className="text-muted-foreground">Official title: </span>
+          <span className="font-display font-bold text-[var(--gold-soft)]">{previewTitle}</span>
+        </div>
         <Field label="Custom subtitle"><input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={80} className={input} /></Field>
         <Field label="Description / announcement"><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={600} className={cn(input, 'resize-y')} /></Field>
       </Section>

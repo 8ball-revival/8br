@@ -28,7 +28,6 @@ export interface RegEntrant { entrantId: number; name: string; cueverseId: strin
  */
 export function SeasonRegistration({
   seasonId,
-  seasonNumber,
   entrants,
   canManage,
   isOpen,
@@ -37,7 +36,6 @@ export function SeasonRegistration({
   requiresPassword,
 }: {
   seasonId: number
-  seasonNumber: number
   entrants: RegEntrant[]
   canManage: boolean
   isOpen: boolean
@@ -77,10 +75,10 @@ export function SeasonRegistration({
       {/* Member self-registration / admin controls */}
       <div className="flex flex-wrap items-center gap-3">
         {isOpen && !canManage && isLoggedIn && !alreadyRegistered && (
-          <SelfRegister seasonNumber={seasonNumber} requiresPassword={requiresPassword} onDone={(r) => (r.error ? flash({ ok: false, text: r.error }) : (flash({ ok: true, text: r.message ?? 'Registered.' }), router.refresh()))} />
+          <SelfRegister seasonId={seasonId} requiresPassword={requiresPassword} onDone={(r) => (r.error ? flash({ ok: false, text: r.error }) : (flash({ ok: true, text: r.message ?? 'Registered.' }), router.refresh()))} />
         )}
         {isOpen && !canManage && !isLoggedIn && (
-          <Button asChild size="sm"><Link href={`/login?returnTo=${encodeURIComponent(`/seasons/${seasonNumber}`)}`}>Sign in to register</Link></Button>
+          <Button asChild size="sm"><Link href={`/login?returnTo=${encodeURIComponent(`/seasons/${seasonId}`)}`}>Sign in to register</Link></Button>
         )}
         {alreadyRegistered && !canManage && (
           <p className="inline-flex items-center gap-2 rounded-md border border-success/30 bg-success/[0.06] px-3 py-2 text-sm text-foreground"><UserPlus className="size-4 text-success" /> You&apos;re registered for this Season.</p>
@@ -141,13 +139,13 @@ export function SeasonRegistration({
   )
 }
 
-function SelfRegister({ seasonNumber, requiresPassword, onDone }: { seasonNumber: number; requiresPassword: boolean; onDone: (r: SeasonActionResult) => void }) {
+function SelfRegister({ seasonId, requiresPassword, onDone }: { seasonId: number; requiresPassword: boolean; onDone: (r: SeasonActionResult) => void }) {
   const [pending, start] = useTransition()
   const [pw, setPw] = useState('')
   return (
     <form
       className="flex flex-wrap items-center gap-2"
-      onSubmit={(e) => { e.preventDefault(); start(async () => onDone(await registerForSeasonAction(seasonNumber, pw))) }}
+      onSubmit={(e) => { e.preventDefault(); start(async () => onDone(await registerForSeasonAction(seasonId, pw))) }}
     >
       {requiresPassword && (
         <input value={pw} onChange={(e) => setPw(e.target.value)} type="password" required placeholder="Season password" className="rounded-md border border-input bg-card px-3 py-2 text-sm" autoComplete="off" />

@@ -25,26 +25,35 @@ export interface SeasonActionResult {
   ok?: boolean
   error?: string
   message?: string
+  /** On a Season-number conflict: the next free number, so the form can offer it. */
+  suggestion?: number
 }
 
-function revalidateSeason(number?: number | null) {
-  if (number != null) revalidatePath(`/seasons/${number}`)
+/** Season pages are addressed by database id, so that is what gets revalidated. */
+function revalidateSeason(seasonId?: number | null) {
+  if (seasonId != null) revalidatePath(`/seasons/${seasonId}`)
   revalidatePath('/seasons')
-}
-
-async function seasonNumberOf(seasonId: number): Promise<number | null> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true } })
-  return s?.number ?? null
 }
 
 // ---- Creation -------------------------------------------------------------
 
-export async function createSeasonAction(cfg: CreateSeasonConfig): Promise<SeasonActionResult & { number?: number }> {
+export async function createSeasonAction(
+  cfg: CreateSeasonConfig,
+): Promise<SeasonActionResult & { id?: number; number?: number }> {
   const actor = await requireCapability('manage_competitions')
   const res = await createSeason(actor, cfg)
-  if (!res.ok || !res.number) return { error: res.error ?? 'Could not create the Season.' }
-  revalidateSeason(res.number)
-  return { ok: true, number: res.number, message: `Created Season ${res.number}.` }
+  // A conflict comes back with a fresh suggestion so the form can offer it without losing the rest
+  // of what was typed.
+  if (!res.ok || res.id == null) return { error: res.error ?? 'Could not create the Season.', suggestion: res.suggestion }
+  revalidateSeason(res.id)
+  return { ok: true, id: res.id, number: res.number, message: `Created Season ${res.number}.` }
+}
+
+/** The next free Season number for a Competition and year — what the create form suggests. */
+export async function suggestSeasonNumberAction(competitionSeriesId: number, competitionYear: number): Promise<number> {
+  await requireCapability('manage_competitions')
+  const { suggestSeasonNumber } = await import('./numbering')
+  return suggestSeasonNumber(competitionSeriesId, competitionYear)
 }
 
 // ---- Registration (admin) -------------------------------------------------
@@ -58,7 +67,7 @@ export async function addSeasonEntrantAction(seasonId: number, playerId: string)
   const actor = await requireCapability('manage_registrations')
   const res = await addSeasonEntrant(actor, seasonId, playerId)
   if (!res.ok) return { error: res.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true, message: 'Added 1 entrant.' }
 }
 
@@ -66,7 +75,7 @@ export async function removeSeasonEntrantAction(seasonId: number, entrantId: num
   const actor = await requireCapability('manage_registrations')
   const res = await removeSeasonEntrant(actor, seasonId, entrantId)
   if (!res.ok) return { error: res.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true, message: 'Entrant removed.' }
 }
 
@@ -74,7 +83,7 @@ export async function closeSeasonRegistrationAction(seasonId: number): Promise<S
   const actor = await requireCapability('manage_competitions')
   const res = await closeRegistration(actor, seasonId)
   if (!res.ok) return { error: res.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true, message: 'Registration closed — ratings snapshot captured. Set up the groups next.' }
 }
 
@@ -100,45 +109,45 @@ export async function generateSeasonGroupsAction(seasonId: number, numGroups: nu
   const actor = await requireCapability('manage_competitions')
   const r = await grp.generateSeasonGroups(actor, seasonId, numGroups)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true, message: r.uneven ? 'Groups generated — sizes differ by one (allowed).' : 'Groups generated.', uneven: r.uneven }
 }
 export async function moveSeasonEntrantAction(seasonId: number, entrantId: number, toGroupId: number | null): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.moveSeasonEntrantToGroup(actor, seasonId, entrantId, toGroupId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true }
 }
 export async function addSeasonGroupAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.addSeasonGroup(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+  revalidateSeason(seasonId); return { ok: true }
 }
 export async function removeSeasonGroupAction(seasonId: number, groupId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.removeSeasonGroup(actor, seasonId, groupId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Group removed — its players returned to Unassigned.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Group removed — its players returned to Unassigned.' }
 }
 export async function renameSeasonGroupAction(seasonId: number, groupId: number, name: string): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.renameSeasonGroup(actor, seasonId, groupId, name)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+  revalidateSeason(seasonId); return { ok: true }
 }
 export async function resetSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.resetSeasonGroups(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Assignments cleared.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Assignments cleared.' }
 }
 export async function publishSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.publishSeasonGroups(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Group stage is live.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Group stage is live.' }
 }
 
 // ============================================================================
@@ -147,20 +156,20 @@ export async function publishSeasonGroupsAction(seasonId: number): Promise<Seaso
 export async function saveSeasonGroupAction(seasonId: number, groupId: number, entries: gs.GroupResultEntry[], opts?: { confirmFF?: boolean; confirmKO?: boolean; koReason?: string }): Promise<gs.SaveGroupResult> {
   const actor = await requireCapability('edit_results')
   const r = await gs.saveSeasonGroupResults(actor, seasonId, groupId, entries, opts ?? {})
-  if (r.ok) revalidateSeason(await seasonNumberOf(seasonId))
+  if (r.ok) revalidateSeason(seasonId)
   return r
 }
 export async function closeSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await gs.closeSeasonGroups(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Groups closed — final standings locked.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Groups closed — final standings locked.' }
 }
 export async function reopenSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await gs.reopenSeasonGroups(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Groups reopened — any draft bracket was discarded.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Groups reopened — any draft bracket was discarded.' }
 }
 
 // ============================================================================
@@ -170,32 +179,32 @@ export async function enterSeasonPlayoffSetupAction(seasonId: number): Promise<S
   const actor = await requireCapability('manage_competitions')
   const r = await po.enterSeasonPlayoffSetup(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Playoff setup opened.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Playoff setup opened.' }
 }
 export async function setSeasonQualificationAction(seasonId: number, entrantId: number, action: po.QualAction, reason?: string): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonQualification(actor, seasonId, entrantId, action, reason)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+  revalidateSeason(seasonId); return { ok: true }
 }
 export async function setSeasonPlayoffIncludedAction(seasonId: number, entrantId: number, included: boolean): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonPlayoffIncluded(actor, seasonId, entrantId, included)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+  revalidateSeason(seasonId); return { ok: true }
 }
 export async function setSeasonPlayoffFieldAction(seasonId: number, included: boolean): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonPlayoffField(actor, seasonId, included)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true, message: included ? `Added ${r.changed} player(s).` : `Cleared ${r.changed} player(s).` }
 }
 export async function setSeasonPlayoffDisclaimerAction(seasonId: number, text: string | null): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonPlayoffDisclaimer(actor, seasonId, text)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   return { ok: true, message: text?.trim() ? 'Note saved.' : 'Note removed.' }
 }
 export async function swapSeasonBracketSlotsAction(
@@ -206,31 +215,31 @@ export async function swapSeasonBracketSlotsAction(
   const actor = await requireCapability('manage_competitions')
   const r = await po.swapSeasonBracketSlots(actor, seasonId, a, b)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Swapped.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Swapped.' }
 }
 export async function setSeasonBracketSlotAction(seasonId: number, matchId: number, side: 'home' | 'away', entrantId: number | null): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonBracketSlot(actor, seasonId, matchId, side, entrantId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+  revalidateSeason(seasonId); return { ok: true }
 }
 export async function setSeasonPlayoffTypeAction(seasonId: number, doubleElim: boolean): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.setSeasonPlayoffType(actor, seasonId, doubleElim)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true }
+  revalidateSeason(seasonId); return { ok: true }
 }
 export async function generateSeasonBracketAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.generateSeasonBracket(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Draft bracket generated (private).' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Draft bracket generated (private).' }
 }
 export async function startSeasonPlayoffsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.startSeasonPlayoffs(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Playoffs are live.' }
+  revalidateSeason(seasonId); return { ok: true, message: 'Playoffs are live.' }
 }
 export async function recordSeasonPlayoffResultAction(
   matchId: number,
@@ -244,7 +253,7 @@ export async function recordSeasonPlayoffResultAction(
   if (r.warning) return { warning: r.warning }
   if (r.conflict) return { error: r.error, conflict: true }
   if (!r.ok) return { error: r.error }
-  if (m) revalidateSeason(await seasonNumberOf(m.seasonId))
+  if (m) revalidateSeason(m.seasonId)
   return { ok: true }
 }
 
@@ -255,7 +264,7 @@ export async function closeSeasonAction(seasonId: number): Promise<SeasonActionR
   const actor = await requireCapability('manage_competitions')
   const r = await closeSeason(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId))
+  revalidateSeason(seasonId)
   revalidatePath('/rankings')
   return { ok: true, message: 'Season closed — champion crowned and rankings applied.' }
 }
@@ -276,8 +285,8 @@ export async function updateSeasonSettingsAction(seasonId: number, patch: import
   const actor = await requireCapability('manage_competitions')
   const { updateSeasonSettings } = await import('./service')
   const r = await updateSeasonSettings(actor, seasonId, patch)
-  if (!r.ok) return { error: r.error }
-  revalidateSeason(await seasonNumberOf(seasonId)); return { ok: true, message: 'Settings saved.' }
+  if (!r.ok) return { error: r.error, suggestion: r.suggestion }
+  revalidateSeason(seasonId); return { ok: true, message: 'Settings saved.' }
 }
 
 export async function exportSeasonDataAction(seasonId: number): Promise<{ ok: boolean; error?: string; data?: unknown }> {

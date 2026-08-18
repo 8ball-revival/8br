@@ -11,10 +11,26 @@ import { prisma } from '@/lib/prisma'
  * "Newest" means the same thing everywhere: highest Competition Year, then highest Season number.
  */
 
-/** Newest first — the canonical ordering for "which Season should I be looking at". */
-const NEWEST_FIRST = [{ competitionYear: 'desc' as const }, { number: 'desc' as const }]
+/**
+ * Newest first — the canonical ordering for "which Season should I be looking at".
+ *
+ * Year, then Season number. Numbers are only unique within a Competition and year now, so two
+ * Competitions can both hold "2026 Season 1"; the Competition name and then the Season id break
+ * that tie, which keeps the order total and identical between requests.
+ */
+const NEWEST_FIRST = [
+  { competitionYear: 'desc' as const },
+  { number: 'desc' as const },
+  { competitionSeries: { name: 'asc' as const } },
+  { id: 'asc' as const },
+]
 /** Oldest first — the chronological order the Previous/Next arrows walk. */
-const OLDEST_FIRST = [{ competitionYear: 'asc' as const }, { number: 'asc' as const }]
+const OLDEST_FIRST = [
+  { competitionYear: 'asc' as const },
+  { number: 'asc' as const },
+  { competitionSeries: { name: 'asc' as const } },
+  { id: 'asc' as const },
+]
 
 export interface CompetitionOption {
   id: number
@@ -26,6 +42,8 @@ export interface CompetitionOption {
 }
 
 export interface SeasonOption {
+  /** Immutable database id — what every link and selector passes. */
+  id: number
   number: number
   year: number
   title: string
@@ -63,12 +81,13 @@ export async function getSeasonBrowseData(competitionSlug?: string | null): Prom
     where: filter ? { competitionSeries: { slug: filter } } : {},
     orderBy: NEWEST_FIRST,
     select: {
-      number: true, competitionYear: true, lifecycleState: true,
+      id: true, number: true, competitionYear: true, lifecycleState: true,
       competitionSeries: { select: { slug: true, name: true } },
     },
   })
 
   const seasons: SeasonOption[] = rows.map((s) => ({
+    id: s.id,
     number: s.number,
     year: s.competitionYear,
     title: `Season ${s.number}`,
@@ -84,19 +103,19 @@ export async function getSeasonBrowseData(competitionSlug?: string | null): Prom
  * The Season to land on when no specific one is asked for: newest year, then highest number.
  * Returns null only when the filter matches no Season at all (including an empty registry).
  */
-export async function newestSeasonNumber(competitionSlug?: string | null): Promise<number | null> {
+export async function newestSeasonId(competitionSlug?: string | null): Promise<number | null> {
   const s = await prisma.season.findFirst({
     where: competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {},
     orderBy: NEWEST_FIRST,
-    select: { number: true },
+    select: { id: true },
   })
-  return s?.number ?? null
+  return s?.id ?? null
 }
 
 export interface SeasonNeighbours {
-  /** The chronologically PREVIOUS Season (older), or null at the start of the run. */
+  /** Database id of the chronologically PREVIOUS Season (older), or null at the start of the run. */
   prev: number | null
-  /** The chronologically NEXT Season (newer), or null at the most recent one. */
+  /** Database id of the chronologically NEXT Season (newer), or null at the most recent one. */
   next: number | null
 }
 
@@ -104,34 +123,39 @@ export interface SeasonNeighbours {
  * Previous/Next in chronological Season order, honouring the active Competition filter so the arrows
  * never walk out of the list the reader is looking at.
  */
-export async function seasonNeighbours(number: number, competitionSlug?: string | null): Promise<SeasonNeighbours> {
+export async function seasonNeighbours(id: number, competitionSlug?: string | null): Promise<SeasonNeighbours> {
   const current = await prisma.season.findUnique({
-    where: { number },
-    select: { number: true, competitionYear: true, competitionSeries: { select: { slug: true } } },
+    where: { id },
+    select: { id: true, number: true, competitionYear: true, competitionSeries: { select: { slug: true, name: true } } },
   })
   if (!current) return { prev: null, next: null }
 
   const scope = competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {}
   // "Older" = an earlier year, or the same year with a lower number. Expressed as an OR because a
   // Season's position is a (year, number) pair, not a single sortable column.
+  // A Season's position is a (year, number, id) triple, not one sortable column, so "older" and
+  // "newer" are spelled out. `id` closes the case where two Competitions share a year AND a number:
+  // without it the arrows could stall on the tie instead of moving past it.
   const older = {
     OR: [
       { competitionYear: { lt: current.competitionYear } },
       { competitionYear: current.competitionYear, number: { lt: current.number } },
+      { competitionYear: current.competitionYear, number: current.number, id: { lt: current.id } },
     ],
   }
   const newer = {
     OR: [
       { competitionYear: { gt: current.competitionYear } },
       { competitionYear: current.competitionYear, number: { gt: current.number } },
+      { competitionYear: current.competitionYear, number: current.number, id: { gt: current.id } },
     ],
   }
 
   const [prev, next] = await Promise.all([
-    prisma.season.findFirst({ where: { ...scope, ...older }, orderBy: NEWEST_FIRST, select: { number: true } }),
-    prisma.season.findFirst({ where: { ...scope, ...newer }, orderBy: OLDEST_FIRST, select: { number: true } }),
+    prisma.season.findFirst({ where: { ...scope, ...older }, orderBy: NEWEST_FIRST, select: { id: true } }),
+    prisma.season.findFirst({ where: { ...scope, ...newer }, orderBy: OLDEST_FIRST, select: { id: true } }),
   ])
-  return { prev: prev?.number ?? null, next: next?.number ?? null }
+  return { prev: prev?.id ?? null, next: next?.id ?? null }
 }
 
 /**

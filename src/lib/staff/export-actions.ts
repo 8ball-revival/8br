@@ -43,7 +43,17 @@ export async function exportMembersAction(): Promise<ExportResult> {
 
 export async function exportSeasonsAction(): Promise<ExportResult> {
   if (!(await headAdminGate())) return { error: 'Head Admin only.' }
-  const s = await prisma.season.findMany({ orderBy: { number: 'asc' }, include: { _count: { select: { entrants: true } } } })
+  // Ordered like every other Season listing: a bare number no longer sorts them meaningfully now
+  // that each Competition numbers its own.
+  const s = await prisma.season.findMany({
+    orderBy: [
+      { competitionYear: 'asc' },
+      { number: 'asc' },
+      { competitionSeries: { name: 'asc' } },
+      { id: 'asc' },
+    ],
+    include: { _count: { select: { entrants: true } } },
+  })
   const csv = toCsv(['number', 'subtitle', 'competitionYear', 'state', 'champion', 'runnerUp', 'entrants'], s.map((x) => [x.number, x.subtitle, x.competitionYear, x.lifecycleState, x.championName, x.runnerUpName, x._count.entrants]))
   return { ok: true, csv, filename: `8br-seasons-${new Date().toISOString().slice(0, 10)}.csv` }
 }

@@ -71,8 +71,14 @@ async function main() {
   const comps = await prisma.competitionSeries.findMany({
     where: notFixtureText('slug'), select: { slug: true, active: true },
   })
-  eq('real (non-fixture) competitions', comps.length, 1)
-  check('it is 8BRCAM and active', comps[0]?.slug === '8brcam' && comps[0]?.active === true, JSON.stringify(comps[0]))
+  // The reset leaves the 8BRCAM Competition standing. It is no longer asserted to be the ONLY one:
+  // Season numbers are scoped per Competition now, so operators are expected to add more, and a
+  // second Competition existing says nothing about whether the reset did its job.
+  const archive = comps.find((c) => c.slug === '8brcam')
+  check('the 8BRCAM Competition survived the reset and is active',
+    archive?.active === true, JSON.stringify(comps))
+  check('no archive-era Competition came back with it',
+    !comps.some((c) => /^(8br-)?(20\d\d|s\d)/.test(c.slug)), JSON.stringify(comps.map((c) => c.slug)))
 
   console.log('\n--- No archive-era data survived ---')
   // The reset cleared the imported history; the site is being rebuilt by hand on top of it. So this
