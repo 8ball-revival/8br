@@ -8,6 +8,7 @@ import {
 } from '@/lib/editorial/permissions'
 import { listBylineCandidates } from '@/lib/editorial/queries'
 import { ArticleEditor, type EditorArticle } from '@/components/editorial/article-editor'
+import { giphyConfigured } from '@/lib/media/giphy'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,6 +59,7 @@ export default async function NewArticlePage() {
       members={members}
       canAttributeAuthor={mayAttribute}
       canBackdate={canBackdate(actor)}
+      giphyEnabled={giphyConfigured()}
       selfPlayerId={actor!.playerId}
     />
   )

@@ -10,6 +10,7 @@ import {
   currentEditorialActor, canEditArticle, canPublishNow, canAttributeAuthor, canBackdate,
 } from '@/lib/editorial/permissions'
 import { ArticleEditor, type EditorArticle } from '@/components/editorial/article-editor'
+import { giphyConfigured } from '@/lib/media/giphy'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,6 +102,7 @@ export default async function EditArticlePage({ params }: Props) {
       members={members}
       canAttributeAuthor={mayAttribute}
       canBackdate={canBackdate(actor)}
+      giphyEnabled={giphyConfigured()}
       selfPlayerId={actor.playerId}
     />
   )

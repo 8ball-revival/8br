@@ -15,6 +15,8 @@ import { formatDate, formatDateTime } from '@/lib/format'
 import { buildDocument } from '@/lib/editorial/richtext'
 import { slugify } from '@/lib/editorial/slug-format'
 import { RichText } from '@/components/editorial/rich-text'
+import { BodyEditor } from '@/components/editorial/body-editor'
+import { inlineMediaFilenames } from '@/lib/editorial/paste-media'
 import {
   createArticleAction, updateArticleAction, autosaveDraftAction, submitForReviewAction,
   withdrawSubmissionAction, publishArticleAction, archiveArticleAction, deleteArticleAction,
@@ -79,6 +81,7 @@ export function ArticleEditor({
   members = [],
   canAttributeAuthor = false,
   canBackdate = false,
+  giphyEnabled = false,
   selfPlayerId,
   initialTab = 'write',
 }: {
@@ -94,6 +97,8 @@ export function ArticleEditor({
   canAttributeAuthor?: boolean
   /** Owner only. Whether a publication date in the past may be set. */
   canBackdate?: boolean
+  /** Whether the server has a GIPHY key. The picker explains itself when it does not. */
+  giphyEnabled?: boolean
   /** The signed-in author's own player id, so "you" can be labelled and listed first. */
   selfPlayerId: string
   /** Which section opens first. Lets a link point straight at settings rather than the prose. */
@@ -116,6 +121,39 @@ export function ArticleEditor({
   // The preview is derived, never stored: parsing on each keystroke is cheap, and a cached preview
   // that disagreed with the textarea would be worse than no preview.
   const previewDoc = useMemo(() => buildDocument(form.bodySource), [form.bodySource])
+
+  /** Images referenced by the body, in the order they appear. Any of them may be the cover. */
+  const inlineImages = useMemo(() => inlineMediaFilenames(form.bodySource), [form.bodySource])
+
+  /**
+   * Update the body and keep the cover pointing at something the article still contains.
+   *
+   * Done here, on the change event, rather than in an effect watching the body — the cover only needs
+   * reconciling when the body actually changes, and reconciling during render would be a side effect
+   * in the wrong place.
+   *
+   * The rule: with no cover chosen, the first inline image becomes it, so an author who pastes a
+   * picture gets a homepage image without thinking about it. If the chosen cover is deleted FROM THE
+   * BODY, the next inline image takes over, and if there is none the cover clears so the category
+   * fallback can. A cover uploaded through the file picker was never an inline image, so it is never
+   * touched by any of this.
+   */
+  const setBody = (next: string) => {
+    const before = inlineMediaFilenames(form.bodySource)
+    const after = inlineMediaFilenames(next)
+    const removed = before.filter((name) => !after.includes(name))
+
+    setForm((prev) => {
+      const patch = { ...prev, bodySource: next }
+      if (!prev.coverMediaId) {
+        return after.length > 0 ? { ...patch, coverMediaId: after[0] } : patch
+      }
+      if (removed.includes(prev.coverMediaId)) {
+        return { ...patch, coverMediaId: after[0] ?? null, coverAlt: after[0] ? prev.coverAlt : '' }
+      }
+      return patch
+    })
+  }
 
   const payload = useCallback(() => ({
     title: form.title,
@@ -388,15 +426,13 @@ export function ArticleEditor({
           <Field
             label="Body"
             htmlFor="body"
-            hint="**bold**, *italic*, `code`, [link](/somewhere), ## heading, - list, > quote, ``` code block, --- rule, ![alt](media:filename.jpg)"
+            hint="**bold**, *italic*, `code`, [link](/somewhere), ## heading, - list, > quote, ``` code block, --- rule. Paste or drag an image straight in, or use the buttons above."
           >
-            <textarea
+            <BodyEditor
               id="body"
               value={form.bodySource}
-              onChange={(e) => set('bodySource', e.target.value)}
-              rows={22}
-              placeholder="Write the article…"
-              className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 font-mono text-sm leading-relaxed outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+              onChange={setBody}
+              giphyEnabled={giphyEnabled}
             />
           </Field>
 
@@ -493,6 +529,7 @@ export function ArticleEditor({
           <CoverPicker
             mediaId={form.coverMediaId}
             alt={form.coverAlt}
+            inlineImages={inlineImages}
             onChange={(mediaId, alt) => setForm((f) => ({ ...f, coverMediaId: mediaId, coverAlt: alt }))}
           />
 
@@ -839,8 +876,14 @@ function AuthorPicker({
  * banner rather than becoming a second, parallel image system.
  */
 function CoverPicker({
-  mediaId, alt, onChange,
-}: { mediaId: string | null; alt: string; onChange: (mediaId: string | null, alt: string) => void }) {
+  mediaId, alt, inlineImages = [], onChange,
+}: {
+  mediaId: string | null
+  alt: string
+  /** Images already in the body; any of them can be promoted to the cover. */
+  inlineImages?: string[]
+  onChange: (mediaId: string | null, alt: string) => void
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -876,7 +919,7 @@ function CoverPicker({
 
       <div className="flex flex-wrap items-center gap-2">
         <input
-          type="file" accept="image/*" disabled={busy}
+          type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={busy}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f) }}
           className="text-sm file:mr-3 file:rounded-md file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:text-sm"
         />
@@ -884,6 +927,31 @@ function CoverPicker({
           <Button size="sm" variant="ghost" onClick={() => onChange(null, '')}>Remove</Button>
         )}
       </div>
+
+      {inlineImages.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1.5 text-xs text-muted-foreground">
+            Or use an image from the article. The first one is used automatically if you do not choose.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {inlineImages.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => onChange(name, alt)}
+                aria-pressed={mediaId === name}
+                title={name}
+                className={`overflow-hidden rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
+                  mediaId === name ? 'border-brand ring-1 ring-brand/40' : 'border-border hover:border-brand/40'
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- Payload media */}
+                <img src={`/api/media/file/${name}`} alt="" className="size-16 object-cover" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-3">
         <label htmlFor="coverAlt" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">

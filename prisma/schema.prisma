@@ -298,6 +298,7 @@ model Player {
   reviewedArticles Article[]         @relation("ArticleReviewer")
   articleComments  ArticleComment[]  @relation("CommentAuthor")
   articleMentions  ArticleRelation[] @relation("ArticleRelatedPlayer")
+  mediaUploads     MediaUpload[]     @relation("MediaUploader")
   linkedAt            DateTime?
   provenance          Provenance       @default(NATIVE)
   createdAt           DateTime         @default(now())
@@ -2522,4 +2523,34 @@ model CueVerseSnapshotEntry {
   @@unique([snapshotId, rank])
   @@index([snapshotId])
   @@map("cueverse_snapshot_entry")
+}
+
+/// One media upload made through the article editor.
+///
+/// Two jobs. It gives uploads durable rate limiting — a per-process counter resets on restart and
+/// this application runs more than one instance, so a limit held in memory is not a limit. And it
+/// records who put a file there, which the Payload media collection does not, so an orphan sweep can
+/// tell a member's abandoned paste from site imagery an administrator uploaded.
+model MediaUpload {
+  id Int @id @default(autoincrement())
+
+  /// The Payload media filename, which is how article bodies reference it.
+  filename String
+
+  /// Canonical Player who uploaded it. Nullable so removing a profile never deletes the provenance
+  /// of a file that is still referenced by a published article.
+  uploaderPlayerId String?
+  uploader         Player? @relation("MediaUploader", fields: [uploaderPlayerId], references: [id], onDelete: SetNull)
+
+  mimeType String
+  bytes    Int
+  /// Recorded when the source provides them; used for the dimension ceiling and for layout hints.
+  width  Int?
+  height Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([uploaderPlayerId, createdAt])
+  @@index([filename])
+  @@map("media_upload")
 }
