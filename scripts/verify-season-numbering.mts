@@ -251,8 +251,18 @@ try {
     const idx = await prisma.$queryRaw<{ indexname: string }[]>`
       SELECT indexname FROM pg_indexes WHERE schemaname='public' AND tablename='season'`
     check('the global unique on number is gone', !idx.some((i) => i.indexname === 'season_number_key'))
+    // Asserted by COLUMNS rather than by name: the `name:` given to @@unique is Prisma's client-API
+    // name, while the database index keeps Prisma's column-derived name. Checking the name meant
+    // this passed or failed on a naming detail rather than on the constraint being there.
+    const composite = await prisma.$queryRaw<{ indexdef: string }[]>`
+      SELECT indexdef FROM pg_indexes
+       WHERE schemaname='public' AND tablename='season' AND indexdef LIKE '%UNIQUE%'`
     check('a composite unique on Competition/year/number exists',
-      idx.some((i) => i.indexname === 'season_competition_year_number_key'))
+      composite.some((i) =>
+        /"competitionSeriesId"/.test(i.indexdef) &&
+        /"competitionYear"/.test(i.indexdef) &&
+        /, number\)$/.test(i.indexdef)),
+      composite.map((i) => i.indexdef).join(' | '))
 
     const cons = await prisma.$queryRaw<{ conname: string; def: string }[]>`
       SELECT conname, pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conrelid='public.season'::regclass`

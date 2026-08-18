@@ -415,14 +415,27 @@ export async function listAuthors() {
     .sort((a, b) => b.articleCount - a.articleCount || a.name.localeCompare(b.name))
 }
 
-/** Months that have at least one published article, newest first — the archive index. */
+/**
+ * Months that have at least one published article, newest first — the archive index.
+ *
+ * Written as SQL because grouping by year and month is not something Prisma's query API can express,
+ * and pulling every published row into memory to bucket it would not scale.
+ *
+ * `publishAt` is `timestamp without time zone` holding UTC. Comparing it against `NOW()`, which is a
+ * `timestamptz`, makes Postgres read the stored value as LOCAL time — so on a database whose session
+ * timezone is not UTC, recent months quietly disappear from the archive. `NOW() AT TIME ZONE 'UTC'`
+ * produces a naive UTC timestamp, which is the same clock the column is on. EXTRACT then yields UTC
+ * parts, matching how dates are formatted everywhere else on the site.
+ */
 export async function listArchiveMonths(): Promise<{ year: number; month: number; count: number }[]> {
   const rows = await prisma.$queryRaw<{ year: number; month: number; count: bigint }[]>`
     SELECT EXTRACT(YEAR FROM "publishAt")::int AS year,
            EXTRACT(MONTH FROM "publishAt")::int AS month,
            COUNT(*)::bigint AS count
       FROM "public"."article"
-     WHERE "state" = 'PUBLISHED' AND "publishAt" IS NOT NULL AND "publishAt" <= NOW()
+     WHERE "state" = 'PUBLISHED'
+       AND "publishAt" IS NOT NULL
+       AND "publishAt" <= (NOW() AT TIME ZONE 'UTC')
      GROUP BY 1, 2
      ORDER BY 1 DESC, 2 DESC
   `

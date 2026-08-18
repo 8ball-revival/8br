@@ -92,7 +92,8 @@ try {
   check('exactly one Owner in the system', owners[0]?.n === 1)
 
   // Completed-history safety
-  const completed = await prisma.tournament.count({ where: { OR: [{ status: 'COMPLETED' }, { cupStatus: 'completed' }] } })
+  // `cupStatus` was dropped in the Cup-to-Tournament rename; `status` is the only run state now.
+  const completed = await prisma.tournament.count({ where: { status: 'COMPLETED' } })
   log(`  (info) cleanup never touches COMPLETED competitions — ${completed} present`)
 } finally {
   // ---- Delete every synthetic row this run created (fully non-destructive to real data) ----

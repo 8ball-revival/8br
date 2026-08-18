@@ -60,10 +60,16 @@ async function main() {
   const shared = seasonYears.length !== new Set(seasonYears).size
   check('multiple seasons already share a year (no unique constraint)', shared || seasons.length < 2,
         shared ? 'confirmed by data' : 'too few rows to demonstrate')
+  // competitionYear must not be unique BY ITSELF. It is legitimately part of the composite unique
+  // that scopes a Season number to its Competition and year, so this looks at what an index is on
+  // rather than at whether its name mentions the column.
   const dupIdx: Array<{ indexdef: string }> = await prisma.$queryRawUnsafe(
-    `SELECT indexdef FROM pg_indexes WHERE indexname LIKE '%competitionYear%' AND indexdef LIKE '%UNIQUE%'`,
+    `SELECT indexdef FROM pg_indexes
+      WHERE schemaname = 'public' AND indexdef LIKE '%UNIQUE%' AND indexdef LIKE '%competitionYear%'`,
   )
-  check('no UNIQUE index on competitionYear', dupIdx.length === 0)
+  const soleYear = dupIdx.filter((i) => /\(\s*"competitionYear"\s*\)/.test(i.indexdef))
+  check('no UNIQUE index on competitionYear alone', soleYear.length === 0,
+        soleYear.map((i) => i.indexdef).join(' | '))
 
   console.log('\n--- Constraints ---')
   const notNull: Array<{ n: bigint }> = await prisma.$queryRawUnsafe(
