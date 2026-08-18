@@ -9,19 +9,24 @@ import { getArticleById } from '@/lib/editorial/queries'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * A preview page is never indexed, and its metadata never names the article.
- *
- * The whole point of the token is that the link is the credential; putting the title in a <title>
- * tag would leak it to anything that follows the URL without holding the token, including link
- * unfurlers in chat apps.
- */
-export const metadata: Metadata = {
-  title: 'Preview',
-  robots: { index: false, follow: false, nocache: true },
-}
-
 type SP = { searchParams: Promise<{ token?: string }> }
+
+/**
+ * Never indexed, and the title never names the article.
+ *
+ * The link IS the credential, so putting the article's title in a `<title>` tag would hand it to
+ * anything that follows the URL without holding the token — a chat app unfurling the link, a proxy,
+ * a browser's history sync. A bad token reports "Not found" for the same reason every other route
+ * does: an invalid preview link should look exactly like a URL that never existed.
+ */
+export async function generateMetadata({ searchParams }: SP): Promise<Metadata> {
+  const { token } = await searchParams
+  const valid = token ? readPreviewToken(token) != null : false
+  return {
+    title: valid ? 'Preview' : 'Not found',
+    robots: { index: false, follow: false, nocache: true },
+  }
+}
 
 export default async function PreviewPage({ searchParams }: SP) {
   const { token } = await searchParams
