@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Wide } from '@/components/primitives'
 import { getHomepageHero } from '@/lib/site-content/service'
 import { getRegistryStats } from '@/lib/stats/registry-stats'
-import { getOnThisDayEvents } from '@/lib/stats/on-this-day'
+import { getAlmanac, phoenixDateKey } from '@/lib/stats/almanac'
 import { ByTheNumbers } from '@/components/home/by-the-numbers'
 import { NewsPanel } from '@/components/home/news-panel'
 import { Top10Panel } from '@/components/home/top10-panel'
@@ -59,10 +59,10 @@ const secondaryBtn =
 export default async function HomePage() {
   // Everything the page needs, fetched together. Each of these is independently cached, so a busy
   // homepage is a handful of cache reads rather than a dozen aggregate queries.
-  const [hero, stats, events, news, top10Options, results, cueverse] = await Promise.all([
+  const [hero, stats, almanac, news, top10Options, results, cueverse] = await Promise.all([
     getHomepageHero(),
     getRegistryStats(),
-    getOnThisDayEvents(),
+    getAlmanac(phoenixDateKey()),
     getHomeNews(),
     getTop10Options(),
     getRecentResults(),
@@ -155,7 +155,7 @@ export default async function HomePage() {
         </Wide>
       </section>
 
-      <ByTheNumbers stats={stats} events={events} />
+      <ByTheNumbers stats={stats} almanac={almanac} />
     </>
   )
 }

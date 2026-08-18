@@ -91,3 +91,7 @@ backups/
 # Claude Code / agent artifacts
 .agents/
 skills-lock.json
+
+# Visual verification output — screenshots are large and regenerable (node verification/capture.mjs).
+# The capture/measure scripts themselves are tracked; their PNG output is not.
+verification/screenshots/

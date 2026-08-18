@@ -337,7 +337,7 @@ const STATS = {
 }
 
 {
-  const html = render(React.createElement(ByTheNumbers, { stats: STATS, events: [] }))
+  const html = render(React.createElement(ByTheNumbers, { stats: STATS, almanac: { mode: 'none', events: [], fact: null } }))
   check('the heading uses the full brand name', html.includes('8 Ball Registry by the Numbers'))
   check('the heading is small gold uppercase, not an oversized white heading',
     html.includes('uppercase tracking-[0.2em] text-brand') && !html.includes('text-4xl'))
@@ -349,7 +349,10 @@ const STATS = {
   check('large numbers carry group separators', html.includes('911'))
   check('each card has a circular gold icon background', html.includes('rounded-full bg-brand/10'))
   check('the row can scroll rather than compress', html.includes('overflow-x-auto'))
-  check('On This Day spans two columns on a phone', html.includes('col-span-2'))
+  // With no canonical history the tile is omitted entirely, so the phone span is asserted below,
+  // where an almanac with events is rendered.
+  check('the statistics row drops to a seven-track grid when the history tile is absent',
+    html.includes('repeat(7,minmax(8.5rem,1fr))]'))
 }
 {
   const events = [
@@ -365,7 +368,7 @@ const STATS = {
       description: 'Tyler beat Chris 7–3', context: '8BRCAM Season 1', href: '/seasons/443',
     },
   ]
-  const html = render(React.createElement(ByTheNumbers, { stats: STATS, events }))
+  const html = render(React.createElement(ByTheNumbers, { stats: STATS, almanac: { mode: 'on-this-day', events, fact: null } }))
   check('the On This Day heading is present', html.includes('On This Day'))
   check('the original date is shown', html.includes('Aug 18, 2019'))
   check('the description is shown', html.includes('Luis won 8BRCAM Season 1'))
@@ -378,10 +381,16 @@ const STATS = {
   check('the card has a fixed minimum height so it cannot jump', html.includes('min-h-['))
   check('the description is clamped rather than allowed to grow the card', html.includes('line-clamp-3'))
   check('controls have visible focus states', html.includes('focus-visible:ring-brand'))
+  check('the history tile spans both columns on a phone', html.includes('col-span-2'))
 }
 {
-  const html = render(React.createElement(ByTheNumbers, { stats: STATS, events: [] }))
-  check('with no event the card says so truthfully', html.includes('Nothing has happened on this date yet'))
+  const html = render(React.createElement(ByTheNumbers, { stats: STATS, almanac: { mode: 'none', events: [], fact: null } }))
+  // Nothing genuine to show and nothing in the archive either: the tile is not rendered at all, and
+  // the row closes up around the gap. A large empty frame explaining its own emptiness is worse than
+  // no frame.
+  check('with no canonical history the tile is omitted entirely',
+    !html.includes('On This Day') && !html.includes('From the Archive'))
+  check('...and the statistics themselves still render', html.includes('Countries'))
   check('...and shows no carousel controls', !html.includes('aria-label="Next event"'))
   check('...and fabricates no historical event', !html.includes('beat'))
 }

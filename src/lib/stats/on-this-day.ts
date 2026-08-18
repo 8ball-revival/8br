@@ -25,6 +25,39 @@ import { LEGITIMATE_MATCHES } from '@/lib/home/matches'
  * competition results it describes, and rendering the homepage cannot create duplicate rows.
  */
 
+/**
+ * The Arizona calendar parts of an instant.
+ *
+ * Every date decision on this card is made here so "today" means one thing. Phoenix does not observe
+ * daylight saving, so there is no shifting offset to track.
+ */
+export function phoenixParts(at: Date): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Phoenix', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(at)
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? '0')
+  return { year: get('year'), month: get('month'), day: get('day') }
+}
+
+/**
+ * ── Why a stored date is not automatically a play date ───────────────────────────────────────────
+ *
+ * `completedAt` records when a row was completed IN THIS SYSTEM. For a competition actually played
+ * here that is the play date. For imported history it is the import: every one of Season 1's matches
+ * carries a 2026 timestamp although the season itself is `competitionYear` 2005.
+ *
+ * Showing those under "On This Day" would assert that 2005 games were played on a 2026 date — a
+ * claim the data does not support and nobody would notice was wrong. So an event only qualifies when
+ * the recorded year AGREES with the competition's own year. When they disagree the timestamp is
+ * administrative, the event is not eligible for a day-level claim, and it is offered instead through
+ * "From the Archive", which says only what is known: the year.
+ *
+ * Competitions run on this site from now on satisfy the rule automatically.
+ */
+export const PLAY_DATE_RULE =
+  'An event may be dated to a day only when the recorded year matches the competition year; '
+  + 'otherwise the timestamp is an import or close artifact and only the year is claimed.'
+
 export type OnThisDayKind = 'match' | 'final' | 'championship'
 
 export interface OnThisDayEvent {
@@ -92,9 +125,9 @@ interface TitleRow {
  * is why deduplication keys on the competition, the day and the players rather than on the day alone.
  */
 export async function computeOnThisDay(now = new Date()): Promise<OnThisDayEvent[]> {
-  const month = now.getUTCMonth() + 1
-  const day = now.getUTCDate()
-  const year = now.getUTCFullYear()
+  // The calendar day is Arizona's, not the server's and not UTC's. Phoenix does not observe daylight
+  // saving, so this is a fixed -07:00 and an evening match never lands on tomorrow's card.
+  const { month, day, year } = phoenixParts(now)
 
   let matches: MatchRow[] = []
   let titles: TitleRow[] = []
@@ -102,10 +135,15 @@ export async function computeOnThisDay(now = new Date()): Promise<OnThisDayEvent
   try {
     ;[matches, titles] = await Promise.all([
       prisma.$queryRawUnsafe<MatchRow[]>(`
-        SELECT * FROM (${LEGITIMATE_MATCHES}) lm
-         WHERE EXTRACT(MONTH FROM lm.completed_at) = $1
-           AND EXTRACT(DAY   FROM lm.completed_at) = $2
-           AND EXTRACT(YEAR  FROM lm.completed_at) < $3
+        SELECT lm.* FROM (${LEGITIMATE_MATCHES}) lm
+          JOIN "public"."season" s ON s."id" = lm.competition_id AND lm.kind = 'season'
+         WHERE EXTRACT(MONTH FROM (lm.completed_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix') = $1
+           AND EXTRACT(DAY   FROM (lm.completed_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix') = $2
+           AND EXTRACT(YEAR  FROM (lm.completed_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix') < $3
+           -- Only a genuine PLAY date qualifies. See playDateRule below.
+           AND s."competitionYear" IS NOT NULL
+           AND EXTRACT(YEAR FROM (lm.completed_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix')
+               = s."competitionYear"
          ORDER BY lm.completed_at DESC, lm.match_key DESC
          LIMIT 24
       `, month, day, year),
@@ -119,9 +157,12 @@ export async function computeOnThisDay(now = new Date()): Promise<OnThisDayEvent
          WHERE s."lifecycleState" = 'COMPLETED'
            AND s."completedAt" IS NOT NULL
            AND btrim(coalesce(s."championName", '')) <> ''
-           AND EXTRACT(MONTH FROM s."completedAt") = $1
-           AND EXTRACT(DAY   FROM s."completedAt") = $2
-           AND EXTRACT(YEAR  FROM s."completedAt") < $3
+           AND EXTRACT(MONTH FROM (s."completedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix') = $1
+           AND EXTRACT(DAY   FROM (s."completedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix') = $2
+           AND EXTRACT(YEAR  FROM (s."completedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix') < $3
+           AND s."competitionYear" IS NOT NULL
+           AND EXTRACT(YEAR FROM (s."completedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Phoenix')
+               = s."competitionYear"
          ORDER BY s."completedAt" DESC
          LIMIT 12
       `, month, day, year),

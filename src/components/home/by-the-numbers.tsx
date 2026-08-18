@@ -10,7 +10,7 @@ import {
 
 import { Wide } from '@/components/primitives'
 import type { RegistryStats } from '@/lib/stats/registry-stats'
-import type { OnThisDayEvent } from '@/lib/stats/on-this-day'
+import type { Almanac } from '@/lib/stats/almanac'
 import { OnThisDayCard } from './on-this-day-card'
 
 /**
@@ -55,10 +55,10 @@ function StatCard({
 
 export function ByTheNumbers({
   stats,
-  events,
+  almanac,
 }: {
   stats: RegistryStats
-  events: OnThisDayEvent[]
+  almanac: Almanac
 }) {
   const cards = [
     {
@@ -96,12 +96,22 @@ export function ByTheNumbers({
           somebody on a 390px screen.
         */}
         <div className="mt-4 -mx-4 overflow-x-auto px-4 pb-2 sm:pb-1 xl:mx-0 xl:overflow-visible xl:px-0 xl:pb-0">
-          <div className="grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:grid-cols-[repeat(7,minmax(8.5rem,1fr))_minmax(17rem,2fr)]">
+          <div className={`grid auto-rows-fr grid-cols-2 items-stretch gap-3 ${almanac.mode === 'none'
+              ? 'sm:grid-cols-[repeat(7,minmax(8.5rem,1fr))]'
+              : 'sm:grid-cols-[repeat(7,minmax(8.5rem,1fr))_minmax(17rem,2fr)]'}`}>
             {cards.map((c) => <StatCard key={c.label} {...c} />)}
-            {/* Both columns on a phone, two tracks of nine above that — always the same height. */}
-            <div className="col-span-2 sm:col-span-1">
-              <OnThisDayCard events={events} />
-            </div>
+            {/*
+              Both columns on a phone, two tracks of nine above that — always the same height.
+
+              With no canonical history the tile is omitted rather than rendered empty, and the grid
+              closes up around it: an eight-track row becomes a seven-track row, which is a tidy
+              layout rather than a conspicuous blank frame.
+            */}
+            {almanac.mode !== 'none' && (
+              <div className="col-span-2 sm:col-span-1">
+                <OnThisDayCard almanac={almanac} />
+              </div>
+            )}
           </div>
         </div>
       </Wide>

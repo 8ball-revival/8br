@@ -517,11 +517,36 @@ async function main() {
   }
   {
     // A championship and the final that decided it must not both appear for the same pairing.
+    /*
+      A championship shows on its anniversary only when the recorded date is a genuine PLAY date —
+      that is, when the stamped year agrees with the competition's own year. Imported history carries
+      the import timestamp instead (Season 1 is competitionYear 2005 but stamped 2026), and dating
+      those to a day would assert something the data does not support. So this looks for a season
+      whose years agree, and asserts the exclusion when none does.
+    */
     const season = await prisma.season.findFirst({
       where: { lifecycleState: 'COMPLETED', completedAt: { not: null } },
-      select: { completedAt: true, championName: true, runnerUpName: true },
+      select: { completedAt: true, championName: true, runnerUpName: true, competitionYear: true },
     })
-    if (season?.completedAt) {
+    const consistent = season?.completedAt != null
+      && season.competitionYear != null
+      && season.completedAt.getUTCFullYear() === season.competitionYear
+
+    if (season?.completedAt && !consistent) {
+      const onThatDay = await computeOnThisDay(new Date(Date.UTC(
+        season.completedAt.getUTCFullYear() + 1,
+        season.completedAt.getUTCMonth(),
+        season.completedAt.getUTCDate(),
+      )))
+      check('an import-stamped championship is NOT dated to a day',
+        onThatDay.filter((e) => e.kind === 'championship').length === 0,
+        `${onThatDay.length} events from a season stamped ${season.completedAt.getUTCFullYear()} `
+        + `but played in ${season.competitionYear}`)
+      check('...so it is offered through From the Archive instead',
+        (await import('@/lib/stats/archive-fact')).archiveCandidates
+          ? (await (await import('@/lib/stats/archive-fact')).archiveCandidates()).length > 0
+          : false)
+    } else if (season?.completedAt) {
       const onThatDay = await computeOnThisDay(new Date(Date.UTC(
         season.completedAt.getUTCFullYear() + 1,
         season.completedAt.getUTCMonth(),

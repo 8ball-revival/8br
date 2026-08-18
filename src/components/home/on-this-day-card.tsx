@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { CalendarClock, ChevronLeft, ChevronRight, Crown } from 'lucide-react'
+import { CalendarClock, ChevronLeft, ChevronRight, Crown, Library } from 'lucide-react'
 
 import { formatDate } from '@/lib/format'
 import type { OnThisDayEvent } from '@/lib/stats/on-this-day'
+import type { Almanac } from '@/lib/stats/almanac'
 
 /**
  * "On This Day" — what happened on today's date in earlier years.
@@ -22,7 +23,20 @@ import type { OnThisDayEvent } from '@/lib/stats/on-this-day'
 
 const ROTATE_MS = 7000
 
-export function OnThisDayCard({ events }: { events: OnThisDayEvent[] }) {
+export function OnThisDayCard({ almanac }: { almanac: Almanac }) {
+  /*
+    Two honest states in one card.
+
+    ON THIS DAY is used only when genuine events fall on today's Arizona date and are dated to the day.
+    Otherwise the heading becomes FROM THE ARCHIVE and a real fact is shown, worded to the year only —
+    because most of this site's history was imported, and an imported row records when it was imported
+    rather than when it was played. Saying "on this day" about those would be inventing history.
+
+    When there is no canonical history at all the card is not rendered, and the statistics row reflows
+    around the gap rather than showing a large empty frame.
+  */
+  const isArchive = almanac.mode === 'archive'
+  const events: OnThisDayEvent[] = almanac.mode === 'on-this-day' ? almanac.events : []
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(true)
@@ -62,8 +76,9 @@ export function OnThisDayCard({ events }: { events: OnThisDayEvent[] }) {
           id="on-this-day-heading"
           className="inline-flex items-center gap-1.5 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-brand"
         >
-          <CalendarClock className="size-3.5" aria-hidden />
-          On This Day
+          {isArchive
+            ? <><Library className="size-3.5" aria-hidden />From the Archive</>
+            : <><CalendarClock className="size-3.5" aria-hidden />On This Day</>}
         </h3>
 
         {events.length > 1 && (
@@ -93,7 +108,34 @@ export function OnThisDayCard({ events }: { events: OnThisDayEvent[] }) {
         description cannot make this card taller than the statistic tiles beside it.
       */}
       <div className="relative mt-2 flex-1">
-        {!event ? (
+        {isArchive && almanac.fact ? (
+          <div className="absolute inset-0 flex gap-2.5 overflow-hidden">
+            <span
+              aria-hidden
+              className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-semibold ${
+                almanac.fact.kind === 'match' ? 'bg-muted text-muted-foreground' : 'bg-brand/15 text-brand'
+              }`}
+            >
+              {almanac.fact.kind === 'match' ? almanac.fact.homeInitials : <Crown className="size-3.5" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              {/* The YEAR only. There is no stored day for imported history, so none is claimed. */}
+              <span className="block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                {almanac.fact.year ?? almanac.fact.context}
+              </span>
+              <span className="mt-0.5 block line-clamp-3 text-xs leading-relaxed text-foreground/90">
+                {almanac.fact.href ? (
+                  <Link
+                    href={almanac.fact.href}
+                    className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+                  >
+                    {almanac.fact.description}
+                  </Link>
+                ) : almanac.fact.description}
+              </span>
+            </span>
+          </div>
+        ) : !event ? (
           <p className="absolute inset-0 flex items-center text-xs leading-relaxed text-muted-foreground">
             Nothing has happened on this date yet. Results appear here as competitions are played.
           </p>
