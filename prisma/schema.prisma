@@ -282,11 +282,22 @@ model Player {
   /// member list and out of every entrant/free-agent selector, so it can never be added to a Season
   /// or Tournament by accident. Distinct from `active`, which hides a profile outright.
   managementOnly      Boolean          @default(false)
+  /// Trusted Author: may publish their own articles without prior review. Server-enforced, set only
+  /// by an owner/admin, and never inferred from competition activity or management-only status.
+  /// Revoking it stops new publishing immediately but leaves already-published work standing.
+  blogTrustedAuthor   Boolean          @default(false)
   // Account linking: a Payload user may CLAIM this canonical identity without
   // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
   // @unique enforces one account ↔ at most one profile (both directions).
   linkedUserId        String?          @unique
   linkStatus          PlayerLinkStatus @default(UNLINKED)
+
+  /// Editorial back-relations. All optional and all SetNull/Cascade on the owning side, so an
+  /// archived author never takes published history down with them.
+  authoredArticles Article[]         @relation("ArticleAuthor")
+  reviewedArticles Article[]         @relation("ArticleReviewer")
+  articleComments  ArticleComment[]  @relation("CommentAuthor")
+  articleMentions  ArticleRelation[] @relation("ArticleRelatedPlayer")
   linkedAt            DateTime?
   provenance          Provenance       @default(NATIVE)
   createdAt           DateTime         @default(now())
@@ -1255,6 +1266,9 @@ model Tournament {
   @@index([lifecycleState])
   @@index([competitionYear])
   @@map("comp_tournament")
+
+  /// Articles that reference this competition.
+  articleRelations ArticleRelation[]
 }
 
 /// RATING LEDGER — the authoritative, per-completed-match Elo record (the source of truth for the
@@ -1858,6 +1872,9 @@ model CompetitionSeries {
 
   @@index([active])
   @@map("competition_series")
+
+  /// Articles that reference this Competition.
+  articleRelations ArticleRelation[]
 }
 
 model Season {
@@ -1928,6 +1945,9 @@ model Season {
   @@index([competitionYear])
   @@index([competitionSeriesId])
   @@map("season")
+
+  /// Articles that reference this competition.
+  articleRelations ArticleRelation[]
 }
 
 model SeasonEntrant {
@@ -2087,4 +2107,352 @@ model SeasonPlayoffMatch {
 
   @@index([seasonId, round, slot])
   @@map("season_playoff_match")
+}
+
+// ============================================================================
+// The Break — editorial publishing
+//
+// One canonical, Prisma-backed article system. It lives here rather than in
+// Payload because authorship, permissions, comments, account merges and
+// account-deletion safeguards are all tied to the main application's accounts,
+// and splitting that across two stores would mean duplicated authentication and
+// unresolvable ownership. Images stay in the Payload Media system and are
+// referenced by media id, exactly as the rest of the site does.
+//
+// Visibility is a pure function of (state, publishAt) — see ArticleState — so
+// scheduled publishing needs no background worker to become visible.
+// ============================================================================
+
+/// Editorial lifecycle. PUBLISHED here means "approved to appear"; whether it
+/// is actually visible also depends on publishAt, which is what makes
+/// scheduling work without a scheduler.
+enum ArticleState {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+  SOFT_DELETED
+}
+
+model ArticleCategory {
+  id          Int       @id @default(autoincrement())
+  slug        String    @unique
+  name        String
+  description String?
+  /// Only administrators may file an article under a category marked official.
+  adminOnly   Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  articles Article[]
+
+  @@index([active, sortOrder])
+  @@map("article_category")
+}
+
+model ArticleTag {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  articles ArticleTagLink[]
+
+  @@map("article_tag")
+}
+
+model ArticleTagLink {
+  articleId Int
+  tagId     Int
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       ArticleTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([tagId])
+  @@map("article_tag_link")
+}
+
+model Article {
+  id Int @id @default(autoincrement())
+
+  /// Canonical author identity. Nullable so an archived author leaves the
+  /// article standing; the snapshot below is what renders when it is null.
+  authorPlayerId String?
+  authorPlayer   Player? @relation("ArticleAuthor", fields: [authorPlayerId], references: [id], onDelete: SetNull)
+  /// Frozen at publication so an archived or renamed account cannot blank an
+  /// article's byline.
+  authorNameSnapshot   String
+  authorHandleSnapshot String?
+
+  title   String
+  /// Lower-cased in `slugKey` for case-insensitive uniqueness; `slug` keeps the
+  /// author's casing for display.
+  slug    String
+  slugKey String @unique
+  excerpt String?
+  /// Structured rich text, sanitised server-side. Never raw HTML.
+  body    Json
+
+  coverMediaId String?
+  coverAlt     String?
+
+  categoryId Int?
+  category   ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  state     ArticleState @default(DRAFT)
+  /// An article is public only when state = PUBLISHED AND publishAt <= now().
+  publishAt DateTime?
+
+  /// Administrator-only. Marks content as speaking for 8 Ball Registry.
+  official Boolean @default(false)
+  featured Boolean @default(false)
+  pinned   Boolean @default(false)
+  pinOrder Int     @default(0)
+
+  commentsEnabled Boolean @default(true)
+  commentsLocked  Boolean @default(false)
+
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+
+  revision      Int  @default(1)
+  viewCount     Int  @default(0)
+  commentCount  Int  @default(0)
+
+  /// Set while a member edits an already-published article: the live revision
+  /// keeps serving until an administrator approves the proposal.
+  pendingBody      Json?
+  pendingTitle     String?
+  pendingExcerpt   String?
+  pendingSubmittedAt DateTime?
+
+  reviewerPlayerId String?
+  reviewerPlayer   Player? @relation("ArticleReviewer", fields: [reviewerPlayerId], references: [id], onDelete: SetNull)
+  /// Private to the author and administrators — never rendered publicly.
+  reviewFeedback   String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  deletedAt   DateTime?
+
+  tags         ArticleTagLink[]
+  revisions    ArticleRevision[]
+  slugHistory  ArticleSlugHistory[]
+  comments     ArticleComment[]
+  metrics      ArticleDailyMetric[]
+  relations    ArticleRelation[]
+
+  @@index([state, publishAt])
+  @@index([authorPlayerId])
+  @@index([categoryId])
+  @@index([featured, state, publishAt])
+  @@index([official, state, publishAt])
+  @@index([pinned, pinOrder])
+  @@map("article")
+}
+
+/// A published-article URL that has changed. Old links redirect instead of 404ing.
+model ArticleSlugHistory {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  slugKey   String   @unique
+  slug      String
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@map("article_slug_history")
+}
+
+/// A point-in-time copy, kept so a publishing or moderation action can be
+/// reversed. Deliberately NOT a general activity log.
+model ArticleRevision {
+  id          Int      @id @default(autoincrement())
+  articleId   Int
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revision    Int
+  title       String
+  excerpt     String?
+  body        Json
+  /// Who saved it, and what it was called at the time.
+  editorPlayerId String?
+  editorName     String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@unique([articleId, revision])
+  @@index([articleId, createdAt])
+  @@map("article_revision")
+}
+
+/// What an article is about, pointing into the competition domain. One row per
+/// link so a query can go in either direction without scanning JSON.
+model ArticleRelation {
+  id        Int     @id @default(autoincrement())
+  articleId Int
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  competitionSeriesId Int?
+  seasonId            Int?
+  tournamentId        Int?
+  playerId            String?
+
+  competitionSeries CompetitionSeries? @relation(fields: [competitionSeriesId], references: [id], onDelete: Cascade)
+  season            Season?            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  tournament        Tournament?        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player            Player?            @relation("ArticleRelatedPlayer", fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([competitionSeriesId])
+  @@index([seasonId])
+  @@index([tournamentId])
+  @@index([playerId])
+  @@map("article_relation")
+}
+
+model ArticleComment {
+  id        Int     @id @default(autoincrement())
+  articleId Int
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  /// One level of replies only — a reply may not itself be replied to.
+  parentId Int?
+  parent   ArticleComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ArticleComment[] @relation("CommentReplies")
+
+  authorPlayerId     String?
+  authorPlayer       Player? @relation("CommentAuthor", fields: [authorPlayerId], references: [id], onDelete: SetNull)
+  authorNameSnapshot String
+
+  body String
+
+  editedAt  DateTime?
+  /// Withdrawn by its author. The row survives so replies keep their place.
+  deletedAt DateTime?
+  /// Removed by a moderator, which is a different thing from the author
+  /// deleting it and is recorded separately.
+  hiddenAt  DateTime?
+  hiddenByPlayerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reports CommentReport[]
+
+  @@index([articleId, createdAt])
+  @@index([parentId])
+  @@index([authorPlayerId])
+  @@map("article_comment")
+}
+
+model CommentReport {
+  id        Int            @id @default(autoincrement())
+  commentId Int
+  comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  reporterPlayerId String?
+  reason           String
+  /// Open until a moderator acts on it.
+  resolvedAt       DateTime?
+  resolvedByPlayerId String?
+  resolution       String?
+  createdAt        DateTime @default(now())
+
+  @@unique([commentId, reporterPlayerId])
+  @@index([resolvedAt])
+  @@map("comment_report")
+}
+
+/// The minimum needed to undo a publishing or moderation action. Not an
+/// activity log: nothing is written here that is not required to reverse
+/// something.
+model EditorialModerationRecord {
+  id        Int      @id @default(autoincrement())
+  action    String
+  articleId Int?
+  commentId Int?
+  actorPlayerId String?
+  actorName     String
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([commentId])
+  @@index([createdAt])
+  @@map("editorial_moderation_record")
+}
+
+/// Daily counters. No IP addresses, no per-visitor rows — just a tally per
+/// article per day, which is enough to rank "most discussed" without tracking
+/// anybody.
+model ArticleDailyMetric {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  day       DateTime @db.Date
+  views     Int      @default(0)
+
+  @@unique([articleId, day])
+  @@index([day])
+  @@map("article_daily_metric")
+}
+
+/// Administrator-only standalone pages (About, FAQ and the like). Same editor,
+/// revisions and media as an article, but never listed as news.
+model EditorialPage {
+  id      Int    @id @default(autoincrement())
+  slug    String @unique
+  title   String
+  body    Json
+  excerpt String?
+
+  state     ArticleState @default(DRAFT)
+  publishAt DateTime?
+
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+
+  /// Off by default; an administrator opts a page into the navigation.
+  showInNav Boolean @default(false)
+  navOrder  Int     @default(0)
+
+  commentsEnabled Boolean @default(false)
+
+  revision  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  publishedAt DateTime?
+  deletedAt   DateTime?
+
+  @@index([state, publishAt])
+  @@map("editorial_page")
+}
+
+/// Singleton (id = 1) holding the homepage editorial choices. Every field has a
+/// working default, so the homepage renders correctly with no configuration.
+model EditorialSettings {
+  id Int @id @default(1)
+
+  featuredArticleId Int?
+
+  showFeatured   Boolean @default(true)
+  showOfficial   Boolean @default(true)
+  showPredictions Boolean @default(true)
+  showCommunity  Boolean @default(true)
+  showDiscussed  Boolean @default(true)
+
+  sectionOrder Json?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("editorial_settings")
 }
