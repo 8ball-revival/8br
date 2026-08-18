@@ -12,10 +12,29 @@ import { isExternalHref, type BlockNode, type InlineNode, type RichDocument } fr
  * with `sanitizeDocument` dropping unknown nodes on the way in, an unrecognised node is inert at
  * both ends.
  */
-export function RichText({ doc, className }: { doc: RichDocument; className?: string }) {
+export function RichText({ doc, className, skipFirstMediaId }: {
+  doc: RichDocument
+  className?: string
+  /**
+   * A media id already rendered above the body, typically the featured image.
+   *
+   * The featured image falls back to the first image in the body, so on most articles the cover and
+   * the body's opening image are the SAME FILE — and rendering both showed it twice. Only the first
+   * matching block is dropped: an author who deliberately uses the same image again later still gets
+   * it, and an article whose cover was uploaded separately is untouched because nothing matches.
+   */
+  skipFirstMediaId?: string | null
+}) {
+  // Find the one block to drop, then drop it by index. Written as a lookup rather than a filter with
+  // a running flag because a variable reassigned during render is exactly what React forbids.
+  const coverIndex = skipFirstMediaId
+    ? doc.blocks.findIndex((b) => b.t === 'img' && b.mediaId === skipFirstMediaId)
+    : -1
+  const blocks = coverIndex === -1 ? doc.blocks : doc.blocks.filter((_, i) => i !== coverIndex)
+
   return (
     <div className={className}>
-      {doc.blocks.map((block, i) => <Block key={i} node={block} />)}
+      {blocks.map((block, i) => <Block key={i} node={block} />)}
     </div>
   )
 }

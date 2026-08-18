@@ -419,3 +419,48 @@ main()
     await prisma.$disconnect()
     process.exit(fail === 0 && leftover === 0 ? 0 : 1)
   })
+
+// ─────────────────────────────────────────────────── the cover is not rendered twice
+console.log('\nfeatured image de-duplication')
+{
+  // The featured image falls back to the FIRST image in the body, so on most articles the cover and
+  // the body's opening image are the same file. Rendering the hero and the body unchanged showed that
+  // image twice on the published page. RichText drops the first matching block; this covers the rule
+  // without rendering, by applying the same filter the component applies.
+  const skipFirst = (blocks: { t: string; mediaId?: string }[], cover: string | null) => {
+    let skipped = false
+    return blocks.filter((b) => {
+      if (skipped || !cover) return true
+      if (b.t === 'img' && b.mediaId === cover) { skipped = true; return false }
+      return true
+    })
+  }
+
+  const cover = 'shot.png'
+  const body = [
+    { t: 'img', mediaId: 'shot.png' },
+    { t: 'p' },
+    { t: 'img', mediaId: 'other.png' },
+  ]
+  const out = skipFirst(body, cover)
+  check('the cover image is dropped from the body so it renders once, not twice',
+    out.length === 2 && !out.some((b) => b.t === 'img' && b.mediaId === 'shot.png'))
+  check('a different inline image is untouched',
+    out.some((b) => b.t === 'img' && b.mediaId === 'other.png'))
+
+  // An author may deliberately reuse an image later; only the promoted occurrence goes.
+  const repeated = skipFirst([
+    { t: 'img', mediaId: 'shot.png' },
+    { t: 'p' },
+    { t: 'img', mediaId: 'shot.png' },
+  ], cover)
+  check('a deliberate later reuse of the same image survives',
+    repeated.filter((b) => b.t === 'img').length === 1)
+
+  // A cover uploaded separately never appears in the body, so nothing should be removed.
+  const separate = skipFirst([{ t: 'img', mediaId: 'inline.png' }, { t: 'p' }], 'uploaded-cover.png')
+  check('a separately uploaded cover leaves the body alone', separate.length === 2)
+
+  check('an article with no cover is unchanged',
+    skipFirst([{ t: 'img', mediaId: 'a.png' }], null).length === 1)
+}

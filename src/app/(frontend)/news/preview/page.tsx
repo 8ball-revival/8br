@@ -72,7 +72,7 @@ export default async function PreviewPage({ searchParams }: SP) {
         />
       )}
 
-      <RichText doc={article.body} className="mt-8 text-[0.975rem]" />
+      <RichText doc={article.body} className="mt-8 text-[0.975rem]" skipFirstMediaId={article.coverMediaId} />
     </article>
   )
 }

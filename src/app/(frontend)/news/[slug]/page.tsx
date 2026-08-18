@@ -176,7 +176,7 @@ export default async function ArticlePage({ params }: Props) {
         </figure>
       )}
 
-      <RichText doc={article.body} className="mt-8 text-[0.975rem]" />
+      <RichText doc={article.body} className="mt-8 text-[0.975rem]" skipFirstMediaId={article.coverMediaId} />
 
       {article.tags.length > 0 && (
         <div className="mt-10 flex flex-wrap items-center gap-1.5 border-t border-border pt-5">
