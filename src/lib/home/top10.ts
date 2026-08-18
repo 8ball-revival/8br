@@ -1,7 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { getLadder } from '@/lib/stats/ladder'
-import { resolveCanonicalPlayerIds } from '@/lib/players/merge'
+import { careerTop10, careerTied, type CareerScope } from './top10-career'
 
 /**
  * The 8 Ball Registry Top 10 panel.
@@ -10,20 +10,18 @@ import { resolveCanonicalPlayerIds } from '@/lib/players/merge'
  * card further down the page, which mirrors an external live game leaderboard, and the two are
  * deliberately never presented as one system.
  *
- * ── A note on the two unimplemented modes ────────────────────────────────────────────────────────
- * The specification asks for an "All Competitions" mode and a per-Competition mode, both using the
- * application's official historical ranking formula. No such formula exists in this codebase.
+ * ── What the career modes are, and are not ───────────────────────────────────────────────────────
+ * "All Competitions" and the per-Competition modes are a TRANSPARENT CAREER VIEW: championships,
+ * then finals reached, then match wins, then win percentage, then game differential, then a stable
+ * tiebreaker. Every step is a figure a reader can check for themselves.
  *
- * What was checked: `RankingSystem`, `RankingSnapshot` and `RankingSnapshotItem` exist as models but
- * hold no rows and have no scoring implementation; the archive CSVs contain per-category Hall of
- * Fame leaderboards (championships, total wins, playoff wins, and so on) but no composite score; the
- * retired `annual-rankings` service is gone; and the only live ranking engine is the Elo ladder,
- * which is the Current Ladder mode below.
+ * They are deliberately NOT a reconstruction of an official historical ranking formula, because none
+ * exists here — RankingSystem and RankingSnapshot hold no rows, and the archive carries per-category
+ * Hall of Fame leaderboards rather than a composite score. Rather than invent a score and let it look
+ * authoritative, the ordering is stated plainly and each mode names its own primary metric.
  *
- * Inventing a formula would produce an authoritative-looking ranking that nobody agreed to, and
- * silently substituting championships or ladder rating for it would be worse — it would look right.
- * So those two modes are declared here, reported as unavailable, and rendered as an honest
- * explanation. Everything else on the panel works.
+ * Current Ladder is the one OFFICIAL rating on the panel, and it is served by the Ladder's own
+ * service, unmodified and never recomputed here.
  */
 
 export type Top10Mode =
@@ -66,8 +64,6 @@ export interface Top10Result {
 }
 
 /** Modes that depend on the missing historical formula. */
-const NEEDS_HISTORICAL_FORMULA =
-  'This ranking needs the official historical scoring formula, which does not exist in the '
   + 'application yet. Rather than invent one or quietly substitute a different metric, the panel '
   + 'reports it as unavailable. Current Ladder and the championship counts below are unaffected.'
 
@@ -107,115 +103,11 @@ export function normaliseMode(candidate: string | null | undefined, options: Top
 
 // --------------------------------------------------------------------------- identity
 
-interface Winner { playerId: string | null; name: string; handle: string | null }
 
-/**
- * Collapse championship winners onto canonical players and count them.
- *
- * Merged identities must count once. Where a competition recorded a canonical player id, that is
- * used and resolved through any later merge. Where it recorded only a name — an archive-era row with
- * no linked profile — the name is the identity, which is the best the stored data supports.
- */
-async function tallyChampionships(winners: Winner[]): Promise<Map<string, { count: number; winner: Winner }>> {
-  const withIds = winners.map((w) => w.playerId).filter((id): id is string => id != null)
-  const canonical = await resolveCanonicalPlayerIds(withIds)
-
-  const tally = new Map<string, { count: number; winner: Winner }>()
-  for (const w of winners) {
-    const canonicalId = w.playerId ? canonical.get(w.playerId) ?? w.playerId : null
-    const key = canonicalId ?? `name:${(w.handle ?? w.name).trim().toLowerCase()}`
-    const existing = tally.get(key)
-    if (existing) existing.count += 1
-    else tally.set(key, { count: 1, winner: { ...w, playerId: canonicalId } })
-  }
-  return tally
-}
-
-/** Fill in the display identity for canonical players we have a profile for. */
-async function decorate(tally: Map<string, { count: number; winner: Winner }>): Promise<Top10Row[]> {
-  const ids = [...tally.values()].map((v) => v.winner.playerId).filter((id): id is string => id != null)
-  const players = ids.length
-    ? await prisma.player.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, primaryName: true, cueverseId: true },
-    })
-    : []
-  const byId = new Map(players.map((p) => [p.id, p]))
-
-  const ordered = [...tally.values()]
-    .map((v) => {
-      const p = v.winner.playerId ? byId.get(v.winner.playerId) : null
-      return {
-        playerId: v.winner.playerId,
-        name: p?.primaryName ?? v.winner.name,
-        handle: p?.cueverseId ?? v.winner.handle,
-        slug: p?.cueverseId ?? null,
-        count: v.count,
-      }
-    })
-    // Most titles first. Alphabetical only breaks a tie — it decides display order, never standing,
-    // which is why tied rows are marked as tied rather than being numbered 1, 2, 3.
-    .sort((a, b) => b.count - a.count || (a.handle ?? a.name).localeCompare(b.handle ?? b.name))
-    .slice(0, 10)
-
-  return ordered.map((row, i) => ({
-    rank: i + 1,
-    playerId: row.playerId,
-    name: row.name,
-    handle: row.handle,
-    slug: row.slug,
-    value: String(row.count),
-    tied: i > 0 && ordered[i - 1].count === row.count,
-  }))
-}
 
 // --------------------------------------------------------------------------- modes
 
-/**
- * Season championships: completed Seasons only.
- *
- * A Season awards its title when it reaches COMPLETED. An active, reopened, draft or cancelled
- * Season awards nothing, even if a `championName` is sitting on the row from an earlier close.
- */
-async function seasonChampionships(competitionSeriesId?: number): Promise<Top10Row[]> {
-  const seasons = await prisma.season.findMany({
-    where: {
-      lifecycleState: 'COMPLETED',
-      ...(competitionSeriesId ? { competitionSeriesId } : {}),
-      OR: [{ championPlayerId: { not: null } }, { championName: { not: null } }],
-    },
-    select: { championPlayerId: true, championName: true, championHandle: true },
-  })
 
-  const winners = seasons
-    .filter((s) => s.championPlayerId || (s.championName ?? '').trim())
-    .map((s) => ({
-      playerId: s.championPlayerId,
-      name: (s.championName ?? '').trim(),
-      handle: s.championHandle,
-    }))
-
-  return decorate(await tallyChampionships(winners))
-}
-
-/**
- * Tournament championships: completed Tournaments only, and never Seasons.
- *
- * The two are separate competition types in this application, so the separation the specification
- * asks for is structural rather than a filter that could drift.
- */
-async function tournamentChampionships(): Promise<Top10Row[]> {
-  const tournaments = await prisma.tournament.findMany({
-    where: { status: 'COMPLETED', championName: { not: null } },
-    select: { championName: true },
-  })
-
-  const winners = tournaments
-    .filter((t) => (t.championName ?? '').trim())
-    .map((t) => ({ playerId: null, name: (t.championName ?? '').trim(), handle: null }))
-
-  return decorate(await tallyChampionships(winners))
-}
 
 /** Current Ladder: the Ladder page's own service, unmodified. Never recomputed here. */
 async function currentLadder(): Promise<Top10Row[]> {
@@ -229,6 +121,33 @@ async function currentLadder(): Promise<Top10Row[]> {
     value: String(r.rating),
     // The Ladder ranks on rating; equal ratings are a genuine tie and are shown as one.
     tied: i > 0 && rows[i - 1].rating === r.rating,
+  }))
+}
+
+/**
+ * A career-performance ranking over a scope.
+ *
+ * The column shows the PRIMARY metric only — championships — as a plain whole number, because that is
+ * what the panel's metric label says it is. The remaining criteria order the rows beneath it but are
+ * not crammed into the same column: a cell reading "7W" under a heading of "Championships" would be
+ * telling the reader something the heading contradicts.
+ *
+ * That does mean two rows can both show 0 and still be ordered, by finals and then wins. They are
+ * correctly NOT marked as tied, because they are not tied — the criterion separating them simply is
+ * not the one on display.
+ */
+async function careerRanking(scope: CareerScope): Promise<Top10Row[]> {
+  const rows = await careerTop10(scope)
+  return rows.map((r, i) => ({
+    rank: i + 1,
+    playerId: r.playerId,
+    name: r.name,
+    handle: r.handle,
+    slug: r.slug,
+    value: String(r.championships),
+    // Tied only when EVERY ranked figure matches. The alphabetical tiebreaker settles display order
+    // without implying a difference in standing.
+    tied: i > 0 && careerTied(rows[i - 1], r),
   }))
 }
 
@@ -248,7 +167,7 @@ export async function getTop10(mode: Top10Mode): Promise<Top10Result> {
     return {
       mode,
       metricLabel: 'Season titles',
-      rows: await seasonChampionships(),
+      rows: await careerRanking({ kind: 'season' }),
       href: '/seasons',
     }
   }
@@ -257,17 +176,36 @@ export async function getTop10(mode: Top10Mode): Promise<Top10Result> {
     return {
       mode,
       metricLabel: 'Tournament titles',
-      rows: await tournamentChampionships(),
+      rows: await careerRanking({ kind: 'tournament' }),
       href: '/tournaments',
     }
   }
 
-  // All Competitions and per-Competition both require the historical formula.
+  if (mode === 'all-competitions') {
+    return {
+      mode,
+      metricLabel: 'Championships',
+      rows: await careerRanking({ kind: 'all' }),
+      href: '/rankings',
+    }
+  }
+
+  // competition:<id> — the same ordering, restricted to one competition series.
+  const seriesId = Number(mode.slice('competition:'.length))
+  if (Number.isFinite(seriesId) && seriesId > 0) {
+    return {
+      mode,
+      metricLabel: 'Championships',
+      rows: await careerRanking({ kind: 'competition', competitionSeriesId: seriesId }),
+      href: '/seasons',
+    }
+  }
+
+  // An unparseable mode string. Fall back to the Ladder rather than showing an empty panel.
   return {
-    mode,
-    metricLabel: 'Historical score',
-    rows: [],
-    unavailable: NEEDS_HISTORICAL_FORMULA,
+    mode: 'current-ladder',
+    metricLabel: 'Rating',
+    rows: await currentLadder(),
     href: '/rankings',
   }
 }

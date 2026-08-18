@@ -221,19 +221,30 @@ async function main() {
   }
   {
     const all = await getTop10('all-competitions')
-    check('All Competitions reports itself unavailable rather than guessing', all.unavailable != null)
-    check('...and returns no rows rather than a substituted metric', all.rows.length === 0)
+    // These two modes used to be placeholders reporting that no historical formula existed. They are
+    // now a transparent career ranking - championships, then finals, then wins, then percentage, then
+    // game differential - which is a stated ordering rather than a claim to an official formula.
+    check('All Competitions is a working career ranking, not a placeholder', all.unavailable == null)
+    check('...and returns real rows', all.rows.length > 0)
+    check('...labelled with the metric actually shown', all.metricLabel === 'Championships')
+    check('...whose values are whole numbers', all.rows.every((r) => /^\d+$/.test(r.value)))
+
     const scoped = await getTop10('competition:1' as Top10Mode)
-    check('a per-Competition mode is unavailable for the same reason', scoped.unavailable != null)
-    check('...and the message names the missing formula', /formula/i.test(scoped.unavailable ?? ''))
+    check('a per-Competition mode also works', scoped.unavailable == null)
+    // Scoped to one competition, so it can never exceed the global list.
+    check('...and is restricted to that competition', scoped.rows.length <= all.rows.length)
   }
   {
     // Ties are marked, and only the display order is broken alphabetically.
     const rows = (await getTop10('season-championships')).rows
     const tiedFlags = rows.map((r) => r.tied)
     check('the first row is never marked as tied', rows.length === 0 || tiedFlags[0] === false)
-    check('a tie is flagged when two rows share a value',
-      rows.every((r, i) => i === 0 || (r.tied === (rows[i - 1].value === r.value))))
+    // Ranking is now multi-criteria (championships, finals, wins, percentage, game differential), so
+    // sharing the DISPLAYED value no longer implies a tie — two players on nought championships can
+    // still be separated by wins. What must always hold is the converse: anything flagged as tied
+    // must show the same value. The exact rule is asserted against careerTied in verify-top10-modes.
+    check('anything flagged as tied shows the same value',
+      rows.every((r, i) => i === 0 || !r.tied || rows[i - 1].value === r.value))
   }
   {
     // Merged identities must not appear twice in a championship count.

@@ -6,6 +6,7 @@ import { Container } from '@/components/ui/container'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateAccountForm } from '@/components/account/create-account-form'
 import { getCurrentUser } from '@/lib/account/auth'
+import { getRegistrationMode } from '@/lib/account/registration-settings'
 import { safeReturnTo } from '@/lib/account/return-to'
 import { pageMetadata } from '@/lib/site'
 
@@ -24,6 +25,10 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
   const user = await getCurrentUser()
   if (user) redirect(returnTo)
 
+  // Only the mode crosses into the page. The code never enters the component tree, so it cannot
+  // appear in the HTML, the server-rendered props or the RSC payload.
+  const requireCode = (await getRegistrationMode()) === 'PRIVATE'
+
   return (
     <Container className="mx-auto max-w-md py-16">
       <p className="eyebrow text-primary">8 Ball Registry</p>
@@ -38,7 +43,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
           <CardTitle className="text-base">Sign up</CardTitle>
         </CardHeader>
         <CardContent>
-          <CreateAccountForm returnTo={returnTo} />
+          <CreateAccountForm returnTo={returnTo} requireCode={requireCode} />
         </CardContent>
       </Card>
 

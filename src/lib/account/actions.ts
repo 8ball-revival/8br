@@ -1,5 +1,10 @@
 'use server'
 
+import { getRegistrationMode, checkRegistrationCode } from './registration-settings'
+import {
+  CODE_REJECTED_MESSAGE, CODE_REQUIRED_MESSAGE, CODE_RATE_LIMITED_MESSAGE,
+} from './registration-code'
+
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -136,6 +141,28 @@ export async function createFirstOwner(_prev: FormResult, formData: FormData): P
 /** Create an account (User ID + email + password). Email verification is DISABLED
  *  for launch — the account is usable immediately. Auto-signs-in and redirects. */
 export async function createAccount(_prev: FormResult, formData: FormData): Promise<FormResult> {
+  /*
+    The "Create an Account" gate.
+
+    Checked here, on the server, before anything else costs work — and independently of whether the
+    form rendered a code field. A client that never showed the field, or posted straight to this
+    action, is subject to exactly the same check, which is the point: the field is a convenience and
+    THIS is the enforcement.
+
+    Passing the code creates an ordinary member and nothing more. It is not a role, an invitation or a
+    grant; the account below is created with roles: ['member'] whether the site is Public or Private.
+  */
+  const registrationMode = await getRegistrationMode()
+  if (registrationMode === 'PRIVATE') {
+    const submitted = String(formData.get('registrationCode') ?? '')
+    if (!submitted.trim()) return { error: CODE_REQUIRED_MESSAGE }
+
+    const check = await checkRegistrationCode(submitted)
+    if (check.outcome === 'rate-limited') return { error: CODE_RATE_LIMITED_MESSAGE }
+    // The same message for a wrong code as for a missing one, and it never echoes the expected value.
+    if (check.outcome !== 'ok') return { error: CODE_REJECTED_MESSAGE }
+  }
+
   // Signup captures ONLY: CueVerse ID, Email, Password. The CueVerse ID is the account's
   // public identity AND its login handle. Preferred Name / Discord / Time Zone are OPTIONAL
   // and are added later in My Account — never required here or to enter a competition.

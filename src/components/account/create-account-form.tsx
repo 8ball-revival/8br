@@ -13,13 +13,44 @@ const initial: FormResult = {}
 /** Account creation — only CueVerse ID, Email, and Password. The CueVerse ID is the public
  *  identity and the login handle. Preferred Name / Discord / Time Zone are optional and are
  *  added later in My Account, never required to sign up or to enter a competition. */
-export function CreateAccountForm({ returnTo = '/account' }: { returnTo?: string }) {
+export function CreateAccountForm({ returnTo = '/account', requireCode = false }: {
+  returnTo?: string
+  /**
+   * Whether the site is in Private mode.
+   *
+   * Only the MODE reaches this component, never the code itself — so there is nothing here for a
+   * reader of the page source to find. The field this renders is a convenience; the server checks the
+   * submitted code regardless of what the form did or did not show.
+   */
+  requireCode?: boolean
+}) {
   const [state, action, pending] = useActionState(createAccount, initial)
   const loginHref = returnTo && returnTo !== '/account' ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
 
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="returnTo" value={returnTo} />
+
+      {requireCode && (
+        <div className="space-y-1.5">
+          <label htmlFor="registrationCode" className="text-sm font-medium">
+            Registration code
+          </label>
+          <input
+            id="registrationCode"
+            name="registrationCode"
+            type="text"
+            required
+            autoComplete="off"
+            spellCheck={false}
+            aria-describedby="registrationCode-hint"
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+          />
+          <p id="registrationCode-hint" className="text-xs text-muted-foreground">
+            Sign-ups are currently invite-only. Enter the code you were given.
+          </p>
+        </div>
+      )}
       <div className="space-y-1.5">
         <label htmlFor="cueverseId" className="text-sm font-medium">
           CueVerse ID

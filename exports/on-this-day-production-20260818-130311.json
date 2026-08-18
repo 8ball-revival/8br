@@ -1,0 +1,47 @@
+{
+  "exportedAt": "2026-08-18T20:03:11Z",
+  "purpose": "Preserve production On This Day history before the local database replaces production.",
+  "productionAccess": {
+    "database": "neondb",
+    "mode": "READ ONLY (default_transaction_read_only=on, enforcement proven: CREATE TABLE refused)",
+    "connection": "unpooled endpoint (Neon's pooler rejects the read-only startup parameter)",
+    "writesPerformed": 0,
+    "migrationsRun": 0
+  },
+  "sourcesExamined": [
+    {
+      "source": "src/components/home/on-this-day.tsx + src/lib/home/fixtures.ts on branch 'main' (the deployed code)",
+      "finding": "The live tile is rendered from HOME_FIXTURE.onThisDay - three hard-coded strings with invented display dates. It performs no month/day matching; it rotates all three on a 6s timer regardless of today's date. Confirmed against live HTML from https://8br.gg, which served fixture item d1.",
+      "recordsExamined": 3,
+      "eligibleEvents": 0,
+      "reason": "Placeholder demo content, not historical record. The file labels its sibling fixtures 'dev fixture'."
+    },
+    {
+      "source": "production database (neondb), public schema, 52 tables",
+      "finding": "Every history-bearing table is EMPTY: Championship=0, Match=0, MatchResult=0, HallOfFameEntry=0, Competition=0, comp_match=0, comp_playoff_match=0. Only Player=31 and comp_season=1 (the live Season 2 registration) hold rows. No table matching archive|event|on_this|history|legacy|milestone exists.",
+      "recordsExamined": 0,
+      "eligibleEvents": 0
+    },
+    {
+      "source": "src/lib/seasons/data/archive-seasons.json on 'main' (2.5 MB, 48 seasons)",
+      "finding": "Champions, runners-up, groups, standings and playoff rounds - but ZERO date fields. Keys are: seasonId, year, period, label, division, champion, runnerUp, groups, playoff, rounds. Season granularity only.",
+      "recordsExamined": 48,
+      "eligibleEvents": 0,
+      "reason": "No month/day. An On This Day event cannot be derived from a year alone."
+    },
+    {
+      "source": "8BRCAM Wayback extraction (C:/Claude/Archive Viewer/data/csv, 16 CSVs)",
+      "finding": "seasons.csv columns are season_id,year,period,era,year_inferred - the year itself is sometimes inferred. group_matches.csv and playoff_matches.csv carry scores and players but no date column. No date-like column exists in any of the 16 files.",
+      "recordsExamined": 16,
+      "eligibleEvents": 0,
+      "reason": "8BRCAM never recorded match dates."
+    }
+  ],
+  "totals": {
+    "sourceRecordsExamined": 67,
+    "archiveEventsExported": 0,
+    "skippedOrMalformed": 0
+  },
+  "conclusion": "There is no production On This Day history to preserve. The live tile is a three-item hard-coded placeholder; production's historical tables are empty; and no surviving archive records a month and day. Importing the three fixture strings would mean seeding fabricated events as if they were history, which the project's standing rules forbid. Zero events exported by deliberate decision, not by access failure.",
+  "events": []
+}
