@@ -257,6 +257,36 @@
     font-family: var(--font-mono);
   }
 
+  /*
+    Themed scrollbar for wide data tables. A dense table has to scroll sideways, and the platform
+    default is a bright grey slab that reads as a foreign element against a near-black surface.
+    Firefox gets `scrollbar-color`; WebKit needs the pseudo-elements. Both are set, so the styling is
+    not conditional on the engine.
+  */
+  .br-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--brand) 45%, transparent) transparent;
+  }
+
+  .br-scroll::-webkit-scrollbar {
+    height: 0.6rem;
+    width: 0.6rem;
+  }
+
+  .br-scroll::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+    border-radius: 999px;
+  }
+
+  .br-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--brand) 45%, transparent);
+    border-radius: 999px;
+  }
+
+  .br-scroll::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--brand) 70%, transparent);
+  }
+
   ::selection {
     background: color-mix(in srgb, var(--brand) 35%, transparent);
     color: var(--foreground);

@@ -1,62 +1,60 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 
-import { getLadder, type LadderView } from '@/lib/stats/ladder'
-import { LadderTable } from '@/components/rankings/ladder-table'
+import { getExplorer, getFacets } from '@/lib/stats/ladder-explorer'
+import { LadderExplorer } from '@/components/rankings/ladder-explorer'
 import { HowRankingsWork } from '@/components/rankings/how-rankings-work'
+import { decodeExplorerState } from '@/lib/stats/ladder-columns'
 import { pageMetadata } from '@/lib/site'
-import { cn } from '@/lib/utils'
 
-export const dynamic = 'force-dynamic' // ladder reflects the latest completed tournaments
+export const dynamic = 'force-dynamic' // the ladder reflects the latest completed competitions
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
-  description: 'The 8 Ball Registry Rating ladder — a standard Elo system over every completed tournament match.',
+  description: 'The 8 Ball Registry Rating ladder — a standard Elo system over every completed competition match.',
   path: '/rankings',
 })
 
-const VIEWS: { key: LadderView; label: string }[] = [
-  { key: 'current', label: 'Current' },
-  { key: 'all-time', label: 'All Time' },
-]
-
-export default async function RankingsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+/**
+ * The Ladder.
+ *
+ * The whole table configuration lives in the query string, so this page is a pure function of the URL
+ * and a configured table can be linked. Only the filters that change WHICH MATCHES COUNT reach the
+ * aggregate; the rest are applied in the client, which is why they do not appear here.
+ */
+export default async function RankingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const sp = await searchParams
-  const view: LadderView = sp.view === 'all-time' ? 'all-time' : 'current'
-  const rows = await getLadder(view)
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(sp)) {
+    if (typeof v === 'string') params.set(k, v)
+    else if (Array.isArray(v) && v[0] != null) params.set(k, v[0])
+  }
+
+  const state = decodeExplorerState(params)
+
+  const [rows, facets] = await Promise.all([
+    getExplorer(state.scope, state.view, {
+      competitionSeriesId: state.competitionSeriesId,
+      year: state.year,
+      seasonId: state.seasonId,
+      tournamentId: state.tournamentId,
+    }),
+    getFacets(),
+  ])
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-      {/* Heading + a small Current / All Time slider. */}
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
-        <nav aria-label="Rankings view" className="inline-flex rounded-md border border-border bg-card/40 p-0.5 text-xs">
-          {VIEWS.map((v) => {
-            const active = v.key === view
-            return (
-              <Link
-                key={v.key}
-                href={`/rankings?view=${v.key}`}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'rounded px-2.5 py-1 font-medium transition-colors',
-                  active ? 'bg-brand text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {v.label}
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
+    <div className="mx-auto w-full max-w-[110rem] px-4 py-6 sm:px-6">
+      <h1 className="mb-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
 
-      <LadderTable rows={rows} />
+      <LadderExplorer rows={rows} facets={facets} state={state} />
 
-      {/* Explanation + summary below the list, so the rankings are the immediate focus. */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <HowRankingsWork />
         <span className="ml-auto text-xs text-muted-foreground">
-          {view === 'current' ? 'Rolling 365-day ladder' : 'All completed tournaments'} · {rows.length} player{rows.length === 1 ? '' : 's'}
+          {state.scope === 'current' ? 'Rolling 365-day ladder' : 'Every completed competition'}
         </span>
       </div>
     </div>
