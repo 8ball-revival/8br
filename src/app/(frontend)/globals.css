@@ -93,6 +93,17 @@
   --streak-fire: oklch(0.68 0.2 42);    /* the flame icon — orange-red */
   --streak-ice: oklch(0.85 0.08 230);   /* the snowflake icon — pale blue */
 
+  /* ── Rating tiers (the primary Rating value in the Rankings table only).
+     Bands, high to low: 1600+ gold · 1500–1599 red · 1400–1499 purple ·
+     1300–1399 blue · 1200–1299 green · below 1200 grey.
+     Gold is the site gold, not a second yellow sitting next to it. */
+  --tier-gold: var(--gold);
+  --tier-red: oklch(0.62 0.17 25);
+  --tier-purple: oklch(0.62 0.16 305);
+  --tier-blue: oklch(0.66 0.11 255);
+  --tier-green: oklch(0.68 0.13 140);
+  --tier-grey: oklch(0.72 0.006 100);
+
   /* Clickable player names (e.g. the group crosstable). */
   --player-name: oklch(0.8 0.125 84);
 
@@ -172,6 +183,15 @@
   --streak-cold: oklch(0.52 0.19 25);
   --streak-fire: oklch(0.58 0.19 42);
   --streak-ice: oklch(0.6 0.1 230);
+
+  /* Darkened to hold contrast on a near-white ground. The bands keep their identity;
+     only their lightness moves. */
+  --tier-gold: var(--gold);
+  --tier-red: oklch(0.52 0.19 25);
+  --tier-purple: oklch(0.5 0.18 305);
+  --tier-blue: oklch(0.52 0.13 255);
+  --tier-green: oklch(0.52 0.14 140);
+  --tier-grey: oklch(0.55 0.006 100);
 
   --player-name: oklch(0.55 0.1 74);
 
@@ -786,4 +806,50 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bp-cell { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Rankings: the primary Rating value.
+
+   Emphasis without disturbance. The number is bold, tabular and a shade larger
+   than the figures around it — enough to read as the row's headline, not enough
+   to change the row's height. Nothing here touches position, scale or layout, so
+   a row containing a Gold rating is exactly as tall as one containing a Grey.
+
+   The glow is the ONLY animated property. It breathes on a three-second cycle
+   through `text-shadow` alone; the colour, the size and the opacity of the text
+   all stay put, because a number that pulses in and out of legibility is worse
+   than one that never moved.
+
+   The non-animated state already carries a static glow, so the global
+   prefers-reduced-motion rule further down — which stops the animation — leaves a
+   still, subtle version rather than nothing at all. Reduced motion is not a
+   reason to lose the tier.
+
+   Scope: the primary Rating cell in a Rankings row and nowhere else. Peak rating,
+   the expanded panel, comparison, profiles, charts and the homepage all show
+   ratings and none of them take this treatment.
+--------------------------------------------------------------------------- */
+.rating-primary {
+  font-weight: 700;
+  font-size: 1.07em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  /* Keeps the taller glyphs on the row's own baseline rather than nudging it. */
+  vertical-align: baseline;
+  color: var(--tier-color);
+  text-shadow: 0 0 6px color-mix(in oklch, var(--tier-color) 30%, transparent);
+  animation: rating-breathe 3s ease-in-out infinite;
+}
+
+.rating-primary--gold   { --tier-color: var(--tier-gold); }
+.rating-primary--red    { --tier-color: var(--tier-red); }
+.rating-primary--purple { --tier-color: var(--tier-purple); }
+.rating-primary--blue   { --tier-color: var(--tier-blue); }
+.rating-primary--green  { --tier-color: var(--tier-green); }
+.rating-primary--grey   { --tier-color: var(--tier-grey); }
+
+@keyframes rating-breathe {
+  0%, 100% { text-shadow: 0 0 4px color-mix(in oklch, var(--tier-color) 22%, transparent); }
+  50%      { text-shadow: 0 0 9px color-mix(in oklch, var(--tier-color) 46%, transparent); }
 }

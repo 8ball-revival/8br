@@ -8,6 +8,7 @@
  *
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-rankings.mts
  */
+import { readdirSync, readFileSync } from 'node:fs'
 import {
   COLUMNS, COLUMN_BY_KEY, columnsForView, visibleKeys, keysForDensity,
   cycleSort, sortRows, filterRows, matchesQuery, isQualified, activeChips, hasAnyFilter,
@@ -19,6 +20,7 @@ import {
 import { completenessOf } from '../src/lib/stats/rankings-facts.ts'
 import { identityShape } from '../src/components/rankings/identity-cell.tsx'
 import { csvField, buildRankingsCsv } from '../src/lib/stats/rankings-csv.ts'
+import { ratingTier, ratingTierLabel, ratingAriaLabel } from '../src/lib/stats/rating-tier.ts'
 import { pickBestSeason, pickBestPlayoffRun, roundDepth, BEST_SEASON_MIN_MATCHES } from '../src/lib/stats/rankings-detail.ts'
 import type { ExplorerRow } from '../src/lib/stats/ladder-explorer.ts'
 
@@ -725,6 +727,126 @@ section('Reset Filters')
     !hasAnyFilter({ ...defaultState(), sort: [{ key: 'rating', dir: 'desc' }] }))
   check('changing scope alone does NOT count as a filter',
     !hasAnyFilter({ ...defaultState(), scope: 'all-time' }))
+}
+
+section('Rating tiers: every boundary, from both sides')
+{
+  // The bands ARE the feature, so each is asserted at its floor and one below it. A band that is
+  // right in the middle and wrong on the line is wrong for every player sitting on that line.
+  const cases: [number, string][] = [
+    [0, 'grey'],
+    [1, 'grey'],
+    [1199, 'grey'],
+    [1200, 'green'],
+    [1299, 'green'],
+    [1300, 'blue'],
+    [1399, 'blue'],
+    [1400, 'purple'],
+    [1499, 'purple'],
+    [1500, 'red'],
+    [1599, 'red'],
+    [1600, 'gold'],
+    [1601, 'gold'],
+    [2400, 'gold'],
+  ]
+  for (const [rating, tier] of cases) {
+    check(`${rating} is ${tier}`, ratingTier(rating) === tier, String(ratingTier(rating)))
+  }
+
+  check('exactly 1200 is Green, not Grey', ratingTier(1200) === 'green')
+  check('exactly 1199 is Grey, not Green', ratingTier(1199) === 'grey')
+  check('a negative rating is still Grey rather than untiered', ratingTier(-50) === 'grey')
+
+  // An absent rating is NOT a tier. Grey would say "rated below 1200", a different claim entirely.
+  check('a missing rating has no tier', ratingTier(null) === null)
+  check('an undefined rating has no tier', ratingTier(undefined) === null)
+  check('NaN has no tier', ratingTier(Number.NaN) === null)
+  check('Infinity has no tier', ratingTier(Number.POSITIVE_INFINITY) === null)
+
+  check('every band is reachable', new Set(cases.map(([r]) => ratingTier(r))).size === 6)
+
+  // Monotonic: a higher rating can never land in a lower band. Cheap, and it catches any future
+  // edit that reorders the bands.
+  const RANK: Record<string, number> = { grey: 0, green: 1, blue: 2, purple: 3, red: 4, gold: 5 }
+  let monotonic = true
+  for (let r = 1; r <= 2000; r += 1) {
+    if (RANK[ratingTier(r)!] < RANK[ratingTier(r - 1)!]) monotonic = false
+  }
+  check('the tier never decreases as the rating rises', monotonic)
+}
+
+section('Rating tiers: the accessible label carries what the colour says')
+{
+  check('a Gold rating is described', ratingAriaLabel(1651) === '1651 rating, Gold tier')
+  check('a Red rating is described', ratingAriaLabel(1540) === '1540 rating, Red tier')
+  check('a Purple rating is described', ratingAriaLabel(1450) === '1450 rating, Purple tier')
+  check('a Blue rating is described', ratingAriaLabel(1300) === '1300 rating, Blue tier')
+  check('a Green rating is described', ratingAriaLabel(1200) === '1200 rating, Green tier')
+  check('a Grey rating is described', ratingAriaLabel(1199) === '1199 rating, Grey tier')
+  check('a missing rating gets no label — the dash already says it', ratingAriaLabel(null) === undefined)
+  check('every tier has a name',
+    (['gold', 'red', 'purple', 'blue', 'green', 'grey'] as const).every((t) => ratingTierLabel(t).length > 0))
+}
+
+section('Rating tiers: strictly scoped to the primary Rankings cell')
+{
+  // ONE component applies the treatment. If a second file starts emitting `rating-primary`, the
+  // colour stops meaning "this is the figure the ranking is built on" and starts meaning "a number".
+  const others = [
+    'src/components/rankings/expanded-row.tsx',
+    'src/components/rankings/compare-panel.tsx',
+    'src/components/rankings/rankings-explorer.tsx',
+    'src/components/rankings/identity-cell.tsx',
+    'src/components/rankings/methodology.tsx',
+  ]
+  for (const f of others) {
+    let src = ''
+    try { src = readFileSync(f, 'utf8') } catch { continue }
+    check(`${f} does not apply the tier treatment`, !src.includes('rating-primary'))
+    check(`${f} does not import the tier helper`, !src.includes('rating-tier'))
+  }
+
+  // Everything else on the site that displays a rating, swept rather than listed by hand — a new
+  // rating display added later is caught without anyone remembering to add it here.
+  const sweep: string[] = []
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${e.name}`
+      if (e.isDirectory()) walk(full)
+      else if (/\.(tsx?|css)$/.test(e.name)) sweep.push(full)
+    }
+  }
+  walk('src')
+  const emitters = sweep.filter((f) =>
+    f !== 'src/components/rankings/rankings-table.tsx'
+    && f !== 'src/app/(frontend)/globals.css'
+    && readFileSync(f, 'utf8').includes('rating-primary'))
+  check('no other file in src applies the tier treatment', emitters.length === 0, emitters.join(', '))
+
+  const table = readFileSync('src/components/rankings/rankings-table.tsx', 'utf8')
+  check('the Rankings table renders the treated cell in exactly one place',
+    (table.match(/<RatingCell/g) ?? []).length === 1)
+  check('...from a single className, so there is one place the treatment is applied',
+    (table.match(/`rating-primary rating-primary--\$\{tier\}`/g) ?? []).length === 1)
+  check('...and only for the primary rating column', table.includes("c.key === 'rating' ? ("))
+  check('an absent rating stays a plain dash', table.includes('if (tier == null) return <span className="text-muted-foreground">—</span>'))
+
+  const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
+  check('only the glow is animated', css.includes('@keyframes rating-breathe'))
+  check('the animation touches nothing but text-shadow',
+    !/@keyframes rating-breathe[\s\S]{0,400}(transform|opacity|font-size|scale)/.test(css))
+  check('the breathing cycle is slow', /animation: rating-breathe 3s/.test(css))
+  check('the resting state already carries a static glow, so reduced motion keeps the tier',
+    /\.rating-primary \{[\s\S]*?text-shadow:[\s\S]*?animation:/.test(css))
+  check('the number is tabular so digits cannot shift', /\.rating-primary \{[\s\S]*?tabular-nums/.test(css))
+  check('it is bold', /\.rating-primary \{[\s\S]*?font-weight: 700/.test(css))
+  check('the size stays close to the surrounding figures', /font-size: 1\.0[0-9]em/.test(css))
+  check('every tier has a colour in both themes',
+    (css.match(/--tier-gold:/g) ?? []).length === 2 && (css.match(/--tier-grey:/g) ?? []).length === 2)
+  check('gold reuses the site token rather than a second yellow', /--tier-gold: var\(--gold\)/.test(css))
+  check('a class exists for every tier',
+    (['gold', 'red', 'purple', 'blue', 'green', 'grey'] as const)
+      .every((t) => css.includes(`.rating-primary--${t}`)))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

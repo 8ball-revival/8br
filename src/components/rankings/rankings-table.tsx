@@ -9,6 +9,7 @@ import {
   COLUMN_BY_KEY, isQualified,
   type ChampionshipMode, type ColumnDef, type SortSpec,
 } from '@/lib/stats/rankings-columns'
+import { ratingAriaLabel, ratingTier } from '@/lib/stats/rating-tier'
 import { cn } from '@/lib/utils'
 
 import { ExpandedRow } from './expanded-row'
@@ -57,6 +58,32 @@ const RANK_COL = 56
  * Two results is a coincidence. Three is the shortest run that says something about form, so it is
  * where the colour and the icon start; everything between −2 and +2 stays plain.
  */
+/**
+ * The primary Rating value — the row's headline number.
+ *
+ * Deliberately the ONLY rating on the site that gets this treatment. Peak rating, the expanded
+ * panel, the comparison table, player profiles, the rating-history chart and the homepage panel all
+ * display ratings too; if any of them adopted the tier colour, the colour would stop meaning "this
+ * is the figure the ranking is built on" and start meaning "this is a number".
+ *
+ * An absent rating stays a plain neutral dash with no tier and no animation. Painting it grey would
+ * make "no rating recorded" look identical to "rated below 1200", which are not the same claim.
+ *
+ * The tier is stated in the accessible label as well as the colour, because a reader who cannot see
+ * the colour would otherwise get the number and none of what the colour is saying. The tier is not
+ * printed on the row: forty rows each ending in the word "Gold" is noise, and the colour already
+ * carries it for everyone who can see it.
+ */
+function RatingCell({ rating }: { rating: number | null }) {
+  const tier = ratingTier(rating)
+  if (tier == null) return <span className="text-muted-foreground">—</span>
+  return (
+    <span className={`rating-primary rating-primary--${tier}`} aria-label={ratingAriaLabel(rating)}>
+      {rating}
+    </span>
+  )
+}
+
 const STREAK_RUN = 3
 
 /**
@@ -409,6 +436,8 @@ function Row({
                     className="min-w-0"
                   />
                 </button>
+              ) : c.key === 'rating' ? (
+                <RatingCell rating={row.rating} />
               ) : c.key === 'currentStreak' ? (
                 <StreakCell streak={row.currentStreak} />
               ) : c.key === 'seasonTitles' ? (
