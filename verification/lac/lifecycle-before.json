@@ -1,0 +1,42 @@
+{
+  "rows": [
+    {
+      "kind": "season",
+      "id": 443,
+      "label": "8BRCAM Season 1",
+      "year": 2005,
+      "lifecycle": "COMPLETED",
+      "published": null,
+      "completedAt": "2026-08-17T19:39:29.074Z",
+      "champion": "Luis",
+      "ledgerRows": 190,
+      "surface": "archives",
+      "notes": []
+    },
+    {
+      "kind": "season",
+      "id": 2187,
+      "label": "8BRCAM Season 2",
+      "year": 2005,
+      "lifecycle": "COMPLETED",
+      "published": null,
+      "completedAt": "2026-08-19T04:05:28.629Z",
+      "champion": "Tyler",
+      "ledgerRows": 216,
+      "surface": "archives",
+      "notes": []
+    }
+  ],
+  "ledgerBySeason": [
+    {
+      "seasonId": 443,
+      "tournamentId": null,
+      "n": 190
+    },
+    {
+      "seasonId": 2187,
+      "tournamentId": null,
+      "n": 216
+    }
+  ]
+}

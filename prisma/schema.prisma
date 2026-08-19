@@ -1213,6 +1213,11 @@ model Tournament {
   formatSummary        String                    @default("Single-elimination bracket")
   eligibilitySummary   String                    @default("Open to all registered 8 Ball Registry account holders.")
   archivedAt           DateTime? // set when the tournament is archived (read-only history)
+  /// See the matching fields on Season — one rule, two models.
+  publiclyVisible      Boolean   @default(true)
+  reconstruction       Boolean   @default(false)
+  reopenedAt           DateTime?
+  dataCompleteness     String    @default("full")
   code                 String?                   @unique // permanent immutable id, e.g. "T001"
   number               Int?                      @unique // public tournament number
   gameType             String? // e.g. "8-Ball"
@@ -1266,6 +1271,8 @@ model Tournament {
 
   @@index([lifecycleState])
   @@index([competitionYear])
+  @@index([lifecycleState, publiclyVisible])
+  @@index([reconstruction])
   @@map("comp_tournament")
 
   /// Articles that reference this competition.
@@ -1923,6 +1930,23 @@ model Season {
   /// NEVER inferred. Every existing Season predates the distinction and stays null, which the
   /// Rankings filter reports as "Unassigned" rather than guessing a division from a name or a year.
   division          String?
+  /// ── Lifecycle presentation state (Live / Archives / Creator) ──────────────────────────────────
+  /// Publicly visible. Separate from lifecycle on purpose: a Season can be running and still be
+  /// private, and a published Season can be finished. Live requires BOTH.
+  /// Defaults true so every existing Season keeps behaving exactly as it does today.
+  publiclyVisible   Boolean   @default(true)
+  /// Built in Creator by hand from an archive rather than played on the site. Never appears under
+  /// Live while it is being entered; moves to Archives only once completed and finalised.
+  reconstruction    Boolean   @default(false)
+  /// Set while an authorised administrator has reopened a completed Season for correction. While
+  /// this is set the Season leaves Archives and stops contributing to the rankings.
+  reopenedAt        DateTime?
+  cancelledAt       DateTime?
+  deletedAt         DateTime?
+  /// 'full' | 'partial'. A claim about the SOURCE archive, not about the entry: 'partial' means
+  /// some matches, scores or dates were never preserved and have been left missing rather than
+  /// invented. Shown on the archive card.
+  dataCompleteness  String    @default("full")
   playoffDoubleElim Boolean @default(false) // decided at playoff setup, not creation
   /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
   /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
@@ -1957,6 +1981,9 @@ model Season {
   @@index([competitionYear])
   @@index([competitionSeriesId])
   @@index([division])
+  /// Live and Archives both filter on lifecycle first, then on these two flags.
+  @@index([lifecycleState, publiclyVisible])
+  @@index([reconstruction])
   @@map("season")
 
   /// Articles that reference this competition.

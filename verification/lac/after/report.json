@@ -1,0 +1,401 @@
+{
+  "home": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "COMPETITIONHISTORY",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "COMPETITIONHISTORY",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "COMPETITIONHISTORY",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "COMPETITIONHISTORY",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "COMPETITIONHISTORY",
+      "brokenImages": 0
+    }
+  },
+  "live-seasons": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Seasons",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Seasons",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Seasons",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Seasons",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Seasons",
+      "brokenImages": 0
+    }
+  },
+  "live-tournaments": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Tournaments",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Tournaments",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Tournaments",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Tournaments",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Live Tournaments",
+      "brokenImages": 0
+    }
+  },
+  "archives-seasons": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    }
+  },
+  "archives-tournaments": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Tournaments",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Tournaments",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Tournaments",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Tournaments",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Tournaments",
+      "brokenImages": 0
+    }
+  },
+  "archives-filtered": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Archived Seasons",
+      "brokenImages": 0
+    }
+  },
+  "rankings": {
+    "390": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Rankings",
+      "brokenImages": 0
+    },
+    "768": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Rankings",
+      "brokenImages": 0
+    },
+    "1180": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Rankings",
+      "brokenImages": 0
+    },
+    "1440": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Rankings",
+      "brokenImages": 0
+    },
+    "1728": {
+      "overflow": 0,
+      "navItems": [
+        "Home",
+        "Archives",
+        "Rankings",
+        "News"
+      ],
+      "title": "Rankings",
+      "brokenImages": 0
+    }
+  }
+}

@@ -11,15 +11,23 @@ import { getCurrentUser } from '@/lib/account/auth'
 import { getSiteBranding } from '@/lib/site-content/service'
 import { signOut } from '@/lib/account/actions'
 import { isStaff } from '@/lib/auth/roles'
-import type { NavItem } from '@/lib/nav'
+import { buildNav, type NavItem } from '@/lib/nav'
+import { getLiveSummary } from '@/lib/competition/surface'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
   // Branding is admin-managed (published version only); `getSiteBranding` falls back to the
   // built-in identity so the header still renders before anything is published.
-  const [user, branding] = await Promise.all([getCurrentUser(), getSiteBranding()])
-  // Staff-only Admin entry, appended after the public nav (Home · Seasons · Tournaments · Rankings · …).
-  const staffItems: NavItem[] = user && isStaff(user.roles) ? [{ label: 'Admin', href: '/staff' }] : []
+  const [user, branding, live] = await Promise.all([
+    getCurrentUser(), getSiteBranding(), getLiveSummary(),
+  ])
+  const staff = !!user && isStaff(user.roles)
+  // Staff-only Admin entry, appended after the public nav.
+  const staffItems: NavItem[] = staff ? [{ label: 'Admin', href: '/staff' }] : []
+  // Home · Live? · Archives · Creator? · Rankings · News · Admin?
+  // Live is omitted entirely when nothing qualifies, and Creator only for administrative roles —
+  // which is presentation only: every Creator route enforces authorisation server-side.
+  const navEntries = buildNav({ live, canCreate: staff })
   // Display policy: Preferred Name when present, otherwise the CueVerse ID (the account identity).
   // Never a separate "username" — that is only the internal login key.
   const displayName = user ? (user.preferredName || user.cueverseId || user.username) : ''
@@ -41,7 +49,7 @@ export async function SiteHeader() {
             logoHeight={branding.logoHeight}
             logoAlt={branding.logoAlt}
           />
-          <MainNav className="hidden xl:flex" extraItems={staffItems} />
+          <MainNav className="hidden xl:flex" entries={navEntries} extraItems={staffItems} />
         </div>
 
         <div className="flex items-center gap-1">
@@ -84,7 +92,7 @@ export async function SiteHeader() {
             </Button>
           )}
 
-          <MobileNav className="xl:hidden" isSignedIn={Boolean(user)} extraItems={staffItems} />
+          <MobileNav entries={navEntries} className="xl:hidden" isSignedIn={Boolean(user)} extraItems={staffItems} />
         </div>
       </Wide>
     </header>
