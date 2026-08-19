@@ -41,14 +41,14 @@ export default async function CreatorTournamentPage({ params }: { params: Promis
 
       <RecordDetail
         review={review}
-        publicHref={`/tournaments/${id}`}
+        publicHref={`/cups/${id}`}
         // Corrections happen on the EXISTING management surfaces. There is no second Tournament editor:
         // building one would mean two places where a result can be changed, and two chances for
         // them to disagree.
         sections={[
-          { label: 'Setup', href: `/tournaments/${id}`, hint: 'Title, year, description, match format' },
-          { label: 'Groups', href: `/tournaments/${id}`, hint: 'Group tables and group results' },
-          { label: 'Bracket', href: `/tournaments/${id}`, hint: 'Bracket placement and results' },
+          { label: 'Setup', href: `/cups/${id}`, hint: 'Title, year, description, match format' },
+          { label: 'Groups', href: `/cups/${id}`, hint: 'Group tables and group results' },
+          { label: 'Bracket', href: `/cups/${id}`, hint: 'Bracket placement and results' },
         ]}
       />
     </Wide>
