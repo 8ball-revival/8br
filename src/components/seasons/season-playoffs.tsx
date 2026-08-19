@@ -96,7 +96,7 @@ export function SeasonPlayoffs({
             <p className="text-xs text-muted-foreground">
               {picked
                 ? 'Now click the slot to swap it with — or click it again to cancel.'
-                : 'Click a player, then click another slot to swap them.'}
+                : 'Drag a player onto another slot to swap them. Or click one, then click the other.'}
             </p>
             {picked && (
               <button type="button" onClick={() => setPicked(null)} className="text-xs text-brand hover:underline">
@@ -117,6 +117,12 @@ export function SeasonPlayoffs({
                   const from = picked
                   setPicked(null)
                   run(() => swapSeasonBracketSlotsAction(seasonId, from, { matchId, side }))
+                },
+                // Dragging goes straight to the swap without the pick-up step, and clears any slot
+                // the user had already picked by clicking so the two gestures cannot fight.
+                drop: (from, to) => {
+                  setPicked(null)
+                  run(() => swapSeasonBracketSlotsAction(seasonId, from, to))
                 },
               }}
             />

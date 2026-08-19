@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { Check, Crown } from 'lucide-react'
@@ -16,6 +18,8 @@ import { identityLines, fromNameHandle } from '@/lib/identity/display'
  * Optional everywhere: tournaments and published season brackets pass nothing and stay read-only.
  */
 export interface BracketSwapApi {
+  /** Drag-and-drop: move `from` onto `to`, exchanging them. Falls back to pick() when absent. */
+  drop?: (from: { matchId: number; side: 'home' | 'away' }, to: { matchId: number; side: 'home' | 'away' }) => void
   selected: { matchId: number; side: 'home' | 'away' } | null
   pick(matchId: number, side: 'home' | 'away'): void
 }
@@ -38,21 +42,61 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
   const editable = !!edit && matchId != null && side != null && !!slot?.name && slot.name !== 'Bye'
   const swappable = !!swap && matchId != null && side != null && slot?.name !== 'Bye'
   const picked = !!swap?.selected && swap.selected.matchId === matchId && swap.selected.side === side
+
+  /*
+    Two ways to move a player, over the same swap call.
+
+    Dragging is the one people reach for on a bracket, so it is the primary gesture: pick a slot up,
+    drop it on another, they exchange places. Click-to-swap is kept rather than replaced — dragging
+    does not exist on touch, and it is not reachable from a keyboard, so removing it would take the
+    feature away from anyone not using a mouse.
+
+    An empty slot is a valid drop target: dropping onto TBD is how you move somebody into a gap.
+    A Bye is not draggable, because a bye is the absence of a player rather than one.
+  */
+  const [dragOver, setDragOver] = useState(false)
+  const dragData = (e: React.DragEvent) => {
+    try { return JSON.parse(e.dataTransfer.getData('application/x-bracket-slot') || 'null') } catch { return null }
+  }
+
   return (
     <div
       role={swappable ? 'button' : undefined}
       tabIndex={swappable ? 0 : undefined}
       aria-pressed={swappable ? picked : undefined}
-      title={swappable ? (picked ? 'Click another slot to swap' : `Move ${slot?.name ?? 'this slot'}`) : undefined}
+      draggable={swappable}
+      title={swappable ? (picked ? 'Click another slot to swap' : `Drag to move ${slot?.name ?? 'this slot'}, or click to pick it up`) : undefined}
       onClick={swappable ? () => swap!.pick(matchId!, side!) : undefined}
       onKeyDown={swappable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swap!.pick(matchId!, side!) } } : undefined}
+      onDragStart={swappable ? (e) => {
+        e.dataTransfer.setData('application/x-bracket-slot', JSON.stringify({ matchId, side }))
+        e.dataTransfer.effectAllowed = 'move'
+      } : undefined}
+      onDragOver={swappable ? (e) => {
+        // preventDefault is what marks this element as a valid drop target at all.
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        setDragOver(true)
+      } : undefined}
+      onDragLeave={swappable ? () => setDragOver(false) : undefined}
+      onDragEnd={swappable ? () => setDragOver(false) : undefined}
+      onDrop={swappable ? (e) => {
+        e.preventDefault()
+        setDragOver(false)
+        const from = dragData(e)
+        if (!from || typeof from.matchId !== 'number') return
+        // Dropping a slot on itself is a no-op rather than a wasted round trip to the server.
+        if (from.matchId === matchId && from.side === side) return
+        swap!.drop?.(from, { matchId: matchId!, side: side! })
+      } : undefined}
       className={cn(
         'flex items-center gap-2 px-2.5 py-2',
         won && 'bracket-winner-row bg-gold/[0.08]',
         dim && 'bracket-loser-row',
         !slot?.name && 'text-muted-foreground',
-        swappable && 'cursor-pointer hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
+        swappable && 'cursor-grab active:cursor-grabbing hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
         picked && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_16%,transparent)]',
+        dragOver && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_22%,transparent)]',
       )}
     >
       {slot?.seed != null && (
