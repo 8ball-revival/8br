@@ -1,0 +1,15 @@
+building fixture: 400 players x 24 seasons …
+
+rating_ledger rows: 38806   players: 467
+
+  explorer current/overall              1 queries      18.0ms db      25.7ms wall  60 rows
+  explorer all-time/overall             1 queries     176.0ms db     180.9ms wall  460 rows
+  explorer all-time/group               1 queries     146.0ms db     150.7ms wall  460 rows
+  explorer all-time/playoff             1 queries      92.0ms db      95.3ms wall  434 rows
+  facets                                2 queries       6.0ms db      33.4ms wall
+  player detail (one row expanded)      3 queries      17.0ms db      45.5ms wall
+
+JSON: {"ledgerRows":38806,"players":467,"results":[{"label":"explorer current/overall","queries":1,"dbMs":18,"wallMs":25.7,"rows":60},{"label":"explorer all-time/overall","queries":1,"dbMs":176,"wallMs":180.9,"rows":460},{"label":"explorer all-time/group","queries":1,"dbMs":146,"wallMs":150.7,"rows":460},{"label":"explorer all-time/playoff","queries":1,"dbMs":92,"wallMs":95.3,"rows":434},{"label":"facets","queries":2,"dbMs":6,"wallMs":33.4},{"label":"player detail (one row expanded)","queries":3,"dbMs":17,"wallMs":45.5}]}
+
+removing fixture …
+fixture removed — 0 ledger rows and 0 players remain (both must be 0)

@@ -1,14 +1,20 @@
-# Back up the project-contained database to C:\Claude\Backups\Database.
+﻿# Back up the project-contained database to C:\Claude\Backups\Database.
 #
-#   .\db-backup.ps1              # timestamped dump
+#   .\db-backup.ps1                              # timestamped dump of the default database
 #   .\db-backup.ps1 -Label pre-migration
+#   .\db-backup.ps1 -Database 8br_dev_redesign   # a different local database on the same cluster
 #
 # Writes a custom-format .dump (for db-restore.ps1) plus a plain .sql and the
 # role globals. Backups live inside C:\Claude but are excluded from Git.
-param([string]$Label = '')
+param([string]$Label = '', [string]$Database = '')
 
 . "$PSScriptRoot\_common.ps1"
 Assert-Cluster
+
+# The redesign era runs a second database on the same contained cluster, so the target is
+# selectable. It is still only ever a database on 127.0.0.1 - this script has no way to reach a
+# remote host.
+if ($Database) { $DbName = $Database }
 
 if (-not (Test-PgRunning)) { Write-Host "Cluster is not running. Run db-start.ps1 first." -ForegroundColor Red; exit 1 }
 
