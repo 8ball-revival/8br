@@ -1,0 +1,58 @@
+{
+  "Player": {
+    "rows": 67,
+    "checksum": "36d2ae64be04e70d80f4365388f0d061"
+  },
+  "PlayerAlias": {
+    "rows": 0,
+    "checksum": null
+  },
+  "season": {
+    "rows": 2,
+    "checksum": "b3e300b102e255b18903df7521561e79"
+  },
+  "season_entrant": {
+    "rows": 75,
+    "checksum": "a03b554bfa750b326994b0a32988d4b3"
+  },
+  "season_group": {
+    "rows": 10,
+    "checksum": "117b3c8cf2214828f2ed43f7d40078f9"
+  },
+  "season_match": {
+    "rows": 238,
+    "checksum": "025e301969efd9025f039e6012dbafad"
+  },
+  "season_standing": {
+    "rows": 74,
+    "checksum": "abab863934f5841d1e33f7034c5ad06d"
+  },
+  "season_playoff_match": {
+    "rows": 46,
+    "checksum": "cea0c96c2f928cc15421997e9f8744df"
+  },
+  "comp_tournament": {
+    "rows": 0,
+    "checksum": null
+  },
+  "comp_tournament_match": {
+    "rows": 0,
+    "checksum": null
+  },
+  "comp_playoff_match": {
+    "rows": 0,
+    "checksum": null
+  },
+  "comp_registration": {
+    "rows": 0,
+    "checksum": null
+  },
+  "rating_ledger": {
+    "rows": 406,
+    "checksum": "62ee73709c6b77472f9ab62522ddd7a1"
+  },
+  "media_upload": {
+    "rows": 3,
+    "checksum": "c8bb3870e1a349c2328538bc838f9dc8"
+  }
+}
