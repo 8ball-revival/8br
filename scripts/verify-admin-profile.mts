@@ -3,6 +3,7 @@
  * Run: npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-admin-profile.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import { changeCueverseId, updateProfile } from '../src/lib/players/service.ts'
 
 let pass = 0, fail = 0
@@ -31,6 +32,8 @@ try {
 } finally {
   await prisma.playerAlias.deleteMany({ where: { playerId: PID } }).catch(() => {})
   await prisma.player.deleteMany({ where: { id: PID } }).catch(() => {})
+  // The suite's own audit trail goes with its records — see verify-playoff-field.
+  await deleteFixtureAuditRows(prisma, ['profile-verify']).catch(() => {})
 }
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)

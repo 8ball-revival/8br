@@ -8,6 +8,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-member-merge.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import {
   checkMergeAllowed,
   mergeAccounts,
@@ -428,6 +429,9 @@ main()
       const { regenerateTournamentSnapshot } = await import('../src/lib/tournaments/migrate.ts')
       await regenerateTournamentSnapshot().catch(() => {})
     }
+    // The suite's own audit trail goes with its records: a log describing fixtures that no
+    // longer exist is not a record of anything, and somebody has to adjudicate it later.
+    await deleteFixtureAuditRows(prisma, ['zzmerge-verify']).catch(() => {})
     await prisma.$disconnect()
     process.exit(fail === 0 ? 0 : 1)
   })

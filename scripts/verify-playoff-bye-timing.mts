@@ -13,6 +13,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-playoff-bye-timing.mts
  */
 import React from 'react'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { prisma } from '../src/lib/prisma.ts'
 import {
@@ -31,6 +32,9 @@ const FIXTURE_COMP = 'zzbt-comp'
 async function cleanup() {
   await prisma.season.deleteMany({ where: { slug: { startsWith: 'zzbt-season-' } } }).catch(() => {})
   await prisma.competitionSeries.deleteMany({ where: { slug: FIXTURE_COMP } }).catch(() => {})
+  // The suite's own audit trail goes with its records — a log describing Seasons that no longer
+  // exist is not a record of anything, and somebody has to adjudicate it later.
+  await deleteFixtureAuditRows(prisma, ['bye-timing-verify']).catch(() => {})
 }
 await cleanup()
 

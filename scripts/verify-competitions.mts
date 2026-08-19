@@ -7,6 +7,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-competitions.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import {
   createCompetition,
   updateCompetition,
@@ -100,6 +101,9 @@ main()
   .catch((e) => { console.error(e); fail++ })
   .finally(async () => {
     for (const id of made) await prisma.competitionSeries.delete({ where: { id } }).catch(() => {})
+    // The suite's own audit trail goes with its records: a log describing fixtures that no
+    // longer exist is not a record of anything, and somebody has to adjudicate it later.
+    await deleteFixtureAuditRows(prisma, ['verify']).catch(() => {})
     await prisma.$disconnect()
     process.exit(fail === 0 ? 0 : 1)
   })

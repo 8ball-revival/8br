@@ -8,6 +8,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-playoff-visibility.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import { reseedEntrants, rebuildManualPlayoff, publishPlayoff } from '../src/lib/competition/service.ts'
 import { canViewPlayoffs, redactPlayoffs } from '../src/lib/competition/playoff-visibility.ts'
 import type { TournamentWorkspaceData } from '../src/lib/tournaments/live.ts'
@@ -81,6 +82,8 @@ try {
   check('duplicate publish is safe (idempotent)', again.ok && stillUnpublished === 0)
 } finally {
   await prisma.tournament.delete({ where: { id: tid } }).catch(() => {})
+  // The suite's own audit trail goes with its records — see verify-playoff-field.
+  await deleteFixtureAuditRows(prisma, ['vis-verify', 'A']).catch(() => {})
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

@@ -7,6 +7,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-playoff-field.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import { reseedEntrants, rebuildManualPlayoff } from '../src/lib/competition/service.ts'
 
 let pass = 0, fail = 0
@@ -60,6 +61,9 @@ try {
   check('top-2 bracket builds a single final', two.ok && (await prisma.playoffMatch.count({ where: { tournamentId: tid } })) === 1)
 } finally {
   await prisma.tournament.delete({ where: { id: tid } }).catch(() => {})
+  // The suite's own audit trail goes with its records. Leaving it behind means a permanent log of
+  // a Tournament that no longer exists, which somebody has to adjudicate later.
+  await deleteFixtureAuditRows(prisma, ['field-verify', 'A']).catch(() => {})
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

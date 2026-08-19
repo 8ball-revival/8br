@@ -12,6 +12,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-editorial.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
+import { deleteFixtureAuditRows } from '../src/lib/verification/fixture-actors.ts'
 import type { EditorialActor } from '../src/lib/editorial/permissions.ts'
 import { canPublishNow, canEditArticle, canMarkOfficial, canFeature, canComment, canViewUnpublished, canCreateArticle, canAttributeAuthor, canBackdate } from '../src/lib/editorial/permissions.ts'
 import {
@@ -1060,6 +1061,9 @@ main()
     console.log(`\nCleaned up: ${madeArticles.length} articles, ${madePlayers.length} players.`)
     const leftovers = await prisma.player.count({ where: { primaryName: { startsWith: PREFIX } } })
     console.log(leftovers === 0 ? 'No fixture rows remain.' : `WARNING: ${leftovers} fixture players remain.`)
+    // The suite's own audit trail goes with its records: a log describing fixtures that no
+    // longer exist is not a record of anything, and somebody has to adjudicate it later.
+    await deleteFixtureAuditRows(prisma, ['zzbreak-verify']).catch(() => {})
     await prisma.$disconnect()
     process.exit(fail === 0 && leftovers === 0 ? 0 : 1)
   })
