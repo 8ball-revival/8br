@@ -106,21 +106,37 @@ section('Column terminology')
 {
   check('P became MP', COLUMN_BY_KEY.played.short === 'MP')
   check('...and MP is spelled out in its tooltip', /Matches Played/.test(COLUMN_BY_KEY.played.tooltip))
-  check('the record is explained as the match record', /Match Record/.test(COLUMN_BY_KEY.record.tooltip))
-  check('the record header is spelled out rather than abbreviated',
-    COLUMN_BY_KEY.record.short === 'Win | Loss | Tie', COLUMN_BY_KEY.record.short)
-  check('...and shows all three numbers, including a zero tie count',
-    COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC') === '15 | 2 | 0',
+  check('the overall record header is W–L–D', COLUMN_BY_KEY.record.short === 'W–L–D', COLUMN_BY_KEY.record.short)
+  check('...and shows all three numbers, including a zero draw count',
+    COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC') === '15–2–0',
     COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC'))
-  check('...and a real tie count',
-    COLUMN_BY_KEY.record.format!(row({ wins: 5, losses: 1, draws: 3 }), 'SC') === '5 | 1 | 3')
-  check('the value divider matches the header divider',
-    COLUMN_BY_KEY.record.short!.includes(' | ')
-    && COLUMN_BY_KEY.record.format!(row({ wins: 1, losses: 1, draws: 1 }), 'SC').includes(' | '))
-  check('ties are explained in the tooltip', /tied/.test(COLUMN_BY_KEY.record.tooltip))
+  check('...and a real draw count',
+    COLUMN_BY_KEY.record.format!(row({ wins: 5, losses: 1, draws: 3 }), 'SC') === '5–1–3')
+  check('draws are explained in the tooltip', /draws/.test(COLUMN_BY_KEY.record.tooltip))
   check('the standalone Draws column is gone — the record carries it', !COLUMN_BY_KEY.draws)
-  check('the GAME record stays two numbers — a frame cannot be tied',
+  check('the GAME record stays two numbers — a frame cannot be drawn',
     COLUMN_BY_KEY.games.format!(row({ gamesWon: 110, gamesLost: 55 }), 'SC') === '110–55')
+
+  // ── The three stage records, and how they relate
+  const seasonR = COLUMN_BY_KEY.seasonRecord
+  const playoffR = COLUMN_BY_KEY.playoffRecord
+  const cupR = COLUMN_BY_KEY.cupRecord
+  const split = row({
+    groupWins: 11, groupLosses: 1, groupDraws: 2,
+    playoffWins: 4, playoffLosses: 1, playoffDraws: 0,
+    tournamentWins: 3, tournamentLosses: 2, tournamentDraws: 0,
+  })
+  check('Season W–L–D is group play AND Season playoffs together',
+    seasonR.format!(split, 'SC') === '15–2–2', seasonR.format!(split, 'SC'))
+  check('Playoffs W–L is the playoff subset, with no draw column',
+    playoffR.format!(split, 'SC') === '4–1', playoffR.format!(split, 'SC'))
+  check('...and the tooltip says it is a SUBSET of the Season record',
+    /subset/i.test(playoffR.tooltip))
+  check('Cup W–L is Cups only', cupR.format!(split, 'SC') === '3–2', cupR.format!(split, 'SC'))
+  check('a Cup draw shows when one genuinely exists, not as a permanent zero',
+    cupR.format!(row({ tournamentWins: 2, tournamentLosses: 1, tournamentDraws: 1 }), 'SC') === '2–1–1')
+  check('each stage record sorts by its own wins',
+    seasonR.value(split, 'SC') === 15 && playoffR.value(split, 'SC') === 4 && cupR.value(split, 'SC') === 3)
   check('Games became GW–GL', COLUMN_BY_KEY.games.short === 'GW–GL')
   check('...and GW–GL is spelled out', /Games Won . Games Lost/.test(COLUMN_BY_KEY.games.tooltip))
 
@@ -184,8 +200,9 @@ section('Density presets')
     compact.join(','))
 
   const standard = visibleKeys('standard', 'overall', null)
-  check('Standard is exactly Rating, match record, Win %, Streak, SC, TC — in that order',
-    standard.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonTitles,tournamentTitles',
+  check('Standard is exactly the requested eleven columns, in order',
+    standard.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,'
+      + 'seasonRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
     standard.join(','))
   check('Standard is broader than Compact', standard.length > compact.length)
   check('Standard is narrower than Full', standard.length < visibleKeys('full', 'overall', null).length)
@@ -287,8 +304,13 @@ section('Championship mode switches what Titles means')
   check('SC reads the Season count', sc.value(r, 'SC') === 3)
   check('TC reads the Tournament count', tc.value(r, 'SC') === 1)
   check('neither depends on the SC/TC control', sc.value(r, 'TC') === 3 && tc.value(r, 'SC') === 1)
-  check('SC is explained', /Season Championships/.test(sc.tooltip))
-  check('TC is explained', /Tournament Championships/.test(tc.tooltip))
+  check('Season Championships is explained', /Season Championships/.test(sc.tooltip))
+  check('Cup Titles is explained', /Cup Titles/.test(tc.tooltip))
+  check('the honours headers carry their emblems',
+    sc.short === 'Season Championships 👑' && tc.short === 'Cup Titles 🏆', `${sc.short} / ${tc.short}`)
+  check('no public column still says "Tournament"',
+    !COLUMNS.some((c) => /Tournament/.test(c.label) || /Tournament/.test(c.short ?? '')),
+    COLUMNS.filter((c) => /Tournament/.test(c.label + (c.short ?? ''))).map((c) => c.key).join(', '))
   check('...and both say the count can be traced',
     /which ones/i.test(sc.tooltip) && /which ones/i.test(tc.tooltip))
 
@@ -674,6 +696,23 @@ section('CSV: correctness and formula-injection defence')
 }
 
 // ─────────────────────────────────────────────── reset
+section('Renamed columns migrate rather than vanish')
+{
+  check('a legacy `titles` column maps to Season Championships',
+    decodeRankingsState('cols=rating,titles').columns?.includes('seasonTitles') === true,
+    JSON.stringify(decodeRankingsState('cols=rating,titles').columns))
+  check('a legacy `draws` column maps to the record that absorbed it',
+    decodeRankingsState('cols=draws').columns?.includes('record') === true)
+  check('a legacy sort key migrates too',
+    decodeRankingsState('sort=titles:desc').sort[0]?.key === 'seasonTitles')
+  check('migration does not duplicate a column already present',
+    (decodeRankingsState('cols=seasonTitles,titles').columns ?? []).filter((k) => k === 'seasonTitles').length === 1)
+  check('an unknown column is still dropped', decodeRankingsState('cols=not_a_column').columns === null)
+  const store = (v: string | null) => ({ getItem: () => v })
+  check('a saved device preference migrates its columns',
+    readDevicePrefs(store('{"density":"custom","columns":["titles","rating"]}'))?.columns?.includes('seasonTitles') === true)
+}
+
 section('Reset Filters')
 {
   check('a default table has nothing to reset', !hasAnyFilter(defaultState()))

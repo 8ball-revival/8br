@@ -52,16 +52,16 @@ const pctText = (n: number) => `${n.toFixed(1)}%`
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n))
 const dash = (n: number | null) => (n == null || n === 0 ? '—' : String(n))
 /**
- * A full record in one cell: wins, losses, ties.
+ * A record in one cell.
  *
- * All three numbers, always — including a zero. A column that drops the tie when there is none
- * reads as two different columns down the page, and a reader scanning for draws cannot tell "none"
- * from "not shown".
+ * Every number always, including zeros: a column that drops the draw when there is none reads as
+ * two different columns down the page, and a reader scanning for draws cannot tell "none" from
+ * "not shown".
  *
- * The divider matches the header's, so "Win | Loss | Tie" sits directly above "15 | 2 | 0" and the
- * mapping needs no explaining.
+ * The divider matches the header's, so "W–L–D" sits directly above "15–2–0" and needs no explaining.
  */
-const record = (w: number, l: number, t: number) => `${w} | ${l} | ${t}`
+const record3 = (w: number, l: number, d: number) => `${w}–${l}–${d}`
+const record2 = (w: number, l: number) => `${w}–${l}`
 
 export const COLUMNS: ColumnDef[] = [
   {
@@ -80,17 +80,10 @@ export const COLUMNS: ColumnDef[] = [
     value: (r) => r.rating,
   },
   {
-    key: 'played', label: 'Matches Played', short: 'MP', group: 'match', align: 'right',
-    tooltip: 'Matches Played — matches with a recorded result. Forfeits count as matches played.',
-    value: (r) => r.played,
-  },
-  {
-    // Spelled out: there is room for it, and three initials over three numbers is a puzzle the
-    // reader has to solve every time they look at the column.
-    key: 'record', label: 'Match Record', short: 'Win | Loss | Tie', group: 'match', align: 'right',
-    tooltip: 'Match Record — matches won, lost and tied. Ties are possible in group play and never in a knockout. Sorts by wins.',
+    key: 'record', label: 'Overall Record', short: 'W–L–D', group: 'match', align: 'right',
+    tooltip: 'W–L–D — every eligible match from completed, archived Seasons and Cups: wins, losses and draws. A draw is possible in group play and never in a knockout. Sorts by wins.',
     value: (r) => r.wins,
-    format: (r) => record(r.wins, r.losses, r.draws),
+    format: (r) => record3(r.wins, r.losses, r.draws),
   },
   {
     key: 'matchWinPct', label: 'Win %', group: 'match', align: 'right',
@@ -105,16 +98,47 @@ export const COLUMNS: ColumnDef[] = [
     format: (r) => (r.currentStreak === 0 ? '—' : signed(r.currentStreak)),
   },
   {
-    key: 'seasonTitles', label: 'Season Championships', short: 'SC', group: 'titles', align: 'right',
-    tooltip: 'Season Championships — Seasons this player won, from the champion recorded on each completed Season. Click a count to see which ones.',
+    key: 'seasonRecord', label: 'Season Record', short: 'Season W–L–D', group: 'match', align: 'right',
+    tooltip: 'Every eligible match played inside a completed, archived Season — group play AND Season playoffs together. Sorts by wins.',
+    value: (r) => r.groupWins + r.playoffWins,
+    format: (r) => record3(
+      r.groupWins + r.playoffWins,
+      r.groupLosses + r.playoffLosses,
+      r.groupDraws + r.playoffDraws,
+    ),
+  },
+  {
+    key: 'playoffRecord', label: 'Playoffs Record', short: 'Playoffs W–L', group: 'match', align: 'right',
+    tooltip: 'Playoff matches inside completed, archived Seasons only — a subset of the Season record. A knockout cannot be drawn, so there is no draw column. Sorts by wins.',
+    value: (r) => r.playoffWins,
+    format: (r) => record2(r.playoffWins, r.playoffLosses),
+  },
+  {
+    key: 'cupRecord', label: 'Cup Record', short: 'Cup W–L', group: 'match', align: 'right',
+    tooltip: 'Eligible matches from completed, archived Cups only. Draws are counted where a Cup format genuinely allows one and are shown as a third number when any exist. Sorts by wins.',
+    value: (r) => r.tournamentWins,
+    // A Cup draw is possible in a group or round-robin format. The third number appears only when
+    // there IS one, rather than printing a permanent "–0" that says nothing about most Cups.
+    format: (r) => (r.tournamentDraws > 0
+      ? record3(r.tournamentWins, r.tournamentLosses, r.tournamentDraws)
+      : record2(r.tournamentWins, r.tournamentLosses)),
+  },
+  {
+    key: 'seasonTitles', label: 'Season Championships', short: 'Season Championships 👑', group: 'titles', align: 'right',
+    tooltip: 'Season Championships — Seasons this player won, from the champion recorded on each completed, archived Season. Click a count to see which ones.',
     value: (r) => r.seasonTitles,
     format: (r) => dash(r.seasonTitles),
   },
   {
-    key: 'tournamentTitles', label: 'Tournament Championships', short: 'TC', group: 'titles', align: 'right',
-    tooltip: 'Tournament Championships — standalone Tournaments this player won, from the champion recorded on each Tournament. Click a count to see which ones.',
+    key: 'tournamentTitles', label: 'Cup Titles', short: 'Cup Titles 🏆', group: 'titles', align: 'right',
+    tooltip: 'Cup Titles — Cups this player won, from the titleholder recorded on each completed, archived Cup. Click a count to see which ones.',
     value: (r) => r.tournamentTitles,
     format: (r) => dash(r.tournamentTitles),
+  },
+  {
+    key: 'played', label: 'Matches Played', short: 'MP', group: 'match', align: 'right',
+    tooltip: 'Matches Played — matches with a recorded result. Forfeits count as matches played.',
+    value: (r) => r.played,
   },
   {
     key: 'finalsAppearances', label: 'Finals Reached', short: 'Finals', group: 'titles', align: 'right',
@@ -144,8 +168,8 @@ export const COLUMNS: ColumnDef[] = [
     key: 'games', label: 'Games Won – Games Lost', short: 'GW–GL', group: 'game', align: 'right',
     tooltip: 'Games Won – Games Lost, counting individual frames rather than matches. Forfeits contribute no games because none were played, and some archived seasons record the match result without the frames — see the completeness marker on the row.',
     value: (r) => r.gamesWon,
-    // Games have no tie — a frame is won or it is not — so this pair stays two numbers.
-    format: (r) => `${r.gamesWon}–${r.gamesLost}`,
+    // Games have no draw — a frame is won or it is not — so this pair stays two numbers.
+    format: (r) => record2(r.gamesWon, r.gamesLost),
   },
   {
     key: 'gameDiff', label: 'Game Differential', short: 'Diff', group: 'game', align: 'right',
@@ -258,18 +282,34 @@ const COMPACT_KEYS = [
 ]
 
 /**
+ * Column keys that were renamed, and what they are now.
+ *
+ * A saved link or a stored device preference can name a column that no longer exists. Dropping it
+ * silently would quietly reshape somebody's saved view; mapping it keeps the view they asked for.
+ */
+export const LEGACY_COLUMN_KEYS: Record<string, string> = {
+  // The single mode-driven Titles column, before SC and TC became separate columns.
+  titles: 'seasonTitles',
+  // The standalone Draws column, absorbed into the W–L–D record.
+  draws: 'record',
+}
+
+/**
  * The default table.
  *
- * Rating · Match record · Win % · Streak · Season Championships · Tournament Championships —
- * the six figures a reader actually scans, in that order. Both championship counts are shown at
- * once rather than swapped by a control, because "how many Seasons AND how many Tournaments" is one
- * question about a player, not two views of the same number.
+ * Rating · the overall record · Win % · Streak · then the SAME record broken down by where it was
+ * earned — Season, Season playoffs, Cup — and finally the two honours.
  *
- * Games, differential, finals, points and the rest are real and stay available under Full and
- * Custom; they are simply not what the default is for.
+ * The breakdown is the point. "15–2–0 overall" says how good someone is; "and 4–1 of that was in
+ * Season playoffs" says when. Playoffs W–L is deliberately a SUBSET of Season W–L–D rather than a
+ * disjoint slice, because that is what it is, and the tooltips say so.
+ *
+ * Both honours are always-visible columns rather than one that swaps: "how many Seasons AND how
+ * many Cups" is one question about a player, not two views of a number.
  */
 const STANDARD_KEYS = [
   'rank', 'player', 'rating', 'record', 'matchWinPct', 'currentStreak',
+  'seasonRecord', 'playoffRecord', 'cupRecord',
   'seasonTitles', 'tournamentTitles',
 ]
 
@@ -576,7 +616,7 @@ export function decodeRankingsState(input: URLSearchParams | string): RankingsSt
     s.sort = sort.split(',')
       .map((chunk) => {
         const [key, dir] = chunk.split(':')
-        return { key, dir: dir === 'asc' ? 'asc' as const : 'desc' as const }
+        return { key: LEGACY_COLUMN_KEYS[key] ?? key, dir: dir === 'asc' ? 'asc' as const : 'desc' as const }
       })
       .filter((x) => !!COLUMN_BY_KEY[x.key])
   }
@@ -586,7 +626,10 @@ export function decodeRankingsState(input: URLSearchParams | string): RankingsSt
 
   const cols = p.get('cols')
   if (cols) {
-    const valid = cols.split(',').filter((k) => !!COLUMN_BY_KEY[k])
+    // A shared link may name a column that has since been renamed. Map it rather than dropping it,
+    // or somebody's saved view quietly loses a column they chose.
+    const valid = [...new Set(cols.split(',').map((k) => LEGACY_COLUMN_KEYS[k] ?? k))]
+      .filter((k) => !!COLUMN_BY_KEY[k])
     if (valid.length) {
       s.columns = valid
       // A shared link that names columns is asking for those columns, whether or not it also said
@@ -808,8 +851,12 @@ export function readDevicePrefs(storage: Pick<Storage, 'getItem'> | null | undef
     const density = (DENSITY_IDS as string[]).includes(String(parsed.density))
       ? parsed.density as Density
       : DEFAULT_DENSITY
+    // Same migration for a preference saved on this device before the columns were renamed.
     const columns = Array.isArray(parsed.columns)
-      ? parsed.columns.filter((k): k is string => typeof k === 'string' && !!COLUMN_BY_KEY[k])
+      ? [...new Set(parsed.columns
+          .filter((k): k is string => typeof k === 'string')
+          .map((k) => LEGACY_COLUMN_KEYS[k] ?? k))]
+        .filter((k) => !!COLUMN_BY_KEY[k])
       : null
     return { density, columns: columns?.length ? columns : null }
   } catch {

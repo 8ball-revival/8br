@@ -274,7 +274,7 @@ async function computeTrophies(): Promise<Map<string, TrophyEntry[]>> {
     }
     if (championRegId == null) continue
 
-    const entry: TrophyEntry = { tournamentId: t.id, number: t.number, name: t.name, date: t.ladderAppliedAt?.toISOString() ?? null, slug: `/tournaments/${t.number}` }
+    const entry: TrophyEntry = { tournamentId: t.id, number: t.number, name: t.name, date: t.ladderAppliedAt?.toISOString() ?? null, slug: `/cups/${t.number}` }
     if (t.participantFormat === 'TEAM') {
       const team = await prisma.tournamentTeam.findFirst({ where: { tournamentId: t.id, registrationId: championRegId }, include: { members: true } })
       for (const m of team?.members ?? []) if (m.playerId) add(m.playerId, entry)
@@ -486,7 +486,7 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
       isTeamMatch: r.isTeamMatch, score: scoreStr(r),
       status: r.isForfeit ? 'FORFEIT' : (r.result as 'WIN' | 'LOSS' | 'DRAW'),
       preRating: r.preRating, ratingChange: r.ratingChange, postRating: r.postRating,
-      link: t?.number != null ? `/tournaments/${t.number}` : '#',
+      link: t?.number != null ? `/cups/${t.number}` : '#',
     }
   })
 
@@ -505,7 +505,7 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
       draws: prs.filter((r) => r.result === 'DRAW').length,
       ratingChange: prs.reduce((s, r) => s + r.ratingChange, 0),
       wonTournament: won, placement: won ? 'Champion' : null,
-      link: t?.number != null ? `/tournaments/${t.number}` : '#',
+      link: t?.number != null ? `/cups/${t.number}` : '#',
     }
   }).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 

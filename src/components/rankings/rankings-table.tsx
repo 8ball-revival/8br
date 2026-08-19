@@ -268,7 +268,7 @@ export function RankingsTable(props: RankingsTableProps) {
   )
 }
 
-function HeaderCell({ col, sort, onSort, mode }: { col: ColumnDef } & RankingsTableProps) {
+function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTableProps) {
   const s = sort.find((x) => x.key === col.key)
   const sticky = col.key === 'rank' ? { left: CONTROL_COL } : col.key === 'player' ? { left: CONTROL_COL + RANK_COL } : null
   const label = col.short ?? col.label
@@ -281,7 +281,12 @@ function HeaderCell({ col, sort, onSort, mode }: { col: ColumnDef } & RankingsTa
       data-col={col.key}
       aria-sort={s ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={cn(
-        'sticky top-0 z-30 whitespace-nowrap border-b border-border bg-card px-2.5 py-2 font-medium',
+        'sticky top-0 z-30 border-b border-border bg-card px-2.5 py-2 align-bottom font-medium',
+        // Most headers are short and read best on one line. The honours headers are not: forcing
+        // "Season Championships 👑" onto one line drags the whole column to its width and pushes
+        // everything else off screen. Those wrap instead, and the row aligns on its baseline so a
+        // two-line header sits level with the one-line ones beside it.
+        col.group === 'titles' ? 'w-[7.5rem] whitespace-normal leading-tight' : 'whitespace-nowrap',
         col.align === 'right' ? 'text-right' : 'text-left',
         sticky && 'z-40',
         // The active sort is marked with a neutral lift and gold TEXT. A translucent gold wash over

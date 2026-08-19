@@ -366,7 +366,7 @@ export async function computePlayerDetail(
     const seasonId = r.seasonId ?? r.season_id
     const tournamentId = r.tournamentId ?? r.tournament_id
     return seasonId != null ? `/seasons/${Number(seasonId)}`
-      : tournamentId != null ? `/tournaments/${Number(tournamentId)}`
+      : tournamentId != null ? `/cups/${Number(tournamentId)}`
         : null
   }
 

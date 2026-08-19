@@ -47,7 +47,7 @@ export const RECORD_VIEWS: { id: RecordView; label: string; hint: string }[] = [
   { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
   { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
   { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
-  { id: 'tournament', label: 'Tournaments', hint: 'Standalone Tournaments only' },
+  { id: 'tournament', label: 'Cups', hint: 'Standalone Cups only' },
 ]
 
 /** The rolling window the Current scope uses, matching the official ladder exactly. */
@@ -117,6 +117,17 @@ export interface ExplorerRow {
   idleDays: number | null
 
   // Splits, always present so a reader can see where a record came from.
+  /**
+   * Per-stage DRAWS, counted rather than derived.
+   *
+   * A Season record is W–L–D and a playoff record is W–L, so the draw has to be attributable to a
+   * stage. Subtracting one stage's draws from the overall total would silently absorb any draw the
+   * aggregate could not attribute, which is exactly the kind of quiet arithmetic that turns a
+   * missing row into a plausible-looking number.
+   */
+  groupDraws: number
+  playoffDraws: number
+  tournamentDraws: number
   groupWins: number
   groupLosses: number
   playoffWins: number
@@ -327,10 +338,15 @@ export async function computeExplorer(
         bool_or(s."isTeamMatch")                                         AS is_team,
         count(*) FILTER (WHERE s.kind = 'season' AND s."stage" = 'GROUP'   AND s."result" = 'WIN')::int  AS group_wins,
         count(*) FILTER (WHERE s.kind = 'season' AND s."stage" = 'GROUP'   AND s."result" = 'LOSS')::int AS group_losses,
+        count(*) FILTER (WHERE s.kind = 'season' AND s."stage" = 'GROUP'   AND s."result" = 'DRAW')::int AS group_draws,
         count(*) FILTER (WHERE s.kind = 'season' AND s."stage" = 'PLAYOFF' AND s."result" = 'WIN')::int  AS playoff_wins,
         count(*) FILTER (WHERE s.kind = 'season' AND s."stage" = 'PLAYOFF' AND s."result" = 'LOSS')::int AS playoff_losses,
+        -- A knockout cannot be drawn, so this should always be zero. It is counted anyway: if it is
+        -- ever non-zero the data is telling us something, and a hardcoded 0 would hide it.
+        count(*) FILTER (WHERE s.kind = 'season' AND s."stage" = 'PLAYOFF' AND s."result" = 'DRAW')::int AS playoff_draws,
         count(*) FILTER (WHERE s.kind = 'tournament' AND s."result" = 'WIN')::int  AS tournament_wins,
         count(*) FILTER (WHERE s.kind = 'tournament' AND s."result" = 'LOSS')::int AS tournament_losses,
+        count(*) FILTER (WHERE s.kind = 'tournament' AND s."result" = 'DRAW')::int AS tournament_draws,
         count(DISTINCT CASE WHEN s."roundLabel" ILIKE '%final%'
                              AND s."roundLabel" NOT ILIKE '%semi%'
                              AND s."roundLabel" NOT ILIKE '%quarter%'
@@ -514,6 +530,9 @@ export async function computeExplorer(
       idleDays: lastPlayed
         ? Math.max(0, Math.floor((now.getTime() - lastPlayed.getTime()) / 86_400_000))
         : null,
+      groupDraws: num(r.group_draws),
+      playoffDraws: num(r.playoff_draws),
+      tournamentDraws: num(r.tournament_draws),
       groupWins: num(r.group_wins),
       groupLosses: num(r.group_losses),
       playoffWins: num(r.playoff_wins),
