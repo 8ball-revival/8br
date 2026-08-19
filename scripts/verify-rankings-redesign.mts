@@ -299,16 +299,19 @@ section('The More Filters badge counts groups, not individual choices')
 // ── Rating legend
 section('The rating legend states every band, and the #1 override')
 {
-  check('there are seven lines', RATING_BANDS.length === 7)
+  check('there are six lines', RATING_BANDS.length === 6)
   check('first place leads', RATING_BANDS[0].id === 'top' && RATING_BANDS[0].label === '#1 Ranked')
   const byLabel = Object.fromEntries(RATING_BANDS.map((b) => [b.label, b.colourName]))
   check('#1 is Red', byLabel['#1 Ranked'] === 'Red')
   check('1600+ is Gold', byLabel['1600+'] === 'Gold')
-  check('1500–1599 is Purple', byLabel['1500–1599'] === 'Purple')
-  check('1400–1499 is Blue', byLabel['1400–1499'] === 'Blue')
-  check('1300–1399 is Green', byLabel['1300–1399'] === 'Green')
-  check('1200–1299 is Red', byLabel['1200–1299'] === 'Red')
-  check('Below 1200 is Grey', byLabel['Below 1200'] === 'Grey')
+  check('1500+ is Purple', byLabel['1500+'] === 'Purple')
+  check('1400+ is Blue', byLabel['1400+'] === 'Blue')
+  check('1300+ is Green', byLabel['1300+'] === 'Green')
+  check('Below 1299 is Grey', byLabel['Below 1299'] === 'Grey')
+  // Red is first place ONLY. A band wearing it would make the single row the colour exists to
+  // point at look like the bottom of the table.
+  check('no BAND is red', RATING_BANDS.filter((b) => b.colourName === 'Red').length === 1)
+  check('...and the one red entry is first place', RATING_BANDS.find((b) => b.colourName === 'Red')?.id === 'top')
 
   // The legend points at the same tokens the table colours by, so it cannot describe a scheme the
   // table no longer uses.
@@ -327,8 +330,11 @@ section('The rating legend states every band, and the #1 override')
     .join(' ')
   check('the legend is not behind a hover or a tooltip',
     !/onMouseEnter|<Tip|tooltip|title=/.test(legend))
-  check('every line carries its threshold as TEXT, not colour alone', legend.includes('{b.label}'))
-  check('...and names the colour in words', legend.includes('{b.colourName}'))
+  check('every entry carries its threshold as TEXT, not colour alone', legend.includes('{b.label}'))
+  // The name is there for assistive technology and nowhere else: printing "Gold" beside a gold
+  // square tells a sighted reader what they can already see.
+  check('...and the colour name is present but not printed',
+    /sr-only[^>]*>[^<]*\{b\.colourName\}/.test(legend))
 
   // The approved thresholds are untouched by this redesign.
   check('1600 is still gold', ratingTier(1600) === 'gold')
@@ -338,9 +344,13 @@ section('The rating legend states every band, and the #1 override')
   check('1400 is still blue', ratingTier(1400) === 'blue')
   check('1399 is still green', ratingTier(1399) === 'green')
   check('1300 is still green', ratingTier(1300) === 'green')
-  check('1299 is still red', ratingTier(1299) === 'red')
-  check('1200 is still red', ratingTier(1200) === 'red')
+  check('1299 is now grey', ratingTier(1299) === 'grey')
+  check('1200 is now grey', ratingTier(1200) === 'grey')
   check('1199 is still grey', ratingTier(1199) === 'grey')
+  check('0 is grey', ratingTier(0) === 'grey')
+  // The superseded 1200–1299 red band, asserted as absent.
+  check('nothing is banded red any more',
+    [0, 1199, 1200, 1250, 1299, 1300, 1400, 1500, 1600, 1900].every((r) => ratingTier(r) !== 'red'))
   check('a missing rating still has no tier', ratingTier(null) === null)
 
   const cssRule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))

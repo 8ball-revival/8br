@@ -74,7 +74,7 @@ const MEASURE = `(() => {
     firstHeader: heads[0] ?? null,
     rankIsFirstCell: /^[0-9]+$/.test(firstCells[0] ?? ''),
     legendVisible: !!legend && legend.getBoundingClientRect().width > 0,
-    legendLines: legend ? legend.querySelectorAll('li').length : 0,
+    legendEntries: legend ? legend.querySelectorAll(':scope > span').length : 0,
     legendText: legend ? legend.innerText.replace(/\\s+/g, ' ').trim() : null,
     removed: {
       allTime: /\\bAll Time\\b/.test(text),
@@ -104,7 +104,7 @@ for (const [label, width, height] of [['1440', 1440, 900], ['1180', 1180, 820], 
   results[label] = m
   console.log(`\n── ${label}px`)
   console.log(`  ${m.headerCount} columns, first = "${m.firstHeader}"`)
-  console.log(`  legend ${m.legendVisible ? 'visible' : 'MISSING'} (${m.legendLines} lines)`)
+  console.log(`  legend ${m.legendVisible ? 'visible' : 'MISSING'} (${m.legendEntries} entries)`)
   console.log(`  overflow ${m.overflow} · clipped ${m.clipped} · row heights ${m.rowHeights.join('/')}`)
 
   check(`${label}: no page-level horizontal overflow`, m.overflow === 0, String(m.overflow))
@@ -113,7 +113,7 @@ for (const [label, width, height] of [['1440', 1440, 900], ['1180', 1180, 820], 
   check(`${label}: Rank is the first column`, m.firstHeader.startsWith('Rank'), String(m.firstHeader))
   check(`${label}: the first cell is a rank number, not a gutter`, m.rankIsFirstCell)
   check(`${label}: the legend is visible without interaction`, m.legendVisible)
-  check(`${label}: the legend states all seven bands`, m.legendLines === 7, String(m.legendLines))
+  check(`${label}: the legend states all six bands`, m.legendEntries === 6, String(m.legendEntries))
   check(`${label}: More Filters is offered`, m.moreFilters)
   check(`${label}: Export CSV is offered`, m.exportCsv)
   check(`${label}: no All Time switch`, !m.removed.allTime)

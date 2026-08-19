@@ -18,8 +18,8 @@
     "firstHeader": "RankRank",
     "rankIsFirstCell": true,
     "legendVisible": true,
-    "legendLines": 7,
-    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "legendEntries": 6,
+    "legendText": "#1 Ranked — Red 1600+ Gold 1500+ Purple 1400+ Blue 1300+ Green Below 1299 Grey",
     "removed": {
       "allTime": false,
       "groupPlay": false,
@@ -56,8 +56,8 @@
     "firstHeader": "RankRank",
     "rankIsFirstCell": true,
     "legendVisible": true,
-    "legendLines": 7,
-    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "legendEntries": 6,
+    "legendText": "#1 Ranked — Red 1600+ Gold 1500+ Purple 1400+ Blue 1300+ Green Below 1299 Grey",
     "removed": {
       "allTime": false,
       "groupPlay": false,
@@ -94,8 +94,8 @@
     "firstHeader": "RankRank",
     "rankIsFirstCell": true,
     "legendVisible": true,
-    "legendLines": 7,
-    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "legendEntries": 6,
+    "legendText": "#1 Ranked — Red 1600+ Gold 1500+ Purple 1400+ Blue 1300+ Green Below 1299 Grey",
     "removed": {
       "allTime": false,
       "groupPlay": false,
@@ -132,8 +132,8 @@
     "firstHeader": "RankRank",
     "rankIsFirstCell": true,
     "legendVisible": true,
-    "legendLines": 7,
-    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "legendEntries": 6,
+    "legendText": "#1 Ranked — Red 1600+ Gold 1500+ Purple 1400+ Blue 1300+ Green Below 1299 Grey",
     "removed": {
       "allTime": false,
       "groupPlay": false,

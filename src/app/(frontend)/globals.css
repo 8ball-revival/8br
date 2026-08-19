@@ -95,7 +95,11 @@
 
   /* ── Rating tiers (the primary Rating value in the Rankings table only).
      Bands, high to low: 1600+ gold · 1500–1599 purple · 1400–1499 blue ·
-     1300–1399 green · 1200–1299 red · below 1200 grey.
+     1300–1399 green · 1299 and below grey.
+
+     There is no red band. Red belongs to first place alone — a band wearing it
+     would make the one row the colour exists to point at look like the bottom of
+     the table.
 
      Flat colours. An earlier revision paired each with a brighter halo and an
      animated glow; the glow smeared the digits and was removed. A rating is a
@@ -110,7 +114,6 @@
   --tier-purple: oklch(0.68 0.17 315);
   --tier-blue: oklch(0.68 0.13 250);
   --tier-green: oklch(0.7 0.15 145);
-  --tier-red: oklch(0.65 0.19 22);
   /* Grey is a readable neutral, not a disabled state — a low rating is still a rating. */
   --tier-grey: oklch(0.73 0.008 250);
 
@@ -206,7 +209,6 @@
   --tier-purple: oklch(0.5 0.2 310);
   --tier-blue: oklch(0.5 0.16 253);
   --tier-green: oklch(0.5 0.15 145);
-  --tier-red: oklch(0.53 0.2 22);
   --tier-grey: oklch(0.52 0.008 250);
 
   --rating-top: oklch(0.55 0.22 25);
@@ -861,7 +863,6 @@
 .rating-primary--purple { --tier-color: var(--tier-purple); }
 .rating-primary--blue   { --tier-color: var(--tier-blue); }
 .rating-primary--green  { --tier-color: var(--tier-green); }
-.rating-primary--red    { --tier-color: var(--tier-red); }
 .rating-primary--grey   { --tier-color: var(--tier-grey); }
 
 /* First place, last in the cascade so it wins over the band it sits on. */

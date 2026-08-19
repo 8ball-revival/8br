@@ -295,8 +295,8 @@ section('Rating tiers: every boundary, from both sides')
     [0, 'grey'],
     [1, 'grey'],
     [1199, 'grey'],
-    [1200, 'red'],
-    [1299, 'red'],
+    [1200, 'grey'],
+    [1299, 'grey'],
     [1300, 'green'],
     [1399, 'green'],
     [1400, 'blue'],
@@ -311,8 +311,8 @@ section('Rating tiers: every boundary, from both sides')
     check(`${rating} is ${tier}`, ratingTier(rating) === tier, String(ratingTier(rating)))
   }
 
-  check('exactly 1200 is Red, not Grey', ratingTier(1200) === 'red')
-  check('exactly 1199 is Grey, not Red', ratingTier(1199) === 'grey')
+  check('exactly 1300 is Green, not Grey', ratingTier(1300) === 'green')
+  check('exactly 1299 is Grey, not Green', ratingTier(1299) === 'grey')
   check('exactly 1600 is Gold', ratingTier(1600) === 'gold')
   check('exactly 1599 is Purple, not Gold', ratingTier(1599) === 'purple')
   check('exactly 1500 is Purple', ratingTier(1500) === 'purple')
@@ -320,14 +320,16 @@ section('Rating tiers: every boundary, from both sides')
   check('exactly 1400 is Blue', ratingTier(1400) === 'blue')
   check('exactly 1399 is Green, not Blue', ratingTier(1399) === 'green')
   check('exactly 1300 is Green', ratingTier(1300) === 'green')
-  check('exactly 1299 is Red, not Green', ratingTier(1299) === 'red')
+  check('exactly 1299 is Grey', ratingTier(1299) === 'grey')
 
   // The superseded scheme, asserted as ABSENT. 1500-1599 was red; anyone reading a red rating as
   // "elite" is reading the old mapping, so its removal is a fact worth keeping a test on.
   check('the old Red 1500-1599 mapping is gone', ratingTier(1500) !== 'red' && ratingTier(1599) !== 'red')
-  check('red now sits low, at 1200-1299', ratingTier(1250) === 'red')
-  check('no rating at or above 1300 is red',
-    [1300, 1400, 1500, 1600, 1900].every((r) => ratingTier(r) !== 'red'))
+  // Red is no longer a band at all — it belongs to first place alone.
+  check('no rating is banded red',
+    [0, 1199, 1250, 1299, 1300, 1400, 1500, 1600, 1900].every((r) => ratingTier(r) !== 'red'))
+  check('everything below 1300 is grey',
+    [0, 1, 1199, 1200, 1299].every((r) => ratingTier(r) === 'grey'))
   check('a negative rating is still Grey rather than untiered', ratingTier(-50) === 'grey')
 
   // An absent rating is NOT a tier. Grey would say "rated below 1200", a different claim entirely.
@@ -336,11 +338,11 @@ section('Rating tiers: every boundary, from both sides')
   check('NaN has no tier', ratingTier(Number.NaN) === null)
   check('Infinity has no tier', ratingTier(Number.POSITIVE_INFINITY) === null)
 
-  check('every band is reachable', new Set(cases.map(([r]) => ratingTier(r))).size === 6)
+  check('every band is reachable', new Set(cases.map(([r]) => ratingTier(r))).size === 5)
 
   // Monotonic: a higher rating can never land in a lower band. Cheap, and it catches any future
   // edit that reorders the bands.
-  const RANK: Record<string, number> = { grey: 0, red: 1, green: 2, blue: 3, purple: 4, gold: 5 }
+  const RANK: Record<string, number> = { grey: 0, green: 1, blue: 2, purple: 3, gold: 4 }
   let monotonic = true
   for (let r = 1; r <= 2000; r += 1) {
     if (RANK[ratingTier(r)!] < RANK[ratingTier(r - 1)!]) monotonic = false
@@ -354,11 +356,11 @@ section('Rating tiers: the accessible label carries what the colour says')
   check('a Purple rating is described', ratingAriaLabel(1540) === '1540 rating, Purple tier')
   check('a Blue rating is described', ratingAriaLabel(1450) === '1450 rating, Blue tier')
   check('a Green rating is described', ratingAriaLabel(1350) === '1350 rating, Green tier')
-  check('a Red rating is described', ratingAriaLabel(1250) === '1250 rating, Red tier')
+  check('a below-floor rating is described', ratingAriaLabel(1250) === '1250 rating, Grey tier')
   check('a Grey rating is described', ratingAriaLabel(1150) === '1150 rating, Grey tier')
   check('a missing rating gets no label — the dash already says it', ratingAriaLabel(null) === undefined)
   check('every tier has a name',
-    (['gold', 'red', 'purple', 'blue', 'green', 'grey'] as const).every((t) => ratingTierLabel(t).length > 0))
+    (['gold', 'purple', 'blue', 'green', 'grey'] as const).every((t) => ratingTierLabel(t).length > 0))
 }
 
 section('First place: the highest rating renders red, over its band')
@@ -386,7 +388,7 @@ section('First place: the highest rating renders red, over its band')
   // The leader keeps their BAND — the red is laid over it in CSS, not substituted for it — so the
   // band function must be untouched by who happens to be leading.
   check('the leader still belongs to their own band', ratingTier(1667) === 'gold')
-  check('a low-rated leader is still low-banded', ratingTier(1250) === 'red')
+  check('a low-rated leader is still low-banded', ratingTier(1250) === 'grey')
 
   check('the leader is announced as the leader, not by band',
     ratingAriaLabelFor(1667, 1667) === '1667 rating, highest on this table')
@@ -407,7 +409,7 @@ section('No glow, and none creeping back')
   check('no halo tokens remain', !css.includes('-glow:'))
 
   check('a class exists for every band',
-    (['gold', 'purple', 'blue', 'green', 'red', 'grey'] as const)
+    (['gold', 'purple', 'blue', 'green', 'grey'] as const)
       .every((t) => css.includes(`.rating-primary--${t}`)))
   check('every band has a colour in both themes',
     (css.match(/--tier-gold:/g) ?? []).length === 2 && (css.match(/--tier-grey:/g) ?? []).length === 2)

@@ -44,9 +44,17 @@ export interface RankingsExplorerProps {
   rows: ExplorerRow[]
   facets: ExplorerFacets
   state: RankingsState
+  /**
+   * The masthead line, rendered here rather than by the page.
+   *
+   * The result count belongs beside the title — "Rankings · 60 players" is one statement — and the
+   * count is a function of the filters, which only this component knows. Rendering the heading on
+   * the server and the count in the client would have put them in different rows.
+   */
+  heading: React.ReactNode
 }
 
-export function RankingsExplorer({ rows, facets, state }: RankingsExplorerProps) {
+export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplorerProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const topOffset = useHeaderOffset()
@@ -137,8 +145,19 @@ export function RankingsExplorer({ rows, facets, state }: RankingsExplorerProps)
 
   return (
     <>
-      {/* ── Toolbar: search, what the colours mean, filters, and how many players match. */}
-      <div className="mb-3 flex flex-wrap items-start gap-x-3 gap-y-2">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            <span className="tabular-nums">{visible.length.toLocaleString()}</span>{' '}
+            {visible.length === 1 ? 'player' : 'players'}
+          </p>
+        </div>
+        {heading}
+      </div>
+
+      {/* ── Toolbar: search, what the colours mean, and the filters. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="relative min-w-[12rem] flex-1 sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
           <input
@@ -160,15 +179,17 @@ export function RankingsExplorer({ rows, facets, state }: RankingsExplorerProps)
           )}
         </div>
 
-        <RatingLegend className="order-last w-full sm:order-none sm:w-auto" />
+        <RatingLegend className="min-w-0" />
 
         <button
           ref={moreFiltersRef}
+          // Pushed to the trailing edge so the toolbar reads left-to-right as search, meaning,
+          // then action.
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
-          className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="ml-auto inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <SlidersHorizontal className="size-4" aria-hidden />
           More Filters
@@ -182,10 +203,6 @@ export function RankingsExplorer({ rows, facets, state }: RankingsExplorerProps)
           )}
         </button>
 
-        <p className="ml-auto self-center text-xs text-muted-foreground" aria-live="polite">
-          <span className="tabular-nums">{visible.length.toLocaleString()}</span>{' '}
-          {visible.length === 1 ? 'player' : 'players'}
-        </p>
       </div>
 
       {/* ── Applied filters, as chips that remove themselves. */}

@@ -630,14 +630,26 @@ export async function computeExplorer(
    * Either way the rank is assigned once, here. Sorting the table never rewrites it.
    */
   const rankOf = await officialRanks
-  if (rankOf) {
-    // A player the ladder does not rank keeps a derived position AFTER everyone it does, rather
-    // than being given rank 0 or dropped from the table.
-    let overflow = rankOf.size
+
+  /*
+   * Official ranks are used only if the ladder ranks EVERY row.
+   *
+   * The previous fallback appended an unranked player after everyone else, which produced ranks
+   * that flatly contradicted the ratings beside them — a player rated 1490 sitting at #61 below one
+   * rated 1395. Rating decides rank; a number that says otherwise is not a graceful degradation, it
+   * is a wrong answer presented with the same confidence as a right one.
+   *
+   * A row missing from the ladder means the two disagree about identity — normally a player who
+   * exists twice, once from the archive and once from a newly provisioned account. That is a data
+   * fault worth noticing, so the table falls back to ranking the whole set by rating rather than
+   * hiding it behind one plausible-looking row. The official ranks return by themselves once the
+   * duplicate is resolved.
+   */
+  if (rankOf && mapped.every((row) => rankOf.has(row.playerId))) {
     mapped.sort((a, b) =>
-      (rankOf.get(a.playerId) ?? Number.MAX_SAFE_INTEGER) - (rankOf.get(b.playerId) ?? Number.MAX_SAFE_INTEGER)
+      (rankOf.get(a.playerId) ?? 0) - (rankOf.get(b.playerId) ?? 0)
       || a.preferredName.toLowerCase().localeCompare(b.preferredName.toLowerCase()))
-    mapped.forEach((row) => { row.rank = rankOf.get(row.playerId) ?? ++overflow })
+    mapped.forEach((row) => { row.rank = rankOf.get(row.playerId)! })
     return mapped
   }
 

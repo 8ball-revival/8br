@@ -48,11 +48,13 @@ export default async function RankingsPage({
 
   return (
     <Wide name="rankings" className="py-6">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
-        {/* Derived from the newest canonical result, never from the clock — a "last updated" that
-            reports the page load says only that somebody opened the page. */}
-        {freshness.lastResultAt && (
+      <RankingsExplorer
+        rows={rows}
+        facets={facets}
+        state={state}
+        // Derived from the newest canonical result, never from the clock — a "last updated" that
+        // reports the page load says only that somebody opened the page.
+        heading={freshness.lastResultAt ? (
           <p className="text-xs text-muted-foreground">
             Last updated{' '}
             <time dateTime={freshness.lastResultAt}>
@@ -62,10 +64,8 @@ export default async function RankingsPage({
             {' · '}
             <span className="tabular-nums">{freshness.rankedMatches.toLocaleString()}</span> ranked matches
           </p>
-        )}
-      </div>
-
-      <RankingsExplorer rows={rows} facets={facets} state={state} />
+        ) : null}
+      />
     </Wide>
   )
 }

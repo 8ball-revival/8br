@@ -18,21 +18,22 @@
  * rating display on the site uses it — see the note on RatingCell.
  */
 
-export type RatingTier = 'gold' | 'red' | 'purple' | 'blue' | 'green' | 'grey'
+export type RatingTier = 'gold' | 'purple' | 'blue' | 'green' | 'grey'
 
 /**
  * Ordered high to low. The first band whose floor the rating reaches is the one it belongs to.
  *
- * The colour order is the owner's, not a spectrum: gold, purple, blue, green, red, grey descending.
- * Red sits LOW rather than high — an earlier revision had 1500–1599 red, which is gone. Anyone
- * reading a red rating as "elite" is reading the previous scheme.
+ * Four colours and a floor: gold, purple, blue, green descending, then grey for everything below
+ * 1300. Red is deliberately ABSENT from the bands — it belongs to first place alone, and a band
+ * sharing that colour would make the one row the colour exists to point at indistinguishable from
+ * the bottom of the table. An earlier revision had red at 1500–1599 and then at 1200–1299; both are
+ * gone.
  */
 const BANDS: { tier: RatingTier; floor: number; label: string }[] = [
   { tier: 'gold', floor: 1600, label: 'Gold' },
   { tier: 'purple', floor: 1500, label: 'Purple' },
   { tier: 'blue', floor: 1400, label: 'Blue' },
   { tier: 'green', floor: 1300, label: 'Green' },
-  { tier: 'red', floor: 1200, label: 'Red' },
   { tier: 'grey', floor: Number.NEGATIVE_INFINITY, label: 'Grey' },
 ]
 
@@ -126,9 +127,8 @@ export const RATING_BANDS: {
 }[] = [
   { id: 'top', label: '#1 Ranked', colourName: 'Red', token: '--rating-top' },
   { id: 'gold', label: '1600+', colourName: 'Gold', token: '--tier-gold' },
-  { id: 'purple', label: '1500–1599', colourName: 'Purple', token: '--tier-purple' },
-  { id: 'blue', label: '1400–1499', colourName: 'Blue', token: '--tier-blue' },
-  { id: 'green', label: '1300–1399', colourName: 'Green', token: '--tier-green' },
-  { id: 'red', label: '1200–1299', colourName: 'Red', token: '--tier-red' },
-  { id: 'grey', label: 'Below 1200', colourName: 'Grey', token: '--tier-grey' },
+  { id: 'purple', label: '1500+', colourName: 'Purple', token: '--tier-purple' },
+  { id: 'blue', label: '1400+', colourName: 'Blue', token: '--tier-blue' },
+  { id: 'green', label: '1300+', colourName: 'Green', token: '--tier-green' },
+  { id: 'grey', label: 'Below 1299', colourName: 'Grey', token: '--tier-grey' },
 ]
