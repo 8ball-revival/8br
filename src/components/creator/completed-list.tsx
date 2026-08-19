@@ -56,7 +56,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
           {([
             ['all', 'All', page.facets.counts.all],
             ['seasons', 'Seasons', page.facets.counts.seasons],
-            ['tournaments', 'Tournaments', page.facets.counts.tournaments],
+            ['cups', 'Cups', page.facets.counts.tournaments],
           ] as const).map(([id, label, count]) => (
             <button
               key={id}
@@ -132,12 +132,12 @@ export function CompletedList({ page }: { page: CompletedPage }) {
         <div className="scrollbar-themed overflow-x-auto rounded-md border border-border">
           <table className="w-full min-w-max border-separate border-spacing-0 text-sm">
             <caption className="sr-only">
-              Completed Seasons and Tournaments. Selecting a row opens it in Creator; the archive
+              Completed Seasons and Cups. Selecting a row opens it in Creator; the archive
               link opens the public read-only page.
             </caption>
             <thead>
               <tr>
-                {['Type', 'Competition', 'Season / Tournament', 'Year', 'Division', 'Entrants', 'Champion', 'Data', 'Completed', ''].map((h, i) => (
+                {['Type', 'Competition', 'Season / Cup', 'Year', 'Division', 'Entrants', 'Champion', 'Data', 'Completed', ''].map((h, i) => (
                   <th
                     key={h || 'actions'}
                     scope="col"
@@ -171,7 +171,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
                     <td className="whitespace-nowrap border-b border-border/60 px-3 py-2">
                       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Icon className="size-3.5" aria-hidden />
-                        {r.kind === 'season' ? 'Season' : 'Tournament'}
+                        {r.kind === 'season' ? 'Season' : 'Cup'}
                       </span>
                     </td>
                     <td className="whitespace-nowrap border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">

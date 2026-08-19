@@ -29,7 +29,7 @@ export interface ActionResult {
 
 /** Revalidate the tournament page + every snapshot-derived surface after a tournament edit. */
 function revalidateTournament(number?: number | null) {
-  if (number != null) revalidatePath(`/tournaments/${number}`)
+  if (number != null) revalidatePath(`/cups/${number}`)
   for (const p of ['/cups', '/', '/rankings', '/hall-of-fame', '/players', '/records', '/seasons']) revalidatePath(p)
 }
 

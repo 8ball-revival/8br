@@ -34,7 +34,7 @@ export default async function CreatorCompletedPage({
   const type = one('type')
 
   const page = await listCompleted({
-    type: type === 'seasons' || type === 'tournaments' ? type : 'all',
+    type: type === 'seasons' || type === 'cups' ? type : 'all',
     competitionSeriesId: int(one('comp')),
     year: int(one('year')),
     division: one('division') ?? null,

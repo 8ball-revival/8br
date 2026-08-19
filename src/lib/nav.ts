@@ -26,7 +26,7 @@ export const LIVE_MENU: NavMenu = {
   live: true,
   items: [
     { label: 'Seasons', href: '/live/seasons' },
-    { label: 'Tournaments', href: '/live/tournaments' },
+    { label: 'Cups', href: '/live/cups' },
   ],
 }
 
@@ -34,7 +34,7 @@ export const ARCHIVES_MENU: NavMenu = {
   label: 'Archives',
   items: [
     { label: 'Seasons', href: '/archives/seasons' },
-    { label: 'Tournaments', href: '/archives/tournaments' },
+    { label: 'Cups', href: '/archives/cups' },
   ],
 }
 

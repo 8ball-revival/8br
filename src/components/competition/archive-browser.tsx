@@ -22,7 +22,7 @@ export function ArchiveBrowser({
   page, kind, showDivision = false,
 }: {
   page: ArchivePage
-  kind: 'seasons' | 'tournaments'
+  kind: 'seasons' | 'cups'
   showDivision?: boolean
 }) {
   const router = useRouter()

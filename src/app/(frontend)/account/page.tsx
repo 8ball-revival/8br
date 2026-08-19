@@ -93,7 +93,7 @@ export default async function AccountPage() {
               a tournament&apos;s page.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button asChild><Link href="/tournaments">Browse tournaments</Link></Button>
+              <Button asChild><Link href="/archives/cups">Browse Cups</Link></Button>
               <Button asChild variant="ghost"><Link href="/rankings">Rankings</Link></Button>
             </div>
           </CardContent>

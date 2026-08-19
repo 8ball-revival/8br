@@ -39,7 +39,7 @@ export interface CompletedRow {
 }
 
 export interface CompletedQuery {
-  type?: 'all' | 'seasons' | 'tournaments'
+  type?: 'all' | 'seasons' | 'cups'
   competitionSeriesId?: number | null
   year?: number | null
   division?: string | null
@@ -113,7 +113,7 @@ export async function listCompleted(q: CompletedQuery = {}): Promise<CompletedPa
     id: t.id,
     title: t.name,
     number: null,
-    competition: 'Tournament',
+    competition: 'Cup',
     competitionSeriesId: null,
     year: t.competitionYear,
     division: null,
@@ -121,15 +121,15 @@ export async function listCompleted(q: CompletedQuery = {}): Promise<CompletedPa
     champion: t.championHandle || t.championName || null,
     completeness: t.dataCompleteness === 'partial' ? 'partial' : 'full',
     completedAt: t.archivedAt?.toISOString() ?? null,
-    href: `/creator/tournaments/${t.id}`,
-    publicHref: `/tournaments/${t.number ?? t.id}`,
+    href: `/creator/cups/${t.id}`,
+    publicHref: `/cups/${t.number ?? t.id}`,
   }))
 
   const all = [...seasons, ...tournaments]
   const counts = { all: all.length, seasons: seasons.length, tournaments: tournaments.length }
 
   const type = q.type ?? 'all'
-  let rows = type === 'seasons' ? seasons : type === 'tournaments' ? tournaments : all
+  let rows = type === 'seasons' ? seasons : type === 'cups' ? tournaments : all
 
   // Facets come from the TYPE-SELECTED set, so choosing Tournaments cannot offer a Season-only
   // Competition that would then match nothing.

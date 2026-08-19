@@ -114,7 +114,7 @@ function SignInPrompt({ number }: { number: number }) {
     <div className="flex flex-wrap items-center gap-3">
       <Lock className="size-4 text-muted-foreground" aria-hidden />
       <p className="text-sm text-muted-foreground">Sign in to start or join a team.</p>
-      <Button asChild size="sm"><Link href={`/login?returnTo=${encodeURIComponent(`/tournaments/${number}`)}`}>Sign in</Link></Button>
+      <Button asChild size="sm"><Link href={`/login?returnTo=${encodeURIComponent(`/cups/${number}`)}`}>Sign in</Link></Button>
     </div>
   )
 }

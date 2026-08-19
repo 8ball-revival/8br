@@ -11,25 +11,25 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export const metadata: Metadata = pageMetadata({
-  title: 'Live Tournaments',
-  description: 'Tournaments currently under way at the 8 Ball Registry.',
-  path: '/live/tournaments',
+  title: 'Live Cups',
+  description: 'Cups currently under way at the 8 Ball Registry.',
+  path: '/live/cups',
 })
 
 /** Seasons under way. Viewing only — every management control lives in Creator. */
 export default async function LiveSeasonsPage() {
   const cards = await getLiveTournaments()
   return (
-    <Wide name="live-tournaments" className="py-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Live Tournaments</h1>
+    <Wide name="live-cups" className="py-6">
+      <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Live Cups</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Tournaments with registration open or play under way.
+        Cups with registration open or play under way.
       </p>
 
       {cards.length === 0 ? (
         <p className="mt-8 rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          No Tournaments are running right now. Completed Tournaments are in the{' '}
-          <a href="/archives/tournaments" className="text-[var(--gold)] hover:underline">Archives</a>.
+          No Cups are running right now. Completed Cups are in the{' '}
+          <a href="/archives/cups" className="text-[var(--gold)] hover:underline">Archives</a>.
         </p>
       ) : (
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

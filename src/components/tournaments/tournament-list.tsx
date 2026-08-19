@@ -116,7 +116,7 @@ function Row({ c, rel }: { c: TournamentListItem; rel: { display: string; relati
   const completed = !isActive(c.status)
   return (
     <li>
-      <Link href={`/tournaments/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
+      <Link href={`/cups/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="tabular text-sm font-semibold text-brand">Tournament #{c.number}</span>
           <span className="tabular text-xs text-muted-foreground">{c.code}</span>

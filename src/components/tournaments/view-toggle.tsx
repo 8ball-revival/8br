@@ -18,7 +18,7 @@ export function ViewToggle({ number, active }: { number: number; active: View })
   const tabs: View[] = ['groups', 'playoffs']
   const refs = useRef<(HTMLButtonElement | null)[]>([])
 
-  const go = (v: View) => router.push(`/tournaments/${number}?view=${v}`, { scroll: false })
+  const go = (v: View) => router.push(`/cups/${number}?view=${v}`, { scroll: false })
 
   const onKey = (e: React.KeyboardEvent, i: number) => {
     let next = i

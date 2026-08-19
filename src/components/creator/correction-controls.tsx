@@ -49,7 +49,7 @@ export function CorrectionControls({ kind, id, title, reopenedAt, errors }: Prop
     })
   }
 
-  const label = kind === 'season' ? 'Season' : 'Tournament'
+  const label = kind === 'season' ? 'Season' : 'Cup'
 
   return (
     <>
@@ -116,7 +116,7 @@ export function CorrectionControls({ kind, id, title, reopenedAt, errors }: Prop
             'It stops contributing to every player’s profile statistics.',
             kind === 'season'
               ? 'Its Season Championship and finals evidence stop counting.'
-              : 'Its Tournament Championship evidence stops counting.',
+              : 'Its Cup Title evidence stops counting.',
             'It becomes editable inside Creator.',
             'It will need completion review again before it is republished.',
           ]}

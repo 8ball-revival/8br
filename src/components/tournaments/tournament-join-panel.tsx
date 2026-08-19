@@ -46,7 +46,7 @@ export function TournamentJoinPanel({
           <Lock className="size-4 text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">Sign in to enter this tournament.</p>
           <Button asChild size="sm">
-            <Link href={`/login?returnTo=${encodeURIComponent(`/tournaments/${number}`)}`}>Sign in</Link>
+            <Link href={`/login?returnTo=${encodeURIComponent(`/cups/${number}`)}`}>Sign in</Link>
           </Button>
         </div>
       ) : entered ? (

@@ -15,7 +15,7 @@ const SECTIONS: { heading: string; points: string[] }[] = [
   {
     heading: 'What counts',
     points: [
-      'Every match with a recorded result from a completed Season or Tournament.',
+      'Every match with a recorded result from a completed Season or Cup.',
       'Group-stage and playoff matches both count, and both are shown separately in the record views.',
       'A match appears once per player however many places it is referenced from — the rating ledger holds one row per player per match.',
     ],

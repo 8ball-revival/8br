@@ -314,7 +314,7 @@ function RelatedCompetitions({ relations }: { relations: Awaited<ReturnType<type
           </Link>
         ))}
         {relations.tournaments.map((t) => (
-          <Link key={`t${t.id}`} href={`/tournaments/${t.id}`} className="rounded-md border border-border px-2.5 py-1 text-xs hover:border-brand/40 hover:text-brand">
+          <Link key={`t${t.id}`} href={`/cups/${t.id}`} className="rounded-md border border-border px-2.5 py-1 text-xs hover:border-brand/40 hover:text-brand">
             {t.name}
           </Link>
         ))}

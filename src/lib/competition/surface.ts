@@ -128,7 +128,7 @@ function tournamentCard(t: TournamentRow, participants: number): CompetitionCard
     id: t.id,
     // The title leads. The sequence number is internal and stays out of the name.
     title: t.name,
-    competition: 'Tournament',
+    competition: 'Cup',
     competitionSeriesId: null,
     year: t.competitionYear,
     number: null,
@@ -141,7 +141,7 @@ function tournamentCard(t: TournamentRow, participants: number): CompetitionCard
     lifecycle: String(t.lifecycleState ?? t.status ?? ''),
     publiclyVisible: t.publiclyVisible,
     completeness: completenessOf(t.dataCompleteness),
-    href: `/tournaments/${t.number ?? t.id}`,
+    href: `/cups/${t.number ?? t.id}`,
   }
 }
 

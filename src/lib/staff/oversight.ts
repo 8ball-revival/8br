@@ -62,7 +62,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
       registration: t.registrationStatus.replace('_', ' ').toLowerCase(),
       entrants: t._count.registrations, format: (t.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase(),
       unresolved, waitingFreeAgents: waiting, incompleteTeams,
-      manageHref: `/tournaments/${t.number}`, year: t.competitionYear,
+      manageHref: `/cups/${t.number}`, year: t.competitionYear,
     })
   }
   return rows

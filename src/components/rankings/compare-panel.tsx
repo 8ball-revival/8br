@@ -115,9 +115,9 @@ export function ComparePanel({
               {rows.map((r) => <Cell key={r.playerId}>{record(r.groupWins, r.groupLosses)}</Cell>)}</tr>
             <tr><Head label="Playoff record" />
               {rows.map((r) => <Cell key={r.playerId}>{record(r.playoffWins, r.playoffLosses)}</Cell>)}</tr>
-            <tr><Head label="Tournament record" />
+            <tr><Head label="Cup record" />
               {rows.map((r) => <Cell key={r.playerId}>{record(r.tournamentWins, r.tournamentLosses)}</Cell>)}</tr>
-            <tr><Head label={mode === 'SC' ? 'Season Championships' : 'Tournament Championships'} />
+            <tr><Head label={mode === 'SC' ? 'Season Championships' : 'Cup Titles'} />
               {rows.map((r) => <Cell key={r.playerId}>{(mode === 'SC' ? r.seasonTitles : r.tournamentTitles) || '—'}</Cell>)}</tr>
             <tr><Head label="Finals reached" />
               {rows.map((r) => <Cell key={r.playerId}>{r.finalsAppearances || '—'}</Cell>)}</tr>

@@ -10,7 +10,7 @@ import type { TournamentView } from '@/lib/tournaments/service'
 export function TournamentCard({ cup }: { cup: TournamentView }) {
   const live = cup.status === 'live'
   return (
-    <Link href={`/tournaments/${cup.number}`} className="group block">
+    <Link href={`/cups/${cup.number}`} className="group block">
       <Card
         className={cn(
           'flex h-full flex-col p-5 transition-colors group-hover:border-brand/50',

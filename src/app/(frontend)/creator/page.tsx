@@ -45,7 +45,7 @@ export default async function CreatorDashboard() {
 
       {projects.length === 0 ? (
         <p className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">
-          Nothing yet. <Link href="/creator/new" className="text-[var(--gold)] hover:underline">Create a Season or Tournament</Link> to begin.
+          Nothing yet. <Link href="/creator/new" className="text-[var(--gold)] hover:underline">Create a Season or Cup</Link> to begin.
         </p>
       ) : (
         <div className="space-y-6">
@@ -73,7 +73,7 @@ export default async function CreatorDashboard() {
                         Manage {list.length} completed {list.length === 1 ? 'record' : 'records'}
                       </span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        Search, filter and open any completed Season or Tournament to correct it.
+                        Search, filter and open any completed Season or Cup to correct it.
                       </span>
                     </span>
                     <ExternalLink className="size-4 shrink-0 text-muted-foreground" aria-hidden />

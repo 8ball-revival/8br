@@ -34,7 +34,7 @@ const NAV: { key: StaffSection; label: string; href: string; icon: typeof Layout
   { key: 'penalties', label: 'Penalties', href: '/staff/penalties', icon: Gavel, cap: 'moderate_members' },
   { key: 'competitions', label: 'Competitions', href: '/staff/competitions', icon: Trophy, cap: 'manage_competitions' },
   { key: 'staff', label: 'Staff Management', href: '/staff/staff', icon: ShieldCheck, cap: 'manage_staff' },
-  { key: 'tournaments', label: 'Competition Oversight', href: '/tournaments', icon: Trophy, cap: 'manage_competitions' },
+  { key: 'tournaments', label: 'Competition Oversight', href: '/creator', icon: Trophy, cap: 'manage_competitions' },
 ]
 
 /** Competition-admin chrome: sidebar nav + header. Nav is filtered by the signed-in

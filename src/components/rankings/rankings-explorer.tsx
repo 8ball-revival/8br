@@ -53,7 +53,7 @@ const VIEW_TABS: { id: RecordView; label: string; hint: string }[] = [
   { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
   { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
   { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
-  { id: 'tournament', label: 'Tournaments', hint: 'Standalone Tournaments only' },
+  { id: 'tournament', label: 'Cups', hint: 'Standalone Cups only' },
 ]
 
 /**
@@ -287,7 +287,7 @@ export function RankingsExplorer({ rows, facets, state }: RankingsExplorerProps)
               key={m}
               text={m === 'SC'
                 ? 'Season Championships — Seasons won. Shown with the gold diamond used for a Season title everywhere on the site.'
-                : 'Tournament Championships — standalone Tournaments won. Shown with the trophy.'}
+                : 'Cup Titles — standalone Cups won. Shown with the trophy.'}
             >
               <span
                 role="button"
@@ -392,7 +392,7 @@ export function RankingsExplorer({ rows, facets, state }: RankingsExplorerProps)
         <Select label="Season" value={state.seasonId}
           onChange={(v) => navigate({ seasonId: v, tournamentId: null })}
           options={seasonOptions.map((s) => ({ value: String(s.id), label: s.label }))} />
-        <Select label="Tournament" value={state.tournamentId}
+        <Select label="Cup" value={state.tournamentId}
           onChange={(v) => navigate({ tournamentId: v, seasonId: null })}
           options={tournamentOptions.map((t) => ({ value: String(t.id), label: t.label }))} />
 

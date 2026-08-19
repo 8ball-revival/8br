@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
   const { number } = await params
   const cup = getTournament(Number(number))
   const title = cup ? `${cup.name} — Tournament ${cup.number}` : `Tournament ${number}`
-  return { title, alternates: { canonical: `/tournaments/${number}` } }
+  return { title, alternates: { canonical: `/cups/${number}` } }
 }
 
 function TournamentHeader({
@@ -368,7 +368,7 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
   if (!ws && !cup) return null // dynamicParams=true → unknown numbers 404 here
 
   const backLink = (
-    <Link href="/tournaments" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+    <Link href="/archives/cups" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
       <ArrowLeft className="size-4" /> Tournaments
     </Link>
   )

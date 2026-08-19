@@ -190,7 +190,7 @@ async function tournamentReview(id: number): Promise<CompletionReview | null> {
     kind: 'tournament',
     id: t.id,
     title: t.name,
-    competition: 'Tournament',
+    competition: 'Cup',
     year: t.competitionYear,
     number: null,
     division: null,
@@ -290,10 +290,10 @@ async function reopenTournament(actor: Actor, id: number, reason?: string): Prom
     where: { id },
     select: { lifecycleState: true, archivedAt: true, reopenedAt: true },
   })
-  if (!t) return { ok: false, error: 'Tournament not found.' }
+  if (!t) return { ok: false, error: 'Cup not found.' }
   if (t.reopenedAt) return { ok: true, alreadyDone: true }
   if (String(t.lifecycleState) !== 'COMPLETED') {
-    return { ok: false, error: 'Only a completed Tournament can be reopened for corrections.' }
+    return { ok: false, error: 'Only a completed Cup can be reopened for corrections.' }
   }
 
   await prisma.$transaction(async (tx) => {
@@ -343,7 +343,7 @@ export async function recomplete(
   reason?: string,
 ): Promise<CorrectionResult> {
   const review = await completionReview(kind, id)
-  if (!review) return { ok: false, error: `${kind === 'season' ? 'Season' : 'Tournament'} not found.` }
+  if (!review) return { ok: false, error: `${kind === 'season' ? 'Season' : 'Cup'} not found.` }
   if (!review.reopenedAt) return { ok: true, alreadyDone: true }
   if (review.errors.length > 0) {
     return { ok: false, error: review.errors.join(' ') }
@@ -439,10 +439,10 @@ function invalidate(id: number, kind: CorrectionKind) {
   // committed by the time this runs.
   try {
     revalidatePath('/archives/seasons')
-    revalidatePath('/archives/tournaments')
+    revalidatePath('/archives/cups')
     revalidatePath('/rankings')
     revalidatePath('/creator')
-    revalidatePath(kind === 'season' ? `/seasons/${id}` : `/tournaments/${id}`)
+    revalidatePath(kind === 'season' ? `/seasons/${id}` : `/cups/${id}`)
   } catch {
     // Not in a request. Nothing is cached here, so there is nothing to invalidate.
   }

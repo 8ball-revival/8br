@@ -25,5 +25,5 @@ export default async function TournamentsIndexRedirect({
     const one = typeof v === 'string' ? v : Array.isArray(v) ? v[0] : undefined
     if (one) carried.set(key, one)
   }
-  redirect(`/archives/tournaments${carried.toString() ? `?${carried}` : ''}`)
+  redirect(`/archives/cups${carried.toString() ? `?${carried}` : ''}`)
 }

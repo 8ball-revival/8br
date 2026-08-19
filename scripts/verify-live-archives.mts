@@ -195,20 +195,22 @@ section('Navigation is built from what is actually Live')
     m1?.items.length === 1 && m1.items[0].href === '/live/seasons')
 
   const tournamentsOnly = buildNav({ live: { seasons: 0, tournaments: 3 } })
-  check('with only Tournaments Live, only Tournaments is offered',
+  check('with only Cups Live, only Cups is offered',
     menu(tournamentsOnly, 'Live')?.items.length === 1
-    && menu(tournamentsOnly, 'Live')?.items[0].href === '/live/tournaments')
+    && menu(tournamentsOnly, 'Live')?.items[0].href === '/live/cups')
+  check('...and it is labelled Cups, the public term',
+    menu(tournamentsOnly, 'Live')?.items[0].label === 'Cups')
 
   const both = buildNav({ live: { seasons: 2, tournaments: 1 } })
   check('with both, both options appear side by side',
-    menu(both, 'Live')?.items.map((i) => i.label).join('|') === 'Seasons|Tournaments')
+    menu(both, 'Live')?.items.map((i) => i.label).join('|') === 'Seasons|Cups')
   check('Live carries the live indicator', menu(both, 'Live')?.live === true)
 
   // Archives is unconditional: a type with no completed entries still has an archive, and its
   // empty state explains that better than a missing menu item.
   for (const nav of [none, seasonsOnly, tournamentsOnly, both]) {
-    check('Archives always offers both Seasons and Tournaments',
-      menu(nav, 'Archives')?.items.map((i) => i.href).join('|') === '/archives/seasons|/archives/tournaments')
+    check('Archives always offers both Seasons and Cups',
+      menu(nav, 'Archives')?.items.map((i) => i.href).join('|') === '/archives/seasons|/archives/cups')
   }
   check('Archives is never marked live', menu(none, 'Archives')?.live !== true)
 

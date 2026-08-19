@@ -491,7 +491,7 @@ export async function joinTournamentAction(_prev: FormResult, formData: FormData
   const joinPassword = String(formData.get('joinPassword') ?? '')
   const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity, joinPassword)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/tournaments/${number}`)
+  revalidatePath(`/cups/${number}`)
   revalidatePath("/tournaments")
   revalidatePath('/account')
   return { ok: true, already: res.already }
@@ -508,7 +508,7 @@ export async function withdrawTournamentAction(_prev: FormResult, formData: Form
 
   const res = await withdrawPublicRegistration(cup.id, Number(user.id), user.username)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/tournaments/${number}`)
+  revalidatePath(`/cups/${number}`)
   revalidatePath("/tournaments")
   revalidatePath('/account')
   return { ok: true }
@@ -521,7 +521,7 @@ async function playerIdentityOf(userId: number): Promise<{ userId: number; playe
   return { userId, playerId: profile.id, name: profile.primaryName, handle: profile.cueverseId }
 }
 function teamRevalidate(number: number) {
-  revalidatePath(`/tournaments/${number}`)
+  revalidatePath(`/cups/${number}`)
   revalidatePath('/tournaments')
   revalidatePath('/account')
 }

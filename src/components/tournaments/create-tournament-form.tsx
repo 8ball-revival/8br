@@ -90,7 +90,7 @@ export function CreateTournamentForm() {
     start(async () => {
       const r = await createTournamentAction(cfg)
       if (r.error || !r.number) return setError(r.error ?? 'Could not create the tournament.')
-      router.push(`/tournaments/${r.number}`)
+      router.push(`/cups/${r.number}`)
     })
   }
 
