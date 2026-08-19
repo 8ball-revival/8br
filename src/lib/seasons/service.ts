@@ -424,6 +424,17 @@ export interface SeasonSettingsPatch {
   competitionSeriesId?: number | string | null
   /** Season number — a display label, editable at any point including after the Season closes. */
   number?: number | string | null
+  /**
+   * Division code. Identity metadata, editable at any point including after the Season closes.
+   *
+   * Correcting which division a finished Season belonged to changes no result, no champion and no
+   * rating — it records a fact about the competition that was always true and simply was not
+   * captured at the time. Requiring a reopen for that would put a Season through the whole
+   * withdraw-and-reapply cycle to fix a label.
+   *
+   * Empty or null clears it, which the Rankings filter reports as "Unassigned".
+   */
+  division?: string | null
   subtitle?: string | null
   description?: string | null
   lounge?: string
@@ -435,6 +446,21 @@ export interface SeasonSettingsPatch {
   earlyRaceTo?: number
   semifinalRaceTo?: number
   finalRaceTo?: number
+}
+
+/**
+ * A division code, as stored.
+ *
+ * Short by design: these are codes like "A" and "B", not names. Anything longer is a mistake worth
+ * refusing rather than truncating, because a truncated code silently becomes a different division.
+ */
+export function normalizeDivision(raw: string | null | undefined): { ok: true; value: string | null } | { ok: false; error: string } {
+  if (raw == null) return { ok: true, value: null }
+  const v = String(raw).trim().toUpperCase()
+  if (v === '') return { ok: true, value: null }
+  if (v.length > 8) return { ok: false, error: 'A division code is at most 8 characters.' }
+  if (!/^[A-Z0-9 -]+$/.test(v)) return { ok: false, error: 'A division code uses letters, digits, spaces and hyphens only.' }
+  return { ok: true, value: v }
 }
 
 const REG_EDITABLE = new Set(['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN'])
@@ -488,6 +514,11 @@ export async function updateSeasonSettings(
     }
     data.number = parsed.value
   }
+  if (patch.division !== undefined) {
+    const d = normalizeDivision(patch.division)
+    if (!d.ok) return { ok: false, error: d.error }
+    data.division = d.value
+  }
   if (patch.subtitle !== undefined) data.subtitle = patch.subtitle?.trim() || null
   if (patch.description !== undefined) data.description = patch.description?.trim() || null
   if (patch.bannerMediaId !== undefined) data.bannerMediaId = patch.bannerMediaId?.trim() || null
@@ -528,6 +559,61 @@ export async function updateSeasonSettings(
   }
   await recordAudit(actor, { action: 'season.settings.update', entity: 'Season', entityId: seasonId, newValue: { fields: Object.keys(data) } })
   return { ok: true }
+}
+
+/**
+ * Set the division on several Seasons at once, atomically.
+ *
+ * A division correction is usually not about one Season. Divisions are a property of a set of
+ * competitions that ran alongside each other, so "these three were Division A" is a single fact,
+ * and applying it one row at a time can leave the archive half-corrected if the second write fails
+ * — a state that looks deliberate to anyone reading it later.
+ *
+ * Shares `normalizeDivision` with the settings patch, so a code accepted here is a code accepted
+ * there. Writes only the `division` column: no result, champion, rating or ledger row is touched,
+ * and a Season does not need reopening, because recording which division a finished competition
+ * belonged to asserts nothing new about how it was played.
+ *
+ * Every change is audited individually inside the same transaction, so the trail either describes
+ * every row or none of them.
+ */
+export async function setSeasonDivisions(
+  actor: Actor,
+  changes: { seasonId: number; division: string | null }[],
+): Promise<{ ok: boolean; error?: string; updated?: { seasonId: number; from: string | null; to: string | null }[] }> {
+  if (changes.length === 0) return { ok: true, updated: [] }
+
+  const normalised: { seasonId: number; value: string | null }[] = []
+  for (const c of changes) {
+    if (!Number.isInteger(c.seasonId) || c.seasonId <= 0) return { ok: false, error: 'Invalid Season id.' }
+    const d = normalizeDivision(c.division)
+    if (!d.ok) return { ok: false, error: d.error }
+    normalised.push({ seasonId: c.seasonId, value: d.value })
+  }
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const out: { seasonId: number; from: string | null; to: string | null }[] = []
+      for (const { seasonId, value } of normalised) {
+        const before = await tx.season.findUnique({ where: { id: seasonId }, select: { division: true } })
+        if (!before) throw new Error(`Season ${seasonId} not found.`)
+        if (before.division === value) { out.push({ seasonId, from: before.division, to: value }); continue }
+        await tx.season.update({ where: { id: seasonId }, data: { division: value } })
+        await recordAudit(actor, {
+          action: 'season.division.set',
+          entity: 'Season',
+          entityId: seasonId,
+          oldValue: { division: before.division },
+          newValue: { division: value },
+        }, tx)
+        out.push({ seasonId, from: before.division, to: value })
+      }
+      return out
+    })
+    return { ok: true, updated }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'The divisions could not be saved.' }
+  }
 }
 
 /** Complete portable export of a Season (entrants, snapshots, groups, results, standings,
