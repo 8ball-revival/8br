@@ -40,7 +40,8 @@ export default async function RankingsPage({
   const state = decodeRankingsState(params)
 
   const [rows, facets, freshness] = await Promise.all([
-    getExplorer(state.scope, state.view, aggregateFilters(state)),
+    // Permanently the official all-time overall table — see the note in RankingsExplorer.
+    getExplorer('all-time', 'overall', aggregateFilters(state)),
     getFacets(),
     getFreshness(),
   ])

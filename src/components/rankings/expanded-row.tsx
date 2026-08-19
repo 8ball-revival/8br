@@ -1,11 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Loader2, Trophy, Gem, Scale } from 'lucide-react'
+import { Crown, Loader2, Trophy } from 'lucide-react'
 
 import type { ExplorerRow } from '@/lib/stats/ladder-explorer'
 import type { PlayerDetail, RatingPoint } from '@/lib/stats/rankings-detail'
-import type { ChampionshipMode } from '@/lib/stats/rankings-columns'
 import { cn } from '@/lib/utils'
 
 import { AliasLine } from './identity-cell'
@@ -110,14 +109,10 @@ function RatingSpark({ points }: { points: RatingPoint[] }) {
 }
 
 export function ExpandedRow({
-  row, detail, mode, selectedForCompare, compareDisabled, onToggleCompare,
+  row, detail,
 }: {
   row: ExplorerRow
   detail: PlayerDetail | 'loading' | undefined
-  mode: ChampionshipMode
-  selectedForCompare: boolean
-  compareDisabled: boolean
-  onToggleCompare: () => void
 }) {
   if (detail === 'loading' || detail === undefined) {
     return (
@@ -128,8 +123,7 @@ export function ExpandedRow({
     )
   }
 
-  const titles = mode === 'SC' ? row.seasonTitles : row.tournamentTitles
-  const TitleIcon = mode === 'SC' ? Gem : Trophy
+  const titles = row.seasonTitles + row.tournamentTitles
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -145,8 +139,8 @@ export function ExpandedRow({
                 {c.won && (
                   <Tip text={c.kind === 'season' ? 'Won this Season' : 'Won this Cup'}>
                     {c.kind === 'season'
-                      ? <Gem className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Champion" />
-                      : <Trophy className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Champion" />}
+                      ? <Crown className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Season Champion" />
+                      : <Trophy className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Cup Titleholder" />}
                   </Tip>
                 )}
                 {c.href
@@ -193,15 +187,13 @@ export function ExpandedRow({
             tip="Standalone Cups only." />
 
           <Stat
-            label={mode === 'SC' ? 'Season Championships' : 'Cup Titles'}
+            label="Championships"
             value={titles === 0 ? '—' : (
               <span className="inline-flex items-center gap-1">
-                <TitleIcon className="size-3.5" style={{ color: 'var(--gold)' }} aria-hidden />{titles}
+                {titles}
               </span>
             )}
-            tip={mode === 'SC'
-              ? 'Seasons won, from the champion recorded on each completed Season. The competitions are listed on the left.'
-              : 'Cups won, from the titleholder recorded on each Cup. The competitions are listed on the left.'}
+            tip="Season Championships and Cup Titles together. The competitions behind them are listed on the left."
           />
           <Stat label="Finals reached" value={row.finalsAppearances || '—'}
             tip="Competitions where this player reached the final, counted from the round label stored on each match." />
@@ -330,28 +322,6 @@ export function ExpandedRow({
           >
             Full profile →
           </Link>
-          <button
-            type="button"
-            onClick={onToggleCompare}
-            disabled={compareDisabled}
-            aria-pressed={selectedForCompare}
-            className={cn(
-              'inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
-              selectedForCompare
-                ? 'border-[var(--gold)] text-[var(--gold)]'
-                : 'border-border text-muted-foreground hover:text-foreground',
-              compareDisabled && 'cursor-not-allowed opacity-40',
-            )}
-          >
-            <Scale className="size-3" aria-hidden />
-            {selectedForCompare ? 'In comparison' : 'Compare'}
-          </button>
-          {compareDisabled && (
-            <span className="text-[0.68rem] text-muted-foreground">
-              Comparison holds three players — remove one first.
-            </span>
-          )}
         </div>
       </section>
     </div>

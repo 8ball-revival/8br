@@ -1,13 +1,13 @@
 'use client'
 
 import { Fragment, useLayoutEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, Flame, Gem, Pin, Snowflake, Trophy } from 'lucide-react'
+import { ArrowDown, ArrowUp, Crown, Flame, Snowflake, Trophy } from 'lucide-react'
 
 import type { ExplorerRow } from '@/lib/stats/ladder-explorer'
 import type { PlayerDetail } from '@/lib/stats/rankings-detail'
 import {
   COLUMN_BY_KEY, isQualified,
-  type ChampionshipMode, type ColumnDef, type SortSpec,
+  type ColumnDef, type SortSpec,
 } from '@/lib/stats/rankings-columns'
 import { highestRatingOf, isHighestRating, ratingAriaLabelFor, ratingTier } from '@/lib/stats/rating-tier'
 import { cn } from '@/lib/utils'
@@ -49,7 +49,9 @@ export const PLAYER_COL_WIDTH = 'clamp(11rem, 20vw, 300px)'
  *
  * CONTROL_COL holds one 32px control plus the cell padding: 32 + 8 = 40.
  */
-const CONTROL_COL = 40
+// Rank is the FIRST column now. The pin gutter that used to sit before it is gone, along with the
+// 40px of dead space it reserved on every row.
+const CONTROL_COL = 0
 const RANK_COL = 56
 
 /**
@@ -141,15 +143,16 @@ function StreakCell({ streak }: { streak: number }) {
  * exact competitions behind the number are listed and linked — a count nobody can trace is a count
  * nobody should have to take on trust.
  */
-function TitleCell({ n, mode, onOpen, playerName }: {
+function TitleCell({ n, kind, onOpen, playerName }: {
   n: number
-  mode: ChampionshipMode
+  kind: 'season' | 'cup'
   onOpen: () => void
   playerName: string
 }) {
+  // A dash is the whole answer for nobody. An icon beside it would decorate an absence.
   if (n === 0) return <span className="text-muted-foreground">—</span>
-  const Icon = mode === 'SC' ? Gem : Trophy
-  const what = mode === 'SC' ? 'Season Championship' : 'Cup Title'
+  const Icon = kind === 'season' ? Crown : Trophy
+  const what = kind === 'season' ? 'Season Championship' : 'Cup Title'
   return (
     <button
       type="button"
@@ -211,19 +214,12 @@ function usePaneHeight(ref: React.RefObject<HTMLDivElement | null>): number | nu
 
 export interface RankingsTableProps {
   rows: ExplorerRow[]
-  pinnedRows: ExplorerRow[]
   columns: ColumnDef[]
-  mode: ChampionshipMode
   sort: SortSpec[]
   onSort: (key: string, additive: boolean) => void
   expanded: string | null
   onToggleExpand: (row: ExplorerRow) => void
   details: Record<string, PlayerDetail | 'loading'>
-  pins: string[]
-  onTogglePin: (playerId: string) => void
-  compare: string[]
-  onToggleCompare: (playerId: string) => void
-  compareFull: boolean
   minMatches: number
   /** Sticky offset for the pane, measured from the real rendered site header. */
   topOffset: number
@@ -231,7 +227,7 @@ export interface RankingsTableProps {
 }
 
 export function RankingsTable(props: RankingsTableProps) {
-  const { rows, pinnedRows, columns, topOffset, emptyMessage } = props
+  const { rows, columns, topOffset, emptyMessage } = props
 
   /*
    * The highest rating currently on the table.
@@ -241,7 +237,7 @@ export function RankingsTable(props: RankingsTableProps) {
    * row that is no longer there. Derived during render rather than stored, because it is a fact
    * about the current rows and nothing else.
    */
-  const highestRating = highestRatingOf([...rows, ...pinnedRows].map((r) => r.rating))
+  const highestRating = highestRatingOf(rows.map((r) => r.rating))
   const colSpan = columns.length + 1
   const frameRef = useRef<HTMLDivElement>(null)
   const paneHeight = usePaneHeight(frameRef)
@@ -264,41 +260,14 @@ export function RankingsTable(props: RankingsTableProps) {
           </caption>
           <thead>
             <tr>
-              <th
-                scope="col"
-                className="sticky left-0 top-0 z-40 border-b border-border bg-card px-1 py-2"
-                style={{ width: CONTROL_COL, minWidth: CONTROL_COL, maxWidth: CONTROL_COL }}
-              >
-                <span className="sr-only">Expand and pin</span>
-              </th>
               {columns.map((c) => (
                 <HeaderCell key={c.key} col={c} {...props} />
               ))}
             </tr>
           </thead>
 
-          {pinnedRows.length > 0 && (
-            <tbody data-rankings-pinned>
-              <tr>
-                <th
-                  scope="colgroup"
-                  colSpan={colSpan}
-                  className="sticky left-0 border-b border-[var(--gold)]/40 bg-white/[0.04] px-3 py-1 text-left text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--gold)]"
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <Pin className="size-3" aria-hidden />
-                    Pinned on this device — official rank unchanged
-                  </span>
-                </th>
-              </tr>
-              {pinnedRows.map((r) => (
-                <Row key={r.playerId} row={r} pinnedSection highestRating={highestRating} {...props} />
-              ))}
-            </tbody>
-          )}
-
           <tbody>
-            {rows.length === 0 && pinnedRows.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={colSpan} className="px-3 py-12 text-center text-sm text-muted-foreground">
                   {emptyMessage}
@@ -366,23 +335,19 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
 }
 
 function Row({
-  row, pinnedSection = false, highestRating = null, columns, mode, expanded, onToggleExpand, details,
-  pins, onTogglePin, compare, onToggleCompare, compareFull, minMatches,
+  row, highestRating = null, columns, expanded, onToggleExpand, details, minMatches,
 }: {
   row: ExplorerRow
-  pinnedSection?: boolean
   /** The highest rating on the whole table, so a row can tell whether it holds it. */
   highestRating?: number | null
 } & RankingsTableProps) {
-  void compare; void onToggleCompare; void compareFull
   const isOpen = expanded === row.playerId
-  const pinned = pins.includes(row.playerId)
   const qualified = isQualified(row, minMatches)
   const name = row.preferredName || row.cueverseId || 'Unknown player'
   const open = () => { if (!isOpen) onToggleExpand(row) }
 
   // Neutral lifts, never a gold wash: gold over charcoal goes brown.
-  const bg = isOpen ? 'bg-white/[0.06]' : pinnedSection ? 'bg-white/[0.03]' : 'bg-card'
+  const bg = isOpen ? 'bg-white/[0.06]' : 'bg-card'
 
   return (
     <Fragment>
@@ -394,24 +359,6 @@ function Row({
           !qualified && 'opacity-70',
         )}
       >
-        <td
-          className={cn('sticky left-0 z-10 border-b border-border/60 px-1', bg)}
-          style={{ width: CONTROL_COL, minWidth: CONTROL_COL, maxWidth: CONTROL_COL }}
-        >
-          <button
-            type="button"
-            onClick={() => onTogglePin(row.playerId)}
-            aria-pressed={pinned}
-            aria-label={`${pinned ? 'Unpin' : 'Pin'} ${name} on this device`}
-            className={cn(
-              'grid size-8 place-items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
-              pinned ? 'text-[var(--gold)]' : 'text-muted-foreground/40 hover:text-[var(--gold)]',
-            )}
-          >
-            <Pin className={cn('size-3.5', pinned && 'fill-current')} aria-hidden />
-          </button>
-        </td>
-
         {columns.map((c) => {
           const sticky = c.key === 'rank' ? { left: CONTROL_COL } : c.key === 'player' ? { left: CONTROL_COL + RANK_COL } : null
           return (
@@ -464,13 +411,13 @@ function Row({
               ) : c.key === 'currentStreak' ? (
                 <StreakCell streak={row.currentStreak} />
               ) : c.key === 'seasonTitles' ? (
-                <TitleCell n={row.seasonTitles} mode="SC" onOpen={open} playerName={name} />
+                <TitleCell n={row.seasonTitles} kind="season" onOpen={open} playerName={name} />
               ) : c.key === 'tournamentTitles' ? (
-                <TitleCell n={row.tournamentTitles} mode="TC" onOpen={open} playerName={name} />
+                <TitleCell n={row.tournamentTitles} kind="cup" onOpen={open} playerName={name} />
               ) : c.key === 'finalsAppearances' ? (
                 <EvidenceCell n={row.finalsAppearances} onOpen={open} label={`${name}: ${row.finalsAppearances} finals reached`} />
               ) : (
-                (c.format ?? ((r) => String(COLUMN_BY_KEY[c.key]?.value(r, mode) ?? '—')))(row, mode)
+                (c.format ?? ((r) => String(COLUMN_BY_KEY[c.key]?.value(r) ?? '—')))(row)
               )}
             </td>
           )
@@ -479,15 +426,8 @@ function Row({
 
       {isOpen && (
         <tr>
-          <td colSpan={columns.length + 1} className="border-b border-border bg-card/60 px-4 py-4">
-            <ExpandedRow
-              row={row}
-              detail={details[row.playerId]}
-              mode={mode}
-              selectedForCompare={compare.includes(row.playerId)}
-              compareDisabled={!compare.includes(row.playerId) && compareFull}
-              onToggleCompare={() => onToggleCompare(row.playerId)}
-            />
+          <td colSpan={columns.length} className="border-b border-border bg-card/60 px-4 py-4">
+            <ExpandedRow row={row} detail={details[row.playerId]} />
           </td>
         </tr>
       )}

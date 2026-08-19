@@ -110,3 +110,25 @@ export function ratingAriaLabelFor(
   if (isHighestRating(rating, highest)) return `${rating} rating, highest on this table`
   return ratingAriaLabel(rating)
 }
+
+/**
+ * The bands as the legend states them, in the order they are shown.
+ *
+ * Derived from the same BANDS the table colours by, and pointing at the same CSS tokens, so the
+ * legend cannot describe a colour scheme the table no longer uses. First place leads the list
+ * because it overrides everything below it.
+ */
+export const RATING_BANDS: {
+  id: string
+  label: string
+  colourName: string
+  token: string
+}[] = [
+  { id: 'top', label: '#1 Ranked', colourName: 'Red', token: '--rating-top' },
+  { id: 'gold', label: '1600+', colourName: 'Gold', token: '--tier-gold' },
+  { id: 'purple', label: '1500–1599', colourName: 'Purple', token: '--tier-purple' },
+  { id: 'blue', label: '1400–1499', colourName: 'Blue', token: '--tier-blue' },
+  { id: 'green', label: '1300–1399', colourName: 'Green', token: '--tier-green' },
+  { id: 'red', label: '1200–1299', colourName: 'Red', token: '--tier-red' },
+  { id: 'grey', label: 'Below 1200', colourName: 'Grey', token: '--tier-grey' },
+]

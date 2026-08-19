@@ -1,0 +1,154 @@
+{
+  "390": {
+    "overflow": 0,
+    "heads": [
+      "RankRank",
+      "PlayerPlayer",
+      "RatingRating",
+      "W–L–DOverall Record",
+      "Win %Win %",
+      "StreakCurrent Streak",
+      "Season W–L–DSeason Record",
+      "Playoffs W–LPlayoffs Record",
+      "Cup W–LCup Record",
+      "Season ChampionshipsSeason Championships",
+      "Cup TitlesCup Titles"
+    ],
+    "headerCount": 11,
+    "firstHeader": "RankRank",
+    "rankIsFirstCell": true,
+    "legendVisible": true,
+    "legendLines": 7,
+    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "removed": {
+      "allTime": false,
+      "groupPlay": false,
+      "presets": false,
+      "density": false,
+      "pinIcon": false,
+      "pinnedBody": false
+    },
+    "moreFilters": true,
+    "exportCsv": true,
+    "rowHeights": [
+      48.3,
+      33,
+      35
+    ],
+    "clipped": 0
+  },
+  "768": {
+    "overflow": 0,
+    "heads": [
+      "RankRank",
+      "PlayerPlayer",
+      "RatingRating",
+      "W–L–DOverall Record",
+      "Win %Win %",
+      "StreakCurrent Streak",
+      "Season W–L–DSeason Record",
+      "Playoffs W–LPlayoffs Record",
+      "Cup W–LCup Record",
+      "Season ChampionshipsSeason Championships",
+      "Cup TitlesCup Titles"
+    ],
+    "headerCount": 11,
+    "firstHeader": "RankRank",
+    "rankIsFirstCell": true,
+    "legendVisible": true,
+    "legendLines": 7,
+    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "removed": {
+      "allTime": false,
+      "groupPlay": false,
+      "presets": false,
+      "density": false,
+      "pinIcon": false,
+      "pinnedBody": false
+    },
+    "moreFilters": true,
+    "exportCsv": true,
+    "rowHeights": [
+      48.3,
+      33,
+      35
+    ],
+    "clipped": 0
+  },
+  "1180": {
+    "overflow": 0,
+    "heads": [
+      "RankRank",
+      "PlayerPlayer",
+      "RatingRating",
+      "W–L–DOverall Record",
+      "Win %Win %",
+      "StreakCurrent Streak",
+      "Season W–L–DSeason Record",
+      "Playoffs W–LPlayoffs Record",
+      "Cup W–LCup Record",
+      "Season ChampionshipsSeason Championships",
+      "Cup TitlesCup Titles"
+    ],
+    "headerCount": 11,
+    "firstHeader": "RankRank",
+    "rankIsFirstCell": true,
+    "legendVisible": true,
+    "legendLines": 7,
+    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "removed": {
+      "allTime": false,
+      "groupPlay": false,
+      "presets": false,
+      "density": false,
+      "pinIcon": false,
+      "pinnedBody": false
+    },
+    "moreFilters": true,
+    "exportCsv": true,
+    "rowHeights": [
+      48.3,
+      33,
+      35
+    ],
+    "clipped": 0
+  },
+  "1440": {
+    "overflow": 0,
+    "heads": [
+      "RankRank",
+      "PlayerPlayer",
+      "RatingRating",
+      "W–L–DOverall Record",
+      "Win %Win %",
+      "StreakCurrent Streak",
+      "Season W–L–DSeason Record",
+      "Playoffs W–LPlayoffs Record",
+      "Cup W–LCup Record",
+      "Season ChampionshipsSeason Championships",
+      "Cup TitlesCup Titles"
+    ],
+    "headerCount": 11,
+    "firstHeader": "RankRank",
+    "rankIsFirstCell": true,
+    "legendVisible": true,
+    "legendLines": 7,
+    "legendText": "#1 Ranked — Red 1600+ — Gold 1500–1599 — Purple 1400–1499 — Blue 1300–1399 — Green 1200–1299 — Red Below 1200 — Grey",
+    "removed": {
+      "allTime": false,
+      "groupPlay": false,
+      "presets": false,
+      "density": false,
+      "pinIcon": false,
+      "pinnedBody": false
+    },
+    "moreFilters": true,
+    "exportCsv": true,
+    "rowHeights": [
+      48.3,
+      33,
+      35
+    ],
+    "clipped": 0
+  }
+}

@@ -80,6 +80,8 @@ export interface ExplorerFilters {
   /** Inclusive competition-year range. Independent of `year`, which pins a single year. */
   fromYear?: number | null
   toYear?: number | null
+  /** Seasons, Cups, or both. Narrows which KIND of record contributes, not which year. */
+  eventType?: 'all' | 'seasons' | 'cups' | null
 }
 
 export interface ExplorerRow {
@@ -275,6 +277,10 @@ export async function computeExplorer(
   if (filters.year != null) add((n) => `l.comp_year = $${n}`, filters.year)
   if (filters.seasonId != null) add((n) => `l."seasonId" = $${n}`, filters.seasonId)
   if (filters.tournamentId != null) add((n) => `l."tournamentId" = $${n}`, filters.tournamentId)
+  // Seasons and Cups live in one ledger distinguished by `kind`, so the event filter is a predicate
+  // rather than a different query.
+  if (filters.eventType === 'seasons') clauses.push(`l.kind = 'season'`)
+  if (filters.eventType === 'cups') clauses.push(`l.kind <> 'season'`)
   if (filters.fromYear != null) add((n) => `l.comp_year >= $${n}`, filters.fromYear)
   if (filters.toYear != null) add((n) => `l.comp_year <= $${n}`, filters.toYear)
   if (filters.division === UNASSIGNED_DIVISION) {
@@ -288,6 +294,39 @@ export async function computeExplorer(
   const scopeClause = clauses.length ? `AND ${clauses.join(' AND ')}` : ''
 
   /**
+   * The scope a RATING is read from, which is not the scope a record is read from.
+   *
+   * A rating is a running figure: it is whatever the player's last result left it at. Reading it
+   * from the filtered set would restart everyone at 1500 on the first day of the From year and
+   * print a number that never existed — a player who arrived in 2010 already rated 1680 would be
+   * shown as a beginner.
+   *
+   * So the rating is bounded at the TOP only. Everything up to the end of the To year counts,
+   * whichever competition or division it happened in; nothing after it does, because a snapshot of
+   * 2012 must not know about 2013. The From year narrows which records and which players are shown
+   * and has no business erasing rating history that legitimately happened before it.
+   */
+  const ratingParams: unknown[] = []
+  const ratingClauses: string[] = []
+  /*
+   * The time window still applies.
+   *
+   * `current` means the rolling 365-day ladder, and its ratings are the ones getLadder publishes —
+   * so dropping this predicate would print all-time ratings under a Current heading and silently
+   * disagree with the official ladder. What the rating scope drops is the FROM bound and the
+   * competition, division and event filters, not the window itself.
+   */
+  if (scope === 'current') {
+    ratingParams.push(windowStart)
+    ratingClauses.push(`l."completedAt" >= $${params.length + ratingParams.length}`)
+  }
+  if (filters.toYear != null) {
+    ratingParams.push(filters.toYear)
+    ratingClauses.push(`l.comp_year <= $${params.length + ratingParams.length}`)
+  }
+  const ratingClause = ratingClauses.length ? `AND ${ratingClauses.join(' AND ')}` : ''
+
+  /**
    * Whether this table is showing the population the official ladder ranks.
    *
    * Decided up front so the ladder can be fetched CONCURRENTLY with the aggregate below. Both read
@@ -298,6 +337,7 @@ export async function computeExplorer(
     && filters.competitionSeriesId == null && filters.year == null
     && filters.seasonId == null && filters.tournamentId == null
     && !filters.division && filters.fromYear == null && filters.toYear == null
+    && (filters.eventType == null || filters.eventType === 'all')
 
   const officialRanks = unfiltered
     ? import('./ladder')
@@ -317,6 +357,10 @@ export async function computeExplorer(
     -- every tab and none of them would be the Ladder's.
     in_scope AS (
       SELECT l.* FROM ledger l WHERE true ${scopeClause}
+    ),
+    -- Every result up to the end of the period, unfiltered otherwise. See the note on ratingClause.
+    rating_scope AS (
+      SELECT l.* FROM ledger l WHERE true ${ratingClause}
     ),
     -- The view-filtered subset. Records, splits and appearances come from here.
     scoped AS (
@@ -362,12 +406,12 @@ export async function computeExplorer(
     -- The peak floors at the starting rating, matching getLadder's highestRating.
     latest AS (
       SELECT DISTINCT ON (s."playerId") s."playerId", s."postRating"::int AS rating
-        FROM in_scope s
+        FROM rating_scope s
        ORDER BY s."playerId", s."sequence" DESC
     ),
     peak AS (
       SELECT s."playerId", greatest(max(s."postRating"), ${ELO_START})::int AS peak_rating
-        FROM in_scope s
+        FROM rating_scope s
        GROUP BY s."playerId"
     ),
     runs AS (
@@ -472,7 +516,9 @@ export async function computeExplorer(
   type Raw = Record<string, unknown>
   let rows: Raw[]
   try {
-    rows = await prisma.$queryRawUnsafe<Raw[]>(sql, ...params)
+    // The rating bound is appended after the scope predicates, matching how its placeholder
+    // number was allocated above.
+    rows = await prisma.$queryRawUnsafe<Raw[]>(sql, ...params, ...ratingParams)
   } catch (err) {
     // A failed aggregate must not take the Ladder page down; it degrades to no explorer data.
     console.error('[ladder-explorer] aggregate failed:', err instanceof Error ? err.message : err)

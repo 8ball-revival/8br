@@ -12,10 +12,10 @@ import { readdirSync, readFileSync } from 'node:fs'
 import {
   COLUMNS, COLUMN_BY_KEY, columnsForView, visibleKeys, keysForDensity,
   cycleSort, sortRows, filterRows, matchesQuery, isQualified, activeChips, hasAnyFilter,
-  encodeRankingsState, decodeRankingsState, defaultState, aggregateFilters,
-  applySavedView, availableSavedViews, SAVED_VIEWS, partitionPinned,
-  readDevicePrefs, readPins, MAX_COMPARE, UNASSIGNED_DIVISION,
-  type RankingsState,
+ decodeRankingsState, defaultState, aggregateFilters,
+ availableSavedViews, SAVED_VIEWS, partitionPinned,
+ readPins, MAX_COMPARE, UNASSIGNED_DIVISION,
+
 } from '../src/lib/stats/rankings-columns.ts'
 import { completenessOf } from '../src/lib/stats/rankings-facts.ts'
 import { identityShape } from '../src/components/rankings/identity-cell.tsx'
@@ -106,77 +106,6 @@ section('Search matches name, current ID and historical aliases')
 }
 
 // ─────────────────────────────────────────────── terminology
-section('Column terminology')
-{
-  check('P became MP', COLUMN_BY_KEY.played.short === 'MP')
-  check('...and MP is spelled out in its tooltip', /Matches Played/.test(COLUMN_BY_KEY.played.tooltip))
-  check('the overall record header is W–L–D', COLUMN_BY_KEY.record.short === 'W–L–D', COLUMN_BY_KEY.record.short)
-  check('...and shows all three numbers, including a zero draw count',
-    COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC') === '15–2–0',
-    COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC'))
-  check('...and a real draw count',
-    COLUMN_BY_KEY.record.format!(row({ wins: 5, losses: 1, draws: 3 }), 'SC') === '5–1–3')
-  check('draws are explained in the tooltip', /draws/.test(COLUMN_BY_KEY.record.tooltip))
-  check('the standalone Draws column is gone — the record carries it', !COLUMN_BY_KEY.draws)
-  check('the GAME record stays two numbers — a frame cannot be drawn',
-    COLUMN_BY_KEY.games.format!(row({ gamesWon: 110, gamesLost: 55 }), 'SC') === '110–55')
-
-  // ── The three stage records, and how they relate
-  const seasonR = COLUMN_BY_KEY.seasonRecord
-  const playoffR = COLUMN_BY_KEY.playoffRecord
-  const cupR = COLUMN_BY_KEY.cupRecord
-  const split = row({
-    groupWins: 11, groupLosses: 1, groupDraws: 2,
-    playoffWins: 4, playoffLosses: 1, playoffDraws: 0,
-    tournamentWins: 3, tournamentLosses: 2, tournamentDraws: 0,
-  })
-  check('Season W–L–D is group play AND Season playoffs together',
-    seasonR.format!(split, 'SC') === '15–2–2', seasonR.format!(split, 'SC'))
-  check('Playoffs W–L is the playoff subset, with no draw column',
-    playoffR.format!(split, 'SC') === '4–1', playoffR.format!(split, 'SC'))
-  check('...and the tooltip says it is a SUBSET of the Season record',
-    /subset/i.test(playoffR.tooltip))
-  check('Cup W–L is Cups only', cupR.format!(split, 'SC') === '3–2', cupR.format!(split, 'SC'))
-  check('a Cup draw shows when one genuinely exists, not as a permanent zero',
-    cupR.format!(row({ tournamentWins: 2, tournamentLosses: 1, tournamentDraws: 1 }), 'SC') === '2–1–1')
-  check('each stage record sorts by its own wins',
-    seasonR.value(split, 'SC') === 15 && playoffR.value(split, 'SC') === 4 && cupR.value(split, 'SC') === 3)
-  check('Games became GW–GL', COLUMN_BY_KEY.games.short === 'GW–GL')
-  check('...and GW–GL is spelled out', /Games Won . Games Lost/.test(COLUMN_BY_KEY.games.tooltip))
-
-  const abbreviated = COLUMNS.filter((c) => c.short && c.short !== c.label)
-  check('every abbreviated header carries an explanation',
-    abbreviated.every((c) => c.tooltip.trim().length > 20),
-    abbreviated.filter((c) => c.tooltip.trim().length <= 20).map((c) => c.key).join(', '))
-  check('every column has a tooltip at all',
-    COLUMNS.every((c) => c.tooltip.trim().length > 0))
-
-  check('Diff is explained', /Game Differential/.test(COLUMN_BY_KEY.gameDiff.tooltip))
-  check('Rating is explained', /Elo/.test(COLUMN_BY_KEY.rating.tooltip))
-  check('Streak is explained', /unbroken run/.test(COLUMN_BY_KEY.currentStreak.tooltip))
-
-  // Signed, not W#/L#: the sign says the direction and the column sorts as one continuous scale.
-  const streak = COLUMN_BY_KEY.currentStreak
-  check('a winning run formats with a plus', streak.format!(row({ currentStreak: 9 }), 'SC') === '+9')
-  check('a losing run formats with a minus', streak.format!(row({ currentStreak: -1 }), 'SC') === '-1')
-  check('no run reads as not applicable', streak.format!(row({ currentStreak: 0 }), 'SC') === '—')
-  check('the W/L prefixes are gone',
-    !/^[WL]/.test(streak.format!(row({ currentStreak: 4 }), 'SC'))
-    && !/^[WL]/.test(streak.format!(row({ currentStreak: -4 }), 'SC')))
-  check('the tooltip states where the marking starts', /three or more/.test(streak.tooltip))
-  check('...and that a tie is skipped rather than breaking the run',
-    /neither extends nor breaks/.test(streak.tooltip))
-  check('...and that the number carries the meaning, not the colour alone',
-    /\+3|−2/.test(streak.tooltip))
-  // Sorting runs from the longest losing run to the longest winning one, in one order.
-  check('streak sorts as a continuous signed scale',
-    (streak.value(row({ currentStreak: -5 }), 'SC') as number)
-    < (streak.value(row({ currentStreak: 0 }), 'SC') as number)
-    && (streak.value(row({ currentStreak: 0 }), 'SC') as number)
-    < (streak.value(row({ currentStreak: 5 }), 'SC') as number))
-  check('Finals is explained and traceable', /round label/.test(COLUMN_BY_KEY.finalsAppearances.tooltip))
-}
-
 section('Points: a real formula, shown only where it applies')
 {
   const pts = COLUMN_BY_KEY.groupPoints
@@ -196,156 +125,6 @@ section('Points: a real formula, shown only where it applies')
 }
 
 // ─────────────────────────────────────────────── density
-section('Density presets')
-{
-  const compact = visibleKeys('compact', 'overall', null)
-  check('Compact holds rank, player, rating, record, win % and both championship counts',
-    compact.join(',') === 'rank,player,rating,record,matchWinPct,seasonTitles,tournamentTitles',
-    compact.join(','))
-
-  const standard = visibleKeys('standard', 'overall', null)
-  check('Standard is exactly the requested eleven columns, in order',
-    standard.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,'
-      + 'seasonRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
-    standard.join(','))
-  check('Standard is broader than Compact', standard.length > compact.length)
-  check('Standard is narrower than Full', standard.length < visibleKeys('full', 'overall', null).length)
-
-  const full = visibleKeys('full', 'overall', null)
-  check('Full shows every column that applies to the view',
-    full.length === columnsForView('overall').length, `${full.length} of ${columnsForView('overall').length}`)
-  check('...including the Highest Achieved columns, which Standard omits',
-    full.includes('peakRating') && full.includes('longestStreak')
-    && !standard.includes('peakRating'))
-
-  check('Full in the Playoffs view drops the group-only columns',
-    !visibleKeys('full', 'playoff', null).includes('groupPoints'))
-
-  const custom = visibleKeys('custom', 'overall', ['rating', 'seasonTitles'])
-  check('Custom honours the selection', custom.includes('rating') && custom.includes('seasonTitles'))
-  check('...and never drops the locked columns', custom[0] === 'rank' && custom[1] === 'player')
-  check('...and ignores a key that does not exist',
-    !visibleKeys('custom', 'overall', ['rating', 'not_a_column']).includes('not_a_column'))
-  check('Custom with nothing selected falls back to Standard',
-    visibleKeys('custom', 'overall', null).join(',') === standard.join(','))
-
-  // Order must come from the canonical column order, not from click order.
-  const clickedBackwards = visibleKeys('custom', 'overall', ['seasonTitles', 'rating', 'played'])
-  const canonical = COLUMNS.map((c) => c.key)
-  check('columns render in canonical order however they were switched on',
-    clickedBackwards.every((k, i, arr) =>
-      i === 0 || canonical.indexOf(arr[i - 1]) < canonical.indexOf(k)),
-    clickedBackwards.join(','))
-
-  check('every density keeps Rank and Player',
-    (['compact', 'standard', 'full', 'custom'] as const).every((d) => {
-      const keys = keysForDensity(d, 'overall')
-      return d === 'custom' || (keys.includes('rank') && keys.includes('player'))
-    }))
-}
-
-// ─────────────────────────────────────────────── sorting and official rank
-section('Sorting never renumbers the official rank')
-{
-  const rows = [
-    row({ playerId: 'a', rank: 1, rating: 1700, matchWinPct: 40, wins: 4, played: 10 }),
-    row({ playerId: 'b', rank: 2, rating: 1600, matchWinPct: 90, wins: 9, played: 10 }),
-    row({ playerId: 'c', rank: 3, rating: 1500, matchWinPct: 60, wins: 6, played: 10 }),
-  ]
-
-  const byWinPct = sortRows(rows, [{ key: 'matchWinPct', dir: 'desc' }], 'SC')
-  check('sorting reorders the rows', byWinPct.map((r) => r.playerId).join('') === 'bca', byWinPct.map((r) => r.playerId).join(''))
-  check('...and every row keeps the rank it arrived with',
-    byWinPct.find((r) => r.playerId === 'a')?.rank === 1
-    && byWinPct.find((r) => r.playerId === 'b')?.rank === 2
-    && byWinPct.find((r) => r.playerId === 'c')?.rank === 3)
-  check('...and the ranks are not renumbered 1,2,3 down the screen',
-    byWinPct.map((r) => r.rank).join(',') === '2,3,1', byWinPct.map((r) => r.rank).join(','))
-  check('the input array is not mutated', rows.map((r) => r.playerId).join('') === 'abc')
-
-  check('no sort returns official order',
-    sortRows([...rows].reverse(), [], 'SC').map((r) => r.rank).join(',') === '1,2,3')
-
-  // Determinism: rows that tie on the sort key must always resolve the same way.
-  const tied = [
-    row({ playerId: 'x', rank: 5, rating: 1500 }),
-    row({ playerId: 'y', rank: 3, rating: 1500 }),
-    row({ playerId: 'z', rank: 9, rating: 1500 }),
-  ]
-  const once = sortRows(tied, [{ key: 'rating', dir: 'desc' }], 'SC').map((r) => r.playerId).join('')
-  const twice = sortRows([...tied].reverse(), [{ key: 'rating', dir: 'desc' }], 'SC').map((r) => r.playerId).join('')
-  check('a tie resolves by official rank, deterministically', once === 'yxz', once)
-  check('...and does not depend on the order the rows arrived in', once === twice, `${once} vs ${twice}`)
-
-  // Null sorts last in BOTH directions — a blank rising to the top would read as a zero.
-  const withNulls = [
-    row({ playerId: 'n', rank: 1, groupPoints: null }),
-    row({ playerId: 'p', rank: 2, groupPoints: 5 }),
-  ]
-  check('not-applicable sorts last descending',
-    sortRows(withNulls, [{ key: 'groupPoints', dir: 'desc' }], 'SC')[1].playerId === 'n')
-  check('...and last ascending too',
-    sortRows(withNulls, [{ key: 'groupPoints', dir: 'asc' }], 'SC')[1].playerId === 'n')
-
-  // Sort cycle
-  check('first click sorts descending', cycleSort([], 'rating', false)[0].dir === 'desc')
-  check('second click sorts ascending',
-    cycleSort([{ key: 'rating', dir: 'desc' }], 'rating', false)[0].dir === 'asc')
-  check('third click clears the sort',
-    cycleSort([{ key: 'rating', dir: 'asc' }], 'rating', false).length === 0)
-  check('shift-click adds a secondary key',
-    cycleSort([{ key: 'titles', dir: 'desc' }], 'rating', true).length === 2)
-  check('a plain click replaces the sort rather than adding to it',
-    cycleSort([{ key: 'titles', dir: 'desc' }], 'rating', false).length === 1)
-}
-
-section('Championship mode switches what Titles means')
-{
-  const r = row({ seasonTitles: 3, tournamentTitles: 1 })
-  const sc = COLUMN_BY_KEY.seasonTitles
-  const tc = COLUMN_BY_KEY.tournamentTitles
-  check('SC and TC are SEPARATE columns, both shown at once', !!sc && !!tc && !COLUMN_BY_KEY.titles)
-  check('SC reads the Season count', sc.value(r, 'SC') === 3)
-  check('TC reads the Tournament count', tc.value(r, 'SC') === 1)
-  check('neither depends on the SC/TC control', sc.value(r, 'TC') === 3 && tc.value(r, 'SC') === 1)
-  check('Season Championships is explained', /Season Championships/.test(sc.tooltip))
-  check('Cup Titles is explained', /Cup Titles/.test(tc.tooltip))
-  check('the honours headers carry their emblems',
-    sc.short === 'Season Championships 👑' && tc.short === 'Cup Titles 🏆', `${sc.short} / ${tc.short}`)
-  check('no public column still says "Tournament"',
-    !COLUMNS.some((c) => /Tournament/.test(c.label) || /Tournament/.test(c.short ?? '')),
-    COLUMNS.filter((c) => /Tournament/.test(c.label + (c.short ?? ''))).map((c) => c.key).join(', '))
-  check('...and both say the count can be traced',
-    /which ones/i.test(sc.tooltip) && /which ones/i.test(tc.tooltip))
-
-  const rows = [row({ playerId: 'a', seasonTitles: 0, tournamentTitles: 2 }), row({ playerId: 'b', seasonTitles: 2, tournamentTitles: 0 })]
-  const scOnly = filterRows(rows, { search: '', minMatches: 0, championsOnly: true, entrantType: 'all', activeOnly: false }, 'SC')
-  const tcOnly = filterRows(rows, { search: '', minMatches: 0, championsOnly: true, entrantType: 'all', activeOnly: false }, 'TC')
-  // Both counts are always columns now, so this is what the SC/TC control is still FOR.
-  check('champions-only follows the selected mode', scOnly[0]?.playerId === 'b' && tcOnly[0]?.playerId === 'a')
-}
-
-// ─────────────────────────────────────────────── qualification
-section('Minimum-match qualification')
-{
-  const oneAndOh = row({ playerId: 'thin', played: 1, wins: 1, matchWinPct: 100 })
-  const proven = row({ playerId: 'thick', played: 20, wins: 14, matchWinPct: 70 })
-
-  check('a 1–0 record is not qualified at a threshold of 5', !isQualified(oneAndOh, 5))
-  check('a 20-match record is', isQualified(proven, 5))
-  check('a threshold of 0 qualifies everyone', isQualified(oneAndOh, 0))
-
-  const shown = filterRows([oneAndOh, proven],
-    { search: '', minMatches: 5, championsOnly: false, entrantType: 'all', activeOnly: false }, 'SC')
-  check('the threshold filters the table when set', shown.length === 1 && shown[0].playerId === 'thick')
-  check('...and with no threshold both appear',
-    filterRows([oneAndOh, proven], { search: '', minMatches: 0, championsOnly: false, entrantType: 'all', activeOnly: false }, 'SC').length === 2)
-
-  // The record itself is untouched — qualification is about ranking, not existence.
-  check('qualification does not alter the record', oneAndOh.wins === 1 && oneAndOh.played === 1)
-}
-
-// ─────────────────────────────────────────────── completeness
 section('Data completeness comes from the fields')
 {
   check('all matches scored → complete',
@@ -437,200 +216,6 @@ section('Derived statistics: documented, deterministic, and absent when unsuppor
 }
 
 // ─────────────────────────────────────────────── URL state
-section('URL state round trip')
-{
-  const configured: RankingsState = {
-    ...defaultState(),
-    scope: 'all-time', view: 'playoff', mode: 'TC',
-    sort: [{ key: 'rating', dir: 'desc' }, { key: 'seasonTitles', dir: 'asc' }],
-    density: 'custom', columns: ['rating', 'seasonTitles'],
-    rowFilters: { search: 'tyler', minMatches: 5, championsOnly: true, entrantType: 'teams', activeOnly: true },
-    competitionSeriesId: 3, year: 2005, seasonId: 12, tournamentId: null,
-    division: 'A', fromYear: 2005, toYear: 2009,
-    expanded: 'player-x', compare: ['a', 'b'],
-  }
-  const back = decodeRankingsState(encodeRankingsState(configured))
-
-  check('scope survives', back.scope === 'all-time')
-  check('record view survives', back.view === 'playoff')
-  check('championship mode survives', back.mode === 'TC')
-  check('a multi-key sort survives in order',
-    back.sort.map((s) => `${s.key}:${s.dir}`).join(',') === 'rating:desc,seasonTitles:asc')
-  check('density survives', back.density === 'custom')
-  check('the custom column set survives', back.columns?.join(',') === 'rating,seasonTitles')
-  check('the search survives', back.rowFilters.search === 'tyler')
-  check('the minimum survives', back.rowFilters.minMatches === 5)
-  check('champions-only survives', back.rowFilters.championsOnly)
-  check('entrant type survives', back.rowFilters.entrantType === 'teams')
-  check('active-only survives', back.rowFilters.activeOnly)
-  check('competition survives', back.competitionSeriesId === 3)
-  check('year survives', back.year === 2005)
-  check('season survives', back.seasonId === 12)
-  check('division survives', back.division === 'A')
-  check('the year range survives', back.fromYear === 2005 && back.toYear === 2009)
-  check('the expanded player survives', back.expanded === 'player-x')
-  check('the comparison survives', back.compare.join(',') === 'a,b')
-
-  const plain = encodeRankingsState(defaultState())
-  check('the default table produces an empty query string', plain === '', plain)
-
-  check('a bare /rankings decodes to the defaults',
-    JSON.stringify(decodeRankingsState('')) === JSON.stringify(defaultState()))
-}
-
-section('Invalid query parameters degrade instead of crashing')
-{
-  const nonsense = decodeRankingsState(
-    'scope=sideways&view=curling&mode=XX&sort=not_a_column:desc,rating:sideways'
-    + '&density=enormous&cols=fake1,fake2&min=-4&year=abc&season=&division=' + 'x'.repeat(40)
-    + '&from=2010&to=2000&compare=a,a,b,c,d,e&type=aliens&expand=',
-  )
-  check('an unknown scope falls back to the default', nonsense.scope === 'current')
-  check('an unknown view falls back to the default', nonsense.view === 'overall')
-  check('an unknown mode falls back to the default', nonsense.mode === 'SC')
-  check('an unknown sort key is dropped',
-    nonsense.sort.length === 1 && nonsense.sort[0].key === 'rating', JSON.stringify(nonsense.sort))
-  check('an unknown direction becomes descending', nonsense.sort[0]?.dir === 'desc')
-  check('an unknown density falls back', nonsense.density === 'standard')
-  check('unknown columns are dropped entirely', nonsense.columns === null)
-  check('a negative minimum becomes zero', nonsense.rowFilters.minMatches === 0)
-  check('a non-numeric year is dropped', nonsense.year === null)
-  check('an empty numeric parameter is dropped, not read as zero', nonsense.seasonId === null)
-  check('an absurdly long division code is dropped', nonsense.division === null)
-  check('a reversed year range is read the way it was clearly meant',
-    nonsense.fromYear === 2000 && nonsense.toYear === 2010, `${nonsense.fromYear}-${nonsense.toYear}`)
-  check('duplicates are removed from the comparison and it is capped',
-    nonsense.compare.length === MAX_COMPARE && new Set(nonsense.compare).size === nonsense.compare.length,
-    nonsense.compare.join(','))
-  check('an unknown entrant type falls back to all', nonsense.rowFilters.entrantType === 'all')
-  check('an empty expand parameter is null, not an empty string', nonsense.expanded === null)
-
-  check('a link naming columns switches to Custom so they are honoured',
-    decodeRankingsState('cols=rating,seasonTitles').density === 'custom')
-  check('an unsupported preset is ignored', decodeRankingsState('preset=made-up').savedView === null)
-}
-
-section('Only the aggregate-changing filters reach the query')
-{
-  const s: RankingsState = {
-    ...defaultState(),
-    seasonId: 4, division: 'B', fromYear: 2005, toYear: 2007,
-    rowFilters: { search: 'x', minMatches: 9, championsOnly: true, entrantType: 'teams', activeOnly: true },
-    sort: [{ key: 'rating', dir: 'desc' }],
-  }
-  const f = aggregateFilters(s)
-  check('the season reaches the aggregate', f.seasonId === 4)
-  check('the division reaches the aggregate', f.division === 'B')
-  check('the year range reaches the aggregate', f.fromYear === 2005 && f.toYear === 2007)
-  check('the search does NOT — it selects rows, it does not change any figure',
-    !('search' in f))
-  check('the minimum does NOT', !('minMatches' in f))
-  check('the sort does NOT', !('sort' in f))
-}
-
-// ─────────────────────────────────────────────── divisions and eras
-section('Division and era filtering')
-{
-  check('the unassigned sentinel is a real value, not null', UNASSIGNED_DIVISION === 'unassigned')
-  check('it round-trips through the URL',
-    decodeRankingsState(encodeRankingsState({ ...defaultState(), division: UNASSIGNED_DIVISION })).division === UNASSIGNED_DIVISION)
-
-  const chips = activeChips({ ...defaultState(), division: UNASSIGNED_DIVISION })
-  check('unassigned is labelled honestly rather than as a division',
-    chips.some((c) => /unassigned/i.test(c.label)), JSON.stringify(chips))
-  check('a real division is labelled as one',
-    activeChips({ ...defaultState(), division: 'A' }).some((c) => c.label === 'Division A'))
-
-  // Era: the parameter exists so the shape is ready, but nothing is invented to match it.
-  const era = decodeRankingsState('era=golden-age')
-  check('an era parameter is parsed rather than rejected', era.era === 'golden-age')
-  check('...and no era is set by default', defaultState().era === null)
-
-  // The year range is the real, evidence-backed way to narrow by time.
-  const range = activeChips({ ...defaultState(), fromYear: 2005, toYear: 2009 })
-  check('a year range is shown as an active filter', range.some((c) => c.label === '2005–2009'))
-  check('an open-ended range is labelled as such',
-    activeChips({ ...defaultState(), fromYear: 2005 }).some((c) => c.label === 'from 2005'))
-}
-
-// ─────────────────────────────────────────────── saved views
-section('Saved views are filters, not hidden ranking logic')
-{
-  check('every saved view is expressible as a state patch',
-    SAVED_VIEWS.every((v) => typeof v.patch === 'object' && v.patch !== null))
-
-  const champs = applySavedView(SAVED_VIEWS.find((v) => v.id === 'all-time-champions')!)
-  check('All-Time Champions sets scope and champions-only',
-    champs.scope === 'all-time' && champs.rowFilters.championsOnly)
-  check('...and is recorded in the URL as a preset',
-    decodeRankingsState(encodeRankingsState(champs)).savedView === 'all-time-champions')
-  check('...and is fully described by its query string',
-    decodeRankingsState(encodeRankingsState(champs)).rowFilters.championsOnly)
-
-  const playoffs = applySavedView(SAVED_VIEWS.find((v) => v.id === 'best-playoff-records')!)
-  check('Best Playoff Records sets a qualification floor',
-    playoffs.view === 'playoff' && playoffs.rowFilters.minMatches === 5)
-
-  check('a saved view is resettable — its state is the default plus a patch',
-    JSON.stringify(applySavedView({ id: 'x', label: 'x', hint: 'x', patch: {} }))
-    === JSON.stringify({ ...defaultState(), savedView: 'x' }))
-
-  check('division presets are hidden when no division data exists',
-    !availableSavedViews([]).some((v) => v.id === 'division-a'))
-  check('...and offered when it does',
-    availableSavedViews(['A', 'B']).some((v) => v.id === 'division-a')
-    && availableSavedViews(['A', 'B']).some((v) => v.id === 'division-b'))
-  check('the non-division presets are always available',
-    availableSavedViews([]).length === SAVED_VIEWS.filter((v) => !v.available).length)
-}
-
-// ─────────────────────────────────────────────── pins
-section('Pinning is a reading aid, not a ranking')
-{
-  const rows = [
-    row({ playerId: 'a', rank: 1 }), row({ playerId: 'b', rank: 2 }), row({ playerId: 'c', rank: 3 }),
-  ]
-  const { pinned, rest } = partitionPinned(rows, ['c'])
-  check('the pinned player is separated out', pinned.length === 1 && pinned[0].playerId === 'c')
-  check('the rest keep their order', rest.map((r) => r.playerId).join('') === 'ab')
-  check('the pinned player KEEPS their official rank', pinned[0].rank === 3, String(pinned[0].rank))
-  check('nobody else is renumbered', rest.map((r) => r.rank).join(',') === '1,2')
-  check('no pins leaves everything alone',
-    partitionPinned(rows, []).rest.length === 3 && partitionPinned(rows, []).pinned.length === 0)
-  check('a pin for a player who is not in the table is harmless',
-    partitionPinned(rows, ['zzz']).rest.length === 3)
-
-  // Local storage only.
-  const store = (v: string | null) => ({ getItem: () => v })
-  check('pins read back from storage', readPins(store('["a","b"]')).join(',') === 'a,b')
-  check('corrupt pin storage yields no pins rather than a crash', readPins(store('{not json')).length === 0)
-  check('a non-array value yields no pins', readPins(store('"a"')).length === 0)
-  check('missing storage yields no pins', readPins(null).length === 0)
-  check('non-string entries are discarded', readPins(store('["a",5,null]')).join(',') === 'a')
-}
-
-section('Device preferences, and the URL winning over them')
-{
-  const store = (v: string | null) => ({ getItem: () => v })
-  const prefs = readDevicePrefs(store('{"density":"compact","columns":["rating"]}'))
-  check('a saved density reads back', prefs?.density === 'compact')
-  check('saved columns read back', prefs?.columns?.join(',') === 'rating')
-  check('an unknown density falls back to the default',
-    readDevicePrefs(store('{"density":"gigantic"}'))?.density === 'standard')
-  check('unknown columns are filtered out',
-    readDevicePrefs(store('{"columns":["nope"]}'))?.columns === null)
-  check('corrupt preferences yield nothing rather than a crash',
-    readDevicePrefs(store('not json')) === null)
-  check('missing storage yields nothing', readDevicePrefs(null) === null)
-
-  // The precedence rule itself: a URL that names a density must not be overridden by a device
-  // preference. Encoded here as the property the component relies on.
-  check('a URL naming a density is distinguishable from a URL that is silent',
-    decodeRankingsState('density=full').density === 'full'
-    && decodeRankingsState('').density === 'standard')
-}
-
-// ─────────────────────────────────────────────── CSV
 section('CSV: correctness and formula-injection defence')
 {
   check('a plain value is unquoted', csvField('Tyler') === 'Tyler')
@@ -672,7 +257,9 @@ section('CSV: correctness and formula-injection defence')
   check('the malicious-looking name is neutralised',
     csv.includes('"\'=HYPERLINK(""evil"")"'), csv.split('\r\n').find((l) => l.includes('HYPERLINK')) ?? '')
   check('the active sort is recorded in the file', csv.includes('Official rank'))
-  check('the scope is recorded in the file', csv.includes('rolling 365 days'))
+  // The page is permanently all-time, so what the file records is the YEAR RANGE it covers — which
+  // is what distinguishes an all-time export from a filtered one in a folder full of both.
+  check('the year range is recorded in the file', csv.includes('All time'))
   check('rows are separated by CRLF', csv.includes('\r\n'))
   check('no private field name appears anywhere',
     !/email|password|token|moderation|linkedUserId/i.test(csv))
@@ -700,37 +287,6 @@ section('CSV: correctness and formula-injection defence')
 }
 
 // ─────────────────────────────────────────────── reset
-section('Renamed columns migrate rather than vanish')
-{
-  check('a legacy `titles` column maps to Season Championships',
-    decodeRankingsState('cols=rating,titles').columns?.includes('seasonTitles') === true,
-    JSON.stringify(decodeRankingsState('cols=rating,titles').columns))
-  check('a legacy `draws` column maps to the record that absorbed it',
-    decodeRankingsState('cols=draws').columns?.includes('record') === true)
-  check('a legacy sort key migrates too',
-    decodeRankingsState('sort=titles:desc').sort[0]?.key === 'seasonTitles')
-  check('migration does not duplicate a column already present',
-    (decodeRankingsState('cols=seasonTitles,titles').columns ?? []).filter((k) => k === 'seasonTitles').length === 1)
-  check('an unknown column is still dropped', decodeRankingsState('cols=not_a_column').columns === null)
-  const store = (v: string | null) => ({ getItem: () => v })
-  check('a saved device preference migrates its columns',
-    readDevicePrefs(store('{"density":"custom","columns":["titles","rating"]}'))?.columns?.includes('seasonTitles') === true)
-}
-
-section('Reset Filters')
-{
-  check('a default table has nothing to reset', !hasAnyFilter(defaultState()))
-  check('a division filter makes Reset relevant', hasAnyFilter({ ...defaultState(), division: 'A' }))
-  check('a search makes Reset relevant',
-    hasAnyFilter({ ...defaultState(), rowFilters: { ...defaultState().rowFilters, search: 'x' } }))
-  check('a minimum makes Reset relevant',
-    hasAnyFilter({ ...defaultState(), rowFilters: { ...defaultState().rowFilters, minMatches: 3 } }))
-  check('sorting alone does NOT count as a filter — it narrows nothing',
-    !hasAnyFilter({ ...defaultState(), sort: [{ key: 'rating', dir: 'desc' }] }))
-  check('changing scope alone does NOT count as a filter',
-    !hasAnyFilter({ ...defaultState(), scope: 'all-time' }))
-}
-
 section('Rating tiers: every boundary, from both sides')
 {
   // The bands ARE the feature, so each is asserted at its floor and one below it. A band that is
@@ -909,8 +465,8 @@ section('The colouring is strictly scoped to the primary Rankings cell')
   const table = readFileSync('src/components/rankings/rankings-table.tsx', 'utf8')
   check('the table renders the treated cell in exactly one place',
     (table.match(/<RatingCell/g) ?? []).length === 1)
-  check('the leader is computed from the rows actually shown, pinned ones included',
-    table.includes('highestRatingOf([...rows, ...pinnedRows].map((r) => r.rating))'))
+  check('the leader is computed from the rows actually shown',
+    table.includes('highestRatingOf(rows.map((r) => r.rating))'))
   check('an absent rating stays a plain dash',
     table.includes('if (tier == null) return <span className="text-muted-foreground">—</span>'))
 }

@@ -23,14 +23,15 @@ export async function GET(request: NextRequest) {
   const state = decodeRankingsState(params)
 
   const [rows, facets] = await Promise.all([
-    computeExplorer(state.scope, state.view, aggregateFilters(state)),
+    // The same permanently all-time overall aggregate the page renders.
+    computeExplorer('all-time', 'overall', aggregateFilters(state)),
     computeFacets(),
   ])
 
   const chips = activeChips(state, {
     competition: facets.competitions.find((c) => c.id === state.competitionSeriesId)?.name,
     season: facets.seasons.find((s) => s.id === state.seasonId)?.label,
-    tournament: facets.tournaments.find((t) => t.id === state.tournamentId)?.label,
+    cup: facets.tournaments.find((t) => t.id === state.tournamentId)?.label,
   })
   const filterSummary = chips.length
     ? chips.map((c) => c.label).join('; ')

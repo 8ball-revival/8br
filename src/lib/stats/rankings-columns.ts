@@ -12,7 +12,6 @@ import { UNASSIGNED_DIVISION } from './rankings-facts'
 
 export { UNASSIGNED_DIVISION }
 
-export type ChampionshipMode = 'SC' | 'TC'
 
 export type ColumnGroup =
   | 'identity' | 'match' | 'game' | 'rating' | 'highest' | 'titles' | 'group' | 'activity'
@@ -39,9 +38,9 @@ export interface ColumnDef {
   /** Explains the column, including how it is derived. Reachable by keyboard, never hover-only. */
   tooltip: string
   /** Value for sorting and export. Null means "not applicable", which always sorts last. */
-  value: (r: ExplorerRow, mode: ChampionshipMode) => number | string | null
+  value: (r: ExplorerRow) => number | string | null
   /** Rendered text. Defaults to the value. */
-  format?: (r: ExplorerRow, mode: ChampionshipMode) => string
+  format?: (r: ExplorerRow) => string
   /** Views where the column carries meaning. Omitted means every view. */
   views?: RecordView[]
   /** Rank and Player are frozen: always shown, always first, never hidden. */
@@ -124,13 +123,13 @@ export const COLUMNS: ColumnDef[] = [
       : record2(r.tournamentWins, r.tournamentLosses)),
   },
   {
-    key: 'seasonTitles', label: 'Season Championships', short: 'Season Championships 👑', group: 'titles', align: 'right',
+    key: 'seasonTitles', label: 'Season Championships', short: 'Season Championships', group: 'titles', align: 'right',
     tooltip: 'Season Championships — Seasons this player won, from the champion recorded on each completed, archived Season. Click a count to see which ones.',
     value: (r) => r.seasonTitles,
     format: (r) => dash(r.seasonTitles),
   },
   {
-    key: 'tournamentTitles', label: 'Cup Titles', short: 'Cup Titles 🏆', group: 'titles', align: 'right',
+    key: 'tournamentTitles', label: 'Cup Titles', short: 'Cup Titles', group: 'titles', align: 'right',
     tooltip: 'Cup Titles — Cups this player won, from the titleholder recorded on each completed, archived Cup. Click a count to see which ones.',
     value: (r) => r.tournamentTitles,
     format: (r) => dash(r.tournamentTitles),
@@ -256,93 +255,15 @@ export function columnsForView(view: RecordView): ColumnDef[] {
   return COLUMNS.filter((c) => !c.views || c.views.includes(view))
 }
 
-// --------------------------------------------------------------------------- density presets
-
-export type Density = 'compact' | 'standard' | 'full' | 'custom'
-
-export const DENSITIES: { id: Density; label: string; hint: string }[] = [
-  { id: 'compact', label: 'Compact', hint: 'Identity, record, win rate, rating and titles' },
-  { id: 'standard', label: 'Standard', hint: 'The figures most readers want while browsing' },
-  { id: 'full', label: 'Full', hint: 'Every statistic with real data behind it' },
-  { id: 'custom', label: 'Custom', hint: 'Choose the columns yourself' },
-]
-
 /**
- * What each preset shows.
+ * Columns that have been renamed.
  *
- * Written as ordered key lists rather than flags on the column definitions, because a preset is a
- * decision about which figures belong together — that reads better in one place than as `compact:
- * true` scattered across twenty-five definitions.
- *
- * Full is derived rather than listed: it is every column that applies to the view, so a new column
- * cannot be added and then quietly missing from the preset that promises all of them.
- */
-const COMPACT_KEYS = [
-  'rank', 'player', 'rating', 'record', 'matchWinPct', 'seasonTitles', 'tournamentTitles',
-]
-
-/**
- * Column keys that were renamed, and what they are now.
- *
- * A saved link or a stored device preference can name a column that no longer exists. Dropping it
- * silently would quietly reshape somebody's saved view; mapping it keeps the view they asked for.
+ * A shared link or a saved device preference may still name the old key. Mapping it costs one line
+ * and keeps somebody's bookmark working; dropping it loses a column they deliberately chose.
  */
 export const LEGACY_COLUMN_KEYS: Record<string, string> = {
-  // The single mode-driven Titles column, before SC and TC became separate columns.
   titles: 'seasonTitles',
-  // The standalone Draws column, absorbed into the W–L–D record.
   draws: 'record',
-}
-
-/**
- * The default table.
- *
- * Rating · the overall record · Win % · Streak · then the SAME record broken down by where it was
- * earned — Season, Season playoffs, Cup — and finally the two honours.
- *
- * The breakdown is the point. "15–2–0 overall" says how good someone is; "and 4–1 of that was in
- * Season playoffs" says when. Playoffs W–L is deliberately a SUBSET of Season W–L–D rather than a
- * disjoint slice, because that is what it is, and the tooltips say so.
- *
- * Both honours are always-visible columns rather than one that swaps: "how many Seasons AND how
- * many Cups" is one question about a player, not two views of a number.
- */
-const STANDARD_KEYS = [
-  'rank', 'player', 'rating', 'record', 'matchWinPct', 'currentStreak',
-  'seasonRecord', 'playoffRecord', 'cupRecord',
-  'seasonTitles', 'tournamentTitles',
-]
-
-export function keysForDensity(density: Density, view: RecordView): string[] {
-  const available = columnsForView(view)
-  const has = (k: string) => available.some((c) => c.key === k)
-  switch (density) {
-    case 'compact': return COMPACT_KEYS.filter(has)
-    case 'full': return available.map((c) => c.key)
-    // 'custom' with no explicit selection falls back to Standard, which is what a reader sees
-    // before they have chosen anything.
-    default: return STANDARD_KEYS.filter(has)
-  }
-}
-
-export const DEFAULT_DENSITY: Density = 'standard'
-
-/** The keys actually rendered, given a density and any explicit custom selection. */
-export function visibleKeys(
-  density: Density,
-  view: RecordView,
-  custom: string[] | null,
-): string[] {
-  const available = columnsForView(view)
-  const order = available.map((c) => c.key)
-  const chosen = density === 'custom' && custom?.length
-    ? custom.filter((k) => order.includes(k))
-    : keysForDensity(density, view)
-  // Locked columns are always present and always first, whatever the selection says, and the rest
-  // follow the canonical column order rather than the order they were switched on.
-  const locked = available.filter((c) => c.locked).map((c) => c.key)
-  const set = new Set([...locked, ...chosen])
-  return order.filter((k) => set.has(k))
 }
 
 // --------------------------------------------------------------------------- sorting
@@ -388,7 +309,6 @@ export function cycleSort(current: SortSpec[], key: string, additive: boolean): 
 export function sortRows(
   rows: ExplorerRow[],
   sort: SortSpec[],
-  mode: ChampionshipMode,
 ): ExplorerRow[] {
   const out = [...rows]
   if (sort.length === 0) return out.sort((a, b) => a.rank - b.rank)
@@ -397,8 +317,8 @@ export function sortRows(
     for (const { key, dir } of sort) {
       const col = COLUMN_BY_KEY[key]
       if (!col) continue
-      const av = col.value(a, mode)
-      const bv = col.value(b, mode)
+      const av = col.value(a)
+      const bv = col.value(b)
 
       // Null is "not applicable" and always sorts last, whichever direction is active — a blank
       // cell rising to the top on an ascending sort would read as a zero.
@@ -428,7 +348,9 @@ export function sortRows(
 export interface RowFilters {
   search: string
   minMatches: number
-  championsOnly: boolean
+  /** Season Championships and Cup Titles are separate questions, so they are separate filters. */
+  seasonChampionsOnly: boolean
+  cupChampionsOnly: boolean
   /** 'all' | 'singles' | 'teams' */
   entrantType: 'all' | 'singles' | 'teams'
   activeOnly: boolean
@@ -437,7 +359,8 @@ export interface RowFilters {
 export const EMPTY_ROW_FILTERS: RowFilters = {
   search: '',
   minMatches: 0,
-  championsOnly: false,
+  seasonChampionsOnly: false,
+  cupChampionsOnly: false,
   entrantType: 'all',
   activeOnly: false,
 }
@@ -479,12 +402,14 @@ export function isQualified(row: ExplorerRow, minMatches: number): boolean {
 export function filterRows(
   rows: ExplorerRow[],
   f: RowFilters,
-  mode: ChampionshipMode,
 ): ExplorerRow[] {
   return rows.filter((r) => {
     if (!matchesQuery(r, f.search)) return false
     if (!isQualified(r, f.minMatches)) return false
-    if (f.championsOnly && (mode === 'SC' ? r.seasonTitles : r.tournamentTitles) === 0) return false
+    // Both boxes checked means BOTH, stated in the drawer's helper text. An OR here would quietly
+    // widen the result the moment somebody ticked a second box expecting it to narrow.
+    if (f.seasonChampionsOnly && r.seasonTitles === 0) return false
+    if (f.cupChampionsOnly && r.tournamentTitles === 0) return false
     if (f.entrantType === 'singles' && r.isTeamPlayer) return false
     if (f.entrantType === 'teams' && !r.isTeamPlayer) return false
     if (f.activeOnly && !r.active) return false
@@ -495,121 +420,214 @@ export function filterRows(
 export function hasActiveRowFilters(f: RowFilters): boolean {
   return f.search.trim() !== ''
     || f.minMatches > 0
-    || f.championsOnly
+    || f.seasonChampionsOnly
+    || f.cupChampionsOnly
     || f.entrantType !== 'all'
     || f.activeOnly
 }
 
 // --------------------------------------------------------------------------- URL state
 
-export type Scope = 'current' | 'all-time'
+/**
+ * The earliest competition year the archive holds. Nothing before this exists to rank.
+ */
+export const MIN_YEAR = 2005
 
+/**
+ * The latest year a filter may reach.
+ *
+ * Read from the clock rather than written down, so the range keeps working next January without
+ * anybody remembering to edit it. A hard-coded upper bound is a bug with a delayed fuse.
+ */
+export function maxYear(now: Date = new Date()): number {
+  return now.getFullYear()
+}
+
+export type EventType = 'all' | 'seasons' | 'cups'
+
+/**
+ * Everything a reader can change about the table.
+ *
+ * Scope and record view are gone: the page is permanently the official ALL-TIME OVERALL rankings,
+ * which is the question people actually arrive with. The old Current/All-Time and
+ * Overall/Group/Playoffs/Cups switches produced four ways to answer a question nobody was asking
+ * and pushed the table itself below the fold.
+ *
+ * Columns are an explicit visible set rather than a density preset. A preset is a promise that some
+ * named group of columns belongs together, and it drifted from the truth every time a column was
+ * added; a checkbox list cannot drift.
+ */
 export interface RankingsState {
-  scope: Scope
-  view: RecordView
-  mode: ChampionshipMode
   sort: SortSpec[]
-  density: Density
-  /** Explicit column selection. Only meaningful with density 'custom'. */
-  columns: string[] | null
+  /** Optional columns currently shown. Permanent columns are never listed — they cannot be hidden. */
+  visibleColumns: string[]
   rowFilters: RowFilters
   competitionSeriesId: number | null
-  year: number | null
   seasonId: number | null
   tournamentId: number | null
   division: string | null
-  fromYear: number | null
-  toYear: number | null
-  /** Canonical era id. Always null until era metadata exists — see ExplorerFacets.eras. */
-  era: string | null
+  eventType: EventType
+  /** Inclusive competition-year bounds. Defaults span the whole archive. */
+  fromYear: number
+  toYear: number
   expanded: string | null
-  /** Players selected for comparison, at most three. */
-  compare: string[]
-  /** Which saved view produced this state, when one did. */
-  savedView: string | null
 }
 
-export function defaultState(): RankingsState {
+/**
+ * Optional columns, in the order they appear. Rank, Player and Rating are absent on purpose: they
+ * are permanent, and a list that could express hiding them would eventually be asked to.
+ */
+export const OPTIONAL_COLUMN_KEYS = [
+  'record', 'matchWinPct', 'currentStreak',
+  'seasonRecord', 'playoffRecord', 'cupRecord',
+  'seasonTitles', 'tournamentTitles',
+] as const
+
+/** Always rendered, never offered as a checkbox. */
+export const PERMANENT_COLUMN_KEYS = ['rank', 'player', 'rating'] as const
+
+export function defaultState(now: Date = new Date()): RankingsState {
   return {
-    scope: 'current',
-    view: 'overall',
-    mode: 'SC',
     sort: [],
-    density: DEFAULT_DENSITY,
-    columns: null,
+    visibleColumns: [...OPTIONAL_COLUMN_KEYS],
     rowFilters: { ...EMPTY_ROW_FILTERS },
     competitionSeriesId: null,
-    year: null,
     seasonId: null,
     tournamentId: null,
     division: null,
-    fromYear: null,
-    toYear: null,
-    era: null,
+    eventType: 'all',
+    fromYear: MIN_YEAR,
+    toYear: maxYear(now),
     expanded: null,
-    compare: [],
-    savedView: null,
   }
 }
 
-const VIEWS: RecordView[] = ['overall', 'group', 'playoff', 'tournament']
-const DENSITY_IDS: Density[] = ['compact', 'standard', 'full', 'custom']
+/** The keys actually rendered, permanent columns first and optional ones in canonical order. */
+export function visibleColumnKeys(s: RankingsState): string[] {
+  const optional = OPTIONAL_COLUMN_KEYS.filter((k) => s.visibleColumns.includes(k))
+  return ['rank', 'player', 'rating', ...optional]
+}
 
-/** The most players the comparison panel will hold. */
-export const MAX_COMPARE = 3
+/**
+ * Clamp a year into the archive's range.
+ *
+ * A pasted 1066 or 3000 is a typo, not a request for an empty table, so it is pulled to the nearest
+ * real bound rather than rejected.
+ */
+export function clampYear(value: unknown, now: Date = new Date()): number | null {
+  // Absent is not zero. `Number(null)` and `Number('')` are both 0, which is finite and would clamp
+  // to the first archived year — turning "no year given" into "the earliest year", and quietly
+  // rewriting the default upper bound to 2005 on every plain page load.
+  if (value == null || (typeof value === 'string' && value.trim() === '')) return null
+  const n = Number(value)
+  if (!Number.isFinite(n)) return null
+  return Math.min(Math.max(Math.trunc(n), MIN_YEAR), maxYear(now))
+}
+
+// --------------------------------------------------------------------------- serialisation
 
 /**
  * Serialise state to a query string.
  *
- * Defaults are omitted rather than written out, so a plain /rankings link stays clean and the
- * absence of a parameter and its default value mean exactly the same thing.
+ * Defaults are omitted, so a plain /rankings link stays clean and the absence of a parameter means
+ * exactly what its default value means. Parameters are written in one canonical order so the same
+ * view always produces the same URL and two shared links can be compared by eye.
  */
-export function encodeRankingsState(s: RankingsState): string {
+export function encodeRankingsState(s: RankingsState, now: Date = new Date()): string {
   const p = new URLSearchParams()
-  const d = defaultState()
+  const d = defaultState(now)
 
-  if (s.scope !== d.scope) p.set('scope', s.scope)
-  if (s.view !== d.view) p.set('view', s.view)
-  if (s.mode !== d.mode) p.set('mode', s.mode)
-  // "rating:desc,titles:asc" — compact and readable in a shared link.
-  if (s.sort.length) p.set('sort', s.sort.map((x) => `${x.key}:${x.dir}`).join(','))
-  if (s.density !== d.density) p.set('density', s.density)
-  if (s.density === 'custom' && s.columns?.length) p.set('cols', s.columns.join(','))
   if (s.rowFilters.search.trim()) p.set('q', s.rowFilters.search.trim())
-  if (s.rowFilters.minMatches > 0) p.set('min', String(s.rowFilters.minMatches))
-  if (s.rowFilters.championsOnly) p.set('champs', '1')
-  if (s.rowFilters.entrantType !== 'all') p.set('type', s.rowFilters.entrantType)
-  if (s.rowFilters.activeOnly) p.set('active', '1')
+  if (s.fromYear !== d.fromYear) p.set('from', String(s.fromYear))
+  if (s.toYear !== d.toYear) p.set('to', String(s.toYear))
   if (s.competitionSeriesId != null) p.set('comp', String(s.competitionSeriesId))
-  if (s.year != null) p.set('year', String(s.year))
+  if (s.eventType !== d.eventType) p.set('event', s.eventType)
   if (s.seasonId != null) p.set('season', String(s.seasonId))
-  if (s.tournamentId != null) p.set('tournament', String(s.tournamentId))
+  if (s.tournamentId != null) p.set('cup', String(s.tournamentId))
   if (s.division) p.set('division', s.division)
-  if (s.fromYear != null) p.set('from', String(s.fromYear))
-  if (s.toYear != null) p.set('to', String(s.toYear))
-  if (s.era) p.set('era', s.era)
+  if (s.rowFilters.activeOnly) p.set('active', '1')
+  if (s.rowFilters.entrantType !== 'all') p.set('type', s.rowFilters.entrantType)
+  if (s.rowFilters.seasonChampionsOnly) p.set('sc', '1')
+  if (s.rowFilters.cupChampionsOnly) p.set('tc', '1')
+  if (s.rowFilters.minMatches > 0) p.set('min', String(s.rowFilters.minMatches))
+
+  // Only written when it differs from "all optional columns", so the common case adds nothing.
+  const cols = OPTIONAL_COLUMN_KEYS.filter((k) => s.visibleColumns.includes(k))
+  if (cols.length !== OPTIONAL_COLUMN_KEYS.length) p.set('cols', cols.join(','))
+
+  if (s.sort.length) p.set('sort', s.sort.map((x) => `${x.key}:${x.dir}`).join(','))
   if (s.expanded) p.set('expand', s.expanded)
-  if (s.compare.length) p.set('compare', s.compare.join(','))
-  if (s.savedView) p.set('preset', s.savedView)
 
   return p.toString()
 }
 
 /**
+ * Parameters the redesign removed.
+ *
+ * Kept as an explicit list so an old bookmark is IGNORED rather than crashing the page, and so the
+ * fact that they were deliberately dropped is written down somewhere. Silently tolerating unknown
+ * parameters would do the same job but would not say why.
+ */
+export const OBSOLETE_PARAMS = ['scope', 'view', 'mode', 'density', 'preset', 'pins', 'compare', 'era', 'year'] as const
+
+/**
  * Read state out of a query string.
  *
- * Every value is validated against what actually exists, and anything unrecognised is DROPPED
- * rather than carried: a stale link, a truncated paste or a hand-edited parameter degrades to the
- * default table instead of rendering a broken one or throwing during a server render.
+ * Every value is validated against what actually exists, and anything unrecognised is dropped or
+ * clamped rather than carried. A stale link, a truncated paste or a hand-edited parameter must
+ * degrade to the default table — a malformed public query string is not a server error.
  */
-export function decodeRankingsState(input: URLSearchParams | string): RankingsState {
+export function decodeRankingsState(
+  input: URLSearchParams | string,
+  now: Date = new Date(),
+): RankingsState {
   const p = typeof input === 'string' ? new URLSearchParams(input) : input
-  const s = defaultState()
+  const s = defaultState(now)
 
-  if (p.get('scope') === 'all-time') s.scope = 'all-time'
-  const view = p.get('view')
-  if (view && (VIEWS as string[]).includes(view)) s.view = view as RecordView
-  if (p.get('mode') === 'TC') s.mode = 'TC'
+  s.rowFilters.search = p.get('q') ?? ''
+
+  const from = clampYear(p.get('from'), now)
+  const to = clampYear(p.get('to'), now)
+  if (from != null) s.fromYear = from
+  if (to != null) s.toYear = to
+  // A reversed range is a typo, not a request for zero rows. Reading it the way the reader clearly
+  // meant beats rendering an empty table with no explanation.
+  if (s.fromYear > s.toYear) { const swap = s.fromYear; s.fromYear = s.toYear; s.toYear = swap }
+
+  const int = (k: string): number | null => {
+    const raw = p.get(k)
+    if (raw == null || raw.trim() === '') return null
+    const v = Number(raw)
+    return Number.isFinite(v) && v > 0 ? Math.floor(v) : null
+  }
+  s.competitionSeriesId = int('comp')
+  s.seasonId = int('season')
+  s.tournamentId = int('cup')
+
+  const event = p.get('event')
+  if (event === 'seasons' || event === 'cups') s.eventType = event
+
+  const division = p.get('division')?.trim()
+  if (division && (division === UNASSIGNED_DIVISION || division.length <= 8)) s.division = division
+
+  s.rowFilters.activeOnly = p.get('active') === '1'
+  const type = p.get('type')
+  if (type === 'singles' || type === 'teams') s.rowFilters.entrantType = type
+  s.rowFilters.seasonChampionsOnly = p.get('sc') === '1'
+  s.rowFilters.cupChampionsOnly = p.get('tc') === '1'
+
+  const min = Number(p.get('min'))
+  s.rowFilters.minMatches = Number.isFinite(min) && min > 0 ? Math.floor(min) : 0
+
+  const cols = p.get('cols')
+  if (cols != null) {
+    // An empty value is a real choice — every optional column hidden — so it is honoured rather
+    // than treated as absent. Renamed keys are mapped, not dropped, or a shared link quietly loses
+    // a column somebody chose.
+    const asked = cols.split(',').map((k) => k.trim()).filter(Boolean)
+      .map((k) => LEGACY_COLUMN_KEYS[k] ?? k)
+    s.visibleColumns = OPTIONAL_COLUMN_KEYS.filter((k) => asked.includes(k))
+  }
 
   const sort = p.get('sort')
   if (sort) {
@@ -621,209 +639,48 @@ export function decodeRankingsState(input: URLSearchParams | string): RankingsSt
       .filter((x) => !!COLUMN_BY_KEY[x.key])
   }
 
-  const density = p.get('density')
-  if (density && (DENSITY_IDS as string[]).includes(density)) s.density = density as Density
-
-  const cols = p.get('cols')
-  if (cols) {
-    // A shared link may name a column that has since been renamed. Map it rather than dropping it,
-    // or somebody's saved view quietly loses a column they chose.
-    const valid = [...new Set(cols.split(',').map((k) => LEGACY_COLUMN_KEYS[k] ?? k))]
-      .filter((k) => !!COLUMN_BY_KEY[k])
-    if (valid.length) {
-      s.columns = valid
-      // A shared link that names columns is asking for those columns, whether or not it also said
-      // density=custom. Honouring the columns without switching the mode would silently discard them.
-      s.density = 'custom'
-    }
-  }
-
-  s.rowFilters.search = p.get('q') ?? ''
-  const min = Number(p.get('min'))
-  s.rowFilters.minMatches = Number.isFinite(min) && min > 0 ? Math.floor(min) : 0
-  s.rowFilters.championsOnly = p.get('champs') === '1'
-  const type = p.get('type')
-  if (type === 'singles' || type === 'teams') s.rowFilters.entrantType = type
-  s.rowFilters.activeOnly = p.get('active') === '1'
-
-  const int = (k: string): number | null => {
-    const raw = p.get(k)
-    if (raw == null || raw.trim() === '') return null
-    const v = Number(raw)
-    return Number.isFinite(v) ? Math.floor(v) : null
-  }
-  s.competitionSeriesId = int('comp')
-  s.year = int('year')
-  s.seasonId = int('season')
-  s.tournamentId = int('tournament')
-
-  const division = p.get('division')?.trim()
-  // A short code or the unassigned sentinel. Anything longer is not a division and is dropped
-  // rather than passed into the aggregate.
-  if (division && (division === UNASSIGNED_DIVISION || division.length <= 8)) s.division = division
-
-  s.fromYear = int('from')
-  s.toYear = int('to')
-  // A reversed range is a typo, not a request for zero rows. Reading it in the order the reader
-  // clearly meant beats rendering an empty table with no explanation.
-  if (s.fromYear != null && s.toYear != null && s.fromYear > s.toYear) {
-    const swap = s.fromYear; s.fromYear = s.toYear; s.toYear = swap
-  }
-
-  // Eras are only honoured once canonical era metadata exists; until then the parameter is parsed
-  // and carried but matches nothing, which is why the filter is not offered in the UI.
-  s.era = p.get('era')?.trim() || null
-
   s.expanded = p.get('expand')?.trim() || null
-
-  const compare = p.get('compare')
-  if (compare) {
-    s.compare = [...new Set(compare.split(',').map((v) => v.trim()).filter(Boolean))].slice(0, MAX_COMPARE)
-  }
-
-  const preset = p.get('preset')?.trim()
-  if (preset && SAVED_VIEWS.some((v) => v.id === preset)) s.savedView = preset
 
   return s
 }
 
+/** Whether anything differs from the default table. Drives the chips and the More Filters badge. */
+export function activeFilterGroups(s: RankingsState, now: Date = new Date()): string[] {
+  const d = defaultState(now)
+  const groups: string[] = []
+  if (s.fromYear !== d.fromYear || s.toYear !== d.toYear) groups.push('years')
+  if (s.competitionSeriesId != null) groups.push('competition')
+  if (s.eventType !== d.eventType) groups.push('event')
+  if (s.seasonId != null) groups.push('season')
+  if (s.tournamentId != null) groups.push('cup')
+  if (s.division) groups.push('division')
+  if (s.rowFilters.activeOnly) groups.push('status')
+  if (s.rowFilters.entrantType !== 'all') groups.push('entry')
+  if (s.rowFilters.seasonChampionsOnly || s.rowFilters.cupChampionsOnly) groups.push('achievements')
+  if (s.rowFilters.minMatches > 0) groups.push('minMatches')
+  // Hiding columns is ONE change however many columns it hides — a badge reading "4" because
+  // somebody unchecked four boxes would overstate how filtered the table is.
+  if (OPTIONAL_COLUMN_KEYS.some((k) => !s.visibleColumns.includes(k))) groups.push('columns')
+  return groups
+}
+
 /** The subset of state the server aggregate needs. Everything else is applied to the returned rows. */
-export function aggregateFilters(s: RankingsState) {
+export function aggregateFilters(s: RankingsState, now: Date = new Date()) {
+  const d = defaultState(now)
   return {
     competitionSeriesId: s.competitionSeriesId,
-    year: s.year,
     seasonId: s.seasonId,
     tournamentId: s.tournamentId,
     division: s.division,
-    fromYear: s.fromYear,
-    toYear: s.toYear,
+    eventType: s.eventType,
+    // Null when the range is the whole archive, so the aggregate can take its unfiltered fast path
+    // and the rating snapshot is not needlessly bounded.
+    fromYear: s.fromYear === d.fromYear ? null : s.fromYear,
+    toYear: s.toYear === d.toYear ? null : s.toYear,
   }
 }
 
 // --------------------------------------------------------------------------- saved views
-
-/**
- * Named starting points, each of which is nothing more than a set of filters and a sort.
- *
- * Deliberately no hidden logic: a saved view is defined here as a patch over the default state, it
- * writes those values into the URL like any other control, and Reset clears it the same way. If a
- * preset could rank differently from the controls it sets, it would be a second ranking system.
- */
-export interface SavedView {
-  id: string
-  label: string
-  hint: string
-  patch: Partial<RankingsState>
-  /** Only offered when the data can support it. */
-  available?: (ctx: { divisions: string[] }) => boolean
-}
-
-export const SAVED_VIEWS: SavedView[] = [
-  {
-    id: 'all-time-champions',
-    label: 'All-Time Champions',
-    hint: 'Every player with at least one championship, over all recorded competitions',
-    patch: {
-      scope: 'all-time',
-      view: 'overall',
-      rowFilters: { ...EMPTY_ROW_FILTERS, championsOnly: true },
-      sort: [{ key: 'titles', dir: 'desc' }],
-    },
-  },
-  {
-    id: 'best-playoff-records',
-    label: 'Best Playoff Records',
-    hint: 'Playoff matches only, ordered by win rate, with a floor of five matches',
-    patch: {
-      scope: 'all-time',
-      view: 'playoff',
-      rowFilters: { ...EMPTY_ROW_FILTERS, minMatches: 5 },
-      sort: [{ key: 'matchWinPct', dir: 'desc' }],
-    },
-  },
-  {
-    id: 'active-players',
-    label: 'Active Players',
-    hint: 'Current ladder, active profiles only',
-    patch: {
-      scope: 'current',
-      view: 'overall',
-      rowFilters: { ...EMPTY_ROW_FILTERS, activeOnly: true },
-      sort: [],
-    },
-  },
-  {
-    id: 'division-a',
-    label: 'Division A',
-    hint: 'Seasons recorded as Division A',
-    patch: { scope: 'all-time', division: 'A' },
-    available: ({ divisions }) => divisions.includes('A'),
-  },
-  {
-    id: 'division-b',
-    label: 'Division B',
-    hint: 'Seasons recorded as Division B',
-    patch: { scope: 'all-time', division: 'B' },
-    available: ({ divisions }) => divisions.includes('B'),
-  },
-]
-
-/** Saved views the current data can actually support. */
-export function availableSavedViews(divisions: string[]): SavedView[] {
-  return SAVED_VIEWS.filter((v) => !v.available || v.available({ divisions }))
-}
-
-export function applySavedView(view: SavedView): RankingsState {
-  return { ...defaultState(), ...view.patch, savedView: view.id }
-}
-
-// --------------------------------------------------------------------------- active filter chips
-
-export interface FilterChip { key: string; label: string }
-
-/** What is currently narrowing the table, and therefore whether Reset Filters is offered. */
-export function activeChips(
-  s: RankingsState,
-  names: {
-    competition?: string | null
-    season?: string | null
-    tournament?: string | null
-  } = {},
-): FilterChip[] {
-  const chips: FilterChip[] = []
-  if (s.competitionSeriesId != null) chips.push({ key: 'comp', label: names.competition ?? 'Competition' })
-  if (s.year != null) chips.push({ key: 'year', label: String(s.year) })
-  if (s.seasonId != null) chips.push({ key: 'season', label: names.season ?? 'Season' })
-  if (s.tournamentId != null) chips.push({ key: 'tournament', label: names.tournament ?? 'Cup' })
-  if (s.division) {
-    chips.push({
-      key: 'division',
-      label: s.division === UNASSIGNED_DIVISION ? 'Division unassigned' : `Division ${s.division}`,
-    })
-  }
-  if (s.fromYear != null || s.toYear != null) {
-    chips.push({
-      key: 'range',
-      label: s.fromYear != null && s.toYear != null ? `${s.fromYear}–${s.toYear}`
-        : s.fromYear != null ? `from ${s.fromYear}` : `to ${s.toYear}`,
-    })
-  }
-  if (s.rowFilters.search.trim()) chips.push({ key: 'q', label: `“${s.rowFilters.search.trim()}”` })
-  if (s.rowFilters.minMatches > 0) chips.push({ key: 'min', label: `${s.rowFilters.minMatches}+ matches` })
-  if (s.rowFilters.championsOnly) chips.push({ key: 'champs', label: 'Champions only' })
-  if (s.rowFilters.entrantType !== 'all') {
-    chips.push({ key: 'type', label: s.rowFilters.entrantType === 'teams' ? 'Teams' : 'Singles' })
-  }
-  if (s.rowFilters.activeOnly) chips.push({ key: 'active', label: 'Active only' })
-  return chips
-}
-
-/** True when anything other than scope, view, mode or sort is narrowing the table. */
-export function hasAnyFilter(s: RankingsState): boolean {
-  return activeChips(s).length > 0
-}
-
-// --------------------------------------------------------------------------- local device prefs
 
 /**
  * Keys for the two things stored on the device rather than on the account: the preferred column
@@ -836,10 +693,9 @@ export function hasAnyFilter(s: RankingsState): boolean {
  * URL state always wins over these — a shared link has to reproduce what the sender saw.
  */
 export const PREF_KEY = '8br.rankings.prefs'
-export const PINS_KEY = '8br.rankings.pins'
 
 export interface DevicePrefs {
-  density: Density
+  /** Optional columns this device last chose to show. */
   columns: string[] | null
 }
 
@@ -848,49 +704,110 @@ export function readDevicePrefs(storage: Pick<Storage, 'getItem'> | null | undef
     const raw = storage?.getItem(PREF_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<DevicePrefs>
-    const density = (DENSITY_IDS as string[]).includes(String(parsed.density))
-      ? parsed.density as Density
-      : DEFAULT_DENSITY
-    // Same migration for a preference saved on this device before the columns were renamed.
+    // Renamed keys are migrated rather than dropped, or a device preference quietly loses a column.
     const columns = Array.isArray(parsed.columns)
       ? [...new Set(parsed.columns
           .filter((k): k is string => typeof k === 'string')
           .map((k) => LEGACY_COLUMN_KEYS[k] ?? k))]
-        .filter((k) => !!COLUMN_BY_KEY[k])
+        .filter((k) => (OPTIONAL_COLUMN_KEYS as readonly string[]).includes(k))
       : null
-    return { density, columns: columns?.length ? columns : null }
+    return { columns }
   } catch {
     // A corrupt or foreign value is not worth a broken page.
     return null
   }
 }
 
-export function readPins(storage: Pick<Storage, 'getItem'> | null | undefined): string[] {
-  try {
-    const raw = storage?.getItem(PINS_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : []
-  } catch {
-    return []
-  }
+
+// --------------------------------------------------------------------------- applied filter chips
+
+export interface FilterChip {
+  /** Which filter this chip removes. Also the accessible identity of its remove button. */
+  key: string
+  label: string
 }
 
 /**
- * Split rows into pinned and the rest, WITHOUT renumbering anything.
+ * The applied non-default filters, as removable chips.
  *
- * The pinned rows keep the exact `rank` they were assigned by the aggregate. Pinning is a reading
- * aid; if it could change a number on the row it would be a ranking system, and a private one at
- * that.
+ * Default values produce NO chip. A chip that says "Years: 2005–2026" on an unfiltered table is
+ * noise pretending to be information, and it would make Clear All look permanently relevant.
+ *
+ * Names are passed in rather than looked up here, because this module has no database and a chip
+ * reading "Competition 4" tells nobody anything.
  */
-export function partitionPinned<T extends { playerId: string }>(
-  rows: T[],
-  pins: string[],
-): { pinned: T[]; rest: T[] } {
-  if (!pins.length) return { pinned: [], rest: rows }
-  const set = new Set(pins)
-  const pinned: T[] = []
-  const rest: T[] = []
-  for (const r of rows) (set.has(r.playerId) ? pinned : rest).push(r)
-  return { pinned, rest }
+export function activeChips(
+  s: RankingsState,
+  names: { competition?: string | null; season?: string | null; cup?: string | null } = {},
+  now: Date = new Date(),
+): FilterChip[] {
+  const d = defaultState(now)
+  const chips: FilterChip[] = []
+
+  if (s.fromYear !== d.fromYear || s.toYear !== d.toYear) {
+    chips.push({
+      key: 'years',
+      label: s.fromYear === s.toYear ? `Year: ${s.fromYear}` : `Years: ${s.fromYear}–${s.toYear}`,
+    })
+  }
+  if (s.competitionSeriesId != null) {
+    chips.push({ key: 'comp', label: `Competition: ${names.competition ?? s.competitionSeriesId}` })
+  }
+  if (s.eventType !== d.eventType) {
+    chips.push({ key: 'event', label: `Event: ${s.eventType === 'seasons' ? 'Seasons' : 'Cups'}` })
+  }
+  if (s.seasonId != null) chips.push({ key: 'season', label: `Season: ${names.season ?? s.seasonId}` })
+  if (s.tournamentId != null) chips.push({ key: 'cup', label: `Cup: ${names.cup ?? s.tournamentId}` })
+  if (s.division) {
+    chips.push({ key: 'division', label: `Division: ${s.division === UNASSIGNED_DIVISION ? 'Unassigned' : s.division}` })
+  }
+  if (s.rowFilters.activeOnly) chips.push({ key: 'active', label: 'Active players' })
+  if (s.rowFilters.entrantType !== 'all') {
+    chips.push({ key: 'type', label: s.rowFilters.entrantType === 'singles' ? 'Singles' : 'Teams' })
+  }
+  if (s.rowFilters.seasonChampionsOnly) chips.push({ key: 'sc', label: 'Season Champions' })
+  if (s.rowFilters.cupChampionsOnly) chips.push({ key: 'tc', label: 'Cup Titleholders' })
+  if (s.rowFilters.minMatches > 0) {
+    chips.push({ key: 'min', label: `Minimum Matches: ${s.rowFilters.minMatches}` })
+  }
+
+  // One chip for the whole column choice, however many boxes were unchecked.
+  const hidden = OPTIONAL_COLUMN_KEYS.filter((k) => !s.visibleColumns.includes(k)).length
+  if (hidden > 0) chips.push({ key: 'cols', label: `Columns: ${hidden} hidden` })
+
+  return chips
+}
+
+/**
+ * Remove one filter, returning the state it leaves behind.
+ *
+ * Each chip resets exactly its own group to the default — never the whole table — so removing
+ * "Division: B" cannot silently also drop the year range somebody set.
+ */
+export function removeChip(s: RankingsState, key: string, now: Date = new Date()): RankingsState {
+  const d = defaultState(now)
+  const next: RankingsState = { ...s, rowFilters: { ...s.rowFilters } }
+  switch (key) {
+    case 'years': next.fromYear = d.fromYear; next.toYear = d.toYear; break
+    // A Season or Cup belongs to a Competition, so dropping the Competition drops them too rather
+    // than leaving a selection that its own filter no longer permits.
+    case 'comp': next.competitionSeriesId = null; next.seasonId = null; next.tournamentId = null; break
+    case 'event': next.eventType = 'all'; next.seasonId = null; next.tournamentId = null; break
+    case 'season': next.seasonId = null; break
+    case 'cup': next.tournamentId = null; break
+    case 'division': next.division = null; break
+    case 'active': next.rowFilters.activeOnly = false; break
+    case 'type': next.rowFilters.entrantType = 'all'; break
+    case 'sc': next.rowFilters.seasonChampionsOnly = false; break
+    case 'tc': next.rowFilters.cupChampionsOnly = false; break
+    case 'min': next.rowFilters.minMatches = 0; break
+    case 'cols': next.visibleColumns = [...OPTIONAL_COLUMN_KEYS]; break
+    default: break
+  }
+  return next
+}
+
+/** Whether anything at all differs from the default table. Drives Clear All. */
+export function hasAnyFilter(s: RankingsState, now: Date = new Date()): boolean {
+  return activeFilterGroups(s, now).length > 0 || s.rowFilters.search.trim() !== ''
 }

@@ -1,8 +1,8 @@
 import type { ExplorerRow } from './ladder-explorer'
 import { completenessOf } from './rankings-facts'
 import {
-  COLUMN_BY_KEY, visibleKeys, sortRows, filterRows,
-  type ChampionshipMode, type RankingsState,
+  COLUMN_BY_KEY, visibleColumnKeys, sortRows, filterRows, defaultState,
+  type RankingsState,
 } from './rankings-columns'
 
 /**
@@ -72,21 +72,20 @@ export interface CsvOptions {
  * by someone adding a column later.
  */
 export function buildRankingsCsv({ rows, state, filterSummary }: CsvOptions): string {
-  const mode: ChampionshipMode = state.mode
-  const keys = visibleKeys(state.density, state.view, state.columns)
-    // Rank and Player are already covered by the identity columns above.
-    .filter((k) => k !== 'rank' && k !== 'player')
+  // Exactly the columns the reader had on screen. Rank and Player are dropped here because the
+  // identity columns already carry them, in a form a spreadsheet can sort on.
+  const keys = visibleColumnKeys(state).filter((k) => k !== 'rank' && k !== 'player')
 
-  const filtered = filterRows(rows, state.rowFilters, mode)
-  const ordered = sortRows(filtered, state.sort, mode)
+  const filtered = filterRows(rows, state.rowFilters)
+  const ordered = sortRows(filtered, state.sort)
 
   const lines: string[] = []
 
   // A provenance header, so a file that outlives this conversation still says what it is.
   lines.push(csvRow([`8 Ball Registry — Rankings export`]))
-  lines.push(csvRow([`Scope`, state.scope === 'current' ? 'Current (rolling 365 days)' : 'All time']))
-  lines.push(csvRow([`Record view`, state.view]))
-  lines.push(csvRow([`Championship type`, mode === 'SC' ? 'Season Championships' : 'Cup Championships']))
+  const d = defaultState()
+  const wholeArchive = state.fromYear === d.fromYear && state.toYear === d.toYear
+  lines.push(csvRow([`Years`, wholeArchive ? `All time (${state.fromYear}–${state.toYear})` : `${state.fromYear}–${state.toYear}`]))
   if (filterSummary) lines.push(csvRow([`Filters`, filterSummary]))
   lines.push(csvRow([
     `Sort`,
@@ -108,7 +107,7 @@ export function buildRankingsCsv({ rows, state, filterSummary }: CsvOptions): st
       ...keys.map((k) => {
         const col = COLUMN_BY_KEY[k]
         if (!col) return ''
-        const v = col.value(r, mode)
+        const v = col.value(r)
         return v == null ? '' : v
       }),
     ]))
@@ -122,10 +121,16 @@ export function buildRankingsCsv({ rows, state, filterSummary }: CsvOptions): st
  * Restricted to characters every filesystem accepts.
  */
 export function csvFilename(state: RankingsState, stamp: string): string {
-  const parts = ['8-ball-registry-rankings', state.scope, state.view]
+  // The year range is in the name, so an all-time export and a 2010–2012 export do not arrive in
+  // the same folder as two files nobody can tell apart.
+  const d = defaultState()
+  const wholeArchive = state.fromYear === d.fromYear && state.toYear === d.toYear
+  const parts = ['8-ball-registry-rankings', wholeArchive ? 'all-time' : `${state.fromYear}-${state.toYear}`]
+  if (state.eventType !== 'all') parts.push(state.eventType)
+  if (state.competitionSeriesId != null) parts.push(`comp-${state.competitionSeriesId}`)
   if (state.division) parts.push(`division-${state.division}`)
   if (state.seasonId != null) parts.push(`season-${state.seasonId}`)
-  if (state.tournamentId != null) parts.push(`Cup-${state.tournamentId}`)
+  if (state.tournamentId != null) parts.push(`cup-${state.tournamentId}`)
   parts.push(stamp)
   return `${parts.join('-').replace(/[^a-zA-Z0-9._-]/g, '-')}.csv`
 }
