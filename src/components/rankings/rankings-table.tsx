@@ -9,7 +9,7 @@ import {
   COLUMN_BY_KEY, isQualified,
   type ChampionshipMode, type ColumnDef, type SortSpec,
 } from '@/lib/stats/rankings-columns'
-import { ratingAriaLabel, ratingTier } from '@/lib/stats/rating-tier'
+import { highestRatingOf, isHighestRating, ratingAriaLabelFor, ratingTier } from '@/lib/stats/rating-tier'
 import { cn } from '@/lib/utils'
 
 import { ExpandedRow } from './expanded-row'
@@ -61,24 +61,30 @@ const RANK_COL = 56
 /**
  * The primary Rating value — the row's headline number.
  *
- * Deliberately the ONLY rating on the site that gets this treatment. Peak rating, the expanded
- * panel, the comparison table, player profiles, the rating-history chart and the homepage panel all
- * display ratings too; if any of them adopted the tier colour, the colour would stop meaning "this
- * is the figure the ranking is built on" and start meaning "this is a number".
+ * Coloured by band — gold, purple, blue, green, red, grey descending — with one exception laid over
+ * the top: whoever holds the highest rating on the table renders red for first place, whatever band
+ * they are actually in.
  *
- * An absent rating stays a plain neutral dash with no tier and no animation. Painting it grey would
- * make "no rating recorded" look identical to "rated below 1200", which are not the same claim.
+ * Flat colour, no glow, no animation. A layered neon version was tried and it smeared the digits;
+ * a rating that is hard to read is a worse rating however striking it looks.
  *
- * The tier is stated in the accessible label as well as the colour, because a reader who cannot see
- * the colour would otherwise get the number and none of what the colour is saying. The tier is not
- * printed on the row: forty rows each ending in the word "Gold" is noise, and the colour already
- * carries it for everyone who can see it.
+ * Deliberately the ONLY rating on the site that is coloured. Peak rating, the expanded panel, the
+ * comparison table, player profiles, the rating-history chart, Creator and the homepage all display
+ * ratings; if any of them adopted the bands, the colour would stop meaning "this is the figure the
+ * ranking is built on".
+ *
+ * An absent rating stays a plain neutral dash. Painting it grey would make "no rating recorded" look
+ * identical to "rated below 1200", which are not the same claim.
  */
-function RatingCell({ rating }: { rating: number | null }) {
+function RatingCell({ rating, highest }: { rating: number | null; highest: number | null }) {
   const tier = ratingTier(rating)
   if (tier == null) return <span className="text-muted-foreground">—</span>
+  const top = isHighestRating(rating, highest)
   return (
-    <span className={`rating-primary rating-primary--${tier}`} aria-label={ratingAriaLabel(rating)}>
+    <span
+      className={cn('rating-primary', `rating-primary--${tier}`, top && 'rating-primary--highest')}
+      aria-label={ratingAriaLabelFor(rating, highest)}
+    >
       {rating}
     </span>
   )
@@ -226,6 +232,16 @@ export interface RankingsTableProps {
 
 export function RankingsTable(props: RankingsTableProps) {
   const { rows, pinnedRows, columns, topOffset, emptyMessage } = props
+
+  /*
+   * The highest rating currently on the table.
+   *
+   * Computed from the rows actually being shown — including pinned ones, which are on the table too
+   * — so filtering to a division marks the best player IN that division rather than pointing at a
+   * row that is no longer there. Derived during render rather than stored, because it is a fact
+   * about the current rows and nothing else.
+   */
+  const highestRating = highestRatingOf([...rows, ...pinnedRows].map((r) => r.rating))
   const colSpan = columns.length + 1
   const frameRef = useRef<HTMLDivElement>(null)
   const paneHeight = usePaneHeight(frameRef)
@@ -275,7 +291,9 @@ export function RankingsTable(props: RankingsTableProps) {
                   </span>
                 </th>
               </tr>
-              {pinnedRows.map((r) => <Row key={r.playerId} row={r} pinnedSection {...props} />)}
+              {pinnedRows.map((r) => (
+                <Row key={r.playerId} row={r} pinnedSection highestRating={highestRating} {...props} />
+              ))}
             </tbody>
           )}
 
@@ -287,7 +305,7 @@ export function RankingsTable(props: RankingsTableProps) {
                 </td>
               </tr>
             )}
-            {rows.map((r) => <Row key={r.playerId} row={r} {...props} />)}
+            {rows.map((r) => <Row key={r.playerId} row={r} highestRating={highestRating} {...props} />)}
           </tbody>
         </table>
       </div>
@@ -348,9 +366,14 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
 }
 
 function Row({
-  row, pinnedSection = false, columns, mode, expanded, onToggleExpand, details,
+  row, pinnedSection = false, highestRating = null, columns, mode, expanded, onToggleExpand, details,
   pins, onTogglePin, compare, onToggleCompare, compareFull, minMatches,
-}: { row: ExplorerRow; pinnedSection?: boolean } & RankingsTableProps) {
+}: {
+  row: ExplorerRow
+  pinnedSection?: boolean
+  /** The highest rating on the whole table, so a row can tell whether it holds it. */
+  highestRating?: number | null
+} & RankingsTableProps) {
   void compare; void onToggleCompare; void compareFull
   const isOpen = expanded === row.playerId
   const pinned = pins.includes(row.playerId)
@@ -437,7 +460,7 @@ function Row({
                   />
                 </button>
               ) : c.key === 'rating' ? (
-                <RatingCell rating={row.rating} />
+                <RatingCell rating={row.rating} highest={highestRating} />
               ) : c.key === 'currentStreak' ? (
                 <StreakCell streak={row.currentStreak} />
               ) : c.key === 'seasonTitles' ? (

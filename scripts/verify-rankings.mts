@@ -20,7 +20,9 @@ import {
 import { completenessOf } from '../src/lib/stats/rankings-facts.ts'
 import { identityShape } from '../src/components/rankings/identity-cell.tsx'
 import { csvField, buildRankingsCsv } from '../src/lib/stats/rankings-csv.ts'
-import { ratingTier, ratingTierLabel, ratingAriaLabel } from '../src/lib/stats/rating-tier.ts'
+import {
+  ratingTier, ratingTierLabel, ratingAriaLabel, ratingAriaLabelFor, highestRatingOf, isHighestRating,
+} from '../src/lib/stats/rating-tier.ts'
 import { pickBestSeason, pickBestPlayoffRun, roundDepth, BEST_SEASON_MIN_MATCHES } from '../src/lib/stats/rankings-detail.ts'
 import type { ExplorerRow } from '../src/lib/stats/ladder-explorer.ts'
 
@@ -803,10 +805,77 @@ section('Rating tiers: the accessible label carries what the colour says')
     (['gold', 'red', 'purple', 'blue', 'green', 'grey'] as const).every((t) => ratingTierLabel(t).length > 0))
 }
 
-section('Rating tiers: strictly scoped to the primary Rankings cell')
+section('First place: the highest rating renders red, over its band')
 {
-  // ONE component applies the treatment. If a second file starts emitting `rating-primary`, the
-  // colour stops meaning "this is the figure the ranking is built on" and starts meaning "a number".
+  check('the largest rating wins', highestRatingOf([1400, 1667, 1200]) === 1667)
+  check('order does not matter', highestRatingOf([1667, 1400, 1200]) === 1667)
+  check('nulls are skipped', highestRatingOf([null, 1500, undefined, 1200]) === 1500)
+  check('an all-null table has no leader', highestRatingOf([null, undefined]) === null)
+  check('an empty table has no leader', highestRatingOf([]) === null)
+  check('NaN is not a rating', highestRatingOf([Number.NaN, 1300]) === 1300)
+  check('Infinity is not a rating', highestRatingOf([Number.POSITIVE_INFINITY, 1300]) === 1300)
+
+  const top = highestRatingOf([1667, 1657, 1200])
+  check('the leader is marked', isHighestRating(1667, top))
+  check('the runner-up is not', !isHighestRating(1657, top))
+  check('a missing rating is never the leader', !isHighestRating(null, top))
+  check('nothing is marked when there is no leader', !isHighestRating(1667, null))
+
+  // A genuine tie marks BOTH. Choosing one of two identical ratings would assert a difference the
+  // data does not contain, and nobody could tell which was chosen or why.
+  const tied = highestRatingOf([1667, 1667, 1400])
+  check('a tie at the top marks both holders', isHighestRating(1667, tied))
+  check('...and still not the row below', !isHighestRating(1400, tied))
+
+  // The leader keeps their BAND — the red is laid over it in CSS, not substituted for it — so the
+  // band function must be untouched by who happens to be leading.
+  check('the leader still belongs to their own band', ratingTier(1667) === 'gold')
+  check('a low-rated leader is still low-banded', ratingTier(1250) === 'red')
+
+  check('the leader is announced as the leader, not by band',
+    ratingAriaLabelFor(1667, 1667) === '1667 rating, highest on this table')
+  check('everyone else is announced by band',
+    ratingAriaLabelFor(1540, 1667) === '1540 rating, Purple tier')
+  check('a missing rating gets no label at all', ratingAriaLabelFor(null, 1667) === undefined)
+}
+
+section('No glow, and none creeping back')
+{
+  const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
+  const rule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))
+
+  // Asserted as ABSENT. The neon version smeared the digits; a colour scale is fine, a blur is not.
+  check('the rating carries no text-shadow', !rule.includes('text-shadow'))
+  check('the rating carries no animation', !rule.includes('animation'))
+  check('no breathing keyframes remain anywhere', !css.includes('rating-breathe'))
+  check('no halo tokens remain', !css.includes('-glow:'))
+
+  check('a class exists for every band',
+    (['gold', 'purple', 'blue', 'green', 'red', 'grey'] as const)
+      .every((t) => css.includes(`.rating-primary--${t}`)))
+  check('every band has a colour in both themes',
+    (css.match(/--tier-gold:/g) ?? []).length === 2 && (css.match(/--tier-grey:/g) ?? []).length === 2)
+  // Gold deliberately does NOT reuse the site token: the chrome gold is tuned to sit quietly, and
+  // the top band has to lead the eye. Same hue, turned up — so the assertion is that it is defined
+  // per theme and is brighter than the chrome gold, not that it is identical to it.
+  check('gold is its own brighter value in both themes',
+    (css.match(/--tier-gold: oklch\(/g) ?? []).length === 2)
+  check('...and it is brighter than the chrome gold it derives from', (() => {
+    const num = (re: RegExp) => [...css.matchAll(re)].map((m) => Number(m[1]))
+    const tierL = num(/--tier-gold: oklch\(([0-9.]+)/g)
+    const chromeL = num(/^  --gold: oklch\(([0-9.]+)/gm)
+    return tierL.length === 2 && chromeL.length === 2 && tierL.every((v, i) => v > chromeL[i])
+  })())
+  check('first place has its own colour in both themes',
+    (css.match(/--rating-top:/g) ?? []).length === 2)
+  check('first place is declared after the bands, so it wins the cascade',
+    css.indexOf('.rating-primary--highest') > css.indexOf('.rating-primary--grey'))
+  check('the emphasis is still bold and tabular',
+    /\.rating-primary \{[\s\S]*?font-weight: 700[\s\S]*?tabular-nums/.test(css))
+}
+
+section('The colouring is strictly scoped to the primary Rankings cell')
+{
   const others = [
     'src/components/rankings/expanded-row.tsx',
     'src/components/rankings/compare-panel.tsx',
@@ -817,12 +886,11 @@ section('Rating tiers: strictly scoped to the primary Rankings cell')
   for (const f of others) {
     let src = ''
     try { src = readFileSync(f, 'utf8') } catch { continue }
-    check(`${f} does not apply the tier treatment`, !src.includes('rating-primary'))
-    check(`${f} does not import the tier helper`, !src.includes('rating-tier'))
+    check(`${f} does not colour a rating`, !src.includes('rating-primary'))
   }
 
-  // Everything else on the site that displays a rating, swept rather than listed by hand — a new
-  // rating display added later is caught without anyone remembering to add it here.
+  // Swept rather than listed by hand, so a rating display added later is caught without anyone
+  // remembering to extend this list.
   const sweep: string[] = []
   const walk = (dir: string) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -836,55 +904,15 @@ section('Rating tiers: strictly scoped to the primary Rankings cell')
     f !== 'src/components/rankings/rankings-table.tsx'
     && f !== 'src/app/(frontend)/globals.css'
     && readFileSync(f, 'utf8').includes('rating-primary'))
-  check('no other file in src applies the tier treatment', emitters.length === 0, emitters.join(', '))
+  check('no other file in src colours a rating', emitters.length === 0, emitters.join(', '))
 
   const table = readFileSync('src/components/rankings/rankings-table.tsx', 'utf8')
-  check('the Rankings table renders the treated cell in exactly one place',
+  check('the table renders the treated cell in exactly one place',
     (table.match(/<RatingCell/g) ?? []).length === 1)
-  check('...from a single className, so there is one place the treatment is applied',
-    (table.match(/`rating-primary rating-primary--\$\{tier\}`/g) ?? []).length === 1)
-  check('...and only for the primary rating column', table.includes("c.key === 'rating' ? ("))
-  check('an absent rating stays a plain dash', table.includes('if (tier == null) return <span className="text-muted-foreground">—</span>'))
-
-  const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
-  check('only the glow is animated', css.includes('@keyframes rating-breathe'))
-  check('the animation touches nothing but text-shadow',
-    !/@keyframes rating-breathe[\s\S]{0,400}(transform|opacity|font-size|scale)/.test(css))
-  check('the breathing cycle is slow', /animation: rating-breathe 3s/.test(css))
-  check('the resting state already carries the glow, so reduced motion keeps the tier',
-    /\.rating-primary \{[\s\S]*?text-shadow:[\s\S]*?animation:/.test(css))
-
-  // Neon is two layers at different radii. One layer is a drop shadow; the gap between a tight core
-  // and a wide halo is what the eye reads as neon, so the layering is asserted rather than assumed.
-  const restRule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))
-  const shadowLayers = (restRule.match(/0 0 \d+px/g) ?? []).length
-  check('the resting glow is layered, not a single shadow', shadowLayers >= 2, String(shadowLayers))
-  const peak = css.slice(css.indexOf('@keyframes rating-breathe {'), css.indexOf('/* On a near-white'))
-  check('the animation keeps both layers', (peak.match(/0 0 \d+px/g) ?? []).length >= 4)
-  check('the glow brightens rather than flashes',
-    /50% \{[\s\S]*?78%/.test(peak) && /0%, 100% \{[\s\S]*?52%/.test(peak))
-  check('every tier has a separate brighter halo colour',
-    (['gold', 'purple', 'blue', 'green', 'red', 'grey'] as const)
-      .every((t) => css.includes(`--tier-${t}-glow:`)))
-  // Whitespace-normalised rather than matched by regex: the declarations are column-aligned in the
-  // stylesheet, and a test that breaks when someone re-indents the CSS is testing the wrong thing.
-  const flat = css.replace(/\s+/g, ' ')
-  check('the halo is a different colour from the glyph, in every tier',
-    (['gold', 'purple', 'blue', 'green', 'red', 'grey'] as const)
-      .every((t) => flat.includes(`--tier-color: var(--tier-${t}); --tier-glow: var(--tier-${t}-glow);`)))
-  check('the light theme holds the halo back rather than dropping it',
-    css.includes('.light .rating-primary') && css.includes('@keyframes rating-breathe-light'))
-  check('nothing but text-shadow is animated',
-    !/@keyframes rating-breathe[\s\S]{0,900}(transform|scale|opacity:|background|font-size)/.test(css))
-  check('the number is tabular so digits cannot shift', /\.rating-primary \{[\s\S]*?tabular-nums/.test(css))
-  check('it is bold', /\.rating-primary \{[\s\S]*?font-weight: 700/.test(css))
-  check('the size stays close to the surrounding figures', /font-size: 1\.0[0-9]em/.test(css))
-  check('every tier has a colour in both themes',
-    (css.match(/--tier-gold:/g) ?? []).length === 2 && (css.match(/--tier-grey:/g) ?? []).length === 2)
-  check('gold reuses the site token rather than a second yellow', /--tier-gold: var\(--gold\)/.test(css))
-  check('a class exists for every tier',
-    (['gold', 'red', 'purple', 'blue', 'green', 'grey'] as const)
-      .every((t) => css.includes(`.rating-primary--${t}`)))
+  check('the leader is computed from the rows actually shown, pinned ones included',
+    table.includes('highestRatingOf([...rows, ...pinnedRows].map((r) => r.rating))'))
+  check('an absent rating stays a plain dash',
+    table.includes('if (tier == null) return <span className="text-muted-foreground">—</span>'))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

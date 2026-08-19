@@ -9,6 +9,11 @@
  * The bands are closed at the bottom and open at the top: 1200 is Green, 1199 is Grey. A rating is
  * never rounded to reach a band — the number shown and the band it is in always agree.
  *
+ * On top of the bands sits ONE exception: whoever holds the highest rating on the table renders red
+ * to signify first place, whatever band they are actually in. It is the only rule here that depends
+ * on the other rows rather than on the number itself, which is why it is a separate function taking
+ * the table's highest value — a band can be decided from a rating alone, a leader cannot.
+ *
  * This is presentation only. It changes no ranking, no ordering and no tie-break, and no other
  * rating display on the site uses it — see the note on RatingCell.
  */
@@ -58,4 +63,50 @@ export function ratingAriaLabel(rating: number | null | undefined): string | und
   const tier = ratingTier(rating)
   if (tier == null) return undefined
   return `${rating} rating, ${ratingTierLabel(tier)} tier`
+}
+
+/**
+ * The largest rating among the rows given, or null when none of them has one.
+ *
+ * Null in, null out: a table of unrated players has no leader to mark, and marking a dash would be
+ * marking the absence of a number.
+ */
+export function highestRatingOf(ratings: readonly (number | null | undefined)[]): number | null {
+  let best: number | null = null
+  for (const r of ratings) {
+    if (r == null || !Number.isFinite(r)) continue
+    if (best == null || r > best) best = r
+  }
+  return best
+}
+
+/**
+ * Whether this rating is the table's highest, and so renders red for first place.
+ *
+ * Compared by VALUE rather than by row position, so it stays correct when the reader sorts by win
+ * rate or filters the table down — the marked number is always genuinely the largest one visible,
+ * never merely the first one. A genuine tie at the top marks both holders: choosing one of two
+ * identical ratings would assert a difference the data does not contain.
+ */
+export function isHighestRating(
+  rating: number | null | undefined,
+  highest: number | null,
+): boolean {
+  if (rating == null || highest == null || !Number.isFinite(rating)) return false
+  return rating === highest
+}
+
+/**
+ * What a screen reader hears.
+ *
+ * The leader is announced as the leader rather than by band, because that is what the red is saying
+ * and the band is no longer the point for that row. Everyone else is announced by band.
+ */
+export function ratingAriaLabelFor(
+  rating: number | null | undefined,
+  highest: number | null,
+): string | undefined {
+  if (ratingTier(rating) == null) return undefined
+  if (isHighestRating(rating, highest)) return `${rating} rating, highest on this table`
+  return ratingAriaLabel(rating)
 }

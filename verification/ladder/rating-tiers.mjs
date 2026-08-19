@@ -114,6 +114,11 @@ const MEASURE = `(() => {
     restingShadow: cs.textShadow,
     neighbourFontSize: neighbour ? getComputedStyle(neighbour).fontSize : null,
     ariaSample: cells.slice(0, 3).map((c) => c.getAttribute('aria-label')),
+    markedCount: cells.filter((c) => c.classList.contains('rating-primary--highest')).length,
+    markedValue: (() => { const el = cells.find((c) => c.classList.contains('rating-primary--highest')); return el ? Number(el.textContent.trim()) : null })(),
+    markedColor: (() => { const el = cells.find((c) => c.classList.contains('rating-primary--highest')); return el ? getComputedStyle(el).color : null })(),
+    goldColor: (() => { const el = cells.find((c) => c.classList.contains('rating-primary--gold') && !c.classList.contains('rating-primary--highest')); return el ? getComputedStyle(el).color : null })(),
+    highestOnTable: Math.max(...cells.map((c) => Number(c.textContent.trim())).filter(Number.isFinite)),
     untreatedAria: [...document.querySelectorAll('td')]
       .filter((x) => x.textContent.trim() === '—' && !x.querySelector('.rating-primary')).length,
     layout: { treated, bare, restored, delta: +(treated - bare).toFixed(2) },
@@ -156,9 +161,13 @@ for (const width of [1440, 390]) {
     String(m.pageHorizontalOverflow))
   check(`${width}: bold`, m.fontWeight === '700')
   check(`${width}: tabular`, m.numeric.includes('tabular-nums'))
-  check(`${width}: the glow breathes slowly`, /rating-breathe (2\.5|3|3\.5)s/.test(m.animation), m.animation)
-  check(`${width}: a resting glow exists, so reduced motion keeps the tier`,
-    m.restingShadow !== 'none' && m.restingShadow.length > 0, m.restingShadow)
+  check(`${width}: nothing animates`, m.animation.startsWith('none'), m.animation)
+  check(`${width}: nothing glows — the digits stay sharp`, m.restingShadow === 'none', m.restingShadow)
+  check(`${width}: exactly one rating is marked as first place`, m.markedCount === 1, String(m.markedCount))
+  check(`${width}: first place is the highest value on the table`,
+    m.markedValue === m.highestOnTable, `${m.markedValue} vs ${m.highestOnTable}`)
+  check(`${width}: first place is red, not its band colour`,
+    m.markedColor !== m.goldColor, `${m.markedColor} vs ${m.goldColor}`)
 
   const neighbour = parseFloat(m.neighbourFontSize ?? '0')
   const own = parseFloat(m.fontSize)
@@ -169,8 +178,8 @@ for (const width of [1440, 390]) {
   const colours = Object.values(m.colours).map((c) => c.color)
   check(`${width}: all six tiers resolve to distinct colours`, new Set(colours).size === 6,
     JSON.stringify(m.colours))
-  check(`${width}: every tier carries a glow`,
-    Object.values(m.colours).every((c) => c.shadow && c.shadow !== 'none'))
+  check(`${width}: no band carries a glow`,
+    Object.values(m.colours).every((c) => c.shadow === 'none'))
 
   /*
    * The decisive layout test: every row measured, the whole treatment then neutralised, every row
@@ -218,16 +227,17 @@ for (const width of [1440, 390]) {
     const strip = document.createElement('div')
     strip.id = 'tier-strip'
     strip.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;justify-content:center;padding:0.9rem;background:var(--card);border-top:1px solid var(--border)'
-    const rows = [['gold', 1667], ['purple', 1540], ['blue', 1450], ['green', 1350], ['red', 1250], ['grey', 1150], [null, null]]
+    const rows = [['gold', 1667], ['purple', 1540], ['blue', 1450], ['green', 1350], ['red', 1250], ['grey', 1150], ['highest', 1667], [null, null]]
     for (const [tier, rating] of rows) {
       const wrap = document.createElement('span')
       wrap.style.cssText = 'display:inline-flex;align-items:baseline;gap:0.4rem;font-size:0.75rem;color:var(--muted-foreground)'
       const n = document.createElement('span')
-      if (tier) { n.className = 'rating-primary rating-primary--' + tier; n.textContent = String(rating) }
+      if (tier === 'highest') { n.className = 'rating-primary rating-primary--gold rating-primary--highest'; n.textContent = String(rating) }
+      else if (tier) { n.className = 'rating-primary rating-primary--' + tier; n.textContent = String(rating) }
       else { n.style.color = 'var(--muted-foreground)'; n.textContent = '—' }
       wrap.appendChild(n)
       const l = document.createElement('span')
-      l.textContent = tier ? tier : 'no rating'
+      l.textContent = tier === 'highest' ? '#1 (red over gold)' : tier ? tier : 'no rating'
       wrap.appendChild(l)
       strip.appendChild(wrap)
     }
@@ -254,8 +264,10 @@ results.reducedMotion = reduced
 console.log('\n── prefers-reduced-motion: reduce')
 console.log(`  animation-duration ${reduced.duration}`)
 console.log(`  shadow ${reduced.shadow}`)
-check('reduced motion stops the animation', parseFloat(reduced.duration) < 0.01, reduced.duration)
-check('reduced motion keeps a static glow', reduced.shadow && reduced.shadow !== 'none', reduced.shadow)
+// There is no animation left to stop and no glow to preserve — the colour is flat, so reduced
+// motion and full motion render identically. Asserted so a re-introduced animation is caught here.
+check('reduced motion renders the same flat colour', reduced.shadow === 'none', String(reduced.shadow))
+check('there is no animation to reduce', parseFloat(reduced.duration) < 0.01, reduced.duration)
 const shot = await send('Page.captureScreenshot', { format: 'png' })
 await writeFile(`${OUT}/rankings-reduced-motion.png`, Buffer.from(shot.result.data, 'base64'))
 
