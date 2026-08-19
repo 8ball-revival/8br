@@ -40,7 +40,11 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
   const label = slot ? lines.primary : 'TBD'
   const hasMembers = !!slot?.members?.length
   const editable = !!edit && matchId != null && side != null && !!slot?.name && slot.name !== 'Bye'
-  const swappable = !!swap && matchId != null && side != null && slot?.name !== 'Bye'
+  // A bye is an empty slot, not a player. It can be dropped ONTO — that is how a player is moved into
+  // one — but it can never be picked up, because there is nobody there to pick up.
+  const occupied = !!slot?.name && slot.name !== 'Bye'
+  const swappable = !!swap && matchId != null && side != null
+  const movable = swappable && occupied
   const picked = !!swap?.selected && swap.selected.matchId === matchId && swap.selected.side === side
 
   /*
@@ -51,8 +55,8 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
     does not exist on touch, and it is not reachable from a keyboard, so removing it would take the
     feature away from anyone not using a mouse.
 
-    An empty slot is a valid drop target: dropping onto TBD is how you move somebody into a gap.
-    A Bye is not draggable, because a bye is the absence of a player rather than one.
+    An empty slot is a valid drop target: dropping onto TBD, or onto a bye, is how you move somebody
+    into a gap. Neither is draggable, because a gap is the absence of a player rather than one.
   */
   const [dragOver, setDragOver] = useState(false)
   const dragData = (e: React.DragEvent) => {
@@ -64,11 +68,15 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
       role={swappable ? 'button' : undefined}
       tabIndex={swappable ? 0 : undefined}
       aria-pressed={swappable ? picked : undefined}
-      draggable={swappable}
-      title={swappable ? (picked ? 'Click another slot to swap' : `Drag to move ${slot?.name ?? 'this slot'}, or click to pick it up`) : undefined}
+      draggable={movable}
+      title={swappable
+        ? picked ? 'Click another slot to swap'
+          : movable ? `Drag to move ${slot!.name}, or click to pick it up`
+            : 'Drop a player here, or click to pick this empty slot up'
+        : undefined}
       onClick={swappable ? () => swap!.pick(matchId!, side!) : undefined}
       onKeyDown={swappable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swap!.pick(matchId!, side!) } } : undefined}
-      onDragStart={swappable ? (e) => {
+      onDragStart={movable ? (e) => {
         e.dataTransfer.setData('application/x-bracket-slot', JSON.stringify({ matchId, side }))
         e.dataTransfer.effectAllowed = 'move'
       } : undefined}
@@ -79,7 +87,7 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
         setDragOver(true)
       } : undefined}
       onDragLeave={swappable ? () => setDragOver(false) : undefined}
-      onDragEnd={swappable ? () => setDragOver(false) : undefined}
+      onDragEnd={movable ? () => setDragOver(false) : undefined}
       onDrop={swappable ? (e) => {
         e.preventDefault()
         setDragOver(false)
@@ -94,7 +102,9 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
         won && 'bracket-winner-row bg-gold/[0.08]',
         dim && 'bracket-loser-row',
         !slot?.name && 'text-muted-foreground',
-        swappable && 'cursor-grab active:cursor-grabbing hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
+        swappable && 'hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
+        movable && 'cursor-grab active:cursor-grabbing',
+        swappable && !movable && 'cursor-copy',
         picked && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_16%,transparent)]',
         dragOver && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_22%,transparent)]',
       )}

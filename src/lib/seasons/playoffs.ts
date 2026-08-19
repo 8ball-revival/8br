@@ -400,6 +400,9 @@ export async function setSeasonPlayoffType(actor: Actor, seasonId: number, doubl
 
 const deRound = (section: string, round: number) => (section === 'WB' ? round : section === 'LB' ? 100 + round : 201)
 
+/** An unseated bracket position: no player, no name, no seed. */
+const emptyPlanSlot = { registrationId: null, username: null, seed: null } as const
+
 /** Build a PRIVATE draft bracket from the included players in locked seed order (single or double
  *  elim per the Season setting). Byes are handled automatically. Replaces any prior draft. */
 export async function generateSeasonBracket(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string; matches?: number }> {
@@ -427,10 +430,16 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
       const plan = planDoubleElim(qualifiers)
       const idByIndex = new Map<number, number>()
       for (const m of plan.matches) {
-        // A first-round (WB round 1) empty slot is a BYE, not a yet-undetermined TBD — label it so it
-        // renders as "Bye" and settleByes advances the seeded player through it.
+        // A first-round (WB round 1) empty slot is a BYE, not a yet-undetermined TBD — label it so
+        // it renders as "Bye". The seeded player advances through it when the playoffs start.
+        //
+        // Only WB round one is seated. The planner walks byes forward into later rounds; a generated
+        // draft deliberately does not, so those slots stay empty and editable until the playoffs
+        // begin — see settleByes.
         const wbFirst = m.section === 'WB' && m.round === 1
-        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, section: m.section, round: deRound(m.section, m.round), slot: m.slot, label: m.label, homeEntrantId: m.home.registrationId, awayEntrantId: m.away.registrationId, homeUsername: wbFirst && m.home.registrationId == null ? 'Bye' : m.home.username, awayUsername: wbFirst && m.away.registrationId == null ? 'Bye' : m.away.username, homeSeed: m.home.seed, awaySeed: m.away.seed } })
+        const home = wbFirst ? m.home : emptyPlanSlot
+        const away = wbFirst ? m.away : emptyPlanSlot
+        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, section: m.section, round: deRound(m.section, m.round), slot: m.slot, label: m.label, homeEntrantId: home.registrationId, awayEntrantId: away.registrationId, homeUsername: wbFirst && home.registrationId == null ? 'Bye' : home.username, awayUsername: wbFirst && away.registrationId == null ? 'Bye' : away.username, homeSeed: home.seed, awaySeed: away.seed } })
         idByIndex.set(m.index, row.id)
       }
       for (const m of plan.matches) {
@@ -441,17 +450,22 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
       const idByIndex = new Map<number, number>()
       for (const m of plan.matches) {
         // A first-round empty slot is a BYE, not a yet-undetermined TBD — label it so it renders as
-        // "Bye" and settleByes advances the seeded player through it.
+        // "Bye". The seeded player advances through it when the playoffs start.
+        //
+        // Only round one is seated. The planner walks byes forward into round two; a generated draft
+        // deliberately does not, so those slots stay empty and editable — see settleByes.
         const firstRound = m.round === 1
-        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, round: m.round, slot: m.slot, label: m.label, homeEntrantId: m.home.registrationId, awayEntrantId: m.away.registrationId, homeUsername: firstRound && m.home.registrationId == null ? 'Bye' : m.home.username, awayUsername: firstRound && m.away.registrationId == null ? 'Bye' : m.away.username, homeSeed: m.home.seed, awaySeed: m.away.seed } })
+        const home = firstRound ? m.home : emptyPlanSlot
+        const away = firstRound ? m.away : emptyPlanSlot
+        const row = await tx.seasonPlayoffMatch.create({ data: { seasonId, round: m.round, slot: m.slot, label: m.label, homeEntrantId: home.registrationId, awayEntrantId: away.registrationId, homeUsername: firstRound && home.registrationId == null ? 'Bye' : home.username, awayUsername: firstRound && away.registrationId == null ? 'Bye' : away.username, homeSeed: home.seed, awaySeed: away.seed } })
         idByIndex.set(m.index, row.id)
       }
       for (const m of plan.matches) {
         await tx.seasonPlayoffMatch.update({ where: { id: idByIndex.get(m.index)! }, data: { feedsMatchId: m.feedsIndex != null ? idByIndex.get(m.feedsIndex) : null, feedsSlot: m.feedsSlot } })
       }
     }
-    // Auto-complete generation-time byes so seeded players advance through empty slots.
-    await settleByes(tx, seasonId)
+    // Byes are deliberately NOT settled here — see settleByes. A generated draft shows the bye, but
+    // the next round's slot stays empty and the tie stays unplayed so both remain editable.
     await recordAudit(actor, { action: 'season.playoff.generate', entity: 'Season', entityId: seasonId, newValue: { players: qualifiers.length, doubleElim: s.playoffDoubleElim } }, tx)
   })
   } catch (e) {
@@ -465,23 +479,63 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
   return { ok: true, matches: n }
 }
 
-/** Advance any match that has one real player and one 'Bye' slot (round-1 byes chain through). */
+/**
+ * Award byes: advance any tie holding one real player opposite an empty ENTRY slot.
+ *
+ * ── When this runs ───────────────────────────────────────────────────────────────────────────────
+ * At the moment the playoffs START, never when the bracket is generated. A generated draft leaves
+ * the bye recipient sitting in round one with the next round's slot EMPTY, because that is what makes
+ * the bracket editable: a settled bye marks its tie COMPLETED, and a completed tie refuses every
+ * placement edit. So during setup nobody is advanced, and whatever the bracket looks like at the
+ * moment of publication is what gets settled.
+ *
+ * It also runs after each live result, so a bye further down a chain resolves as its feeder decides.
+ *
+ * ── What counts as a bye ─────────────────────────────────────────────────────────────────────────
+ * An ENTRY slot is one that nothing feeds into — round one of the winners' bracket, in practice.
+ * Empty there means "no opponent". Empty anywhere else means "not decided yet" and must never be
+ * read as a bye, or the bracket would advance players past ties still waiting to be played.
+ *
+ * Reading the topology rather than the literal "Bye" label is what makes this survive manual
+ * editing: clearing a slot writes null, not the placeholder, so a label check would miss it.
+ */
 async function settleByes(tx: Prisma.TransactionClient, seasonId: number): Promise<void> {
   // Iterate a few passes so byes chain through multiple rounds.
   for (let pass = 0; pass < 6; pass++) {
-    const open = await tx.seasonPlayoffMatch.findMany({ where: { seasonId, winnerEntrantId: null, feedsMatchId: { not: null } } })
+    const all = await tx.seasonPlayoffMatch.findMany({ where: { seasonId } })
+    // Every slot some other tie feeds into — winners' feed and, in double elim, losers' feed.
+    const fed = new Set<string>()
+    for (const m of all) {
+      if (m.feedsMatchId != null) fed.add(`${m.feedsMatchId}:${m.feedsSlot ?? 0}`)
+      if (m.loserFeedsMatchId != null) fed.add(`${m.loserFeedsMatchId}:${m.loserFeedsSlot ?? 0}`)
+    }
+    const isEntrySlot = (matchId: number, slot: 0 | 1) => !fed.has(`${matchId}:${slot}`)
+
     let changed = false
-    for (const m of open) {
-      const homeBye = m.homeUsername === 'Bye'
-      const awayBye = m.awayUsername === 'Bye'
-      const homeReal = m.homeEntrantId != null && !homeBye
-      const awayReal = m.awayEntrantId != null && !awayBye
-      if ((homeReal && awayBye) || (awayReal && homeBye)) {
-        const win = homeReal ? { id: m.homeEntrantId!, name: m.homeUsername!, seed: m.homeSeed } : { id: m.awayEntrantId!, name: m.awayUsername!, seed: m.awaySeed }
-        await tx.seasonPlayoffMatch.update({ where: { id: m.id }, data: { winnerEntrantId: win.id, verification: 'VERIFIED', status: 'COMPLETED' } })
-        if (m.feedsMatchId != null) await placeInto(tx, m.feedsMatchId, m.feedsSlot ?? 0, win)
-        changed = true
-      }
+    for (const m of all) {
+      // A decided tie is done, and a tie that feeds nowhere has no round to advance into.
+      if (m.winnerEntrantId != null || m.feedsMatchId == null) continue
+      const homeReal = m.homeEntrantId != null
+      const awayReal = m.awayEntrantId != null
+      const homeBye = !homeReal && isEntrySlot(m.id, 0)
+      const awayBye = !awayReal && isEntrySlot(m.id, 1)
+      if (!((homeReal && awayBye) || (awayReal && homeBye))) continue
+
+      const win = homeReal
+        ? { id: m.homeEntrantId!, name: m.homeUsername!, seed: m.homeSeed }
+        : { id: m.awayEntrantId!, name: m.awayUsername!, seed: m.awaySeed }
+      await tx.seasonPlayoffMatch.update({
+        where: { id: m.id },
+        data: {
+          winnerEntrantId: win.id, verification: 'VERIFIED', status: 'COMPLETED',
+          // Name the empty side, so a slot cleared during editing still reads as a bye afterwards
+          // rather than as a blank the published bracket cannot explain.
+          ...(homeBye && m.homeUsername == null ? { homeUsername: 'Bye' } : {}),
+          ...(awayBye && m.awayUsername == null ? { awayUsername: 'Bye' } : {}),
+        },
+      })
+      await placeInto(tx, m.feedsMatchId, m.feedsSlot ?? 0, win)
+      changed = true
     }
     if (!changed) break
   }
@@ -503,6 +557,9 @@ export async function startSeasonPlayoffs(actor: Actor, seasonId: number): Promi
   const count = await prisma.seasonPlayoffMatch.count({ where: { seasonId } })
   if (count === 0) return { ok: false, error: 'Generate the bracket before starting the playoffs.' }
   await prisma.$transaction(async (tx) => {
+    // Byes are awarded HERE rather than at generation, so the draft stayed freely editable right up
+    // to this point. Whoever is sitting alone in an entry slot now is who advances.
+    await settleByes(tx, seasonId)
     await tx.seasonPlayoffMatch.updateMany({ where: { seasonId }, data: { published: true } })
     await recordAudit(actor, { action: 'season.playoff.start', entity: 'Season', entityId: seasonId }, tx)
     const t = await transitionSeasonState(actor, seasonId, 'PLAYOFFS_LIVE', { tx })
