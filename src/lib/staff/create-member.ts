@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { requireCapability } from '@/lib/competition/staff-auth'
 import { createMember, type CreateMemberInput, type CreateMemberResult } from './create-member-service'
+import type { PossibleDuplicate } from './possible-duplicates'
 
 /**
  * Staff-created member accounts (server action).
@@ -25,4 +26,19 @@ export async function createMemberAction(input: CreateMemberInput): Promise<Crea
   const res = await createMember(actor, input)
   if (res.ok) revalidatePath('/staff/members')
   return res
+}
+
+/**
+ * Look up players who might already be the person being created.
+ *
+ * Gated on the same capability as creating one: the results carry identity information about
+ * existing members, so anyone who can call this can already see the member list.
+ */
+export async function findPossibleDuplicatesAction(
+  cueverseId: string,
+  preferredName: string,
+): Promise<PossibleDuplicate[]> {
+  await requireCapability('manage_players')
+  const { findPossibleDuplicates } = await import('./possible-duplicates')
+  return findPossibleDuplicates(String(cueverseId ?? ''), String(preferredName ?? ''))
 }
