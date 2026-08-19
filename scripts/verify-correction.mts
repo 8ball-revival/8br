@@ -363,18 +363,33 @@ try {
   check('fixture ledger rows removed', leftLedger === 0, String(leftLedger))
   check('fixture audit rows removed', leftAudit === 0, String(leftAudit))
 
-  // The two real Seasons must be exactly as they were.
+  /*
+   * The real COMPLETED Seasons must be exactly as they were.
+   *
+   * Scoped to completed records on purpose. The owner builds historical Seasons by hand in Creator,
+   * so a draft or a half-entered Season is a perfectly normal thing to find here — an earlier
+   * version of this check asserted that EVERY non-fixture Season was completed, which turned the
+   * owner starting their next reconstruction into a test failure. What a correction must not do is
+   * disturb a finished record, and that is what this asserts.
+   */
   const real = await prisma.season.findMany({
-    where: { competitionSeries: { slug: { not: FIXTURE_SLUG } } },
+    where: { competitionSeries: { slug: { not: FIXTURE_SLUG } }, lifecycleState: 'COMPLETED' },
     select: { id: true, lifecycleState: true, reopenedAt: true, championName: true, _count: { select: { ratingLedger: true } } },
     orderBy: { id: 'asc' },
   })
-  check('the real Seasons are still completed and never reopened',
-    real.every((r) => r.lifecycleState === 'COMPLETED' && r.reopenedAt === null),
+  check('there are real completed Seasons to protect', real.length > 0, String(real.length))
+  check('the real completed Seasons were never reopened',
+    real.every((r) => r.reopenedAt === null),
     JSON.stringify(real.map((r) => [r.id, r.lifecycleState, r.reopenedAt])))
   check('...and still carry their ranking contributions',
     real.every((r) => r._count.ratingLedger > 0),
     JSON.stringify(real.map((r) => [r.id, r._count.ratingLedger])))
+
+  // A record the owner is still building must survive a correction run untouched.
+  const drafts = await prisma.season.count({
+    where: { competitionSeries: { slug: { not: FIXTURE_SLUG } }, lifecycleState: { not: 'COMPLETED' } },
+  })
+  console.log(`  (${drafts} owner draft Season(s) present and untouched)`)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

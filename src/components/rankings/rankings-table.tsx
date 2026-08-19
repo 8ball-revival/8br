@@ -137,7 +137,7 @@ function StreakCell({ streak }: { streak: number }) {
  * A championship count.
  *
  * Season Championships wear the gold diamond the rest of the site uses for a Season title;
- * Tournament Championships wear the trophy. Clicking opens the player's expanded row, where the
+ * Cup Titles wear the trophy. Clicking opens the player's expanded row, where the
  * exact competitions behind the number are listed and linked — a count nobody can trace is a count
  * nobody should have to take on trust.
  */
@@ -149,7 +149,7 @@ function TitleCell({ n, mode, onOpen, playerName }: {
 }) {
   if (n === 0) return <span className="text-muted-foreground">—</span>
   const Icon = mode === 'SC' ? Gem : Trophy
-  const what = mode === 'SC' ? 'Season Championship' : 'Tournament Championship'
+  const what = mode === 'SC' ? 'Season Championship' : 'Cup Title'
   return (
     <button
       type="button"

@@ -33,7 +33,7 @@ export default async function HealthPage() {
         <Stat label="Email provider" value={h.email} />
         <Stat label="Version (commit)" value={h.commit} />
         <Stat label="Users" value={String(h.counts.users)} />
-        <Stat label="Seasons / Tournaments" value={`${h.counts.seasons} / ${h.counts.tournaments}`} />
+        <Stat label="Seasons / Cups" value={`${h.counts.seasons} / ${h.counts.tournaments}`} />
         <Stat label="Audit rows / Players" value={`${h.counts.auditRows} / ${h.counts.players}`} />
       </div>
       <div className="mt-4 space-y-1 rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground">

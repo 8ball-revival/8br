@@ -18,7 +18,7 @@ export function TournamentCard({ cup }: { cup: TournamentView }) {
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="eyebrow text-muted-foreground">Tournament {cup.number}</span>
+          <span className="eyebrow text-muted-foreground">Cup {cup.number}</span>
           {live ? (
             <Badge variant="destructive">Live</Badge>
           ) : (

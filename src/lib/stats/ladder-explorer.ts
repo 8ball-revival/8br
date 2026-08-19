@@ -44,7 +44,7 @@ export type LadderScope = 'current' | 'all-time'
 export type RecordView = 'overall' | 'group' | 'playoff' | 'tournament'
 
 export const RECORD_VIEWS: { id: RecordView; label: string; hint: string }[] = [
-  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
+  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Cups together' },
   { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
   { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
   { id: 'tournament', label: 'Cups', hint: 'Standalone Cups only' },
@@ -242,7 +242,7 @@ function viewFilter(view: RecordView, a: string): string {
   switch (view) {
     case 'group': return `${a}.kind = 'season' AND ${a}."stage" = 'GROUP'`
     case 'playoff': return `${a}.kind = 'season' AND ${a}."stage" = 'PLAYOFF'`
-    case 'tournament': return `${a}.kind = 'tournament'`
+    case 'tournament': return `${a}.kind = 'Cup'`
     default: return 'true'
   }
 }
@@ -780,7 +780,7 @@ export async function computeFreshness(): Promise<RankingsFreshness> {
           label: `${r.series_name ?? 'Season'} Season ${r.season_number} — ${r.season_year}`,
         }
       : r.tournamentId != null
-        ? { kind: 'tournament', id: Number(r.tournamentId), label: String(r.tournament_name ?? 'Tournament') }
+        ? { kind: 'tournament', id: Number(r.tournamentId), label: String(r.tournament_name ?? 'Cup') }
         : null
 
     return {

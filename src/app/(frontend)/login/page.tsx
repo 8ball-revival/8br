@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic' // auth/user-specific — must render per
 
 export const metadata: Metadata = pageMetadata({
   title: 'Sign In',
-  description: 'Sign in to your 8 Ball Registry account to manage your tournament registration.',
+  description: 'Sign in to your 8 Ball Registry account to manage your Cup registration.',
   path: '/login',
   index: false,
 })
@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p className="eyebrow text-brand">8 Ball Registry</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to manage your 8 Ball Registry account and tournament registration.
+            Sign in to manage your 8 Ball Registry account and Cup registration.
           </p>
         </div>
         <Card>

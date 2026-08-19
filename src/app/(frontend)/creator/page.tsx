@@ -31,7 +31,7 @@ export default async function CreatorDashboard() {
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Creator</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create, reconstruct and manage every Season and Tournament. Nothing here is public until
+            Create, reconstruct and manage every Season and Cup. Nothing here is public until
             you make it so.
           </p>
         </div>

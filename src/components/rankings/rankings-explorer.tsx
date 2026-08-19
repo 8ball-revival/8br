@@ -50,7 +50,7 @@ const SCOPES: { id: 'current' | 'all-time'; label: string; hint: string }[] = [
 ]
 
 const VIEW_TABS: { id: RecordView; label: string; hint: string }[] = [
-  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
+  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Cups together' },
   { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
   { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
   { id: 'tournament', label: 'Cups', hint: 'Standalone Cups only' },

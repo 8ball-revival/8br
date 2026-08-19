@@ -306,7 +306,7 @@ async function reopenTournament(actor: Actor, id: number, reason?: string): Prom
     })
     await recordAudit(actor, {
       action: 'tournament.reopen_for_correction',
-      entity: 'Tournament',
+      entity: 'Cup',
       entityId: id,
       oldValue: { state: 'COMPLETED', archived: true, contributesToRankings: true },
       newValue: { state: 'IN_PROGRESS', archived: false, contributesToRankings: false },
@@ -358,7 +358,7 @@ export async function recomplete(
         data: { reopenedAt: null, lifecycleState: 'COMPLETED', archivedAt: new Date() },
       })
       await recordAudit(actor, {
-        action: 'tournament.recomplete', entity: 'Tournament', entityId: id,
+        action: 'tournament.recomplete', entity: 'Cup', entityId: id,
         oldValue: { state: 'IN_PROGRESS', archived: false },
         newValue: { state: 'COMPLETED', archived: true, champion: review.champion, eligibleMatches: review.eligibleMatches },
         reason,

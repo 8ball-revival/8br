@@ -9,7 +9,7 @@ import { requireCreator } from '@/lib/creator/access'
 import { completionReview } from '@/lib/competition/correction'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'Tournament · Creator', robots: { index: false } }
+export const metadata: Metadata = { title: 'Cup · Creator', robots: { index: false } }
 
 /**
  * One Tournament inside Creator.
@@ -31,7 +31,7 @@ export default async function CreatorTournamentPage({ params }: { params: Promis
   if (!review) notFound()
 
   return (
-    <Wide name="creator-tournament" className="py-6">
+    <Wide name="creator-Cup" className="py-6">
       <Link
         href="/creator/completed"
         className="mb-3 inline-flex items-center gap-1.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"

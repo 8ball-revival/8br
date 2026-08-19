@@ -63,7 +63,7 @@ export async function getTeamMembersByRegistration(tournamentId: number): Promis
 async function assertManualTeamsAllowed(tournamentId: number): Promise<string | null> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { participantFormat: true, teamFormation: true } })
   if (t?.participantFormat === 'TEAM' && t.teamFormation === 'RANDOM') {
-    return 'This tournament draws teams at random — manual team management is disabled.'
+    return 'This Cup draws teams at random — manual team management is disabled.'
   }
   return null
 }
@@ -75,7 +75,7 @@ export async function createTeam(actor: Actor, tournamentId: number, name: strin
   if (rnd) return { ok: false, error: rnd }
   await assertCompetitionUnlocked(prisma, tournamentId)
   const dupe = await prisma.tournamentTeam.findFirst({ where: { tournamentId, name: clean } })
-  if (dupe) return { ok: false, error: `A team named "${clean}" already exists in this tournament.` }
+  if (dupe) return { ok: false, error: `A team named "${clean}" already exists in this Cup.` }
 
   const teamId = await prisma.$transaction(async (tx) => {
     const reg = await tx.registration.create({
@@ -101,7 +101,7 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
   if (!cleaned.length) return { ok: false, error: 'A team needs at least one member.' }
 
   const maxSize = team.tournament.teamSize ?? cleaned.length
-  if (cleaned.length > maxSize) return { ok: false, error: `This tournament allows at most ${maxSize} members per team.` }
+  if (cleaned.length > maxSize) return { ok: false, error: `This Cup allows at most ${maxSize} members per team.` }
 
   // No duplicate player within the team (by linked playerId, else by name).
   const seen = new Set<string>()
@@ -121,7 +121,7 @@ export async function setTeamMembers(actor: Actor, teamId: number, members: Team
     })
     if (conflicts.length) {
       const c = conflicts[0]
-      return { ok: false, error: `${c.name} is already on team "${c.team.name}" in this tournament.` }
+      return { ok: false, error: `${c.name} is already on team "${c.team.name}" in this Cup.` }
     }
   }
 
@@ -268,9 +268,9 @@ export async function accountState(tournamentId: number, userId: number): Promis
 /** Gate: a PICK team tournament with registration still OPEN (rosters unlocked). */
 export async function requirePickTeamOpen(tournamentId: number): Promise<{ ok: true; teamSize: number } | { ok: false; error: string }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!t) return { ok: false, error: 'Tournament not found.' }
-  if (t.participantFormat !== 'TEAM') return { ok: false, error: 'This tournament is not a team event.' }
-  if (t.teamFormation !== 'PICK') return { ok: false, error: 'This tournament forms teams by random draw — register as an individual instead.' }
+  if (!t) return { ok: false, error: 'Cup not found.' }
+  if (t.participantFormat !== 'TEAM') return { ok: false, error: 'This Cup is not a team event.' }
+  if (t.teamFormation !== 'PICK') return { ok: false, error: 'This Cup forms teams by random draw — register as an individual instead.' }
   if (t.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed — rosters are locked.' }
   await assertCompetitionUnlocked(prisma, tournamentId)
   return { ok: true, teamSize: t.teamSize ?? 2 }
@@ -301,11 +301,11 @@ export async function startTeam(actor: Actor, tournamentId: number, teamName: st
   const mod = await canRegister(actor.userId)
   if (!mod.ok) return mod
   const st = await accountState(tournamentId, actor.userId)
-  if (st && st.kind !== 'freeagent') return { ok: false, error: `You are already on team "${st.teamName}" in this tournament.` }
+  if (st && st.kind !== 'freeagent') return { ok: false, error: `You are already on team "${st.teamName}" in this Cup.` }
 
   // Unique team name within the tournament, ignoring capitalization.
   const active = await prisma.tournamentTeam.findMany({ where: { tournamentId, withdrawn: false }, select: { name: true } })
-  if (active.some((t) => nameKey(t.name) === nameKey(clean))) return { ok: false, error: `A team named "${clean}" already exists in this tournament.` }
+  if (active.some((t) => nameKey(t.name) === nameKey(clean))) return { ok: false, error: `A team named "${clean}" already exists in this Cup.` }
 
   const code = (joinCode ?? '').trim()
   const codeErr = validateJoinCode(code)
@@ -346,7 +346,7 @@ export async function joinTeam(actor: Actor, tournamentId: number, teamId: numbe
   const mod = await canRegister(actor.userId)
   if (!mod.ok) return mod
   const st = await accountState(tournamentId, actor.userId)
-  if (st && st.kind !== 'freeagent') return { ok: false, error: `You are already on team "${st.teamName}" in this tournament.` }
+  if (st && st.kind !== 'freeagent') return { ok: false, error: `You are already on team "${st.teamName}" in this Cup.` }
 
   const team = await prisma.tournamentTeam.findFirst({ where: { id: teamId, tournamentId, withdrawn: false } })
   if (!team) return { ok: false, error: 'That team is not available.' }
@@ -399,7 +399,7 @@ export async function withdrawFromTeam(actor: Actor, tournamentId: number): Prom
     where: { userId: actor.userId, team: { tournamentId, withdrawn: false } },
     include: { team: { include: { members: { orderBy: { memberOrder: 'asc' } } } } },
   })
-  if (!m?.team) return { ok: false, error: 'You are not on a team in this tournament.' }
+  if (!m?.team) return { ok: false, error: 'You are not on a team in this Cup.' }
   const team = m.team
   await prisma.$transaction(async (tx) => {
     const others = team.members.filter((x) => x.id !== m.id)
@@ -505,8 +505,8 @@ async function loadRandomEntrants(tournamentId: number): Promise<RandomEntrant[]
  */
 export async function assembleRandomTeams(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string; teams?: number }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!t) return { ok: false, error: 'Tournament not found.' }
-  if (t.participantFormat !== 'TEAM' || t.teamFormation !== 'RANDOM') return { ok: false, error: 'This tournament does not use random-draw teams.' }
+  if (!t) return { ok: false, error: 'Cup not found.' }
+  if (t.participantFormat !== 'TEAM' || t.teamFormation !== 'RANDOM') return { ok: false, error: 'This Cup does not use random-draw teams.' }
   await assertCompetitionUnlocked(prisma, tournamentId)
   const size = t.teamSize ?? 2
 
@@ -541,7 +541,7 @@ export async function assembleRandomTeams(actor: Actor, tournamentId: number): P
     }
     // Retire the (now fully drawn) solo registrations — the team entrants replace them in the bracket.
     await tx.registration.updateMany({ where: { id: { in: drawnIds } }, data: { status: 'WITHDRAWN', withdrawnAt: new Date() } })
-    await recordAudit(actor, { action: 'tournament.team.randomDraw', entity: 'Tournament', entityId: tournamentId, newValue: { teams: numTeams, teamSize: size, names } }, tx)
+    await recordAudit(actor, { action: 'tournament.team.randomDraw', entity: 'Cup', entityId: tournamentId, newValue: { teams: numTeams, teamSize: size, names } }, tx)
   })
   return { ok: true, teams: numTeams }
 }

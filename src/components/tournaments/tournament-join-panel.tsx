@@ -40,11 +40,11 @@ export function TournamentJoinPanel({
 
   return (
     <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
-      <h2 className="eyebrow mb-3 text-brand">Join this tournament</h2>
+      <h2 className="eyebrow mb-3 text-brand">Join this Cup</h2>
       {!isLoggedIn ? (
         <div className="flex flex-wrap items-center gap-3">
           <Lock className="size-4 text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">Sign in to enter this tournament.</p>
+          <p className="text-sm text-muted-foreground">Sign in to enter this Cup.</p>
           <Button asChild size="sm">
             <Link href={`/login?returnTo=${encodeURIComponent(`/cups/${number}`)}`}>Sign in</Link>
           </Button>
@@ -58,7 +58,7 @@ export function TournamentJoinPanel({
       ) : (
         <div className="flex items-center gap-3">
           <XCircle className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">Registration for this tournament is closed.</p>
+          <p className="text-sm text-muted-foreground">Registration for this Cup is closed.</p>
         </div>
       )}
     </section>
@@ -73,7 +73,7 @@ function JoinForm({ number, identity, requiresPassword }: { number: number; iden
       <div className="flex items-start gap-3 rounded-md border border-success/40 bg-success/10 px-4 py-3 text-sm">
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         <p className="font-medium text-foreground">
-          {state.already ? 'You are already entered in this tournament.' : "You're entered in this tournament!"} You now appear on the entrant list.
+          {state.already ? 'You are already entered in this Cup.' : "You're entered in this Cup!"} You now appear on the entrant list.
         </p>
       </div>
     )
@@ -92,14 +92,14 @@ function JoinForm({ number, identity, requiresPassword }: { number: number; iden
       {requiresPassword && (
         <div className="space-y-1.5">
           <label htmlFor="joinPassword" className="text-sm font-medium text-foreground">Join password</label>
-          <Input id="joinPassword" name="joinPassword" type="password" required autoComplete="off" placeholder="This is a private tournament" />
-          <p className="text-xs text-muted-foreground">This tournament is private — ask the organizer for the password.</p>
+          <Input id="joinPassword" name="joinPassword" type="password" required autoComplete="off" placeholder="This is a private Cup" />
+          <p className="text-xs text-muted-foreground">This Cup is private — ask the organizer for the password.</p>
         </div>
       )}
 
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
-        <span className="text-muted-foreground">I have read and agree to the tournament rules and format.</span>
+        <span className="text-muted-foreground">I have read and agree to the Cup rules and format.</span>
       </label>
 
       {state.error && (
@@ -109,7 +109,7 @@ function JoinForm({ number, identity, requiresPassword }: { number: number; iden
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? 'Joining…' : 'Join tournament'}
+        {pending ? 'Joining…' : 'Join Cup'}
       </Button>
     </form>
   )
@@ -131,19 +131,19 @@ function EnteredState({
       <div className="flex items-start gap-3 text-sm">
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         <p className="font-medium text-foreground">
-          {myStatus === 'APPROVED' ? "You're entered in this tournament." : 'Your entry is pending approval.'} You appear on the entrant list.
+          {myStatus === 'APPROVED' ? "You're entered in this Cup." : 'Your entry is pending approval.'} You appear on the entrant list.
         </p>
       </div>
       {registrationOpen && !state.ok && (
         <form action={action}>
           <input type="hidden" name="number" value={number} />
           <Button type="submit" variant="outline" size="sm" disabled={pending}>
-            {pending ? 'Withdrawing…' : 'Withdraw from tournament'}
+            {pending ? 'Withdrawing…' : 'Withdraw from Cup'}
           </Button>
           {state.error && <p role="alert" className="mt-2 text-sm text-destructive">{state.error}</p>}
         </form>
       )}
-      {state.ok && <p className="text-sm text-muted-foreground">You have withdrawn from this tournament.</p>}
+      {state.ok && <p className="text-sm text-muted-foreground">You have withdrawn from this Cup.</p>}
     </div>
   )
 }

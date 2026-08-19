@@ -180,7 +180,7 @@ function TimeoutCard({ userId, run, pending }: { userId: number; run: (fn: () =>
   const computeUntil = () => (custom ? new Date(custom) : new Date(Date.now() + hours * 3600_000))
   return (
     <ModCard icon={Clock} title="Apply timeout" tone="warning">
-      <p className="text-xs text-muted-foreground">Blocks tournament signup and withdraws active participation. Expires automatically.</p>
+      <p className="text-xs text-muted-foreground">Blocks Cup signup and withdraws active participation. Expires automatically.</p>
       <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((p) => (
           <button key={p.hours} type="button" onClick={() => { setHours(p.hours); setCustom('') }} className={`rounded-md border px-2.5 py-1 text-xs ${!custom && hours === p.hours ? 'border-brand bg-brand/10 text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>{p.label}</button>

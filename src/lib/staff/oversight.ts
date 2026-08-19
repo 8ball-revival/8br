@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 /** Read-only aggregates for Competition Oversight, Security, and Data & System Health. */
 
 export interface CompRow {
-  type: 'Season' | 'Tournament'
+  type: 'Season' | 'Cup'
   id: number
   name: string
   code: string
@@ -57,7 +57,7 @@ export async function getCompetitions(): Promise<CompRow[]> {
       incompleteTeams = teams.filter((tm) => tm._count.members < (t.teamSize ?? 0)).length
     }
     rows.push({
-      type: 'Tournament', id: t.id, name: t.name, code: t.code ?? `T${t.number}`,
+      type: 'Cup', id: t.id, name: t.name, code: t.code ?? `T${t.number}`,
       phase: (t.lifecycleState ?? 'DRAFT').replace(/_/g, ' ').toLowerCase(),
       registration: t.registrationStatus.replace('_', ' ').toLowerCase(),
       entrants: t._count.registrations, format: (t.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase(),

@@ -1,0 +1,121 @@
+src/app/(frontend)/creator/cups/[id]/page.tsx:34  <Wide name="creator-tournament" className="py-6">
+src/app/(frontend)/cups/[number]/page.tsx:83  <span className="eyebrow text-muted-foreground">Tournament {number}</span>
+src/app/(frontend)/cups/[number]/page.tsx:258  <Badge variant="muted">Awaiting Tournament Start</Badge>
+src/app/(frontend)/login/page.tsx:15  description: 'Sign in to your 8 Ball Registry account to manage your tournament registration.',
+src/app/(frontend)/predictions/page.tsx:11  'Predictions are coming soon to 8 Ball Registry — publish match predictions, tournament picks, analysis, and u
+src/app/(frontend)/predictions/page.tsx:16  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming tournament matchups.' },
+src/app/(frontend)/predictions/page.tsx:17  { icon: Trophy, title: 'Tournament predictions', body: 'Pick group qualifiers, bracket runs, and champions.' }
+src/app/(frontend)/staff/health/page.tsx:36  <Stat label="Seasons / Tournaments" value={`${h.counts.seasons} / ${h.counts.tournaments}`} />
+src/app/sitemap.ts:23  { path: '/seasons/ego-tournament-1', priority: 0.6 },
+src/components/account/register-form.tsx:55  <span className="text-muted-foreground">I have read and agree to the this tournament rules and format.</span>
+src/components/rankings/expanded-row.tsx:187  tip="Every recorded match, Seasons and Tournaments together." />
+src/components/rankings/player-profile.tsx:90  <Stat label="Tournaments" value={profile.tournamentsPlayed} />
+src/components/rankings/player-profile.tsx:91  <Stat label="Tournament Wins" value={
+src/components/rankings/player-profile.tsx:104  {tab === 'Tournaments' && (
+src/components/rankings/player-profile.tsx:108  <tr><th className="px-2.5 py-2">Tournament</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2
+src/components/rankings/player-profile.tsx:132  <tr><th className="px-2.5 py-2">Tournament</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2
+src/components/rankings/rankings-explorer.tsx:53  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
+src/components/staff/staff-shell.tsx:25  | 'tournaments'
+src/components/staff/staff-shell.tsx:37  { key: 'tournaments', label: 'Competition Oversight', href: '/creator', icon: Trophy, cap: 'manage_competition
+src/components/staff/staff-shell.tsx:96  'No active tournament'
+src/components/tournaments/create-tournament-form.tsx:70  if (!name.trim()) return setError('Give the tournament a name.')
+src/components/tournaments/create-tournament-form.tsx:134  <Labeled label="Tournament name" hint="optional">
+src/components/tournaments/create-tournament-form.tsx:279  <Users className="size-4" /> {pending ? 'Creating…' : 'Create tournament'}
+src/components/tournaments/flair-editor.tsx:62  <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-brand">Tournament</span>
+src/components/tournaments/flair-editor.tsx:64  <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground">{name.trim() || 'Untitled tournament'}</
+src/components/tournaments/tournament-card.tsx:21  <span className="eyebrow text-muted-foreground">Tournament {cup.number}</span>
+src/components/tournaments/tournament-join-panel.tsx:43  <h2 className="eyebrow mb-3 text-brand">Join this tournament</h2>
+src/components/tournaments/tournament-join-panel.tsx:61  <p className="text-sm text-muted-foreground">Registration for this tournament is closed.</p>
+src/components/tournaments/tournament-join-panel.tsx:96  <p className="text-xs text-muted-foreground">This tournament is private — ask the organizer for the password.<
+src/components/tournaments/tournament-join-panel.tsx:102  <span className="text-muted-foreground">I have read and agree to the tournament rules and format.</span>
+src/components/tournaments/tournament-join-panel.tsx:112  {pending ? 'Joining…' : 'Join tournament'}
+src/components/tournaments/tournament-join-panel.tsx:141  {pending ? 'Withdrawing…' : 'Withdraw from tournament'}
+src/components/tournaments/tournament-lifecycle-controls.tsx:32  IN_PROGRESS: 'Tournament Live',
+src/components/tournaments/tournament-list.tsx:75  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tournaments, players, teams, alias
+src/components/tournaments/tournament-list.tsx:95  <p className="text-sm text-muted-foreground">No tournaments match your search.</p>
+src/components/tournaments/tournament-list.tsx:121  <span className="tabular text-sm font-semibold text-brand">Tournament #{c.number}</span>
+src/components/tournaments/tournament-team-register.tsx:125  <Field label="Tournament password">
+src/components/tournaments/tournament-team-register.tsx:126  <input name="joinPassword" type="password" required maxLength={200} placeholder="This is a private tournament"
+src/components/tournaments/tournament-team-register.tsx:136  <span className="text-muted-foreground">I have read and agree to the tournament rules and format.</span>
+src/components/tournaments/tournament-team-register.tsx:215  if (state.ok) return <Success text="You've joined the team. It now shows on your tournament page." />
+src/components/tournaments/tournament-workspace.tsx:491  ? 'The tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
+src/components/tournaments/tournament-workspace.tsx:493  ? 'This tournament is completed — the bracket is read-only.'
+src/components/tournaments/tournament-workspace.tsx:788  <p className="text-sm font-semibold text-foreground">Cancel tournament</p>
+src/components/tournaments/tournament-workspace.tsx:817  {deleting ? 'Deleting…' : 'Delete tournament permanently'}
+src/components/tournaments/tournament-workspace.tsx:909  m: import('@/lib/tournaments/live').WorkspaceGroupMatch
+src/components/tournaments/tournament-workspace.tsx:931  run(() => import('@/lib/competition/tournament-actions').then((A) => A.recordGroupResultAction(m.id, h, a)))
+src/components/tournaments/tournament-workspace.tsx:991  ? <>This Swiss tournament is <b className="text-foreground">complete</b> — final standings below.</>
+src/components/tournaments/view-toggle.tsx:36  <div role="tablist" aria-label="Tournament view" className="inline-flex rounded-lg border border-border bg-car
+src/lib/account/actions.ts:480  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:486  if (!elig.ok) return { error: elig.reason ?? 'You cannot join this tournament right now.' }
+src/lib/account/actions.ts:495  revalidatePath("/tournaments")
+src/lib/account/actions.ts:507  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:512  revalidatePath("/tournaments")
+src/lib/account/actions.ts:525  revalidatePath('/tournaments')
+src/lib/account/actions.ts:533  if (formData.get('rulesAck') !== 'on') return { error: 'Please agree to the tournament rules first.' }
+src/lib/account/actions.ts:536  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:551  if (formData.get('rulesAck') !== 'on') return { error: 'Please agree to the tournament rules first.' }
+src/lib/account/actions.ts:554  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:573  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:587  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:600  if (formData.get('rulesAck') !== 'on') return { error: 'Please agree to the tournament rules first.' }
+src/lib/account/actions.ts:603  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:619  if (!cup) return { error: 'Tournament not found.' }
+src/lib/account/actions.ts:633  if (!cup) return { error: 'Tournament not found.' }
+src/lib/competition/actions.ts:22  '/staff/tournament',
+src/lib/competition/actions.ts:46  if (!slug || !name) return { error: 'Provide a tournament name and slug.' }
+src/lib/competition/actions.ts:50  return { ok: true, message: 'Tournament created.' }
+src/lib/competition/actions.ts:53  if (/unique|exists/i.test(msg)) return { error: 'A tournament with that slug already exists.' }
+src/lib/competition/actions.ts:80  return { ok: true, message: 'Tournament updated. Public pages refreshed.' }
+src/lib/competition/correction.ts:309  entity: 'Tournament',
+src/lib/competition/free-agents.ts:276  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/group-stage.ts:32  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/group-stage.ts:110  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/service.ts:54  entity: 'Tournament',
+src/lib/competition/service.ts:423  if (!before) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/service.ts:438  entity: 'Tournament',
+src/lib/competition/service.ts:519  entity: 'Tournament',
+src/lib/competition/service.ts:1590  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/swiss.ts:79  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/teams.ts:66  return 'This tournament draws teams at random — manual team management is disabled.'
+src/lib/competition/teams.ts:104  if (cleaned.length > maxSize) return { ok: false, error: `This tournament allows at most ${maxSize} members pe
+src/lib/competition/teams.ts:271  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/competition/teams.ts:272  if (t.participantFormat !== 'TEAM') return { ok: false, error: 'This tournament is not a team event.' }
+src/lib/competition/teams.ts:273  if (t.teamFormation !== 'PICK') return { ok: false, error: 'This tournament forms teams by random draw — regis
+src/lib/competition/teams.ts:508  if (!t) return { ok: false, error: 'Tournament not found.' }
+src/lib/editorial/pages.ts:22  'news', 'seasons', 'tournaments', 'rankings', 'players', 'account', 'login', 'register',
+src/lib/home/matches.ts:88  'tournament_group:' || m."id",
+src/lib/home/matches.ts:89  'tournament_group',
+src/lib/home/matches.ts:100  FROM "public"."comp_tournament_match" m
+src/lib/home/matches.ts:110  'tournament_playoff:' || m."id",
+src/lib/home/matches.ts:111  'tournament_playoff',
+src/lib/home/results.ts:128  competitionType: 'Tournament',
+src/lib/home/results.ts:130  href: t.number != null ? `/cups/${t.number}` : '/tournaments',
+src/lib/home/top10-career.ts:55  FROM "public"."comp_tournament_match" m
+src/lib/home/top10.ts:31  | 'tournament-championships'
+src/lib/home/top10.ts:89  { value: 'tournament-championships', label: 'Tournament Championships', group: 'Championship Type' },
+src/lib/home/top10.ts:175  if (mode === 'tournament-championships') {
+src/lib/home/top10.ts:178  metricLabel: 'Tournament titles',
+src/lib/home/top10.ts:180  href: '/tournaments',
+src/lib/players/identity-propagation.ts:138  note('comp_tournament_team_member',
+src/lib/players/identity-propagation.ts:142  note('comp_tournament_free_agent',
+src/lib/players/identity-propagation.ts:200  note('comp_tournament_bracket_match', 1)
+src/lib/players/identity-propagation.ts:227  note(`comp_tournament.${label}`,
+src/lib/site-content/defaults.ts:27  'Explore seasons, tournaments, champions, and results from across the competitive 8-ball community.',
+src/lib/site-content/defaults.ts:31  secondaryButtonLabel: 'Tournaments',
+src/lib/site-content/defaults.ts:32  secondaryButtonHref: '/tournaments',
+src/lib/site.ts:17  '8 Ball Registry (8BR) — the home of competitive cue sports. Enter standalone tournaments, follow live bracket
+src/lib/staff/activity-shared.ts:4  'Authentication', 'Accounts', 'Password resets', 'Roles', 'Seasons', 'Tournaments', 'Registration',
+src/lib/staff/activity-shared.ts:46  : /tournament|cup|playoff|swiss|group|bracket/.test(a) ? 'Tournaments'
+src/lib/staff/export-actions.ts:65  return { ok: true, csv, filename: `8br-tournaments-${new Date().toISOString().slice(0, 10)}.csv` }
+src/lib/staff/oversight.ts:7  type: 'Season' | 'Tournament'
+src/lib/staff/oversight.ts:60  type: 'Tournament', id: t.id, name: t.name, code: t.code ?? `T${t.number}`,
+src/lib/stats/ladder-explorer.ts:47  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
+src/lib/stats/ladder-explorer.ts:199  FROM "public"."comp_tournament_match" m
+src/lib/stats/ladder-explorer.ts:416  FROM "public"."comp_tournament" t
+src/lib/stats/ladder-explorer.ts:663  FROM "public"."comp_tournament" t
+src/lib/stats/rankings-columns.ts:234  tooltip: 'Distinct Seasons and Tournaments with at least one recorded match in scope.',
+src/lib/stats/rankings-csv.ts:89  lines.push(csvRow([`Championship type`, mode === 'SC' ? 'Season Championships' : 'Tournament Championships']))
+src/lib/stats/rankings-detail.ts:271  LEFT JOIN "public"."comp_tournament" t ON t."id" = pc.tournament_id
+src/lib/stats/registry-stats.ts:73  FROM "public"."comp_tournament" t
+src/lib/stats/registry-stats.ts:101  FROM "public"."comp_tournament" t

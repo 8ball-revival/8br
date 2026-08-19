@@ -184,7 +184,7 @@ export function ExpandedRow({
             the two drift apart and the eye has to travel to pair them up. */}
         <dl className="grid max-w-[20rem] grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
           <Stat label="Overall" value={RECORD(detail.overallRecord)}
-            tip="Every recorded match, Seasons and Tournaments together." />
+            tip="Every recorded match, Seasons and Cups together." />
           <Stat label="Group play" value={RECORD(detail.groupRecord)}
             tip="Season group stages only." />
           <Stat label="Playoffs" value={RECORD(detail.playoffRecord)}

@@ -488,9 +488,9 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
       {!disabled && !canBuild && (
         <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
           {data.tournament.lifecycleState === 'IN_PROGRESS'
-            ? 'The tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
+            ? 'The Cup is in progress — the bracket is fixed. Enter results in the Results tab.'
             : data.tournament.lifecycleState === 'COMPLETED'
-              ? 'This tournament is completed — the bracket is read-only.'
+              ? 'This Cup is completed — the bracket is read-only.'
               : 'Close registration to generate the bracket.'}
         </p>
       )}
@@ -719,7 +719,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
     startDelete(async () => {
       const r = await A.deleteTournamentAction(data.tournament.id, delCode)
       if (r.error) return setDelError(r.error)
-      router.push("/tournaments") // the tournament no longer exists — leave the workspace
+      router.push("/cups") // the tournament no longer exists — leave the workspace
       router.refresh()
     })
   }
@@ -778,21 +778,21 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
         <p className="eyebrow mb-2 text-muted-foreground">Identity</p>
         <dl className="grid gap-1 text-sm">
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Code</dt><dd>{data.tournament.code}</dd></div>
-          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Tournament number</dt><dd>{data.tournament.number}</dd></div>
+          <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Cup number</dt><dd>{data.tournament.number}</dd></div>
           <div className="flex gap-2"><dt className="w-32 text-muted-foreground">Format</dt><dd>{data.tournament.formatBadge} · {(data.tournament.tournamentFormat ?? '').replace(/_/g, ' ').toLowerCase()}</dd></div>
         </dl>
       </section>
 
       {canManage && !data.isHistorical && data.tournament.lifecycleState !== 'COMPLETED' && data.tournament.lifecycleState !== 'CANCELLED' && (
         <section className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-4">
-          <p className="text-sm font-semibold text-foreground">Cancel tournament</p>
+          <p className="text-sm font-semibold text-foreground">Cancel Cup</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Cancel this tournament. It becomes read-only and cannot be resumed except by an Owner recovery. History is preserved (use Delete below to remove it entirely).
           </p>
           <Button
             className="mt-3"
             variant="destructive"
-            onClick={async () => { const r = await confirm({ title: 'Cancel this tournament?', message: 'This is terminal — the tournament becomes read-only and can only be recovered by the Owner.', confirmLabel: 'Cancel tournament', cancelLabel: 'Keep tournament', tone: 'danger' }); if (r.confirmed) run(() => A.setTournamentStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
+            onClick={async () => { const r = await confirm({ title: 'Cancel this Cup?', message: 'This is terminal — the Cup becomes read-only and can only be recovered by the Owner.', confirmLabel: 'Cancel Cup', cancelLabel: 'Keep Cup', tone: 'danger' }); if (r.confirmed) run(() => A.setTournamentStateAction(data.tournament.id, 'CANCELLED', 'Cancelled from Settings')) }}
           >
             Cancel tournament
           </Button>
@@ -814,7 +814,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
               className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
             <Button variant="destructive" onClick={deleteTournament} disabled={deleting || delCode.trim() !== (data.tournament.code ?? '')}>
-              {deleting ? 'Deleting…' : 'Delete tournament permanently'}
+              {deleting ? 'Deleting…' : 'Delete Cup permanently'}
             </Button>
           </div>
           {delError && <p className="mt-2 text-sm text-destructive">{delError}</p>}
@@ -980,7 +980,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
     return <p className="text-sm text-muted-foreground">The Swiss rounds haven&apos;t started yet. Close registration, then Start Swiss.</p>
   }
   const completeSwiss = async () => {
-    const r = await confirm({ title: 'Complete this Swiss tournament?', message: 'This finalizes the standings, crowns the winner, and applies results to the Rankings. It is terminal — the tournament becomes read-only.', confirmLabel: 'Complete Swiss', cancelLabel: 'Keep playing', tone: 'warning' })
+    const r = await confirm({ title: 'Complete this Swiss Cup?', message: 'This finalizes the standings, crowns the winner, and applies results to the Rankings. It is terminal — the Cup becomes read-only.', confirmLabel: 'Complete Swiss', cancelLabel: 'Keep playing', tone: 'warning' })
     if (r.confirmed) run(() => A.completeSwissAction(data.tournament.id))
   }
   return (
@@ -988,7 +988,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs text-muted-foreground">
           {isDone
-            ? <>This Swiss tournament is <b className="text-foreground">complete</b> — final standings below.</>
+            ? <>This Swiss Cup is <b className="text-foreground">complete</b> — final standings below.</>
             : <>Round <b className="text-foreground">{s.currentRound}</b> of <b className="text-foreground">{s.totalRounds}</b>. Enter every result; standings and the next round&apos;s pairings update automatically.</>}
         </p>
         <div className="ml-auto flex gap-2">

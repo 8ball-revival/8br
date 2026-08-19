@@ -19,7 +19,7 @@ export function ExportButtons() {
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" size="sm" disabled={pending} onClick={() => run(exportMembersAction)}><Download className="size-4" /> Members</Button>
       <Button variant="outline" size="sm" disabled={pending} onClick={() => run(exportSeasonsAction)}><Download className="size-4" /> Seasons</Button>
-      <Button variant="outline" size="sm" disabled={pending} onClick={() => run(exportTournamentsAction)}><Download className="size-4" /> Tournaments</Button>
+      <Button variant="outline" size="sm" disabled={pending} onClick={() => run(exportTournamentsAction)}><Download className="size-4" /> Cups</Button>
       <Button variant="outline" size="sm" disabled={pending} onClick={() => run(exportRankingsAction)}><Download className="size-4" /> Rankings</Button>
       <Button variant="outline" size="sm" disabled={pending} onClick={() => run(() => exportActivityCsvAction({ includeAutomated: true }))}><Download className="size-4" /> Activity Log</Button>
     </div>

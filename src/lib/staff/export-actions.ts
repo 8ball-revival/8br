@@ -62,7 +62,7 @@ export async function exportTournamentsAction(): Promise<ExportResult> {
   if (!(await headAdminGate())) return { error: 'Head Admin only.' }
   const t = await prisma.tournament.findMany({ orderBy: { number: 'asc' } })
   const csv = toCsv(['number', 'code', 'name', 'format', 'state', 'champion', 'runnerUp'], t.map((x) => [x.number, x.code, x.name, x.tournamentFormat, x.lifecycleState, x.championName, x.runnerUpName]))
-  return { ok: true, csv, filename: `8br-tournaments-${new Date().toISOString().slice(0, 10)}.csv` }
+  return { ok: true, csv, filename: `8br-Cups-${new Date().toISOString().slice(0, 10)}.csv` }
 }
 
 export async function exportRankingsAction(): Promise<ExportResult> {

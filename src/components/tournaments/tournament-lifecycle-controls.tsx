@@ -29,7 +29,7 @@ const LABEL: Record<State, string> = {
   REGISTRATION_CLOSED: 'Registration Closed',
   GROUPS_IN_PROGRESS: 'Group Stage',
   BRACKET_GENERATED: 'Bracket Ready',
-  IN_PROGRESS: 'Tournament Live',
+  IN_PROGRESS: 'Cup Live',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 }
@@ -170,7 +170,7 @@ export function TournamentLifecycleControls({
                   Group Stage + Playoffs tournament already has group results at this point, so it is
                   hidden there; a bracket-only tournament has no results yet, so it stays available. */}
               {!isGroupStage && (
-                <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the tournament can start.')}>
+                <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => reopenTournamentRegistrationAction(tournamentId), 'Re-open registration? The current bracket will be outdated and must be regenerated before the Cup can start.')}>
                   <Unlock className="size-4" /> Re-Open Registration
                 </Button>
               )}
@@ -179,7 +179,7 @@ export function TournamentLifecycleControls({
                   <RefreshCw className="size-4" /> Regenerate Bracket
                 </Button>
               ) : (
-                <Button size="sm" disabled={pending} onClick={() => act(() => beginTournamentAction(tournamentId), 'Start Tournament?\n\nThis will make the tournament live, permanently lock registration, and enable match reporting.')}>
+                <Button size="sm" disabled={pending} onClick={() => act(() => beginTournamentAction(tournamentId), 'Start Cup?\n\nThis will make the Cup live, permanently lock registration, and enable match reporting.')}>
                   <Play className="size-4" /> Start Tournament
                 </Button>
               )}
@@ -187,13 +187,13 @@ export function TournamentLifecycleControls({
           )}
 
           {state === 'IN_PROGRESS' && isSwiss && (
-            <Button size="sm" disabled={pending} onClick={() => act(() => completeSwissAction(tournamentId), 'Complete this Swiss tournament? Every round must be reported. This applies the individual Rankings update.')}>
-              <CheckCircle2 className="size-4" /> Complete tournament
+            <Button size="sm" disabled={pending} onClick={() => act(() => completeSwissAction(tournamentId), 'Complete this Swiss Cup? Every round must be reported. This applies the individual Rankings update.')}>
+              <CheckCircle2 className="size-4" /> Complete Cup
             </Button>
           )}
           {state === 'IN_PROGRESS' && !isSwiss && (
-            <Button size="sm" disabled={pending} onClick={() => act(() => setTournamentStateAction(tournamentId, 'COMPLETED'), 'Complete this tournament? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
-              <CheckCircle2 className="size-4" /> Complete tournament
+            <Button size="sm" disabled={pending} onClick={() => act(() => setTournamentStateAction(tournamentId, 'COMPLETED'), 'Complete this Cup? The Final must have a confirmed winner. This applies the ladder and locks the bracket.')}>
+              <CheckCircle2 className="size-4" /> Complete Cup
             </Button>
           )}
 

@@ -89,8 +89,8 @@ export default async function AccountPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p className="text-muted-foreground">
-              Tournaments are where you register and play. Browse open tournaments and enter directly from
-              a tournament&apos;s page.
+              Cups are where you register and play. Browse open Cups and enter directly from
+              a Cup&apos;s page.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button asChild><Link href="/archives/cups">Browse Cups</Link></Button>

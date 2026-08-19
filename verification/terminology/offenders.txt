@@ -1,0 +1,175 @@
+src/app/(frontend)/account/page.tsx:92  Tournaments are where you register and play. Browse open tournaments and enter directly from
+src/app/(frontend)/account/page.tsx:93  a tournament&apos;s page.
+src/app/(frontend)/creator/page.tsx:34  Create, reconstruct and manage every Season and Tournament. Nothing here is public until
+src/app/(frontend)/cups/[number]/page.tsx:83  <span className="eyebrow text-muted-foreground">Tournament {number}</span>
+src/app/(frontend)/cups/[number]/page.tsx:205  This tournament isn&apos;t open for registration yet. Check back soon.
+src/app/(frontend)/cups/[number]/page.tsx:212  This tournament was cancelled.
+src/app/(frontend)/cups/[number]/page.tsx:221  <TournamentWinnerSummary
+src/app/(frontend)/cups/[number]/page.tsx:241  {myMatch && <div className="mb-6"><TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.oppone
+src/app/(frontend)/cups/[number]/page.tsx:264  <TournamentReportLoss matchId={myMatch.matchId} opponentName={myMatch.opponentName} matchLabel={myMatch.matchL
+src/app/(frontend)/cups/[number]/page.tsx:314  <TournamentJoinPanel
+src/app/(frontend)/cups/[number]/page.tsx:327  <TournamentTeamRegister
+src/app/(frontend)/cups/[number]/page.tsx:347  <TournamentHistory events={history} />
+src/app/(frontend)/cups/[number]/page.tsx:372  <ArrowLeft className="size-4" /> Tournaments
+src/app/(frontend)/cups/[number]/page.tsx:417  publicView = <PublicLiveTournament data={publicData} member={member} history={history} view={view} playoffsPub
+src/app/(frontend)/cups/[number]/page.tsx:454  <TournamentHeader
+src/app/(frontend)/login/page.tsx:33  Sign in to manage your 8 Ball Registry account and tournament registration.
+src/app/(frontend)/predictions/page.tsx:39  Soon, registered 8 Ball Registry members will be able to publish match predictions, tournament picks,
+src/app/(frontend)/register/page.tsx:37  Your CueVerse ID is your public identity and your login. You can enter any open tournament
+src/app/(frontend)/staff/competition/page.tsx:19  <p className="mt-1 text-sm text-muted-foreground">Every Season and Tournament at a glance — phase, registratio
+src/app/(frontend)/staff/health/page.tsx:36  <Stat label="Seasons / Cups" value={`${h.counts.seasons} / ${h.counts.tournaments}`} />
+src/app/(frontend)/staff/page.tsx:69  <StatCard label="Active Cups" value={o.activeTournaments} href="/archives/cups" />
+src/app/sitemap.ts:23  { path: '/seasons/ego-tournament-1', priority: 0.6 },
+src/components/competition/group-standings.tsx:13  matches: TournamentMatch[]
+src/components/competition/playoff-disclaimer.tsx:45  kind === 'season' ? setSeasonPlayoffDisclaimerAction(id, t) : setTournamentPlayoffDisclaimerAction(id, t)
+src/components/creator/completed-list.tsx:59  ['cups', 'Cups', page.facets.counts.tournaments],
+src/components/rankings/player-profile.tsx:21  tournamentsPlayed: number
+src/components/rankings/player-profile.tsx:90  <Stat label="Cups" value={profile.tournamentsPlayed} />
+src/components/rankings/player-profile.tsx:120  <td className="px-2.5 py-2 text-center">{t.wonTournament ? <span className="inline-flex items-center gap-1 fon
+src/components/rankings/player-profile.tsx:138  <td className="px-2.5 py-2"><Link href={m.link} className="text-foreground hover:text-brand">{m.tournamentName
+src/components/rankings/rankings-explorer.tsx:397  options={tournamentOptions.map((t) => ({ value: String(t.id), label: t.label }))} />
+src/components/staff/competition-oversight-view.tsx:28  <select value={type} onChange={(e) => setType(e.target.value)} className={sel} aria-label="Type"><option value
+src/components/staff/export-buttons.tsx:22  <Button variant="outline" size="sm" disabled={pending} onClick={() => run(exportTournamentsAction)}><Download 
+src/components/staff/member-moderation.tsx:183  <p className="text-xs text-muted-foreground">Blocks tournament signup and withdraws active participation. Expi
+src/components/staff/staff-shell.tsx:25  | 'tournaments'
+src/components/staff/staff-shell.tsx:37  { key: 'tournaments', label: 'Competition Oversight', href: '/creator', icon: Trophy, cap: 'manage_competition
+src/components/tournaments/tournament-card.tsx:21  <span className="eyebrow text-muted-foreground">Tournament {cup.number}</span>
+src/components/tournaments/tournament-history.tsx:10  tournament_started: 'bg-destructive',
+src/components/tournaments/tournament-history.tsx:15  tournament_completed: 'bg-brand',
+src/components/tournaments/tournament-history.tsx:16  tournament_cancelled: 'bg-muted-foreground',
+src/components/tournaments/tournament-lifecycle-controls.tsx:11  setTournamentStateAction,
+src/components/tournaments/tournament-lifecycle-controls.tsx:12  recoverTournamentStateAction,
+src/components/tournaments/tournament-lifecycle-controls.tsx:13  beginTournamentAction,
+src/components/tournaments/tournament-lifecycle-controls.tsx:14  generateTournamentBracketAction,
+src/components/tournaments/tournament-lifecycle-controls.tsx:16  reopenTournamentRegistrationAction,
+src/components/tournaments/tournament-lifecycle-controls.tsx:170  Group Stage + Playoffs tournament already has group results at this point, so it is
+src/components/tournaments/tournament-lifecycle-controls.tsx:183  <Play className="size-4" /> Start Tournament
+src/components/tournaments/tournament-lifecycle-controls.tsx:191  <CheckCircle2 className="size-4" /> Complete tournament
+src/components/tournaments/tournament-lifecycle-controls.tsx:196  <CheckCircle2 className="size-4" /> Complete tournament
+src/components/tournaments/tournament-list.tsx:121  <span className="tabular text-sm font-semibold text-brand">Tournament #{c.number}</span>
+src/components/tournaments/tournament-workspace.tsx:37  data: TournamentWorkspaceData
+src/components/tournaments/tournament-workspace.tsx:42  history?: TournamentHistoryEvent[]
+src/components/tournaments/tournament-workspace.tsx:92  <TournamentLifecycleControls
+src/components/tournaments/tournament-workspace.tsx:146  <TournamentHistory events={history} admin />
+src/components/tournaments/tournament-workspace.tsx:673  <Button size="sm" onClick={() => run(() => A.recordTournamentScoreAction(m.id, Number(home), Number(away)))} d
+src/components/tournaments/tournament-workspace.tsx:676  {decided && <Button size="sm" variant="ghost" onClick={() => run(() => A.undoTournamentResultAction(m.id))}>Un
+src/components/tournaments/tournament-workspace.tsx:797  Cancel tournament
+src/components/tournaments/tournament-workspace.tsx:806  Permanently delete this tournament and everything under it (entrants, teams, bracket, results). This cannot be
+src/components/tournaments/tournament-workspace.tsx:909  m: import('@/lib/tournaments/live').WorkspaceGroupMatch
+src/components/tournaments/tournament-workspace.tsx:931  run(() => import('@/lib/competition/tournament-actions').then((A) => A.recordGroupResultAction(m.id, h, a)))
+src/lib/competition/actions.ts:22  '/staff/tournament',
+src/lib/competition/free-agents.ts:55  await prisma.tournamentFreeAgent.delete({ where: { id: fa.id } })
+src/lib/competition/free-agents.ts:124  if (fa) await tx.tournamentFreeAgent.delete({ where: { id: fa.id } })
+src/lib/competition/free-agents.ts:125  await tx.tournamentTeamMember.create({ data: { teamId: team.id, userId: uid, playerId: ident.playerId, name: i
+src/lib/competition/free-agents.ts:128  await recordAudit(actor, { action: 'Cup.team.adminCreate', entity: 'TournamentTeam', entityId: team.id, newVal
+src/lib/competition/free-agents.ts:148  if (fa) await tx.tournamentFreeAgent.delete({ where: { id: fa.id } })
+src/lib/competition/free-agents.ts:149  await tx.tournamentTeamMember.create({ data: { teamId, userId, playerId: ident.playerId, name: ident.name, han
+src/lib/competition/free-agents.ts:150  await recordAudit(actor, { action: 'Cup.team.adminAddMember', entity: 'TournamentTeam', entityId: teamId, newV
+src/lib/competition/free-agents.ts:168  await tx.tournamentTeamMember.delete({ where: { id: target.id } })
+src/lib/competition/free-agents.ts:171  if (next) await tx.tournamentTeamMember.update({ where: { id: next.id }, data: { captain: true } })
+src/lib/competition/free-agents.ts:173  await recordAudit(actor, { action: 'Cup.team.adminRemoveMember', entity: 'TournamentTeam', entityId: teamId, n
+src/lib/competition/free-agents.ts:192  if (fa) await tx.tournamentFreeAgent.delete({ where: { id: fa.id } })
+src/lib/competition/free-agents.ts:193  await tx.tournamentTeamMember.update({ where: { id: target.id }, data: { userId: newUserId, playerId: ident.pl
+src/lib/competition/free-agents.ts:194  await recordAudit(actor, { action: 'Cup.team.adminReplaceMember', entity: 'TournamentTeam', entityId: teamId, 
+src/lib/competition/free-agents.ts:290  let order = await tx.tournamentTeamMember.count({ where: { teamId: fill.teamId } })
+src/lib/competition/free-agents.ts:293  await tx.tournamentTeamMember.create({ data: { teamId: fill.teamId, userId: a.userId, playerId: ident?.playerI
+src/lib/competition/free-agents.ts:305  await tx.tournamentTeamMember.create({ data: { teamId: team.id, userId: m.userId, playerId: ident?.playerId ??
+src/lib/competition/free-agents.ts:315  if (teamId != null) await tx.tournamentFreeAgent.update({ where: { id: fa.id }, data: { status: 'PLACED', plac
+src/lib/competition/free-agents.ts:316  else await tx.tournamentFreeAgent.update({ where: { id: fa.id }, data: { status: 'NOT_PLACED' } })
+src/lib/competition/free-agents.ts:323  await tx.tournamentTeam.update({ where: { id: s.teamId }, data: { withdrawn: true } })
+src/lib/competition/group-setup.ts:137  await recordAudit(actor, { action: 'groups.removeDraftGroup', entity: 'TournamentGroup', entityId: groupId, ol
+src/lib/competition/labels.ts:3  TournamentRunState,
+src/lib/competition/lifecycle-rules.ts:73  lifecycleState: TournamentState | string | null
+src/lib/competition/queries.ts:112  return prisma.tournamentGroup.findMany({
+src/lib/competition/queries.ts:151  prisma.tournamentGroup.findMany({
+src/lib/competition/queries.ts:220  return prisma.tournamentGroup.findMany({
+src/lib/competition/service.ts:47  patch: TournamentPatch,
+src/lib/competition/service.ts:101  _tournamentId: number,
+src/lib/competition/service.ts:502  await tx.tournamentGroup.create({
+src/lib/competition/service.ts:658  await recordAudit(actor, { action: 'groups.createGroup', entity: 'TournamentGroup', entityId: g.id, newValue: 
+src/lib/competition/service.ts:732  await prisma.tournamentGroup.update({ where: { id: groupId }, data: { name: trimmed } })
+src/lib/competition/service.ts:733  await recordAudit(actor, { action: 'groups.renameGroup', entity: 'TournamentGroup', entityId: groupId, oldValu
+src/lib/competition/service.ts:742  await prisma.tournamentGroup.delete({ where: { id: groupId } })
+src/lib/competition/service.ts:743  await recordAudit(actor, { action: 'groups.deleteGroup', entity: 'TournamentGroup', entityId: groupId, oldValu
+src/lib/competition/service.ts:757  await tx.tournamentGroup.update({ where: { id: a.id }, data: { ordinal: b.ordinal } })
+src/lib/competition/service.ts:758  await tx.tournamentGroup.update({ where: { id: b.id }, data: { ordinal: a.ordinal } })
+src/lib/competition/service.ts:759  await recordAudit(actor, { action: 'groups.reorderGroup', entity: 'TournamentGroup', entityId: groupId, newVal
+src/lib/competition/service.ts:794  await recordAudit(actor, { action: 'groups.addPlayer', entity: 'TournamentGroup', entityId: groupId, newValue:
+src/lib/competition/service.ts:825  await recordAudit(actor, { action: 'groups.removePlayer', entity: 'TournamentGroup', entityId: groupId, oldVal
+src/lib/competition/service.ts:851  await recordAudit(actor, { action: 'groups.reorderPlayer', entity: 'TournamentGroup', entityId: groupId, newVa
+src/lib/competition/surface.ts:180  .map((t) => tournamentCard(t, counts.get(t.id) ?? 0))
+src/lib/competition/swiss.ts:81  if (getTournamentState(t) !== 'REGISTRATION_CLOSED') return { ok: false, error: 'Close registration before sta
+src/lib/competition/teams.ts:129  await tx.tournamentTeamMember.deleteMany({ where: { teamId } })
+src/lib/competition/teams.ts:130  await tx.tournamentTeamMember.createMany({
+src/lib/competition/teams.ts:140  await tx.tournamentTeam.update({ where: { id: teamId }, data: { updatedAt: new Date() } })
+src/lib/competition/teams.ts:141  await recordAudit(actor, { action: 'Cup.team.setMembers', entity: 'TournamentTeam', entityId: teamId, newValue
+src/lib/competition/teams.ts:158  await tx.tournamentTeam.update({ where: { id: teamId }, data: { name: clean } })
+src/lib/competition/teams.ts:163  await recordAudit(actor, { action: 'Cup.team.rename', entity: 'TournamentTeam', entityId: teamId, oldValue: { 
+src/lib/competition/teams.ts:175  await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: true } })
+src/lib/competition/teams.ts:177  await recordAudit(actor, { action: 'Cup.team.withdraw', entity: 'TournamentTeam', entityId: teamId, reason }, 
+src/lib/competition/teams.ts:188  await tx.tournamentTeam.update({ where: { id: teamId }, data: { withdrawn: false } })
+src/lib/competition/teams.ts:190  await recordAudit(actor, { action: 'Cup.team.restore', entity: 'TournamentTeam', entityId: teamId }, tx)
+src/lib/competition/teams.ts:208  await recordAudit(actor, { action: 'Cup.team.delete', entity: 'TournamentTeam', entityId: teamId, oldValue: { 
+src/lib/competition/teams.ts:317  if (st?.kind === 'freeagent') await tx.tournamentFreeAgent.delete({ where: { id: st.freeAgentId } })
+src/lib/competition/teams.ts:320  await tx.tournamentTeamMember.create({ data: { teamId: team.id, userId: actor.userId, playerId: captain.player
+src/lib/competition/teams.ts:322  await recordAudit(actor, { action: 'Cup.team.start', entity: 'TournamentTeam', entityId: team.id, newValue: { 
+src/lib/competition/teams.ts:360  if (st?.kind === 'freeagent') await tx.tournamentFreeAgent.delete({ where: { id: st.freeAgentId } })
+src/lib/competition/teams.ts:361  await tx.tournamentTeamMember.create({ data: { teamId, userId: actor.userId, playerId: player.playerId, name: 
+src/lib/competition/teams.ts:362  await recordAudit(actor, { action: 'Cup.team.join', entity: 'TournamentTeam', entityId: teamId, newValue: { pl
+src/lib/competition/teams.ts:408  await tx.tournamentTeam.update({ where: { id: team.id }, data: { withdrawn: true } })
+src/lib/competition/teams.ts:410  await tx.tournamentTeamMember.delete({ where: { id: m.id } })
+src/lib/competition/teams.ts:411  await recordAudit(actor, { action: 'Cup.team.disband', entity: 'TournamentTeam', entityId: team.id, newValue: 
+src/lib/competition/teams.ts:416  await tx.tournamentTeamMember.update({ where: { id: others[0].id }, data: { captain: true } })
+src/lib/competition/teams.ts:417  await tx.tournamentTeamMember.delete({ where: { id: m.id } })
+src/lib/competition/teams.ts:418  await recordAudit(actor, { action: 'Cup.team.captainWithdraw', entity: 'TournamentTeam', entityId: team.id, ne
+src/lib/competition/teams.ts:421  await tx.tournamentTeamMember.delete({ where: { id: m.id } })
+src/lib/competition/teams.ts:422  await recordAudit(actor, { action: 'Cup.team.withdraw', entity: 'TournamentTeam', entityId: team.id, newValue:
+src/lib/competition/teams.ts:437  await tx.tournamentTeamMember.delete({ where: { id: target.id } })
+src/lib/competition/teams.ts:438  await recordAudit(actor, { action: 'Cup.team.removeMember', entity: 'TournamentTeam', entityId: captainM.team!
+src/lib/competition/teams.ts:454  await prisma.tournamentTeam.update({ where: { id: captainM.team.id }, data: { joinCodeHash } })
+src/lib/competition/teams.ts:455  await recordAudit(actor, { action: 'Cup.team.setJoinCode', entity: 'TournamentTeam', entityId: captainM.team.i
+src/lib/competition/teams.ts:535  await tx.tournamentTeamMember.createMany({
+src/lib/competition/teams.ts:572  await tx.tournamentTeam.update({ where: { id: tm.id }, data: { withdrawn: true } })
+src/lib/competition/teams.ts:574  await recordAudit(actor, { action: 'Cup.team.incompleteExcluded', entity: 'TournamentTeam', entityId: tm.id, n
+src/lib/editorial/pages.ts:22  'news', 'seasons', 'tournaments', 'rankings', 'players', 'account', 'login', 'register',
+src/lib/home/matches.ts:88  'tournament_group:' || m."id",
+src/lib/home/matches.ts:89  'tournament_group',
+src/lib/home/matches.ts:100  FROM "public"."comp_tournament_match" m
+src/lib/home/matches.ts:110  'tournament_playoff:' || m."id",
+src/lib/home/matches.ts:111  'tournament_playoff',
+src/lib/home/top10-career.ts:55  FROM "public"."comp_tournament_match" m
+src/lib/home/top10-career.ts:181  if (wantTournaments) {
+src/lib/nav.ts:62  i.href === '/live/seasons' ? live.seasons > 0 : live.tournaments > 0)
+src/lib/players/identity-propagation.ts:138  note('comp_tournament_team_member',
+src/lib/players/identity-propagation.ts:139  (await tx.tournamentTeamMember.updateMany({ where: { playerId }, data: roster })).count)
+src/lib/players/identity-propagation.ts:142  note('comp_tournament_free_agent',
+src/lib/players/identity-propagation.ts:143  (await tx.tournamentFreeAgent.updateMany({ where: { playerId, handle: oldHandle }, data: { handle: newHandle }
+src/lib/players/identity-propagation.ts:199  await tx.tournamentBracketMatch.update({ where: { id: row.id as number }, data })
+src/lib/players/identity-propagation.ts:200  note('comp_tournament_bracket_match', 1)
+src/lib/players/identity-propagation.ts:227  note(`comp_tournament.${label}`,
+src/lib/staff/activity-shared.ts:46  : /tournament|cup|playoff|swiss|group|bracket/.test(a) ? 'Cups'
+src/lib/staff/admin-dashboard.ts:9  activeTournaments: number
+src/lib/staff/admin-dashboard.ts:25  activeSeasons, upcomingSeasons, activeTournaments,
+src/lib/staff/admin-dashboard.ts:38  prisma.tournamentFreeAgent.count({ where: { status: 'WAITING' } }),
+src/lib/staff/admin-dashboard.ts:53  activeTournaments,
+src/lib/staff/oversight.ts:151  let users = 0, auditRows = 0, players = 0, seasons = 0, tournaments = 0
+src/lib/staff/oversight.ts:168  counts: { users, seasons, tournaments, auditRows, players },
+src/lib/stats/ladder-explorer.ts:199  FROM "public"."comp_tournament_match" m
+src/lib/stats/ladder-explorer.ts:213  -- Only Seasons belong to a Competition; a Tournament carries a year but no series.
+src/lib/stats/ladder-explorer.ts:416  FROM "public"."comp_tournament" t
+src/lib/stats/ladder-explorer.ts:454  coalesce(tc.tournament_titles, 0)::int AS tournament_titles,
+src/lib/stats/ladder-explorer.ts:663  FROM "public"."comp_tournament" t
+src/lib/stats/ladder-explorer.ts:765  t."name" AS tournament_name,
+src/lib/stats/ladder.ts:391  tournamentName: string
+src/lib/stats/ladder.ts:417  wonTournament: boolean
+src/lib/stats/ladder.ts:427  tournamentsPlayed: number
+src/lib/stats/ladder.ts:507  wonTournament: won, placement: won ? 'Champion' : null,
+src/lib/stats/ladder.ts:514  allTime, current, tournamentsPlayed: tids.length,
+src/lib/stats/ladder.ts:515  bestFinish: tournamentsOut.some((t) => t.wonTournament) ? 'Champion' : (tournamentsOut.length ? '—' : null),
+src/lib/stats/on-this-day.ts:227  : tournament?.name ?? ''
+src/lib/stats/rankings-columns.ts:790  tournament?: string | null
+src/lib/stats/rankings-detail.ts:267  AND lower(t."championHandle") = lower(coalesce(p."cueverseId", ''))) AS won_tournament
+src/lib/stats/rankings-detail.ts:271  LEFT JOIN "public"."comp_tournament" t ON t."id" = pc.tournament_id
+src/lib/stats/rankings-detail.ts:392  won: r.won_season === true || r.won_tournament === true,
+src/lib/stats/registry-stats.ts:73  FROM "public"."comp_tournament" t
+src/lib/stats/registry-stats.ts:101  FROM "public"."comp_tournament" t

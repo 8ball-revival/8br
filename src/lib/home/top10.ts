@@ -86,7 +86,7 @@ export async function getTop10Options(): Promise<Top10Option[]> {
     { value: 'all-competitions', label: 'All Competitions', group: 'Overall' },
     { value: 'current-ladder', label: 'Current Rankings', group: 'Overall' },
     { value: 'season-championships', label: 'Season Championships', group: 'Championship Type' },
-    { value: 'tournament-championships', label: 'Tournament Championships', group: 'Championship Type' },
+    { value: 'tournament-championships', label: 'Cup Championships', group: 'Championship Type' },
     ...competitions.map((c) => ({
       value: `competition:${c.id}` as Top10Mode,
       label: `${c.name} Only`,
@@ -175,9 +175,9 @@ export async function getTop10(mode: Top10Mode): Promise<Top10Result> {
   if (mode === 'tournament-championships') {
     return {
       mode,
-      metricLabel: 'Tournament titles',
+      metricLabel: 'Cup titles',
       rows: await careerRanking({ kind: 'tournament' }),
-      href: '/tournaments',
+      href: '/cups',
     }
   }
 

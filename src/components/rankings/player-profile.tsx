@@ -48,7 +48,7 @@ function Stat({ label, value, sub }: { label: string; value: React.ReactNode; su
   )
 }
 
-const TABS = ['Overview', 'Tournaments', 'Match History'] as const
+const TABS = ['Overview', 'Cups', 'Match History'] as const
 type Tab = (typeof TABS)[number]
 
 export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
@@ -87,8 +87,8 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
           <Stat label="All-Time Rating" value={a ? a.rating : '—'} />
           <Stat label="Highest Rank" value={a?.highestRank || '—'} sub="all-time" />
           <Stat label="Highest Rating" value={a?.highestRating ?? '—'} sub="all-time" />
-          <Stat label="Tournaments" value={profile.tournamentsPlayed} />
-          <Stat label="Tournament Wins" value={
+          <Stat label="Cups" value={profile.tournamentsPlayed} />
+          <Stat label="Cup Wins" value={
             (a?.trophies.length ?? 0) === 0 ? <span className="text-muted-foreground/60">—</span>
               : <span className="inline-flex items-center gap-1">{Math.min(a!.trophies.length, 5) && [...Array(Math.min(a!.trophies.length, 5))].map((_, i) => <Trophy key={i} className="size-4" style={{ color: 'var(--gold)' }} />)}{a!.trophies.length > 5 && <span className="text-sm">×{a!.trophies.length}</span>}</span>
           } />
@@ -101,14 +101,14 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
         </div>
       )}
 
-      {tab === 'Tournaments' && (
+      {tab === 'Cups' && (
         <div className="overflow-x-auto scrollbar-brand rounded-lg border border-border">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b border-border bg-card/50 text-left text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-2.5 py-2">Tournament</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2">Format</th><th className="px-2.5 py-2">Team</th><th className="px-2.5 py-2 text-center">Record</th><th className="px-2.5 py-2 text-center">Rating</th><th className="px-2.5 py-2 text-center">Result</th></tr>
+              <tr><th className="px-2.5 py-2">Cup</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2">Format</th><th className="px-2.5 py-2">Team</th><th className="px-2.5 py-2 text-center">Record</th><th className="px-2.5 py-2 text-center">Rating</th><th className="px-2.5 py-2 text-center">Result</th></tr>
             </thead>
             <tbody>
-              {profile.tournaments.length === 0 && <tr><td colSpan={7} className="px-2.5 py-6 text-center text-muted-foreground">No tournaments yet.</td></tr>}
+              {profile.tournaments.length === 0 && <tr><td colSpan={7} className="px-2.5 py-6 text-center text-muted-foreground">No Cups yet.</td></tr>}
               {profile.tournaments.map((t) => (
                 <tr key={t.tournamentId} className="border-b border-border/50 last:border-0 hover:bg-card/30">
                   <td className="px-2.5 py-2"><Link href={t.link} className="font-medium text-foreground hover:text-brand">{t.name}</Link></td>
@@ -129,7 +129,7 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
         <div className="overflow-x-auto scrollbar-brand rounded-lg border border-border">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-border bg-card/50 text-left text-[0.7rem] uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-2.5 py-2">Tournament</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2">Stage</th><th className="px-2.5 py-2">Opponent</th><th className="px-2.5 py-2 text-center">Score</th><th className="px-2.5 py-2 text-center">Result</th><th className="px-2.5 py-2 text-center">Rating</th></tr>
+              <tr><th className="px-2.5 py-2">Cup</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2">Stage</th><th className="px-2.5 py-2">Opponent</th><th className="px-2.5 py-2 text-center">Score</th><th className="px-2.5 py-2 text-center">Result</th><th className="px-2.5 py-2 text-center">Rating</th></tr>
             </thead>
             <tbody>
               {profile.matches.length === 0 && <tr><td colSpan={7} className="px-2.5 py-6 text-center text-muted-foreground">No matches yet.</td></tr>}

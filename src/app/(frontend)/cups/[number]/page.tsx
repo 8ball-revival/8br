@@ -58,7 +58,7 @@ interface MemberCtx {
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params
   const cup = getTournament(Number(number))
-  const title = cup ? `${cup.name} — Tournament ${cup.number}` : `Tournament ${number}`
+  const title = cup ? `${cup.name} — Cup ${cup.number}` : `Cup ${number}`
   return { title, alternates: { canonical: `/cups/${number}` } }
 }
 
@@ -80,7 +80,7 @@ function TournamentHeader({
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="eyebrow text-muted-foreground">Tournament {number}</span>
+        <span className="eyebrow text-muted-foreground">Cup {number}</span>
         {badge && <Badge variant="default">{badge}</Badge>}
         {live ? <Badge variant="destructive">{statusLabel}</Badge> : <Badge variant="muted">{statusLabel}</Badge>}
         {year && <span className="tabular text-sm text-muted-foreground">{year}</span>}
@@ -202,14 +202,14 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
   if (state === 'DRAFT') {
     return (
       <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        This tournament isn&apos;t open for registration yet. Check back soon.
+        This Cup isn&apos;t open for registration yet. Check back soon.
       </p>
     )
   }
   if (state === 'CANCELLED') {
     return (
       <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        This tournament was cancelled.
+        This Cup was cancelled.
       </p>
     )
   }
@@ -255,7 +255,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
         <>
           {state === 'BRACKET_GENERATED' && (
             <div className="mt-6 rounded-lg border border-sky-500/30 bg-sky-500/[0.06] px-4 py-3">
-              <Badge variant="muted">Awaiting Tournament Start</Badge>
+              <Badge variant="muted">Awaiting Cup Start</Badge>
               <span className="ml-2 text-sm text-muted-foreground">The bracket is published and under review — results can&apos;t be reported until play begins.</span>
             </div>
           )}
@@ -369,7 +369,7 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
 
   const backLink = (
     <Link href="/archives/cups" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-      <ArrowLeft className="size-4" /> Tournaments
+      <ArrowLeft className="size-4" /> Cups
     </Link>
   )
 

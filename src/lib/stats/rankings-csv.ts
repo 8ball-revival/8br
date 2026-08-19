@@ -86,7 +86,7 @@ export function buildRankingsCsv({ rows, state, filterSummary }: CsvOptions): st
   lines.push(csvRow([`8 Ball Registry — Rankings export`]))
   lines.push(csvRow([`Scope`, state.scope === 'current' ? 'Current (rolling 365 days)' : 'All time']))
   lines.push(csvRow([`Record view`, state.view]))
-  lines.push(csvRow([`Championship type`, mode === 'SC' ? 'Season Championships' : 'Tournament Championships']))
+  lines.push(csvRow([`Championship type`, mode === 'SC' ? 'Season Championships' : 'Cup Championships']))
   if (filterSummary) lines.push(csvRow([`Filters`, filterSummary]))
   lines.push(csvRow([
     `Sort`,
@@ -125,7 +125,7 @@ export function csvFilename(state: RankingsState, stamp: string): string {
   const parts = ['8-ball-registry-rankings', state.scope, state.view]
   if (state.division) parts.push(`division-${state.division}`)
   if (state.seasonId != null) parts.push(`season-${state.seasonId}`)
-  if (state.tournamentId != null) parts.push(`tournament-${state.tournamentId}`)
+  if (state.tournamentId != null) parts.push(`Cup-${state.tournamentId}`)
   parts.push(stamp)
   return `${parts.join('-').replace(/[^a-zA-Z0-9._-]/g, '-')}.csv`
 }

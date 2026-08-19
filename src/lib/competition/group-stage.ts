@@ -29,8 +29,8 @@ export async function startGroupStage(actor: Actor, tournamentId: number): Promi
     where: { id: tournamentId },
     select: { tournamentFormat: true, groupCount: true },
   })
-  if (!t) return { ok: false, error: 'Tournament not found.' }
-  if (!isGroupStageFormat(t.tournamentFormat)) return { ok: false, error: 'This is not a Group Stage + Playoffs tournament.' }
+  if (!t) return { ok: false, error: 'Cup not found.' }
+  if (!isGroupStageFormat(t.tournamentFormat)) return { ok: false, error: 'This is not a Group Stage + Playoffs Cup.' }
 
   const numGroups = t.groupCount && t.groupCount > 0 ? t.groupCount : 1
   const approved = await prisma.registration.count({ where: { tournamentId, status: 'APPROVED' } })
@@ -107,8 +107,8 @@ export async function confirmQualifiersAndSeed(actor: Actor, tournamentId: numbe
     where: { id: tournamentId },
     select: { tournamentFormat: true, playoffSeeding: true, playoffDoubleElim: true },
   })
-  if (!t) return { ok: false, error: 'Tournament not found.' }
-  if (!isGroupStageFormat(t.tournamentFormat)) return { ok: false, error: 'This is not a Group Stage + Playoffs tournament.' }
+  if (!t) return { ok: false, error: 'Cup not found.' }
+  if (!isGroupStageFormat(t.tournamentFormat)) return { ok: false, error: 'This is not a Group Stage + Playoffs Cup.' }
 
   const status = await groupStageComplete(tournamentId)
   if (!status.complete)

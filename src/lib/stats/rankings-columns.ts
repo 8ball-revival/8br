@@ -71,7 +71,7 @@ export const COLUMNS: ColumnDef[] = [
   },
   {
     key: 'player', label: 'Player', group: 'identity', align: 'left', locked: true,
-    tooltip: 'Preferred name over CueVerse ID. Both belong to one canonical player account, so changing a CueVerse ID updates every season, tournament and match that player appears in.',
+    tooltip: 'Preferred name over CueVerse ID. Both belong to one canonical player account, so changing a CueVerse ID updates every season, Cup and match that player appears in.',
     value: (r) => r.preferredName || r.cueverseId || '',
   },
   {
@@ -197,7 +197,7 @@ export const COLUMNS: ColumnDef[] = [
   {
     key: 'groupPoints', label: 'Group Points', short: 'Pts', group: 'group', align: 'right',
     views: ['overall', 'group'],
-    tooltip: 'Group Points — the sum of the standings points this player was awarded across every group stage they entered, read from the stored standings rather than recalculated. Group scoring is 3 points for a win, 1 for a draw, 0 for a loss. Hidden in the Playoffs and Tournaments views, where no standings points exist.',
+    tooltip: 'Group Points — the sum of the standings points this player was awarded across every group stage they entered, read from the stored standings rather than recalculated. Group scoring is 3 points for a win, 1 for a draw, 0 for a loss. Hidden in the Playoffs and Cups views, where no standings points exist.',
     value: (r) => r.groupPoints,
     format: (r) => (r.groupPoints == null ? '—' : String(r.groupPoints)),
   },
@@ -231,7 +231,7 @@ export const COLUMNS: ColumnDef[] = [
   },
   {
     key: 'competitionsEntered', label: 'Competitions', short: 'Comps', group: 'activity', align: 'right',
-    tooltip: 'Distinct Seasons and Tournaments with at least one recorded match in scope.',
+    tooltip: 'Distinct Seasons and Cups with at least one recorded match in scope.',
     value: (r) => r.competitionsEntered,
   },
   {
@@ -794,7 +794,7 @@ export function activeChips(
   if (s.competitionSeriesId != null) chips.push({ key: 'comp', label: names.competition ?? 'Competition' })
   if (s.year != null) chips.push({ key: 'year', label: String(s.year) })
   if (s.seasonId != null) chips.push({ key: 'season', label: names.season ?? 'Season' })
-  if (s.tournamentId != null) chips.push({ key: 'tournament', label: names.tournament ?? 'Tournament' })
+  if (s.tournamentId != null) chips.push({ key: 'tournament', label: names.tournament ?? 'Cup' })
   if (s.division) {
     chips.push({
       key: 'division',

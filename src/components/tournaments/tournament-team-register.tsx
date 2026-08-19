@@ -122,9 +122,9 @@ function SignInPrompt({ number }: { number: number }) {
 function JoinPasswordField({ show }: { show: boolean }) {
   if (!show) return null
   return (
-    <Field label="Tournament password">
-      <input name="joinPassword" type="password" required maxLength={200} placeholder="This is a private tournament" className={cn(input, 'max-w-[280px]')} autoComplete="off" />
-      <p className="mt-1.5 text-xs text-muted-foreground">This tournament is private — ask the organizer for the password. (Separate from any team join code.)</p>
+    <Field label="Cup password">
+      <input name="joinPassword" type="password" required maxLength={200} placeholder="This is a private Cup" className={cn(input, 'max-w-[280px]')} autoComplete="off" />
+      <p className="mt-1.5 text-xs text-muted-foreground">This Cup is private — ask the organizer for the password. (Separate from any team join code.)</p>
     </Field>
   )
 }
@@ -133,7 +133,7 @@ function RulesAck() {
   return (
     <label className="flex items-start gap-3 text-sm">
       <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
-      <span className="text-muted-foreground">I have read and agree to the tournament rules and format.</span>
+      <span className="text-muted-foreground">I have read and agree to the Cup rules and format.</span>
     </label>
   )
 }
@@ -197,7 +197,7 @@ function StartTeamForm({ number, requiresPassword }: { number: number; requiresP
         {useCode && (
           <input name="joinCode" minLength={3} maxLength={40} placeholder="Team join code" className={cn(input, 'mt-2 max-w-[280px]')} autoComplete="off" />
         )}
-        <p className="mt-1.5 text-xs text-muted-foreground">No code = any registered player can join while there&apos;s room. This is separate from any tournament password.</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">No code = any registered player can join while there&apos;s room. This is separate from any Cup password.</p>
       </div>
       <RulesAck />
       <ErrorLine error={state.error} />
@@ -212,7 +212,7 @@ function JoinTeamForm({ number, joinableTeams, requiresPassword }: { number: num
   const [selected, setSelected] = useState<JoinableTeamView | null>(null)
   const filtered = useMemo(() => joinableTeams.filter((t) => t.name.toLowerCase().includes(query.trim().toLowerCase())), [joinableTeams, query])
 
-  if (state.ok) return <Success text="You've joined the team. It now shows on your tournament page." />
+  if (state.ok) return <Success text="You've joined the team. It now shows on your Cup page." />
   if (joinableTeams.length === 0) return <p className="text-sm text-muted-foreground">No teams yet — start one instead.</p>
 
   return (

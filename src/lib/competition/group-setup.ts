@@ -49,7 +49,7 @@ export async function enterGroupSetup(actor: Actor, tournamentId: number, desire
     const r = await createGroup(actor, tournamentId)
     if (!r.ok) return r
   }
-  await recordAudit(actor, { action: 'groups.setupOpened', entity: 'Tournament', entityId: tournamentId, newValue: { groups: Math.max(existing, target) } })
+  await recordAudit(actor, { action: 'groups.setupOpened', entity: 'Cup', entityId: tournamentId, newValue: { groups: Math.max(existing, target) } })
   return { ok: true }
 }
 
@@ -122,7 +122,7 @@ export async function autoBalanceGroups(actor: Actor, tournamentId: number): Pro
       sizes[i]++
     }
   }
-  await recordAudit(actor, { action: 'groups.autoBalance', entity: 'Tournament', entityId: tournamentId, newValue: { groups: n, total } })
+  await recordAudit(actor, { action: 'groups.autoBalance', entity: 'Cup', entityId: tournamentId, newValue: { groups: n, total } })
   return { ok: true }
 }
 
@@ -206,6 +206,6 @@ export async function publishGroupsAndStart(actor: Actor, tournamentId: number):
   await recomputeStandings(tournamentId)
   const tr = await transitionTournamentState(actor, tournamentId, 'GROUPS_IN_PROGRESS')
   if (!tr.ok) return { ok: false, error: tr.error }
-  await recordAudit(actor, { action: 'groups.publishAndStart', entity: 'Tournament', entityId: tournamentId, newValue: { started: true } })
+  await recordAudit(actor, { action: 'groups.publishAndStart', entity: 'Cup', entityId: tournamentId, newValue: { started: true } })
   return { ok: true }
 }
