@@ -44,3 +44,59 @@ The archive, rankings, and identity resolution are **code/fixture-derived** — 
 
 ## Secrets hygiene
 `.gitignore` excludes all `.env*` (except `.env.example`), `migration-reports/` (claim codes), and `backups/`. No secret, connection string, token, or claim code is tracked in git (verified across the working tree and history).
+
+---
+
+## Redesign era — production data is canonical (from 2026-08-18)
+
+**The rule.** Production data is now canonical. Future redesign deployments must preserve the live
+database and use reviewed forward-only migrations or targeted import scripts.
+**Never replace production with a development dump.** The launch cutover was a one-time event; it is
+not the deployment model.
+
+### Baselines
+
+| | |
+|---|---|
+| Live source | `3e6823b`, tagged `production-2026-08-18-3e6823b` |
+| Live deployment | `dpl_Ck9tF86XwSc119iQAJKqqjSnhVQm` |
+| Live database | `eightballregistry_launch_20260818_1458` (Neon) |
+| Rollback database | `neondb`, untouched since launch |
+| Blob store | `8br-media` |
+| Redesign branch | `redesign-v2`, based on `3e6823b` |
+| Local redesign database | `8br_dev_redesign` on the contained cluster (127.0.0.1:55432) |
+
+`production-2026-08-18` marks the ORIGINAL launch (`2e4c528`) and is left in place as that record.
+`production-2026-08-18-3e6823b` marks what is actually deployed today.
+
+### Preserved partial work
+
+`manual-playoff-placement` @ `cf87dfe` — server-side playoff entry-slot classification and Clear All
+Placements. No UI, never deployed. Kept for selective integration; do not merge wholesale.
+
+### Local development
+
+- Media is written to `<repo>/media` and never to Blob. No `BLOB_READ_WRITE_TOKEN` in development.
+- The CueVerse daily refresh does not run locally; the homepage reads the cloned snapshot.
+- `NEXT_PUBLIC_SITE_URL` is `http://localhost:3000`, and `PAYLOAD_SECRET` is development-only, so
+  local sessions are cryptographically separate from production ones.
+- A missing `GIPHY_API_KEY` degrades gracefully and is not a blocker.
+
+### Production-write guard
+
+`src/lib/db-guard.ts` refuses destructive local commands unless the target is BOTH on loopback AND an
+approved development database (`8br_dev`, `8br_dev_redesign`, `8br_test`). It fails closed, parses
+URLs structurally rather than matching substrings, never prints credentials, and offers no override.
+It steps aside on Vercel so the deployed application still writes to production normally.
+Read-only production tooling (backups, inspection) is separate and carries its own enforcement.
+
+### Deployment workflow
+
+1. Work on `redesign-v2`; never edit live for routine feature development.
+2. Back up the live database (`pg_dump -Fc --no-owner --no-acl`) and verify with `pg_restore --list`.
+3. `npm run preflight` against the production environment.
+4. `vercel deploy --prod --skip-domain` — a candidate that does NOT take the domain.
+5. Smoke-test the candidate (`vercel curl` reaches it through deployment protection).
+6. `vercel promote <url>` only after checks pass.
+7. Re-run smoke tests against `https://8br.gg` itself before declaring success.
+8. Keep the previous deployment for instant rollback; never delete it in the same session.

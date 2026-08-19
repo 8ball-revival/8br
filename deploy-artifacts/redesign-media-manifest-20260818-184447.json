@@ -1,0 +1,36 @@
+{
+  "mirroredAt": "2026-08-19T01:46:41.627Z",
+  "note": "Local mirror of production Blob objects. No token recorded.",
+  "files": [
+    {
+      "file": "8br-banner2.png",
+      "bytes": 2257709,
+      "sha256": "0c441f61dd3dc6cad8b8dcf995d94f836d94c9da88acf9e3b04999e9c584d67f",
+      "action": "already present"
+    },
+    {
+      "file": "8br-logo.png",
+      "bytes": 2654976,
+      "sha256": "1533abfa60dccd54b1b95106110ca7728db221d6ab96489fc4389345427f6109",
+      "action": "already present"
+    },
+    {
+      "file": "screenshot-2026-08-18-1120142-msyzn5ws0nz27k.png",
+      "bytes": 845379,
+      "sha256": "038d51f59b2af67e8d310fbf32432c282640db0ab76695083c59abf1a4e6c17e",
+      "action": "already present"
+    },
+    {
+      "file": "screenshot-2026-08-18-1120142-msyzou53d2daki.png",
+      "bytes": 845379,
+      "sha256": "038d51f59b2af67e8d310fbf32432c282640db0ab76695083c59abf1a4e6c17e",
+      "action": "already present"
+    },
+    {
+      "file": "screenshot-2026-08-18-1120142-msyzplhho8cydn.png",
+      "bytes": 845379,
+      "sha256": "038d51f59b2af67e8d310fbf32432c282640db0ab76695083c59abf1a4e6c17e",
+      "action": "already present"
+    }
+  ]
+}
