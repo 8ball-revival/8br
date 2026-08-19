@@ -1,0 +1,98 @@
+{
+  "creator-dashboard@1440": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "Creator",
+    "dialog": false
+  },
+  "creator-dashboard@390": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "Creator",
+    "dialog": false
+  },
+  "completed-list@1440": {
+    "overflow": 0,
+    "tables": 1,
+    "rows": 2,
+    "brokenImages": 0,
+    "h1": "Completed records",
+    "dialog": false
+  },
+  "completed-list@390": {
+    "overflow": 0,
+    "tables": 1,
+    "rows": 2,
+    "brokenImages": 0,
+    "h1": "Completed records",
+    "dialog": false
+  },
+  "completed-seasons@1440": {
+    "overflow": 0,
+    "tables": 1,
+    "rows": 2,
+    "brokenImages": 0,
+    "h1": "Completed records",
+    "dialog": false
+  },
+  "completed-seasons@390": {
+    "overflow": 0,
+    "tables": 1,
+    "rows": 2,
+    "brokenImages": 0,
+    "h1": "Completed records",
+    "dialog": false
+  },
+  "completed-tournaments@1440": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "Completed records",
+    "dialog": false
+  },
+  "completed-tournaments@390": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "Completed records",
+    "dialog": false
+  },
+  "completed-detail@1440": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "",
+    "dialog": false
+  },
+  "completed-detail@390": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "",
+    "dialog": false
+  },
+  "reopen-dialog@1440": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "",
+    "dialog": true
+  },
+  "reopen-dialog@390": {
+    "overflow": 0,
+    "tables": 0,
+    "rows": 0,
+    "brokenImages": 0,
+    "h1": "",
+    "dialog": true
+  }
+}

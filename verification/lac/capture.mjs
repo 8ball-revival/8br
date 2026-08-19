@@ -46,7 +46,18 @@ for (const [name, path] of PAGES) {
     const m = await ev(`(() => {
       const nav = [...document.querySelectorAll('nav[aria-label="Primary"] a, nav[aria-label="Primary"] button')].map(e => e.textContent.trim()).filter(Boolean)
       return {
-        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        // Page-level horizontal overflow, measured as whether the DOCUMENT can actually be
+      // scrolled sideways. documentElement.scrollWidth counts the content of scrollable
+      // DESCENDANTS too, so a table that correctly scrolls inside its own pane reads as 531px of
+      // page overflow that no reader can ever reach — a false alarm that hides real ones.
+      overflow: (() => {
+        const se = document.scrollingElement
+        const before = se.scrollLeft
+        se.scrollLeft = 99999
+        const reached = se.scrollLeft
+        se.scrollLeft = before
+        return reached
+      })(),
         navItems: nav,
         title: (document.querySelector('h1')||{}).textContent || '',
         brokenImages: [...document.images].filter(i => i.complete && i.naturalWidth === 0).length,

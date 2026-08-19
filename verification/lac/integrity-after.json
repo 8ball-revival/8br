@@ -1,7 +1,7 @@
 {
   "Player": {
     "rows": 67,
-    "checksum": "12d451411a12bc5d12156ea450ed80bb"
+    "checksum": "36d2ae64be04e70d80f4365388f0d061"
   },
   "PlayerAlias": {
     "rows": 0,
@@ -13,7 +13,7 @@
   },
   "season_entrant": {
     "rows": 75,
-    "checksum": "6ff07c88030cb9126d86602955595629"
+    "checksum": "a03b554bfa750b326994b0a32988d4b3"
   },
   "season_group": {
     "rows": 10,
@@ -21,7 +21,7 @@
   },
   "season_match": {
     "rows": 238,
-    "checksum": "bf0237a2671cfaf4b4157c8795e091cc"
+    "checksum": "025e301969efd9025f039e6012dbafad"
   },
   "season_standing": {
     "rows": 74,
@@ -29,7 +29,7 @@
   },
   "season_playoff_match": {
     "rows": 46,
-    "checksum": "3d6468451b013a551ecf68b030c0ef73"
+    "checksum": "cea0c96c2f928cc15421997e9f8744df"
   },
   "comp_tournament": {
     "rows": 0,

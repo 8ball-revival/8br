@@ -215,7 +215,15 @@ try {
     check('reopening succeeds through the recovery path', r.ok, r.error)
     const after = await prisma.season.findUnique({ where: { id: s.id }, select: { ladderAppliedAt: true, lifecycleState: true } })
     check('the Season is no longer completed', after?.lifecycleState === 'PLAYOFFS_LIVE')
-    check('and its ladder application is cleared', after?.ladderAppliedAt === null, String(after?.ladderAppliedAt))
+    // The finalisation stamp is deliberately PRESERVED across a reopen. The withdrawal is total
+    // without clearing it — the ledger rebuild selects only still-COMPLETED competitions — and
+    // clearing it used to move the Season to the end of the Elo timeline when it was completed
+    // again, silently re-rating everyone who played after it. What matters is the contribution,
+    // asserted below, not the stamp.
+    check('the finalisation stamp survives, so the historical timeline does not move',
+      after?.ladderAppliedAt != null, String(after?.ladderAppliedAt))
+    check('...and the reopened Season contributes nothing to the ladder',
+      (await prisma.ratingLedger.count({ where: { seasonId: s.id } })) === 0)
     check('no ledger row still credits the reopened Season',
       (await prisma.ratingLedger.count({ where: { seasonId: s.id } })) === 0)
   }

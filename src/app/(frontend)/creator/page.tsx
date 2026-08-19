@@ -52,6 +52,36 @@ export default async function CreatorDashboard() {
           {BUCKETS.map((b) => {
             const list = byBucket.get(b.id) ?? []
             if (list.length === 0) return null
+
+            // Completed records are a MANAGEMENT LIST, not tiles. There will be a hundred of them,
+            // and a grid of cards is for browsing what exists — which is the public Archives' job.
+            // The dashboard shows the count and hands over to the table.
+            if (b.id === 'completed') {
+              return (
+                <section key={b.id}>
+                  <h2 className="mb-2 flex items-baseline gap-2 text-sm font-semibold">
+                    {b.label}
+                    <span className="text-xs font-normal text-muted-foreground">{b.hint}</span>
+                    <span className="ml-auto text-xs font-normal tabular-nums text-muted-foreground">{list.length}</span>
+                  </h2>
+                  <Link
+                    href="/creator/completed"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:border-[var(--gold)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                  >
+                    <span>
+                      <span className="block text-sm font-medium">
+                        Manage {list.length} completed {list.length === 1 ? 'record' : 'records'}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Search, filter and open any completed Season or Tournament to correct it.
+                      </span>
+                    </span>
+                    <ExternalLink className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </Link>
+                </section>
+              )
+            }
+
             return (
               <section key={b.id}>
                 <h2 className={cn(

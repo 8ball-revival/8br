@@ -17,7 +17,11 @@ export const SEASON_NEXT: Record<SeasonState, SeasonState[]> = {
   GROUPS_CLOSED: ['PLAYOFF_SETUP', 'GROUP_STAGE_LIVE'],
   PLAYOFF_SETUP: ['PLAYOFFS_LIVE', 'GROUPS_CLOSED'],
   PLAYOFFS_LIVE: ['COMPLETED'],
-  COMPLETED: [],
+  // Reopening a completed Season for CORRECTION is a designed workflow, not an emergency override.
+  // It returns the Season to the phase whose results are being corrected: the playoffs when there
+  // is a bracket, the closed group stage when there is not. Both are legitimate transitions, so a
+  // correction is audited as itself rather than as a recovery.
+  COMPLETED: ['PLAYOFFS_LIVE', 'GROUPS_CLOSED'],
 }
 
 export const SEASON_STATE_LABEL: Record<SeasonState, string> = {

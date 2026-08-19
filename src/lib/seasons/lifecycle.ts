@@ -41,8 +41,7 @@ export async function transitionSeasonState(
 
   // Only a CLOSED Season feeds Rankings, Records, ratings and championship totals. Reopening one
   // must therefore withdraw its contribution immediately rather than leaving stale numbers standing
-  // until it happens to be closed again. `ladderAppliedAt` is cleared for the same reason: it
-  // records that the ladder currently includes this Season, and after a reopen it no longer does.
+  // until it happens to be closed again — which is what the rebuild below does.
   const reopened = from === 'COMPLETED' && to !== 'COMPLETED'
 
   const run = async (t: import('@prisma/client').Prisma.TransactionClient) => {
@@ -51,7 +50,15 @@ export async function transitionSeasonState(
       data: {
         lifecycleState: to,
         ...(to === 'COMPLETED' ? { completedAt: new Date() } : {}),
-        ...(reopened ? { ladderAppliedAt: null } : {}),
+        // `ladderAppliedAt` is deliberately NOT cleared on reopen.
+        //
+        // It used to be, on the reasoning that it records "the ladder currently includes this
+        // Season". But the withdrawal is already total: rebuildRatingLedger selects only
+        // lifecycleState COMPLETED, so a reopened Season contributes nothing whether the stamp is
+        // there or not. Clearing it bought no safety and cost the historical ordering — the rebuild
+        // orders the timeline by this stamp, so a Season that was reopened and completed again
+        // jumped to the END of the Elo timeline and silently re-rated every player who came after
+        // it. Keeping it means a correction changes the corrected Season and nothing else.
       },
     })
     await recordAudit(
