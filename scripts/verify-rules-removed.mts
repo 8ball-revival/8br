@@ -100,8 +100,12 @@ console.log('--- The database no longer holds the feature ---')
 try {
   const [conn] = await prisma.$queryRaw<{ db: string; port: string }[]>`
     SELECT current_database() AS db, current_setting('port') AS port`
-  check('running against the contained database', conn.db === '8br_dev' && conn.port === '55432',
-    `${conn.db}:${conn.port}`)
+  // Any approved local database on the contained cluster is fine. The redesign workspace runs
+  // against 8br_dev_redesign, a clone of live; pinning the original name would fail there for no
+  // reason. What matters is that this is the contained local cluster and not a remote one.
+  const APPROVED = ['8br_dev', '8br_dev_redesign', '8br_test']
+  check('running against an approved local database on the contained cluster',
+    APPROVED.includes(conn.db) && conn.port === '55432', `${conn.db}:${conn.port}`)
 
   const tables = await prisma.$queryRaw<{ s: string; t: string }[]>`
     SELECT table_schema AS s, table_name AS t FROM information_schema.tables

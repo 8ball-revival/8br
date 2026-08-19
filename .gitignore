@@ -98,3 +98,6 @@ verification/screenshots/
 
 # Live-site verification screenshots — regenerable with node verification/capture-live.mjs
 verification/live-screenshots/
+
+# Local/live comparison screenshots — regenerable (node verification/compare-local-live.mjs).
+verification/redesign-compare/
