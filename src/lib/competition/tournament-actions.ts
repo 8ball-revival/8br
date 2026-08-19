@@ -473,13 +473,13 @@ export async function pairSwissRoundAction(tournamentId: number): Promise<Action
   return { ok: true, message: `Round ${r.round} paired.`, navigate: 'results' }
 }
 
-/** Finish a Swiss tournament (requires all rounds reported); applies the individual Ladder update. */
+/** Finish a Swiss tournament (requires all rounds reported); applies the individual Rankings update. */
 export async function completeSwissAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await completeSwiss(actor, tournamentId)
   if (!r.ok) return { error: r.error }
   revalidateTournament(await tournamentNumberOf(tournamentId))
-  return { ok: true, message: 'Swiss complete — Ladder updated.' }
+  return { ok: true, message: 'Swiss complete — Rankings updated.' }
 }
 
 // ---- Flair (per-tournament + per-admin default) ---------------------------

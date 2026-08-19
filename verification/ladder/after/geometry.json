@@ -1,0 +1,4272 @@
+{
+  "label": "after",
+  "base": "http://localhost:3000",
+  "capturedAt": "2026-08-19T16:14:49.808Z",
+  "views": {
+    "standard": {
+      "path": "/rankings",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 126,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "compact": {
+      "path": "/rankings?density=compact",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 519,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 163,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 718,
+            "clientWidth": 718,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "full": {
+      "path": "/rankings?density=full",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1703,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1703,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1753,
+            "clientWidth": 1114,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1805,
+            "clientWidth": 1374,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1817,
+            "clientWidth": 1470,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 347,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "custom-columns": {
+      "path": "/rankings?cols=rank,player,record,rating,titles,peakRating",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 511,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 155,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 718,
+            "clientWidth": 718,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "expanded-row": {
+      "path": "/rankings?expand=cmsxitx8u00066rzk1g5fytuo",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 290,
+            "target": 290,
+            "navBottom": 65,
+            "headTop": 347,
+            "gap": 282,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": true,
+            "scrolled": 126,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1220,
+            "clientWidth": 1114,
+            "scrollable": true
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": true,
+            "scrolled": 106,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "mode-sc": {
+      "path": "/rankings?mode=SC",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 126,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "mode-tc": {
+      "path": "/rankings?mode=TC",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 828,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 828,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 110,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "sorted-by-rating": {
+      "path": "/rankings?sort=rating:desc",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1102
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 687,
+            "bottom": 724
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 687,
+            "bottom": 724
+          },
+          "stickyHeaderTop": 687,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 860,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 263,
+            "target": 263,
+            "navBottom": 65,
+            "headTop": 424,
+            "gap": 359,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 424,
+            "bottom": 461
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 424,
+            "bottom": 461
+          },
+          "stickyHeaderTop": 424,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 860,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 142,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 211,
+            "gap": 146,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 332,
+            "bottom": 369
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 332,
+            "bottom": 369
+          },
+          "stickyHeaderTop": 332,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 151,
+            "gap": 86,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 331,
+            "bottom": 368
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 331,
+            "bottom": 368
+          },
+          "stickyHeaderTop": 331,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 150,
+            "gap": 85,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 331,
+            "bottom": 368
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 331,
+            "bottom": 368
+          },
+          "stickyHeaderTop": 331,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 150,
+            "gap": 85,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "filters-active": {
+      "path": "/rankings?min=5&champs=1&scope=all-time",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 895.66
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 289,
+            "width": 176,
+            "top": 667,
+            "bottom": 704
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 667,
+            "bottom": 704
+          },
+          "stickyHeaderTop": 667,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 833,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 2,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 57,
+            "target": 57,
+            "navBottom": 65,
+            "headTop": 610,
+            "gap": 545,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 620.66
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 297,
+            "width": 176,
+            "top": 420,
+            "bottom": 457
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 420,
+            "bottom": 457
+          },
+          "stickyHeaderTop": 420,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 833,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 2,
+          "sticky": {
+            "tested": true,
+            "scrolled": 115,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 528.66
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 328,
+            "bottom": 365
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 328,
+            "bottom": 365
+          },
+          "stickyHeaderTop": 328,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 2,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 527.66
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 327,
+            "bottom": 364
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 327,
+            "bottom": 364
+          },
+          "stickyHeaderTop": 327,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 2,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 527.66
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 327,
+            "bottom": 364
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 327,
+            "bottom": 364
+          },
+          "stickyHeaderTop": 327,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 2,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        }
+      }
+    },
+    "division": {
+      "path": "/rankings?division=A",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 915
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 289,
+            "width": 176,
+            "top": 667,
+            "bottom": 704
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 667,
+            "bottom": 704
+          },
+          "stickyHeaderTop": 667,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 805,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 76,
+            "target": 76,
+            "navBottom": 65,
+            "headTop": 591,
+            "gap": 526,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 640
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 297,
+            "width": 176,
+            "top": 420,
+            "bottom": 457
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 420,
+            "bottom": 457
+          },
+          "stickyHeaderTop": 420,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 805,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": true,
+            "scrolled": 87,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 548
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 328,
+            "bottom": 365
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 328,
+            "bottom": 365
+          },
+          "stickyHeaderTop": 328,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 547
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 327,
+            "bottom": 364
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 327,
+            "bottom": 364
+          },
+          "stickyHeaderTop": 327,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 547
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 327,
+            "bottom": 364
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 327,
+            "bottom": 364
+          },
+          "stickyHeaderTop": 327,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        }
+      }
+    },
+    "compare": {
+      "path": "/rankings?compare=cmsxitx8u00066rzk1g5fytuo%2Ccmsxh8m4l00006rf405ws72ne",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1583.44
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 1168.44,
+            "bottom": 1205.44
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 1168.44,
+            "bottom": 1205.44
+          },
+          "stickyHeaderTop": 1168.44,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 744,
+            "target": 744,
+            "navBottom": 65,
+            "headTop": 424.44,
+            "gap": 359.44,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1308.44
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 921.44,
+            "bottom": 958.44
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 921.44,
+            "bottom": 958.44
+          },
+          "stickyHeaderTop": 921.44,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": true,
+            "scrolled": 126,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 469,
+            "target": 469,
+            "navBottom": 65,
+            "headTop": 452.44,
+            "gap": 387.44,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1216.44
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 829.44,
+            "bottom": 866.44
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 829.44,
+            "bottom": 866.44
+          },
+          "stickyHeaderTop": 829.44,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 345,
+            "target": 345,
+            "navBottom": 65,
+            "headTop": 484.44,
+            "gap": 419.44,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1215.44
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 828.44,
+            "bottom": 865.44
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 828.44,
+            "bottom": 865.44
+          },
+          "stickyHeaderTop": 828.44,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 344,
+            "target": 344,
+            "navBottom": 65,
+            "headTop": 484.44,
+            "gap": 419.44,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1215.44
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 828.44,
+            "bottom": 865.44
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 828.44,
+            "bottom": 865.44
+          },
+          "stickyHeaderTop": 828.44,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 60,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 344,
+            "target": 344,
+            "navBottom": 65,
+            "headTop": 484.44,
+            "gap": 419.44,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "pinned": {
+      "path": "/rankings",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 1080
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 299.56,
+            "width": 186.56,
+            "top": 637,
+            "bottom": 674
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 637,
+            "bottom": 674
+          },
+          "stickyHeaderTop": 637,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 241,
+            "target": 241,
+            "navBottom": 65,
+            "headTop": 396,
+            "gap": 331,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 307.56,
+            "width": 186.56,
+            "top": 390,
+            "bottom": 427
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 390,
+            "bottom": 427
+          },
+          "stickyHeaderTop": 390,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 844,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": true,
+            "scrolled": 126,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 213,
+            "target": 213,
+            "navBottom": 65,
+            "headTop": 177,
+            "gap": 112,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 298,
+            "bottom": 335
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 298,
+            "bottom": 335
+          },
+          "stickyHeaderTop": 298,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 117,
+            "gap": 52,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 1052
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 297,
+            "bottom": 334
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 297,
+            "bottom": 334
+          },
+          "stickyHeaderTop": 297,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 61,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 181,
+            "target": 181,
+            "navBottom": 65,
+            "headTop": 116,
+            "gap": 51,
+            "belowNav": true,
+            "visible": true
+          }
+        }
+      }
+    },
+    "empty-state": {
+      "path": "/rankings?q=zzzzzznobodyzzzzzz",
+      "widths": {
+        "390": {
+          "header": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 65,
+            "bottom": 915
+          },
+          "nav": {
+            "left": 0,
+            "right": 390,
+            "width": 390,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 113,
+            "right": 289,
+            "width": 176,
+            "top": 667,
+            "bottom": 704
+          },
+          "rankCol": {
+            "left": 57,
+            "right": 113,
+            "width": 56,
+            "top": 667,
+            "bottom": 704
+          },
+          "stickyHeaderTop": 667,
+          "page": {
+            "scrollWidth": 390,
+            "clientWidth": 390,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 805,
+            "clientWidth": 356,
+            "scrollable": true
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": true,
+            "scrolled": 400,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": true,
+            "scrolled": 76,
+            "target": 76,
+            "navBottom": 65,
+            "headTop": 591,
+            "gap": 526,
+            "belowNav": true,
+            "visible": true
+          }
+        },
+        "768": {
+          "header": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 65,
+            "bottom": 640
+          },
+          "nav": {
+            "left": 0,
+            "right": 768,
+            "width": 768,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 121,
+            "right": 297,
+            "width": 176,
+            "top": 420,
+            "bottom": 457
+          },
+          "rankCol": {
+            "left": 65,
+            "right": 121,
+            "width": 56,
+            "top": 420,
+            "bottom": 457
+          },
+          "stickyHeaderTop": 420,
+          "page": {
+            "scrollWidth": 768,
+            "clientWidth": 768,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 805,
+            "clientWidth": 718,
+            "scrollable": true
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": true,
+            "scrolled": 87,
+            "rankMoved": 0,
+            "playerMoved": 0,
+            "rankSticky": true,
+            "playerSticky": true
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1180": {
+          "header": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 65,
+            "bottom": 548
+          },
+          "nav": {
+            "left": 0,
+            "right": 1180,
+            "width": 1180,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 365,
+            "width": 236,
+            "top": 328,
+            "bottom": 365
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 328,
+            "bottom": 365
+          },
+          "stickyHeaderTop": 328,
+          "page": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1114,
+            "clientWidth": 1114,
+            "scrollable": false
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1440": {
+          "header": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 65,
+            "bottom": 547
+          },
+          "nav": {
+            "left": 0,
+            "right": 1440,
+            "width": 1440,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 129,
+            "right": 417,
+            "width": 288,
+            "top": 327,
+            "bottom": 364
+          },
+          "rankCol": {
+            "left": 73,
+            "right": 129,
+            "width": 56,
+            "top": 327,
+            "bottom": 364
+          },
+          "stickyHeaderTop": 327,
+          "page": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1374,
+            "clientWidth": 1374,
+            "scrollable": false
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        },
+        "1728": {
+          "header": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 0,
+            "bottom": 64
+          },
+          "frame": {
+            "left": 96,
+            "right": 1632,
+            "width": 1536,
+            "top": 65,
+            "bottom": 547
+          },
+          "nav": {
+            "left": 0,
+            "right": 1728,
+            "width": 1728,
+            "top": 0,
+            "bottom": 65
+          },
+          "navHeight": 65,
+          "playerCol": {
+            "left": 225,
+            "right": 525,
+            "width": 300,
+            "top": 327,
+            "bottom": 364
+          },
+          "rankCol": {
+            "left": 169,
+            "right": 225,
+            "width": 56,
+            "top": 327,
+            "bottom": 364
+          },
+          "stickyHeaderTop": 327,
+          "page": {
+            "scrollWidth": 1728,
+            "clientWidth": 1728,
+            "overflow": 0
+          },
+          "scroller": {
+            "scrollWidth": 1470,
+            "clientWidth": 1470,
+            "scrollable": false
+          },
+          "rowCount": 1,
+          "sticky": {
+            "tested": false,
+            "reason": "table fits, nothing to scroll"
+          },
+          "stickyHead": {
+            "tested": false,
+            "reason": "page does not scroll"
+          }
+        }
+      }
+    }
+  }
+}

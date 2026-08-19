@@ -65,7 +65,7 @@ export interface Top10Result {
 
 /** Modes that depend on the missing historical formula. */
   + 'application yet. Rather than invent one or quietly substitute a different metric, the panel '
-  + 'reports it as unavailable. Current Ladder and the championship counts below are unaffected.'
+  + 'reports it as unavailable. Current Rankings and the championship counts below are unaffected.'
 
 // --------------------------------------------------------------------------- options
 
@@ -84,7 +84,7 @@ export async function getTop10Options(): Promise<Top10Option[]> {
 
   return [
     { value: 'all-competitions', label: 'All Competitions', group: 'Overall' },
-    { value: 'current-ladder', label: 'Current Ladder', group: 'Overall' },
+    { value: 'current-ladder', label: 'Current Rankings', group: 'Overall' },
     { value: 'season-championships', label: 'Season Championships', group: 'Championship Type' },
     { value: 'tournament-championships', label: 'Tournament Championships', group: 'Championship Type' },
     ...competitions.map((c) => ({

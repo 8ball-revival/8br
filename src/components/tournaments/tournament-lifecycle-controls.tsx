@@ -187,7 +187,7 @@ export function TournamentLifecycleControls({
           )}
 
           {state === 'IN_PROGRESS' && isSwiss && (
-            <Button size="sm" disabled={pending} onClick={() => act(() => completeSwissAction(tournamentId), 'Complete this Swiss tournament? Every round must be reported. This applies the individual Ladder update.')}>
+            <Button size="sm" disabled={pending} onClick={() => act(() => completeSwissAction(tournamentId), 'Complete this Swiss tournament? Every round must be reported. This applies the individual Rankings update.')}>
               <CheckCircle2 className="size-4" /> Complete tournament
             </Button>
           )}

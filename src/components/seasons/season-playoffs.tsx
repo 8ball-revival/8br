@@ -60,7 +60,7 @@ export function SeasonPlayoffs({
             <Button className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]" disabled={pending} onClick={async () => {
               const res = await confirm({
                 title: 'Close Season & Crown Champion?',
-                message: 'This crowns the champion, locks all group and playoff results, applies the Ladder ranking update (genuinely-played matches only — FF/KO/voided/no-contest excluded), and awards the Season Championship.',
+                message: 'This crowns the champion, locks all group and playoff results, applies the Rankings update (genuinely-played matches only — FF/KO/voided/no-contest excluded), and awards the Season Championship.',
                 confirmLabel: 'Close Season', cancelLabel: 'Not yet', tone: 'warning',
                 action: async () => closeSeasonAction(seasonId),
               })

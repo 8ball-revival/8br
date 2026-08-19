@@ -394,7 +394,7 @@ export async function getTournamentHistory(tournamentId: number, opts: { admin?:
         push('match_result', 'Match result recorded')
         break
       case 'tournament.ladder.apply':
-        push('ladder_applied', 'Ladder results applied', reason)
+        push('ladder_applied', 'Rankings results applied', reason)
         break
       case 'entrant.add':
       case 'entrant.addManual':

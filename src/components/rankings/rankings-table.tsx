@@ -1,0 +1,418 @@
+'use client'
+
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { ArrowDown, ArrowUp, Flame, Gem, Pin, Snowflake, Trophy } from 'lucide-react'
+
+import type { ExplorerRow } from '@/lib/stats/ladder-explorer'
+import type { PlayerDetail } from '@/lib/stats/rankings-detail'
+import {
+  COLUMN_BY_KEY, isQualified,
+  type ChampionshipMode, type ColumnDef, type SortSpec,
+} from '@/lib/stats/rankings-columns'
+import { cn } from '@/lib/utils'
+
+import { ExpandedRow } from './expanded-row'
+import { IdentityCell } from './identity-cell'
+import { Tip } from './tooltip'
+
+/**
+ * The Rankings table.
+ *
+ * ── Layout decisions that are load-bearing ───────────────────────────────────────────────────────
+ *
+ * The Player column is CLAMPED. Left to itself it took 481px at 1728 — nearly a third of the table
+ * — because it was the only column whose content could grow. `clamp(11rem, 20vw, 300px)` gives it
+ * room for a two-line identity and stops there; long values truncate with the full text reachable
+ * on hover and focus.
+ *
+ * Rank and Player are STICKY horizontally, so a reader scrolled to the right-hand statistics can
+ * still see whose row they are reading. The column header is sticky vertically inside a bounded
+ * pane, and the pane itself is sticky beneath the navigation at an offset measured from the real
+ * rendered header rather than a hardcoded 64px that breaks the moment the header wraps.
+ *
+ * `border-separate` with zero spacing rather than `border-collapse`: sticky cells and collapsed
+ * borders are a long-standing bad pair in Chrome — the cell keeps its offset but loses its borders.
+ * Row separators come from per-cell `border-b`, so nothing is lost by separating them.
+ */
+
+export const PLAYER_COL_WIDTH = 'clamp(11rem, 20vw, 300px)'
+
+/**
+ * The two frozen columns' widths, which are also their neighbours' sticky offsets.
+ *
+ * These are ENFORCED with matching width/minWidth/maxWidth rather than guessed from the content,
+ * because an offset that disagrees with the rendered width is a bug you only see at the moment
+ * someone scrolls: the frozen column jumps by the difference and then overlaps the column behind
+ * it. The first attempt here declared 68px for a control cell that rendered 78, and Rank shifted
+ * 10px sideways on every horizontal scroll.
+ *
+ * CONTROL_COL holds one 32px control plus the cell padding: 32 + 8 = 40.
+ */
+const CONTROL_COL = 40
+const RANK_COL = 56
+
+/** Signed streak with the established icons: fire on a long win run, snowflake on a long losing one. */
+function StreakCell({ streak }: { streak: number }) {
+  if (streak === 0) return <span className="text-muted-foreground">—</span>
+  const win = streak > 0
+  const mag = Math.abs(streak)
+  return (
+    <span
+      className={cn('inline-flex items-center gap-1', win ? 'text-[var(--win)]' : 'text-[var(--loss)]')}
+      aria-label={`${mag}-match ${win ? 'winning' : 'losing'} streak`}
+    >
+      {mag >= 6 && (win
+        ? <Flame className="size-3.5" aria-hidden />
+        : <Snowflake className="size-3.5" aria-hidden />)}
+      {win ? 'W' : 'L'}{mag}
+    </span>
+  )
+}
+
+/**
+ * A championship count.
+ *
+ * Season Championships wear the gold diamond the rest of the site uses for a Season title;
+ * Tournament Championships wear the trophy. Clicking opens the player's expanded row, where the
+ * exact competitions behind the number are listed and linked — a count nobody can trace is a count
+ * nobody should have to take on trust.
+ */
+function TitleCell({ n, mode, onOpen, playerName }: {
+  n: number
+  mode: ChampionshipMode
+  onOpen: () => void
+  playerName: string
+}) {
+  if (n === 0) return <span className="text-muted-foreground">—</span>
+  const Icon = mode === 'SC' ? Gem : Trophy
+  const what = mode === 'SC' ? 'Season Championship' : 'Tournament Championship'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${playerName}: ${n} ${what}${n === 1 ? '' : 's'}. Show the competitions behind this.`}
+      className="inline-flex items-center gap-1 rounded px-1 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+    >
+      <Icon className="size-3.5" style={{ color: 'var(--gold)' }} aria-hidden />
+      <span className="font-semibold">{n}</span>
+    </button>
+  )
+}
+
+/** A count that can be traced, rendered as a control that opens the evidence. */
+function EvidenceCell({ n, onOpen, label }: { n: number; onOpen: () => void; label: string }) {
+  if (n === 0) return <span className="text-muted-foreground">—</span>
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${label}. Show the competitions behind this.`}
+      className="rounded px-1 underline decoration-dotted underline-offset-2 hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+    >
+      {n}
+    </button>
+  )
+}
+
+/**
+ * How tall the table pane may be: from where it sits to the bottom of the window.
+ *
+ * The pane has to be a bounded scrollport, because that is what the sticky column header sticks TO.
+ * Unbounded, `sticky top-0` on the header pins it to a box that scrolls away with the page — which
+ * is how the header came to sit 166px below the navigation in the first place.
+ *
+ * The bound is measured from the pane's own position rather than assumed, so it holds at any width
+ * and whatever the filter bar wraps to. The consequence is that the page barely scrolls: the table
+ * fills what is left of the window, its header stays put at the pane's top, and the header can
+ * never rise above the navigation.
+ */
+function usePaneHeight(ref: React.RefObject<HTMLDivElement | null>): number | null {
+  const [height, setHeight] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = ref.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY
+      // A floor keeps the table usable on a short window rather than collapsing it to a sliver.
+      setHeight(Math.max(320, window.innerHeight - top - 16))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    const ro = new ResizeObserver(measure)
+    if (ref.current?.parentElement) ro.observe(ref.current.parentElement)
+    return () => { window.removeEventListener('resize', measure); ro.disconnect() }
+  }, [ref])
+  return height
+}
+
+export interface RankingsTableProps {
+  rows: ExplorerRow[]
+  pinnedRows: ExplorerRow[]
+  columns: ColumnDef[]
+  mode: ChampionshipMode
+  sort: SortSpec[]
+  onSort: (key: string, additive: boolean) => void
+  expanded: string | null
+  onToggleExpand: (row: ExplorerRow) => void
+  details: Record<string, PlayerDetail | 'loading'>
+  pins: string[]
+  onTogglePin: (playerId: string) => void
+  compare: string[]
+  onToggleCompare: (playerId: string) => void
+  compareFull: boolean
+  minMatches: number
+  /** Sticky offset for the pane, measured from the real rendered site header. */
+  topOffset: number
+  emptyMessage: string
+}
+
+export function RankingsTable(props: RankingsTableProps) {
+  const { rows, pinnedRows, columns, topOffset, emptyMessage } = props
+  const colSpan = columns.length + 1
+  const frameRef = useRef<HTMLDivElement>(null)
+  const paneHeight = usePaneHeight(frameRef)
+
+  return (
+    <div ref={frameRef} className="overflow-hidden rounded-md border border-border">
+      <div
+        data-rankings-scroller
+        className="scrollbar-themed overflow-auto rounded-md"
+        style={{
+          // Before the measurement lands, fall back to the window minus the site header, which is
+          // close enough that the first paint is not a full-page-tall table that then snaps.
+          maxHeight: paneHeight != null ? paneHeight : `calc(100dvh - ${topOffset}px - 1rem)`,
+        }}
+      >
+        <table data-rankings-table className="w-full min-w-max border-separate border-spacing-0 text-sm">
+          <caption className="sr-only">
+            Player rankings. Rank is the official standing; sorting by another column reorders the
+            table without changing it.
+          </caption>
+          <thead>
+            <tr>
+              <th
+                scope="col"
+                className="sticky left-0 top-0 z-40 border-b border-border bg-card px-1 py-2"
+                style={{ width: CONTROL_COL, minWidth: CONTROL_COL, maxWidth: CONTROL_COL }}
+              >
+                <span className="sr-only">Expand and pin</span>
+              </th>
+              {columns.map((c) => (
+                <HeaderCell key={c.key} col={c} {...props} />
+              ))}
+            </tr>
+          </thead>
+
+          {pinnedRows.length > 0 && (
+            <tbody data-rankings-pinned>
+              <tr>
+                <th
+                  scope="colgroup"
+                  colSpan={colSpan}
+                  className="sticky left-0 border-b border-[var(--gold)]/40 bg-white/[0.04] px-3 py-1 text-left text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--gold)]"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Pin className="size-3" aria-hidden />
+                    Pinned on this device — official rank unchanged
+                  </span>
+                </th>
+              </tr>
+              {pinnedRows.map((r) => <Row key={r.playerId} row={r} pinnedSection {...props} />)}
+            </tbody>
+          )}
+
+          <tbody>
+            {rows.length === 0 && pinnedRows.length === 0 && (
+              <tr>
+                <td colSpan={colSpan} className="px-3 py-12 text-center text-sm text-muted-foreground">
+                  {emptyMessage}
+                </td>
+              </tr>
+            )}
+            {rows.map((r) => <Row key={r.playerId} row={r} {...props} />)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function HeaderCell({ col, sort, onSort, mode }: { col: ColumnDef } & RankingsTableProps) {
+  const s = sort.find((x) => x.key === col.key)
+  const sticky = col.key === 'rank' ? { left: CONTROL_COL } : col.key === 'player' ? { left: CONTROL_COL + RANK_COL } : null
+  const isTitles = col.key === 'titles'
+  const label = isTitles ? (mode === 'SC' ? 'SC' : 'TC') : (col.short ?? col.label)
+  const fullLabel = isTitles
+    ? (mode === 'SC' ? 'Season Championships' : 'Tournament Championships')
+    : col.label
+  const tooltip = isTitles
+    ? (mode === 'SC'
+        ? 'Season Championships — Seasons this player won, from the champion recorded on each completed Season. Click a count to see which ones.'
+        : 'Tournament Championships — Tournaments this player won, from the champion recorded on each Tournament. Click a count to see which ones.')
+    : col.tooltip
+
+  return (
+    <th
+      scope="col"
+      data-col={col.key}
+      aria-sort={s ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={cn(
+        'sticky top-0 z-30 whitespace-nowrap border-b border-border bg-card px-2.5 py-2 font-medium',
+        col.align === 'right' ? 'text-right' : 'text-left',
+        sticky && 'z-40',
+        // The active sort is marked with a neutral lift and gold TEXT. A translucent gold wash over
+        // charcoal renders brown, which is not a colour this site uses.
+        s && 'bg-white/[0.06]',
+      )}
+      style={{
+        ...(sticky ?? {}),
+        ...(col.key === 'player'
+          ? { width: PLAYER_COL_WIDTH, minWidth: '11rem', maxWidth: 300 }
+          : col.key === 'rank' ? { width: RANK_COL, minWidth: RANK_COL, maxWidth: RANK_COL } : {}),
+      }}
+    >
+      <Tip text={`${tooltip}\n\nClick to sort. Shift-click to add a secondary sort.`} side="bottom">
+        <span
+          role="button"
+          tabIndex={-1}
+          onClick={(e) => onSort(col.key, e.shiftKey)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSort(col.key, e.shiftKey) }
+          }}
+          className={cn('inline-flex items-center gap-1', s && 'text-[var(--gold)]')}
+        >
+          <span aria-hidden>{label}</span>
+          <span className="sr-only">{fullLabel}</span>
+          {s?.dir === 'desc' && <ArrowDown className="size-3" aria-hidden />}
+          {s?.dir === 'asc' && <ArrowUp className="size-3" aria-hidden />}
+        </span>
+      </Tip>
+    </th>
+  )
+}
+
+function Row({
+  row, pinnedSection = false, columns, mode, expanded, onToggleExpand, details,
+  pins, onTogglePin, compare, onToggleCompare, compareFull, minMatches,
+}: { row: ExplorerRow; pinnedSection?: boolean } & RankingsTableProps) {
+  void compare; void onToggleCompare; void compareFull
+  const isOpen = expanded === row.playerId
+  const pinned = pins.includes(row.playerId)
+  const qualified = isQualified(row, minMatches)
+  const name = row.preferredName || row.cueverseId || 'Unknown player'
+  const open = () => { if (!isOpen) onToggleExpand(row) }
+
+  // Neutral lifts, never a gold wash: gold over charcoal goes brown.
+  const bg = isOpen ? 'bg-white/[0.06]' : pinnedSection ? 'bg-white/[0.03]' : 'bg-card'
+
+  return (
+    <Fragment>
+      <tr
+        data-player-row={row.playerId}
+        className={cn(
+          'transition-colors hover:bg-white/[0.04]',
+          isOpen && 'bg-white/[0.06]',
+          !qualified && 'opacity-70',
+        )}
+      >
+        <td
+          className={cn('sticky left-0 z-10 border-b border-border/60 px-1', bg)}
+          style={{ width: CONTROL_COL, minWidth: CONTROL_COL, maxWidth: CONTROL_COL }}
+        >
+          <button
+            type="button"
+            onClick={() => onTogglePin(row.playerId)}
+            aria-pressed={pinned}
+            aria-label={`${pinned ? 'Unpin' : 'Pin'} ${name} on this device`}
+            className={cn(
+              'grid size-8 place-items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
+              pinned ? 'text-[var(--gold)]' : 'text-muted-foreground/40 hover:text-[var(--gold)]',
+            )}
+          >
+            <Pin className={cn('size-3.5', pinned && 'fill-current')} aria-hidden />
+          </button>
+        </td>
+
+        {columns.map((c) => {
+          const sticky = c.key === 'rank' ? { left: CONTROL_COL } : c.key === 'player' ? { left: CONTROL_COL + RANK_COL } : null
+          return (
+            <td
+              key={c.key}
+              className={cn(
+                'border-b border-border/60 px-2.5 py-1.5',
+                c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
+                c.key !== 'player' && 'whitespace-nowrap',
+                sticky && cn('sticky z-10', bg),
+              )}
+              style={{
+                ...(sticky ?? {}),
+                ...(c.key === 'player'
+                  ? { width: PLAYER_COL_WIDTH, minWidth: '11rem', maxWidth: 300 }
+                  : c.key === 'rank' ? { width: RANK_COL, minWidth: RANK_COL, maxWidth: RANK_COL } : {}),
+              }}
+            >
+              {c.key === 'rank' ? (
+                <span className={cn('inline-flex items-center gap-1', !qualified && 'text-muted-foreground')}>
+                  {!qualified && (
+                    <Tip text={`Below the ${minMatches}-match qualification threshold, so this player is shown but is not ranked against it. Their record is unaffected.`}>
+                      <span aria-label="Below the qualification threshold" className="text-[var(--gold-dim)]">*</span>
+                    </Tip>
+                  )}
+                  {row.rank}
+                </span>
+              ) : c.key === 'player' ? (
+                /*
+                  The NAME is the control that opens a player's history. There is no chevron and no
+                  checkbox beside it: a row with three separate affordances made the reader choose
+                  which one meant "tell me more", and the obvious thing to click was always the name.
+                  The profile link moved into the expanded panel, where it reads as one of several
+                  places to go next rather than as a trap on the row itself.
+                */
+                <button
+                  type="button"
+                  onClick={() => onToggleExpand(row)}
+                  aria-expanded={isOpen}
+                  aria-label={`${isOpen ? 'Hide' : 'Show'} career detail for ${name}`}
+                  className="block w-full min-w-0 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                >
+                  <IdentityCell
+                    identity={{ preferredName: row.preferredName, cueverseId: row.cueverseId }}
+                    className="min-w-0"
+                  />
+                </button>
+              ) : c.key === 'currentStreak' ? (
+                <StreakCell streak={row.currentStreak} />
+              ) : c.key === 'titles' ? (
+                <TitleCell
+                  n={mode === 'SC' ? row.seasonTitles : row.tournamentTitles}
+                  mode={mode}
+                  onOpen={open}
+                  playerName={name}
+                />
+              ) : c.key === 'finalsAppearances' ? (
+                <EvidenceCell n={row.finalsAppearances} onOpen={open} label={`${name}: ${row.finalsAppearances} finals reached`} />
+              ) : (
+                (c.format ?? ((r) => String(COLUMN_BY_KEY[c.key]?.value(r, mode) ?? '—')))(row, mode)
+              )}
+            </td>
+          )
+        })}
+      </tr>
+
+      {isOpen && (
+        <tr>
+          <td colSpan={columns.length + 1} className="border-b border-border bg-card/60 px-4 py-4">
+            <ExpandedRow
+              row={row}
+              detail={details[row.playerId]}
+              mode={mode}
+              selectedForCompare={compare.includes(row.playerId)}
+              compareDisabled={!compare.includes(row.playerId) && compareFull}
+              onToggleCompare={() => onToggleCompare(row.playerId)}
+            />
+          </td>
+        </tr>
+      )}
+    </Fragment>
+  )
+}

@@ -33,7 +33,7 @@ export function SeasonGroupStage({ seasonId, groups, groupStageGames, canManage,
               const res = await confirm({
                 title: 'Close Groups?',
                 message: unresolved.length
-                  ? `${unresolved.length} match(es) are still unresolved. Continuing marks them No Contest (no points, no Ladder effect); final standings then lock.`
+                  ? `${unresolved.length} match(es) are still unresolved. Continuing marks them No Contest (no points, no Rankings effect); final standings then lock.`
                   : 'The final group standings will be locked.',
                 confirmLabel: 'Close Groups', tone: 'warning', action: async () => closeSeasonGroupsAction(seasonId),
               })

@@ -980,7 +980,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
     return <p className="text-sm text-muted-foreground">The Swiss rounds haven&apos;t started yet. Close registration, then Start Swiss.</p>
   }
   const completeSwiss = async () => {
-    const r = await confirm({ title: 'Complete this Swiss tournament?', message: 'This finalizes the standings, crowns the winner, and applies results to the Ladder. It is terminal — the tournament becomes read-only.', confirmLabel: 'Complete Swiss', cancelLabel: 'Keep playing', tone: 'warning' })
+    const r = await confirm({ title: 'Complete this Swiss tournament?', message: 'This finalizes the standings, crowns the winner, and applies results to the Rankings. It is terminal — the tournament becomes read-only.', confirmLabel: 'Complete Swiss', cancelLabel: 'Keep playing', tone: 'warning' })
     if (r.confirmed) run(() => A.completeSwissAction(data.tournament.id))
   }
   return (

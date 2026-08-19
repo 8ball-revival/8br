@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Wide } from '@/components/primitives'
 import { ChevronDown, LogOut } from 'lucide-react'
 
 import { Logo } from '@/components/brand'
@@ -17,7 +18,7 @@ export async function SiteHeader() {
   // Branding is admin-managed (published version only); `getSiteBranding` falls back to the
   // built-in identity so the header still renders before anything is published.
   const [user, branding] = await Promise.all([getCurrentUser(), getSiteBranding()])
-  // Staff-only Admin entry, appended after the public nav (Home · Seasons · Tournaments · Ladder · …).
+  // Staff-only Admin entry, appended after the public nav (Home · Seasons · Tournaments · Rankings · …).
   const staffItems: NavItem[] = user && isStaff(user.roles) ? [{ label: 'Admin', href: '/staff' }] : []
   // Display policy: Preferred Name when present, otherwise the CueVerse ID (the account identity).
   // Never a separate "username" — that is only the internal login key.
@@ -31,7 +32,7 @@ export async function SiteHeader() {
       data-site-header
       className="sticky top-0 z-50 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70"
     >
-      <div className="mx-auto flex h-16 w-full max-w-[96rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <Wide name="header" className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <Logo
             siteName={branding.siteName}
@@ -85,7 +86,7 @@ export async function SiteHeader() {
 
           <MobileNav className="xl:hidden" isSignedIn={Boolean(user)} extraItems={staffItems} />
         </div>
-      </div>
+      </Wide>
     </header>
   )
 }

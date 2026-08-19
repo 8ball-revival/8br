@@ -1,25 +1,29 @@
 import type { Metadata } from 'next'
 
-import { getExplorer, getFacets } from '@/lib/stats/ladder-explorer'
-import { LadderExplorer } from '@/components/rankings/ladder-explorer'
-import { HowRankingsWork } from '@/components/rankings/how-rankings-work'
-import { decodeExplorerState } from '@/lib/stats/ladder-columns'
+import { getExplorer, getFacets, getFreshness } from '@/lib/stats/ladder-explorer'
+import { RankingsExplorer } from '@/components/rankings/rankings-explorer'
+import { decodeRankingsState, aggregateFilters } from '@/lib/stats/rankings-columns'
+import { Wide } from '@/components/primitives'
 import { pageMetadata } from '@/lib/site'
 
-export const dynamic = 'force-dynamic' // the ladder reflects the latest completed competitions
+export const dynamic = 'force-dynamic' // rankings reflect the latest completed competitions
 
 export const metadata: Metadata = pageMetadata({
   title: 'Rankings',
-  description: 'The 8 Ball Registry Rating ladder — a standard Elo system over every completed competition match.',
+  description: 'The 8 Ball Registry rankings — a standard Elo rating over every completed competition match, with full career records, championships and head-to-head.',
   path: '/rankings',
 })
 
 /**
- * The Ladder.
+ * The Rankings page.
  *
- * The whole table configuration lives in the query string, so this page is a pure function of the URL
- * and a configured table can be linked. Only the filters that change WHICH MATCHES COUNT reach the
- * aggregate; the rest are applied in the client, which is why they do not appear here.
+ * The whole table configuration lives in the query string, so this page is a pure function of the
+ * URL and a configured table can be linked, refreshed and navigated back to. Only the filters that
+ * change WHICH MATCHES COUNT reach the aggregate; the rest are applied client-side, which is why
+ * they do not appear here.
+ *
+ * The frame is the shared site container, the same component the navigation uses — so the table's
+ * left and right edges are the navigation's edges by construction rather than by coincidence.
  */
 export default async function RankingsPage({
   searchParams,
@@ -33,30 +37,34 @@ export default async function RankingsPage({
     else if (Array.isArray(v) && v[0] != null) params.set(k, v[0])
   }
 
-  const state = decodeExplorerState(params)
+  const state = decodeRankingsState(params)
 
-  const [rows, facets] = await Promise.all([
-    getExplorer(state.scope, state.view, {
-      competitionSeriesId: state.competitionSeriesId,
-      year: state.year,
-      seasonId: state.seasonId,
-      tournamentId: state.tournamentId,
-    }),
+  const [rows, facets, freshness] = await Promise.all([
+    getExplorer(state.scope, state.view, aggregateFilters(state)),
     getFacets(),
+    getFreshness(),
   ])
 
   return (
-    <div className="mx-auto w-full max-w-[110rem] px-4 py-6 sm:px-6">
-      <h1 className="mb-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
-
-      <LadderExplorer rows={rows} facets={facets} state={state} />
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <HowRankingsWork />
-        <span className="ml-auto text-xs text-muted-foreground">
-          {state.scope === 'current' ? 'Rolling 365-day ladder' : 'Every completed competition'}
-        </span>
+    <Wide name="rankings" className="py-6">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
+        {/* Derived from the newest canonical result, never from the clock — a "last updated" that
+            reports the page load says only that somebody opened the page. */}
+        {freshness.lastResultAt && (
+          <p className="text-xs text-muted-foreground">
+            Last updated{' '}
+            <time dateTime={freshness.lastResultAt}>
+              {new Date(freshness.lastResultAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+            </time>
+            {freshness.source && <> — most recent result from {freshness.source.label}</>}
+            {' · '}
+            <span className="tabular-nums">{freshness.rankedMatches.toLocaleString()}</span> ranked matches
+          </p>
+        )}
       </div>
-    </div>
+
+      <RankingsExplorer rows={rows} facets={facets} state={state} />
+    </Wide>
   )
 }

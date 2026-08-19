@@ -1,0 +1,13 @@
+rating_ledger rows: 38806   players: 467
+
+  explorer current/overall              8 queries     109.0ms db     739.6ms wall  60 rows
+  explorer all-time/overall             8 queries     335.0ms db    1068.0ms wall  460 rows
+  explorer all-time/group               1 queries     166.0ms db     170.4ms wall  460 rows
+  explorer all-time/playoff             1 queries     125.0ms db     128.0ms wall  434 rows
+  facets                                2 queries       5.0ms db      33.0ms wall
+  player detail (one row expanded)      6 queries      51.0ms db      52.5ms wall
+
+JSON: {"ledgerRows":38806,"players":467,"results":[{"label":"explorer current/overall","queries":8,"dbMs":109,"wallMs":739.6,"rows":60},{"label":"explorer all-time/overall","queries":8,"dbMs":335,"wallMs":1068,"rows":460},{"label":"explorer all-time/group","queries":1,"dbMs":166,"wallMs":170.4,"rows":460},{"label":"explorer all-time/playoff","queries":1,"dbMs":125,"wallMs":128,"rows":434},{"label":"facets","queries":2,"dbMs":5,"wallMs":33},{"label":"player detail (one row expanded)","queries":6,"dbMs":51,"wallMs":52.5}]}
+
+removing fixture …
+fixture removed — 0 ledger rows and 0 players remain (both must be 0)

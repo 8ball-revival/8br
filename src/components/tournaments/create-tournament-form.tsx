@@ -261,7 +261,7 @@ export function CreateTournamentForm() {
             <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Review</h3>
             <p className={cn('mt-2 text-lg font-bold', name.trim() ? 'text-foreground' : 'text-muted-foreground/60')}>{name.trim() || 'Untitled tournament'}</p>
             <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-success/25 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-              <span className="size-1.5 rounded-full bg-success" /> Reports to Ladder
+              <span className="size-1.5 rounded-full bg-success" /> Reports to Rankings
             </span>
           </div>
           <dl className="px-5 py-1 text-sm">

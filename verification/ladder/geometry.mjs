@@ -134,8 +134,15 @@ const STICKY_PROBE = `(async () => {
   const playerTh = document.querySelector('th[data-col="player"]') || cells[2]
   if (!rankTh || !playerTh) return { tested: false, reason: 'no rank/player header' }
   if (scroller.scrollWidth <= scroller.clientWidth) return { tested: false, reason: 'table fits, nothing to scroll' }
+  // Scroll TWICE. The first scroll pins the columns, which legitimately moves them from their
+  // natural position to their sticky offset; the second must not move them at all. Measuring only
+  // the first would report that snap as a failure — or, if the offsets are wrong, hide the fact
+  // that they are wrong by blaming the snap.
+  const max = scroller.scrollWidth - scroller.clientWidth
+  scroller.scrollLeft = Math.min(200, max)
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
   const before = { rank: rankTh.getBoundingClientRect().left, player: playerTh.getBoundingClientRect().left }
-  scroller.scrollLeft = Math.min(400, scroller.scrollWidth - scroller.clientWidth)
+  scroller.scrollLeft = Math.min(400, max)
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
   const after = { rank: rankTh.getBoundingClientRect().left, player: playerTh.getBoundingClientRect().left }
   const scrolled = scroller.scrollLeft
@@ -149,18 +156,40 @@ const STICKY_PROBE = `(async () => {
   }
 })()`
 
-/** Scroll the page down and confirm the column header parks under the navigation, not behind it. */
+/**
+ * Scroll the page down and confirm the column header parks under the navigation, not behind it.
+ *
+ * `behavior: 'instant'` is load-bearing: the site sets `scroll-behavior: smooth`, so a plain
+ * scrollTo animates and a two-frame wait measures the page 2px into a 400px journey — which reads
+ * as "the header did not stick" when in fact nothing had moved yet.
+ *
+ * The distance is derived from where the table actually starts rather than being a fixed 600, so
+ * the probe scrolls far enough to engage the sticky offset at every width.
+ */
 const STICKY_HEADER_PROBE = `(async () => {
   const nav = document.querySelector('header')
   const table = document.querySelector('[data-rankings-table]') || document.querySelector('main table, table')
   const thead = table && table.querySelector('thead tr')
-  if (!nav || !thead) return { tested: false }
-  window.scrollTo(0, 600)
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+  if (!nav || !thead) return { tested: false, reason: 'no table' }
+  const start = thead.getBoundingClientRect().top + window.scrollY
+  const target = Math.min(start + 200, document.documentElement.scrollHeight - window.innerHeight)
+  if (target <= 0) return { tested: false, reason: 'page does not scroll' }
+  window.scrollTo({ top: target, behavior: 'instant' })
+  await new Promise(r => setTimeout(r, 250))
   const navBottom = nav.getBoundingClientRect().bottom
   const headTop = thead.getBoundingClientRect().top
-  window.scrollTo(0, 0)
-  return { tested: true, navBottom: +navBottom.toFixed(2), headTop: +headTop.toFixed(2), gap: +(headTop - navBottom).toFixed(2) }
+  const scrolled = window.scrollY
+  window.scrollTo({ top: 0, behavior: 'instant' })
+  return {
+    tested: true, scrolled: Math.round(scrolled), target: Math.round(target),
+    navBottom: +navBottom.toFixed(2), headTop: +headTop.toFixed(2),
+    gap: +(headTop - navBottom).toFixed(2),
+    // The invariant that matters: the column header stays visible and never rises behind the
+    // navigation. It sits below the filter bar, not welded to the nav, which is what a bounded
+    // table pane gives you — and the pane is what makes the header sticky at all.
+    belowNav: headTop >= navBottom - 1,
+    visible: headTop >= 0 && headTop < window.innerHeight,
+  }
 })()`
 
 const report = { label: LABEL, base: BASE, capturedAt: new Date().toISOString(), views: {} }

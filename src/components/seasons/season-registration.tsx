@@ -23,7 +23,7 @@ export interface RegEntrant { entrantId: number; name: string; cueverseId: strin
 
 /**
  * Season registration phase — a focused, single-purpose page: entrant list (# · Preferred Name +
- * CueVerse ID · Ladder rating), admin Add Player search + remove + Close Registration, and member
+ * CueVerse ID · Rankings rating), admin Add Player search + remove + Close Registration, and member
  * self-registration. No Groups / Standings / Playoffs here.
  */
 export function SeasonRegistration({
@@ -94,7 +94,7 @@ export function SeasonRegistration({
             onClick={async () => {
               const res = await confirm({
                 title: 'Close Registration?',
-                message: 'Registration will close, the entrant list will lock, and every player’s current Ladder rating will be captured for Season seeding.',
+                message: 'Registration will close, the entrant list will lock, and every player’s current Rankings rating will be captured for Season seeding.',
                 confirmLabel: 'Close Registration',
                 cancelLabel: 'Keep Registration Open',
                 action: async () => closeSeasonRegistrationAction(seasonId),

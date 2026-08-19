@@ -7,7 +7,7 @@ export const PRIMARY_NAV: NavItem[] = [
   // Seasons are 8BR's premier competition — listed before Tournaments.
   { label: 'Seasons', href: '/seasons' },
   { label: 'Tournaments', href: '/tournaments' },
-  { label: 'Ladder', href: '/rankings' },
+  { label: 'Rankings', href: '/rankings' },
   // The Break — the site's publishing and community section. Labelled "News" in navigation because
   // that is what a visitor is looking for; "The Break" is the section's name, used on the page.
   { label: 'News', href: '/news' },

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Wide } from '@/components/primitives'
 import { MessageCircle, AtSign, Video, Camera, type LucideIcon } from 'lucide-react'
 
 import { FOOTER_LINKS } from '@/lib/nav'
@@ -58,7 +59,7 @@ export async function SiteFooter() {
 
   return (
     <footer className="mt-16 border-t border-nav-border bg-nav-bg/40">
-      <div className="mx-auto flex w-full max-w-[96rem] flex-col items-center gap-4 px-4 py-6 text-sm sm:px-6 lg:flex-row lg:justify-between lg:gap-6 lg:px-8">
+      <Wide name="footer" className="flex flex-col items-center gap-4 py-6 text-sm lg:flex-row lg:justify-between lg:gap-6">
         <p className="text-xs text-muted-foreground">
           © {year} {brandName}. All rights reserved.
         </p>
@@ -94,7 +95,7 @@ export async function SiteFooter() {
             })}
           </div>
         )}
-      </div>
+      </Wide>
     </footer>
   )
 }

@@ -4,12 +4,33 @@ import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Wide page container for the dense homepage / global header, so panels have room
- * to breathe. Wider than the standard `Container` (used by text pages).
+ * THE site frame: the maximum width and responsive gutters every full-width surface shares.
+ *
+ * One definition, used by the header, the footer and every page that has to line up with them. It
+ * is a component rather than a copied class string because "the same width" only holds if there is
+ * one place to change — the Rankings table used to carry its own `max-w-[110rem]`, which rendered
+ * 96px wider on each side than the navigation above it at 1728px.
+ *
+ * `data-site-container` is the hook the geometry check reads, so alignment is proved by measuring
+ * two rendered rectangles rather than by trusting that two class strings match.
  */
-export function Wide({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('mx-auto w-full max-w-[96rem] px-4 sm:px-6 lg:px-8', className)} {...props} />
+export function Wide({
+  className, name, ...props
+}: React.ComponentProps<'div'> & {
+  /** Identifies this frame in the rendered geometry, e.g. "header", "rankings". */
+  name?: string
+}) {
+  return (
+    <div
+      data-site-container={name}
+      className={cn(SITE_FRAME, className)}
+      {...props}
+    />
+  )
 }
+
+/** The frame's classes, for the handful of places that need them on an existing element. */
+export const SITE_FRAME = 'mx-auto w-full max-w-[96rem] px-4 sm:px-6 lg:px-8'
 
 /**
  * Reusable dashboard panel: header row (title + optional live dot + "view all"
