@@ -1,6 +1,9 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
+
 import { creatorActor } from '@/lib/creator/access'
+import { createDraft, type SetupResult } from '@/lib/creator/setup'
 import {
   reopenForCorrection, recomplete, type CorrectionKind,
 } from '@/lib/competition/correction'
@@ -66,4 +69,52 @@ export async function recompleteAction(
       ? 'This record was already completed.'
       : 'Completed and republished. It is back in the Archives and counting towards the Rankings.',
   }
+}
+
+/**
+ * Create a Season or a Cup from the Creator setup form.
+ *
+ * Same rule as above: the gate is here. A form that never rendered for this person can still post
+ * to this endpoint, so nothing about the page it came from is taken on trust.
+ */
+export async function createRecordAction(input: unknown): Promise<SetupResult> {
+  const access = await creatorActor()
+  if (!access.ok) return { ok: false, error: access.error }
+
+  const raw = (input ?? {}) as Record<string, unknown>
+  const num = (v: unknown): number | null => {
+    if (v == null || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) ? Math.trunc(n) : null
+  }
+  const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+  const year = num(raw.competitionYear)
+  const seriesId = num(raw.competitionSeriesId)
+  if (year == null) return { ok: false, error: 'A competition year is required.' }
+  if (seriesId == null) return { ok: false, error: 'Choose a Competition.' }
+
+  const result = await createDraft(access.actor, {
+    type: raw.type === 'cup' ? 'cup' : 'season',
+    competitionYear: year,
+    competitionSeriesId: seriesId,
+    purpose: raw.purpose === 'reconstruction' ? 'reconstruction' : 'live',
+    structure: String(raw.structure ?? '') as never,
+    title: str(raw.title),
+    number: num(raw.number),
+    division: str(raw.division),
+    description: str(raw.description),
+    announcements: str(raw.announcements),
+    groupStageGames: num(raw.groupStageGames) ?? undefined,
+    earlyRaceTo: num(raw.earlyRaceTo) ?? undefined,
+    semifinalRaceTo: num(raw.semifinalRaceTo) ?? undefined,
+    finalRaceTo: num(raw.finalRaceTo) ?? undefined,
+    accessMode: raw.accessMode === 'PASSWORD' ? 'PASSWORD' : 'OPEN',
+    joinPassword: str(raw.joinPassword),
+    registrationOpensAt: str(raw.registrationOpensAt),
+    idempotencyKey: str(raw.idempotencyKey),
+  })
+
+  if (result.ok) revalidatePath('/creator')
+  return result
 }

@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react'
 
 import { Wide } from '@/components/primitives'
 import { RecordDetail } from '@/components/creator/record-detail'
+import { prisma } from '@/lib/prisma'
 import { requireCreator } from '@/lib/creator/access'
 import { completionReview } from '@/lib/competition/correction'
 
@@ -30,13 +31,37 @@ export default async function CreatorSeasonPage({ params }: { params: Promise<{ 
   const review = await completionReview('season', id)
   if (!review) notFound()
 
+  const row = await prisma.season.findUnique({ where: { id }, select: { lifecycleState: true } })
+  const state = String(row?.lifecycleState ?? '')
+  const finished = state === 'COMPLETED'
+
+  /**
+   * Where the work is right now.
+   *
+   * A record before its group stage needs its entrants, not its bracket, and offering every section
+   * at every phase would send the operator to a page that has nothing on it yet. Each link goes to
+   * the EXISTING management surface for that phase — Creator adds no second editor.
+   */
+  const sections = finished
+    ? [
+        { label: 'Setup', href: `/seasons/${id}/settings`, hint: 'Title, year, division, description, match format' },
+        { label: 'Groups', href: `/seasons/${id}?view=groups`, hint: 'Group tables and group results' },
+        { label: 'Playoffs', href: `/seasons/${id}?view=playoffs`, hint: 'Bracket placement and playoff results' },
+      ]
+    : [
+        { label: 'Setup', href: `/seasons/${id}/settings`, hint: 'Title, year, division, description, match format' },
+        { label: 'Entrants', href: `/seasons/${id}`, hint: 'Add entrants, then close entry to build the groups' },
+        { label: 'Groups', href: `/seasons/${id}?view=groups`, hint: 'Group tables and group results' },
+        { label: 'Playoffs', href: `/seasons/${id}?view=playoffs`, hint: 'Bracket placement and playoff results' },
+      ]
+
   return (
     <Wide name="creator-season" className="py-6">
       <Link
-        href="/creator/completed"
+        href={finished ? '/creator/completed' : '/creator'}
         className="mb-3 inline-flex items-center gap-1.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
-        <ArrowLeft className="size-3.5" aria-hidden />Completed records
+        <ArrowLeft className="size-3.5" aria-hidden />{finished ? 'Completed records' : 'Creator'}
       </Link>
 
       <RecordDetail
@@ -45,11 +70,7 @@ export default async function CreatorSeasonPage({ params }: { params: Promise<{ 
         // Corrections happen on the EXISTING management surfaces. There is no second Season editor:
         // building one would mean two places where a result can be changed, and two chances for
         // them to disagree.
-        sections={[
-          { label: 'Setup', href: `/seasons/${id}/settings`, hint: 'Title, year, division, description, match format' },
-          { label: 'Groups', href: `/seasons/${id}?view=groups`, hint: 'Group tables and group results' },
-          { label: 'Playoffs', href: `/seasons/${id}?view=playoffs`, hint: 'Bracket placement and playoff results' },
-        ]}
+        sections={sections}
       />
     </Wide>
   )
