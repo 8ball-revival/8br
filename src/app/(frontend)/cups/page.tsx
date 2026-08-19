@@ -1,19 +1,19 @@
 import { redirect } from 'next/navigation'
 
 /**
- * /tournaments → the Archives.
+ * /cups → the Archives.
  *
- * Tournaments no longer have a listing of their own: a finished Tournament belongs in Archives and a
- * running one belongs in Live, and there is no third thing a combined list would show. The
- * per-Tournament URLs (/tournaments/<number>) are untouched, so every existing link still resolves — this is
- * only the index moving.
+ * Cups have no listing of their own: a finished Cup belongs in Archives and a running one belongs
+ * in Live, and there is no third thing a combined list would show. The per-Cup URLs
+ * (/cups/<number>) are untouched, so every existing link still resolves — this is only the index
+ * moving.
  *
  * Meaningful query parameters are carried across so a bookmarked filter keeps working. Nothing
  * redirects back here, so there is no loop.
  */
 export const dynamic = 'force-dynamic'
 
-export default async function TournamentsIndexRedirect({
+export default async function CupsIndexRedirect({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
