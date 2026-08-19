@@ -106,7 +106,21 @@ section('Column terminology')
 {
   check('P became MP', COLUMN_BY_KEY.played.short === 'MP')
   check('...and MP is spelled out in its tooltip', /Matches Played/.test(COLUMN_BY_KEY.played.tooltip))
-  check('W–L is explained as the match record', /Match Record/.test(COLUMN_BY_KEY.record.tooltip))
+  check('the record is explained as the match record', /Match Record/.test(COLUMN_BY_KEY.record.tooltip))
+  check('the record header is spelled out rather than abbreviated',
+    COLUMN_BY_KEY.record.short === 'Win | Loss | Tie', COLUMN_BY_KEY.record.short)
+  check('...and shows all three numbers, including a zero tie count',
+    COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC') === '15 | 2 | 0',
+    COLUMN_BY_KEY.record.format!(row({ wins: 15, losses: 2, draws: 0 }), 'SC'))
+  check('...and a real tie count',
+    COLUMN_BY_KEY.record.format!(row({ wins: 5, losses: 1, draws: 3 }), 'SC') === '5 | 1 | 3')
+  check('the value divider matches the header divider',
+    COLUMN_BY_KEY.record.short!.includes(' | ')
+    && COLUMN_BY_KEY.record.format!(row({ wins: 1, losses: 1, draws: 1 }), 'SC').includes(' | '))
+  check('ties are explained in the tooltip', /tied/.test(COLUMN_BY_KEY.record.tooltip))
+  check('the standalone Draws column is gone — the record carries it', !COLUMN_BY_KEY.draws)
+  check('the GAME record stays two numbers — a frame cannot be tied',
+    COLUMN_BY_KEY.games.format!(row({ gamesWon: 110, gamesLost: 55 }), 'SC') === '110–55')
   check('Games became GW–GL', COLUMN_BY_KEY.games.short === 'GW–GL')
   check('...and GW–GL is spelled out', /Games Won . Games Lost/.test(COLUMN_BY_KEY.games.tooltip))
 
@@ -120,6 +134,26 @@ section('Column terminology')
   check('Diff is explained', /Game Differential/.test(COLUMN_BY_KEY.gameDiff.tooltip))
   check('Rating is explained', /Elo/.test(COLUMN_BY_KEY.rating.tooltip))
   check('Streak is explained', /unbroken run/.test(COLUMN_BY_KEY.currentStreak.tooltip))
+
+  // Signed, not W#/L#: the sign says the direction and the column sorts as one continuous scale.
+  const streak = COLUMN_BY_KEY.currentStreak
+  check('a winning run formats with a plus', streak.format!(row({ currentStreak: 9 }), 'SC') === '+9')
+  check('a losing run formats with a minus', streak.format!(row({ currentStreak: -1 }), 'SC') === '-1')
+  check('no run reads as not applicable', streak.format!(row({ currentStreak: 0 }), 'SC') === '—')
+  check('the W/L prefixes are gone',
+    !/^[WL]/.test(streak.format!(row({ currentStreak: 4 }), 'SC'))
+    && !/^[WL]/.test(streak.format!(row({ currentStreak: -4 }), 'SC')))
+  check('the tooltip states where the marking starts', /three or more/.test(streak.tooltip))
+  check('...and that a tie is skipped rather than breaking the run',
+    /neither extends nor breaks/.test(streak.tooltip))
+  check('...and that the number carries the meaning, not the colour alone',
+    /\+3|−2/.test(streak.tooltip))
+  // Sorting runs from the longest losing run to the longest winning one, in one order.
+  check('streak sorts as a continuous signed scale',
+    (streak.value(row({ currentStreak: -5 }), 'SC') as number)
+    < (streak.value(row({ currentStreak: 0 }), 'SC') as number)
+    && (streak.value(row({ currentStreak: 0 }), 'SC') as number)
+    < (streak.value(row({ currentStreak: 5 }), 'SC') as number))
   check('Finals is explained and traceable', /round label/.test(COLUMN_BY_KEY.finalsAppearances.tooltip))
 }
 
@@ -145,10 +179,14 @@ section('Points: a real formula, shown only where it applies')
 section('Density presets')
 {
   const compact = visibleKeys('compact', 'overall', null)
-  check('Compact holds rank, player, record, win %, rating and titles',
-    compact.join(',') === 'rank,player,record,matchWinPct,rating,titles', compact.join(','))
+  check('Compact holds rank, player, rating, record, win % and both championship counts',
+    compact.join(',') === 'rank,player,rating,record,matchWinPct,seasonTitles,tournamentTitles',
+    compact.join(','))
 
   const standard = visibleKeys('standard', 'overall', null)
+  check('Standard is exactly Rating, match record, Win %, Streak, SC, TC — in that order',
+    standard.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonTitles,tournamentTitles',
+    standard.join(','))
   check('Standard is broader than Compact', standard.length > compact.length)
   check('Standard is narrower than Full', standard.length < visibleKeys('full', 'overall', null).length)
 
@@ -162,8 +200,8 @@ section('Density presets')
   check('Full in the Playoffs view drops the group-only columns',
     !visibleKeys('full', 'playoff', null).includes('groupPoints'))
 
-  const custom = visibleKeys('custom', 'overall', ['rating', 'titles'])
-  check('Custom honours the selection', custom.includes('rating') && custom.includes('titles'))
+  const custom = visibleKeys('custom', 'overall', ['rating', 'seasonTitles'])
+  check('Custom honours the selection', custom.includes('rating') && custom.includes('seasonTitles'))
   check('...and never drops the locked columns', custom[0] === 'rank' && custom[1] === 'player')
   check('...and ignores a key that does not exist',
     !visibleKeys('custom', 'overall', ['rating', 'not_a_column']).includes('not_a_column'))
@@ -171,7 +209,7 @@ section('Density presets')
     visibleKeys('custom', 'overall', null).join(',') === standard.join(','))
 
   // Order must come from the canonical column order, not from click order.
-  const clickedBackwards = visibleKeys('custom', 'overall', ['titles', 'rating', 'played'])
+  const clickedBackwards = visibleKeys('custom', 'overall', ['seasonTitles', 'rating', 'played'])
   const canonical = COLUMNS.map((c) => c.key)
   check('columns render in canonical order however they were switched on',
     clickedBackwards.every((k, i, arr) =>
@@ -243,17 +281,22 @@ section('Sorting never renumbers the official rank')
 section('Championship mode switches what Titles means')
 {
   const r = row({ seasonTitles: 3, tournamentTitles: 1 })
-  const titles = COLUMN_BY_KEY.titles
-  check('SC reads the Season count', titles.value(r, 'SC') === 3)
-  check('TC reads the Tournament count', titles.value(r, 'TC') === 1)
-  check('the two are genuinely different fields', titles.value(r, 'SC') !== titles.value(r, 'TC'))
-  check('the tooltip explains both', /Season Championships/.test(titles.tooltip) && /Tournament Championships/.test(titles.tooltip))
-  check('...and says the count can be traced', /trace|see the exact|behind it/i.test(titles.tooltip))
+  const sc = COLUMN_BY_KEY.seasonTitles
+  const tc = COLUMN_BY_KEY.tournamentTitles
+  check('SC and TC are SEPARATE columns, both shown at once', !!sc && !!tc && !COLUMN_BY_KEY.titles)
+  check('SC reads the Season count', sc.value(r, 'SC') === 3)
+  check('TC reads the Tournament count', tc.value(r, 'SC') === 1)
+  check('neither depends on the SC/TC control', sc.value(r, 'TC') === 3 && tc.value(r, 'SC') === 1)
+  check('SC is explained', /Season Championships/.test(sc.tooltip))
+  check('TC is explained', /Tournament Championships/.test(tc.tooltip))
+  check('...and both say the count can be traced',
+    /which ones/i.test(sc.tooltip) && /which ones/i.test(tc.tooltip))
 
   const rows = [row({ playerId: 'a', seasonTitles: 0, tournamentTitles: 2 }), row({ playerId: 'b', seasonTitles: 2, tournamentTitles: 0 })]
-  const sc = filterRows(rows, { search: '', minMatches: 0, championsOnly: true, entrantType: 'all', activeOnly: false }, 'SC')
-  const tc = filterRows(rows, { search: '', minMatches: 0, championsOnly: true, entrantType: 'all', activeOnly: false }, 'TC')
-  check('champions-only follows the selected mode', sc[0]?.playerId === 'b' && tc[0]?.playerId === 'a')
+  const scOnly = filterRows(rows, { search: '', minMatches: 0, championsOnly: true, entrantType: 'all', activeOnly: false }, 'SC')
+  const tcOnly = filterRows(rows, { search: '', minMatches: 0, championsOnly: true, entrantType: 'all', activeOnly: false }, 'TC')
+  // Both counts are always columns now, so this is what the SC/TC control is still FOR.
+  check('champions-only follows the selected mode', scOnly[0]?.playerId === 'b' && tcOnly[0]?.playerId === 'a')
 }
 
 // ─────────────────────────────────────────────── qualification
@@ -373,8 +416,8 @@ section('URL state round trip')
   const configured: RankingsState = {
     ...defaultState(),
     scope: 'all-time', view: 'playoff', mode: 'TC',
-    sort: [{ key: 'rating', dir: 'desc' }, { key: 'titles', dir: 'asc' }],
-    density: 'custom', columns: ['rating', 'titles'],
+    sort: [{ key: 'rating', dir: 'desc' }, { key: 'seasonTitles', dir: 'asc' }],
+    density: 'custom', columns: ['rating', 'seasonTitles'],
     rowFilters: { search: 'tyler', minMatches: 5, championsOnly: true, entrantType: 'teams', activeOnly: true },
     competitionSeriesId: 3, year: 2005, seasonId: 12, tournamentId: null,
     division: 'A', fromYear: 2005, toYear: 2009,
@@ -386,9 +429,9 @@ section('URL state round trip')
   check('record view survives', back.view === 'playoff')
   check('championship mode survives', back.mode === 'TC')
   check('a multi-key sort survives in order',
-    back.sort.map((s) => `${s.key}:${s.dir}`).join(',') === 'rating:desc,titles:asc')
+    back.sort.map((s) => `${s.key}:${s.dir}`).join(',') === 'rating:desc,seasonTitles:asc')
   check('density survives', back.density === 'custom')
-  check('the custom column set survives', back.columns?.join(',') === 'rating,titles')
+  check('the custom column set survives', back.columns?.join(',') === 'rating,seasonTitles')
   check('the search survives', back.rowFilters.search === 'tyler')
   check('the minimum survives', back.rowFilters.minMatches === 5)
   check('champions-only survives', back.rowFilters.championsOnly)
@@ -437,7 +480,7 @@ section('Invalid query parameters degrade instead of crashing')
   check('an empty expand parameter is null, not an empty string', nonsense.expanded === null)
 
   check('a link naming columns switches to Custom so they are honoured',
-    decodeRankingsState('cols=rating,titles').density === 'custom')
+    decodeRankingsState('cols=rating,seasonTitles').density === 'custom')
   check('an unsupported preset is ignored', decodeRankingsState('preset=made-up').savedView === null)
 }
 

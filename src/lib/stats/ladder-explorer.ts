@@ -362,6 +362,10 @@ export async function computeExplorer(
             row_number() OVER (PARTITION BY s."playerId" ORDER BY s."sequence")
               - row_number() OVER (PARTITION BY s."playerId", s."result" ORDER BY s."sequence") AS grp
           FROM scoped s
+          -- Ties are filtered out BEFORE the window functions, which is what makes a tie skipped
+          -- over rather than treated as a break: with the draw removed, the wins on either side of
+          -- it become adjacent and count as one run. Filtering after the numbering would have made
+          -- every draw end a streak.
           WHERE s."result" IN ('WIN', 'LOSS')
         ) g
        GROUP BY g."playerId", g."result", g.grp

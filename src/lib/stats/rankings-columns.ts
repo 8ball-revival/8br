@@ -51,8 +51,17 @@ export interface ColumnDef {
 const pctText = (n: number) => `${n.toFixed(1)}%`
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n))
 const dash = (n: number | null) => (n == null || n === 0 ? '—' : String(n))
-/** A win–loss pair as one cell, which reads faster than two columns. */
-const record = (w: number, l: number) => `${w}–${l}`
+/**
+ * A full record in one cell: wins, losses, ties.
+ *
+ * All three numbers, always — including a zero. A column that drops the tie when there is none
+ * reads as two different columns down the page, and a reader scanning for draws cannot tell "none"
+ * from "not shown".
+ *
+ * The divider matches the header's, so "Win | Loss | Tie" sits directly above "15 | 2 | 0" and the
+ * mapping needs no explaining.
+ */
+const record = (w: number, l: number, t: number) => `${w} | ${l} | ${t}`
 
 export const COLUMNS: ColumnDef[] = [
   {
@@ -65,24 +74,23 @@ export const COLUMNS: ColumnDef[] = [
     tooltip: 'Preferred name over CueVerse ID. Both belong to one canonical player account, so changing a CueVerse ID updates every season, tournament and match that player appears in.',
     value: (r) => r.preferredName || r.cueverseId || '',
   },
-
-  // ── Match record
+  {
+    key: 'rating', label: 'Rating', group: 'rating', align: 'right',
+    tooltip: 'Elo rating after the most recent match in scope. The same figure in every record view — a rating is a rating, not "your rating counting only playoff matches".',
+    value: (r) => r.rating,
+  },
   {
     key: 'played', label: 'Matches Played', short: 'MP', group: 'match', align: 'right',
     tooltip: 'Matches Played — matches with a recorded result. Forfeits count as matches played.',
     value: (r) => r.played,
   },
   {
-    key: 'record', label: 'Match Record', short: 'W–L', group: 'match', align: 'right',
-    tooltip: 'Match Record — matches won and matches lost. Sorts by wins.',
+    // Spelled out: there is room for it, and three initials over three numbers is a puzzle the
+    // reader has to solve every time they look at the column.
+    key: 'record', label: 'Match Record', short: 'Win | Loss | Tie', group: 'match', align: 'right',
+    tooltip: 'Match Record — matches won, lost and tied. Ties are possible in group play and never in a knockout. Sorts by wins.',
     value: (r) => r.wins,
-    format: (r) => record(r.wins, r.losses),
-  },
-  {
-    key: 'draws', label: 'Draws', short: 'D', group: 'match', align: 'right',
-    tooltip: 'Drawn matches. Possible in group play, never in a knockout.',
-    value: (r) => r.draws,
-    format: (r) => dash(r.draws),
+    format: (r) => record(r.wins, r.losses, r.draws),
   },
   {
     key: 'matchWinPct', label: 'Win %', group: 'match', align: 'right',
@@ -90,70 +98,35 @@ export const COLUMNS: ColumnDef[] = [
     value: (r) => r.matchWinPct,
     format: (r) => pctText(r.matchWinPct),
   },
-
-  // ── Game record
-  {
-    key: 'games', label: 'Games Won – Games Lost', short: 'GW–GL', group: 'game', align: 'right',
-    tooltip: 'Games Won – Games Lost, counting individual frames rather than matches. Forfeits contribute no games because none were played, and some archived seasons record the match result without the frames — see the completeness marker on the row.',
-    value: (r) => r.gamesWon,
-    format: (r) => record(r.gamesWon, r.gamesLost),
-  },
-  {
-    key: 'gameDiff', label: 'Game Differential', short: 'Diff', group: 'game', align: 'right',
-    tooltip: 'Game Differential — games won minus games lost. Only as complete as the frame-level data behind it.',
-    value: (r) => r.gameDiff,
-    format: (r) => signed(r.gameDiff),
-  },
-  {
-    key: 'gameWinPct', label: 'Game Win %', short: 'Game %', group: 'game', align: 'right',
-    tooltip: 'Games won as a share of games played.',
-    value: (r) => r.gameWinPct,
-    format: (r) => pctText(r.gameWinPct),
-  },
-
-  // ── Rating
-  {
-    key: 'rating', label: 'Rating', group: 'rating', align: 'right',
-    tooltip: 'Elo rating after the most recent match in scope. The same figure in every record view — a rating is a rating, not "your rating counting only playoff matches".',
-    value: (r) => r.rating,
-  },
   {
     key: 'currentStreak', label: 'Current Streak', short: 'Streak', group: 'rating', align: 'right',
-    tooltip: 'Current unbroken run of results. W3 is three consecutive wins, L2 two consecutive losses.',
+    tooltip: 'Current unbroken run, signed: +3 is three consecutive wins, −2 two consecutive losses. A tie neither extends nor breaks a run — it is skipped over. A run of three or more is marked: green with a flame for wins, red with a snowflake for losses.',
     value: (r) => r.currentStreak,
-    format: (r) => (r.currentStreak === 0 ? '—'
-      : `${r.currentStreak > 0 ? 'W' : 'L'}${Math.abs(r.currentStreak)}`),
+    format: (r) => (r.currentStreak === 0 ? '—' : signed(r.currentStreak)),
   },
   {
-    key: 'peakRating', label: 'Peak Rating', short: 'Peak', group: 'highest', align: 'right',
-    tooltip: 'Highest rating actually reached within the selected scope, read from the rating ledger. A real measurement, not a reconstruction of where someone once stood.',
-    value: (r) => r.peakRating,
+    key: 'seasonTitles', label: 'Season Championships', short: 'SC', group: 'titles', align: 'right',
+    tooltip: 'Season Championships — Seasons this player won, from the champion recorded on each completed Season. Click a count to see which ones.',
+    value: (r) => r.seasonTitles,
+    format: (r) => dash(r.seasonTitles),
   },
   {
-    key: 'longestStreak', label: 'Longest Winning Run', short: 'Best run', group: 'highest', align: 'right',
-    tooltip: 'Longest unbroken run of wins within the selected scope.',
-    value: (r) => r.longestStreak,
-    format: (r) => (r.longestStreak === 0 ? '—' : `W${r.longestStreak}`),
-  },
-
-  // ── Honours
-  {
-    key: 'titles', label: 'Championships', short: 'Titles', group: 'titles', align: 'right',
-    tooltip: 'Championships won. The SC / TC control chooses between Season Championships and Tournament Championships. Click a count to see the exact competitions behind it.',
-    value: (r, mode) => (mode === 'SC' ? r.seasonTitles : r.tournamentTitles),
-    format: (r, mode) => dash(mode === 'SC' ? r.seasonTitles : r.tournamentTitles),
-  },
-  {
-    key: 'runnerUps', label: 'Runner-up Finishes', short: 'R/U', group: 'titles', align: 'right',
-    tooltip: 'Losing finalist finishes, from the runner-up recorded on each completed Season.',
-    value: (r) => r.runnerUps,
-    format: (r) => dash(r.runnerUps),
+    key: 'tournamentTitles', label: 'Tournament Championships', short: 'TC', group: 'titles', align: 'right',
+    tooltip: 'Tournament Championships — standalone Tournaments this player won, from the champion recorded on each Tournament. Click a count to see which ones.',
+    value: (r) => r.tournamentTitles,
+    format: (r) => dash(r.tournamentTitles),
   },
   {
     key: 'finalsAppearances', label: 'Finals Reached', short: 'Finals', group: 'titles', align: 'right',
     tooltip: 'Competitions where the player reached the final, counted from the round label stored on each match. Click to see which ones.',
     value: (r) => r.finalsAppearances,
     format: (r) => dash(r.finalsAppearances),
+  },
+  {
+    key: 'runnerUps', label: 'Runner-up Finishes', short: 'R/U', group: 'titles', align: 'right',
+    tooltip: 'Losing finalist finishes, from the runner-up recorded on each completed Season.',
+    value: (r) => r.runnerUps,
+    format: (r) => dash(r.runnerUps),
   },
   {
     key: 'semifinalAppearances', label: 'Semifinals Reached', short: 'Semis', group: 'titles', align: 'right',
@@ -167,8 +140,36 @@ export const COLUMNS: ColumnDef[] = [
     value: (r) => r.playoffAppearances,
     format: (r) => dash(r.playoffAppearances),
   },
-
-  // ── Group play. Career figures from the stored standings, shown only where they inform the view.
+  {
+    key: 'games', label: 'Games Won – Games Lost', short: 'GW–GL', group: 'game', align: 'right',
+    tooltip: 'Games Won – Games Lost, counting individual frames rather than matches. Forfeits contribute no games because none were played, and some archived seasons record the match result without the frames — see the completeness marker on the row.',
+    value: (r) => r.gamesWon,
+    // Games have no tie — a frame is won or it is not — so this pair stays two numbers.
+    format: (r) => `${r.gamesWon}–${r.gamesLost}`,
+  },
+  {
+    key: 'gameDiff', label: 'Game Differential', short: 'Diff', group: 'game', align: 'right',
+    tooltip: 'Game Differential — games won minus games lost. Only as complete as the frame-level data behind it.',
+    value: (r) => r.gameDiff,
+    format: (r) => signed(r.gameDiff),
+  },
+  {
+    key: 'gameWinPct', label: 'Game Win %', short: 'Game %', group: 'game', align: 'right',
+    tooltip: 'Games won as a share of games played.',
+    value: (r) => r.gameWinPct,
+    format: (r) => pctText(r.gameWinPct),
+  },
+  {
+    key: 'peakRating', label: 'Peak Rating', short: 'Peak', group: 'highest', align: 'right',
+    tooltip: 'Highest rating actually reached within the selected scope, read from the rating ledger. A real measurement, not a reconstruction of where someone once stood.',
+    value: (r) => r.peakRating,
+  },
+  {
+    key: 'longestStreak', label: 'Longest Winning Run', short: 'Best run', group: 'highest', align: 'right',
+    tooltip: 'Longest unbroken run of wins within the selected scope.',
+    value: (r) => r.longestStreak,
+    format: (r) => (r.longestStreak === 0 ? '—' : `W${r.longestStreak}`),
+  },
   {
     key: 'groupPoints', label: 'Group Points', short: 'Pts', group: 'group', align: 'right',
     views: ['overall', 'group'],
@@ -204,8 +205,6 @@ export const COLUMNS: ColumnDef[] = [
     value: (r) => r.qualificationPct,
     format: (r) => (r.qualificationPct == null ? '—' : pctText(r.qualificationPct)),
   },
-
-  // ── Activity
   {
     key: 'competitionsEntered', label: 'Competitions', short: 'Comps', group: 'activity', align: 'right',
     tooltip: 'Distinct Seasons and Tournaments with at least one recorded match in scope.',
@@ -254,12 +253,24 @@ export const DENSITIES: { id: Density; label: string; hint: string }[] = [
  * Full is derived rather than listed: it is every column that applies to the view, so a new column
  * cannot be added and then quietly missing from the preset that promises all of them.
  */
-const COMPACT_KEYS = ['rank', 'player', 'record', 'matchWinPct', 'rating', 'titles']
+const COMPACT_KEYS = [
+  'rank', 'player', 'rating', 'record', 'matchWinPct', 'seasonTitles', 'tournamentTitles',
+]
 
+/**
+ * The default table.
+ *
+ * Rating · Match record · Win % · Streak · Season Championships · Tournament Championships —
+ * the six figures a reader actually scans, in that order. Both championship counts are shown at
+ * once rather than swapped by a control, because "how many Seasons AND how many Tournaments" is one
+ * question about a player, not two views of the same number.
+ *
+ * Games, differential, finals, points and the rest are real and stay available under Full and
+ * Custom; they are simply not what the default is for.
+ */
 const STANDARD_KEYS = [
-  'rank', 'player', 'played', 'record', 'matchWinPct',
-  'games', 'gameDiff', 'rating', 'currentStreak',
-  'titles', 'finalsAppearances', 'groupPoints',
+  'rank', 'player', 'rating', 'record', 'matchWinPct', 'currentStreak',
+  'seasonTitles', 'tournamentTitles',
 ]
 
 export function keysForDensity(density: Density, view: RecordView): string[] {
@@ -405,6 +416,14 @@ export function matchesQuery(row: ExplorerRow, query: string): boolean {
   if ((row.cueverseId ?? '').toLowerCase().includes(q)) return true
   return row.aliases.some((a) => a.toLowerCase().includes(q))
 }
+
+/**
+ * ── What the SC / TC control does, now that both counts are columns ──────────────────────────────
+ *
+ * It no longer chooses which championship column appears — both do, always. It selects which KIND
+ * of championship the "Champions only" filter means, and which count the expanded row leads with.
+ * That is the part of the question a control can still usefully answer.
+ */
 
 /**
  * Does this row meet the qualification threshold?

@@ -51,20 +51,51 @@ export const PLAYER_COL_WIDTH = 'clamp(11rem, 20vw, 300px)'
 const CONTROL_COL = 40
 const RANK_COL = 56
 
-/** Signed streak with the established icons: fire on a long win run, snowflake on a long losing one. */
+/**
+ * How long a run has to be before it is a run.
+ *
+ * Two results is a coincidence. Three is the shortest run that says something about form, so it is
+ * where the colour and the icon start; everything between −2 and +2 stays plain.
+ */
+const STREAK_RUN = 3
+
+/**
+ * The current streak, as a signed number.
+ *
+ * `+9` and `−1` rather than `W9` and `L1`: the sign already says which direction, and a signed
+ * column sorts and scans as one continuous scale from a long losing run to a long winning one.
+ *
+ * Colour marks a RUN, not every result — and never on its own. A run of wins is green and carries a
+ * flame; a run of losses is red and carries a snowflake. Both keep the number and the sign, so the
+ * value is readable without seeing the colour at all.
+ */
 function StreakCell({ streak }: { streak: number }) {
   if (streak === 0) return <span className="text-muted-foreground">—</span>
-  const win = streak > 0
-  const mag = Math.abs(streak)
+
+  const hot = streak >= STREAK_RUN
+  const cold = streak <= -STREAK_RUN
+  const magnitude = Math.abs(streak)
+  // A true minus sign rather than a hyphen: it aligns with the digits in a tabular column.
+  const text = streak > 0 ? `+${streak}` : `−${magnitude}`
+
   return (
     <span
-      className={cn('inline-flex items-center gap-1', win ? 'text-[var(--win)]' : 'text-[var(--loss)]')}
-      aria-label={`${mag}-match ${win ? 'winning' : 'losing'} streak`}
+      className={cn(
+        'inline-flex items-center justify-end gap-1',
+        hot ? 'font-semibold text-[var(--streak-hot)]'
+          : cold ? 'font-semibold text-[var(--streak-cold)]'
+            : 'text-foreground',
+      )}
+      aria-label={`${magnitude}-match ${streak > 0 ? 'winning' : 'losing'} streak`}
     >
-      {mag >= 6 && (win
-        ? <Flame className="size-3.5" aria-hidden />
-        : <Snowflake className="size-3.5" aria-hidden />)}
-      {win ? 'W' : 'L'}{mag}
+      {hot && (
+        <Flame
+          className="size-3.5 fill-[var(--streak-fire)] text-[var(--streak-fire)]"
+          aria-hidden
+        />
+      )}
+      {cold && <Snowflake className="size-3.5 text-[var(--streak-ice)]" aria-hidden />}
+      {text}
     </span>
   )
 }
@@ -240,16 +271,9 @@ export function RankingsTable(props: RankingsTableProps) {
 function HeaderCell({ col, sort, onSort, mode }: { col: ColumnDef } & RankingsTableProps) {
   const s = sort.find((x) => x.key === col.key)
   const sticky = col.key === 'rank' ? { left: CONTROL_COL } : col.key === 'player' ? { left: CONTROL_COL + RANK_COL } : null
-  const isTitles = col.key === 'titles'
-  const label = isTitles ? (mode === 'SC' ? 'SC' : 'TC') : (col.short ?? col.label)
-  const fullLabel = isTitles
-    ? (mode === 'SC' ? 'Season Championships' : 'Tournament Championships')
-    : col.label
-  const tooltip = isTitles
-    ? (mode === 'SC'
-        ? 'Season Championships — Seasons this player won, from the champion recorded on each completed Season. Click a count to see which ones.'
-        : 'Tournament Championships — Tournaments this player won, from the champion recorded on each Tournament. Click a count to see which ones.')
-    : col.tooltip
+  const label = col.short ?? col.label
+  const fullLabel = col.label
+  const tooltip = col.tooltip
 
   return (
     <th
@@ -382,13 +406,10 @@ function Row({
                 </button>
               ) : c.key === 'currentStreak' ? (
                 <StreakCell streak={row.currentStreak} />
-              ) : c.key === 'titles' ? (
-                <TitleCell
-                  n={mode === 'SC' ? row.seasonTitles : row.tournamentTitles}
-                  mode={mode}
-                  onOpen={open}
-                  playerName={name}
-                />
+              ) : c.key === 'seasonTitles' ? (
+                <TitleCell n={row.seasonTitles} mode="SC" onOpen={open} playerName={name} />
+              ) : c.key === 'tournamentTitles' ? (
+                <TitleCell n={row.tournamentTitles} mode="TC" onOpen={open} playerName={name} />
               ) : c.key === 'finalsAppearances' ? (
                 <EvidenceCell n={row.finalsAppearances} onOpen={open} label={`${name}: ${row.finalsAppearances} finals reached`} />
               ) : (

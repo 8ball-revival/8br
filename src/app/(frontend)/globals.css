@@ -80,6 +80,19 @@
   --win: oklch(0.8 0.125 84);
   --loss: oklch(0.7 0.01 265);
 
+  /*
+    Streak semantics — a SEPARATE pair from --win/--loss on purpose.
+    Those two answer "who won this match", and gold is the right answer there. A streak answers
+    "is this player hot or cold", which is a different question and reads better in the colours
+    everyone already associates with a run: green for a run of wins, red for a run of losses.
+    Reusing the gold win colour made a losing streak and a winning streak look like the same thing.
+    Short streaks (-2 to +2) use neither and stay plain, because two results is not a run.
+  */
+  --streak-hot: oklch(0.74 0.17 148);   /* a run of wins */
+  --streak-cold: oklch(0.64 0.2 25);    /* a run of losses */
+  --streak-fire: oklch(0.68 0.2 42);    /* the flame icon — orange-red */
+  --streak-ice: oklch(0.85 0.08 230);   /* the snowflake icon — pale blue */
+
   /* Clickable player names (e.g. the group crosstable). */
   --player-name: oklch(0.8 0.125 84);
 
@@ -153,6 +166,12 @@
 
   --win: oklch(0.62 0.12 74);
   --loss: oklch(0.48 0.008 265);
+
+  /* Darkened so they hold contrast on a near-white ground. */
+  --streak-hot: oklch(0.52 0.16 148);
+  --streak-cold: oklch(0.52 0.19 25);
+  --streak-fire: oklch(0.58 0.19 42);
+  --streak-ice: oklch(0.6 0.1 230);
 
   --player-name: oklch(0.55 0.1 74);
 
