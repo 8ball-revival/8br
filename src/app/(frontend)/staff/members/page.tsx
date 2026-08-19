@@ -115,6 +115,7 @@ export default async function MembersPage({ searchParams }: SP) {
             <tr>
               <SortHeader label="CueVerse ID" col="cueverseId" sortKey={sortKey} sortDir={sortDir} q={q} status={status} merged={merged} trusted={trusted} />
               <SortHeader label="Preferred name" col="preferredName" sortKey={sortKey} sortDir={sortDir} q={q} status={status} merged={merged} trusted={trusted} />
+              <th className="px-4 py-2.5 font-medium">Alias</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
             </tr>
           </thead>
@@ -123,6 +124,7 @@ export default async function MembersPage({ searchParams }: SP) {
               <tr key={m.userId} className="hover:bg-muted/20">
                 <MemberRowEditor
                   userId={m.userId}
+                  playerId={m.playerId ?? null}
                   cueverseId={m.cueverseId}
                   preferredName={m.preferredName}
                   canEdit={canEditProfiles}

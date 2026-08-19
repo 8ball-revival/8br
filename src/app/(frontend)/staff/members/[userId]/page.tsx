@@ -14,6 +14,8 @@ import { planAccountDeletionAction } from '@/lib/players/merge-actions'
 import { prisma } from '@/lib/prisma'
 import { MemberRoles } from '@/components/staff/member-roles'
 import { MemberProfileEditor } from '@/components/staff/member-profile-editor'
+import { AliasManager } from '@/components/staff/alias-manager'
+import { listAliases } from '@/lib/players/aliases'
 import { MemberTrustedAuthor } from '@/components/staff/member-trusted-author'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getMemberDetail } from '@/lib/staff/members'
@@ -42,6 +44,8 @@ export default async function MemberDetailPage({ params }: Props) {
   const canMerge = access.actor.can('manage_players')
   const canDelete = access.actor.can('delete_account')
   const merged = profile && canMerge ? await listMergedAccounts(profile.id) : []
+  // Aliases are the full list with remove buttons here; the roster only offers quick-add.
+  const aliases = profile ? await listAliases(profile.id) : []
   const deletionPlan = canDelete ? await planAccountDeletionAction(userId) : null
 
   return (
@@ -90,6 +94,12 @@ export default async function MemberDetailPage({ params }: Props) {
             canManage={canMerge}
           />
         </Section>
+
+        {profile && (
+          <div className="mt-4">
+            <AliasManager playerId={profile.id} initial={aliases} />
+          </div>
+        )}
 
         <AccountActions
           userId={userId}

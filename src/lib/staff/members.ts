@@ -137,6 +137,15 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   // Search by the canonical identity only — Preferred Name, CueVerse ID, or immutable User ID.
   // There is no separate "username" concept to search.
   return rows
+    /*
+     * Deleted accounts are hidden unless they are asked for by name.
+     *
+     * A deleted member has had their identity cleared, so the row shows an empty handle and no name
+     * — it is a tombstone, and one sitting at the top of an alphabetical list is the first thing
+     * anyone sees on this page. They remain reachable by choosing the Deleted status, which is the
+     * only time anyone actually wants them.
+     */
+    .filter((r) => (opts.status === 'DELETED' ? r.status === 'DELETED' : r.status !== 'DELETED'))
     .filter((r) => (opts.status && opts.status !== 'ALL' ? r.status === opts.status : true))
     .filter((r) => (opts.trustedOnly ? r.trustedAuthor : true))
     .filter((r) => (q ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} #${r.userId}`.toLowerCase().includes(q) : true))

@@ -6,6 +6,7 @@ import Link from 'next/link'
 
 import { cn } from '@/lib/utils'
 import { adminUpdateMemberProfileAction } from '@/lib/staff/member-profile-actions'
+import { addAliasAction } from '@/lib/players/alias-actions'
 
 const cell =
   'w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm text-foreground outline-none ' +
@@ -22,11 +23,14 @@ const cell =
  */
 export function MemberRowEditor({
   userId,
+  playerId,
   cueverseId,
   preferredName,
   canEdit,
 }: {
   userId: number
+  /** Null when the account has no canonical profile yet — there is nothing to alias. */
+  playerId: string | null
   cueverseId: string | null
   preferredName: string | null
   canEdit: boolean
@@ -147,6 +151,63 @@ export function MemberRowEditor({
           </p>
         )}
       </td>
+      <td className="px-4 py-2 align-top">
+        <QuickAlias playerId={playerId} disabled={!canEdit} />
+      </td>
     </>
+  )
+}
+
+/**
+ * Add one alias without leaving the roster.
+ *
+ * Add only. Removing an alias can break a lookup that currently works — a search, an entrant match,
+ * an archive reconciliation — and that is not a judgement to make from a table of a hundred rows,
+ * so the full list with its remove buttons lives on the member's own page.
+ *
+ * The field empties on success and reports the stored form, which is normalised and therefore often
+ * not what was typed. Showing it back is the only way to make that visible.
+ */
+function QuickAlias({ playerId, disabled }: { playerId: string | null; disabled: boolean }) {
+  const [value, setValue] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [added, setAdded] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!playerId) {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+
+  async function submit() {
+    const raw = value.trim()
+    if (!raw || !playerId) return
+    setBusy(true); setError(null); setAdded(null)
+    const res = await addAliasAction(playerId, raw)
+    if (!res.ok) setError(res.error ?? 'Could not record that alias.')
+    else {
+      setValue('')
+      setAdded(res.aliases?.[res.aliases.length - 1]?.alias ?? raw)
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div>
+      <input
+        value={value}
+        onChange={(e) => { setValue(e.target.value); setError(null); setAdded(null) }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submit() } }}
+        onBlur={() => { if (value.trim()) void submit() }}
+        disabled={disabled || busy}
+        placeholder="Add alias"
+        aria-label="Add an alias"
+        autoComplete="off"
+        spellCheck={false}
+        className={cn(cell, value.trim() && 'border-brand/60')}
+      />
+      {busy && <p className="mt-1 text-[0.68rem] text-muted-foreground">Saving…</p>}
+      {added && !busy && <p className="mt-1 text-[0.68rem] text-success">Added @{added}</p>}
+      {error && <p className="mt-1 text-[0.68rem] text-destructive">{error}</p>}
+    </div>
   )
 }
