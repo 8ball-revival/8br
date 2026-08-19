@@ -10,6 +10,7 @@ import { PlayerName } from '@/components/identity/player-name'
 import { identityText } from '@/lib/identity/display'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { createMemberAction } from '@/lib/staff/create-member'
 import {
   searchSeasonPlayersAction,
   addSeasonEntrantAction,
@@ -160,6 +161,7 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
   const [open, setOpen] = useState(false)
   const [candidates, setCandidates] = useState<{ playerId: string; primaryName: string; cueverseId: string | null }[]>([])
   const [searching, startSearch] = useTransition()
+  const [creating, setCreating] = useState(false)
 
   const load = (value: string) => { setQ(value); startSearch(async () => setCandidates(await searchSeasonPlayersAction(seasonId, value.trim()))) }
   const openList = () => { setOpen(true); if (candidates.length === 0) load('') }
@@ -173,7 +175,7 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
       {open && (
         <ul className="absolute z-10 mt-1 max-h-64 w-72 space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1 shadow-lg">
           {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
-          {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players. Create the account first.</li>}
+          {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players — create one below.</li>}
           {candidates.map((c) => (
             <li key={c.playerId}>
               <button onMouseDown={(e) => e.preventDefault()} onClick={() => run(async () => { const r = await addSeasonEntrantAction(seasonId, c.playerId); setQ(''); setCandidates([]); setOpen(false); return r })} className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted">
@@ -184,6 +186,77 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
           ))}
         </ul>
       )}
+
+      {/* Reconstructing an old Season constantly turns up a player who has no account yet. Leaving
+          the page to make one and coming back loses your place in a list of forty names, so the
+          account is created HERE — through the same service the staff console uses, with the same
+          validation and the same audit trail. */}
+      <div className="mt-2">
+        {creating
+          ? <CreatePlayerInline seasonId={seasonId} run={run} onDone={() => { setCreating(false); load(q) }} />
+          : (
+            <button type="button" onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60">
+              <UserPlus className="size-3.5" aria-hidden />
+              Player not listed? Create one
+            </button>
+          )}
+      </div>
     </div>
+  )
+}
+
+/**
+ * Create a player and enter them, in one step.
+ *
+ * Two things happen and either can fail, so they are reported separately: if the account is created
+ * but the entry fails, it says so rather than reporting a flat failure that would send somebody back
+ * to create a duplicate account. Only the CueVerse ID is required — the account starts on the shared
+ * temporary password, exactly as it does in the staff console. No password is asked for or shown
+ * here.
+ */
+function CreatePlayerInline({
+  seasonId, run, onDone,
+}: {
+  seasonId: number
+  run: (fn: () => Promise<SeasonActionResult>) => void
+  onDone: () => void
+}) {
+  const [cueverseId, setCueverseId] = useState('')
+  const [preferredName, setPreferredName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    const id = cueverseId.trim()
+    if (!id) { setError('A CueVerse ID is required.'); return }
+
+    setBusy(true)
+    const res = await createMemberAction({ cueverseId: id, preferredName: preferredName.trim() || undefined })
+    if (!res.ok || !res.playerId) {
+      setError(res.error ?? 'The player could not be created.')
+      setBusy(false)
+      return
+    }
+    const playerId = res.playerId
+    setCueverseId('')
+    setPreferredName('')
+    setBusy(false)
+    onDone()
+    run(async () => addSeasonEntrantAction(seasonId, playerId))
+  }
+
+  return (
+    <form onSubmit={submit} className="w-72 rounded-md border border-border bg-background p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">New player</p>
+      <input value={cueverseId} onChange={(e) => setCueverseId(e.target.value)} placeholder="CueVerse ID" aria-label="CueVerse ID" autoFocus className="mb-2 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm" />
+      <input value={preferredName} onChange={(e) => setPreferredName(e.target.value)} placeholder="Preferred name (optional)" aria-label="Preferred name" className="mb-2 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm" />
+      {error && <p role="alert" className="mb-2 text-xs text-red-400">{error}</p>}
+      <div className="flex items-center gap-2">
+        <Button type="submit" size="sm" disabled={busy}>{busy ? 'Creating…' : 'Create and add'}</Button>
+        <button type="button" onClick={onDone} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+      </div>
+    </form>
   )
 }
