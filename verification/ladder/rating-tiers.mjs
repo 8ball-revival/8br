@@ -58,7 +58,7 @@ const evaluate = async (expression) => {
 await send('Page.enable')
 await send('Runtime.enable')
 
-const TIERS = ['gold', 'red', 'purple', 'blue', 'green', 'grey']
+const TIERS = ['gold', 'purple', 'blue', 'green', 'red', 'grey']
 
 const MEASURE = `(() => {
   const cells = [...document.querySelectorAll('.rating-primary')]
@@ -205,6 +205,38 @@ for (const width of [1440, 390]) {
 
   const shot = await send('Page.captureScreenshot', { format: 'png' })
   await writeFile(`${OUT}/rankings-${width}.png`, Buffer.from(shot.result.data, 'base64'))
+
+  /*
+   * Every tier, on screen at once.
+   *
+   * The live data only reaches four bands, so two would otherwise never be seen. This injects a
+   * read-only swatch strip built from the same classes the table uses — no real rating is edited,
+   * nothing is written, and the strip is removed straight after the capture.
+   */
+  await evaluate(`(() => {
+    document.getElementById('tier-strip')?.remove()
+    const strip = document.createElement('div')
+    strip.id = 'tier-strip'
+    strip.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;justify-content:center;padding:0.9rem;background:var(--card);border-top:1px solid var(--border)'
+    const rows = [['gold', 1667], ['purple', 1540], ['blue', 1450], ['green', 1350], ['red', 1250], ['grey', 1150], [null, null]]
+    for (const [tier, rating] of rows) {
+      const wrap = document.createElement('span')
+      wrap.style.cssText = 'display:inline-flex;align-items:baseline;gap:0.4rem;font-size:0.75rem;color:var(--muted-foreground)'
+      const n = document.createElement('span')
+      if (tier) { n.className = 'rating-primary rating-primary--' + tier; n.textContent = String(rating) }
+      else { n.style.color = 'var(--muted-foreground)'; n.textContent = '—' }
+      wrap.appendChild(n)
+      const l = document.createElement('span')
+      l.textContent = tier ? tier : 'no rating'
+      wrap.appendChild(l)
+      strip.appendChild(wrap)
+    }
+    document.body.appendChild(strip)
+  })()`)
+  await sleep(500)
+  const stripShot = await send('Page.captureScreenshot', { format: 'png' })
+  await writeFile(`${OUT}/tiers-${width}.png`, Buffer.from(stripShot.result.data, 'base64'))
+  await evaluate(`document.getElementById('tier-strip')?.remove()`)
 }
 
 // Reduced motion: the animation stops, the glow does not.
@@ -250,6 +282,19 @@ results.lightTheme = light
 console.log('\n── light theme')
 check('all six tiers resolve distinctly in the light theme',
   new Set(Object.values(light)).size === 6, JSON.stringify(light))
+await evaluate(`(() => {
+  const strip = document.createElement('div')
+  strip.id = 'tier-strip'
+  strip.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;justify-content:center;padding:0.9rem;background:var(--card);border-top:1px solid var(--border)'
+  for (const [tier, rating] of [['gold', 1667], ['purple', 1540], ['blue', 1450], ['green', 1350], ['red', 1250], ['grey', 1150]]) {
+    const n = document.createElement('span')
+    n.className = 'rating-primary rating-primary--' + tier
+    n.textContent = String(rating)
+    strip.appendChild(n)
+  }
+  document.body.appendChild(strip)
+})()`)
+await sleep(500)
 const lightShot = await send('Page.captureScreenshot', { format: 'png' })
 await writeFile(`${OUT}/rankings-light.png`, Buffer.from(lightShot.result.data, 'base64'))
 

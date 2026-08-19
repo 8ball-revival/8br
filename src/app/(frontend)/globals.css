@@ -94,15 +94,31 @@
   --streak-ice: oklch(0.85 0.08 230);   /* the snowflake icon — pale blue */
 
   /* ── Rating tiers (the primary Rating value in the Rankings table only).
-     Bands, high to low: 1600+ gold · 1500–1599 red · 1400–1499 purple ·
-     1300–1399 blue · 1200–1299 green · below 1200 grey.
-     Gold is the site gold, not a second yellow sitting next to it. */
+     Bands, high to low: 1600+ gold · 1500–1599 purple · 1400–1499 blue ·
+     1300–1399 green · 1200–1299 red · below 1200 grey.
+
+     Two tokens per tier, and the pairing is the whole effect. The BASE is the
+     colour of the glyph and has to stay readable at 15px on a near-black ground,
+     so it is the calmer of the two. The GLOW is deliberately brighter and more
+     saturated than anything the text itself could safely be — neon works because
+     the halo out-runs the letterform, not because the letters are shouting.
+     Colouring the text the glow colour instead would be luminous and unreadable.
+
+     Gold takes the site gold as its base so a top rating still reads as the same
+     gold used everywhere else, with a warmer, brighter halo around it. */
   --tier-gold: var(--gold);
-  --tier-red: oklch(0.62 0.17 25);
-  --tier-purple: oklch(0.62 0.16 305);
-  --tier-blue: oklch(0.66 0.11 255);
-  --tier-green: oklch(0.68 0.13 140);
-  --tier-grey: oklch(0.72 0.006 100);
+  --tier-gold-glow: oklch(0.88 0.16 88);
+  --tier-purple: oklch(0.68 0.17 315);
+  --tier-purple-glow: oklch(0.78 0.21 310);
+  --tier-blue: oklch(0.65 0.13 255);
+  --tier-blue-glow: oklch(0.76 0.17 250);
+  --tier-green: oklch(0.66 0.14 145);
+  --tier-green-glow: oklch(0.85 0.21 148);
+  --tier-red: oklch(0.62 0.18 22);
+  --tier-red-glow: oklch(0.7 0.22 22);
+  /* Grey is a restrained SILVER, not a disabled state: it still glows, just coolly. */
+  --tier-grey: oklch(0.73 0.008 250);
+  --tier-grey-glow: oklch(0.88 0.012 250);
 
   /* Clickable player names (e.g. the group crosstable). */
   --player-name: oklch(0.8 0.125 84);
@@ -184,14 +200,21 @@
   --streak-fire: oklch(0.58 0.19 42);
   --streak-ice: oklch(0.6 0.1 230);
 
-  /* Darkened to hold contrast on a near-white ground. The bands keep their identity;
-     only their lightness moves. */
+  /* Darkened bases to hold contrast on a near-white ground. The halos stay saturated but
+     are applied at lower alpha in the light theme (see .rating-primary), because a bright
+     glow on white reads as a smudge rather than as neon. The tier identities do not move. */
   --tier-gold: var(--gold);
-  --tier-red: oklch(0.52 0.19 25);
-  --tier-purple: oklch(0.5 0.18 305);
-  --tier-blue: oklch(0.52 0.13 255);
-  --tier-green: oklch(0.52 0.14 140);
-  --tier-grey: oklch(0.55 0.006 100);
+  --tier-gold-glow: oklch(0.72 0.15 82);
+  --tier-purple: oklch(0.5 0.2 310);
+  --tier-purple-glow: oklch(0.6 0.22 308);
+  --tier-blue: oklch(0.5 0.16 253);
+  --tier-blue-glow: oklch(0.58 0.18 250);
+  --tier-green: oklch(0.5 0.15 145);
+  --tier-green-glow: oklch(0.6 0.18 147);
+  --tier-red: oklch(0.52 0.2 22);
+  --tier-red-glow: oklch(0.6 0.22 22);
+  --tier-grey: oklch(0.52 0.008 250);
+  --tier-grey-glow: oklch(0.62 0.012 250);
 
   --player-name: oklch(0.55 0.1 74);
 
@@ -816,19 +839,25 @@
    to change the row's height. Nothing here touches position, scale or layout, so
    a row containing a Gold rating is exactly as tall as one containing a Grey.
 
+   NEON: two layers, not one. A tight 3–4px core sits almost on the glyph and does
+   the work of making the colour look lit from inside; a wider 10–16px halo spreads
+   the light into the row. One layer alone reads as a soft drop shadow — it is the
+   gap between the two radii that the eye reads as neon.
+
    The glow is the ONLY animated property. It breathes on a three-second cycle
    through `text-shadow` alone; the colour, the size and the opacity of the text
    all stay put, because a number that pulses in and out of legibility is worse
-   than one that never moved.
+   than one that never moved. The base colour is never animated either, so the
+   digits stay equally readable at every point in the cycle.
 
-   The non-animated state already carries a static glow, so the global
+   The non-animated state already carries the full neon glow, so the global
    prefers-reduced-motion rule further down — which stops the animation — leaves a
-   still, subtle version rather than nothing at all. Reduced motion is not a
-   reason to lose the tier.
+   still, clearly-lit version rather than a bare number. Reduced motion costs the
+   movement, never the tier.
 
    Scope: the primary Rating cell in a Rankings row and nowhere else. Peak rating,
-   the expanded panel, comparison, profiles, charts and the homepage all show
-   ratings and none of them take this treatment.
+   the expanded panel, comparison, profiles, charts, Creator and the homepage all
+   show ratings and none of them take this treatment.
 --------------------------------------------------------------------------- */
 .rating-primary {
   font-weight: 700;
@@ -838,18 +867,50 @@
   /* Keeps the taller glyphs on the row's own baseline rather than nudging it. */
   vertical-align: baseline;
   color: var(--tier-color);
-  text-shadow: 0 0 6px color-mix(in oklch, var(--tier-color) 30%, transparent);
+  text-shadow:
+    0 0 4px color-mix(in oklch, var(--tier-glow) 62%, transparent),
+    0 0 12px color-mix(in oklch, var(--tier-glow) 42%, transparent);
   animation: rating-breathe 3s ease-in-out infinite;
 }
 
-.rating-primary--gold   { --tier-color: var(--tier-gold); }
-.rating-primary--red    { --tier-color: var(--tier-red); }
-.rating-primary--purple { --tier-color: var(--tier-purple); }
-.rating-primary--blue   { --tier-color: var(--tier-blue); }
-.rating-primary--green  { --tier-color: var(--tier-green); }
-.rating-primary--grey   { --tier-color: var(--tier-grey); }
+.rating-primary--gold   { --tier-color: var(--tier-gold);   --tier-glow: var(--tier-gold-glow); }
+.rating-primary--purple { --tier-color: var(--tier-purple); --tier-glow: var(--tier-purple-glow); }
+.rating-primary--blue   { --tier-color: var(--tier-blue);   --tier-glow: var(--tier-blue-glow); }
+.rating-primary--green  { --tier-color: var(--tier-green);  --tier-glow: var(--tier-green-glow); }
+.rating-primary--red    { --tier-color: var(--tier-red);    --tier-glow: var(--tier-red-glow); }
+.rating-primary--grey   { --tier-color: var(--tier-grey);   --tier-glow: var(--tier-grey-glow); }
 
 @keyframes rating-breathe {
-  0%, 100% { text-shadow: 0 0 4px color-mix(in oklch, var(--tier-color) 22%, transparent); }
-  50%      { text-shadow: 0 0 9px color-mix(in oklch, var(--tier-color) 46%, transparent); }
+  0%, 100% {
+    text-shadow:
+      0 0 3px color-mix(in oklch, var(--tier-glow) 52%, transparent),
+      0 0 10px color-mix(in oklch, var(--tier-glow) 30%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 5px color-mix(in oklch, var(--tier-glow) 78%, transparent),
+      0 0 16px color-mix(in oklch, var(--tier-glow) 58%, transparent);
+  }
+}
+
+/* On a near-white ground the same halo reads as a smudge, so it is pulled back.
+   The tier colour and the animation are unchanged; only the light's strength moves. */
+.light .rating-primary {
+  text-shadow:
+    0 0 3px color-mix(in oklch, var(--tier-glow) 34%, transparent),
+    0 0 9px color-mix(in oklch, var(--tier-glow) 20%, transparent);
+  animation-name: rating-breathe-light;
+}
+
+@keyframes rating-breathe-light {
+  0%, 100% {
+    text-shadow:
+      0 0 2px color-mix(in oklch, var(--tier-glow) 28%, transparent),
+      0 0 8px color-mix(in oklch, var(--tier-glow) 16%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 4px color-mix(in oklch, var(--tier-glow) 46%, transparent),
+      0 0 13px color-mix(in oklch, var(--tier-glow) 30%, transparent);
+  }
 }

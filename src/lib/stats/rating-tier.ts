@@ -15,13 +15,19 @@
 
 export type RatingTier = 'gold' | 'red' | 'purple' | 'blue' | 'green' | 'grey'
 
-/** Ordered high to low. The first band whose floor the rating reaches is the one it belongs to. */
+/**
+ * Ordered high to low. The first band whose floor the rating reaches is the one it belongs to.
+ *
+ * The colour order is the owner's, not a spectrum: gold, purple, blue, green, red, grey descending.
+ * Red sits LOW rather than high — an earlier revision had 1500–1599 red, which is gone. Anyone
+ * reading a red rating as "elite" is reading the previous scheme.
+ */
 const BANDS: { tier: RatingTier; floor: number; label: string }[] = [
   { tier: 'gold', floor: 1600, label: 'Gold' },
-  { tier: 'red', floor: 1500, label: 'Red' },
-  { tier: 'purple', floor: 1400, label: 'Purple' },
-  { tier: 'blue', floor: 1300, label: 'Blue' },
-  { tier: 'green', floor: 1200, label: 'Green' },
+  { tier: 'purple', floor: 1500, label: 'Purple' },
+  { tier: 'blue', floor: 1400, label: 'Blue' },
+  { tier: 'green', floor: 1300, label: 'Green' },
+  { tier: 'red', floor: 1200, label: 'Red' },
   { tier: 'grey', floor: Number.NEGATIVE_INFINITY, label: 'Grey' },
 ]
 

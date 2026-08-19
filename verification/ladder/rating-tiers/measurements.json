@@ -4,19 +4,19 @@
     "tiersInLiveData": [
       "rating-primary--blue",
       "rating-primary--gold",
-      "rating-primary--purple",
-      "rating-primary--red"
+      "rating-primary--green",
+      "rating-primary--purple"
     ],
     "fontSize": "14.98px",
     "fontWeight": "700",
     "numeric": "tabular-nums",
     "animation": "rating-breathe 3s",
-    "restingShadow": "oklab(0.800002 0.0130584 0.124326 / 0.22) 0px 0px 4px",
+    "restingShadow": "oklab(0.880003 0.00557707 0.159911 / 0.52) 0px 0px 3px, oklab(0.880003 0.00557707 0.159911 / 0.3) 0px 0px 10px",
     "neighbourFontSize": "14px",
     "ariaSample": [
       "1667 rating, Gold tier",
       "1657 rating, Gold tier",
-      "1587 rating, Red tier"
+      "1587 rating, Purple tier"
     ],
     "untreatedAria": 118,
     "layout": {
@@ -34,27 +34,27 @@
     "colours": {
       "gold": {
         "color": "lab(76.9897 9.21568 54.1301)",
-        "shadow": "oklab(0.800002 0.0130584 0.124326 / 0.22) 0px 0px 4px"
-      },
-      "red": {
-        "color": "lab(54.2311 53.5119 31.5282)",
-        "shadow": "oklab(0.620006 0.154052 0.0718575 / 0.22) 0px 0px 4px"
+        "shadow": "oklab(0.880003 0.00557707 0.159911 / 0.52) 0px 0px 3px, oklab(0.880003 0.00557707 0.159911 / 0.3) 0px 0px 10px"
       },
       "purple": {
-        "color": "lab(53.5209 36.7413 -47.0617)",
-        "shadow": "oklab(0.619996 0.0917567 -0.131043 / 0.22) 0px 0px 4px"
+        "color": "lab(60.3129 43.8084 -43.3447)",
+        "shadow": "oklab(0.779996 0.134965 -0.160842 / 0.52) 0px 0px 3px, oklab(0.779996 0.134965 -0.160842 / 0.3) 0px 0px 10px"
       },
       "blue": {
-        "color": "lab(60.0393 -3.32683 -38.464)",
-        "shadow": "oklab(0.659994 -0.0284772 -0.106232 / 0.22) 0px 0px 4px"
+        "color": "lab(58.7024 -2.40165 -45.1907)",
+        "shadow": "oklab(0.759991 -0.0581516 -0.159724 / 0.52) 0px 0px 3px, oklab(0.759991 -0.0581516 -0.159724 / 0.3) 0px 0px 10px"
       },
       "green": {
-        "color": "lab(64.4056 -33.4153 33.874)",
-        "shadow": "oklab(0.679998 -0.0995827 0.0835715 / 0.22) 0px 0px 4px"
+        "color": "lab(62.2652 -39.2559 32.375)",
+        "shadow": "oklab(0.849997 -0.178082 0.111293 / 0.52) 0px 0px 3px, oklab(0.849997 -0.178082 0.111293 / 0.3) 0px 0px 10px"
+      },
+      "red": {
+        "color": "lab(54.062 57.3416 29.5581)",
+        "shadow": "oklab(0.700007 0.203954 0.082428 / 0.52) 0px 0px 3px, oklab(0.700007 0.203954 0.082428 / 0.3) 0px 0px 10px"
       },
       "grey": {
-        "color": "lab(67.5635 -0.362575 2.25399)",
-        "shadow": "oklab(0.719998 0.00601733 0 / 0.22) 0px 0px 4px"
+        "color": "lab(68.6732 -0.872195 -2.85541)",
+        "shadow": "oklab(0.879998 0.0119831 0 / 0.52) 0px 0px 3px, oklab(0.879998 0.0119831 0 / 0.3) 0px 0px 10px"
       }
     }
   },
@@ -63,19 +63,19 @@
     "tiersInLiveData": [
       "rating-primary--blue",
       "rating-primary--gold",
-      "rating-primary--purple",
-      "rating-primary--red"
+      "rating-primary--green",
+      "rating-primary--purple"
     ],
     "fontSize": "14.98px",
     "fontWeight": "700",
     "numeric": "tabular-nums",
     "animation": "rating-breathe 3s",
-    "restingShadow": "oklab(0.800002 0.0130584 0.124326 / 0.22) 0px 0px 4px",
+    "restingShadow": "oklab(0.880003 0.00557707 0.159911 / 0.52) 0px 0px 3px, oklab(0.880003 0.00557707 0.159911 / 0.3) 0px 0px 10px",
     "neighbourFontSize": "14px",
     "ariaSample": [
       "1667 rating, Gold tier",
       "1657 rating, Gold tier",
-      "1587 rating, Red tier"
+      "1587 rating, Purple tier"
     ],
     "untreatedAria": 118,
     "layout": {
@@ -93,41 +93,41 @@
     "colours": {
       "gold": {
         "color": "lab(76.9897 9.21568 54.1301)",
-        "shadow": "oklab(0.800002 0.0130584 0.124326 / 0.22) 0px 0px 4px"
-      },
-      "red": {
-        "color": "lab(54.2311 53.5119 31.5282)",
-        "shadow": "oklab(0.620006 0.154052 0.0718575 / 0.22) 0px 0px 4px"
+        "shadow": "oklab(0.880003 0.00557707 0.159911 / 0.52) 0px 0px 3px, oklab(0.880003 0.00557707 0.159911 / 0.3) 0px 0px 10px"
       },
       "purple": {
-        "color": "lab(53.5209 36.7413 -47.0617)",
-        "shadow": "oklab(0.619996 0.0917567 -0.131043 / 0.22) 0px 0px 4px"
+        "color": "lab(60.3129 43.8084 -43.3447)",
+        "shadow": "oklab(0.779996 0.134965 -0.160842 / 0.52) 0px 0px 3px, oklab(0.779996 0.134965 -0.160842 / 0.3) 0px 0px 10px"
       },
       "blue": {
-        "color": "lab(60.0393 -3.32683 -38.464)",
-        "shadow": "oklab(0.659994 -0.0284772 -0.106232 / 0.22) 0px 0px 4px"
+        "color": "lab(58.7024 -2.40165 -45.1907)",
+        "shadow": "oklab(0.759991 -0.0581516 -0.159724 / 0.52) 0px 0px 3px, oklab(0.759991 -0.0581516 -0.159724 / 0.3) 0px 0px 10px"
       },
       "green": {
-        "color": "lab(64.4056 -33.4153 33.874)",
-        "shadow": "oklab(0.679998 -0.0995827 0.0835715 / 0.22) 0px 0px 4px"
+        "color": "lab(62.2652 -39.2559 32.375)",
+        "shadow": "oklab(0.849997 -0.178082 0.111293 / 0.52) 0px 0px 3px, oklab(0.849997 -0.178082 0.111293 / 0.3) 0px 0px 10px"
+      },
+      "red": {
+        "color": "lab(54.062 57.3416 29.5581)",
+        "shadow": "oklab(0.700007 0.203954 0.082428 / 0.52) 0px 0px 3px, oklab(0.700007 0.203954 0.082428 / 0.3) 0px 0px 10px"
       },
       "grey": {
-        "color": "lab(67.5635 -0.362575 2.25399)",
-        "shadow": "oklab(0.719998 0.00601733 0 / 0.22) 0px 0px 4px"
+        "color": "lab(68.6732 -0.872195 -2.85541)",
+        "shadow": "oklab(0.879998 0.0119831 0 / 0.52) 0px 0px 3px, oklab(0.879998 0.0119831 0 / 0.3) 0px 0px 10px"
       }
     }
   },
   "reducedMotion": {
     "duration": "1e-06s",
-    "shadow": "oklch(0.800002 0.125009 84.004 / 0.3) 0px 0px 6px",
+    "shadow": "oklch(0.880003 0.160009 88.0026 / 0.62) 0px 0px 4px, oklch(0.880003 0.160009 88.0026 / 0.42) 0px 0px 12px",
     "color": "lab(76.9897 9.21568 54.1301)"
   },
   "lightTheme": {
     "gold": "lab(55.7824 16.6614 53.659)",
-    "red": "lab(42.3846 60.2199 38.2468)",
-    "purple": "lab(39.0044 43.7665 -52.5605)",
-    "blue": "lab(43.4939 -0.0380576 -44.8787)",
-    "green": "lab(45.8972 -35.7833 38.5442)",
-    "grey": "lab(47.8433 -0.358701 2.2568)"
+    "purple": "lab(38.5645 51.7889 -54.5957)",
+    "blue": "lab(40.8459 2.28244 -54.3326)",
+    "green": "lab(43.7637 -42.2611 36.5581)",
+    "red": "lab(42.2139 63.9706 35.353)",
+    "grey": "lab(44.3127 -0.861943 -2.84987)"
   }
 }

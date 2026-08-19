@@ -737,14 +737,14 @@ section('Rating tiers: every boundary, from both sides')
     [0, 'grey'],
     [1, 'grey'],
     [1199, 'grey'],
-    [1200, 'green'],
-    [1299, 'green'],
-    [1300, 'blue'],
-    [1399, 'blue'],
-    [1400, 'purple'],
-    [1499, 'purple'],
-    [1500, 'red'],
-    [1599, 'red'],
+    [1200, 'red'],
+    [1299, 'red'],
+    [1300, 'green'],
+    [1399, 'green'],
+    [1400, 'blue'],
+    [1499, 'blue'],
+    [1500, 'purple'],
+    [1599, 'purple'],
     [1600, 'gold'],
     [1601, 'gold'],
     [2400, 'gold'],
@@ -753,8 +753,23 @@ section('Rating tiers: every boundary, from both sides')
     check(`${rating} is ${tier}`, ratingTier(rating) === tier, String(ratingTier(rating)))
   }
 
-  check('exactly 1200 is Green, not Grey', ratingTier(1200) === 'green')
-  check('exactly 1199 is Grey, not Green', ratingTier(1199) === 'grey')
+  check('exactly 1200 is Red, not Grey', ratingTier(1200) === 'red')
+  check('exactly 1199 is Grey, not Red', ratingTier(1199) === 'grey')
+  check('exactly 1600 is Gold', ratingTier(1600) === 'gold')
+  check('exactly 1599 is Purple, not Gold', ratingTier(1599) === 'purple')
+  check('exactly 1500 is Purple', ratingTier(1500) === 'purple')
+  check('exactly 1499 is Blue, not Purple', ratingTier(1499) === 'blue')
+  check('exactly 1400 is Blue', ratingTier(1400) === 'blue')
+  check('exactly 1399 is Green, not Blue', ratingTier(1399) === 'green')
+  check('exactly 1300 is Green', ratingTier(1300) === 'green')
+  check('exactly 1299 is Red, not Green', ratingTier(1299) === 'red')
+
+  // The superseded scheme, asserted as ABSENT. 1500-1599 was red; anyone reading a red rating as
+  // "elite" is reading the old mapping, so its removal is a fact worth keeping a test on.
+  check('the old Red 1500-1599 mapping is gone', ratingTier(1500) !== 'red' && ratingTier(1599) !== 'red')
+  check('red now sits low, at 1200-1299', ratingTier(1250) === 'red')
+  check('no rating at or above 1300 is red',
+    [1300, 1400, 1500, 1600, 1900].every((r) => ratingTier(r) !== 'red'))
   check('a negative rating is still Grey rather than untiered', ratingTier(-50) === 'grey')
 
   // An absent rating is NOT a tier. Grey would say "rated below 1200", a different claim entirely.
@@ -767,7 +782,7 @@ section('Rating tiers: every boundary, from both sides')
 
   // Monotonic: a higher rating can never land in a lower band. Cheap, and it catches any future
   // edit that reorders the bands.
-  const RANK: Record<string, number> = { grey: 0, green: 1, blue: 2, purple: 3, red: 4, gold: 5 }
+  const RANK: Record<string, number> = { grey: 0, red: 1, green: 2, blue: 3, purple: 4, gold: 5 }
   let monotonic = true
   for (let r = 1; r <= 2000; r += 1) {
     if (RANK[ratingTier(r)!] < RANK[ratingTier(r - 1)!]) monotonic = false
@@ -778,11 +793,11 @@ section('Rating tiers: every boundary, from both sides')
 section('Rating tiers: the accessible label carries what the colour says')
 {
   check('a Gold rating is described', ratingAriaLabel(1651) === '1651 rating, Gold tier')
-  check('a Red rating is described', ratingAriaLabel(1540) === '1540 rating, Red tier')
-  check('a Purple rating is described', ratingAriaLabel(1450) === '1450 rating, Purple tier')
-  check('a Blue rating is described', ratingAriaLabel(1300) === '1300 rating, Blue tier')
-  check('a Green rating is described', ratingAriaLabel(1200) === '1200 rating, Green tier')
-  check('a Grey rating is described', ratingAriaLabel(1199) === '1199 rating, Grey tier')
+  check('a Purple rating is described', ratingAriaLabel(1540) === '1540 rating, Purple tier')
+  check('a Blue rating is described', ratingAriaLabel(1450) === '1450 rating, Blue tier')
+  check('a Green rating is described', ratingAriaLabel(1350) === '1350 rating, Green tier')
+  check('a Red rating is described', ratingAriaLabel(1250) === '1250 rating, Red tier')
+  check('a Grey rating is described', ratingAriaLabel(1150) === '1150 rating, Grey tier')
   check('a missing rating gets no label — the dash already says it', ratingAriaLabel(null) === undefined)
   check('every tier has a name',
     (['gold', 'red', 'purple', 'blue', 'green', 'grey'] as const).every((t) => ratingTierLabel(t).length > 0))
@@ -836,8 +851,31 @@ section('Rating tiers: strictly scoped to the primary Rankings cell')
   check('the animation touches nothing but text-shadow',
     !/@keyframes rating-breathe[\s\S]{0,400}(transform|opacity|font-size|scale)/.test(css))
   check('the breathing cycle is slow', /animation: rating-breathe 3s/.test(css))
-  check('the resting state already carries a static glow, so reduced motion keeps the tier',
+  check('the resting state already carries the glow, so reduced motion keeps the tier',
     /\.rating-primary \{[\s\S]*?text-shadow:[\s\S]*?animation:/.test(css))
+
+  // Neon is two layers at different radii. One layer is a drop shadow; the gap between a tight core
+  // and a wide halo is what the eye reads as neon, so the layering is asserted rather than assumed.
+  const restRule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))
+  const shadowLayers = (restRule.match(/0 0 \d+px/g) ?? []).length
+  check('the resting glow is layered, not a single shadow', shadowLayers >= 2, String(shadowLayers))
+  const peak = css.slice(css.indexOf('@keyframes rating-breathe {'), css.indexOf('/* On a near-white'))
+  check('the animation keeps both layers', (peak.match(/0 0 \d+px/g) ?? []).length >= 4)
+  check('the glow brightens rather than flashes',
+    /50% \{[\s\S]*?78%/.test(peak) && /0%, 100% \{[\s\S]*?52%/.test(peak))
+  check('every tier has a separate brighter halo colour',
+    (['gold', 'purple', 'blue', 'green', 'red', 'grey'] as const)
+      .every((t) => css.includes(`--tier-${t}-glow:`)))
+  // Whitespace-normalised rather than matched by regex: the declarations are column-aligned in the
+  // stylesheet, and a test that breaks when someone re-indents the CSS is testing the wrong thing.
+  const flat = css.replace(/\s+/g, ' ')
+  check('the halo is a different colour from the glyph, in every tier',
+    (['gold', 'purple', 'blue', 'green', 'red', 'grey'] as const)
+      .every((t) => flat.includes(`--tier-color: var(--tier-${t}); --tier-glow: var(--tier-${t}-glow);`)))
+  check('the light theme holds the halo back rather than dropping it',
+    css.includes('.light .rating-primary') && css.includes('@keyframes rating-breathe-light'))
+  check('nothing but text-shadow is animated',
+    !/@keyframes rating-breathe[\s\S]{0,900}(transform|scale|opacity:|background|font-size)/.test(css))
   check('the number is tabular so digits cannot shift', /\.rating-primary \{[\s\S]*?tabular-nums/.test(css))
   check('it is bold', /\.rating-primary \{[\s\S]*?font-weight: 700/.test(css))
   check('the size stays close to the surrounding figures', /font-size: 1\.0[0-9]em/.test(css))
