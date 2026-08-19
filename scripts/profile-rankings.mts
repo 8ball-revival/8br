@@ -32,7 +32,8 @@ meter.$on('query', (e: { duration: number }) => { queries += 1; dbMs += e.durati
 // than the one the page uses.
 ;(globalThis as unknown as { prisma?: unknown }).prisma = meter
 
-const { computeExplorer, computeFacets, computePlayerDetail } = await import('../src/lib/stats/ladder-explorer.ts')
+const { computeExplorer, computeFacets } = await import('../src/lib/stats/ladder-explorer.ts')
+const { computePlayerDetail } = await import('../src/lib/stats/rankings-detail.ts')
 
 const FIXTURE_SERIES = 'zzperf-series'
 

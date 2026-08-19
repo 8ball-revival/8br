@@ -1912,6 +1912,17 @@ model Season {
   semifinalRaceTo Int @default(9)
   finalRaceTo     Int @default(9)
 
+  /// Division this Season belongs to, when the competition ran divided ones: "A", "B", ...
+  ///
+  /// Deliberately a nullable free-text code on the Season rather than a table or an enum. The
+  /// archive import that will populate it has not happened yet, and the decision about whether a
+  /// divided year is one Season record or two has not been made — a relationship or a fixed enum
+  /// would force that decision now. A nullable code costs nothing to widen later and nothing to
+  /// drop if divisions turn out to belong somewhere else.
+  ///
+  /// NEVER inferred. Every existing Season predates the distinction and stays null, which the
+  /// Rankings filter reports as "Unassigned" rather than guessing a division from a name or a year.
+  division          String?
   playoffDoubleElim Boolean @default(false) // decided at playoff setup, not creation
   /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
   /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
@@ -1945,6 +1956,7 @@ model Season {
   @@index([lifecycleState])
   @@index([competitionYear])
   @@index([competitionSeriesId])
+  @@index([division])
   @@map("season")
 
   /// Articles that reference this competition.
