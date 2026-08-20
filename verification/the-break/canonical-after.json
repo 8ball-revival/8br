@@ -1,0 +1,35 @@
+{
+  "label": "after",
+  "counts": {
+    "seasons": 4,
+    "tournaments": 0,
+    "players": 142,
+    "entrants": 201,
+    "matches": 616,
+    "standings": 200,
+    "playoffs": 140,
+    "ledger": 1168,
+    "titles": -1,
+    "aliases": 13,
+    "merges": 1,
+    "articles": 3
+  },
+  "ratingLedger": {
+    "sum": 1764954,
+    "distinctPlayers": 131
+  },
+  "seasonsWithChampion": 4,
+  "protectedSeason": {
+    "id": 3732,
+    "lifecycleState": "COMPLETED",
+    "subtitle": null,
+    "counts": {
+      "entrants": 49,
+      "groups": 7,
+      "matches": 147,
+      "standings": 49,
+      "playoffMatches": 31
+    },
+    "updatedAt": "2026-08-20T01:06:30.553Z"
+  }
+}
