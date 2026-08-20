@@ -43,10 +43,10 @@ section('The bar reads Home · Seasons · Cups · Creator? · Rankings · News �
   const staff = buildNav({ canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
   const labels = (n: { label: string }[]) => n.map((e) => e.label).join(' · ')
 
-  check('a visitor sees Home · Seasons · Cups · Rankings · News',
-    labels(pub) === 'Home · Seasons · Cups · Rankings · News', labels(pub))
+  check('a visitor sees Home · Seasons · Cups · Rankings · The Break',
+    labels(pub) === 'Home · Seasons · Cups · Rankings · The Break', labels(pub))
   check('staff additionally see Creator and Admin, in place',
-    labels(staff) === 'Home · Seasons · Cups · Creator · Rankings · News · Admin', labels(staff))
+    labels(staff) === 'Home · Seasons · Cups · Creator · Rankings · The Break · Admin', labels(staff))
 
   // The two administrative entries are the only conditional ones. Everything else is for everybody.
   const conditional = staff.filter((e) => !pub.some((p) => p.href === e.href)).map((e) => e.label)

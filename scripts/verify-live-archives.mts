@@ -190,8 +190,8 @@ section('Navigation offers one permanent destination per competition type')
     entries.find((e) => e.label === label)?.href
 
   const pub = buildNav({})
-  check('the public order is Home · Seasons · Cups · Rankings · News',
-    labels(pub) === 'Home · Seasons · Cups · Rankings · News', labels(pub))
+  check('the public order is Home · Seasons · Cups · Rankings · The Break',
+    labels(pub) === 'Home · Seasons · Cups · Rankings · The Break', labels(pub))
   check('Seasons points at /seasons', href(pub, 'Seasons') === '/seasons', href(pub, 'Seasons'))
   check('Cups points at /cups', href(pub, 'Cups') === '/cups', href(pub, 'Cups'))
 
@@ -204,8 +204,8 @@ section('Navigation offers one permanent destination per competition type')
     JSON.stringify(pub))
 
   const admin = buildNav({ canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
-  check('the administrative order is Home · Seasons · Cups · Creator · Rankings · News · Admin',
-    labels(admin) === 'Home · Seasons · Cups · Creator · Rankings · News · Admin', labels(admin))
+  check('the administrative order is Home · Seasons · Cups · Creator · Rankings · The Break · Admin',
+    labels(admin) === 'Home · Seasons · Cups · Creator · Rankings · The Break · Admin', labels(admin))
   check('Creator sits between Cups and Rankings', href(admin, 'Creator') === '/creator')
   check('Creator is absent for a public visitor', !pub.some((e) => e.label === 'Creator'))
   check('Admin is absent for a public visitor', !pub.some((e) => e.label === 'Admin'))

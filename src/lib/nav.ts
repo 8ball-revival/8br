@@ -30,9 +30,9 @@ export function buildNav(opts: {
 
   if (canCreate) entries.push({ label: 'Creator', href: '/creator' })
   entries.push({ label: 'Rankings', href: '/rankings' })
-  // The Break — the site's publishing section. Labelled "News" because that is what a visitor is
-  // looking for; "The Break" is the section's name, used on the page.
-  entries.push({ label: 'News', href: '/news' })
+  // The Break — the community. It is named on the tab rather than labelled "News", because it is no
+  // longer only news: predictions, history, memes and discussion all live there.
+  entries.push({ label: 'The Break', href: '/the-break' })
   entries.push(...adminItems)
 
   return entries
@@ -44,7 +44,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Seasons', href: '/seasons' },
   { label: 'Cups', href: '/cups' },
   { label: 'Rankings', href: '/rankings' },
-  { label: 'News', href: '/news' },
+  { label: 'The Break', href: '/the-break' },
 ]
 /** Slim footer links. */
 /**
