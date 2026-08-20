@@ -12,6 +12,19 @@ export const Users: CollectionConfig = {
   // Native username login (User ID). Email is still required + used for recovery,
   // but is NOT public. Email verification is intentionally DISABLED for launch.
   auth: {
+    /*
+     * How long a session lasts.
+     *
+     * Payload's default is 7200 seconds — two hours — and this collection never set it, so every
+     * signed-in person was quietly logged out two hours after signing in no matter what they were
+     * doing. Nothing refreshed the token either, so being mid-way through building a bracket did
+     * not help: the wall arrived on a fixed clock from the moment of login.
+     *
+     * Thirty days, with SessionKeepalive sliding it forward while somebody is actually using the
+     * site. That means an active person is never interrupted, and an abandoned session on a shared
+     * machine still dies within a month rather than living forever.
+     */
+    tokenExpiration: 60 * 60 * 24 * 30,
     loginWithUsername: {
       allowEmailLogin: true,
       requireEmail: true,

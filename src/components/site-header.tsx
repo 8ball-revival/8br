@@ -8,6 +8,7 @@ import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { getCurrentUser } from '@/lib/account/auth'
+import { SessionKeepalive } from '@/components/account/session-keepalive'
 import { getSiteBranding } from '@/lib/site-content/service'
 import { signOut } from '@/lib/account/actions'
 import { isStaff } from '@/lib/auth/roles'
@@ -37,6 +38,9 @@ export async function SiteHeader() {
     // `data-site-header` is the hook the Season control bar measures itself against, so a bar that
     // clamps beneath this one tracks the REAL rendered height rather than a hardcoded guess that
     // would drift the moment the header wraps or changes at a breakpoint.
+    <>
+    {/* Signed-in only: nothing to keep alive otherwise. See SessionKeepalive. */}
+    {user && <SessionKeepalive />}
     <header
       data-site-header
       className="sticky top-0 z-50 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70"
@@ -97,5 +101,6 @@ export async function SiteHeader() {
         </div>
       </Wide>
     </header>
+    </>
   )
 }
