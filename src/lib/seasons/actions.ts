@@ -20,6 +20,7 @@ import * as po from './playoffs'
 import { closeSeason } from './close'
 import { deleteSeason } from './admin'
 import { prisma } from '@/lib/prisma'
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
 
 export interface SeasonActionResult {
   ok?: boolean
@@ -265,7 +266,7 @@ export async function closeSeasonAction(seasonId: number): Promise<SeasonActionR
   const r = await closeSeason(actor, seasonId)
   if (!r.ok) return { error: r.error }
   revalidateSeason(seasonId)
-  revalidatePath('/rankings')
+  invalidateRankings()
   return { ok: true, message: 'Season closed — champion crowned and rankings applied.' }
 }
 export async function deleteSeasonAction(seasonId: number, password: string): Promise<SeasonActionResult> {
@@ -277,7 +278,7 @@ export async function deleteSeasonAction(seasonId: number, password: string): Pr
   if (!(await verifyCurrentUserPassword(password))) return { error: 'Incorrect password — deletion cancelled.' }
   const r = await deleteSeason(actor, seasonId, actor.isHeadAdmin)
   if (!r.ok) return { error: r.error }
-  revalidatePath('/seasons'); revalidatePath('/rankings')
+  revalidatePath('/seasons'); invalidateRankings()
   return { ok: true, message: 'Season permanently deleted.' }
 }
 

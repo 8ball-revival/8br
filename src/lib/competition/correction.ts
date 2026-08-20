@@ -1,6 +1,8 @@
 import 'server-only'
 import { revalidatePath } from 'next/cache'
 
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
+
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 import { transitionSeasonState } from '@/lib/seasons/lifecycle'
@@ -440,8 +442,10 @@ function invalidate(id: number, kind: CorrectionKind) {
   try {
     revalidatePath('/archives/seasons')
     revalidatePath('/archives/cups')
-    revalidatePath('/rankings')
     revalidatePath('/creator')
+    // The Rankings need their cached AGGREGATE dropped, not just the page re-rendered — see
+    // invalidateRankings. Revalidating the path alone re-reads the same stale rows.
+    invalidateRankings()
     revalidatePath(kind === 'season' ? `/seasons/${id}` : `/cups/${id}`)
   } catch {
     // Not in a request. Nothing is cached here, so there is nothing to invalidate.

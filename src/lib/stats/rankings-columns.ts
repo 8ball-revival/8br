@@ -97,14 +97,18 @@ export const COLUMNS: ColumnDef[] = [
     format: (r) => (r.currentStreak === 0 ? '—' : signed(r.currentStreak)),
   },
   {
-    key: 'seasonRecord', label: 'Season Record', short: 'Season W–L–D', group: 'match', align: 'right',
-    tooltip: 'Every eligible match played inside a completed, archived Season — group play AND Season playoffs together. Sorts by wins.',
-    value: (r) => r.groupWins + r.playoffWins,
-    format: (r) => record3(
-      r.groupWins + r.playoffWins,
-      r.groupLosses + r.playoffLosses,
-      r.groupDraws + r.playoffDraws,
-    ),
+    key: 'groupRecord', label: 'Group Record', short: 'Groups W–L–D', group: 'match', align: 'right',
+    /*
+     * GROUP PLAY ONLY.
+     *
+     * It used to add the playoff record in as well, which made it the sum of itself and the column
+     * immediately to its right — two figures side by side where one contained the other, and no
+     * way to read a player's group form on its own. Playoffs have their own column; this one is the
+     * group stage.
+     */
+    tooltip: 'Group-stage matches inside a completed, archived Season. Playoffs are counted separately in the next column. Sorts by wins.',
+    value: (r) => r.groupWins,
+    format: (r) => record3(r.groupWins, r.groupLosses, r.groupDraws),
   },
   {
     key: 'playoffRecord', label: 'Playoffs Record', short: 'Playoffs W–L', group: 'match', align: 'right',
@@ -264,6 +268,8 @@ export function columnsForView(view: RecordView): ColumnDef[] {
 export const LEGACY_COLUMN_KEYS: Record<string, string> = {
   titles: 'seasonTitles',
   draws: 'record',
+  // Renamed when it stopped double-counting the playoffs: it was never a whole-Season record.
+  seasonRecord: 'groupRecord',
 }
 
 // --------------------------------------------------------------------------- sorting
@@ -479,7 +485,7 @@ export interface RankingsState {
  */
 export const OPTIONAL_COLUMN_KEYS = [
   'record', 'matchWinPct', 'currentStreak',
-  'seasonRecord', 'playoffRecord', 'cupRecord',
+  'groupRecord', 'playoffRecord', 'cupRecord',
   'seasonTitles', 'tournamentTitles',
 ] as const
 

@@ -110,11 +110,35 @@ section('The page defaults to the whole archive with every optional column')
 
   const keys = visibleColumnKeys(d)
   check('the default column order is the specified one',
-    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
+    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,groupRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
     keys.join(','))
   check('Rank is first', keys[0] === 'rank')
   check('Player is second', keys[1] === 'player')
   check('Rating is third', keys[2] === 'rating')
+
+  /*
+   * The group column is GROUP PLAY ONLY.
+   *
+   * It used to add the playoff record in as well, so it was the sum of itself and the column next to
+   * it — two figures where one silently contained the other. The row below is deliberately built so
+   * the two stages differ: if the playoffs ever creep back in, the wins read 7 instead of 5 and the
+   * formatted record stops matching.
+   */
+  const col = COLUMN_BY_KEY['groupRecord']
+  check('the group column exists under its new key', !!col)
+  check('...labelled for groups, not Seasons', col?.short === 'Groups W–L–D', col?.short)
+  const row = {
+    groupWins: 5, groupLosses: 3, groupDraws: 1,
+    playoffWins: 2, playoffLosses: 4, playoffDraws: 6,
+  } as unknown as Parameters<NonNullable<typeof col>['format']>[0]
+  check('it counts group wins alone', col?.value?.(row) === 5, String(col?.value?.(row)))
+  check('...and formats the group record alone', col?.format(row) === '5–3–1', col?.format(row))
+
+  // Somebody's saved link still names the old key. It should land on the renamed column, not vanish.
+  const legacy = decodeRankingsState(new URLSearchParams('cols=seasonRecord&sort=seasonRecord:desc'), NOW)
+  check('an old link naming seasonRecord still resolves',
+    legacy.visibleColumns?.includes('groupRecord') === true, String(legacy.visibleColumns))
+  check('...and so does an old sort', legacy.sort?.[0]?.key === 'groupRecord', legacy.sort?.[0]?.key)
 }
 
 section('Permanent columns cannot be hidden; optional ones can')

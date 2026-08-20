@@ -16,6 +16,7 @@ import {
 } from './merge'
 import { assessAccountDeletion, type DeletionAssessment } from './deletion-safety'
 import { softDeleteAccount } from '@/lib/moderation/service'
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
 
 /**
  * Server actions for account merging and safe deletion.
@@ -36,7 +37,7 @@ export interface MergeActionResult {
 function revalidateMember(userId?: number | null) {
   if (userId != null) revalidatePath(`/staff/members/${userId}`)
   revalidatePath('/staff/members')
-  revalidatePath('/rankings')
+  invalidateRankings()
 }
 
 export async function searchMergeCandidatesAction(
