@@ -579,3 +579,60 @@ export async function applyGroupScores(
     unresolved: preview.unresolved,
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════ availability
+
+export interface AutoAssignAvailability {
+  /** Whether the button belongs on this screen at all. */
+  show: boolean
+  /** Non-null when the button should be shown but explain itself instead of acting. */
+  disabledReason: string | null
+}
+
+/**
+ * Whether Auto Assign belongs on a given workspace, and what to say if it cannot run.
+ *
+ * The phase and blocking rules live HERE rather than in each component, so the entrant board and the
+ * score board cannot drift apart about when the button appears — and so a component can never be the
+ * thing that decides a Season is eligible. `guard` remains the authority at apply time; this only
+ * decides what to draw.
+ */
+export async function autoAssignAvailability(
+  seasonId: number,
+  phase: 'entrants' | 'scores',
+): Promise<AutoAssignAvailability> {
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { archiveTemplateKey: true, lifecycleState: true },
+  })
+  // No template means this is not a reconstruction: the button has nothing to do with this Season.
+  if (!season?.archiveTemplateKey) return { show: false, disabledReason: null }
+
+  const entry = manifestEntry(season.archiveTemplateKey)
+  if (!entry) return { show: false, disabledReason: null }
+
+  if (isSharedStage(entry)) return { show: true, disabledReason: SHARED_STAGE_MESSAGE }
+
+  const allowed = phase === 'entrants'
+    ? ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP']
+    : ['GROUP_SETUP', 'GROUP_STAGE_LIVE']
+  if (!allowed.includes(season.lifecycleState)) {
+    // Out of phase: the button is not drawn rather than drawn-and-refusing, because a control that
+    // can never work here is noise on a screen that has other work to do.
+    return { show: false, disabledReason: null }
+  }
+
+  if (phase === 'entrants' && entry.groupAssignments === 'missing') {
+    return { show: true, disabledReason: 'No archived group assignments for this Season.' }
+  }
+  if (phase === 'scores' && entry.exactResults === 'missing') {
+    return {
+      show: true,
+      disabledReason: entry.standings.length > 0
+        ? 'Standings available; exact match-level scores unavailable.'
+        : 'No archived group results for this Season.',
+    }
+  }
+
+  return { show: true, disabledReason: null }
+}

@@ -14,6 +14,10 @@ import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { loadManifest, validateManifest, templateStatus, isSharedStage, SHARED_STAGE_MESSAGE } from '../src/lib/archive/manifest.ts'
 import { matchHandles, RULE_CONFIDENCE, UNRESOLVED_LABEL, type EntrantIdentity, type ArchiveIdentity } from '../src/lib/archive/matching.ts'
+import {
+  parseQuery, encodeQuery, applyQuery, progressOf, progressSummary,
+  PROGRESS_OPTIONS, ARCHIVE_OPTIONS, type ReconstructionRow,
+} from '../src/lib/creator/reconstruction-filters.ts'
 
 assertLocalDatabase('verify-archive-shells')
 
@@ -132,10 +136,29 @@ section('88 private shells exist and are empty')
   check('none is completed', shells.every((s) => !s.completedAt && !s.ladderAppliedAt))
   check('none has a champion', shells.every((s) => !s.championName && !s.championPlayerId))
 
-  // The point of a shell: it is a container and nothing else.
-  for (const k of ['entrants', 'groups', 'matches', 'standings', 'playoffMatches', 'ratingLedger'] as const) {
+  /*
+   * The point of a shell: the IMPORT put nothing in it.
+   *
+   * Entrants are the one exception, and deliberately so — the owner adds them by hand, and that is
+   * the whole reconstruction workflow. So this asserts what the import is responsible for rather
+   * than a museum-piece emptiness the owner is expected to end. Anything they have added since is
+   * reported, never deleted.
+   */
+  for (const k of ['groups', 'matches', 'standings', 'playoffMatches', 'ratingLedger'] as const) {
     check(`no shell has any ${k}`, shells.every((s) => s._count[k] === 0),
       String(shells.filter((s) => s._count[k] > 0).length))
+  }
+
+  const ownerAdded = await prisma.seasonEntrant.findMany({
+    where: { season: { archiveTemplateKey: { not: null } } },
+    select: { id: true, status: true, season: { select: { archiveTemplateKey: true } } },
+  })
+  check('no shell has an ACTIVE entrant the import created',
+    ownerAdded.every((e) => e.status === 'WITHDRAWN'),
+    ownerAdded.filter((e) => e.status !== 'WITHDRAWN').map((e) => e.season.archiveTemplateKey).join(', '))
+  if (ownerAdded.length > 0) {
+    console.log(`  (${ownerAdded.length} entrant row(s) added by hand since the import: `
+      + `${ownerAdded.map((e) => `${e.season.archiveTemplateKey}/${e.status}`).join(', ')})`)
   }
 
   check('every shell maps to a manifest entry',
@@ -154,7 +177,18 @@ section('Nothing else in the database moved')
 {
   check('142 players', (await prisma.player.count()) === 142, String(await prisma.player.count()))
   check('13 aliases', (await prisma.playerAlias.count()) === 13, String(await prisma.playerAlias.count()))
-  check('201 entrants', (await prisma.seasonEntrant.count()) === 201, String(await prisma.seasonEntrant.count()))
+  /*
+   * Entrants can only GROW, and only by the owner's hand.
+   *
+   * 201 was the count before the shells were created. The import added none; anything above that is
+   * the owner working in Creator while this ran, which is legitimate and must never be deleted to
+   * restore a tidy number.
+   */
+  const entrantCount = await prisma.seasonEntrant.count()
+  check('no entrant was removed', entrantCount >= 201, String(entrantCount))
+  check('...and none was added to a real Season',
+    (await prisma.seasonEntrant.count({ where: { season: { archiveTemplateKey: null } } })) === 201,
+    String(await prisma.seasonEntrant.count({ where: { season: { archiveTemplateKey: null } } })))
   check('616 matches', (await prisma.seasonMatch.count()) === 616, String(await prisma.seasonMatch.count()))
   check('200 standings', (await prisma.seasonStanding.count()) === 200)
   check('140 playoff matches', (await prisma.seasonPlayoffMatch.count()) === 140)
@@ -298,6 +332,85 @@ section('Auto Assign refuses what it cannot prove')
 
   const missing = await previewGroupAssign(999_999_999)
   check('an unknown Season is refused', isBlocked(missing))
+}
+
+// ──────────────────────────────────────────────────────────────────────── the Creator filters
+section('Creator filters survive the URL and tolerate rubbish')
+{
+  const row = (over: Partial<ReconstructionRow> = {}): ReconstructionRow => ({
+    id: 1, title: '8BRCAM Season 3 \u00b7 2011 \u00b7 Division A', year: 2011, number: 3, division: 'A',
+    lifecycle: 'REGISTRATION_OPEN', href: '/creator/seasons/1',
+    entrants: 0, groupsAssigned: 0, resultsEntered: 0,
+    archiveParticipants: 42, archiveGroups: 6, archiveResults: 105,
+    archiveAssignments: 'complete', archiveExact: 'complete',
+    sharedStage: false, sharedStageMessage: null,
+    unresolvedCount: 0, ambiguousCount: 0, standingsOnly: false, ...over,
+  })
+
+  check('every progress option round-trips through the URL',
+    PROGRESS_OPTIONS.every((o) => parseQuery({ progress: o.id }).progress === o.id))
+  check('...and so does every archive option',
+    ARCHIVE_OPTIONS.every((o) => parseQuery({ archive: o.id }).archive === o.id))
+  check('a year is read', parseQuery({ year: '2011' }).year === 2011)
+  check('a division is read, in any case', parseQuery({ division: 'b' }).division === 'B')
+
+  // A URL is user input. Rubbish must produce an unfiltered list, never an error.
+  for (const bad of ['', 'abc', '20111', '-1', 'null', '<script>']) {
+    check('year "' + bad + '" is ignored', parseQuery({ year: bad }).year === null)
+  }
+  check('an unknown progress value is ignored', parseQuery({ progress: 'nonsense' }).progress === null)
+  check('an unknown archive value is ignored', parseQuery({ archive: 'nonsense' }).archive === null)
+  check('an array parameter takes the first value', parseQuery({ year: ['2011', '2012'] }).year === 2011)
+  check('a missing parameter set is empty', parseQuery({}).year === null)
+
+  const q = {
+    year: 2011, division: 'B' as const, q: 'season',
+    progress: 'not-started' as const, archive: 'shared-source' as const,
+  }
+  const roundTrip = parseQuery(Object.fromEntries(new URLSearchParams(encodeQuery(q))))
+  check('encode then parse is the identity', JSON.stringify(roundTrip) === JSON.stringify(q),
+    JSON.stringify(roundTrip))
+  check('an empty query encodes to nothing',
+    encodeQuery({ year: null, division: null, q: null, progress: null, archive: null }) === '')
+
+  // Progress is what has been ENTERED, never what the archive holds.
+  check('a full template with no entrants has not started', progressOf(row()) === 'not-started')
+  check('entrants added', progressOf(row({ entrants: 42 })) === 'entrants-added')
+  check('groups assigned', progressOf(row({ entrants: 42, groupsAssigned: 42 })) === 'groups-assigned')
+  check('results partial',
+    progressOf(row({ entrants: 42, groupsAssigned: 42, resultsEntered: 10 })) === 'results-partial')
+  check('ready for playoffs', progressOf(row({ lifecycle: 'GROUPS_CLOSED' })) === 'ready-for-playoffs')
+  check('completed', progressOf(row({ lifecycle: 'COMPLETED' })) === 'completed')
+
+  const rows = [
+    row({ id: 1, year: 2011, division: 'A' }),
+    row({ id: 2, year: 2012, division: 'B', sharedStage: true }),
+    row({ id: 3, year: 2011, division: 'B', ambiguousCount: 1 }),
+  ]
+  check('the year filter narrows', applyQuery(rows, parseQuery({ year: '2011' })).length === 2)
+  check('the division filter narrows', applyQuery(rows, parseQuery({ division: 'B' })).length === 2)
+  check('the two combine', applyQuery(rows, parseQuery({ year: '2011', division: 'B' })).length === 1)
+  check('shared source is findable', applyQuery(rows, parseQuery({ archive: 'shared-source' }))[0]?.id === 2)
+  check('contradictions are findable', applyQuery(rows, parseQuery({ archive: 'contradictions' }))[0]?.id === 3)
+  check('a search matches the Season number alone', applyQuery(rows, parseQuery({ q: '3' })).length === 3)
+  check('a search that matches nothing returns nothing', applyQuery(rows, parseQuery({ q: 'zzz' })).length === 0)
+  check('a malformed filter leaves the list whole',
+    applyQuery(rows, parseQuery({ year: 'abc', archive: 'nope' })).length === 3)
+
+  const summary = progressSummary(row())
+  check('the summary counts entrants against the archive', summary[0] === '0 / 42 entrants added', summary[0])
+  check('...names the group state', summary[1] === 'Archive groups ready', summary[1])
+  check('...and counts results', summary[2] === '0 / 105 group results entered', summary[2])
+
+  const sharedSummary = progressSummary(row({ sharedStage: true }))
+  check('a shared stage says Auto Assign is unavailable',
+    sharedSummary.some((b) => b.includes('Auto Assign unavailable')))
+  check('...and offers no results count',
+    !sharedSummary.some((b) => b.includes('results entered')))
+  check('standings-only says so',
+    progressSummary(row({ standingsOnly: true })).some((b) => b.includes('Standings only')))
+  check('unresolved handles are surfaced',
+    progressSummary(row({ unresolvedCount: 6 })).some((b) => b === '6 unresolved handles'))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

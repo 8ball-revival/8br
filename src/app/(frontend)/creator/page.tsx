@@ -5,6 +5,9 @@ import { AlertTriangle, ExternalLink, Plus } from 'lucide-react'
 import { Wide } from '@/components/primitives'
 import { requireCreator } from '@/lib/creator/access'
 import { listCreatorProjects, BUCKETS, type CreatorProject } from '@/lib/creator/projects'
+import { listReconstructions } from '@/lib/creator/reconstruction-list'
+import { parseQuery, applyQuery } from '@/lib/creator/reconstruction-filters'
+import { ReconstructionList } from '@/components/creator/reconstruction-list'
 import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -20,10 +23,27 @@ export const metadata: Metadata = { title: 'Creator', robots: { index: false } }
  * Authorisation is re-checked here rather than left to a layout: a layout gate is a rendering gate,
  * and it does not run for the data this page loads.
  */
-export default async function CreatorDashboard() {
+export default async function CreatorDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   await requireCreator()
+  const sp = await searchParams
   const projects = await listCreatorProjects()
   const byBucket = new Map(BUCKETS.map((b) => [b.id, projects.filter((p) => p.bucket === b.id)]))
+
+  /*
+   * The reconstruction shells get their own filtered list.
+   *
+   * They are counted in the hundreds where every other bucket is counted in single figures, so the
+   * generic bucket rendering would bury the rest of the dashboard under them. Filtering happens on
+   * the server from the URL, so a filtered view is shareable and survives Back.
+   */
+  const reconstructions = await listReconstructions()
+  const query = parseQuery(sp)
+  const visibleReconstructions = applyQuery(reconstructions, query)
+  const reconstructionYears = [...new Set(reconstructions.map((r) => r.year).filter((y): y is number => y != null))].sort()
 
   return (
     <Wide name="creator" className="py-6">
@@ -49,7 +69,18 @@ export default async function CreatorDashboard() {
         </p>
       ) : (
         <div className="space-y-6">
+          {reconstructions.length > 0 && (
+            <ReconstructionList
+              rows={visibleReconstructions}
+              total={reconstructions.length}
+              query={query}
+              years={reconstructionYears}
+            />
+          )}
+
           {BUCKETS.map((b) => {
+            // Reconstructions have their own filtered section above.
+            if (b.id === 'reconstruction') return null
             const list = byBucket.get(b.id) ?? []
             if (list.length === 0) return null
 

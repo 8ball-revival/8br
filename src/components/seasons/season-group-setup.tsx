@@ -16,10 +16,21 @@ import {
   searchSeasonPlayersAction, addSeasonEntrantAction, removeSeasonEntrantAction,
 } from '@/lib/seasons/actions'
 import { EntrantQuickAdd } from '@/components/competition/entrant-quick-add'
+import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
+import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 
 /** Private Group Setup board (admin only): rating snake-seeded generation, then drag/dropdown moves,
  *  add/remove/rename/reset, and the Group Stage Live publish once valid. */
-export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: GroupSetupView }) {
+export function SeasonGroupSetup({
+  seasonId,
+  view,
+  autoAssign,
+}: {
+  seasonId: number
+  view: GroupSetupView
+  /** Decided on the server; absent for a Season with no archive template. */
+  autoAssign?: AutoAssignAvailability
+}) {
   const router = useRouter()
   const confirm = useConfirm()
   const [pending, start] = useTransition()
@@ -44,6 +55,15 @@ export function SeasonGroupSetup({ seasonId, view }: { seasonId: number; view: G
         <Button size="sm" disabled={pending} onClick={() => run(() => generateSeasonGroupsAction(seasonId, numGroups))}>
           <Shuffle className="size-4" /> {hasGroups ? 'Regenerate Groups' : 'Generate Groups'}
         </Button>
+
+        {/*
+          Auto Assign sits beside Generate Groups because it is the archive's answer to the same
+          question: which entrants go in which group. Generate invents an arrangement; this one
+          restores the recorded arrangement, and only for entrants already added by hand.
+        */}
+        {autoAssign?.show && (
+          <AutoAssignPanel seasonId={seasonId} mode="groups" disabledReason={autoAssign.disabledReason} />
+        )}
         <div className="ml-auto">
           {/* Registration and group building are one screen: a missing player is added here rather
               than by stepping back into a separate registration phase. */}

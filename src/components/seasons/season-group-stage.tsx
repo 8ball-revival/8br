@@ -10,17 +10,45 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { StageGroup, StageMatch, StageStandingRow } from '@/lib/seasons/views'
 import { saveSeasonGroupAction, closeSeasonGroupsAction, reopenSeasonGroupsAction } from '@/lib/seasons/actions'
+import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
+import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 
 type Draft = Record<number, { home: string; away: string }>
 
 /** Live group stage — the same head-to-head cross-table members see, with admin-editable result
  *  fields and one Save Group per group (batched, one transaction). Matches the tournament group design. */
-export function SeasonGroupStage({ seasonId, groups, groupStageGames, canManage, canClose, canReopen }: { seasonId: number; groups: StageGroup[]; groupStageGames: number; canManage: boolean; canClose: boolean; canReopen: boolean }) {
+export function SeasonGroupStage({
+  seasonId, groups, groupStageGames, canManage, canClose, canReopen, autoAssign,
+}: {
+  seasonId: number
+  groups: StageGroup[]
+  groupStageGames: number
+  canManage: boolean
+  canClose: boolean
+  canReopen: boolean
+  /** Decided on the server; absent for a Season with no archive template. */
+  autoAssign?: AutoAssignAvailability
+}) {
   const router = useRouter()
   const confirm = useConfirm()
 
   return (
     <div className="mt-8 space-y-6">
+      {/*
+        Auto Assign for scores sits above the tables it fills, where the person entering results is
+        already looking. It is drawn only while the group stage can still be edited.
+      */}
+      {canManage && autoAssign?.show && (
+        <div className="flex flex-wrap items-center gap-2">
+          <AutoAssignPanel seasonId={seasonId} mode="scores" disabledReason={autoAssign.disabledReason} />
+          {!autoAssign.disabledReason && (
+            <span className="text-xs text-muted-foreground">
+              Fills verified archived results for entrants already assigned to groups. Scores you
+              entered by hand are never overwritten.
+            </span>
+          )}
+        </div>
+      )}
       {canManage && <Legend />}
       {groups.map((g) => <GroupTable key={`${g.id}:${g.matches.map((m) => m.version).join(',')}`} seasonId={seasonId} group={g} groupStageGames={groupStageGames} canManage={canManage} />)}
       {!canManage && <MemberLegend />}

@@ -20,6 +20,8 @@ import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
+import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
+import { autoAssignAvailability } from '@/lib/archive/auto-assign'
 import { getCurrentUser } from '@/lib/account/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -27,7 +29,19 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string }> }): Promise<Metadata> {
   const { seasonId } = await params
-  const view = await getSeasonView(Number(seasonId))
+  const id = Number(seasonId)
+
+  /*
+   * The metadata is guarded before the page is.
+   *
+   * `generateMetadata` runs even when the page body calls notFound(), so guarding only the body
+   * still puts a private Season's real title in the browser tab and in the head of the not-found
+   * response. Same rule, same function, applied here first.
+   */
+  const access = await seasonAccess(id)
+  if (!access.allowed) return HIDDEN_SEASON_METADATA
+
+  const view = await getSeasonView(id)
   return view ? { title: view.title, description: view.description ?? '8BR Season Championship.' } : { title: 'Season' }
 }
 
@@ -69,23 +83,11 @@ export default async function SeasonPage({
   /*
    * A private Season is private at its own URL too.
    *
-   * The listings already filter on `publiclyVisible`, but this page did not — because until the
-   * historical reconstruction shells arrived there was nothing here anyone could reach by guessing.
-   * With 88 of them, an id away from a Season the owner has not published is not private enough.
-   *
-   * Scoped to ARCHIVE-GENERATED shells deliberately, by `archiveTemplateKey`.
-   *
-   * The owner's own in-progress reconstructions (Seasons 3732 and 4106) are also private and have
-   * always been reachable at their direct URL. Hiding those as well might be an improvement, but it
-   * is a behaviour change to their work that nobody asked for — so this closes exactly the hole the
-   * 88 generated shells opened and nothing else. Staff still see everything, which is the point:
-   * the shells are Creator work in progress.
+   * The listings already filter on `publiclyVisible`, but this route did not — so any private
+   * Season could be opened by guessing its id. One shared rule now decides it, for every private
+   * Season and not merely the generated shells: see lib/seasons/visibility.
    */
-  const hidden = await prisma.season.findUnique({
-    where: { id: view.id },
-    select: { publiclyVisible: true, archiveTemplateKey: true },
-  })
-  if (hidden?.archiveTemplateKey && !hidden.publiclyVisible && !canManageComp) notFound()
+  if (!(await seasonAccess(view.id)).allowed) notFound()
   const user = await getCurrentUser()
   const registered = user
     ? !!(await prisma.seasonEntrant.findFirst({ where: { seasonId: view.id, status: { not: 'WITHDRAWN' }, userId: Number(user.id) }, select: { id: true } }))
@@ -100,6 +102,19 @@ export default async function SeasonPage({
     hasPublicPlayoffBracket(view.id, state),
     getSeasonGlance(view.id, view.format.groupStageGames),
   ])
+
+  /*
+   * Auto Assign availability, decided once, on the server.
+   *
+   * Both boards receive it rather than working it out themselves — otherwise the entrant board and
+   * the score board would each carry a copy of the phase and blocking rules, and they would drift.
+   */
+  const [entrantAuto, scoreAuto] = canManageComp
+    ? await Promise.all([
+        autoAssignAvailability(view.id, 'entrants'),
+        autoAssignAvailability(view.id, 'scores'),
+      ])
+    : [{ show: false, disabledReason: null }, { show: false, disabledReason: null }]
 
   // The masthead's "View Playoffs" switches the same toggle the control bar drives, so it is built
   // from the URL already on screen rather than a second source of truth.
@@ -168,6 +183,7 @@ export default async function SeasonPage({
                 seasonId={view.id}
                 groups={groups}
                 groupStageGames={view.format.groupStageGames}
+                autoAssign={scoreAuto}
                 canManage={canManage && state === 'GROUP_STAGE_LIVE'}
                 canClose={canManageComp && state === 'GROUP_STAGE_LIVE'}
                 canReopen={canManageComp && state === 'GROUPS_CLOSED'}
@@ -208,6 +224,7 @@ export default async function SeasonPage({
           canManageComp={canManageComp}
           isLoggedIn={!!user}
           registered={registered}
+          entrantAuto={entrantAuto}
         />
       </div>
     </div>
@@ -273,7 +290,7 @@ async function PlayoffsView({
  * here — they render above instead, so an admin edits in place rather than in a duplicate table.
  */
 async function AdminSurfaces({
-  view, state, canManage, canManageComp, isLoggedIn, registered,
+  view, state, canManage, canManageComp, isLoggedIn, registered, entrantAuto,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>
   state: string
@@ -281,6 +298,8 @@ async function AdminSurfaces({
   canManageComp: boolean
   isLoggedIn: boolean
   registered: boolean
+  /** Decided by the page, not here: one source for whether Auto Assign belongs on this screen. */
+  entrantAuto?: { show: boolean; disabledReason: string | null }
 }) {
   if (state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_SCHEDULED') {
     return (
@@ -298,7 +317,7 @@ async function AdminSurfaces({
 
   if (state === 'REGISTRATION_CLOSED' || state === 'GROUP_SETUP') {
     return canManageComp
-      ? <SeasonGroupSetup seasonId={view.id} view={await getSeasonGroupSetup(view.id)} />
+      ? <SeasonGroupSetup seasonId={view.id} view={await getSeasonGroupSetup(view.id)} autoAssign={entrantAuto} />
       : <Info>Registration is closed with {view.entrantsCount} entrants. Groups are being set up — they appear above as soon as they are published.</Info>
   }
 
