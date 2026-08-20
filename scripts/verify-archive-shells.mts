@@ -153,9 +153,14 @@ section('88 private shells exist and are empty')
     where: { season: { archiveTemplateKey: { not: null } } },
     select: { id: true, status: true, season: { select: { archiveTemplateKey: true } } },
   })
-  check('no shell has an ACTIVE entrant the import created',
-    ownerAdded.every((e) => e.status === 'WITHDRAWN'),
-    ownerAdded.filter((e) => e.status !== 'WITHDRAWN').map((e) => e.season.archiveTemplateKey).join(', '))
+  /*
+   * Entrants on a shell are the OWNER'S work, and the point of the whole feature.
+   *
+   * This asserted that shells stayed empty, which was wrong-headed twice over: it cannot tell an
+   * import-created entrant from one the owner added, and the owner adding them is the reconstruction
+   * workflow working. What the import did is settled at import time by the before/after counts, which
+   * it checks itself and fails loudly on. Here the count is reported, not policed.
+   */
   if (ownerAdded.length > 0) {
     console.log(`  (${ownerAdded.length} entrant row(s) added by hand since the import: `
       + `${ownerAdded.map((e) => `${e.season.archiveTemplateKey}/${e.status}`).join(', ')})`)
@@ -199,9 +204,9 @@ section('Nothing else in the database moved')
    */
   const entrantCount = await prisma.seasonEntrant.count()
   check('no entrant was removed', entrantCount >= 201, String(entrantCount))
-  check('...and none was added to a real Season',
-    (await prisma.seasonEntrant.count({ where: { season: { archiveTemplateKey: null } } })) === 201,
-    String(await prisma.seasonEntrant.count({ where: { season: { archiveTemplateKey: null } } })))
+  // Real Seasons gain entrants as the owner reconstructs them. Only a LOSS would be a regression.
+  const realEntrants = await prisma.seasonEntrant.count({ where: { season: { archiveTemplateKey: null } } })
+  check('...and none was removed from a real Season', realEntrants >= 201, String(realEntrants))
   check('616 matches', (await prisma.seasonMatch.count()) === 616, String(await prisma.seasonMatch.count()))
   check('200 standings', (await prisma.seasonStanding.count()) === 200)
   check('140 playoff matches', (await prisma.seasonPlayoffMatch.count()) === 140)
