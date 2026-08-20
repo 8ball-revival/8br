@@ -38,9 +38,19 @@ export interface VoteResult {
   viewerVote?: VoteValue
 }
 
-/** Reject anything that is not a direction, before it reaches the database. */
+/**
+ * Reject anything that is not a direction, before it reaches the database.
+ *
+ * The coercion trap: `Number(null)` and `Number([])` are both 0, so a body with a null or an empty
+ * array where the vote should be would read as "remove my vote" rather than as the malformed request
+ * it is. Only a real number, or a string that is entirely a number, is considered at all.
+ */
 export function parseVoteValue(input: unknown): VoteValue | null {
-  const n = typeof input === 'number' ? input : Number(input)
+  const n = typeof input === 'number'
+    ? input
+    : typeof input === 'string' && input.trim() !== '' && Number.isFinite(Number(input))
+      ? Number(input)
+      : NaN
   return n === 1 || n === 0 || n === -1 ? (n as VoteValue) : null
 }
 
