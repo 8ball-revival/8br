@@ -151,6 +151,53 @@ export async function renameSeasonGroup(actor: Actor, seasonId: number, groupId:
   return { ok: true }
 }
 
+/**
+ * Change a group's LETTER.
+ *
+ * ── Why this is not gated on the setup phase ─────────────────────────────────────────────────────
+ * Renaming a group moves no player and changes no result: matches, standings and placements all
+ * reference the group by id, so the letter is a label and nothing else. The archive's own letters
+ * are sometimes odd — 2006 Season 2 runs A-J then W, X, Y, Z — and the wish to tidy that up arrives
+ * long after the groups were closed. Refusing then would mean the label could only ever be fixed
+ * during a window that has already passed.
+ *
+ * ── What IS enforced ─────────────────────────────────────────────────────────────────────────────
+ * Uniqueness within the Season. Two groups sharing a letter makes every table ambiguous and every
+ * conversation about "group C" a guess.
+ */
+export async function recodeSeasonGroup(
+  actor: Actor,
+  seasonId: number,
+  groupId: number,
+  code: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const clean = code.trim().toUpperCase().slice(0, 4)
+  if (!clean) return { ok: false, error: 'A group needs a name.' }
+
+  const group = await prisma.seasonGroup.findUnique({
+    where: { id: groupId }, select: { id: true, code: true, seasonId: true },
+  })
+  if (!group || group.seasonId !== seasonId) return { ok: false, error: 'That group is not in this Season.' }
+  if (group.code === clean) return { ok: true }
+
+  const clash = await prisma.seasonGroup.findFirst({
+    where: { seasonId, code: clean, id: { not: groupId } }, select: { id: true },
+  })
+  if (clash) return { ok: false, error: `Group ${clean} already exists in this Season.` }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.seasonGroup.update({ where: { id: groupId }, data: { code: clean } })
+    await recordAudit(actor, {
+      action: 'season.groups.recode',
+      entity: 'Season',
+      entityId: seasonId,
+      oldValue: { groupId, code: group.code },
+      newValue: { groupId, code: clean },
+    }, tx)
+  })
+  return { ok: true }
+}
+
 /** Clear every assignment (all entrants back to Unassigned); groups remain. */
 export async function resetSeasonGroups(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
   const phase = await assertGroupSetupPhase(seasonId)

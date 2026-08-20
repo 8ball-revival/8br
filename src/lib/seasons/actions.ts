@@ -138,6 +138,12 @@ export async function renameSeasonGroupAction(seasonId: number, groupId: number,
   if (!r.ok) return { error: r.error }
   revalidateSeason(seasonId); return { ok: true }
 }
+export async function recodeSeasonGroupAction(seasonId: number, groupId: number, code: string): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const r = await grp.recodeSeasonGroup(actor, seasonId, groupId, code)
+  if (!r.ok) return { error: r.error }
+  revalidateSeason(seasonId); return { ok: true, message: 'Group renamed.' }
+}
 export async function resetSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await grp.resetSeasonGroups(actor, seasonId)

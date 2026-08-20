@@ -197,6 +197,8 @@ export default async function SeasonPage({
                 groupStageGames={view.format.groupStageGames}
                 qualified={qualified}
                 state={state}
+                seasonId={view.id}
+                canManage={canManageComp}
               />
             )
           ) : (
