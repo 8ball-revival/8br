@@ -18,6 +18,7 @@ import { transitionTournamentState, requireTournamentState, bracketMatchesEntran
 import { isGroupsPlayoffs } from './match-format'
 import { recordAudit } from './audit'
 import { getCurrentUser } from '@/lib/account/auth'
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
 
 export interface ActionResult {
   ok?: boolean
@@ -30,7 +31,10 @@ export interface ActionResult {
 /** Revalidate the tournament page + every snapshot-derived surface after a tournament edit. */
 function revalidateTournament(number?: number | null) {
   if (number != null) revalidatePath(`/cups/${number}`)
-  for (const p of ['/cups', '/', '/rankings', '/hall-of-fame', '/players', '/records', '/seasons']) revalidatePath(p)
+  for (const p of ['/cups', '/hall-of-fame', '/players', '/records', '/seasons']) revalidatePath(p)
+  // Cups feed the ladder too, so the cached AGGREGATE has to go. Listing '/rankings' here only
+  // re-rendered the page, which then read the same stale rows straight back.
+  invalidateRankings()
 }
 
 async function tournamentNumberOf(tournamentId: number): Promise<number | null> {

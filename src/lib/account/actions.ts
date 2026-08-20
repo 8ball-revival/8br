@@ -27,6 +27,7 @@ import { safeReturnTo } from './return-to'
 import { getActiveSeason } from '@/lib/competition/queries'
 import { createPublicRegistration, withdrawPublicRegistration } from '@/lib/competition/service'
 import { getProfileByUserId, changeCueverseId, createOrLinkAccountProfile } from '@/lib/players/service'
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
 
 export interface FormResult {
   ok?: boolean
@@ -388,7 +389,8 @@ export async function updateMyProfileAction(_prev: FormResult, formData: FormDat
     timeZone: timeZone || null,
   })
   // Public identity appears across the site — refresh derived surfaces.
-  for (const p of ['/account', '/', '/rankings', '/players', '/cups', '/seasons', '/groups', '/playoffs']) revalidatePath(p)
+  for (const p of ['/account', '/players', '/cups', '/seasons', '/groups', '/playoffs']) revalidatePath(p)
+  invalidateRankings()
   return { ok: true }
 }
 
@@ -441,7 +443,8 @@ export async function changeMyCueverseId(_prev: FormResult, formData: FormData):
   if (!res.ok) return { error: res.error }
 
   // The display identity appears across the whole site — refresh the derived surfaces.
-  for (const p of ['/account', '/', '/rankings', '/players', '/cups', '/seasons', '/groups', '/playoffs', '/search', '/register']) revalidatePath(p)
+  for (const p of ['/account', '/players', '/cups', '/seasons', '/groups', '/playoffs', '/search', '/register']) revalidatePath(p)
+  invalidateRankings()
   return { ok: true }
 }
 

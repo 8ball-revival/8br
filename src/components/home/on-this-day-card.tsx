@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { CalendarClock, ChevronLeft, ChevronRight, Crown, Library } from 'lucide-react'
 
 import { formatDate } from '@/lib/format'
 import type { OnThisDayEvent } from '@/lib/stats/on-this-day'
 import type { Almanac } from '@/lib/stats/almanac'
+import { FitText } from '@/components/ui/fit-text'
 
 /**
  * "On This Day" — what happened on today's date in earlier years.
@@ -118,20 +118,18 @@ export function OnThisDayCard({ almanac }: { almanac: Almanac }) {
             >
               {almanac.fact.kind === 'match' ? almanac.fact.homeInitials : <Crown className="size-3.5" />}
             </span>
-            <span className="min-w-0 flex-1">
+            <span className="flex min-w-0 flex-1 flex-col">
               {/* The YEAR only. There is no stored day for imported history, so none is claimed. */}
               <span className="block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
                 {almanac.fact.year ?? almanac.fact.context}
               </span>
-              <span className="mt-0.5 block line-clamp-3 text-xs leading-relaxed text-foreground/90">
-                {almanac.fact.href ? (
-                  <Link
-                    href={almanac.fact.href}
-                    className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
-                  >
-                    {almanac.fact.description}
-                  </Link>
-                ) : almanac.fact.description}
+              {/* The card's height is fixed by the tiles beside it, so the type follows the sentence. */}
+              <span className="mt-0.5 min-h-0 flex-1">
+                <FitText
+                  text={almanac.fact.description}
+                  href={almanac.fact.href}
+                  className="text-foreground/90"
+                />
               </span>
             </span>
           </div>
@@ -150,19 +148,16 @@ export function OnThisDayCard({ almanac }: { almanac: Almanac }) {
               {event.kind === 'championship' ? <Crown className="size-3.5" /> : event.homeInitials}
             </span>
 
-            <span className="min-w-0 flex-1">
+            <span className="flex min-w-0 flex-1 flex-col">
               <span className="block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
                 {formatDate(event.date)}
               </span>
-              <span className="mt-0.5 block line-clamp-3 text-xs leading-relaxed text-foreground/90">
-                {event.href ? (
-                  <Link
-                    href={event.href}
-                    className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
-                  >
-                    {event.description}
-                  </Link>
-                ) : event.description}
+              <span className="mt-0.5 min-h-0 flex-1">
+                <FitText
+                  text={event.description}
+                  href={event.href}
+                  className="text-foreground/90"
+                />
               </span>
             </span>
           </div>

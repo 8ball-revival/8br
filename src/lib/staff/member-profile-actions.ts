@@ -9,6 +9,7 @@ import { targetTier } from '@/lib/staff/password-reset'
 import { recordAudit } from '@/lib/competition/audit'
 import { validateEmail, validatePreferredName, validateCueverseId, validateDiscord, validateTimeZone } from '@/lib/account/validation'
 import { propagateIdentityChange, identityChanged } from '@/lib/players/identity-propagation'
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
 
 export interface ProfilePatch {
   preferredName?: string
@@ -134,7 +135,8 @@ export async function adminUpdateMemberProfileAction(userId: number, patch: Prof
   revalidatePath('/staff/members')
   if (propagated > 0) {
     // Anything that displays a player's name is now stale.
-    for (const path of ['/', '/seasons', '/tournaments', '/rankings', '/players']) revalidatePath(path, 'layout')
+    for (const path of ['/', '/seasons', '/tournaments', '/players']) revalidatePath(path, 'layout')
+    invalidateRankings()
   }
   return { ok: true, propagated }
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireCapability, requireStaffActor } from './staff-auth'
 import * as svc from './service'
 import type { RegistrationStatus, LiveMatchStatus } from '@prisma/client'
+import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
 
 export interface ActionResult {
   ok?: boolean
@@ -16,7 +17,8 @@ export interface ActionResult {
  *  those derived views recompute on their next read (the ranking engine itself is
  *  a pure function of the underlying data — nothing is cached server-side). */
 function revalidateAll() {
-  for (const p of ['/', '/groups', '/playoffs', '/seasons', '/account', '/register', '/rankings', '/hall-of-fame', '/players', '/records']) revalidatePath(p)
+  for (const p of ['/groups', '/playoffs', '/seasons', '/account', '/register', '/hall-of-fame', '/players', '/records']) revalidatePath(p)
+  invalidateRankings()
   for (const p of [
     '/staff',
     '/staff/tournament',

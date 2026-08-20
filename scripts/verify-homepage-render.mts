@@ -379,7 +379,16 @@ const STATS = {
   check('the showing indicator is marked', html.includes('aria-current="true"'))
   check('the event region announces changes politely', html.includes('aria-live="polite"'))
   check('the card has a fixed minimum height so it cannot jump', html.includes('min-h-['))
-  check('the description is clamped rather than allowed to grow the card', html.includes('line-clamp-3'))
+  /*
+   * The description is FITTED to the box now, not clamped to three lines at one size.
+   *
+   * What matters is unchanged and is what this asserts: the text lives in an overflow-hidden frame,
+   * so however long the entry is it cannot make the card taller than the tiles beside it. The size
+   * itself is chosen by measurement in the browser, which server-rendered markup cannot show — that
+   * is verified for real in verification/home/archive-fit.mjs.
+   */
+  check('the description sits in a clipped frame so it cannot grow the card',
+    html.includes('data-fit-box') && html.includes('overflow-hidden'))
   check('controls have visible focus states', html.includes('focus-visible:ring-brand'))
   check('the history tile spans both columns on a phone', html.includes('col-span-2'))
 }
