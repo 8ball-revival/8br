@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { Wide } from '@/components/primitives'
-import { newestSeasonId, getSeasonBrowseData } from '@/lib/seasons/browse'
+import { newestSeasonId, getSeasonBrowseData, DEFAULT_COMPETITION_SLUG } from '@/lib/seasons/browse'
 import { pageMetadata } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +38,9 @@ export default async function SeasonsPage({
 }) {
   const sp = await searchParams
   const one = (k: string) => { const v = sp[k]; return typeof v === 'string' ? v : Array.isArray(v) ? v[0] : undefined }
-  const competition = one('competition') ?? null
+  // Visiting Seasons with no Competition in the URL opens 8BRCAM rather than every Competition at
+  // once. An explicit ?competition= still wins, so a shared link keeps its scope.
+  const competition = one('competition') ?? DEFAULT_COMPETITION_SLUG
 
   const newest = await newestSeasonId(competition)
   if (newest != null) {

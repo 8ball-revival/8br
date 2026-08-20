@@ -103,6 +103,16 @@ export async function getSeasonBrowseData(competitionSlug?: string | null): Prom
  * The Season to land on when no specific one is asked for: newest year, then highest number.
  * Returns null only when the filter matches no Season at all (including an empty registry).
  */
+/**
+ * The Competition the Seasons page opens on when the URL does not name one.
+ *
+ * 8BRCAM is the registry's own competition and the one nearly every visit is about. Without a
+ * default the page opened on whatever Season sorted newest across EVERY Competition, which now means
+ * a record from another Competition entirely — a different history from the one the reader asked for. Naming the
+ * default here keeps the page and the picker agreeing about what "no filter" means.
+ */
+export const DEFAULT_COMPETITION_SLUG = '8brcam'
+
 export async function newestSeasonId(competitionSlug?: string | null): Promise<number | null> {
   const s = await prisma.season.findFirst({
     where: competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {},

@@ -144,7 +144,9 @@ section('88 private shells exist and are empty')
    * than a museum-piece emptiness the owner is expected to end. Anything they have added since is
    * reported, never deleted.
    */
-  for (const k of ['matches', 'standings', 'playoffMatches', 'ratingLedger'] as const) {
+  // Matches and standings appear as the owner enters group results; playoff rows and ledger entries
+  // only ever come from completing a Season, which no shell has done.
+  for (const k of ['playoffMatches', 'ratingLedger'] as const) {
     check(`no shell has any ${k}`, shells.every((s) => s._count[k] === 0),
       String(shells.filter((s) => s._count[k] > 0).length))
   }
@@ -207,8 +209,11 @@ section('Nothing else in the database moved')
   // Real Seasons gain entrants as the owner reconstructs them. Only a LOSS would be a regression.
   const realEntrants = await prisma.seasonEntrant.count({ where: { season: { archiveTemplateKey: null } } })
   check('...and none was removed from a real Season', realEntrants >= 201, String(realEntrants))
-  check('616 matches', (await prisma.seasonMatch.count()) === 616, String(await prisma.seasonMatch.count()))
-  check('200 standings', (await prisma.seasonStanding.count()) === 200)
+  // Both grow as the reconstruction proceeds. A drop would be the regression.
+  const matches = await prisma.seasonMatch.count()
+  const standings = await prisma.seasonStanding.count()
+  check('no match was lost', matches >= 616, String(matches))
+  check('no standing was lost', standings >= 200, String(standings))
   check('140 playoff matches', (await prisma.seasonPlayoffMatch.count()) === 140)
   check('1168 ledger rows', (await prisma.ratingLedger.count()) === 1168)
 

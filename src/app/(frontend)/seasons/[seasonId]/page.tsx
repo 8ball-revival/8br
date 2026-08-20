@@ -24,6 +24,7 @@ import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
 import { autoAssignAvailability } from '@/lib/archive/auto-assign'
 import { getCurrentUser } from '@/lib/account/auth'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_COMPETITION_SLUG } from '@/lib/seasons/browse'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,7 +75,9 @@ export default async function SeasonPage({
 
   // Groups is the default whenever no view is supplied, or an unrecognised one is.
   const activeView: 'groups' | 'playoffs' = sp.view === 'playoffs' ? 'playoffs' : 'groups'
-  const competition = sp.competition ?? null
+  // Same default as the landing page, so the picker and the prev/next arrows stay inside 8BRCAM
+  // unless the URL says otherwise.
+  const competition = sp.competition ?? DEFAULT_COMPETITION_SLUG
 
   const access = await resolveStaffAccess()
   const canManage = access.status === 'ok' && access.actor.can('manage_registrations')
