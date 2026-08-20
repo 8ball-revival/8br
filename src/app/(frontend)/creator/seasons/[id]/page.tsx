@@ -10,6 +10,9 @@ import { DraftForm } from '@/components/creator/draft-form'
 import { listAllCompetitions } from '@/lib/competitions/service'
 import { requireCreator } from '@/lib/creator/access'
 import { completionReview } from '@/lib/competition/correction'
+import { ArchiveTemplateStatus } from '@/components/archive/template-status'
+import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
+import { templateStatus } from '@/lib/archive/manifest'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Season · Creator', robots: { index: false } }
@@ -39,6 +42,7 @@ export default async function CreatorSeasonPage({ params }: { params: Promise<{ 
       lifecycleState: true, subtitle: true, competitionYear: true, competitionSeriesId: true,
       number: true, division: true, description: true, groupStageGames: true,
       earlyRaceTo: true, semifinalRaceTo: true, finalRaceTo: true, entrantsCount: true,
+      archiveTemplateKey: true, reconstruction: true,
     },
   })
   const state = String(row?.lifecycleState ?? '')
@@ -48,6 +52,16 @@ export default async function CreatorSeasonPage({ params }: { params: Promise<{ 
   // the reopen workflow, which is a deliberate act with its own confirmation — not a form that saves
   // as you type.
   const competitions = finished ? [] : await listAllCompetitions()
+
+  /*
+   * The archive panel appears only for a Season built from the archive.
+   *
+   * `templateStatus` reads the manifest file, not the database — it describes what the SOURCE holds,
+   * which is a different question from what has been reconstructed so far.
+   */
+  const archive = row?.archiveTemplateKey ? templateStatus(row.archiveTemplateKey) : null
+  // Auto Assign belongs to the phase where its work is still possible.
+  const entrantPhase = ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP'].includes(state)
 
   /**
    * Where the work is right now.
@@ -100,6 +114,27 @@ export default async function CreatorSeasonPage({ params }: { params: Promise<{ 
             continueHref={row.entrantsCount === 0 ? `/seasons/${id}` : `/seasons/${id}?view=groups`}
             continueLabel={row.entrantsCount === 0 ? 'Save and Continue to Entrants' : 'Save and Continue'}
           />
+        </div>
+      )}
+
+      {archive && (
+        <div className="mb-4 flex flex-col gap-3">
+          <ArchiveTemplateStatus status={archive} />
+          <div className="flex flex-wrap items-center gap-2">
+            <AutoAssignPanel
+              seasonId={id}
+              mode="groups"
+              disabledReason={
+                archive.sharedStage ? archive.sharedStageMessage
+                : !entrantPhase ? 'Group Auto Assign is available while entrants and groups are being set up.'
+                : archive.groupAssignments === 'missing' ? 'No archived group assignments for this Season.'
+                : null
+              }
+            />
+            <span className="text-xs text-muted-foreground">
+              Add the Players as entrants first — Auto Assign only places entrants you have already chosen.
+            </span>
+          </div>
         </div>
       )}
 

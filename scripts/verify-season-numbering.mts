@@ -257,11 +257,26 @@ try {
     const composite = await prisma.$queryRaw<{ indexdef: string }[]>`
       SELECT indexdef FROM pg_indexes
        WHERE schemaname='public' AND tablename='season' AND indexdef LIKE '%UNIQUE%'`
+    /*
+     * The composite now carries the DIVISION as well.
+     *
+     * The 8BRCAM archive ran Division A and Division B of one Season under a single number, so the
+     * three-column form rejected the second of every historical pair. The division is folded with
+     * COALESCE(division, '') rather than added plainly: Postgres treats two NULLs as distinct, so a
+     * bare four-column index would have let two UNDIVIDED Seasons share a number — which the old
+     * constraint forbade and this one still must.
+     */
     check('a composite unique on Competition/year/number exists',
       composite.some((i) =>
         /"competitionSeriesId"/.test(i.indexdef) &&
         /"competitionYear"/.test(i.indexdef) &&
-        /, number\)$/.test(i.indexdef)),
+        /number/.test(i.indexdef)),
+      composite.map((i) => i.indexdef).join(' | '))
+    check('...and it includes the division, so a divisional pair can share a number',
+      composite.some((i) => /number.*division/i.test(i.indexdef)),
+      composite.map((i) => i.indexdef).join(' | '))
+    check('...folding a NULL division, so two undivided Seasons still cannot',
+      composite.some((i) => /COALESCE\(division/i.test(i.indexdef)),
       composite.map((i) => i.indexdef).join(' | '))
 
     const cons = await prisma.$queryRaw<{ conname: string; def: string }[]>`

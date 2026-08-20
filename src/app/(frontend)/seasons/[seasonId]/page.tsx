@@ -65,6 +65,27 @@ export default async function SeasonPage({
   const access = await resolveStaffAccess()
   const canManage = access.status === 'ok' && access.actor.can('manage_registrations')
   const canManageComp = access.status === 'ok' && access.actor.can('manage_competitions')
+
+  /*
+   * A private Season is private at its own URL too.
+   *
+   * The listings already filter on `publiclyVisible`, but this page did not — because until the
+   * historical reconstruction shells arrived there was nothing here anyone could reach by guessing.
+   * With 88 of them, an id away from a Season the owner has not published is not private enough.
+   *
+   * Scoped to ARCHIVE-GENERATED shells deliberately, by `archiveTemplateKey`.
+   *
+   * The owner's own in-progress reconstructions (Seasons 3732 and 4106) are also private and have
+   * always been reachable at their direct URL. Hiding those as well might be an improvement, but it
+   * is a behaviour change to their work that nobody asked for — so this closes exactly the hole the
+   * 88 generated shells opened and nothing else. Staff still see everything, which is the point:
+   * the shells are Creator work in progress.
+   */
+  const hidden = await prisma.season.findUnique({
+    where: { id: view.id },
+    select: { publiclyVisible: true, archiveTemplateKey: true },
+  })
+  if (hidden?.archiveTemplateKey && !hidden.publiclyVisible && !canManageComp) notFound()
   const user = await getCurrentUser()
   const registered = user
     ? !!(await prisma.seasonEntrant.findFirst({ where: { seasonId: view.id, status: { not: 'WITHDRAWN' }, userId: Number(user.id) }, select: { id: true } }))
