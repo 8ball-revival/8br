@@ -17,12 +17,14 @@ import {
   setSeasonPlayoffTypeAction, generateSeasonBracketAction,
   startSeasonPlayoffsAction, closeSeasonAction,
 } from '@/lib/seasons/actions'
+import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
+import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 
 
 /** Playoff setup (locked seeding + selection + generate/start) OR the live public bracket with inline
  *  admin score entry. */
 export function SeasonPlayoffs({
-  seasonId, phase, seeding, rounds, doubleElim, hasDraft, canManage, canClose, disclaimer,
+  seasonId, phase, seeding, rounds, doubleElim, hasDraft, canManage, canClose, disclaimer, autoPlayoffs,
 }: {
   seasonId: number
   phase: 'setup' | 'live'
@@ -34,6 +36,8 @@ export function SeasonPlayoffs({
   canClose: boolean
   /** Free-text note shown under the bracket; null for the vast majority of seasons. */
   disclaimer: string | null
+  /** Decided on the server; absent for a Season with no archive template. */
+  autoPlayoffs?: AutoAssignAvailability
 }) {
   const router = useRouter()
   const confirm = useConfirm()
@@ -96,6 +100,15 @@ export function SeasonPlayoffs({
             one that should look like the consequential act.
           */}
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {/*
+              Build Playoff Bracket sits with the other bracket controls, before Regenerate: it is
+              the archive's answer to the same question, and the one to reach for first on a Season
+              being reconstructed. It stops at playoff setup — Start Playoffs stays a separate,
+              deliberate act.
+            */}
+            {autoPlayoffs?.show && (
+              <AutoAssignPanel seasonId={seasonId} mode="playoffs" disabledReason={autoPlayoffs.disabledReason} />
+            )}
             <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => generateSeasonBracketAction(seasonId))}>{hasDraft ? 'Regenerate Bracket' : 'Generate Bracket'}</Button>
             <Button
               size="sm"

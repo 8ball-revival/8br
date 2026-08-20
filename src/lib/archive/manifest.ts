@@ -50,6 +50,39 @@ export interface ManifestStanding {
   advanced: boolean | null
 }
 
+export interface ManifestPlayoffParticipant {
+  sourceId: string
+  rawHandle: string
+  normalizedHandle: string
+  /** The archive's seed. Only meaningful when placement is 'exact'. */
+  seed: number | null
+  /** First round this player appears in. Above 1 means they started later. */
+  firstRound: number
+  bye: boolean
+  matchNo: number | null
+  side: 'a' | 'b' | null
+}
+
+export interface ManifestPlayoff {
+  /**
+   * How much the archive actually knows.
+   *
+   *  'exact'             — full round-by-round topology: size, slots, byes, later-round starts.
+   *  'participants-only' — who took part, and nothing reliable about where. The archive's seeds for
+   *                        these Seasons are its own occurrence-count heuristic, not a recorded
+   *                        order, so they are never used as placement.
+   *  'none'              — no playoff record.
+   */
+  placement: 'exact' | 'participants-only' | 'none'
+  sourceConfidence: string | null
+  format: string | null
+  bracketSize: number | null
+  participants: ManifestPlayoffParticipant[]
+  championSourceId: string | null
+  runnerUpSourceId: string | null
+  unresolved: string[]
+}
+
 export type GroupAssignmentState = 'complete' | 'partial' | 'missing' | 'undivided-source'
 export type ExactResultState = 'complete' | 'partial' | 'missing'
 
@@ -86,6 +119,8 @@ export interface ManifestEntry {
    * because the source does not say which placement was the real one.
    */
   ambiguousPlacements: { sourceId: string; rawHandle: string; groups: string[] }[]
+  /** What the archive records about this Season's playoffs. */
+  playoff: ManifestPlayoff
   unresolved: string[]
   provenance: {
     sourceFile: string
@@ -295,6 +330,9 @@ export interface TemplateStatus {
   unresolved: string[]
   /** Identities Auto Assign will refuse to place, because the source contradicts itself. */
   ambiguousCount: number
+  playoffPlacement: 'exact' | 'participants-only' | 'none'
+  playoffParticipants: number
+  playoffBracketSize: number | null
 }
 
 export function templateStatus(templateKey: string): TemplateStatus {
@@ -305,6 +343,7 @@ export function templateStatus(templateKey: string): TemplateStatus {
       groupAssignments: 'missing', exactResults: 'missing',
       participantCount: 0, groupCount: 0, exactMatchCount: 0,
       standingsOnly: false, unresolvedCount: 0, unresolved: [], ambiguousCount: 0,
+      playoffPlacement: 'none', playoffParticipants: 0, playoffBracketSize: null,
     }
   }
   const exactMatchCount = e.matches.filter((m) => m.resultKind === 'exact').length
@@ -323,5 +362,8 @@ export function templateStatus(templateKey: string): TemplateStatus {
     unresolvedCount: e.unresolved.length,
     unresolved: e.unresolved,
     ambiguousCount: (e.ambiguousPlacements ?? []).length,
+    playoffPlacement: e.playoff?.placement ?? 'none',
+    playoffParticipants: e.playoff?.participants.length ?? 0,
+    playoffBracketSize: e.playoff?.bracketSize ?? null,
   }
 }

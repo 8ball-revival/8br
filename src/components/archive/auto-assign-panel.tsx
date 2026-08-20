@@ -8,8 +8,12 @@ import { cn } from '@/lib/utils'
 import {
   previewGroupAssignAction, applyGroupAssignAction,
   previewGroupScoresAction, applyGroupScoresAction,
+  previewAutoEntrantsAction, applyAutoEntrantsAction,
+  previewPlayoffBracketAction, applyPlayoffBracketAction,
 } from '@/lib/archive/actions'
 import type { GroupAssignPlan, ScorePlan, AutoAssignBlocked } from '@/lib/archive/auto-assign'
+import type { EntrantPlan } from '@/lib/archive/auto-entrants'
+import type { PlayoffPlan } from '@/lib/archive/auto-playoffs'
 
 /**
  * Auto Assign: the gold button, its preview, and the unresolved report.
@@ -25,7 +29,13 @@ import type { GroupAssignPlan, ScorePlan, AutoAssignBlocked } from '@/lib/archiv
  * reason. Everything that could not be resolved is listed, in plain language, and can be copied out.
  */
 
-type Mode = 'groups' | 'scores'
+/**
+ * The four archive-assisted steps, in the order they are used.
+ *
+ * All four share this panel: the same preview-then-apply shape, the same unresolved reporting, the
+ * same dialog. Only the plan they render differs.
+ */
+type Mode = 'entrants' | 'groups' | 'scores' | 'playoffs'
 
 const isBlockedPlan = (v: unknown): v is AutoAssignBlocked =>
   typeof v === 'object' && v !== null && (v as { blocked?: boolean }).blocked === true
@@ -42,7 +52,9 @@ export function AutoAssignPanel({
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [plan, setPlan] = useState<GroupAssignPlan | ScorePlan | AutoAssignBlocked | null>(null)
+  const [plan, setPlan] = useState<GroupAssignPlan | ScorePlan | EntrantPlan | PlayoffPlan | AutoAssignBlocked | null>(null)
+  /** Replacing an arranged draft bracket is a second, deliberate confirmation. */
+  const [confirmReplace, setConfirmReplace] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -62,17 +74,30 @@ export function AutoAssignPanel({
     setResult(null)
     setPlan(null)
     setOpen(true)
+    setConfirmReplace(false)
     startTransition(async () => {
-      const p = mode === 'groups'
-        ? await previewGroupAssignAction(seasonId)
-        : await previewGroupScoresAction(seasonId)
-      setPlan(p)
+      const p = mode === 'entrants' ? await previewAutoEntrantsAction(seasonId)
+        : mode === 'groups' ? await previewGroupAssignAction(seasonId)
+        : mode === 'scores' ? await previewGroupScoresAction(seasonId)
+        : await previewPlayoffBracketAction(seasonId)
+      setPlan(p as typeof plan)
     })
   }
 
   function apply() {
     startTransition(async () => {
-      if (mode === 'groups') {
+      if (mode === 'entrants') {
+        const r = await applyAutoEntrantsAction(seasonId)
+        setResult(r.ok
+          ? `Added ${r.added}. ${r.alreadyEntered} already entered, ${r.ambiguous} ambiguous, ${r.missing} with no account.`
+          : r.error ?? 'That did not apply.')
+      } else if (mode === 'playoffs') {
+        const r = await applyPlayoffBracketAction(seasonId, confirmReplace)
+        setResult(r.ok
+          ? `Selected ${r.selected}, unchecked ${r.excluded}, placed ${r.placed}. `
+            + `${r.unresolvedSlots} position(s) left for you, ${r.missing} missing, ${r.ambiguous} ambiguous.`
+          : r.error ?? 'That did not apply.')
+      } else if (mode === 'groups') {
         const r = await applyGroupAssignAction(seasonId)
         setResult(r.ok
           ? `Placed ${r.placed}. ${r.alreadyCorrect} already correct, ${r.conflicts} left as you had them, ${r.unresolved} unresolved.`
@@ -87,10 +112,18 @@ export function AutoAssignPanel({
     })
   }
 
-  const label = mode === 'groups' ? 'Auto Assign' : 'Auto Assign'
-  const helper = mode === 'groups'
-    ? 'Places entrants you have already added into the groups the archive recorded.'
-    : 'Fills verified archived group results for entrants already assigned to groups.'
+  const label = mode === 'entrants' ? 'Auto Add Entrants'
+    : mode === 'groups' ? 'Assign Groups'
+    : mode === 'scores' ? 'Fill Group Scores'
+    : 'Build Playoff Bracket'
+
+  const helper = mode === 'entrants'
+    ? 'Finds this Season\u2019s archived players among existing accounts and enters them. Creates nobody.'
+    : mode === 'groups'
+      ? 'Places entrants you have already added into the groups the archive recorded.'
+      : mode === 'scores'
+        ? 'Fills verified archived group results for entrants already assigned to groups.'
+        : 'Selects the archived playoff field and places it. Stops before Start Playoffs.'
 
   if (disabledReason) {
     return (
@@ -128,9 +161,7 @@ export function AutoAssignPanel({
           >
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
               <div className="min-w-0">
-                <h2 id="auto-assign-title" className="font-display text-lg font-bold">
-                  {mode === 'groups' ? 'Auto Assign — group placement' : 'Auto Assign — group results'}
-                </h2>
+                <h2 id="auto-assign-title" className="font-display text-lg font-bold">{label}</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">{helper}</p>
               </div>
               <button
@@ -156,9 +187,14 @@ export function AutoAssignPanel({
               )}
 
               {plan && !isBlockedPlan(plan) && !result && (
-                mode === 'groups'
-                  ? <GroupPreview plan={plan as GroupAssignPlan} />
-                  : <ScorePreview plan={plan as ScorePlan} />
+                mode === 'entrants' ? <EntrantPreview plan={plan as EntrantPlan} />
+                  : mode === 'groups' ? <GroupPreview plan={plan as GroupAssignPlan} />
+                  : mode === 'scores' ? <ScorePreview plan={plan as ScorePlan} />
+                  : <PlayoffPreview
+                      plan={plan as PlayoffPlan}
+                      confirmReplace={confirmReplace}
+                      onConfirmReplace={setConfirmReplace}
+                    />
               )}
             </div>
 
@@ -174,10 +210,20 @@ export function AutoAssignPanel({
                 <button
                   type="button"
                   onClick={apply}
-                  disabled={pending}
+                  disabled={
+                    pending
+                    // A playoff plan that is refused, or an unconfirmed draft replacement, cannot apply.
+                    || (mode === 'playoffs' && !!(plan as PlayoffPlan).refusal)
+                    || (mode === 'playoffs'
+                        && (plan as PlayoffPlan).draftPlacements > 0
+                        && !confirmReplace)
+                  }
                   className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
                 >
-                  {pending ? 'Applying…' : 'Apply Auto Assign'}
+                  {pending ? 'Applying…'
+                    : mode === 'entrants' ? 'Add Matched Entrants'
+                    : mode === 'playoffs' ? 'Build Bracket'
+                    : 'Apply Auto Assign'}
                 </button>
               )}
             </div>
@@ -333,6 +379,215 @@ function ScorePreview({ plan }: { plan: ScorePlan }) {
           </p>
         )}
       </Section>
+    </>
+  )
+}
+
+function EntrantPreview({ plan }: { plan: EntrantPlan }) {
+  const report = [
+    'ARCHIVED PLAYERS WITH NO ACCOUNT',
+    ...plan.missing.map((m) => m.rawHandle),
+    '',
+    'AMBIGUOUS',
+    ...plan.ambiguous.map((a) => `${a.rawHandle}\t${a.candidates.map((c) => c.cueverseId ?? c.displayName).join(' | ')}`),
+  ].join('\n')
+
+  return (
+    <>
+      <Tally items={[
+        { label: 'Will add', value: plan.toAdd.length, tone: 'good' },
+        { label: 'Already entered', value: plan.alreadyEntered.length },
+        { label: 'Ambiguous', value: plan.ambiguous.length, tone: 'warn' },
+        { label: 'No account', value: plan.missing.length, tone: 'warn' },
+      ]} />
+
+      <p className="mb-3 text-xs text-muted-foreground">
+        The archive lists {plan.sourceParticipants} people for this Season. Only existing accounts are
+        entered — no Player, account or alias is created, and nobody is assigned to a group.
+      </p>
+
+      {plan.toAdd.length > 0 && (
+        <Section title={`Will be added (${plan.toAdd.length})`}>
+          <Table head={['Archive handle', 'Preferred Name', 'CueVerse ID', 'Why']}>
+            {plan.toAdd.map((a) => (
+              <tr key={a.playerId} className="border-b border-border/50">
+                <Td mono>{a.rawHandle}</Td><Td>{a.displayName}</Td><Td mono>{a.cueverseId}</Td>
+                <Td muted>{a.reasonLabel}</Td>
+              </tr>
+            ))}
+          </Table>
+        </Section>
+      )}
+
+      {plan.ambiguous.length > 0 && (
+        <Section title={`More than one account could be these (${plan.ambiguous.length})`} report={report}>
+          <Table head={['Archive handle', 'Possible accounts']}>
+            {plan.ambiguous.map((a) => (
+              <tr key={a.rawHandle} className="border-b border-border/50">
+                <Td mono>{a.rawHandle}</Td>
+                <Td muted>{a.candidates.map((c) => c.cueverseId ?? c.displayName).join(', ')}</Td>
+              </tr>
+            ))}
+          </Table>
+        </Section>
+      )}
+
+      {plan.missing.length > 0 && (
+        <Section title={`No account exists for these (${plan.missing.length})`} report={report}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Listed by the exact archived handle, so they can be created by hand and this run repeated.
+          </p>
+          <Table head={['Archive handle', 'Closest existing accounts']}>
+            {plan.missing.map((m) => (
+              <tr key={m.rawHandle} className="border-b border-border/50">
+                <Td mono>{m.rawHandle}</Td>
+                <Td muted>
+                  {m.suggestions.length === 0 ? '—' : m.suggestions.map((sg) => sg.cueverseId ?? sg.displayName).join(', ')}
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        </Section>
+      )}
+
+      {plan.alreadyEntered.length > 0 && (
+        <Section title={`Already entered (${plan.alreadyEntered.length})`}>
+          <Table head={['Archive handle', 'Preferred Name', 'CueVerse ID']}>
+            {plan.alreadyEntered.map((a) => (
+              <tr key={a.rawHandle} className="border-b border-border/50">
+                <Td mono>{a.rawHandle}</Td><Td>{a.displayName}</Td><Td mono>{a.cueverseId}</Td>
+              </tr>
+            ))}
+          </Table>
+        </Section>
+      )}
+    </>
+  )
+}
+
+function PlayoffPreview({
+  plan,
+  confirmReplace,
+  onConfirmReplace,
+}: {
+  plan: PlayoffPlan
+  confirmReplace: boolean
+  onConfirmReplace: (v: boolean) => void
+}) {
+  // Not "did the archive record positions", but "can they be reproduced here" — see canPlaceExactly.
+  const exactly = plan.canPlaceExactly
+  const shortField = plan.placement === 'exact' && !plan.canPlaceExactly
+  const report = [
+    'ARCHIVED PLAYOFF PLAYERS NOT ENTERED IN THIS SEASON',
+    ...plan.missing.map((m) => m.rawHandle),
+    '',
+    'AMBIGUOUS',
+    ...plan.ambiguous.map((a) => `${a.rawHandle}\t${a.candidates.map((c) => c.cueverseId ?? c.displayName).join(' | ')}`),
+  ].join('\n')
+
+  return (
+    <>
+      <Tally items={[
+        { label: 'In the playoffs', value: plan.include.length, tone: 'good' },
+        { label: 'Will be unchecked', value: plan.exclude.length },
+        { label: 'Not entered', value: plan.missing.length, tone: 'warn' },
+        { label: 'Ambiguous', value: plan.ambiguous.length, tone: 'warn' },
+      ]} />
+
+      {plan.refusal && (
+        <p className="mb-3 flex items-start gap-2 rounded border border-[var(--loss)]/40 bg-[var(--loss)]/5 px-3 py-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--loss)]" aria-hidden />
+          {plan.refusal}
+        </p>
+      )}
+
+      <p className="mb-3 rounded border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        {exactly
+          ? `The archive records the full bracket: ${plan.bracketSize} slots, with each player's exact position.`
+          : shortField
+            ? `The archive records a ${plan.bracketSize}-slot bracket, but not everyone who played in it is `
+              + 'an entrant here yet, and a smaller bracket has no slot to put them in. The right people '
+              + 'will be selected and every position left empty. Add the missing accounts, enter them, and '
+              + 'run this again to place everybody where the archive had them.'
+            : 'The archive records WHO played but not where. Participants will be selected and every '
+              + 'position left empty for you — its seeding for this Season is the viewer\u2019s own '
+              + 'occurrence count, not a recorded order.'}
+        {' '}This stops at playoff setup: nothing is published and no result is entered. You still press
+        Start Playoffs yourself.
+      </p>
+
+      {plan.draftPlacements > 0 && (
+        <label className="mb-3 flex items-start gap-2 rounded border border-[var(--gold)]/40 bg-[var(--gold)]/5 px-3 py-2 text-xs">
+          <input
+            type="checkbox"
+            checked={confirmReplace}
+            onChange={(e) => onConfirmReplace(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            A draft bracket already holds <b>{plan.draftPlacements}</b> placement(s). Tick to replace
+            it with the archived arrangement. Left unticked, nothing is rebuilt.
+          </span>
+        </label>
+      )}
+
+      <Section title={`Playoff field (${plan.include.length})`} report={report}>
+        <Table head={exactly
+          ? ['Archive handle', 'Player', 'CueVerse ID', 'Seed', 'Round', 'Slot', 'Bye']
+          : ['Archive handle', 'Player', 'CueVerse ID', 'Currently in']}>
+          {plan.include.slice(0, 200).map((i) => (
+            <tr key={i.entrantId} className="border-b border-border/50">
+              <Td mono>{i.rawHandle}</Td><Td>{i.displayName}</Td><Td mono>{i.cueverseId}</Td>
+              {exactly ? (
+                <>
+                  <Td>{i.seed ?? '—'}</Td><Td>{i.firstRound}</Td>
+                  <Td>{i.matchNo != null ? `${i.matchNo}${i.side ?? ''}` : '—'}</Td>
+                  <Td muted>{i.bye ? 'Bye' : '—'}</Td>
+                </>
+              ) : (
+                <Td muted>{i.alreadyIncluded ? 'Selected' : 'Not selected'}</Td>
+              )}
+            </tr>
+          ))}
+        </Table>
+      </Section>
+
+      {plan.missing.length > 0 && (
+        <Section title={`Archived playoff players not entered in this Season (${plan.missing.length})`} report={report}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Add them with Auto Add Entrants, then run this again. They do not block the rest.
+          </p>
+          <Table head={['Archive handle']}>
+            {plan.missing.map((m) => (
+              <tr key={m.rawHandle} className="border-b border-border/50"><Td mono>{m.rawHandle}</Td></tr>
+            ))}
+          </Table>
+        </Section>
+      )}
+
+      {plan.exclude.length > 0 && (
+        <Section title={`Entrants not in the archived playoffs (${plan.exclude.length})`}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            These stay entrants; they are only unchecked from the playoff field.
+          </p>
+          <Table head={['Player', 'CueVerse ID', 'Currently']}>
+            {plan.exclude.slice(0, 200).map((e) => (
+              <tr key={e.entrantId} className="border-b border-border/50">
+                <Td>{e.displayName}</Td><Td mono>{e.cueverseId}</Td>
+                <Td muted>{e.alreadyExcluded ? 'Already out' : 'Will be unchecked'}</Td>
+              </tr>
+            ))}
+          </Table>
+        </Section>
+      )}
+
+      {plan.unresolved.length > 0 && (
+        <Section title="What the archive could not settle">
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-xs text-muted-foreground">
+            {plan.unresolved.map((u, i) => <li key={i}>{u}</li>)}
+          </ul>
+        </Section>
+      )}
     </>
   )
 }

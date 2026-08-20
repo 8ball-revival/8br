@@ -19,6 +19,8 @@ import {
   registerForSeasonAction,
   type SeasonActionResult,
 } from '@/lib/seasons/actions'
+import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
+import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 
 export interface RegEntrant { entrantId: number; name: string; cueverseId: string | null; slug: string | null; rating: number | null }
 
@@ -35,10 +37,13 @@ export function SeasonRegistration({
   isLoggedIn,
   alreadyRegistered,
   requiresPassword,
+  autoEntrants,
 }: {
   seasonId: number
   entrants: RegEntrant[]
   canManage: boolean
+  /** Decided on the server; absent for a Season with no archive template. */
+  autoEntrants?: AutoAssignAvailability
   isOpen: boolean
   isLoggedIn: boolean
   alreadyRegistered: boolean
@@ -70,6 +75,24 @@ export function SeasonRegistration({
       {toast && (
         <div className={cn('rounded-md border px-3 py-2 text-sm', toast.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')} role="status">
           {toast.text}
+        </div>
+      )}
+
+      {/*
+        Auto Add Entrants leads the entrant controls, because it is the first step of the archive
+        workflow and the one that makes the rest possible: nothing can be assigned to a group until
+        the people exist as entrants.
+      */}
+      {canManage && autoEntrants?.show && (
+        // items-start, or the column stretches the button into a full-width gold bar.
+        <div className="flex flex-col items-start gap-1">
+          <AutoAssignPanel seasonId={seasonId} mode="entrants" disabledReason={autoEntrants.disabledReason} />
+          {!autoEntrants.disabledReason && (
+            <span className="text-xs text-muted-foreground">
+              Searches every existing account for this Season&rsquo;s archived players. Creates nobody —
+              anyone without an account is listed for you to add by hand.
+            </span>
+          )}
         </div>
       )}
 

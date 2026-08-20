@@ -96,4 +96,58 @@ export async function applyGroupScoresAction(seasonId: unknown): Promise<ScoreAp
   return result
 }
 
+// ───────────────────────────────────────────────────────────── Auto Add Entrants
+
+export async function previewAutoEntrantsAction(seasonId: unknown) {
+  await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) return { blocked: true as const, reason: 'That is not a valid Season.' }
+  const { previewAutoEntrants } = await import('./auto-entrants')
+  return previewAutoEntrants(id)
+}
+
+export async function applyAutoEntrantsAction(seasonId: unknown) {
+  const actor = await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) {
+    return { ok: false, error: 'That is not a valid Season.', added: 0, alreadyEntered: 0, ambiguous: 0, missing: 0 }
+  }
+  const { applyAutoEntrants } = await import('./auto-entrants')
+  const result = await applyAutoEntrants({ userId: actor.userId, username: actor.username }, id)
+  if (result.ok) {
+    revalidatePath(`/seasons/${id}`)
+    revalidatePath(`/creator/seasons/${id}`)
+  }
+  return result
+}
+
+// ─────────────────────────────────────────────────────── Build Playoff Bracket
+
+export async function previewPlayoffBracketAction(seasonId: unknown) {
+  await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) return { blocked: true as const, reason: 'That is not a valid Season.' }
+  const { previewPlayoffBracket } = await import('./auto-playoffs')
+  return previewPlayoffBracket(id)
+}
+
+export async function applyPlayoffBracketAction(seasonId: unknown, replaceDraft?: unknown) {
+  const actor = await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) {
+    return { ok: false, error: 'That is not a valid Season.', selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0 }
+  }
+  const { applyPlayoffBracket } = await import('./auto-playoffs')
+  const result = await applyPlayoffBracket(
+    { userId: actor.userId, username: actor.username },
+    id,
+    { replaceDraft: replaceDraft === true },
+  )
+  if (result.ok) {
+    revalidatePath(`/seasons/${id}`)
+    revalidatePath(`/creator/seasons/${id}`)
+  }
+  return result
+}
+
 export { isBlocked }

@@ -34,13 +34,25 @@ export const normalizeHandle = (raw: string): string => raw.trim().toLowerCase()
 interface RawMatch { a: string; b: string; sa: number | null; sb: number | null; w: string | null }
 interface RawRow { pid: string; slot: number; played?: number; wins?: number; losses?: number; draws?: number; points?: number; total?: number; bonus?: number; adv?: boolean }
 interface RawGroup { id: string; letter: string; scoreModel?: string; rows: RawRow[]; matches: RawMatch[] }
+interface RawPlayoffMatch { no: number; a: string | null; b: string | null; score: string | null; w: string | null; l: string | null }
+interface RawPlayoffRound { round: number; name: string; matches: RawPlayoffMatch[] }
+interface RawPlayoff {
+  format?: string
+  champion?: { pid: string; handle: string } | null
+  runnerUp?: { pid: string; handle: string } | null
+  confidence?: string
+  reconstructed?: boolean
+  seeds?: Record<string, number>
+  rounds?: RawPlayoffRound[]
+}
+
 interface RawSeason {
   key: string; seasonId: string; year: number; period: number
   division: 'A' | 'B' | 'single'; label: string; divisionLabel?: string
   groupStatus?: string; completeness?: string; notes?: string
   gamesPerMatch?: number; entrants?: number
   groups: RawGroup[]
-  playoff?: { champion?: { pid: string; handle: string } | null; rounds?: unknown[] } | null
+  playoff?: RawPlayoff | null
 }
 interface RawArchive {
   meta: { counts: Record<string, unknown> }
@@ -88,6 +100,44 @@ export interface ManifestStanding {
   advanced: boolean | null
 }
 
+export interface ManifestPlayoffParticipant {
+  sourceId: string
+  rawHandle: string
+  normalizedHandle: string
+  /** The archive's seed. Only meaningful when placement is 'exact'. */
+  seed: number | null
+  /** First round this player appears in. Above 1 means they started later. */
+  firstRound: number
+  /** True when their first-round match had no opponent. */
+  bye: boolean
+  /** Position in the first round they appear in, when the topology is exact. */
+  matchNo: number | null
+  side: 'a' | 'b' | null
+}
+
+export interface ManifestPlayoff {
+  /**
+   * How much the archive actually knows.
+   *
+   *  'exact'             — full round-by-round topology: bracket size, slots, byes and later-round
+   *                        starts are all documented.
+   *  'participants-only' — the archive lists who took part and nothing reliable about where. Its
+   *                        `seeds` for these Seasons are the viewer's own occurrence-count heuristic,
+   *                        not a recorded seeding, so they are NOT treated as placement.
+   *  'none'              — no playoff record at all.
+   */
+  placement: 'exact' | 'participants-only' | 'none'
+  /** The archive's own words, kept so the UI can be honest about provenance. */
+  sourceConfidence: string | null
+  format: string | null
+  /** Slots in the first round, when the topology is exact. Null when it cannot be established. */
+  bracketSize: number | null
+  participants: ManifestPlayoffParticipant[]
+  championSourceId: string | null
+  runnerUpSourceId: string | null
+  unresolved: string[]
+}
+
 export interface ManifestEntry {
   templateKey: string
   sourceKey: string
@@ -120,6 +170,8 @@ export interface ManifestEntry {
    * the identity is listed here so Auto Assign refuses to place it rather than picking one.
    */
   ambiguousPlacements: { sourceId: string; rawHandle: string; groups: string[] }[]
+  /** What the archive records about this Season's playoffs. */
+  playoff: ManifestPlayoff
   unresolved: string[]
   provenance: {
     sourceFile: string
@@ -155,12 +207,29 @@ export interface Manifest {
   undividedSources: UndividedSource[]
 }
 
+/**
+ * The name to show for an archived person, and to match on.
+ *
+ * A handful of archive records carry an EMPTY handle and keep the person's identity in `name`
+ * instead — `hazardhous_hustla` and `perfect.skillz` are handles by any reading, they just landed in
+ * the wrong column. `?? pid` does not catch that, because an empty string is not null, and the
+ * result is a blank row in the "no account exists for these" report: a player the owner is told to
+ * create without being told who. Falling back to the name, and only then to the source id, keeps
+ * every row nameable.
+ */
+function sourceHandle(p: { handle?: string; name?: string } | undefined, pid: string): string {
+  const handle = (p?.handle ?? '').trim()
+  if (handle) return handle
+  const name = (p?.name ?? '').trim()
+  return name || pid
+}
+
 function buildParticipants(groups: RawGroup[], players: RawArchive['players']): ManifestParticipant[] {
   const out: ManifestParticipant[] = []
   for (const g of groups) {
     for (const r of g.rows) {
       const p = players[r.pid]
-      const rawHandle = p?.handle ?? r.pid
+      const rawHandle = sourceHandle(p, r.pid)
       const rawName = p?.name ?? ''
       out.push({
         sourceId: r.pid,
@@ -195,6 +264,94 @@ function buildMatches(groups: RawGroup[], players: RawArchive['players']): Manif
     }
   }
   return out
+}
+
+/**
+ * What the archive knows about one Season's playoffs.
+ *
+ * ── The distinction that matters ─────────────────────────────────────────────────────────────────
+ * Two thirds of these Seasons carry `confidence: heuristic(occurrence-count)` and a single round that
+ * simply lists who appeared. Their `seeds` are the archive VIEWER's guess, derived by counting how
+ * often a name occurs — not a seeding anybody recorded. Treating that as placement would put players
+ * in slots the source never claimed, and it would be indistinguishable from real data afterwards. So
+ * those Seasons yield participants and nothing else.
+ *
+ * The remaining Seasons carry `confidence: exact` with the full round-by-round topology, and those
+ * give real bracket size, slots, byes and later-round starts.
+ */
+function buildPlayoff(po: RawPlayoff | null | undefined, players: RawArchive['players']): ManifestPlayoff {
+  const rounds = po?.rounds ?? []
+  const unresolved: string[] = []
+
+  if (!po || rounds.length === 0) {
+    return {
+      placement: 'none', sourceConfidence: po?.confidence ?? null, format: po?.format ?? null,
+      bracketSize: null, participants: [], championSourceId: null, runnerUpSourceId: null,
+      unresolved: ['The archive holds no playoff record for this Season.'],
+    }
+  }
+
+  const exact = po.confidence === 'exact' && rounds.length > 1
+  const seeds = po.seeds ?? {}
+
+  // First appearance decides a player's entry point; byes are a first-round match with no opponent.
+  const first = new Map<string, { round: number; matchNo: number; side: 'a' | 'b'; bye: boolean }>()
+  for (const r of rounds) {
+    for (const m of r.matches ?? []) {
+      for (const side of ['a', 'b'] as const) {
+        const pid = m[side]
+        // A self-match (a === b) is how the single-round listings pad a name; it is not a pairing.
+        if (!pid || (m.a === m.b && side === 'b')) continue
+        if (first.has(pid)) continue
+        first.set(pid, {
+          round: r.round,
+          matchNo: m.no,
+          side,
+          bye: r.round === 1 && (m.b == null || m.a === m.b),
+        })
+      }
+    }
+  }
+
+  const participants: ManifestPlayoffParticipant[] = [...first.entries()].map(([sourceId, at]) => {
+    const raw = sourceHandle(players[sourceId], sourceId)
+    return {
+      sourceId,
+      rawHandle: raw,
+      normalizedHandle: normalizeHandle(raw),
+      seed: exact ? (seeds[sourceId] ?? null) : null,
+      firstRound: at.round,
+      bye: exact ? at.bye : false,
+      matchNo: exact ? at.matchNo : null,
+      side: exact ? at.side : null,
+    }
+  })
+
+  const r1 = rounds.find((r) => r.round === 1)
+  const bracketSize = exact && r1 ? (r1.matches?.length ?? 0) * 2 : null
+
+  if (!exact) {
+    unresolved.push(
+      `The archive lists ${participants.length} playoff participant(s) but records no bracket `
+      + `placement — its seeding for this Season is an occurrence-count heuristic, not a recorded `
+      + 'order. Participants can be selected; positions must be set by hand.',
+    )
+  }
+  const later = participants.filter((p) => p.firstRound > 1)
+  if (exact && later.length > 0) {
+    unresolved.push(`${later.length} player(s) enter after round 1 and are placed at that round.`)
+  }
+
+  return {
+    placement: exact ? 'exact' : 'participants-only',
+    sourceConfidence: po.confidence ?? null,
+    format: po.format ?? null,
+    bracketSize,
+    participants,
+    championSourceId: po.champion?.pid ?? null,
+    runnerUpSourceId: po.runnerUp?.pid ?? null,
+    unresolved,
+  }
 }
 
 function buildStandings(groups: RawGroup[]): ManifestStanding[] {
@@ -256,6 +413,7 @@ function main() {
       matches: buildMatches(s.groups ?? [], archive.players),
       standings: buildStandings(s.groups ?? []),
       ambiguousPlacements: [],
+      playoff: buildPlayoff(s.playoff, archive.players),
       groupAssignments: inv.groupAssignments as ManifestEntry['groupAssignments'],
       exactResults: inv.exactResults as ManifestEntry['exactResults'],
       sharedGroupStageSourceKey: sibling?.key ?? null,
@@ -350,6 +508,10 @@ function main() {
     console.log(`    ${u.sourceKey}: ${u.groupNames.length} groups, ${u.participants.length} participants → feeds ${u.feedsTemplateKeys.join(', ')}`)
   }
   console.log(`  blocked by shared stage ${entries.filter((e) => e.sharedGroupStageSourceKey).length}`)
+  console.log(`  playoff exact placement  ${entries.filter((e) => e.playoff.placement === 'exact').length}`)
+  console.log(`  playoff participants only ${entries.filter((e) => e.playoff.placement === 'participants-only').length}`)
+  console.log(`  playoff none             ${entries.filter((e) => e.playoff.placement === 'none').length}`)
+  console.log(`  playoff participants     ${entries.reduce((n, e) => n + e.playoff.participants.length, 0)}`)
 }
 
 main()
