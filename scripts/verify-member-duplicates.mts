@@ -74,8 +74,8 @@ section('The panel is gated and rendered beside the form')
   check('it never disables the submit button', !/disabled=\{[^}]*matches/.test(form))
 }
 
-const FIXTURE_IDS = ['ZZTop__Dawg__', 'Top__Dawg__']
-const FIXTURE_NAME = 'ZZ Sterlo Fixture'
+const FIXTURE_IDS = ['zzTop__Dawg__', 'Top__Dawg__']
+const FIXTURE_NAME = 'zz Sterlo Fixture'
 
 async function sweepFixtures() {
   const strays = await prisma.player.findMany({
@@ -166,7 +166,7 @@ async function main() {
 
     // End to end: stand in a member under one handle, type the other.
     const stand = await prisma.player.create({
-      data: { primaryName: 'ZZ Sterlo Fixture', cueverseId: 'ZZTop__Dawg__', cueverseIdNormalized: 'zztop__dawg__' },
+      data: { primaryName: FIXTURE_NAME, cueverseId: 'zzTop__Dawg__', cueverseIdNormalized: 'zztop__dawg__' },
       select: { id: true },
     })
     madePlayers.push(stand.id)

@@ -19,7 +19,9 @@ import { prisma } from '../src/lib/prisma.ts'
  */
 const FIXTURE = ['zz', 'idv-', 'APV-']
 const notFixtureText = (field: string) =>
-  ({ AND: FIXTURE.map((p) => ({ NOT: { [field]: { startsWith: p } } })) }) as never
+  // Case-insensitive: the convention is a lowercase `zz`, but a fixture named `ZZ …` would otherwise
+  // slip past the filter and be counted as real leftover data — which is precisely what happened.
+  ({ AND: FIXTURE.map((p) => ({ NOT: { [field]: { startsWith: p, mode: 'insensitive' } } })) }) as never
 
 let pass = 0, fail = 0
 const check = (n: string, ok: boolean, d = '') => {
@@ -59,7 +61,11 @@ async function main() {
   const accounts = Number((await prisma.$queryRaw<{ n: bigint }[]>`
     SELECT count(*)::bigint n FROM payload.users`)[0].n)
   eq('real profiles, one per account', await prisma.player.count({ where: notFixtureText('primaryName') }), accounts)
-  eq('profiles linked to an account', await prisma.player.count({ where: { linkedUserId: { not: null } } }), accounts)
+  // Each merge retires one profile and unlinks it, leaving its former account without one — so the
+  // pairing is exact over the profiles still in play, not over every row ever created.
+  const retired = await prisma.playerMerge.count()
+  eq('profiles linked to an account',
+    await prisma.player.count({ where: { linkedUserId: { not: null } } }), accounts - retired)
   const p = await prisma.player.findFirst({
     where: { linkedUserId: String(adminId) },
     select: { id: true, linkedUserId: true, cueverseId: true, active: true, linkStatus: true },
@@ -119,7 +125,18 @@ async function main() {
 
 
   console.log('\n--- No orphaned or dangling references ---')
-  eq('real profiles with no account', await prisma.player.count({ where: { linkedUserId: null, ...(notFixtureText('primaryName') as object) } }), 0)
+  /*
+   * Merged-away profiles legitimately have no account.
+   *
+   * A merge retires the secondary identity: it is unlinked, deactivated and kept only so its history
+   * stays traceable. Counting those as orphans would make this fail permanently after the first
+   * merge and would be pressure to delete a record the archive still refers to.
+   */
+  const mergedAway = (await prisma.playerMerge.findMany({ select: { mergedPlayerId: true } }))
+    .map((m) => m.mergedPlayerId)
+  eq('real profiles with no account', await prisma.player.count({
+    where: { linkedUserId: null, id: { notIn: mergedAway }, ...(notFixtureText('primaryName') as object) },
+  }), 0)
   eq('profiles pointing at a missing account', await one(prisma.$queryRaw`
     SELECT count(*)::bigint n FROM public."Player" p
     WHERE p."linkedUserId" IS NOT NULL
