@@ -144,9 +144,16 @@ section('88 private shells exist and are empty')
    * than a museum-piece emptiness the owner is expected to end. Anything they have added since is
    * reported, never deleted.
    */
-  // Matches and standings appear as the owner enters group results; playoff rows and ledger entries
-  // only ever come from completing a Season, which no shell has done.
-  for (const k of ['playoffMatches', 'ratingLedger'] as const) {
+  /*
+   * Only the rating ledger stays policed.
+   *
+   * Entrants, groups, matches, standings and even playoff rows all appear during a normal
+   * reconstruction — a draft bracket is generated before Start Playoffs, so playoff matches exist
+   * well before a Season is finished. The ledger is different: nothing writes to it but completing a
+   * Season and applying it to the Rankings, so a shell holding ledger rows would mean a private
+   * reconstruction had leaked into the competitive record.
+   */
+  for (const k of ['ratingLedger'] as const) {
     check(`no shell has any ${k}`, shells.every((s) => s._count[k] === 0),
       String(shells.filter((s) => s._count[k] > 0).length))
   }
@@ -214,7 +221,9 @@ section('Nothing else in the database moved')
   const standings = await prisma.seasonStanding.count()
   check('no match was lost', matches >= 616, String(matches))
   check('no standing was lost', standings >= 200, String(standings))
-  check('140 playoff matches', (await prisma.seasonPlayoffMatch.count()) === 140)
+  // Draft brackets are generated during reconstruction, so these grow. A loss would be the problem.
+  const playoffs = await prisma.seasonPlayoffMatch.count()
+  check('no playoff match was lost', playoffs >= 140, String(playoffs))
   check('1168 ledger rows', (await prisma.ratingLedger.count()) === 1168)
 
   const s3732 = await prisma.season.findUnique({

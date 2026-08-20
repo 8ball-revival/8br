@@ -85,7 +85,36 @@ export function SeasonPlayoffs({
               <button key={String(o.v)} disabled={pending} onClick={() => run(() => setSeasonPlayoffTypeAction(seasonId, o.v))} className={cn('rounded px-4 py-1.5 text-sm font-semibold', doubleElim === o.v ? 'bg-brand text-white' : 'text-muted-foreground hover:text-foreground')}>{o.l}</button>
             ))}
           </div>
-          <Button size="sm" className="ml-auto" disabled={pending} onClick={() => run(() => generateSeasonBracketAction(seasonId))}>{hasDraft ? 'Regenerate Bracket' : 'Generate Bracket'}</Button>
+          {/*
+            Both bracket controls live here, together, because they are the two ends of the same
+            decision: build a draft, then commit it. Start Playoffs used to sit far below the bracket
+            it publishes, which meant scrolling past the whole draft to reach the button that makes it
+            permanent.
+
+            The gold moved with it. Regenerating is a routine, reversible step and is now a secondary
+            control; publishing locks the participants, seeds and bracket type for good, so it is the
+            one that should look like the consequential act.
+          */}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => generateSeasonBracketAction(seasonId))}>{hasDraft ? 'Regenerate Bracket' : 'Generate Bracket'}</Button>
+            <Button
+              size="sm"
+              className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]"
+              disabled={pending || !hasDraft}
+              title={hasDraft ? undefined : 'Generate the bracket first.'}
+              onClick={async () => {
+                const res = await confirm({
+                  title: 'Start Playoffs?',
+                  message: 'This publishes the bracket publicly and permanently locks the participants, seeds and bracket type.',
+                  confirmLabel: 'Start Playoffs', tone: 'warning',
+                  action: async () => startSeasonPlayoffsAction(seasonId),
+                })
+                if (res.confirmed) router.refresh()
+              }}
+            >
+              Start Playoffs
+            </Button>
+          </div>
         </div>
       )}
 
@@ -190,17 +219,6 @@ export function SeasonPlayoffs({
         </table>
       </div>
 
-      {canManage && (
-        <Button className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]" disabled={pending || !hasDraft} title={hasDraft ? undefined : 'Generate the bracket first.'} onClick={async () => {
-          const res = await confirm({
-            title: 'Start Playoffs?',
-            message: 'This publishes the bracket publicly and permanently locks the participants, seeds and bracket type.',
-            confirmLabel: 'Start Playoffs', tone: 'warning',
-            action: async () => startSeasonPlayoffsAction(seasonId),
-          })
-          if (res.confirmed) router.refresh()
-        }}>Start Playoffs</Button>
-      )}
     </div>
   )
 }
