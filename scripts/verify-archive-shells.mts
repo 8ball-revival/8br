@@ -133,8 +133,21 @@ section('88 private shells exist and are empty')
   check('none is publicly visible', shells.every((s) => !s.publiclyVisible))
   check('every one is a reconstruction', shells.every((s) => s.reconstruction))
   check('every one is password protected', shells.every((s) => s.accessMode === 'PASSWORD'))
-  check('none is completed', shells.every((s) => !s.completedAt && !s.ladderAppliedAt))
-  check('none has a champion', shells.every((s) => !s.championName && !s.championPlayerId))
+  /*
+   * A completed shell is the WORKFLOW FINISHING, not a fault.
+   *
+   * These asserted that no shell was ever completed, which was only true on the day they were
+   * created. Reconstructing one to the end — entrants, groups, results, playoffs, champion, applied
+   * to the Rankings — is the entire purpose of building them. What the IMPORT did is settled at
+   * import time by its own before/after counts, which fail loudly on any drift.
+   */
+  const finished = shells.filter((s) => s.completedAt || s.ladderAppliedAt)
+  if (finished.length > 0) {
+    console.log(`  (${finished.length} shell(s) reconstructed to completion: `
+      + `${finished.map((s) => `${s.competitionYear} S${s.number}${s.division ?? ''}`).join(', ')})`)
+  }
+  check('an unfinished shell has no champion',
+    shells.filter((s) => !s.completedAt).every((s) => !s.championName && !s.championPlayerId))
 
   /*
    * The point of a shell: the IMPORT put nothing in it.
@@ -153,10 +166,15 @@ section('88 private shells exist and are empty')
    * Season and applying it to the Rankings, so a shell holding ledger rows would mean a private
    * reconstruction had leaked into the competitive record.
    */
-  for (const k of ['ratingLedger'] as const) {
-    check(`no shell has any ${k}`, shells.every((s) => s._count[k] === 0),
-      String(shells.filter((s) => s._count[k] > 0).length))
-  }
+  /*
+   * Ledger rows belong only to a COMPLETED Season.
+   *
+   * This is the line that still matters: a shell that has not been finished must contribute nothing
+   * to the Rankings. Once it is completed and applied, ledger rows are exactly what should exist.
+   */
+  check('no UNFINISHED shell contributes to the Rankings',
+    shells.filter((s) => !s.completedAt && !s.ladderAppliedAt).every((s) => s._count.ratingLedger === 0),
+    String(shells.filter((s) => !s.completedAt && !s.ladderAppliedAt && s._count.ratingLedger > 0).length))
 
   const ownerAdded = await prisma.seasonEntrant.findMany({
     where: { season: { archiveTemplateKey: { not: null } } },
@@ -171,8 +189,13 @@ section('88 private shells exist and are empty')
    * it checks itself and fails loudly on. Here the count is reported, not policed.
    */
   if (ownerAdded.length > 0) {
+    const bySeason = new Map<string, number>()
+    for (const e of ownerAdded) {
+      const k = e.season.archiveTemplateKey ?? '?'
+      bySeason.set(k, (bySeason.get(k) ?? 0) + 1)
+    }
     console.log(`  (${ownerAdded.length} entrant row(s) added by hand since the import: `
-      + `${ownerAdded.map((e) => `${e.season.archiveTemplateKey}/${e.status}`).join(', ')})`)
+      + `${[...bySeason].map(([k, n]) => `${k} x${n}`).join(', ')})`)
   }
 
   check('every shell maps to a manifest entry',
@@ -181,7 +204,8 @@ section('88 private shells exist and are empty')
 
   // Ranking eligibility follows from these two flags via the existing lifecycle rules.
   const { seasonCountsForRankings } = await import('../src/lib/competition/lifecycle-rules.ts')
-  check('none counts for the Rankings', shells.every((s) => !seasonCountsForRankings({
+  check('no UNFINISHED shell counts for the Rankings',
+    shells.filter((s) => !s.completedAt && !s.ladderAppliedAt).every((s) => !seasonCountsForRankings({
     lifecycleState: s.lifecycleState, ladderAppliedAt: s.ladderAppliedAt,
     reconstruction: s.reconstruction, reopenedAt: null, cancelledAt: null, deletedAt: null,
   })))
@@ -224,7 +248,9 @@ section('Nothing else in the database moved')
   // Draft brackets are generated during reconstruction, so these grow. A loss would be the problem.
   const playoffs = await prisma.seasonPlayoffMatch.count()
   check('no playoff match was lost', playoffs >= 140, String(playoffs))
-  check('1168 ledger rows', (await prisma.ratingLedger.count()) === 1168)
+  // Grows as reconstructed Seasons are completed and applied to the Rankings.
+  const ledgerRows = await prisma.ratingLedger.count()
+  check('no ledger row was lost', ledgerRows >= 1168, String(ledgerRows))
 
   const s3732 = await prisma.season.findUnique({
     where: { id: 3732 },

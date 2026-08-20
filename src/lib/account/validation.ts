@@ -21,7 +21,25 @@ export const TEMPORARY_PASSWORD = 'Luna8ear'
  * never reach a real person. A member can set a real address later from My Account.
  */
 export function generatedEmailFor(cueverseId: string): string {
-  return `${cueverseLoginKey(cueverseId)}@member.8br.invalid`
+  /*
+   * The handle has to be made SAFE for the local part of an address.
+   *
+   * CueVerse IDs are free-form now, and plenty of real ones are themselves email addresses —
+   * "uslander@sbcglobal.net". Pasting one straight in produced
+   * "uslander@sbcglobal.net@member.8br.invalid": two at-signs, not an address, rejected by Payload's
+   * email validation, and reported to staff as "could not create the account".
+   *
+   * So everything outside the safe set becomes a hyphen, runs are collapsed, and the ends are
+   * trimmed. The result only has to be unique and well-formed — the domain is reserved by RFC 2606
+   * and can never receive mail, and members never see this address. Their identity is the CueVerse
+   * ID, which is stored exactly as typed.
+   */
+  const local = cueverseLoginKey(cueverseId)
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
+    .slice(0, 64)
+  return `${local || 'member'}@member.8br.invalid`
 }
 
 /** True for an address minted by {@link generatedEmailFor}. */

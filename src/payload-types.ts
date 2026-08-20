@@ -410,7 +410,7 @@ export interface HomepageHero {
    */
   secondaryButtonLabel?: string | null;
   /**
-   * Second button destination — a site path like /tournaments, or https://…
+   * Second button destination — a site path like /cups, or https://…
    */
   secondaryButtonHref?: string | null;
   _status?: ('draft' | 'published') | null;

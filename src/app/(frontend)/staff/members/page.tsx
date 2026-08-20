@@ -127,6 +127,7 @@ export default async function MembersPage({ searchParams }: SP) {
                   playerId={m.playerId ?? null}
                   cueverseId={m.cueverseId}
                   preferredName={m.preferredName}
+                  aliases={m.aliases}
                   canEdit={canEditProfiles}
                 />
                 <td className="px-4 py-2.5 align-top">

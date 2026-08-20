@@ -26,6 +26,7 @@ export function MemberRowEditor({
   playerId,
   cueverseId,
   preferredName,
+  aliases,
   canEdit,
 }: {
   userId: number
@@ -33,6 +34,8 @@ export function MemberRowEditor({
   playerId: string | null
   cueverseId: string | null
   preferredName: string | null
+  /** Every handle this member also answers to. */
+  aliases: string[]
   canEdit: boolean
 }) {
   const router = useRouter()
@@ -152,7 +155,7 @@ export function MemberRowEditor({
         )}
       </td>
       <td className="px-4 py-2 align-top">
-        <QuickAlias playerId={playerId} disabled={!canEdit} />
+        <QuickAlias playerId={playerId} aliases={aliases} disabled={!canEdit} />
       </td>
     </>
   )
@@ -168,7 +171,15 @@ export function MemberRowEditor({
  * The field empties on success and reports the stored form, which is normalised and therefore often
  * not what was typed. Showing it back is the only way to make that visible.
  */
-function QuickAlias({ playerId, disabled }: { playerId: string | null; disabled: boolean }) {
+function QuickAlias({
+  playerId,
+  aliases,
+  disabled,
+}: {
+  playerId: string | null
+  aliases: string[]
+  disabled: boolean
+}) {
   const [value, setValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [added, setAdded] = useState<string | null>(null)
@@ -193,6 +204,30 @@ function QuickAlias({ playerId, disabled }: { playerId: string | null; disabled:
 
   return (
     <div>
+      {/*
+        The aliases themselves, above the field that adds one.
+        
+        Without them the column only ever said "Add alias", so the roster could not answer the
+        question it is usually asked: why does searching for the handle I remember find nothing? The
+        answer is nearly always that the member was renamed, and the old handle is right here.
+        
+        They wrap rather than truncate — a member with six of them has six worth reading, and this is
+        the screen for reading them. Removing one still lives on the member's own page, because
+        deleting an alias can break a lookup that currently works.
+      */}
+      {aliases.length > 0 && (
+        <ul className="mb-1 flex flex-wrap gap-1" aria-label="Existing aliases">
+          {aliases.map((a) => (
+            <li
+              key={a}
+              className="rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[0.68rem] text-muted-foreground"
+              title={`Also known as ${a}`}
+            >
+              @{a}
+            </li>
+          ))}
+        </ul>
+      )}
       <input
         value={value}
         onChange={(e) => { setValue(e.target.value); setError(null); setAdded(null) }}

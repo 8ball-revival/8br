@@ -323,8 +323,9 @@ section('The Break has not touched the competition data')
   check('...its 7 groups', s?._count.groups === 7, String(s?._count.groups))
   check('...and its 147 matches', s?._count.matches === 147, String(s?._count.matches))
 
-  check('the rating ledger is unchanged', (await prisma.ratingLedger.count()) === 1168,
-    String(await prisma.ratingLedger.count()))
+  // The ledger grows as reconstructed Seasons are completed and applied. The Break adds none.
+  const ledger = await prisma.ratingLedger.count()
+  check('no ledger row was lost', ledger >= 1168, String(ledger))
   // The roster grows as the owner creates members; what matters is that The Break removed none.
   const players = await prisma.player.count()
   check('no player was removed', players >= 142, String(players))

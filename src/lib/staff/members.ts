@@ -33,6 +33,9 @@ export interface MemberRow {
   /// Trusted Author: may publish to The Break without review. Read from the canonical Player, so it
   /// is the same value the editorial permission check uses rather than a second copy of it.
   trustedAuthor: boolean
+  /// Every handle this member also answers to. Shown in full on the roster so a search that failed
+  /// on the current ID can be understood at a glance — the old handle is usually the reason.
+  aliases: string[]
 }
 
 export interface MemberDetail extends MemberRow {
@@ -90,7 +93,15 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
   const managementUserIds = new Set(managementProfiles.map((m) => Number(m.linkedUserId)))
 
   const [profiles, mods, heads, activePenalties] = await Promise.all([
-    prisma.player.findMany({ where: { linkedUserId: { in: userIds.map(String) } }, select: { id: true, linkedUserId: true, primaryName: true, cueverseId: true, blogTrustedAuthor: true } }),
+    prisma.player.findMany({
+      where: { linkedUserId: { in: userIds.map(String) } },
+      select: {
+        id: true, linkedUserId: true, primaryName: true, cueverseId: true, blogTrustedAuthor: true,
+        // Included with the profile rather than fetched per row: a hundred members would otherwise
+        // be a hundred extra queries to draw one table.
+        aliases: { select: { alias: true }, orderBy: { alias: 'asc' } },
+      },
+    }),
     prisma.memberModeration.findMany({ where: { userId: { in: userIds } } }),
     prisma.staffDesignation.findMany({ where: { userId: { in: userIds }, headAdmin: true }, select: { userId: true } }),
     prisma.penalty.findMany({ where: { userId: { in: userIds }, removedAt: null }, select: { userId: true, type: true, endAt: true } }),
@@ -130,6 +141,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
       activePenalty: penByUser.get(uid) ?? null,
       registrationCount: countByUser.get(uid) ?? 0,
       trustedAuthor: prof?.blogTrustedAuthor ?? false,
+      aliases: (prof?.aliases ?? []).map((a) => a.alias),
     }
   })
 
@@ -148,7 +160,11 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
     .filter((r) => (opts.status === 'DELETED' ? r.status === 'DELETED' : r.status !== 'DELETED'))
     .filter((r) => (opts.status && opts.status !== 'ALL' ? r.status === opts.status : true))
     .filter((r) => (opts.trustedOnly ? r.trustedAuthor : true))
-    .filter((r) => (q ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} #${r.userId}`.toLowerCase().includes(q) : true))
+    // Aliases are searchable too: somebody looking for a member by the handle they remember should
+    // find them, and the handle they remember is usually the one that was replaced.
+    .filter((r) => (q
+      ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} ${r.aliases.join(' ')} #${r.userId}`.toLowerCase().includes(q)
+      : true))
     .sort((a, b) => (a.cueverseId ?? '').localeCompare(b.cueverseId ?? '') || a.userId - b.userId)
 }
 
@@ -159,7 +175,14 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
   if (!u) return null
 
   const [profile, mod, head, warnings, penalties, regs] = await Promise.all([
-    prisma.player.findUnique({ where: { linkedUserId: String(userId) }, select: { id: true, primaryName: true, cueverseId: true, discord: true, timeZone: true, blogTrustedAuthor: true } }),
+    prisma.player.findUnique({
+      where: { linkedUserId: String(userId) },
+      select: {
+        id: true, primaryName: true, cueverseId: true, discord: true, timeZone: true,
+        blogTrustedAuthor: true,
+        aliases: { select: { alias: true }, orderBy: { alias: 'asc' } },
+      },
+    }),
     prisma.memberModeration.findUnique({ where: { userId } }),
     prisma.staffDesignation.findUnique({ where: { userId }, select: { headAdmin: true } }),
     prisma.warning.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
@@ -191,6 +214,7 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
     })(),
     registrationCount: regs.length,
     trustedAuthor: profile?.blogTrustedAuthor ?? false,
+    aliases: (profile?.aliases ?? []).map((a) => a.alias),
     warnings: warnings.map((w) => ({ id: w.id, reason: w.reason, internalNotes: w.internalNotes, staffUsername: w.staffUsername, createdAt: w.createdAt.toISOString() })),
     penalties: penalties.map((pen) => ({
       id: pen.id,
