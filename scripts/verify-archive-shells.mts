@@ -144,7 +144,7 @@ section('88 private shells exist and are empty')
    * than a museum-piece emptiness the owner is expected to end. Anything they have added since is
    * reported, never deleted.
    */
-  for (const k of ['groups', 'matches', 'standings', 'playoffMatches', 'ratingLedger'] as const) {
+  for (const k of ['matches', 'standings', 'playoffMatches', 'ratingLedger'] as const) {
     check(`no shell has any ${k}`, shells.every((s) => s._count[k] === 0),
       String(shells.filter((s) => s._count[k] > 0).length))
   }
@@ -310,11 +310,43 @@ section('Auto Assign refuses what it cannot prove')
   })
   check('a shared-stage shell exists to test', !!sharedShell)
   if (sharedShell) {
+    /*
+     * The 2006 shared field: applied to ONE division, never both.
+     *
+     * These four Seasons used to be refused outright, which made them impossible to reconstruct at
+     * all — the requirement was never "never apply it", it was "never apply it twice". So the field
+     * is first-come: whichever division has group placements owns it, and the other is refused by
+     * name.
+     */
     const g = await previewGroupAssign(sharedShell.id)
-    check('group Auto Assign is blocked for a shared stage', isBlocked(g) && g.reason === SHARED_STAGE_MESSAGE,
-      isBlocked(g) ? g.reason : 'not blocked')
-    const sc = await previewGroupScores(sharedShell.id)
-    check('score Auto Assign is blocked too', isBlocked(sc) && sc.reason === SHARED_STAGE_MESSAGE)
+    const placedHere = await prisma.seasonGroupPlayer.count({ where: { group: { seasonId: sharedShell.id } } })
+
+    if (placedHere > 0) {
+      // This one has taken the field. Its sibling must now be refused.
+      check('a claimed shared stage still previews for the Season holding it', !isBlocked(g))
+      const entry = loadManifest().entries.find((e) => e.templateKey === sharedShell.archiveTemplateKey)!
+      const source = loadManifest().undividedSources.find((u) => u.sourceKey === entry.sharedGroupStageSourceKey)!
+      const siblingKey = source.feedsTemplateKeys.find((k) => k !== entry.templateKey)!
+      const sibling = await prisma.season.findFirst({
+        where: { archiveTemplateKey: siblingKey }, select: { id: true },
+      })
+      if (sibling) {
+        const sg = await previewGroupAssign(sibling.id)
+        check('...and the other division is refused, so nothing counts twice', isBlocked(sg),
+          isBlocked(sg) ? '' : 'the sibling was NOT blocked')
+        check('...naming the Season that holds it',
+          isBlocked(sg) && /already holds it/i.test(sg.reason), isBlocked(sg) ? sg.reason : '')
+      }
+    } else if (isBlocked(g)) {
+      // The sibling holds the field. That is the guard doing its job, and it must say so by name.
+      check('a shared stage held by the other division is refused', true)
+      check('...naming the Season that holds it', /already holds it/i.test(g.reason), g.reason)
+    } else {
+      // Nobody holds it: it must offer the undivided field rather than refusing.
+      check('an unclaimed shared stage is offered, not refused', true)
+      check('...drawing its groups from the undivided source', g.sourceGroups === 14, String(g.sourceGroups))
+      check('...and its participants too', g.sourceParticipants > 90, String(g.sourceParticipants))
+    }
   }
 
   const normalShell = await prisma.season.findFirst({

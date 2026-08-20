@@ -3,7 +3,10 @@ import type { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/lib/competition/audit'
-import { manifestEntry, isSharedStage, SHARED_STAGE_MESSAGE, type ManifestEntry } from './manifest'
+import {
+  manifestEntry, isSharedStage, SHARED_STAGE_MESSAGE, loadManifest,
+  type ManifestEntry, type ManifestParticipant, type ManifestMatch,
+} from './manifest'
 import { matchHandles, UNRESOLVED_LABEL, type EntrantIdentity, type MatchResult } from './matching'
 
 /**
@@ -32,6 +35,87 @@ export function isBlocked(v: AutoAssignBlocked | { blocked?: false }): v is Auto
   return v.blocked === true
 }
 
+/**
+ * Where a Season's archived groups and results actually live.
+ *
+ * Normally: on its own manifest entry. For the four 2006 Seasons the group stage was played
+ * UNDIVIDED — one field of ~98 players across 14 groups — and only the playoffs split into Division
+ * A and Division B. Their entry therefore carries no participants of its own; the groups sit in a
+ * separate undivided source that both divisions point at.
+ *
+ * Returning that source here is what lets those Seasons be reconstructed at all. The safeguard that
+ * makes it safe is not here but in `sharedStageClaim` below: the shared field may be applied to ONE
+ * of the two divisions, never both.
+ */
+function templateData(entry: ManifestEntry): {
+  participants: ManifestParticipant[]
+  matches: ManifestMatch[]
+  groupNames: string[]
+  sharedFrom: string | null
+} {
+  if (!isSharedStage(entry)) {
+    return {
+      participants: entry.participants,
+      matches: entry.matches,
+      groupNames: entry.groupNames,
+      sharedFrom: null,
+    }
+  }
+  const source = loadManifest().undividedSources
+    .find((u) => u.sourceKey === entry.sharedGroupStageSourceKey)
+  if (!source) {
+    return { participants: [], matches: [], groupNames: [], sharedFrom: entry.sharedGroupStageSourceKey }
+  }
+  return {
+    participants: source.participants,
+    matches: source.matches,
+    groupNames: source.groupNames,
+    sharedFrom: source.sourceKey,
+  }
+}
+
+/**
+ * Which division, if either, has already taken the shared 2006 group stage.
+ *
+ * The whole risk of an undivided source is applying it twice: the same ~98 players and their results
+ * landing in Division A AND Division B, so every match counts double in anything derived from them.
+ * So the field is first-come. Whichever divisional Season has group placements already owns it, and
+ * the other is refused by name — not with a vague message, but saying exactly which Season holds it,
+ * because the operator needs to know where their work went.
+ *
+ * "Has placements" is the test rather than a flag, so it stays true if the owner clears a Season and
+ * starts again: releasing the claim is just emptying the groups.
+ */
+async function sharedStageClaim(entry: ManifestEntry, seasonId: number): Promise<
+  { claimedByOther: false } | { claimedByOther: true; label: string }
+> {
+  const source = loadManifest().undividedSources
+    .find((u) => u.sourceKey === entry.sharedGroupStageSourceKey)
+  if (!source) return { claimedByOther: false }
+
+  const siblingKeys = source.feedsTemplateKeys.filter((k) => k !== entry.templateKey)
+  if (siblingKeys.length === 0) return { claimedByOther: false }
+
+  const siblings = await prisma.season.findMany({
+    where: { archiveTemplateKey: { in: siblingKeys } },
+    select: {
+      id: true, number: true, competitionYear: true, division: true,
+      _count: { select: { groups: true } },
+    },
+  })
+  for (const sib of siblings) {
+    if (sib.id === seasonId) continue
+    const placed = await prisma.seasonGroupPlayer.count({ where: { group: { seasonId: sib.id } } })
+    if (placed > 0) {
+      return {
+        claimedByOther: true,
+        label: `Season ${sib.number} ${sib.competitionYear} Division ${sib.division ?? '?'}`,
+      }
+    }
+  }
+  return { claimedByOther: false }
+}
+
 /** Every Auto Assign path refuses the same four situations, in the same order. */
 async function guard(seasonId: number, phase: 'entrants' | 'scores'): Promise<
   | { ok: true; season: { id: number; archiveTemplateKey: string | null; lifecycleState: string }; entry: ManifestEntry }
@@ -56,7 +140,24 @@ async function guard(seasonId: number, phase: 'entrants' | 'scores'): Promise<
    * Division B would count every result twice and invent a divisional membership the archive does
    * not record. Blocked at the service, not just hidden in the UI.
    */
-  if (isSharedStage(entry)) return { blocked: true, reason: SHARED_STAGE_MESSAGE }
+  /*
+   * The shared 2006 field may be reconstructed — into ONE division.
+   *
+   * This used to refuse both outright, which made those four Seasons impossible to rebuild at all.
+   * The real requirement was never "never apply it", it was "never apply it twice", and that is what
+   * the claim check enforces.
+   */
+  if (isSharedStage(entry)) {
+    const claim = await sharedStageClaim(entry, seasonId)
+    if (claim.claimedByOther) {
+      return {
+        blocked: true,
+        reason: `The 2006 group stage was played undivided, and ${claim.label} already holds it. `
+          + 'Applying the same groups here would count every result twice. Clear that Season\'s groups '
+          + 'first if it belongs here instead.',
+      }
+    }
+  }
 
   const allowed = phase === 'entrants'
     ? ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP']
@@ -147,9 +248,10 @@ export async function previewGroupAssign(
   if ('blocked' in g) return g
   const { entry } = g
 
+  const data = templateData(entry)
   const entrants = await loadEntrantIdentities(seasonId)
   const result: MatchResult = matchHandles(
-    entry.participants.map((p) => ({
+    data.participants.map((p) => ({
       sourceId: p.sourceId, rawHandle: p.rawHandle, normalizedHandle: p.normalizedHandle,
       rawName: p.rawName, groupName: p.groupName, slot: p.slot,
     })),
@@ -166,7 +268,7 @@ export async function previewGroupAssign(
 
   const plan: GroupAssignPlan = {
     templateKey: entry.templateKey,
-    groupNames: entry.groupNames,
+    groupNames: data.groupNames,
     alreadyCorrect: [], toPlace: [], conflicts: [],
     unresolved: result.unresolved.map((u) => ({
       rawHandle: u.rawHandle, groupName: u.groupName, slot: u.slot,
@@ -174,8 +276,8 @@ export async function previewGroupAssign(
       suggestions: u.suggestions.map((s) => ({ entrantId: s.entrantId, displayName: s.displayName, cueverseId: s.cueverseId, why: s.why })),
     })),
     unusedEntrants: result.unusedEntrants.map((e) => ({ entrantId: e.entrantId, displayName: e.displayName, cueverseId: e.cueverseId })),
-    sourceParticipants: entry.participants.length,
-    sourceGroups: entry.groupNames.length,
+    sourceParticipants: data.participants.length,
+    sourceGroups: data.groupNames.length,
   }
 
   for (const m of result.matched) {
@@ -353,9 +455,10 @@ export async function previewGroupScores(seasonId: number): Promise<ScorePlan | 
   if ('blocked' in g) return g
   const { entry } = g
 
+  const data = templateData(entry)
   const entrants = await loadEntrantIdentities(seasonId)
   const match = matchHandles(
-    entry.participants.map((p) => ({
+    data.participants.map((p) => ({
       sourceId: p.sourceId, rawHandle: p.rawHandle, normalizedHandle: p.normalizedHandle,
       rawName: p.rawName, groupName: p.groupName, slot: p.slot,
     })),
@@ -379,7 +482,7 @@ export async function previewGroupScores(seasonId: number): Promise<ScorePlan | 
   )
 
   const rows: ScorePlanRow[] = []
-  for (const mt of entry.matches) {
+  for (const mt of data.matches) {
     const a = entrantBySource.get(mt.aSourceId)
     const b = entrantBySource.get(mt.bSourceId)
     const base = { groupName: mt.groupName, aHandle: mt.aRawHandle, bHandle: mt.bRawHandle, scoreA: mt.scoreA, scoreB: mt.scoreB }
@@ -423,7 +526,7 @@ export async function previewGroupScores(seasonId: number): Promise<ScorePlan | 
     alreadyMatches: rows.filter((r) => r.status === 'already-matches').length,
     conflicts: rows.filter((r) => r.status === 'manual-conflict').length,
     unresolved: rows.filter((r) => !['will-apply', 'already-matches'].includes(r.status)).length,
-    standingsOnly: entry.matches.length === 0 && entry.standings.length > 0,
+    standingsOnly: data.matches.length === 0 && entry.standings.length > 0,
   }
 }
 
@@ -451,8 +554,9 @@ export async function applyGroupScores(
   const entry = manifestEntry(preview.templateKey)
   if (!entry) return { ok: false, error: 'No verified archive data.', applied: 0, alreadyMatched: 0, conflicted: 0, unresolved: 0 }
 
+  const applyData = templateData(entry)
   const match = matchHandles(
-    entry.participants.map((p) => ({
+    applyData.participants.map((p) => ({
       sourceId: p.sourceId, rawHandle: p.rawHandle, normalizedHandle: p.normalizedHandle,
       rawName: p.rawName, groupName: p.groupName, slot: p.slot,
     })),
@@ -477,7 +581,7 @@ export async function applyGroupScores(
     const groups = await tx.seasonGroup.findMany({ where: { seasonId }, select: { id: true, code: true } })
     const groupIdByCode = new Map(groups.map((g) => [g.code, g.id]))
 
-    for (const mt of entry.matches) {
+    for (const mt of applyData.matches) {
       if (mt.resultKind !== 'exact') continue
       const a = bySource.get(mt.aSourceId)
       const b = bySource.get(mt.bSourceId)
@@ -611,7 +715,14 @@ export async function autoAssignAvailability(
   const entry = manifestEntry(season.archiveTemplateKey)
   if (!entry) return { show: false, disabledReason: null }
 
-  if (isSharedStage(entry)) return { show: true, disabledReason: SHARED_STAGE_MESSAGE }
+  if (isSharedStage(entry)) {
+    const claim = await sharedStageClaim(entry, seasonId)
+    if (claim.claimedByOther) {
+      return { show: true, disabledReason: `${SHARED_STAGE_MESSAGE} — ${claim.label} already holds it.` }
+    }
+    // Free to take. The preview will say plainly that the field is the undivided one.
+    return { show: true, disabledReason: null }
+  }
 
   const allowed = phase === 'entrants'
     ? ['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP']
@@ -622,10 +733,11 @@ export async function autoAssignAvailability(
     return { show: false, disabledReason: null }
   }
 
-  if (phase === 'entrants' && entry.groupAssignments === 'missing') {
+  const avail = templateData(entry)
+  if (phase === 'entrants' && avail.participants.length === 0) {
     return { show: true, disabledReason: 'No archived group assignments for this Season.' }
   }
-  if (phase === 'scores' && entry.exactResults === 'missing') {
+  if (phase === 'scores' && avail.matches.length === 0) {
     return {
       show: true,
       disabledReason: entry.standings.length > 0
