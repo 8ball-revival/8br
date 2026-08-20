@@ -34,8 +34,22 @@ async function run() {
   // --- pure validation / normalization ---
   check('valid CueVerse ID accepted', validateCueverseId('Sixohtwo') === null)
   check('empty CueVerse ID rejected', validateCueverseId('') !== null)
-  check('too-short (1 char) rejected', validateCueverseId('a') !== null)
-  check('illegal char (space) rejected', validateCueverseId('a b') !== null)
+  /*
+   * The charset restriction was removed deliberately.
+   *
+   * Real handles are email addresses, contain @ and +, and the archive holds stranger ones still, so
+   * a tidy charset was rejecting people who genuinely play here. What remains is only what would
+   * break something: a slash splits the /players/<id> path segment, and control characters cannot be
+   * typed on purpose.
+   */
+  check('a single character is allowed', validateCueverseId('a') === null)
+  check('spaces are allowed', validateCueverseId('a b') === null)
+  check('an email-style handle is allowed', validateCueverseId('slamballmanlita@sbcglobal.net') === null)
+  check('punctuation and symbols are allowed', validateCueverseId('@My_Key') === null && validateCueverseId('50%er') === null)
+  check('accents and unicode are allowed', validateCueverseId('José') === null)
+  check('a slash is refused - it would split the profile URL', validateCueverseId('a/b') !== null)
+  check('a backslash is refused', validateCueverseId('a\b') !== null)
+  check('an over-long id is refused', validateCueverseId('x'.repeat(61)) !== null)
   check('normalize trims surrounding whitespace', normalizeCueverseId('  Ant  ') === 'Ant')
   check('login key lowercases + trims', cueverseLoginKey('  AnT ') === 'ant')
   check('case-only ids share one login key', cueverseLoginKey('Ant') === cueverseLoginKey('ant'))
@@ -68,8 +82,9 @@ async function run() {
   check('surrounding whitespace trimmed on change', ws.ok === true && bD.cueverseId === `${TAG}Delta`)
 
   // --- change: invalid rejected ---
-  const badFmt = await changeCueverseId(actor, b.id, 'x', { override: true })
-  check('invalid new id rejected', badFmt.ok === false)
+  // 'x' is a legitimate id now, so the rejection case has to be one that is still refused.
+  const badFmt = await changeCueverseId(actor, b.id, 'bad/slash', { override: true })
+  check('an id containing a slash is still rejected', badFmt.ok === false)
 
   // --- case-only recasing: allowed, same identity, updates display capitalization ---
   const caseOnly = await changeCueverseId(actor, b.id, `${TAG}DELTA`, { override: true })

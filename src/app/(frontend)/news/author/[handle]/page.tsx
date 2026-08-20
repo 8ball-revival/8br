@@ -59,7 +59,7 @@ export default async function AuthorPage({ params, searchParams }: Props) {
           Articles by {label}
           {p.cueverseId && p.primaryName !== p.cueverseId && <span className="opacity-70"> ({p.primaryName})</span>}.
           {' '}
-          <Link href={`/players/${p.cueverseId ?? p.id}`} className="text-brand hover:underline">Player profile</Link>
+          <Link href={`/players/${encodeURIComponent(p.cueverseId ?? p.id)}`} className="text-brand hover:underline">Player profile</Link>
         </>
       }
       emptyMessage={`${label} has not published anything yet.`}

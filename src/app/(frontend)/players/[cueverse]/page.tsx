@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return pageMetadata({
     title: handle,
     description: `Public 8 Ball Registry profile for ${handle} — Rating, rank, and competitive record.`,
-    path: `/players/${cueverse}`,
+    path: `/players/${encodeURIComponent(cueverse)}`,
     index: false,
   })
 }

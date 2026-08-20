@@ -175,8 +175,21 @@ section('88 private shells exist and are empty')
 
 section('Nothing else in the database moved')
 {
-  check('142 players', (await prisma.player.count()) === 142, String(await prisma.player.count()))
-  check('13 aliases', (await prisma.playerAlias.count()) === 13, String(await prisma.playerAlias.count()))
+  /*
+   * Players and aliases can only GROW, and only by the owner adding members.
+   *
+   * 142 and 13 were the counts before the shells were created. The import created neither, and the
+   * owner creates members while this runs — so a hard equality would fail on their legitimate work
+   * and invite somebody to delete it to make a number match. What must hold is that nothing was
+   * removed and the import added none.
+   */
+  const players = await prisma.player.count()
+  const aliases = await prisma.playerAlias.count()
+  check('no player was removed', players >= 142, String(players))
+  check('no alias was removed', aliases >= 13, String(aliases))
+  if (players > 142 || aliases > 13) {
+    console.log(`  (${players - 142} player(s) and ${aliases - 13} alias(es) added by hand since the import)`)
+  }
   /*
    * Entrants can only GROW, and only by the owner's hand.
    *

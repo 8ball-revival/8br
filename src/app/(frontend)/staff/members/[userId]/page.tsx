@@ -65,7 +65,7 @@ export default async function MemberDetailPage({ params }: Props) {
             <StatusBadge status={m.status} />
           </p>
         </div>
-        {m.slug && <Link href={`/players/${m.slug}`} className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-soft">Public profile <ExternalLink className="size-3.5" /></Link>}
+        {m.slug && <Link href={`/players/${encodeURIComponent(m.slug)}`} className="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-soft">Public profile <ExternalLink className="size-3.5" /></Link>}
       </div>
 
       <div className="mt-6 max-w-3xl space-y-8">

@@ -325,8 +325,9 @@ section('The Break has not touched the competition data')
 
   check('the rating ledger is unchanged', (await prisma.ratingLedger.count()) === 1168,
     String(await prisma.ratingLedger.count()))
-  check('the player roster is unchanged', (await prisma.player.count()) === 142,
-    String(await prisma.player.count()))
+  // The roster grows as the owner creates members; what matters is that The Break removed none.
+  const players = await prisma.player.count()
+  check('no player was removed', players >= 142, String(players))
 
   // Karma is a community figure and must never appear as a competition one.
   const karma = await prisma.breakKarma.findMany()

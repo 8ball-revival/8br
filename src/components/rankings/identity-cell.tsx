@@ -103,7 +103,7 @@ export function IdentityCell({
   if (identity.slug) {
     return (
       <Link
-        href={`/players/${identity.slug}`}
+        href={`/players/${encodeURIComponent(identity.slug)}`}
         className={cn(
           'block min-w-0 rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
           className,

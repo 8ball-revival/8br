@@ -55,7 +55,7 @@ function Row({ row }: { row: Top10Row }) {
         <span className="block truncate text-sm font-medium">
           {row.slug ? (
             <Link
-              href={`/players/${row.slug}`}
+              href={`/players/${encodeURIComponent(row.slug)}`}
               className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
             >
               {primary}

@@ -66,10 +66,24 @@ export function validatePreferredName(input: string): string | null {
   return null
 }
 
-const CUEVERSE_RE = /^[a-z0-9_.\-]{2,40}$/i
+/**
+ * The only characters a CueVerse ID cannot contain.
+ *
+ * Real handles are full of things a tidy charset would reject — "slamballmanlita@sbcglobal.net",
+ * "xlx_master_of_tables_xlx", "dp.gary" — and the archive holds stranger ones still. So the rule is
+ * inverted: everything is allowed except the few characters that would genuinely break something.
+ *
+ * A forward slash is excluded because a profile lives at /players/<id>, which is ONE path segment —
+ * an id containing a slash would split into two and never resolve. A backslash goes with it. Control
+ * characters are excluded because they cannot be typed deliberately and would corrupt any display
+ * they reached. Nothing else is refused: @ + ! # spaces, accents and emoji all pass.
+ */
+const CUEVERSE_FORBIDDEN = new RegExp('[/\\\\\\u0000-\\u001f\\u007f]')
 
-/** Trim accidental leading/trailing spaces while preserving the user's capitalization and
- *  valid punctuation (dots/underscores/hyphens) for public display. */
+/** A bound, not a shape. Long enough for an email-style handle. */
+export const CUEVERSE_MAX = 60
+
+/** Trim accidental leading/trailing spaces while preserving everything the member actually typed. */
 export function normalizeCueverseId(input: string): string {
   return (input ?? '').trim()
 }
@@ -82,7 +96,8 @@ export function cueverseLoginKey(input: string): string {
 export function validateCueverseId(input: string): string | null {
   const v = normalizeCueverseId(input)
   if (!v) return 'CueVerse ID is required.'
-  if (!CUEVERSE_RE.test(v)) return 'CueVerse ID must be 2–40 characters: letters, numbers, dots, underscores, or hyphens.'
+  if (v.length > CUEVERSE_MAX) return `CueVerse ID is too long (max ${CUEVERSE_MAX} characters).`
+  if (CUEVERSE_FORBIDDEN.test(v)) return 'CueVerse ID cannot contain a slash or a backslash.'
   return null
 }
 

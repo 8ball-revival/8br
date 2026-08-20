@@ -317,7 +317,7 @@ export function ExpandedRow({
             which put a permanent form control in front of a reader who mostly wanted to read. */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Link
-            href={`/players/${row.slug}`}
+            href={`/players/${encodeURIComponent(row.slug)}`}
             className="inline-block rounded text-xs text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Full profile →

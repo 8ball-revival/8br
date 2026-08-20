@@ -37,7 +37,7 @@ export function PublicPlayerIdentity({
   const full = formatIdentityLabel(preferredName, cueverseId)
   if (slug) {
     return (
-      <Link href={`/players/${slug}`} className={cn('hover:text-brand transition-colors', className)} title={full}>
+      <Link href={`/players/${encodeURIComponent(slug)}`} className={cn('hover:text-brand transition-colors', className)} title={full}>
         {inner}
       </Link>
     )
