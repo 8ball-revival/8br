@@ -382,6 +382,18 @@ export async function applyGroupAssign(
       placed++
     }
 
+    /*
+     * Creating groups moves the Season into GROUP_SETUP, exactly as Generate Groups does.
+     *
+     * Without this the Season kept sitting in REGISTRATION_CLOSED while holding a full set of
+     * groups and placements — and "Group Stage Live" refuses that transition, so a Season built with
+     * Auto Assign could not be started at all. The two paths create the same thing and must leave the
+     * Season in the same state; anything else makes which button you pressed matter later.
+     */
+    if (season.lifecycleState === 'REGISTRATION_CLOSED' && (groupsCreated > 0 || placed > 0)) {
+      await tx.season.update({ where: { id: seasonId }, data: { lifecycleState: 'GROUP_SETUP' } })
+    }
+
     await recordAudit(actor, {
       action: 'season.archive.autoassign.groups',
       entity: 'Season',
