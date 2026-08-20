@@ -40,32 +40,65 @@ export async function generateSeasonGroups(actor: Actor, seasonId: number, numGr
 
   const entrants = await prisma.seasonEntrant.findMany({
     where: { seasonId, status: 'APPROVED', kickedOut: false },
-    // Highest rating first; unrated (null) sink to the bottom; stable by id.
-    orderBy: [{ ratingSnapshot: 'desc' }, { id: 'asc' }],
-    select: { id: true, ratingSnapshot: true },
+    // ENTRY ORDER. `id` is an autoincrement, so ascending is the order they were added.
+    orderBy: { id: 'asc' },
+    select: { id: true },
   })
   if (entrants.length < n * MIN_GROUP_SIZE) {
     return { ok: false, error: `Need at least ${n * MIN_GROUP_SIZE} entrants for ${n} groups of ${MIN_GROUP_SIZE}.` }
   }
-  // Unrated players are grouped at the bottom; snake-deal preserves ±1 balance.
-  const ordered = [...entrants].sort((a, b) => (b.ratingSnapshot ?? -1) - (a.ratingSnapshot ?? -1) || a.id - b.id)
+
+  /*
+   * Fill Group A, then B, then C — in the order entrants were added.
+   *
+   * This used to sort by rating and then deal serpentine, which balances group strength and is the
+   * right answer for a live Season where nobody has decided who plays whom. It is the wrong answer
+   * for rebuilding a historical Season, which is what this is mostly used for: the operator enters
+   * the roster group by group, reading off the original page, and then had to drag all forty players
+   * back out of the arrangement the balancer invented.
+   *
+   * Their entry order already IS the grouping. Honouring it turns the whole exercise into one click,
+   * and anyone who wants a balanced draw can still move players by hand afterwards.
+   *
+   * Uneven totals put the extra players in the earliest groups, matching how a roster is written
+   * down — A fills before B.
+   */
+  const total = entrants.length
+  const base = Math.floor(total / n)
+  const remainder = total % n
+  const sizes = Array.from({ length: n }, (_, i) => base + (i < remainder ? 1 : 0))
 
   await prisma.$transaction(async (tx) => {
     await tx.seasonGroup.deleteMany({ where: { seasonId } }) // cascade clears group players
     const groups: { id: number }[] = []
-    for (let i = 0; i < n; i++) groups.push(await tx.seasonGroup.create({ data: { seasonId, code: groupCode(i), ordinal: i }, select: { id: true } }))
-    // Serpentine ("snake") deal: pass 0 left→right, pass 1 right→left, … keeps groups balanced to ±1.
-    const plan = ordered.map((e, idx) => {
-      const pass = Math.floor(idx / n)
-      const pos = idx % n
-      const gi = pass % 2 === 0 ? pos : n - 1 - pos
-      return { entrantId: e.id, groupId: groups[gi].id, seed: idx + 1 }
-    })
+    for (let i = 0; i < n; i++) {
+      groups.push(await tx.seasonGroup.create({
+        data: { seasonId, code: groupCode(i), ordinal: i },
+        select: { id: true },
+      }))
+    }
+
+    const plan: { entrantId: number; groupId: number; seed: number }[] = []
+    let cursor = 0
+    for (let gi = 0; gi < n; gi++) {
+      for (let slot = 0; slot < sizes[gi]; slot++) {
+        const e = entrants[cursor++]
+        // Seed is the position WITHIN the group, so the group table reads in the order entered.
+        plan.push({ entrantId: e.id, groupId: groups[gi].id, seed: slot + 1 })
+      }
+    }
+
     await tx.seasonGroupPlayer.createMany({ data: plan })
-    await recordAudit(actor, { action: 'season.groups.generate', entity: 'Season', entityId: seasonId, newValue: { groups: n, entrants: ordered.length } }, tx)
+    await recordAudit(actor, {
+      action: 'season.groups.generate',
+      entity: 'Season',
+      entityId: seasonId,
+      newValue: { groups: n, entrants: total, order: 'entry' },
+    }, tx)
     await tx.season.update({ where: { id: seasonId }, data: { lifecycleState: 'GROUP_SETUP' } })
   })
-  const uneven = ordered.length % n !== 0
+
+  const uneven = remainder !== 0
   return { ok: true, uneven }
 }
 
