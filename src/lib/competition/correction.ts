@@ -440,8 +440,8 @@ function invalidate(id: number, kind: CorrectionKind) {
   // hint failing must never fail the correction it is a hint about. The correction is already
   // committed by the time this runs.
   try {
-    revalidatePath('/archives/seasons')
-    revalidatePath('/archives/cups')
+    revalidatePath('/seasons')
+    revalidatePath('/cups')
     revalidatePath('/creator')
     // The Rankings need their cached AGGREGATE dropped, not just the page re-rendered — see
     // invalidateRankings. Revalidating the path alone re-reads the same stale rows.

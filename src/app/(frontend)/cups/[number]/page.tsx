@@ -368,7 +368,7 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
   if (!ws && !cup) return null // dynamicParams=true → unknown numbers 404 here
 
   const backLink = (
-    <Link href="/archives/cups" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+    <Link href="/cups" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
       <ArrowLeft className="size-4" /> Cups
     </Link>
   )

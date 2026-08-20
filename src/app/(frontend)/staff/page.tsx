@@ -66,7 +66,7 @@ export default async function StaffDashboardPage() {
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Active Seasons" value={o.activeSeasons} href="/seasons" />
         <StatCard label="Upcoming Seasons" value={o.upcomingSeasons} href="/seasons" />
-        <StatCard label="Active Cups" value={o.activeTournaments} href="/archives/cups" />
+        <StatCard label="Active Cups" value={o.activeTournaments} href="/cups" />
         <StatCard label="Open Registrations" value={o.openRegistrations} tone="attention" />
         <StatCard label="Unresolved Group Matches" value={o.unresolvedGroupMatches} tone="attention" />
         <StatCard label="Unresolved Playoff Matches" value={o.unresolvedPlayoffMatches} tone="attention" />

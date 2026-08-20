@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { LogOut, Menu, X } from 'lucide-react'
 // Menu closes via link onClick (below), not a pathname effect.
 
-import { isMenu, type NavEntry, type NavItem } from '@/lib/nav'
+import { type NavItem } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/account/actions'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,7 @@ function isActive(pathname: string, href: string) {
 }
 
 /** Mobile navigation drawer (slide-down panel). */
-export function MobileNav({ entries, className, isSignedIn = false, extraItems = [] }: { entries: NavEntry[]; className?: string; isSignedIn?: boolean; extraItems?: NavItem[] }) {
+export function MobileNav({ entries, className, isSignedIn = false, extraItems = [] }: { entries: NavItem[]; className?: string; isSignedIn?: boolean; extraItems?: NavItem[] }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -49,39 +49,6 @@ export function MobileNav({ entries, className, isSignedIn = false, extraItems =
         <div className="fixed inset-x-0 top-[calc(var(--header-offset,7rem))] bottom-0 z-50 overflow-y-auto border-t border-border bg-background/98 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4">
             {[...entries, ...extraItems].map((entry) => {
-              // On a phone a two-option dropdown is worse than two rows: it costs an extra tap and
-              // hides the destinations behind a gesture. The group is shown as a labelled heading
-              // with its options beneath, which is the same information without the interaction.
-              if (isMenu(entry)) {
-                return (
-                  <div key={entry.label} className="mt-2 first:mt-0">
-                    <p className="flex items-center gap-2 px-3 pb-1 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {entry.live && (
-                        <span className="relative flex size-1.5" aria-hidden>
-                          <span className="absolute inline-flex size-full rounded-full bg-[var(--gold)] opacity-60 motion-safe:animate-ping" />
-                          <span className="relative inline-flex size-1.5 rounded-full bg-[var(--gold)]" />
-                        </span>
-                      )}
-                      {entry.label}
-                    </p>
-                    {entry.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        className={cn(
-                          'block rounded-md px-3 py-3 text-base font-medium transition-colors',
-                          isActive(pathname, item.href)
-                            ? 'bg-white/[0.06] text-[var(--gold)]'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                        )}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                )
-              }
               const active = isActive(pathname, entry.href)
               return (
                 <Link

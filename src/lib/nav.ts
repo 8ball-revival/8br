@@ -2,69 +2,31 @@
 export type NavItem = { label: string; href: string }
 
 /**
- * Menu items are DROPDOWN TRIGGERS, not destinations.
- *
- * Live and Archives each cover two different competition types with genuinely different listings,
- * and there is no useful combined page for either — a mixed list of a running Season and a finished
- * Tournament answers nobody's question. So the trigger opens a two-option panel and only the option
- * navigates.
- */
-export interface NavMenu {
-  label: string
-  /** The two destinations. One is dropped when nothing of that type qualifies. */
-  items: NavItem[]
-  /** Shown with a restrained live indicator. */
-  live?: boolean
-}
-
-export type NavEntry = NavItem | NavMenu
-
-export const isMenu = (e: NavEntry): e is NavMenu => 'items' in e
-
-export const LIVE_MENU: NavMenu = {
-  label: 'Live',
-  live: true,
-  items: [
-    { label: 'Seasons', href: '/live/seasons' },
-    { label: 'Cups', href: '/live/cups' },
-  ],
-}
-
-export const ARCHIVES_MENU: NavMenu = {
-  label: 'Archives',
-  items: [
-    { label: 'Seasons', href: '/archives/seasons' },
-    { label: 'Cups', href: '/archives/cups' },
-  ],
-}
-
-/**
  * Build the navigation for one request.
  *
- * Live is CONDITIONAL and its contents are conditional: with only Seasons running the panel offers
- * only Seasons, at full width, rather than a half-width option beside a dead one. With nothing
- * running the item disappears entirely — an empty Live tab is worse than no Live tab, because it
- * promises something is happening.
+ * ── Seasons and Cups are permanent top-level tabs ────────────────────────────────────────────────
+ * They used to be Live and Archives: two dropdown triggers, each opening a Seasons/Cups pair, so
+ * reaching a Season meant knowing in advance whether it had finished. That is a distinction the site
+ * cares about and the reader does not — they want the Seasons, and whether one is still running is
+ * something the page should tell them, not something they should have to guess before clicking.
+ *
+ * So there is one destination per competition type, always present, and each page leads with what is
+ * running and follows with what is finished.
  *
  * Creator and Admin are administrative. Hiding them here is presentation only: every Creator route
  * and every mutation enforces authorisation server-side regardless of what this returns.
  */
 export function buildNav(opts: {
-  live: { seasons: number; tournaments: number }
   canCreate?: boolean
   adminItems?: NavItem[]
-}): NavEntry[] {
-  const { live, canCreate = false, adminItems = [] } = opts
+}): NavItem[] {
+  const { canCreate = false, adminItems = [] } = opts
 
-  const entries: NavEntry[] = [{ label: 'Home', href: '/' }]
-
-  const liveItems = LIVE_MENU.items.filter((i) =>
-    i.href === '/live/seasons' ? live.seasons > 0 : live.tournaments > 0)
-  if (liveItems.length > 0) entries.push({ ...LIVE_MENU, items: liveItems })
-
-  // Archives always offers both: a competition type with no completed entries yet still has an
-  // archive, and the empty state explains that better than a missing menu item does.
-  entries.push(ARCHIVES_MENU)
+  const entries: NavItem[] = [
+    { label: 'Home', href: '/' },
+    { label: 'Seasons', href: '/seasons' },
+    { label: 'Cups', href: '/cups' },
+  ]
 
   if (canCreate) entries.push({ label: 'Creator', href: '/creator' })
   entries.push({ label: 'Rankings', href: '/rankings' })
@@ -76,10 +38,11 @@ export function buildNav(opts: {
   return entries
 }
 
-/** Legacy flat list, kept for the footer and anything that cannot render a menu. */
+/** Legacy flat list, kept for the footer and anything that cannot render the full nav. */
 export const PRIMARY_NAV: NavItem[] = [
   { label: 'Home', href: '/' },
-  { label: 'Archives', href: '/archives/seasons' },
+  { label: 'Seasons', href: '/seasons' },
+  { label: 'Cups', href: '/cups' },
   { label: 'Rankings', href: '/rankings' },
   { label: 'News', href: '/news' },
 ]

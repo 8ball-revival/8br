@@ -16,7 +16,7 @@ import {
   SEASON_STATES, COMPLETENESS_LABEL,
   type SeasonFacts, type TournamentFacts,
 } from '../src/lib/competition/lifecycle-rules.ts'
-import { buildNav, isMenu, type NavMenu } from '../src/lib/nav.ts'
+import { buildNav } from '../src/lib/nav.ts'
 
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
@@ -175,63 +175,49 @@ section('Tournaments follow the same rule over their own lifecycle')
 }
 
 // ─────────────────────────────────────────────── Navigation
-section('Navigation is built from what is actually Live')
+/*
+ * Seasons and Cups are PERMANENT top-level tabs.
+ *
+ * They used to be two dropdowns — Live and Archives — each opening a Seasons/Cups pair, with Live
+ * appearing and disappearing depending on what was running. That made the tab a reader needed
+ * depend on a fact they could not see before clicking. The classification rules above still decide
+ * what appears WITHIN a page; they no longer decide what the navigation looks like.
+ */
+section('Navigation offers one permanent destination per competition type')
 {
-  const labels = (entries: ReturnType<typeof buildNav>) =>
-    entries.map((e) => e.label).join(' · ')
-  const menu = (entries: ReturnType<typeof buildNav>, label: string) =>
-    entries.find((e) => isMenu(e) && e.label === label) as NavMenu | undefined
+  const labels = (entries: ReturnType<typeof buildNav>) => entries.map((e) => e.label).join(' · ')
+  const href = (entries: ReturnType<typeof buildNav>, label: string) =>
+    entries.find((e) => e.label === label)?.href
 
-  const none = buildNav({ live: { seasons: 0, tournaments: 0 } })
-  check('with nothing Live the Live item is ABSENT — an empty Live tab promises something',
-    !none.some((e) => e.label === 'Live'), labels(none))
-  check('the public order is Home · Archives · Rankings · News',
-    labels(none) === 'Home · Archives · Rankings · News', labels(none))
+  const pub = buildNav({})
+  check('the public order is Home · Seasons · Cups · Rankings · News',
+    labels(pub) === 'Home · Seasons · Cups · Rankings · News', labels(pub))
+  check('Seasons points at /seasons', href(pub, 'Seasons') === '/seasons', href(pub, 'Seasons'))
+  check('Cups points at /cups', href(pub, 'Cups') === '/cups', href(pub, 'Cups'))
 
-  const seasonsOnly = buildNav({ live: { seasons: 1, tournaments: 0 } })
-  const m1 = menu(seasonsOnly, 'Live')
-  check('with only Seasons Live, the Live item appears', !!m1)
-  check('...offering only Seasons, at full width rather than beside a dead option',
-    m1?.items.length === 1 && m1.items[0].href === '/live/seasons')
+  // The whole point of the change: neither tab is conditional, and neither hides behind a menu.
+  check('there is no Live tab', !pub.some((e) => e.label === 'Live'), labels(pub))
+  check('there is no Archives tab', !pub.some((e) => e.label === 'Archives'), labels(pub))
+  check('every entry is a link with a destination', pub.every((e) => typeof e.href === 'string' && e.href !== ''))
+  check('nothing points into the retired sections',
+    !JSON.stringify(pub).includes('/live/') && !JSON.stringify(pub).includes('/archives/'),
+    JSON.stringify(pub))
 
-  const tournamentsOnly = buildNav({ live: { seasons: 0, tournaments: 3 } })
-  check('with only Cups Live, only Cups is offered',
-    menu(tournamentsOnly, 'Live')?.items.length === 1
-    && menu(tournamentsOnly, 'Live')?.items[0].href === '/live/cups')
-  check('...and it is labelled Cups, the public term',
-    menu(tournamentsOnly, 'Live')?.items[0].label === 'Cups')
+  const admin = buildNav({ canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
+  check('the administrative order is Home · Seasons · Cups · Creator · Rankings · News · Admin',
+    labels(admin) === 'Home · Seasons · Cups · Creator · Rankings · News · Admin', labels(admin))
+  check('Creator sits between Cups and Rankings', href(admin, 'Creator') === '/creator')
+  check('Creator is absent for a public visitor', !pub.some((e) => e.label === 'Creator'))
+  check('Admin is absent for a public visitor', !pub.some((e) => e.label === 'Admin'))
 
-  const both = buildNav({ live: { seasons: 2, tournaments: 1 } })
-  check('with both, both options appear side by side',
-    menu(both, 'Live')?.items.map((i) => i.label).join('|') === 'Seasons|Cups')
-  check('Live carries the live indicator', menu(both, 'Live')?.live === true)
-
-  // Archives is unconditional: a type with no completed entries still has an archive, and its
-  // empty state explains that better than a missing menu item.
-  for (const nav of [none, seasonsOnly, tournamentsOnly, both]) {
-    check('Archives always offers both Seasons and Cups',
-      menu(nav, 'Archives')?.items.map((i) => i.href).join('|') === '/archives/seasons|/archives/cups')
-  }
-  check('Archives is never marked live', menu(none, 'Archives')?.live !== true)
-
-  const admin = buildNav({ live: { seasons: 0, tournaments: 0 }, canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
-  check('the administrative order is Home · Archives · Creator · Rankings · News · Admin',
-    labels(admin) === 'Home · Archives · Creator · Rankings · News · Admin', labels(admin))
-  check('Creator is absent for a public visitor', !none.some((e) => e.label === 'Creator'))
-  check('Admin is absent for a public visitor', !none.some((e) => e.label === 'Admin'))
-
-  const full = buildNav({ live: { seasons: 1, tournaments: 1 }, canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
-  check('with everything present the order is Home · Live · Archives · Creator · Rankings · News · Admin',
-    labels(full) === 'Home · Live · Archives · Creator · Rankings · News · Admin', labels(full))
-
-  // Live is a trigger, not a destination — it must have no href of its own.
-  check('Live is a menu, not a link', isMenu(menu(both, 'Live')!) && !('href' in menu(both, 'Live')!))
-  check('Archives is a menu, not a link', !('href' in menu(none, 'Archives')!))
+  // Seasons and Cups are public and unconditional: they must not appear or vanish with a role.
+  check('Seasons and Cups are shown to everyone',
+    ['Seasons', 'Cups'].every((l) => pub.some((e) => e.label === l) && admin.some((e) => e.label === l)))
 }
 
 section('Public branding')
 {
-  const all = buildNav({ live: { seasons: 1, tournaments: 1 }, canCreate: true })
+  const all = buildNav({ canCreate: true })
   const text = JSON.stringify(all) + JSON.stringify(COMPLETENESS_LABEL)
   check('no "8BR" abbreviation appears in navigation or archive labels', !/\b8BR\b/.test(text), text)
 }

@@ -223,15 +223,15 @@ export function CompletedList({ page }: { page: CompletedPage }) {
                       {/*
                         Above the row link on the z-axis, so a click here is a click here. Without
                         `relative z-10` the stretched overlay above would swallow it and send the
-                        reader to Creator instead of the archive.
+                        reader to Creator instead of the public page.
                       */}
                       <Link
                         href={r.publicHref}
                         className="inline-flex items-center gap-1 rounded px-1 text-xs text-muted-foreground hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-                        aria-label={`View the public archive page for ${r.title}`}
+                        aria-label={`View the public ${r.kind === 'season' ? 'Season' : 'Cup'} page for ${r.title}`}
                       >
                         <ExternalLink className="size-3" aria-hidden />
-                        <span className="hidden sm:inline">View Public Archive</span>
+                        <span className="hidden sm:inline">{r.kind === 'season' ? 'View Season' : 'View Cup'}</span>
                       </Link>
                     </td>
                   </tr>

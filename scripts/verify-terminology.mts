@@ -147,8 +147,10 @@ section('No visible Tournament labels remain')
 section('The Cup vocabulary is the one in use')
 {
   const nav = readFileSync('src/lib/nav.ts', 'utf8')
-  check('navigation offers Cups under Live', nav.includes("label: 'Cups', href: '/live/cups'"))
-  check('navigation offers Cups under Archives', nav.includes("label: 'Cups', href: '/archives/cups'"))
+  // Cups is a top-level tab now rather than an option inside the Live and Archives dropdowns.
+  check('navigation offers Cups as a top-level tab', nav.includes("label: 'Cups', href: '/cups'"))
+  check('...beside Seasons', nav.includes("label: 'Seasons', href: '/seasons'"))
+  check('...and nothing is called Tournaments', !/label: 'Tournaments'/.test(nav))
 
   const cols = readFileSync('src/lib/stats/rankings-columns.ts', 'utf8')
   check('the Rankings column is Cup Titles', cols.includes('Cup Titles'))
@@ -165,10 +167,16 @@ section('The Cup vocabulary is the one in use')
 section('Legacy routes still resolve')
 {
   const redirects = [
-    ['src/app/(frontend)/tournaments/route.ts', '/archives/cups'],
+    ['src/app/(frontend)/tournaments/route.ts', '/cups'],
     ['src/app/(frontend)/tournaments/[number]/route.ts', '/cups/'],
-    ['src/app/(frontend)/live/tournaments/route.ts', '/live/cups'],
-    ['src/app/(frontend)/archives/tournaments/route.ts', '/archives/cups'],
+    // The Live and Archives sections were folded into /seasons and /cups. Their URLs are in the
+    // wild — in bookmarks, in shared links — so every one of them still resolves.
+    ['src/app/(frontend)/live/tournaments/route.ts', '/cups'],
+    ['src/app/(frontend)/archives/tournaments/route.ts', '/cups'],
+    ['src/app/(frontend)/live/seasons/route.ts', '/seasons'],
+    ['src/app/(frontend)/live/cups/route.ts', '/cups'],
+    ['src/app/(frontend)/archives/seasons/route.ts', '/seasons'],
+    ['src/app/(frontend)/archives/cups/route.ts', '/cups'],
     ['src/app/(frontend)/creator/tournaments/[id]/route.ts', '/creator/cups/'],
   ]
   for (const [file, target] of redirects) {

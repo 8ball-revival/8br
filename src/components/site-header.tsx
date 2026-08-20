@@ -12,26 +12,23 @@ import { getSiteBranding } from '@/lib/site-content/service'
 import { signOut } from '@/lib/account/actions'
 import { isStaff } from '@/lib/auth/roles'
 import { buildNav, type NavItem } from '@/lib/nav'
-import { getLiveSummary } from '@/lib/competition/surface'
 import { canSeeCreator } from '@/lib/creator/access'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
   // Branding is admin-managed (published version only); `getSiteBranding` falls back to the
   // built-in identity so the header still renders before anything is published.
-  const [user, branding, live, creator] = await Promise.all([
-    getCurrentUser(), getSiteBranding(), getLiveSummary(), canSeeCreator(),
+  const [user, branding, creator] = await Promise.all([
+    getCurrentUser(), getSiteBranding(), canSeeCreator(),
   ])
   const staff = !!user && isStaff(user.roles)
   // Staff-only Admin entry, appended after the public nav.
   const staffItems: NavItem[] = staff ? [{ label: 'Admin', href: '/staff' }] : []
-  // Home · Live? · Archives · Creator? · Rankings · News · Admin?
-  // Live is omitted entirely when nothing qualifies, and Creator only for administrative roles —
-  // which is presentation only: every Creator route enforces authorisation server-side.
+  // Home · Seasons · Cups · Creator? · Rankings · News · Admin?
   // Creator is gated on the competition-management capability, which is not the same permission as
   // "is staff" — an editor is staff and has no business creating competitions. This only decides
   // whether the item is DRAWN; every Creator route re-checks for itself.
-  const navEntries = buildNav({ live, canCreate: creator })
+  const navEntries = buildNav({ canCreate: creator })
   // Display policy: Preferred Name when present, otherwise the CueVerse ID (the account identity).
   // Never a separate "username" — that is only the internal login key.
   const displayName = user ? (user.preferredName || user.cueverseId || user.username) : ''

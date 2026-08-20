@@ -16,6 +16,6 @@ import { NextResponse, type NextRequest } from 'next/server'
  */
 export function GET(request: NextRequest) {
   const url = request.nextUrl.clone()
-  url.pathname = '/archives/cups'
+  url.pathname = '/cups'
   return NextResponse.redirect(url, 308)
 }

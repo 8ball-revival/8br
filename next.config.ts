@@ -64,9 +64,17 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Legacy "Cups" URLs now live under "Tournaments".
-      { source: '/cups', destination: '/tournaments', permanent: true },
-      { source: '/cups/:path*', destination: '/tournaments/:path*', permanent: true },
+      /*
+       * There is deliberately NO Cups → Tournaments redirect here.
+       *
+       * Two lines used to send /cups to /tournaments, from back when Tournaments was the canonical
+       * name. The rename went the other way and the route handlers under
+       * src/app/(frontend)/tournaments now redirect Tournaments → Cups — so the two pointed at each
+       * other and every public Cup URL bounced between them until the browser gave up. /cups and
+       * /cups/12 were both unreachable.
+       *
+       * The route handlers are the single place that mapping lives. Nothing belongs here.
+       */
       // Canonical host (www → apex) for cueverse.net.
       // Set SITE_WWW_HOST="www.cueverse.net" + SITE_APEX_ORIGIN="https://cueverse.net".
       ...(process.env.SITE_WWW_HOST && process.env.SITE_APEX_ORIGIN

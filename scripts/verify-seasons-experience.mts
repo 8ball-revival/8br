@@ -248,9 +248,17 @@ try {
 
     check('no path points at the Archive Viewer directory',
       files.every(([, src]) => !/C:\\+Claude\\+Archive|Archive[ _]Viewer[/\\]/i.test(src)))
-    check('nothing imports or reads an archive file',
+    /*
+     * The offline viewer's DATA, not the word "archive".
+     *
+     * This used to reject any import whose path contained "archive", which caught the perfectly
+     * legitimate ArchiveBrowser component the Seasons page renders its completed list with. The
+     * dependency that must not exist is on the viewer's files — a JSON or CSV dump, or a module from
+     * the viewer itself — so that is what this looks for now.
+     */
+    check('nothing imports or reads an offline archive data file',
       files.every(([, src]) =>
-        !/(from|import|require|readFile\w*)\s*\(?\s*['"][^'"]*(archive|8brcam-season)[^'"]*['"]/i.test(codeOnly(src))))
+        !/(from|import|require|readFile\w*)\s*\(?\s*['"][^'"]*(8brcam-season|archive[^'"]*\.(json|csv)|archive-viewer)[^'"]*['"]/i.test(codeOnly(src))))
     check('nothing imports the archive JSON or CSV',
       files.every(([, src]) => !/8brcam-season-archive|\.csv['"]/.test(codeOnly(src))))
     check('the browse layer reads through Prisma',
@@ -318,7 +326,16 @@ try {
     check('and addresses the Season by id, not by its number',
       !/\/seasons\/\$\{seasonNumber\}/.test(controls))
     check('the Playoffs toggle is never disabled', !/aria-pressed[^>]*disabled/.test(controls))
-    check('the landing page redirects to the newest Season', files[4][1].includes('redirect(`/seasons/'))
+    /*
+     * The landing page opens the most recent Season.
+     *
+     * The browser IS the Seasons experience, so the tab lands on real data rather than on a page of
+     * summaries. What it must not do is offer a way to change anything — Creator owns the lifecycle.
+     */
+    const landing = files[4][1]
+    check('the landing page redirects to the newest Season', landing.includes('redirect(`/seasons/'))
+    check('...and offers no management controls',
+      !/\/creator|New Season|Create|Reopen|Delete/.test(landing), 'management control on a public page')
   }
 
   console.log('')

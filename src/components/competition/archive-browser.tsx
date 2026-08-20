@@ -37,7 +37,7 @@ export function ArchiveBrowser({
     // Any change to what is being filtered returns to the first page — page 4 of a different
     // question is not where anybody wants to land.
     if (!('page' in patch)) next.delete('page')
-    router.push(`/archives/${kind}${next.toString() ? `?${next}` : ''}`, { scroll: false })
+    router.push(`/${kind}${next.toString() ? `?${next}` : ''}`, { scroll: false })
   }, [params, router, kind])
 
   const get = (k: string) => params.get(k) ?? ''

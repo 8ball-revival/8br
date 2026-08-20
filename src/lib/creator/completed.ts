@@ -10,7 +10,7 @@ import { seasonIsArchived, tournamentIsArchived, type DataCompleteness } from '@
  * "find the one I need to correct", and that is a table: scannable columns, sortable, filterable,
  * a row per record.
  *
- * Eligibility comes from the shared rule, so this list and /archives/seasons can never disagree
+ * Eligibility comes from the shared rule, so this list and /seasons can never disagree
  * about what "completed" means. That matters here more than anywhere: a record visible in one and
  * not the other would mean somebody is correcting something the public cannot see, or the public is
  * reading something nobody can correct.
