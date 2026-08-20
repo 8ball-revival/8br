@@ -257,40 +257,40 @@ enum RecordType {
 /// Preserves the stable legacy id (e.g. "P1316") for traceability across the
 /// import. A Player is fronted by exactly one Competitor for all competitive refs.
 model Player {
-  id                  String           @id @default(cuid())
-  legacyPlayerId      String?          @unique // e.g. "P1316" from the 8BRCAM archive
-  primaryName         String
-  country             String?
-  firstYear           Int?
-  lastYear            Int?
-  primaryYm           String? // primary Yahoo Messenger id (identity signal)
-  primaryEmail        String? // primary email (identity signal)
+  id                   String           @id @default(cuid())
+  legacyPlayerId       String?          @unique // e.g. "P1316" from the 8BRCAM archive
+  primaryName          String
+  country              String?
+  firstYear            Int?
+  lastYear             Int?
+  primaryYm            String? // primary Yahoo Messenger id (identity signal)
+  primaryEmail         String? // primary email (identity signal)
   // Public current-identity fields (safe to display): competitive handle, Discord,
   // and time zone. Email is NEVER stored here (it lives only on the Payload account).
-  cueverseId          String? // public competitive handle (e.g. "Starkiller") — the site-wide default display identity (preserves casing)
+  cueverseId           String? // public competitive handle (e.g. "Starkiller") — the site-wide default display identity (preserves casing)
   // Case-insensitive canonical form of cueverseId (trim + lowercase = cueverseLoginKey). This is the
   // authoritative uniqueness key for account identity: a UNIQUE index enforces that no two players can
   // hold the same CueVerse ID regardless of casing. Written ONLY by the central identity service, which
   // also mirrors it to the Payload auth `username` (the login projection). Nullable for archive/backing
   // players that carry no CueVerse ID (Postgres treats NULLs as distinct, so many may be null).
-  cueverseIdNormalized String? @unique
-  cueverseIdChangedAt DateTime? // last time the CueVerse ID changed (enforces the self-service cooldown)
-  discord             String? // public contact (community norm — shown publicly)
-  timeZone            String?
-  active              Boolean          @default(true) // staff can mark a profile inactive
+  cueverseIdNormalized String?          @unique
+  cueverseIdChangedAt  DateTime? // last time the CueVerse ID changed (enforces the self-service cooldown)
+  discord              String? // public contact (community norm — shown publicly)
+  timeZone             String?
+  active               Boolean          @default(true) // staff can mark a profile inactive
   /// Management-only account: a real login for running the site, not a competitor. Kept out of the
   /// member list and out of every entrant/free-agent selector, so it can never be added to a Season
   /// or Tournament by accident. Distinct from `active`, which hides a profile outright.
-  managementOnly      Boolean          @default(false)
+  managementOnly       Boolean          @default(false)
   /// Trusted Author: may publish their own articles without prior review. Server-enforced, set only
   /// by an owner/admin, and never inferred from competition activity or management-only status.
   /// Revoking it stops new publishing immediately but leaves already-published work standing.
-  blogTrustedAuthor   Boolean          @default(false)
+  blogTrustedAuthor    Boolean          @default(false)
   // Account linking: a Payload user may CLAIM this canonical identity without
   // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
   // @unique enforces one account ↔ at most one profile (both directions).
-  linkedUserId        String?          @unique
-  linkStatus          PlayerLinkStatus @default(UNLINKED)
+  linkedUserId         String?          @unique
+  linkStatus           PlayerLinkStatus @default(UNLINKED)
 
   /// Editorial back-relations. All optional and all SetNull/Cascade on the owning side, so an
   /// archived author never takes published history down with them.
@@ -299,10 +299,23 @@ model Player {
   articleComments  ArticleComment[]  @relation("CommentAuthor")
   articleMentions  ArticleRelation[] @relation("ArticleRelatedPlayer")
   mediaUploads     MediaUpload[]     @relation("MediaUploader")
-  linkedAt            DateTime?
-  provenance          Provenance       @default(NATIVE)
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+
+  // The Break. One sitewide community; see the section at the end of this file.
+  breakPosts         BreakPost[]         @relation("BreakPostAuthor")
+  breakComments      BreakComment[]      @relation("BreakCommentAuthor")
+  breakPostVotes     BreakPostVote[]     @relation("BreakPostVoter")
+  breakCommentVotes  BreakCommentVote[]  @relation("BreakCommentVoter")
+  breakPollVotes     BreakPollVote[]     @relation("BreakPollVoter")
+  breakSavedPosts    BreakSavedPost[]    @relation("BreakSavedPosts")
+  breakSavedComments BreakSavedComment[] @relation("BreakSavedComments")
+  breakHiddenPosts   BreakHiddenPost[]   @relation("BreakHiddenPosts")
+  breakReports       BreakReport[]       @relation("BreakReporter")
+  breakNotifications BreakNotification[] @relation("BreakNotificationRecipient")
+  breakKarma         BreakKarma?         @relation("BreakKarma")
+  linkedAt           DateTime?
+  provenance         Provenance          @default(NATIVE)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   competitor        Competitor?
   aliases           PlayerAlias[]
@@ -1214,10 +1227,10 @@ model Tournament {
   eligibilitySummary   String                    @default("Open to all registered 8 Ball Registry account holders.")
   archivedAt           DateTime? // set when the tournament is archived (read-only history)
   /// See the matching fields on Season — one rule, two models.
-  publiclyVisible      Boolean   @default(true)
-  reconstruction       Boolean   @default(false)
+  publiclyVisible      Boolean                   @default(true)
+  reconstruction       Boolean                   @default(false)
   reopenedAt           DateTime?
-  dataCompleteness     String    @default("full")
+  dataCompleteness     String                    @default("full")
   code                 String?                   @unique // permanent immutable id, e.g. "T001"
   number               Int?                      @unique // public tournament number
   gameType             String? // e.g. "8-Ball"
@@ -1269,14 +1282,14 @@ model Tournament {
   freeAgents     TournamentFreeAgent[]
   ratingLedger   RatingLedger[]
 
+  /// Articles that reference this competition.
+  articleRelations ArticleRelation[]
+
   @@index([lifecycleState])
   @@index([competitionYear])
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
   @@map("comp_tournament")
-
-  /// Articles that reference this competition.
-  articleRelations ArticleRelation[]
 }
 
 /// RATING LEDGER — the authoritative, per-completed-match Elo record (the source of truth for the
@@ -1795,15 +1808,15 @@ model StaffDesignation {
 /// stored here in plaintext — only its bcrypt hash, for a constant-time login check and attempt limit.
 /// The row is deleted once the player sets a permanent password (or lets it expire).
 model PasswordResetState {
-  id            Int      @id @default(autoincrement())
-  userId        Int      @unique // Payload user id
-  forceChange   Boolean  @default(true) // player must set a permanent password before normal use
-  tempCodeHash  String // bcrypt hash of the one-time numeric code (never the plaintext)
-  expiresAt     DateTime // temp code is invalid after this (default: +15 min)
-  attempts      Int      @default(0) // failed temp-code entries (brute-force guard)
-  issuedByUser  Int // actor (Payload user id) who performed the reset
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique // Payload user id
+  forceChange  Boolean  @default(true) // player must set a permanent password before normal use
+  tempCodeHash String // bcrypt hash of the one-time numeric code (never the plaintext)
+  expiresAt    DateTime // temp code is invalid after this (default: +15 min)
+  attempts     Int      @default(0) // failed temp-code entries (brute-force guard)
+  issuedByUser Int // actor (Payload user id) who performed the reset
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([expiresAt])
   @@map("password_reset_state")
@@ -1866,44 +1879,44 @@ enum SeasonQualification {
 /// plain string (no cross-ORM FK, matching Season.bannerMediaId). No image bytes live in Postgres.
 /// When it is null the UI renders an initials fallback badge from `shortName`.
 model CompetitionSeries {
-  id           Int      @id @default(autoincrement())
-  name         String
-  slug         String   @unique
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
   /// Short name / acronym, also the source for the initials fallback badge.
-  shortName    String
-  iconMediaId  String?
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  shortName   String
+  iconMediaId String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   seasons Season[]
 
-  @@index([active])
-  @@map("competition_series")
-
   /// Articles that reference this Competition.
   articleRelations ArticleRelation[]
+
+  @@index([active])
+  @@map("competition_series")
 }
 
 model Season {
-  id             Int                  @id @default(autoincrement())
+  id                  Int                  @id @default(autoincrement())
   /// Public Season number, unique only WITHIN a Competition and year — see the composite key at the
   /// bottom of the model. "8BR Season 1 - 2005", "8BR Retro Season 1 - 2026" and "8BR Season 1 -
   /// 2026" are all valid at once. Never a global identifier: routes and relationships use `id`.
   /// A CHECK constraint keeps it a positive whole number.
-  number         Int
+  number              Int
   /// Competition Year — the four-digit year the competition belongs to. Required; defaults to the
   /// current calendar year at creation. Historical and future years are allowed (1900-2100, range
   /// enforced by a CHECK constraint). Deliberately NOT unique: many competitions share a year.
   /// Primary sort key for every chronological listing.
-  competitionYear Int
+  competitionYear     Int
   /// Owning Competition. Required: every Season belongs to exactly one Competition. Restrict on
   /// delete so removing a Competition can never silently orphan or delete its Seasons.
   competitionSeriesId Int
-  competitionSeries   CompetitionSeries @relation(fields: [competitionSeriesId], references: [id], onDelete: Restrict)
-  slug           String               @unique
-  subtitle       String? // optional custom subtitle; official title is "8BR Season N - YEAR"
-  lifecycleState SeasonLifecycleState @default(REGISTRATION_SCHEDULED)
+  competitionSeries   CompetitionSeries    @relation(fields: [competitionSeriesId], references: [id], onDelete: Restrict)
+  slug                String               @unique
+  subtitle            String? // optional custom subtitle; official title is "8BR Season N - YEAR"
+  lifecycleState      SeasonLifecycleState @default(REGISTRATION_SCHEDULED)
 
   lounge              String     @default("Social")
   accessMode          AccessMode @default(OPEN)
@@ -1947,7 +1960,7 @@ model Season {
   /// some matches, scores or dates were never preserved and have been left missing rather than
   /// invented. Shown on the archive card.
   dataCompleteness  String    @default("full")
-  playoffDoubleElim Boolean @default(false) // decided at playoff setup, not creation
+  playoffDoubleElim Boolean   @default(false) // decided at playoff setup, not creation
   /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
   /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
   /// that the pairings are archived but the scores are not, and have been approximated.
@@ -1975,6 +1988,9 @@ model Season {
   playoffMatches SeasonPlayoffMatch[]
   ratingLedger   RatingLedger[]
 
+  /// Articles that reference this competition.
+  articleRelations ArticleRelation[]
+
   /// The numbering rule, enforced by the database so a race between two creates cannot slip past it.
   @@unique([competitionSeriesId, competitionYear, number], name: "season_competition_year_number")
   @@index([lifecycleState])
@@ -1985,9 +2001,6 @@ model Season {
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
   @@map("season")
-
-  /// Articles that reference this competition.
-  articleRelations ArticleRelation[]
 }
 
 model SeasonEntrant {
@@ -2176,16 +2189,16 @@ enum ArticleState {
 }
 
 model ArticleCategory {
-  id          Int       @id @default(autoincrement())
-  slug        String    @unique
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
   name        String
   description String?
   /// Only administrators may file an article under a category marked official.
-  adminOnly   Boolean   @default(false)
-  sortOrder   Int       @default(0)
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  adminOnly   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   articles Article[]
 
@@ -2220,8 +2233,8 @@ model Article {
 
   /// Canonical author identity. Nullable so an archived author leaves the
   /// article standing; the snapshot below is what renders when it is null.
-  authorPlayerId String?
-  authorPlayer   Player? @relation("ArticleAuthor", fields: [authorPlayerId], references: [id], onDelete: SetNull)
+  authorPlayerId       String?
+  authorPlayer         Player? @relation("ArticleAuthor", fields: [authorPlayerId], references: [id], onDelete: SetNull)
   /// Frozen at publication so an archived or renamed account cannot blank an
   /// article's byline.
   authorNameSnapshot   String
@@ -2231,7 +2244,7 @@ model Article {
   /// Lower-cased in `slugKey` for case-insensitive uniqueness; `slug` keeps the
   /// author's casing for display.
   slug    String
-  slugKey String @unique
+  slugKey String  @unique
   excerpt String?
   /// Structured rich text, sanitised server-side. Never raw HTML.
   body    Json
@@ -2259,15 +2272,15 @@ model Article {
   seoDescription String?
   canonicalUrl   String?
 
-  revision      Int  @default(1)
-  viewCount     Int  @default(0)
-  commentCount  Int  @default(0)
+  revision     Int @default(1)
+  viewCount    Int @default(0)
+  commentCount Int @default(0)
 
   /// Set while a member edits an already-published article: the live revision
   /// keeps serving until an administrator approves the proposal.
-  pendingBody      Json?
-  pendingTitle     String?
-  pendingExcerpt   String?
+  pendingBody        Json?
+  pendingTitle       String?
+  pendingExcerpt     String?
   pendingSubmittedAt DateTime?
 
   reviewerPlayerId String?
@@ -2283,12 +2296,12 @@ model Article {
   archivedAt  DateTime?
   deletedAt   DateTime?
 
-  tags         ArticleTagLink[]
-  revisions    ArticleRevision[]
-  slugHistory  ArticleSlugHistory[]
-  comments     ArticleComment[]
-  metrics      ArticleDailyMetric[]
-  relations    ArticleRelation[]
+  tags        ArticleTagLink[]
+  revisions   ArticleRevision[]
+  slugHistory ArticleSlugHistory[]
+  comments    ArticleComment[]
+  metrics     ArticleDailyMetric[]
+  relations   ArticleRelation[]
 
   @@index([state, publishAt])
   @@index([authorPlayerId])
@@ -2315,18 +2328,18 @@ model ArticleSlugHistory {
 /// A point-in-time copy, kept so a publishing or moderation action can be
 /// reversed. Deliberately NOT a general activity log.
 model ArticleRevision {
-  id          Int      @id @default(autoincrement())
-  articleId   Int
-  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  revision    Int
-  title       String
-  excerpt     String?
-  body        Json
+  id             Int      @id @default(autoincrement())
+  articleId      Int
+  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revision       Int
+  title          String
+  excerpt        String?
+  body           Json
   /// Who saved it, and what it was called at the time.
   editorPlayerId String?
   editorName     String
-  note        String?
-  createdAt   DateTime @default(now())
+  note           String?
+  createdAt      DateTime @default(now())
 
   @@unique([articleId, revision])
   @@index([articleId, createdAt])
@@ -2374,12 +2387,12 @@ model ArticleComment {
 
   body String
 
-  editedAt  DateTime?
+  editedAt         DateTime?
   /// Withdrawn by its author. The row survives so replies keep their place.
-  deletedAt DateTime?
+  deletedAt        DateTime?
   /// Removed by a moderator, which is a different thing from the author
   /// deleting it and is recorded separately.
-  hiddenAt  DateTime?
+  hiddenAt         DateTime?
   hiddenByPlayerId String?
 
   createdAt DateTime @default(now())
@@ -2398,13 +2411,13 @@ model CommentReport {
   commentId Int
   comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
-  reporterPlayerId String?
-  reason           String
+  reporterPlayerId   String?
+  reason             String
   /// Open until a moderator acts on it.
-  resolvedAt       DateTime?
+  resolvedAt         DateTime?
   resolvedByPlayerId String?
-  resolution       String?
-  createdAt        DateTime @default(now())
+  resolution         String?
+  createdAt          DateTime  @default(now())
 
   @@unique([commentId, reporterPlayerId])
   @@index([resolvedAt])
@@ -2415,14 +2428,14 @@ model CommentReport {
 /// activity log: nothing is written here that is not required to reverse
 /// something.
 model EditorialModerationRecord {
-  id        Int      @id @default(autoincrement())
-  action    String
-  articleId Int?
-  commentId Int?
+  id            Int      @id @default(autoincrement())
+  action        String
+  articleId     Int?
+  commentId     Int?
   actorPlayerId String?
   actorName     String
-  detail    Json?
-  createdAt DateTime @default(now())
+  detail        Json?
+  createdAt     DateTime @default(now())
 
   @@index([articleId])
   @@index([commentId])
@@ -2448,8 +2461,8 @@ model ArticleDailyMetric {
 /// Administrator-only standalone pages (About, FAQ and the like). Same editor,
 /// revisions and media as an article, but never listed as news.
 model EditorialPage {
-  id      Int    @id @default(autoincrement())
-  slug    String @unique
+  id      Int     @id @default(autoincrement())
+  slug    String  @unique
   title   String
   body    Json
   excerpt String?
@@ -2467,9 +2480,9 @@ model EditorialPage {
 
   commentsEnabled Boolean @default(false)
 
-  revision  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  revision    Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
   deletedAt   DateTime?
 
@@ -2484,11 +2497,11 @@ model EditorialSettings {
 
   featuredArticleId Int?
 
-  showFeatured   Boolean @default(true)
-  showOfficial   Boolean @default(true)
+  showFeatured    Boolean @default(true)
+  showOfficial    Boolean @default(true)
   showPredictions Boolean @default(true)
-  showCommunity  Boolean @default(true)
-  showDiscussed  Boolean @default(true)
+  showCommunity   Boolean @default(true)
+  showDiscussed   Boolean @default(true)
 
   sectionOrder Json?
 
@@ -2521,7 +2534,7 @@ model CueVerseSnapshot {
   provider String @default("cueverse")
 
   /// When this application successfully fetched it.
-  fetchedAt DateTime @default(now())
+  fetchedAt       DateTime  @default(now())
   /// When the SOURCE says its data was current, when it tells us. Usually null.
   sourceUpdatedAt DateTime?
 
@@ -2553,7 +2566,7 @@ model CueVerseSnapshotEntry {
   /// The display name exactly as supplied, after sanitisation.
   name String
 
-  rating Int
+  rating      Int
   /// Secondary public statistics. Null when the source omits them.
   wins        Int?
   losses      Int?
@@ -2584,8 +2597,8 @@ model MediaUpload {
   mimeType String
   bytes    Int
   /// Recorded when the source provides them; used for the dimension ceiling and for layout hints.
-  width  Int?
-  height Int?
+  width    Int?
+  height   Int?
 
   createdAt DateTime @default(now())
 
@@ -2625,4 +2638,601 @@ model RegistrationAttempt {
   // Named to match the index the migration created, so db push has nothing at all to do.
   @@index([clientHash, createdAt], map: "registration_attempt_client_created_idx")
   @@map("registration_attempt")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+// THE BREAK — one sitewide community: posts, threaded comments, voting, moderation.
+//
+// Everything here is ADDITIVE. The editorial tables (article, article_comment, …) are left in place
+// and untouched: the migration reads them, and keeping them means the compatibility period is real
+// rather than a claim. Nothing in this section touches Seasons, Cups, players, matches or ratings.
+//
+// ── Naming ───────────────────────────────────────────────────────────────────────────────────────
+// Every model and table is prefixed `Break` / `break_`, so it is never ambiguous which publishing
+// system a table belongs to while both exist.
+//
+// ── Canonical rows and cached counters ───────────────────────────────────────────────────────────
+// Votes, saves and reports each have a real row with a unique constraint. The `score`, `upvotes`,
+// `commentCount` and similar fields on posts and comments are CACHES, maintained in the same
+// transaction as the row that changes them, and rebuildable from the canonical rows at any time by
+// the reconciliation service. Where the two disagree, the rows are right.
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+
+enum BreakPostType {
+  TEXT
+  IMAGE
+  GALLERY
+  GIF
+  VIDEO
+  LINK
+  POLL
+}
+
+enum BreakPostState {
+  /// Visible only to its author. Never appears in a feed, a search or an API listing.
+  DRAFT
+  PUBLISHED
+  /// Taken down by a moderator. The row survives, the discussion survives, the body is withheld.
+  REMOVED
+  /// Withdrawn by its author. If it has comments a shell remains so the thread is not orphaned.
+  DELETED
+}
+
+enum BreakMediaKind {
+  IMAGE
+  GIF
+  VIDEO
+}
+
+enum BreakMediaStatus {
+  /// Uploaded, not yet usable — a video still being probed or normalised.
+  PENDING
+  READY
+  /// Processing failed. The post stays a draft; the author can retry or remove the item.
+  FAILED
+}
+
+enum BreakReportReason {
+  SPAM
+  HARASSMENT
+  PERSONAL_INFO
+  CHEATING
+  OFF_TOPIC
+  INAPPROPRIATE_MEDIA
+  IMPERSONATION
+  OTHER
+}
+
+enum BreakReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
+enum BreakNotificationKind {
+  POST_REPLY
+  COMMENT_REPLY
+  MENTION
+  MOD_REMOVED
+  MOD_RESTORED
+  MOD_LOCKED
+  POLL_CLOSED
+  OFFICIAL_REPLY
+}
+
+/// A filter within The Break — NOT a separate community. Every published post has exactly one.
+model BreakCategory {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique
+  name        String
+  description String?
+  /// Token name or hex for the chip, so staff can recolour without a deploy.
+  color       String  @default("gold")
+  /// Only staff may file a post here. Announcement uses this.
+  adminOnly   Boolean @default(false)
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts BreakPost[]
+
+  @@index([active, sortOrder])
+  @@map("break_category")
+}
+
+model BreakPost {
+  id    Int            @id @default(autoincrement())
+  type  BreakPostType  @default(TEXT)
+  state BreakPostState @default(DRAFT)
+
+  /// Canonical Player. Nullable so removing a profile leaves the post standing under its snapshot.
+  authorPlayerId       String?
+  authorPlayer         Player? @relation("BreakPostAuthor", fields: [authorPlayerId], references: [id], onDelete: SetNull)
+  /// Frozen at publication so a rename cannot rewrite history. A merge DOES repoint authorPlayerId
+  /// and refresh these, which is the one case where the byline is supposed to change.
+  authorNameSnapshot   String
+  authorHandleSnapshot String?
+
+  title    String
+  /// `slug` keeps the author's casing for display; `slugKey` is lower-cased and unique.
+  slug     String
+  slugKey  String  @unique
+  /// Structured rich text, sanitised server-side. Never raw HTML.
+  body     Json?
+  /// Flattened plain text, maintained alongside `body` purely so search has something indexable.
+  bodyText String?
+
+  categoryId Int?
+  category   BreakCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // ── Link posts ────────────────────────────────────────────────────────────────────────────────
+  linkUrl            String?
+  linkDomain         String?
+  linkTitle          String?
+  linkDescription    String?
+  linkImageUrl       String?
+  /// The author may delete a generated preview without deleting the link.
+  linkPreviewRemoved Boolean @default(false)
+
+  // ── Flags ─────────────────────────────────────────────────────────────────────────────────────
+  spoiler         Boolean @default(false)
+  sensitive       Boolean @default(false)
+  official        Boolean @default(false)
+  pinned          Boolean @default(false)
+  pinOrder        Int     @default(0)
+  locked          Boolean @default(false)
+  commentsEnabled Boolean @default(true)
+  /// The author opting out of reply notifications for this post.
+  muteReplies     Boolean @default(false)
+
+  // ── Moderation and deletion ───────────────────────────────────────────────────────────────────
+  removedAt         DateTime?
+  removedByPlayerId String?
+  /// Shown publicly in place of the body. Distinct from the private moderator note.
+  removalReason     String?
+  deletedAt         DateTime?
+  editedAt          DateTime?
+  publishedAt       DateTime?
+
+  // ── Cached counters. Canonical rows are the source of truth; see the reconciliation service. ──
+  score        Int   @default(0)
+  upvotes      Int   @default(0)
+  downvotes    Int   @default(0)
+  commentCount Int   @default(0)
+  viewCount    Int   @default(0)
+  saveCount    Int   @default(0)
+  reportCount  Int   @default(0)
+  shareCount   Int   @default(0)
+  /// Precomputed Hot ordering key, recomputed on vote and comment. Indexed so the default feed is
+  /// an index scan rather than a sort over every post.
+  hotRank      Float @default(0)
+
+  /// An internal repost points at the ROOT original, never at another repost — the service resolves
+  /// the chain before writing, so a repost of a repost cannot form one.
+  repostOfId Int?
+  repostOf   BreakPost?  @relation("BreakRepost", fields: [repostOfId], references: [id], onDelete: SetNull)
+  reposts    BreakPost[] @relation("BreakRepost")
+
+  /// Set when this post was migrated from the editorial system, so the two can be reconciled and the
+  /// old URL can be redirected to the new one.
+  legacyArticleId Int? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media         BreakPostMedia[]
+  poll          BreakPoll?
+  comments      BreakComment[]
+  votes         BreakPostVote[]
+  saves         BreakSavedPost[]
+  hides         BreakHiddenPost[]
+  reports       BreakReport[]
+  slugHistory   BreakPostSlug[]
+  views         BreakPostDailyView[]
+  notifications BreakNotification[]
+
+  // Feed sorts. Each is a real access path, not decoration:
+  @@index([state, pinned, pinOrder]) // pinned band, read first
+  @@index([state, hotRank]) // Hot
+  @@index([state, publishedAt]) // New, and the Top time windows
+  @@index([state, score, publishedAt]) // Top
+  @@index([state, publishedAt, score]) // Rising (recent window, then velocity)
+  @@index([authorPlayerId, state, publishedAt]) // a member's own posts and drafts
+  @@index([categoryId, state, publishedAt]) // category filter
+  @@index([state, removedAt, deletedAt]) // public-visibility predicate
+  @@map("break_post")
+}
+
+/// A URL a post has had before. Retitling must never break a link that is already shared.
+model BreakPostSlug {
+  id        Int       @id @default(autoincrement())
+  postId    Int
+  post      BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  slugKey   String    @unique
+  slug      String
+  createdAt DateTime  @default(now())
+
+  @@index([postId])
+  @@map("break_post_slug")
+}
+
+model BreakPostMedia {
+  id     Int       @id @default(autoincrement())
+  postId Int
+  post   BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  /// Position within a gallery. Zero for single-media posts.
+  position Int              @default(0)
+  kind     BreakMediaKind
+  status   BreakMediaStatus @default(READY)
+
+  /// Application-relative path served by the media route, never a raw filesystem path.
+  url         String
+  /// The storage key the media abstraction owns — local file in development, Blob key in production.
+  storageKey  String?
+  mimeType    String
+  bytes       Int     @default(0)
+  width       Int?
+  height      Int?
+  /// Seconds. Videos only.
+  duration    Float?
+  posterUrl   String?
+  /// Captions/subtitles track, when one was supplied.
+  captionsUrl String?
+
+  alt     String?
+  caption String?
+
+  /// 'upload' or 'giphy'. A GIPHY item is referenced canonically rather than re-hosted.
+  sourceProvider String  @default("upload")
+  sourceId       String?
+
+  /// Why processing failed, for the author's retry affordance.
+  error String?
+
+  createdAt DateTime @default(now())
+
+  @@index([postId, position])
+  @@index([status])
+  @@map("break_post_media")
+}
+
+model BreakPoll {
+  id     Int       @id @default(autoincrement())
+  postId Int       @unique
+  post   BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  closesAt   DateTime?
+  closedAt   DateTime?
+  /// Cached; canonical count is the vote rows.
+  totalVotes Int       @default(0)
+
+  createdAt DateTime @default(now())
+
+  options BreakPollOption[]
+  votes   BreakPollVote[]
+
+  @@map("break_poll")
+}
+
+model BreakPollOption {
+  id        Int       @id @default(autoincrement())
+  pollId    Int
+  poll      BreakPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  position  Int       @default(0)
+  text      String
+  voteCount Int       @default(0)
+
+  votes BreakPollVote[]
+
+  @@index([pollId, position])
+  @@map("break_poll_option")
+}
+
+/// One vote per account per poll, enforced by the database rather than by the handler.
+model BreakPollVote {
+  id        Int             @id @default(autoincrement())
+  pollId    Int
+  poll      BreakPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId  Int
+  option    BreakPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player          @relation("BreakPollVoter", fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+
+  @@unique([pollId, playerId])
+  @@index([optionId])
+  @@map("break_poll_vote")
+}
+
+model BreakComment {
+  id     Int       @id @default(autoincrement())
+  postId Int
+  post   BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  parentId Int?
+  parent   BreakComment?  @relation("BreakCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  BreakComment[] @relation("BreakCommentReplies")
+
+  /**
+   * A materialised path, so a whole thread is ONE indexed range scan.
+   * Walking parent pointers costs a query per level, which is the classic way a comment tree becomes
+   * the slowest page on a site. `path` is the dot-joined zero-padded ancestor ids ("0000123.0000456")
+   * and sorts into exactly the display order; `depth` is its length, so a depth cap is a predicate
+   * rather than a traversal.
+   */
+  path  String
+  depth Int    @default(0)
+
+  authorPlayerId       String?
+  authorPlayer         Player? @relation("BreakCommentAuthor", fields: [authorPlayerId], references: [id], onDelete: SetNull)
+  authorNameSnapshot   String
+  authorHandleSnapshot String?
+
+  body     Json
+  bodyText String
+
+  score       Int @default(0)
+  upvotes     Int @default(0)
+  downvotes   Int @default(0)
+  replyCount  Int @default(0)
+  reportCount Int @default(0)
+
+  /// Shown as speaking for the site. Staff only.
+  distinguished Boolean @default(false)
+  /// One stickied staff comment per post, held above normal sorting.
+  sticky        Boolean @default(false)
+  /// This branch accepts no new replies.
+  locked        Boolean @default(false)
+  spoiler       Boolean @default(false)
+  sensitive     Boolean @default(false)
+  muteReplies   Boolean @default(false)
+
+  editedAt          DateTime?
+  deletedAt         DateTime?
+  removedAt         DateTime?
+  removedByPlayerId String?
+  removalReason     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media         BreakCommentMedia?
+  votes         BreakCommentVote[]
+  saves         BreakSavedComment[]
+  reports       BreakReport[]
+  notifications BreakNotification[]
+
+  @@index([postId, path]) // the whole tree in display order
+  @@index([postId, score]) // Top / Best
+  @@index([postId, createdAt]) // New / Old
+  @@index([parentId])
+  @@index([authorPlayerId, createdAt])
+  @@index([postId, sticky, score])
+  @@map("break_comment")
+}
+
+/// At most one media item per comment — enforced by the unique commentId, not by the handler.
+model BreakCommentMedia {
+  id        Int          @id @default(autoincrement())
+  commentId Int          @unique
+  comment   BreakComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  kind           BreakMediaKind
+  status         BreakMediaStatus @default(READY)
+  url            String
+  storageKey     String?
+  mimeType       String
+  bytes          Int              @default(0)
+  width          Int?
+  height         Int?
+  duration       Float?
+  posterUrl      String?
+  alt            String?
+  caption        String?
+  sourceProvider String           @default("upload")
+  sourceId       String?
+  error          String?
+
+  createdAt DateTime @default(now())
+
+  @@map("break_comment_media")
+}
+
+/**
+ * Votes.
+ * `value` is +1 or -1 and never zero — removing a vote deletes the row, so "no vote" has exactly one
+ * representation. The unique constraint is what makes one-vote-per-account true; the handler
+ * enforcing it as well is belt and braces, not the mechanism.
+ */
+model BreakPostVote {
+  id       Int       @id @default(autoincrement())
+  postId   Int
+  post     BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  playerId String
+  player   Player    @relation("BreakPostVoter", fields: [playerId], references: [id], onDelete: Cascade)
+  value    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([postId, playerId])
+  @@index([playerId, createdAt])
+  @@index([postId, value])
+  @@map("break_post_vote")
+}
+
+model BreakCommentVote {
+  id        Int          @id @default(autoincrement())
+  commentId Int
+  comment   BreakComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player       @relation("BreakCommentVoter", fields: [playerId], references: [id], onDelete: Cascade)
+  value     Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([commentId, playerId])
+  @@index([playerId, createdAt])
+  @@index([commentId, value])
+  @@map("break_comment_vote")
+}
+
+model BreakSavedPost {
+  playerId  String
+  player    Player    @relation("BreakSavedPosts", fields: [playerId], references: [id], onDelete: Cascade)
+  postId    Int
+  post      BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@id([playerId, postId])
+  @@index([playerId, createdAt])
+  @@map("break_saved_post")
+}
+
+model BreakSavedComment {
+  playerId  String
+  player    Player       @relation("BreakSavedComments", fields: [playerId], references: [id], onDelete: Cascade)
+  commentId Int
+  comment   BreakComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@id([playerId, commentId])
+  @@index([playerId, createdAt])
+  @@map("break_saved_comment")
+}
+
+/// Personal, private: hiding a post removes it from that member's feed and nobody else's.
+model BreakHiddenPost {
+  playerId  String
+  player    Player    @relation("BreakHiddenPosts", fields: [playerId], references: [id], onDelete: Cascade)
+  postId    Int
+  post      BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@id([playerId, postId])
+  @@map("break_hidden_post")
+}
+
+/**
+ * Reports.
+ * One active report per account per target per reason, enforced by two partial unique indexes added
+ * in the migration (Prisma cannot express a unique over a nullable pair cleanly). Reporters are
+ * never shown to each other, and a report count alone never removes anything: only a moderator does.
+ */
+model BreakReport {
+  id        Int           @id @default(autoincrement())
+  postId    Int?
+  post      BreakPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId Int?
+  comment   BreakComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  reporterPlayerId String?
+  reporter         Player? @relation("BreakReporter", fields: [reporterPlayerId], references: [id], onDelete: SetNull)
+
+  reason BreakReportReason
+  detail String?
+  status BreakReportStatus @default(OPEN)
+
+  resolvedAt         DateTime?
+  resolvedByPlayerId String?
+  resolution         String?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([postId])
+  @@index([commentId])
+  @@map("break_report")
+}
+
+/// Staff actions, written through the existing audit path as well. This table is what the moderation
+/// history panel reads; the audit log is the tamper-evident record.
+model BreakModerationAction {
+  id            Int      @id @default(autoincrement())
+  action        String
+  postId        Int?
+  commentId     Int?
+  actorPlayerId String?
+  actorName     String
+  /// Shown to everyone, e.g. a removal reason.
+  publicReason  String?
+  /// Staff-only. Never rendered publicly and never included in a notification.
+  note          String?
+  detail        Json?
+  createdAt     DateTime @default(now())
+
+  @@index([postId, createdAt])
+  @@index([commentId, createdAt])
+  @@index([createdAt])
+  @@map("break_moderation_action")
+}
+
+model BreakNotification {
+  id                Int                   @id @default(autoincrement())
+  recipientPlayerId String
+  recipient         Player                @relation("BreakNotificationRecipient", fields: [recipientPlayerId], references: [id], onDelete: Cascade)
+  kind              BreakNotificationKind
+
+  postId    Int?
+  post      BreakPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId Int?
+  comment   BreakComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  actorPlayerId String?
+  actorName     String?
+
+  /// One row per (recipient, kind, target, actor). A reply that also mentions the same person is one
+  /// notification, not two, and a re-edit does not produce another.
+  dedupeKey String    @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([recipientPlayerId, readAt, createdAt])
+  @@map("break_notification")
+}
+
+/// Community participation totals, derived from received votes. Deliberately separate from Rating
+/// and Rank, which are competition facts and must never mix with this.
+model BreakKarma {
+  playerId     String   @id
+  player       Player   @relation("BreakKarma", fields: [playerId], references: [id], onDelete: Cascade)
+  postKarma    Int      @default(0)
+  commentKarma Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@map("break_karma")
+}
+
+/// A tally per post per day. No per-visitor rows and no addresses — enough to show a trend without
+/// tracking anybody.
+model BreakPostDailyView {
+  id     Int       @id @default(autoincrement())
+  postId Int
+  post   BreakPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  day    DateTime  @db.Date
+  views  Int       @default(0)
+
+  @@unique([postId, day])
+  @@index([day])
+  @@map("break_post_daily_view")
+}
+
+/// Recent actions, for rate limiting. Holds an account id and an action name — no addresses, no
+/// payloads. Pruned by the cleanup service.
+model BreakActionLog {
+  id         BigInt   @id @default(autoincrement())
+  playerId   String?
+  /// Hashed request signal for anonymous-adjacent limits. Never a raw address.
+  clientHash String?
+  action     String
+  createdAt  DateTime @default(now())
+
+  @@index([playerId, action, createdAt])
+  @@index([clientHash, action, createdAt])
+  @@index([createdAt])
+  @@map("break_action_log")
 }
