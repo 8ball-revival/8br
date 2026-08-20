@@ -1,5 +1,6 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
+import { lookupArchiveIdentities, otherNamesFor, linkingYim } from './archive-identity'
 
 /**
  * Players who might already be the person about to be created.
@@ -22,6 +23,7 @@ export type DuplicateReason =
   | 'id-matches-name'
   | 'name-matches-id'
   | 'similar-name'
+  | 'shared-yim'
 
 export interface PossibleDuplicate {
   playerId: string
@@ -34,6 +36,8 @@ export interface PossibleDuplicate {
   reason: DuplicateReason
   /** Plain-language explanation, shown next to the row. */
   explanation: string
+  /** The Yahoo ID that connects the two, when that is what matched them. */
+  viaYim?: string
 }
 
 /**
@@ -158,9 +162,64 @@ export async function findPossibleDuplicates(
     })
   }
 
-  // Strongest signal first: an exact clash, then a reversed-field match, then mere similarity.
+  /*
+   * The archive pass: handles connected by a shared Yahoo ID.
+   *
+   * This is the case no string comparison can reach. `Trojan__Man__` and `Top__Dawg__` have not one
+   * character in common, but the archive recorded both against the YIM `top__dawg__` — so typing
+   * either when the other already exists is about to create a duplicate. The evidence is the shared
+   * Yahoo ID, and the explanation says so, because "they share top__dawg__" is checkable and "the
+   * archive says so" is not.
+   */
+  const already = new Set(out.map((m) => m.playerId))
+  for (const term of [idRaw, nameRaw].filter((t) => t.length >= MIN_QUERY)) {
+    for (const identity of lookupArchiveIdentities(term)) {
+      const others = otherNamesFor(identity, term)
+      if (others.length === 0) continue
+      const yim = linkingYim(identity, term)
+
+      // Any existing member using one of this person's other recorded names.
+      const keys = others.map(identityKey).filter(Boolean)
+      if (keys.length === 0) continue
+      const matches = await prisma.player.findMany({
+        where: {
+          OR: [
+            { cueverseIdNormalized: { in: keys } },
+            { cueverseId: { in: others } },
+            { primaryName: { in: others } },
+          ],
+        },
+        select: { id: true, cueverseId: true, primaryName: true, linkedUserId: true },
+        take: 10,
+      })
+
+      for (const m of matches) {
+        if (already.has(m.id)) continue
+        if (identityKey(m.cueverseId) === idKey || identityKey(m.primaryName) === nameKey) continue
+        already.add(m.id)
+        out.push({
+          playerId: m.id,
+          cueverseId: m.cueverseId,
+          preferredName: m.primaryName,
+          hasAccount: m.linkedUserId != null,
+          played: played.get(m.id) ?? 0,
+          reason: 'shared-yim',
+          // Name the Yahoo ID only when one is genuinely established; otherwise say what IS known,
+          // which is that the archive recorded both handles against one Yahoo account.
+          explanation: yim
+            ? `Same person in the archive — both used the Yahoo ID "${yim}".`
+            : 'Same person in the archive — these handles share a Yahoo account.',
+          viaYim: yim ?? undefined,
+        })
+      }
+    }
+  }
+
+  // Strongest signal first: a shared Yahoo ID is the hardest evidence there is, then an exact
+  // clash, then a reversed-field match, then mere similarity.
   const RANK: Record<DuplicateReason, number> = {
-    'exact-id': 0, 'id-matches-name': 1, 'name-matches-id': 2, 'similar-id': 3, 'similar-name': 4,
+    'shared-yim': 0, 'exact-id': 1, 'id-matches-name': 2, 'name-matches-id': 3,
+    'similar-id': 4, 'similar-name': 5,
   }
   out.sort((a, b) => RANK[a.reason] - RANK[b.reason] || b.played - a.played)
   return out.slice(0, LIMIT)

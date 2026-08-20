@@ -17,9 +17,13 @@ import { readFileSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { findPossibleDuplicates, identityKey } from '../src/lib/staff/possible-duplicates.ts'
+import { archiveAvailable, lookupArchiveIdentities, otherNamesFor, linkingYim } from '../src/lib/staff/archive-identity.ts'
 import { TEMPORARY_PASSWORD } from '../src/lib/account/validation.ts'
 
 assertLocalDatabase('verify-member-duplicates')
+
+/** Players this run creates, removed in the finally block whatever happens. */
+const madePlayers: string[] = []
 
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
@@ -70,7 +74,23 @@ section('The panel is gated and rendered beside the form')
   check('it never disables the submit button', !/disabled=\{[^}]*matches/.test(form))
 }
 
+const FIXTURE_IDS = ['ZZTop__Dawg__', 'Top__Dawg__']
+const FIXTURE_NAME = 'ZZ Sterlo Fixture'
+
+async function sweepFixtures() {
+  const strays = await prisma.player.findMany({
+    where: { OR: [{ primaryName: FIXTURE_NAME }, { cueverseId: { in: FIXTURE_IDS } }] },
+    select: { id: true },
+  }).catch(() => [] as { id: string }[])
+  for (const s of strays) {
+    await prisma.playerAlias.deleteMany({ where: { playerId: s.id } }).catch(() => {})
+    await prisma.player.delete({ where: { id: s.id } }).catch(() => {})
+  }
+}
+
 async function main() {
+  await sweepFixtures()
+
   section('Nothing is reported for an empty or trivial query')
   check('an empty query finds nothing', (await findPossibleDuplicates('', '')).length === 0)
   check('a single character finds nothing', (await findPossibleDuplicates('a', '')).length === 0)
@@ -117,6 +137,54 @@ async function main() {
   section('Results are bounded')
   const broad = await findPossibleDuplicates('ab', 'ab')
   check('a short query cannot flood the panel', broad.length <= 8, String(broad.length))
+
+  section('Handles linked by a shared Yahoo ID are flagged')
+  {
+    // The case no string comparison can reach: two handles with nothing in common, recorded in the
+    // archive against one Yahoo account.
+    check('the archive index loaded', archiveAvailable())
+
+    const ids = lookupArchiveIdentities('trojan_man')
+    check('a known handle resolves to an archive person', ids.length === 1, String(ids.length))
+    if (ids.length === 1) {
+      const others = otherNamesFor(ids[0], 'trojan_man').map((x) => x.toLowerCase())
+      check('...and yields the other handles that person used',
+        others.includes('top__dawg__'), others.join(', '))
+      check('...including records folded in by a punctuation-variant Yahoo ID',
+        ids[0].mergedFrom.length > 0, JSON.stringify(ids[0].mergedFrom))
+    }
+
+    // A YIM is only named when it can be defended: these are real personal addresses, and an
+    // arbitrary one printed in an admin panel would be a claim that is not established.
+    const byYim = lookupArchiveIdentities('xlx_cerebro_xlx')
+    check('typing the Yahoo ID itself names that Yahoo ID',
+      byYim.length === 1 && linkingYim(byYim[0], 'xlx_cerebro_xlx') === 'xlx_cerebro_xlx')
+    if (ids.length === 1) {
+      check('a handle on a person with several Yahoo IDs names none of them',
+        linkingYim(ids[0], 'trojan_man') === null, String(linkingYim(ids[0], 'trojan_man')))
+    }
+
+    // End to end: stand in a member under one handle, type the other.
+    const stand = await prisma.player.create({
+      data: { primaryName: 'ZZ Sterlo Fixture', cueverseId: 'ZZTop__Dawg__', cueverseIdNormalized: 'zztop__dawg__' },
+      select: { id: true },
+    })
+    madePlayers.push(stand.id)
+    // Reuse the real archive handle so the link is exercised, not a fixture-only shortcut.
+    await prisma.player.update({ where: { id: stand.id }, data: { cueverseId: 'Top__Dawg__', cueverseIdNormalized: 'top__dawg__' } })
+
+    const flagged = await findPossibleDuplicates('trojan_man', '')
+    check('typing trojan_man flags the existing Top__Dawg__ member',
+      flagged.some((m) => m.playerId === stand.id && m.reason === 'shared-yim'),
+      flagged.map((m) => `${m.cueverseId}[${m.reason}]`).join(' ') || 'nothing')
+    check('...and explains that they share a Yahoo account',
+      flagged.some((m) => /Yahoo/i.test(m.explanation)))
+    check('a shared Yahoo ID outranks every string similarity',
+      flagged[0]?.reason === 'shared-yim', String(flagged[0]?.reason))
+
+    const unrelated = await findPossibleDuplicates('zzz_unrelated_person', '')
+    check('an unrelated handle is still not flagged', unrelated.length === 0, String(unrelated.length))
+  }
 
   section('Nothing is written by looking')
   const before = await prisma.player.count()
