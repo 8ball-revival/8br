@@ -1,0 +1,339 @@
+8BRCAM ARCHIVE INVENTORY — 2006 to 2014
+==============================================================================
+
+Read-only. No database was touched to produce this.
+
+SOURCE
+  8brcam-season-archive.json
+    sha256 25c23adc56109c620d49a26ece77b1522693e168346edeb919ff9a507ef21ed2
+  8brcam-season-archive.html
+    sha256 199e923e4c5c8743e367020f79d7258bd30ceb9fdc26cb1fd485da3bbd135192
+
+TOTALS
+  Candidate archive entries        94
+  Included Season shells           88
+    Division A                     44
+    Division B                     44
+  Excluded — outside 2006-2014     4
+  Excluded — not A/B divisional    2
+  Excluded — prize events          0
+  Excluded — 2v2                   0
+  Excluded — Cup / side events     0
+  Ambiguous                        0
+
+MONTHS
+  Documented                       0
+  Not documented (remain null)     88
+  The archive records no month for any Season. Nothing was inferred from a playoff
+  date or an import timestamp: those are different facts.
+
+GROUP ASSIGNMENT COVERAGE
+  Complete                         80
+  Partial                          3
+  Undivided source (see below)     4
+  Missing                          1
+
+EXACT GROUP RESULT COVERAGE
+  Complete                         82
+  Partial                          0
+  Missing                          6
+  Exact group matches available    9732
+
+PER YEAR (included)
+  2006  14
+  2007  12
+  2008  10
+  2009  12
+  2010  8
+  2011  10
+  2012  10
+  2013  10
+  2014  2
+
+INCLUDED SEASONS
+------------------------------------------------------------------------------
+8brcam-2006-s1-a   2006 Season 1 · Division A
+    groups 0  participants 32  exact results 0  standings rows 0
+    assignments undivided-source   results missing   playoffs yes
+    UNRESOLVED: Group stage was undivided under "2006-s1-single" (14 groups, 98 participants). The archive does not record which division each group belonged to, so group assignments cannot be attributed to this Season without guessing.
+8brcam-2006-s1-b   2006 Season 1 · Division B
+    groups 0  participants 15  exact results 0  standings rows 0
+    assignments undivided-source   results missing   playoffs yes
+    UNRESOLVED: Group stage was undivided under "2006-s1-single" (14 groups, 98 participants). The archive does not record which division each group belonged to, so group assignments cannot be attributed to this Season without guessing.
+8brcam-2006-s2-a   2006 Season 2 · Division A
+    groups 0  participants 31  exact results 0  standings rows 0
+    assignments undivided-source   results missing   playoffs yes
+    UNRESOLVED: Group stage was undivided under "2006-s2-single" (14 groups, 99 participants). The archive does not record which division each group belonged to, so group assignments cannot be attributed to this Season without guessing.
+8brcam-2006-s2-b   2006 Season 2 · Division B
+    groups 0  participants 14  exact results 0  standings rows 0
+    assignments undivided-source   results missing   playoffs yes
+    UNRESOLVED: Group stage was undivided under "2006-s2-single" (14 groups, 99 participants). The archive does not record which division each group belonged to, so group assignments cannot be attributed to this Season without guessing.
+8brcam-2006-s3-a   2006 Season 3 · Division A
+    groups 14  participants 98  exact results 254  standings rows 98
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s3-b   2006 Season 3 · Division B
+    groups 14  participants 98  exact results 254  standings rows 98
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s4-a   2006 Season 4 · Division A
+    groups 9  participants 63  exact results 179  standings rows 63
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s4-b   2006 Season 4 · Division B
+    groups 5  participants 40  exact results 130  standings rows 40
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s5-a   2006 Season 5 · Division A
+    groups 11  participants 77  exact results 212  standings rows 77
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s5-b   2006 Season 5 · Division B
+    groups 5  participants 35  exact results 104  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s6-a   2006 Season 6 · Division A
+    groups 10  participants 70  exact results 200  standings rows 70
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s6-b   2006 Season 6 · Division B
+    groups 5  participants 35  exact results 102  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s7-a   2006 Season 7 · Division A
+    groups 12  participants 84  exact results 229  standings rows 84
+    assignments complete   results complete   playoffs yes
+8brcam-2006-s7-b   2006 Season 7 · Division B
+    groups 7  participants 49  exact results 135  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s1-a   2007 Season 1 · Division A
+    groups 9  participants 63  exact results 181  standings rows 63
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s1-b   2007 Season 1 · Division B
+    groups 9  participants 63  exact results 174  standings rows 63
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s2-a   2007 Season 2 · Division A
+    groups 9  participants 63  exact results 173  standings rows 63
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s2-b   2007 Season 2 · Division B
+    groups 6  participants 42  exact results 122  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s3-a   2007 Season 3 · Division A
+    groups 8  participants 56  exact results 157  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s3-b   2007 Season 3 · Division B
+    groups 6  participants 42  exact results 113  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s4-a   2007 Season 4 · Division A
+    groups 8  participants 56  exact results 148  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s4-b   2007 Season 4 · Division B
+    groups 7  participants 49  exact results 133  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s5-a   2007 Season 5 · Division A
+    groups 7  participants 49  exact results 128  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s5-b   2007 Season 5 · Division B
+    groups 8  participants 56  exact results 140  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s6-a   2007 Season 6 · Division A
+    groups 6  participants 42  exact results 96  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2007-s6-b   2007 Season 6 · Division B
+    groups 8  participants 56  exact results 132  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s1-a   2008 Season 1 · Division A
+    groups 9  participants 62  exact results 172  standings rows 63
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s1-b   2008 Season 1 · Division B
+    groups 9  participants 50  exact results 120  standings rows 63
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s2-a   2008 Season 2 · Division A
+    groups 7  participants 49  exact results 134  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s2-b   2008 Season 2 · Division B
+    groups 6  participants 42  exact results 121  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s3-a   2008 Season 3 · Division A
+    groups 7  participants 49  exact results 143  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s3-b   2008 Season 3 · Division B
+    groups 6  participants 42  exact results 106  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s4-a   2008 Season 4 · Division A
+    groups 7  participants 49  exact results 117  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s4-b   2008 Season 4 · Division B
+    groups 6  participants 36  exact results 96  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s5-a   2008 Season 5 · Division A
+    groups 7  participants 49  exact results 128  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2008-s5-b   2008 Season 5 · Division B
+    groups 6  participants 42  exact results 108  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s1-a   2009 Season 1 · Division A
+    groups 8  participants 56  exact results 149  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s1-b   2009 Season 1 · Division B
+    groups 6  participants 42  exact results 108  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s2-a   2009 Season 2 · Division A
+    groups 8  participants 56  exact results 146  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s2-b   2009 Season 2 · Division B
+    groups 6  participants 42  exact results 120  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s3-a   2009 Season 3 · Division A
+    groups 8  participants 56  exact results 147  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s3-b   2009 Season 3 · Division B
+    groups 6  participants 36  exact results 79  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s4-a   2009 Season 4 · Division A
+    groups 8  participants 56  exact results 138  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s4-b   2009 Season 4 · Division B
+    groups 5  participants 35  exact results 78  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s5-a   2009 Season 5 · Division A
+    groups 0  participants 28  exact results 0  standings rows 0
+    assignments missing   results missing   playoffs yes
+    UNRESOLVED: No group data in the archive for this Season.
+8brcam-2009-s5-b   2009 Season 5 · Division B
+    groups 1  participants 1  exact results 0  standings rows 7
+    assignments complete   results missing   playoffs yes
+    UNRESOLVED: Standings available; exact match-level scores unavailable.
+8brcam-2009-s6-a   2009 Season 6 · Division A
+    groups 7  participants 49  exact results 124  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2009-s6-b   2009 Season 6 · Division B
+    groups 6  participants 36  exact results 95  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s1-a   2010 Season 1 · Division A
+    groups 8  participants 56  exact results 107  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s1-b   2010 Season 1 · Division B
+    groups 6  participants 29  exact results 37  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s2-a   2010 Season 2 · Division A
+    groups 8  participants 56  exact results 145  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s2-b   2010 Season 2 · Division B
+    groups 6  participants 36  exact results 92  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s3-a   2010 Season 3 · Division A
+    groups 8  participants 56  exact results 153  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s3-b   2010 Season 3 · Division B
+    groups 6  participants 36  exact results 96  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s4-a   2010 Season 4 · Division A
+    groups 8  participants 56  exact results 135  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2010-s4-b   2010 Season 4 · Division B
+    groups 6  participants 36  exact results 91  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s1-a   2011 Season 1 · Division A
+    groups 7  participants 49  exact results 120  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s1-b   2011 Season 1 · Division B
+    groups 6  participants 36  exact results 97  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s2-a   2011 Season 2 · Division A
+    groups 7  participants 43  exact results 105  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s2-b   2011 Season 2 · Division B
+    groups 6  participants 35  exact results 93  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s3-a   2011 Season 3 · Division A
+    groups 7  participants 49  exact results 132  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s3-b   2011 Season 3 · Division B
+    groups 6  participants 42  exact results 109  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s4-a   2011 Season 4 · Division A
+    groups 7  participants 49  exact results 115  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s4-b   2011 Season 4 · Division B
+    groups 7  participants 49  exact results 118  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s5-a   2011 Season 5 · Division A
+    groups 7  participants 43  exact results 113  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2011-s5-b   2011 Season 5 · Division B
+    groups 6  participants 42  exact results 116  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s1-a   2012 Season 1 · Division A
+    groups 7  participants 48  exact results 90  standings rows 48
+    assignments partial   results complete   playoffs yes
+8brcam-2012-s1-b   2012 Season 1 · Division B
+    groups 7  participants 46  exact results 66  standings rows 46
+    assignments partial   results complete   playoffs yes
+8brcam-2012-s2-a   2012 Season 2 · Division A
+    groups 7  participants 49  exact results 106  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s2-b   2012 Season 2 · Division B
+    groups 6  participants 42  exact results 80  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s3-a   2012 Season 3 · Division A
+    groups 7  participants 49  exact results 106  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s3-b   2012 Season 3 · Division B
+    groups 6  participants 42  exact results 79  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s4-a   2012 Season 4 · Division A
+    groups 7  participants 49  exact results 107  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s4-b   2012 Season 4 · Division B
+    groups 6  participants 42  exact results 66  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s5-a   2012 Season 5 · Division A
+    groups 6  participants 42  exact results 79  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2012-s5-b   2012 Season 5 · Division B
+    groups 5  participants 35  exact results 62  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s1-a   2013 Season 1 · Division A
+    groups 6  participants 42  exact results 86  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s1-b   2013 Season 1 · Division B
+    groups 5  participants 35  exact results 64  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s2-a   2013 Season 2 · Division A
+    groups 6  participants 42  exact results 79  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s2-b   2013 Season 2 · Division B
+    groups 5  participants 35  exact results 70  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s3-a   2013 Season 3 · Division A
+    groups 8  participants 56  exact results 128  standings rows 56
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s3-b   2013 Season 3 · Division B
+    groups 5  participants 34  exact results 53  standings rows 34
+    assignments partial   results complete   playoffs yes
+8brcam-2013-s4-a   2013 Season 4 · Division A
+    groups 7  participants 49  exact results 97  standings rows 49
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s4-b   2013 Season 4 · Division B
+    groups 6  participants 42  exact results 86  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s5-a   2013 Season 5 · Division A
+    groups 6  participants 42  exact results 90  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2013-s5-b   2013 Season 5 · Division B
+    groups 5  participants 34  exact results 72  standings rows 35
+    assignments complete   results complete   playoffs yes
+8brcam-2014-s1-a   2014 Season 1 · Division A
+    groups 6  participants 42  exact results 96  standings rows 42
+    assignments complete   results complete   playoffs yes
+8brcam-2014-s1-b   2014 Season 1 · Division B
+    groups 5  participants 34  exact results 71  standings rows 35
+    assignments complete   results complete   playoffs yes
+
+EXCLUDED
+------------------------------------------------------------------------------
+2005-s1-single  [excluded-out-of-range]  2005 Season 1
+    competition year 2005 is outside 2006–2014
+2005-s2-single  [excluded-out-of-range]  2005 Season 2
+    competition year 2005 is outside 2006–2014
+2005-s3-single  [excluded-out-of-range]  2005 Season 3
+    competition year 2005 is outside 2006–2014
+2005-s4-single  [excluded-out-of-range]  2005 Season 4
+    competition year 2005 is outside 2006–2014
+2006-s1-single  [excluded-not-divisional]  2006 Season 1
+    undivided group-stage record; its Division A and B Seasons are listed separately
+2006-s2-single  [excluded-not-divisional]  2006 Season 2
+    undivided group-stage record; its Division A and B Seasons are listed separately
