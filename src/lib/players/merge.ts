@@ -25,6 +25,15 @@ import { isAdmin, isOwner } from '@/lib/auth/roles'
  */
 
 export interface MergeSnapshot {
+  /**
+   * Entrant rows moved from the secondary onto the canonical profile, with the display identity
+   * each carried beforehand.
+   *
+   * Undo has to put these back on the exact rows it took them from, and restore the names they
+   * were entered under. Recomputing "which entrants belonged to the secondary" at undo time would
+   * be wrong the moment anything else touched them in between.
+   */
+  movedEntrants?: { id: number; username: string; displayName: string | null }[]
   /** `Player.active` on the secondary immediately before the merge. */
   secondaryWasActive: boolean
   /** Whether the secondary's account was already blocked before the merge. */
@@ -278,7 +287,34 @@ export async function mergeAccounts(
   const secondaryUserId = secondary.linkedUserId ? Number(secondary.linkedUserId) : null
   const wasBlocked = secondaryUserId ? await isAccountBlocked(secondaryUserId) : false
 
+  /*
+   * A Season holds each player once.
+   *
+   * If both profiles entered the same Season, moving one onto the other would either violate that
+   * or silently drop an entry — and which of two entries is the real one is a judgement about what
+   * happened in a pool hall, not something this can infer. It refuses and says where.
+   */
+  const secondaryEntrants = await prisma.seasonEntrant.findMany({
+    where: { playerId: secondaryPlayerId },
+    select: { id: true, seasonId: true, username: true, displayName: true },
+  })
+  if (secondaryEntrants.length > 0) {
+    const primarySeasons = new Set(
+      (await prisma.seasonEntrant.findMany({
+        where: { playerId: primaryPlayerId }, select: { seasonId: true },
+      })).map((e) => e.seasonId),
+    )
+    const clash = [...new Set(secondaryEntrants.filter((e) => primarySeasons.has(e.seasonId)).map((e) => e.seasonId))]
+    if (clash.length > 0) {
+      return {
+        ok: false,
+        error: `Both profiles are entrants in Season ${clash.join(', ')}. Remove one of the duplicate entries first — which of the two is the real one is not something a merge can decide.`,
+      }
+    }
+  }
+
   const snapshot: MergeSnapshot = {
+    movedEntrants: secondaryEntrants.map((e) => ({ id: e.id, username: e.username, displayName: e.displayName })),
     secondaryWasActive: secondary.active,
     secondaryWasBlocked: wasBlocked,
     secondaryUserId,
@@ -306,8 +342,51 @@ export async function mergeAccounts(
       select: { id: true },
     })
     await tx.player.update({ where: { id: secondaryPlayerId }, data: { active: false } })
+
+    /*
+     * Move the competition records, or the merge is only half of one.
+     *
+     * Recording the link and deactivating the profile leaves the person's results split across two
+     * identities, which no read path unions — so the Rankings shows them twice and the official
+     * ladder disagrees with the table about who is who. That is not a merge; it is a note saying a
+     * merge ought to happen.
+     */
+    if (secondaryEntrants.length > 0) {
+      const canon = await tx.player.findUniqueOrThrow({
+        where: { id: primaryPlayerId }, select: { cueverseId: true, primaryName: true },
+      })
+      for (const e of secondaryEntrants) {
+        await tx.seasonEntrant.update({
+          where: { id: e.id },
+          data: {
+            playerId: primaryPlayerId,
+            username: canon.cueverseId ?? canon.primaryName,
+            displayName: canon.primaryName,
+          },
+        })
+      }
+    }
+
+    /*
+     * The ledger is REBUILT, never repointed — and only when something actually moved.
+     *
+     * It is derived: a full replay of every completed competition in order. Rewriting its playerId
+     * in place would move the rows while leaving each pre/post rating computed against the old split
+     * history, so the figures would look right and mean nothing.
+     *
+     * Scoped to merges that moved entrants, because a merge that moved no competition records has
+     * nothing derived to change. Rebuilding regardless would also delete any ledger row with no
+     * competition behind it, which is a legitimate state in test fixtures and not this operation's
+     * business to tidy up.
+     */
+    if (secondaryEntrants.length > 0) {
+      await tx.ratingLedger.deleteMany({ where: { playerId: secondaryPlayerId } })
+      const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+      await rebuildRatingLedger(tx)
+    }
+
     return created.id
-  }).catch((e: unknown) => {
+  }, { timeout: 120_000 }).catch((e: unknown) => {
     if (e instanceof Error && e.message === 'ALREADY_MERGED') return null
     throw e
   })
@@ -327,7 +406,20 @@ export async function mergeAccounts(
           where: { id: secondaryPlayerId },
           data: { active: snapshot.secondaryWasActive },
         })
-      })
+        // The entrants moved inside the committed transaction above, so backing out the merge has
+        // to move them back — otherwise a failed merge leaves the results on the wrong profile.
+        const moved = snapshot.movedEntrants ?? []
+        for (const e of moved) {
+          await tx.seasonEntrant.update({
+            where: { id: e.id },
+            data: { playerId: secondaryPlayerId, username: e.username, displayName: e.displayName },
+          })
+        }
+        if (moved.length > 0) {
+          const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+          await rebuildRatingLedger(tx)
+        }
+      }, { timeout: 120_000 })
       return { ok: false, error: blocked.error ?? 'Could not disable the secondary account login.' }
     }
   }
@@ -387,6 +479,18 @@ export async function undoMerge(
 
   await prisma.$transaction(async (tx) => {
     await tx.playerMerge.delete({ where: { id: mergeId } })
+
+    // Put back exactly the rows the merge took, under the names they were entered with. A merge
+    // recorded before this was tracked has no list, and its entrants stay where they are — undoing
+    // it cannot invent a split that was never written down.
+    const movedBack = snapshot?.movedEntrants ?? []
+    for (const e of movedBack) {
+      await tx.seasonEntrant.update({
+        where: { id: e.id },
+        data: { playerId: merge.mergedPlayerId, username: e.username, displayName: e.displayName },
+      }).catch(() => {})
+    }
+
     await tx.player.update({
       where: { id: merge.mergedPlayerId },
       data: {
@@ -400,7 +504,13 @@ export async function undoMerge(
           : {}),
       },
     })
-  })
+
+    // Same scoping as the merge: nothing moved, nothing derived to rebuild.
+    if (movedBack.length > 0) {
+      const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+      await rebuildRatingLedger(tx)
+    }
+  }, { timeout: 120_000 })
 
   // Only lift the login block if WE applied it.
   if (secondaryUserId && !wasBlocked) {

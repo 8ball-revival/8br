@@ -180,6 +180,11 @@ async function main() {
   check('aggregation fixture merged', m4.ok === true, m4.error)
   const afterCount = (await getPlayerProfile(p4.id))?.matches?.length ?? 0
   check("primary profile absorbs the secondary's results", afterCount > beforeCount, beforeCount + ' -> ' + afterCount)
+  // A merge that moves no entrants leaves the derived ledger alone, so a row written straight into
+  // the table — as this fixture does — is still there afterwards. Merges that DO move competition
+  // records rebuild it instead, which is covered end-to-end in verify-merge-moves-records.mts.
+  check('a merge that moved nothing leaves the ledger untouched',
+    (await prisma.ratingLedger.count({ where: { playerId: s4.id } })) === 1)
   check('secondary profile redirects to the primary', (await primaryOfMergedPlayer(s4.id))?.playerId === p4.id)
   await undoMerge(actor, m4.mergeId!)
   check('undo returns the results to the secondary', ((await getPlayerProfile(p4.id))?.matches?.length ?? 0) === beforeCount)
