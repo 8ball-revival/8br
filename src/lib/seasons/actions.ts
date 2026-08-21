@@ -31,9 +31,23 @@ export interface SeasonActionResult {
 }
 
 /** Season pages are addressed by database id, so that is what gets revalidated. */
+/**
+ * Refresh everything a Season edit can change — including the Rankings AGGREGATE.
+ *
+ * Revalidating the paths alone was the trap `invalidate-rankings` warns about: the page re-renders
+ * and reads the same cached rows straight back, so a group result or a playoff score entered here
+ * did not reach the ladder until the five-minute window happened to lapse. The Tournament side has
+ * always folded the tag in; the Season side, which is where most ranked matches are actually
+ * recorded, did not — only closing or deleting a Season ever cleared it.
+ *
+ * Every Season edit clears it now rather than the handful somebody judged to be ranking-relevant.
+ * The cost of being wrong in that judgement is a table showing figures that are quietly out of
+ * date; the cost of being over-eager is one recomputed aggregate.
+ */
 function revalidateSeason(seasonId?: number | null) {
   if (seasonId != null) revalidatePath(`/seasons/${seasonId}`)
   revalidatePath('/seasons')
+  invalidateRankings()
 }
 
 // ---- Creation -------------------------------------------------------------
@@ -271,8 +285,7 @@ export async function closeSeasonAction(seasonId: number): Promise<SeasonActionR
   const actor = await requireCapability('manage_competitions')
   const r = await closeSeason(actor, seasonId)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(seasonId)
-  invalidateRankings()
+  revalidateSeason(seasonId) // clears the ladder aggregate too
   return { ok: true, message: 'Season closed — champion crowned and rankings applied.' }
 }
 export async function deleteSeasonAction(seasonId: number, password: string): Promise<SeasonActionResult> {
