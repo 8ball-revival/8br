@@ -170,7 +170,10 @@ async function main() {
             postId: p.id,
             kind: 'IMAGE',
             status: 'READY',
-            url: `/api/news/media?file=${encodeURIComponent(a.coverMediaId)}`,
+            // The route that SERVES an uploaded file, not the one that accepts an upload.
+            // `/api/news/media` is POST-only, so the URL built from it answered 405 and every
+            // migrated cover rendered as a broken image.
+            url: `/api/media/file/${encodeURIComponent(a.coverMediaId)}`,
             storageKey: a.coverMediaId,
             mimeType: guessMime(a.coverMediaId),
             alt: a.coverAlt ?? a.title,
