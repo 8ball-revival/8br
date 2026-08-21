@@ -58,6 +58,30 @@ if (removed === 0) {
   console.log(`removed ${removed} orphaned image paragraph (${before} blocks → ${kept.length})`)
 }
 
+/*
+ * The legacy article carries the identical damage, and it is the source the migration is checked
+ * against — verify-the-break-core asserts each migrated body is byte-identical to it. Repairing one
+ * copy and not the other would either leave the corruption to come back on a re-run or turn a real
+ * fidelity check into a false alarm. It is the same defect in both rows, so it is fixed in both.
+ */
+const legacy = await prisma.$queryRaw<{ id: number; body: unknown }[]>`
+  SELECT id, body FROM "public"."article" WHERE id = ${(await prisma.$queryRaw<{ legacyArticleId: number | null }[]>`
+    SELECT "legacyArticleId" FROM "public"."break_post" WHERE id = ${post.id}`)[0]?.legacyArticleId ?? -1}`
+if (legacy.length > 0) {
+  const lbody = (typeof legacy[0].body === 'string' ? JSON.parse(legacy[0].body) : legacy[0].body) as { v: number; blocks: Block[] }
+  const lkept = lbody.blocks.filter((b) => !isOrphan(b))
+  if (lkept.length !== lbody.blocks.length) {
+    lbody.blocks = lkept
+    await prisma.$executeRaw`
+      UPDATE "public"."article" SET body = ${JSON.stringify(lbody)}::jsonb WHERE id = ${legacy[0].id}`
+    console.log(`legacy article ${legacy[0].id}: removed the same orphaned paragraph`)
+  } else {
+    console.log(`legacy article ${legacy[0].id}: already repaired`)
+  }
+} else {
+  console.log('no legacy article to keep in step')
+}
+
 // The alt text the author wrote belongs under the picture it describes.
 const media = await prisma.$queryRaw<{ id: number; caption: string | null }[]>`
   SELECT id, caption FROM "public"."break_post_media" WHERE "postId" = ${post.id} ORDER BY position LIMIT 1`

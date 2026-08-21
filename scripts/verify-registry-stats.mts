@@ -142,11 +142,33 @@ async function main() {
   check('Players is at least the number with a rated match', stats.players >= rated,
         `${stats.players} participants, ${rated} with ledger rows`)
 
+  /*
+   * Champions counts unique PEOPLE, so the independent count has to as well.
+   *
+   * This used to count distinct champion NAMES, which quietly asserts that no two champions ever
+   * share one — and 8BR has two Chrises with a season each, new.zealand and chris.dogg. The name
+   * count folded them into a single champion and the statistic, correctly, did not. Counting by
+   * canonical player id (through an approved merge, falling back to the name only for archive rows
+   * that never had a profile) is the same rule the figure itself uses, and the only one that can
+   * tell two Chrises apart.
+   */
   const champs = n(await prisma.$queryRawUnsafe(`
     SELECT count(*) n FROM (
-      SELECT DISTINCT lower(btrim("championName")) c FROM "public"."season" WHERE "championName" IS NOT NULL AND btrim("championName") <> ''
-      UNION SELECT DISTINCT lower(btrim("championName")) FROM "public"."comp_tournament" WHERE "championName" IS NOT NULL AND btrim("championName") <> '') z`))
-  check('Champions', stats.champions === champs, `${stats.champions} vs ${champs}`)
+      SELECT DISTINCT coalesce(
+               'player:' || coalesce(pm."canonicalPlayerId", s."championPlayerId"),
+               'name:' || lower(btrim(s."championName"))
+             ) AS identity
+        FROM "public"."season" s
+        LEFT JOIN "public"."PlayerMerge" pm
+          ON pm."mergedPlayerId" = s."championPlayerId" AND pm."status" = 'APPROVED'
+       WHERE s."lifecycleState" = 'COMPLETED'
+         AND (s."championPlayerId" IS NOT NULL OR btrim(coalesce(s."championName", '')) <> '')
+      UNION
+      SELECT DISTINCT 'name:' || lower(btrim(t."championName"))
+        FROM "public"."comp_tournament" t
+       WHERE t."status" = 'COMPLETED' AND btrim(coalesce(t."championName", '')) <> '') z`))
+  check('Champions counts unique people, not unique names', stats.champions === champs,
+        `${stats.champions} vs ${champs}`)
 
   const countries = n(await prisma.$queryRawUnsafe(`
     SELECT count(DISTINCT lower(btrim(p."country"))) n FROM "public"."Player" p

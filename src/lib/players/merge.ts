@@ -24,6 +24,20 @@ import { isAdmin, isOwner } from '@/lib/auth/roles'
  * inactive before the merge stays inactive afterwards).
  */
 
+/**
+ * Whether a released handle may be shown publicly as an alias.
+ *
+ * Some archive-era profiles were registered under an email address, so the "handle" being released
+ * is somebody's private contact detail. Aliases are public — they are searched, exported in the
+ * Rankings CSV and rendered on profiles — so an address must never be promoted into one. The
+ * merge still releases the handle; it just does not advertise it.
+ *
+ * The site has had an email leak through a public entrant field before. This is the same rule.
+ */
+function isPubliclyShowableHandle(handle: string): boolean {
+  return !handle.includes('@')
+}
+
 export interface MergeSnapshot {
   /**
    * Entrant rows moved from the secondary onto the canonical profile, with the display identity
@@ -48,6 +62,19 @@ export interface MergeSnapshot {
   secondaryUserId?: number | null
   /** `Player.linkStatus` before the merge, so undo restores what was there. */
   secondaryLinkStatus?: string | null
+  /**
+   * The CueVerse ID the secondary held, released by the merge so the handle can be used again.
+   *
+   * A merged profile is not a person any more — it is one half of somebody who now has a single
+   * identity — so continuing to hold a handle nobody can reach is only a way of making that handle
+   * unusable forever. `Player.cueverseIdNormalized` is UNIQUE at the database level, so freeing it
+   * means actually clearing the column rather than teaching a validator to look the other way.
+   *
+   * Kept here because undo has to be able to give it back, and by then the live column is null.
+   */
+  secondaryCueverseId?: string | null
+  /** Whether the merge added the released handle to the canonical profile as an alias. */
+  aliasAddedToCanonical?: boolean
   mergedAt: string
 }
 
@@ -319,6 +346,7 @@ export async function mergeAccounts(
     secondaryWasBlocked: wasBlocked,
     secondaryUserId,
     secondaryLinkStatus: secondary.linkStatus ?? null,
+    secondaryCueverseId: secondary.cueverseId ?? null,
     mergedAt: new Date().toISOString(),
   }
 
@@ -341,7 +369,45 @@ export async function mergeAccounts(
       },
       select: { id: true },
     })
-    await tx.player.update({ where: { id: secondaryPlayerId }, data: { active: false } })
+    /*
+     * Deactivate the secondary AND release its CueVerse ID.
+     *
+     * The handle used to stay on the merged profile, which made it permanently unusable: the column
+     * is UNIQUE, so the person it was merged INTO could not take it, and neither could anyone else.
+     * That is the wrong answer for the commonest reason a merge happens at all — somebody typed
+     * their handle two ways, and the one they actually want is sitting on the row being retired.
+     *
+     * The handle is not lost. It moves to the canonical profile as an alias first, so search, the
+     * archive matcher and every historical lookup still find the person by it; only then is the
+     * column cleared. Undo restores it, if it is still free by then.
+     */
+    const released = secondary.cueverseId?.trim() || null
+    let aliasAdded = false
+    if (released && isPubliclyShowableHandle(released)) {
+      const existing = await tx.playerAlias.findFirst({
+        where: { playerId: primaryPlayerId, alias: { equals: released, mode: 'insensitive' }, aliasType: 'HANDLE' },
+        select: { id: true },
+      })
+      if (!existing) {
+        await tx.playerAlias.create({
+          data: { playerId: primaryPlayerId, alias: released, aliasType: 'HANDLE' },
+        })
+        aliasAdded = true
+      }
+    }
+
+    await tx.player.update({
+      where: { id: secondaryPlayerId },
+      data: { active: false, ...(released ? { cueverseId: null, cueverseIdNormalized: null } : {}) },
+    })
+
+    if (aliasAdded) {
+      // The snapshot is already written; amend it so undo knows this alias is the merge's to remove.
+      await tx.playerMerge.update({
+        where: { id: created.id },
+        data: { note: JSON.stringify({ ...snapshot, aliasAddedToCanonical: true }) },
+      })
+    }
 
     /*
      * Move the competition records, or the merge is only half of one.
@@ -477,6 +543,25 @@ export async function undoMerge(
     if (holder && holder.id !== merge.mergedPlayerId) relinkBlockedBy = holder.id
   }
 
+  /*
+   * The CueVerse ID the merge released, if it is still going spare.
+   *
+   * Freeing the handle is the point of releasing it, so somebody may well have taken it since —
+   * quite possibly the very profile this was merged into, which is the ordinary case. The column is
+   * UNIQUE, so undo cannot simply write it back; it checks first and, when the handle has gone,
+   * restores the profile without one and says so rather than failing the whole undo over a name.
+   */
+  const releasedId = merge.mergedPlayer.cueverseId == null ? (snapshot?.secondaryCueverseId ?? null) : null
+  let handleTakenBy: string | null = null
+  if (releasedId) {
+    const holder = await prisma.player.findFirst({
+      where: { cueverseIdNormalized: releasedId.trim().toLowerCase() },
+      select: { id: true, primaryName: true, cueverseId: true },
+    })
+    if (holder && holder.id !== merge.mergedPlayerId) handleTakenBy = holder.cueverseId ?? holder.primaryName
+  }
+  const restoreHandle = releasedId != null && handleTakenBy == null
+
   await prisma.$transaction(async (tx) => {
     await tx.playerMerge.delete({ where: { id: mergeId } })
 
@@ -495,6 +580,9 @@ export async function undoMerge(
       where: { id: merge.mergedPlayerId },
       data: {
         active: restoreActive,
+        ...(restoreHandle
+          ? { cueverseId: releasedId, cueverseIdNormalized: releasedId!.trim().toLowerCase() }
+          : {}),
         ...(needsRelink && !relinkBlockedBy
           ? {
               linkedUserId: String(secondaryUserId),
@@ -504,6 +592,19 @@ export async function undoMerge(
           : {}),
       },
     })
+
+    /*
+     * Take back only an alias this merge created.
+     *
+     * A handle the canonical profile already carried before the merge is that profile's own history
+     * and stays. `aliasAddedToCanonical` is written at merge time precisely so undo does not have to
+     * guess which of the two it is.
+     */
+    if (snapshot?.aliasAddedToCanonical && releasedId) {
+      await tx.playerAlias.deleteMany({
+        where: { playerId: merge.canonicalPlayerId, alias: releasedId, aliasType: 'HANDLE' },
+      })
+    }
 
     // Same scoping as the merge: nothing moved, nothing derived to rebuild.
     if (movedBack.length > 0) {
@@ -521,12 +622,19 @@ export async function undoMerge(
     action: 'player.merge.undo',
     entity: 'Player',
     entityId: merge.canonicalPlayerId,
-    oldValue: { mergeId, secondaryPlayerId: merge.mergedPlayerId, snapshot, relinkBlockedBy },
+    oldValue: { mergeId, secondaryPlayerId: merge.mergedPlayerId, snapshot, relinkBlockedBy, handleTakenBy },
     reason,
   })
-  return relinkBlockedBy
-    ? { ok: true, warning: `The account is now linked to another profile, so ${merge.mergedPlayer.primaryName} was reactivated without its login.` }
-    : { ok: true }
+  // Both warnings can apply at once, and each says exactly what did not come back.
+  const notes = [
+    relinkBlockedBy
+      ? `The account is now linked to another profile, so ${merge.mergedPlayer.primaryName} was reactivated without its login.`
+      : null,
+    handleTakenBy
+      ? `The CueVerse ID "${releasedId}" has since been taken by ${handleTakenBy}, so ${merge.mergedPlayer.primaryName} was reactivated without it.`
+      : null,
+  ].filter(Boolean)
+  return notes.length ? { ok: true, warning: notes.join(' ') } : { ok: true }
 }
 
 /**
