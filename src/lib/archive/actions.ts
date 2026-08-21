@@ -150,4 +150,33 @@ export async function applyPlayoffBracketAction(seasonId: unknown, replaceDraft?
   return result
 }
 
+// ─────────────────────────────────────────────────────── Place Entrants
+
+/**
+ * Seat the archived players on the bracket that already exists.
+ *
+ * Separate from Build Playoff Bracket on purpose: that one draws a bracket and demands the whole
+ * field; this one arranges the bracket in front of you and reports whoever it could not confirm.
+ */
+export async function previewPlacementAction(seasonId: unknown) {
+  await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) return { blocked: true as const, reason: 'That is not a valid Season.' }
+  const { previewPlacement } = await import('./auto-playoffs')
+  return previewPlacement(id)
+}
+
+export async function applyPlacementAction(seasonId: unknown) {
+  const actor = await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) return { ok: false, error: 'That is not a valid Season.', placed: 0, skipped: 0, displaced: 0 }
+  const { applyPlacement } = await import('./auto-playoffs')
+  const result = await applyPlacement({ userId: actor.userId, username: actor.username }, id)
+  if (result.ok) {
+    revalidatePath(`/seasons/${id}`)
+    revalidatePath(`/creator/seasons/${id}`)
+  }
+  return result
+}
+
 export { isBlocked }

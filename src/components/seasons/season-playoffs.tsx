@@ -24,7 +24,7 @@ import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 /** Playoff setup (locked seeding + selection + generate/start) OR the live public bracket with inline
  *  admin score entry. */
 export function SeasonPlayoffs({
-  seasonId, phase, seeding, rounds, doubleElim, hasDraft, canManage, canClose, disclaimer, autoPlayoffs,
+  seasonId, phase, seeding, rounds, doubleElim, hasDraft, canManage, canClose, disclaimer, autoPlayoffs, autoPlacement,
 }: {
   seasonId: number
   phase: 'setup' | 'live'
@@ -38,6 +38,8 @@ export function SeasonPlayoffs({
   disclaimer: string | null
   /** Decided on the server; absent for a Season with no archive template. */
   autoPlayoffs?: AutoAssignAvailability
+  /** Place Entrants: offered only where the archive recorded real bracket positions. */
+  autoPlacement?: AutoAssignAvailability
 }) {
   const router = useRouter()
   const confirm = useConfirm()
@@ -108,6 +110,15 @@ export function SeasonPlayoffs({
             */}
             {autoPlayoffs?.show && (
               <AutoAssignPanel seasonId={seasonId} mode="playoffs" disabledReason={autoPlayoffs.disabledReason} />
+            )}
+            {/*
+              Place Entrants comes after Build Playoff Bracket because it is the step after: the
+              bracket exists and the draw is being arranged on it. It seats everyone the archive can
+              confirm and names the rest, so a half-reconstructed Season still gets the positions it
+              can prove.
+            */}
+            {autoPlacement?.show && (
+              <AutoAssignPanel seasonId={seasonId} mode="placement" disabledReason={autoPlacement.disabledReason} />
             )}
             <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => generateSeasonBracketAction(seasonId))}>{hasDraft ? 'Regenerate Bracket' : 'Generate Bracket'}</Button>
             <Button

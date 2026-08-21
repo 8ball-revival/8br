@@ -418,6 +418,330 @@ export async function applyPlayoffBracket(
   }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Place Entrants — seat the archived players on the bracket that is already there
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The reason a single archived player could not be seated. Never a bare count: whoever is
+ * reconstructing the Season has to be able to go and look the person up.
+ */
+export type PlacementSkipReason =
+  | 'not-an-entrant'
+  | 'ambiguous'
+  | 'no-recorded-seat'
+  | 'slot-not-in-bracket'
+  | 'refused'
+
+export interface PlacementPlan {
+  blocked?: false
+  templateKey: string
+  bracketSize: number | null
+  /** Seats that will be written: who goes where, in bracket order. */
+  place: {
+    entrantId: number
+    rawHandle: string
+    displayName: string | null
+    cueverseId: string | null
+    matchNo: number
+    side: 'a' | 'b'
+    seed: number | null
+    bye: boolean
+    /** Already in exactly this seat — applying changes nothing for them. */
+    alreadyThere: boolean
+  }[]
+  /** Archived players this cannot confirm, each with the reason. */
+  skipped: { rawHandle: string; displayName: string | null; reason: PlacementSkipReason; detail?: string }[]
+  /**
+   * Entrants sitting in a first-round seat by hand who are not part of the archived draw.
+   *
+   * Placing evicts them, because the archived arrangement is the thing being reproduced. They are
+   * named so that is a decision rather than a surprise.
+   */
+  displaced: { entrantId: number; displayName: string | null; cueverseId: string | null }[]
+  refusal: string | null
+}
+
+export interface PlacementApplyResult {
+  ok: boolean
+  error?: string
+  placed: number
+  skipped: number
+  displaced: number
+}
+
+/**
+ * Where each archived player belongs on the bracket in front of us.
+ *
+ * ── Not the same job as Build Playoff Bracket ────────────────────────────────────────────────────
+ * That one picks the field and draws the bracket from scratch, and refuses unless every archived
+ * player is present — an all-or-nothing rebuild. This is for the step after: the bracket exists,
+ * somebody is part-way through arranging it by hand, and they want the archive to finish the job.
+ * So it seats everyone it can confirm and names everyone it cannot, which is the only useful answer
+ * when a Season is half-reconstructed.
+ *
+ * It never generates, never changes the field, never touches a later round. First-round seats only.
+ */
+export async function previewPlacement(seasonId: number): Promise<PlacementPlan | AutoAssignBlocked> {
+  const g = await guardPlayoffs(seasonId)
+  if (isBlocked(g)) return g
+  const { entry } = g
+  const po = entry.playoff
+
+  if (po.placement !== 'exact') {
+    return {
+      blocked: true,
+      reason:
+        'The archive lists who played in this Season\u2019s playoffs but not where. There are no recorded positions to reproduce, so placing them would be guesswork.',
+    }
+  }
+
+  const first = await prisma.seasonPlayoffMatch.findMany({
+    where: { seasonId, round: 1 },
+    select: { id: true, slot: true, homeEntrantId: true, awayEntrantId: true, status: true, winnerEntrantId: true },
+    orderBy: { slot: 'asc' },
+  })
+  if (first.length === 0) {
+    return { blocked: true, reason: 'There is no draft bracket yet. Generate one first, then place the entrants on it.' }
+  }
+  if (first.some((m) => m.winnerEntrantId != null)) {
+    return { blocked: true, reason: 'A first-round tie already has a result. Clear it before rearranging the draw.' }
+  }
+
+  // The planner numbers round-one slots from zero; the archive numbers its matches from one.
+  const matchByNo = new Map(first.map((m) => [m.slot + 1, m]))
+
+  const entrantRows = await prisma.seasonEntrant.findMany({
+    where: { seasonId, status: { not: 'WITHDRAWN' } },
+    select: { id: true, playerId: true, displayName: true, username: true, cueverseId: true },
+  })
+  const players = await prisma.player.findMany({
+    where: { id: { in: entrantRows.map((e) => e.playerId).filter((x): x is string => !!x) } },
+    select: { id: true, primaryName: true, cueverseId: true, aliases: { select: { alias: true, aliasType: true } } },
+  })
+  const playerById = new Map(players.map((pl) => [pl.id, pl]))
+
+  const identities: EntrantIdentity[] = entrantRows.map((e) => {
+    const pl = e.playerId ? playerById.get(e.playerId) : undefined
+    return {
+      entrantId: e.id,
+      playerId: e.playerId ?? String(e.id),
+      displayName: pl?.primaryName ?? e.displayName,
+      cueverseId: pl?.cueverseId ?? e.cueverseId ?? e.username,
+      aliases: (pl?.aliases ?? []).map((a) => a.alias),
+      archiveHandles: (pl?.aliases ?? []).filter((a) => a.aliasType === 'HANDLE').map((a) => a.alias),
+    }
+  })
+
+  // Matched against THIS Season's entrants only, never the wider database — the same rule the rest
+  // of Auto Assign follows, and the reason a name that exists elsewhere is still reported here.
+  const match = matchHandles(
+    po.participants.map((x) => ({
+      sourceId: x.sourceId, rawHandle: x.rawHandle, normalizedHandle: x.normalizedHandle,
+      rawName: '', groupName: '-', slot: 0,
+    })),
+    identities,
+  )
+  const bySource = new Map(match.matched.map((m) => [m.sourceId, m]))
+  // The matcher reports every failure in one list with a reason; "more than one candidate" is the
+  // one worth naming separately, because it is the operator's to settle rather than the data's.
+  const unresolvedBySource = new Map(match.unresolved.map((u) => [u.sourceId, u]))
+
+  const place: PlacementPlan['place'] = []
+  const skipped: PlacementPlan['skipped'] = []
+
+  for (const x of po.participants) {
+    const m = bySource.get(x.sourceId)
+    if (!m) {
+      const u = unresolvedBySource.get(x.sourceId)
+      skipped.push({
+        rawHandle: x.rawHandle,
+        displayName: null,
+        reason: u?.reason === 'multiple-possible-entrants' ? 'ambiguous' : 'not-an-entrant',
+        detail: u?.message ?? 'No entrant in this Season matches this handle.',
+      })
+      continue
+    }
+    if (x.firstRound !== 1 || x.matchNo == null || x.side == null) {
+      skipped.push({
+        rawHandle: x.rawHandle, displayName: m.displayName, reason: 'no-recorded-seat',
+        detail: x.firstRound > 1 ? `The archive has them entering at round ${x.firstRound}.` : 'The archive records no first-round seat.',
+      })
+      continue
+    }
+    const target = matchByNo.get(x.matchNo)
+    if (!target) {
+      skipped.push({
+        rawHandle: x.rawHandle, displayName: m.displayName, reason: 'slot-not-in-bracket',
+        detail: `The archive puts them in match ${x.matchNo}, which this bracket does not have.`,
+      })
+      continue
+    }
+    const held = x.side === 'a' ? target.homeEntrantId : target.awayEntrantId
+    place.push({
+      entrantId: m.entrantId,
+      rawHandle: x.rawHandle,
+      displayName: m.displayName,
+      cueverseId: m.cueverseId,
+      matchNo: x.matchNo,
+      side: x.side,
+      seed: x.seed,
+      bye: x.bye,
+      alreadyThere: held === m.entrantId,
+    })
+  }
+
+  /*
+   * Who loses a seat.
+   *
+   * Only somebody sitting in a seat the archive gives to someone else, and who is not being seated
+   * elsewhere themselves. A player already in the right place is not displaced, and neither is one
+   * merely being moved.
+   */
+  const placedIds = new Set(place.map((x) => x.entrantId))
+  const targetKeys = new Set(place.map((x) => `${x.matchNo}:${x.side}`))
+  const displacedIds = new Set<number>()
+  for (const m of first) {
+    for (const side of ['a', 'b'] as const) {
+      const occupant = side === 'a' ? m.homeEntrantId : m.awayEntrantId
+      if (occupant == null || placedIds.has(occupant)) continue
+      if (targetKeys.has(`${m.slot + 1}:${side}`)) displacedIds.add(occupant)
+    }
+  }
+  const entrantById = new Map(entrantRows.map((e) => [e.id, e]))
+  const displaced = [...displacedIds].map((id) => {
+    const e = entrantById.get(id)
+    const pl = e?.playerId ? playerById.get(e.playerId) : undefined
+    return {
+      entrantId: id,
+      displayName: pl?.primaryName ?? e?.displayName ?? null,
+      cueverseId: pl?.cueverseId ?? e?.cueverseId ?? e?.username ?? null,
+    }
+  })
+
+  return {
+    templateKey: g.entry.templateKey,
+    bracketSize: po.bracketSize,
+    place,
+    skipped,
+    displaced,
+    refusal: place.length === 0 ? 'None of the archived players could be matched to an entrant in this Season.' : null,
+  }
+}
+
+/**
+ * Seat them.
+ *
+ * Surgical on purpose: it clears only the seats it is about to write and the seats currently held by
+ * the people it is about to move, then writes the archived arrangement. A manual placement elsewhere
+ * in the first round survives untouched, because the archive has nothing to say about it and
+ * throwing away somebody's work is not this button's job.
+ */
+export async function applyPlacement(
+  actor: { userId: number; username: string },
+  seasonId: number,
+): Promise<PlacementApplyResult> {
+  const preview = await previewPlacement(seasonId)
+  if (isBlocked(preview)) return { ok: false, error: preview.reason, placed: 0, skipped: 0, displaced: 0 }
+  if (preview.refusal) return { ok: false, error: preview.refusal, placed: 0, skipped: 0, displaced: 0 }
+
+  const season = await prisma.season.findUniqueOrThrow({
+    where: { id: seasonId }, select: { lifecycleState: true, archiveTemplateKey: true },
+  })
+  if (season.lifecycleState !== 'PLAYOFF_SETUP') {
+    return { ok: false, error: 'This Season left playoff setup while the preview was open. Nothing was changed.', placed: 0, skipped: 0, displaced: 0 }
+  }
+  if (season.archiveTemplateKey !== preview.templateKey) {
+    return { ok: false, error: 'This Season\u2019s archive template changed while the preview was open. Nothing was changed.', placed: 0, skipped: 0, displaced: 0 }
+  }
+
+  const first = await prisma.seasonPlayoffMatch.findMany({
+    where: { seasonId, round: 1 }, select: { id: true, slot: true }, orderBy: { slot: 'asc' },
+  })
+  const matchByNo = new Map(first.map((m) => [m.slot + 1, m.id]))
+  const targetIds = new Set(preview.place.map((x) => matchByNo.get(x.matchNo)).filter((x): x is number => x != null))
+  const movingIds = preview.place.map((x) => x.entrantId)
+
+  /*
+   * Clear before writing, or a swap will undo the previous one.
+   *
+   * `setSeasonBracketSlot` exchanges places when the target is occupied, which is right for a person
+   * dragging one player at a time and wrong for writing a whole arrangement in sequence: each swap
+   * would shuffle somebody already seated correctly back out again. Emptying the seats involved
+   * first makes every write a plain placement.
+   */
+  await prisma.$transaction(async (tx) => {
+    for (const id of targetIds) {
+      await tx.seasonPlayoffMatch.update({
+        where: { id },
+        data: { homeEntrantId: null, homeUsername: null, homeSeed: null, awayEntrantId: null, awayUsername: null, awaySeed: null },
+      })
+    }
+    // And wherever the movers currently sit, so nobody ends up on the bracket twice.
+    for (const side of ['home', 'away'] as const) {
+      await tx.seasonPlayoffMatch.updateMany({
+        where: { seasonId, round: 1, ...(side === 'home' ? { homeEntrantId: { in: movingIds } } : { awayEntrantId: { in: movingIds } }) },
+        data: side === 'home'
+          ? { homeEntrantId: null, homeUsername: null, homeSeed: null }
+          : { awayEntrantId: null, awayUsername: null, awaySeed: null },
+      })
+    }
+  })
+
+  // The seeds the archive recorded, so the numbers beside each name are its own.
+  for (const x of preview.place) {
+    if (x.seed == null) continue
+    await prisma.seasonEntrant.update({ where: { id: x.entrantId }, data: { playoffSeed: x.seed } }).catch(() => {})
+  }
+
+  let placed = 0
+  for (const x of preview.place) {
+    const matchId = matchByNo.get(x.matchNo)
+    if (matchId == null) continue
+    const r = await setSeasonBracketSlot(actor, seasonId, matchId, x.side === 'a' ? 'home' : 'away', x.entrantId)
+    if (r.ok) placed++
+  }
+
+  // A bye is an empty seat opposite a seeded player, and it has to say so — otherwise it is
+  // indistinguishable from a slot nobody has filled in yet.
+  for (const x of preview.place) {
+    if (!x.bye) continue
+    const matchId = matchByNo.get(x.matchNo)
+    if (matchId == null) continue
+    await prisma.seasonPlayoffMatch.update({
+      where: { id: matchId },
+      data: x.side === 'a' ? { awayUsername: 'Bye' } : { homeUsername: 'Bye' },
+    }).catch(() => {})
+  }
+
+  await recordAudit(actor, {
+    action: 'season.archive.placeentrants',
+    entity: 'Season',
+    entityId: seasonId,
+    newValue: {
+      templateKey: preview.templateKey,
+      placed,
+      skipped: preview.skipped.length,
+      displaced: preview.displaced.length,
+      unplaced: preview.skipped.map((sk) => sk.rawHandle),
+    },
+  })
+
+  return { ok: true, placed, skipped: preview.skipped.length, displaced: preview.displaced.length }
+}
+
+/** Whether Place Entrants belongs on the playoff screen, and what to say when it cannot run. */
+export async function placementAvailability(seasonId: number): Promise<{ show: boolean; disabledReason: string | null }> {
+  const g = await guardPlayoffs(seasonId)
+  if (isBlocked(g)) return { show: false, disabledReason: null }
+  const entry = g.entry
+  // Only ever offered where the archive recorded real positions.
+  if (entry.playoff.placement !== 'exact') return { show: false, disabledReason: null }
+  const draft = await prisma.seasonPlayoffMatch.count({ where: { seasonId, round: 1 } })
+  if (draft === 0) return { show: true, disabledReason: 'Generate a bracket first, then place the entrants on it.' }
+  return { show: true, disabledReason: null }
+}
+
 /** Whether the button belongs on the playoff screen, and what to say when it cannot run. */
 export async function playoffBracketAvailability(seasonId: number): Promise<{ show: boolean; disabledReason: string | null }> {
   const season = await prisma.season.findUnique({

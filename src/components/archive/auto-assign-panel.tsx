@@ -10,10 +10,11 @@ import {
   previewGroupScoresAction, applyGroupScoresAction,
   previewAutoEntrantsAction, applyAutoEntrantsAction,
   previewPlayoffBracketAction, applyPlayoffBracketAction,
+  previewPlacementAction, applyPlacementAction,
 } from '@/lib/archive/actions'
 import type { GroupAssignPlan, ScorePlan, AutoAssignBlocked } from '@/lib/archive/auto-assign'
 import type { EntrantPlan } from '@/lib/archive/auto-entrants'
-import type { PlayoffPlan } from '@/lib/archive/auto-playoffs'
+import type { PlayoffPlan, PlacementPlan } from '@/lib/archive/auto-playoffs'
 
 /**
  * Auto Assign: the gold button, its preview, and the unresolved report.
@@ -30,12 +31,15 @@ import type { PlayoffPlan } from '@/lib/archive/auto-playoffs'
  */
 
 /**
- * The four archive-assisted steps, in the order they are used.
+ * The archive-assisted steps, in the order they are used.
  *
- * All four share this panel: the same preview-then-apply shape, the same unresolved reporting, the
- * same dialog. Only the plan they render differs.
+ * All of them share this panel: the same preview-then-apply shape, the same unresolved reporting,
+ * the same dialog. Only the plan they render differs.
+ *
+ * `placement` is the one that runs LAST, on a bracket that already exists — the others build a
+ * Season up to that point.
  */
-type Mode = 'entrants' | 'groups' | 'scores' | 'playoffs'
+type Mode = 'entrants' | 'groups' | 'scores' | 'playoffs' | 'placement'
 
 const isBlockedPlan = (v: unknown): v is AutoAssignBlocked =>
   typeof v === 'object' && v !== null && (v as { blocked?: boolean }).blocked === true
@@ -52,7 +56,7 @@ export function AutoAssignPanel({
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [plan, setPlan] = useState<GroupAssignPlan | ScorePlan | EntrantPlan | PlayoffPlan | AutoAssignBlocked | null>(null)
+  const [plan, setPlan] = useState<GroupAssignPlan | ScorePlan | EntrantPlan | PlayoffPlan | PlacementPlan | AutoAssignBlocked | null>(null)
   /** Replacing an arranged draft bracket is a second, deliberate confirmation. */
   const [confirmReplace, setConfirmReplace] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -79,6 +83,7 @@ export function AutoAssignPanel({
       const p = mode === 'entrants' ? await previewAutoEntrantsAction(seasonId)
         : mode === 'groups' ? await previewGroupAssignAction(seasonId)
         : mode === 'scores' ? await previewGroupScoresAction(seasonId)
+        : mode === 'placement' ? await previewPlacementAction(seasonId)
         : await previewPlayoffBracketAction(seasonId)
       setPlan(p as typeof plan)
     })
@@ -96,6 +101,13 @@ export function AutoAssignPanel({
         setResult(r.ok
           ? `Selected ${r.selected}, unchecked ${r.excluded}, placed ${r.placed}. `
             + `${r.unresolvedSlots} position(s) left for you, ${r.missing} missing, ${r.ambiguous} ambiguous.`
+          : r.error ?? 'That did not apply.')
+      } else if (mode === 'placement') {
+        const r = await applyPlacementAction(seasonId)
+        setResult(r.ok
+          ? `Placed ${r.placed}.`
+            + (r.skipped > 0 ? ` ${r.skipped} could not be confirmed — see the list above.` : ' Every archived player was confirmed.')
+            + (r.displaced > 0 ? ` ${r.displaced} moved out of a seat you had set by hand.` : '')
           : r.error ?? 'That did not apply.')
       } else if (mode === 'groups') {
         const r = await applyGroupAssignAction(seasonId)
@@ -115,6 +127,7 @@ export function AutoAssignPanel({
   const label = mode === 'entrants' ? 'Auto Add Entrants'
     : mode === 'groups' ? 'Assign Groups'
     : mode === 'scores' ? 'Fill Group Scores'
+    : mode === 'placement' ? 'Place Entrants'
     : 'Build Playoff Bracket'
 
   const helper = mode === 'entrants'
@@ -123,7 +136,9 @@ export function AutoAssignPanel({
       ? 'Places entrants you have already added into the groups the archive recorded.'
       : mode === 'scores'
         ? 'Fills verified archived group results for entrants already assigned to groups.'
-        : 'Selects the archived playoff field and places it. Stops before Start Playoffs.'
+        : mode === 'placement'
+          ? 'Moves the players on this bracket into the positions the archive recorded. Places everyone it can confirm and names the rest.'
+          : 'Selects the archived playoff field and places it. Stops before Start Playoffs.'
 
   if (disabledReason) {
     return (
@@ -190,6 +205,7 @@ export function AutoAssignPanel({
                 mode === 'entrants' ? <EntrantPreview plan={plan as EntrantPlan} />
                   : mode === 'groups' ? <GroupPreview plan={plan as GroupAssignPlan} />
                   : mode === 'scores' ? <ScorePreview plan={plan as ScorePlan} />
+                  : mode === 'placement' ? <PlacementPreview plan={plan as PlacementPlan} />
                   : <PlayoffPreview
                       plan={plan as PlayoffPlan}
                       confirmReplace={confirmReplace}
@@ -217,12 +233,14 @@ export function AutoAssignPanel({
                     || (mode === 'playoffs'
                         && (plan as PlayoffPlan).draftPlacements > 0
                         && !confirmReplace)
+                    || (mode === 'placement' && !!(plan as PlacementPlan).refusal)
                   }
                   className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
                 >
                   {pending ? 'Applying…'
                     : mode === 'entrants' ? 'Add Matched Entrants'
                     : mode === 'playoffs' ? 'Build Bracket'
+                    : mode === 'placement' ? 'Place Entrants'
                     : 'Apply Auto Assign'}
                 </button>
               )}
@@ -462,6 +480,102 @@ function EntrantPreview({ plan }: { plan: EntrantPlan }) {
         </Section>
       )}
     </>
+  )
+}
+
+/**
+ * Place Entrants: what will move, and who could not be confirmed.
+ *
+ * The unconfirmed list is the reason this screen exists. Reproducing a fifteen-year-old draw is
+ * mostly a matter of finding out which handles no longer resolve to anybody, so each one is named
+ * with the reason rather than rolled into a count — a number tells you there is a problem, a name
+ * tells you where to go and look.
+ */
+function PlacementPreview({ plan }: { plan: PlacementPlan }) {
+  const moving = plan.place.filter((x) => !x.alreadyThere)
+  const settled = plan.place.length - moving.length
+
+  const REASONS: Record<PlacementPlan['skipped'][number]['reason'], string> = {
+    'not-an-entrant': 'Not an entrant in this Season',
+    ambiguous: 'More than one entrant could be them',
+    'no-recorded-seat': 'The archive records no first-round seat',
+    'slot-not-in-bracket': 'Their slot is not in this bracket',
+    refused: 'The bracket refused the placement',
+  }
+
+  return (
+    <div className="space-y-4 text-sm">
+      <p className="text-muted-foreground">
+        {plan.place.length} of {plan.place.length + plan.skipped.length} archived players can be placed
+        {settled > 0 && <> — {settled} already sitting where the archive puts them</>}.
+        {plan.bracketSize != null && <> The archive recorded a {plan.bracketSize}-player bracket.</>}
+      </p>
+
+      {plan.refusal && (
+        <p className="flex items-start gap-2 rounded border border-destructive/40 bg-destructive/[0.06] px-3 py-2 text-destructive">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {plan.refusal}
+        </p>
+      )}
+
+      {moving.length > 0 && (
+        <div>
+          <p className="eyebrow mb-1.5 text-foreground">Moving ({moving.length})</p>
+          <ul className="max-h-56 space-y-0.5 overflow-y-auto rounded border border-border bg-background/40 p-2">
+            {moving.map((x) => (
+              <li key={`${x.matchNo}:${x.side}`} className="flex items-baseline gap-2">
+                <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{x.seed ?? '–'}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {x.displayName ?? x.rawHandle}
+                  {x.cueverseId && <span className="ml-1.5 text-xs text-muted-foreground">- {x.cueverseId}</span>}
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  match {x.matchNo}{x.side === 'a' ? ' (top)' : ' (bottom)'}{x.bye ? ' · bye' : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {plan.skipped.length > 0 && (
+        <div>
+          <p className="eyebrow mb-1.5 text-warning">Could not be confirmed ({plan.skipped.length})</p>
+          <ul className="max-h-56 space-y-1 overflow-y-auto rounded border border-warning/30 bg-warning/[0.06] p-2">
+            {plan.skipped.map((x) => (
+              <li key={x.rawHandle}>
+                <span className="font-medium">{x.displayName ?? x.rawHandle}</span>
+                {x.displayName && <span className="ml-1.5 text-xs text-muted-foreground">- {x.rawHandle}</span>}
+                <span className="block text-xs text-muted-foreground">
+                  {REASONS[x.reason]}{x.detail ? ` — ${x.detail}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Their positions are left exactly as they are. Nothing is guessed.
+          </p>
+        </div>
+      )}
+
+      {plan.displaced.length > 0 && (
+        <div>
+          <p className="eyebrow mb-1.5 text-foreground">Moved out of a seat you set ({plan.displaced.length})</p>
+          <ul className="max-h-40 space-y-0.5 overflow-y-auto rounded border border-border bg-background/40 p-2">
+            {plan.displaced.map((x) => (
+              <li key={x.entrantId} className="truncate">
+                {x.displayName ?? x.cueverseId}
+                {x.displayName && x.cueverseId && <span className="ml-1.5 text-xs text-muted-foreground">- {x.cueverseId}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The archive gives their seat to somebody else. They are taken off the bracket rather than
+            moved somewhere it did not record.
+          </p>
+        </div>
+      )}
+    </div>
   )
 }
 

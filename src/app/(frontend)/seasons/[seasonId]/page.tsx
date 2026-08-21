@@ -23,7 +23,7 @@ import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
 import { autoAssignAvailability } from '@/lib/archive/auto-assign'
 import { autoEntrantsAvailability } from '@/lib/archive/auto-entrants'
-import { playoffBracketAvailability } from '@/lib/archive/auto-playoffs'
+import { playoffBracketAvailability, placementAvailability } from '@/lib/archive/auto-playoffs'
 import { getCurrentUser } from '@/lib/account/auth'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_COMPETITION_SLUG } from '@/lib/seasons/browse'
@@ -114,16 +114,18 @@ export default async function SeasonPage({
    * Both boards receive it rather than working it out themselves — otherwise the entrant board and
    * the score board would each carry a copy of the phase and blocking rules, and they would drift.
    */
-  const [entrantAuto, scoreAuto, addEntrantsAuto, playoffAuto] = canManageComp
+  const [entrantAuto, scoreAuto, addEntrantsAuto, playoffAuto, placementAuto] = canManageComp
     ? await Promise.all([
         autoAssignAvailability(view.id, 'entrants'),
         autoAssignAvailability(view.id, 'scores'),
         autoEntrantsAvailability(view.id),
         playoffBracketAvailability(view.id),
+        placementAvailability(view.id),
       ])
     : [
         { show: false, disabledReason: null }, { show: false, disabledReason: null },
         { show: false, disabledReason: null }, { show: false, disabledReason: null },
+        { show: false, disabledReason: null },
       ]
 
   // The masthead's "View Playoffs" switches the same toggle the control bar drives, so it is built
@@ -212,6 +214,7 @@ export default async function SeasonPage({
             <PlayoffsView
               seasonId={view.id}
               playoffAuto={playoffAuto}
+              placementAuto={placementAuto}
               state={state}
               bracketPublic={bracketPublic}
               canManage={canManage}
@@ -240,6 +243,7 @@ export default async function SeasonPage({
           entrantAuto={entrantAuto}
           addEntrantsAuto={addEntrantsAuto}
           playoffAuto={playoffAuto}
+          placementAuto={placementAuto}
         />
       </div>
     </div>
@@ -255,7 +259,7 @@ export default async function SeasonPage({
  */
 async function PlayoffsView({
   seasonId, state, bracketPublic, canManage, canManageComp, champion,
-  playoffAuto,
+  playoffAuto, placementAuto,
 }: {
   seasonId: number
   state: string
@@ -265,6 +269,8 @@ async function PlayoffsView({
   champion: { cueverseId: string | null; preferredName: string | null; runnerUp: string | null; finalScore: string | null } | null
   /** Decided by the page: one source for whether Build Playoff Bracket belongs here. */
   playoffAuto?: { show: boolean; disabledReason: string | null }
+  /** The same, for Place Entrants — offered only where the archive recorded real positions. */
+  placementAuto?: { show: boolean; disabledReason: string | null }
 }) {
   if (!bracketPublic) return <GroupsStillInProgress />
   const rounds = await seasonPlayoffRounds(seasonId)
@@ -287,6 +293,7 @@ async function PlayoffsView({
           canClose={canManageComp && !!(await seasonChampion(seasonId))}
           disclaimer={note}
           autoPlayoffs={playoffAuto}
+          autoPlacement={placementAuto}
         />
       </div>
     )
@@ -310,6 +317,7 @@ async function PlayoffsView({
  */
 async function AdminSurfaces({
   view, state, canManage, canManageComp, isLoggedIn, registered, entrantAuto, addEntrantsAuto, playoffAuto,
+  placementAuto,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>
   state: string
@@ -321,6 +329,7 @@ async function AdminSurfaces({
   entrantAuto?: { show: boolean; disabledReason: string | null }
   addEntrantsAuto?: { show: boolean; disabledReason: string | null }
   playoffAuto?: { show: boolean; disabledReason: string | null }
+  placementAuto?: { show: boolean; disabledReason: string | null }
 }) {
   if (state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_SCHEDULED') {
     return (
@@ -367,6 +376,7 @@ async function AdminSurfaces({
             canClose={false}
             disclaimer={await playoffDisclaimerOf(view.id)}
             autoPlayoffs={playoffAuto}
+            autoPlacement={placementAuto}
           />
         </div>
       )
