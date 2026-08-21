@@ -389,11 +389,25 @@ section('Auto Assign refuses what it cannot prove')
     }
   }
 
+  /*
+   * A shell that is actually still being set up.
+   *
+   * This used to take whichever 2007 shell came back first, in no particular order, and assert that
+   * Auto Assign offers a preview. The moment one of them was closed the assertion failed on correct
+   * behaviour: assignment is refused once a Season is past setup, which is the whole point of the
+   * guard being tested two blocks above. Naming the lifecycle states makes the fixture say what it
+   * needs rather than hoping for it.
+   */
   const normalShell = await prisma.season.findFirst({
-    where: { archiveTemplateKey: { startsWith: '8brcam-2007-' } },
+    where: {
+      archiveTemplateKey: { startsWith: '8brcam-2007-' },
+      lifecycleState: { in: ['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP'] },
+    },
     select: { id: true, archiveTemplateKey: true },
+    orderBy: { id: 'asc' },
   })
-  check('a normal shell exists to test', !!normalShell)
+  check('a normal shell exists to test', !!normalShell,
+    'no 2007 shell is still in setup — every one has been closed')
   if (normalShell) {
     const g = await previewGroupAssign(normalShell.id)
     check('a normal shell previews rather than blocking', !isBlocked(g))

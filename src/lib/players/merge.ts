@@ -73,6 +73,15 @@ export interface MergeSnapshot {
    * Kept here because undo has to be able to give it back, and by then the live column is null.
    */
   secondaryCueverseId?: string | null
+  /**
+   * The retired account's login username, parked so the handle is free on BOTH sides.
+   *
+   * A CueVerse ID lives in two stores: `Player.cueverseIdNormalized` and the Payload login
+   * `users.username`, which `changeCueverseId` keeps in step. Releasing only the Player half left
+   * the login half holding the name, so claiming it failed at the second write with "Could not
+   * update the login identity" — the handle looked free and was not.
+   */
+  secondaryUsername?: string | null
   /** Whether the merge added the released handle to the canonical profile as an alias. */
   aliasAddedToCanonical?: boolean
   mergedAt: string
@@ -401,11 +410,42 @@ export async function mergeAccounts(
       data: { active: false, ...(released ? { cueverseId: null, cueverseIdNormalized: null } : {}) },
     })
 
-    if (aliasAdded) {
-      // The snapshot is already written; amend it so undo knows this alias is the merge's to remove.
+    /*
+     * Park the login username, which is the OTHER place the handle lives.
+     *
+     * `changeCueverseId` writes both stores and rolls the whole rename back if the second write
+     * fails, so leaving the retired account's username alone meant the handle was still spoken for:
+     * the Player column was free, the claim passed its uniqueness check, and then the login sync
+     * collided and reported "Could not update the login identity — no change was made."
+     *
+     * The account keeps working exactly as before: the merge already blocks its login through the
+     * moderation soft-delete, which is what actually retires it. This only gives up a name it can no
+     * longer use. Written as SQL because the merge is one Prisma transaction, and because the
+     * moderation path that retires the account is Prisma-only for the same reason.
+     */
+    let parkedUsername: string | null = null
+    if (released && secondaryUserId) {
+      const rows = await tx.$queryRaw<{ username: string | null }[]>`
+        SELECT username FROM payload.users WHERE id = ${secondaryUserId}`
+      const current = rows[0]?.username ?? null
+      if (current && current.trim().toLowerCase() === released.trim().toLowerCase()) {
+        parkedUsername = current
+        await tx.$executeRaw`
+          UPDATE payload.users SET username = ${`merged-${secondaryUserId}`} WHERE id = ${secondaryUserId}`
+      }
+    }
+
+    if (aliasAdded || parkedUsername) {
+      // The snapshot is already written; amend it with what undo needs to put back.
       await tx.playerMerge.update({
         where: { id: created.id },
-        data: { note: JSON.stringify({ ...snapshot, aliasAddedToCanonical: true }) },
+        data: {
+          note: JSON.stringify({
+            ...snapshot,
+            ...(aliasAdded ? { aliasAddedToCanonical: true } : {}),
+            ...(parkedUsername ? { secondaryUsername: parkedUsername } : {}),
+          }),
+        },
       })
     }
 
@@ -604,6 +644,17 @@ export async function undoMerge(
       await tx.playerAlias.deleteMany({
         where: { playerId: merge.canonicalPlayerId, alias: releasedId, aliasType: 'HANDLE' },
       })
+    }
+
+    // The login name comes back with the handle, and on the same condition: only if still free.
+    if (restoreHandle && snapshot?.secondaryUsername && secondaryUserId) {
+      const taken = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM payload.users
+         WHERE lower(username) = ${snapshot.secondaryUsername.trim().toLowerCase()} AND id <> ${secondaryUserId}`
+      if (taken.length === 0) {
+        await tx.$executeRaw`
+          UPDATE payload.users SET username = ${snapshot.secondaryUsername} WHERE id = ${secondaryUserId}`
+      }
     }
 
     // Same scoping as the merge: nothing moved, nothing derived to rebuild.

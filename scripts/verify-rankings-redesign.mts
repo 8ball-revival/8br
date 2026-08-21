@@ -566,8 +566,34 @@ async function main() {
   check('one data row per player in the applied view',
     lines.length - lines.indexOf(header!) - 1 === sortRows(filterRows(scoped, state.rowFilters), state.sort).length)
 
-  // No private field can appear, because none is on the row type.
-  check('no private account fields leak', !/@|password|email/i.test(csv))
+  /*
+   * No PRIVATE field may appear. That is not the same as "no @ anywhere".
+   *
+   * This used to reject the character outright, which reads as a privacy rule and is really a
+   * guess at one. A CueVerse ID is a public handle, and the app deliberately permits an
+   * email-shaped one — verify-identity asserts exactly that, because archive-era profiles were
+   * registered under addresses and some members still choose them. Banning the character therefore
+   * failed on a legitimate public identity while proving nothing about the thing that matters.
+   *
+   * What matters is that no LOGIN email, and no credential field, reaches the export. So the check
+   * asks the account table what those addresses actually are and looks for them, which is both
+   * stricter (it would catch an address that does not look like one) and correct (a member's own
+   * chosen handle is theirs to publish).
+   */
+  const accountEmails = (await prisma.$queryRaw<{ email: string | null }[]>`
+    SELECT DISTINCT email FROM payload.users WHERE email IS NOT NULL AND btrim(email) <> ''`)
+    .map((r) => (r.email ?? '').trim().toLowerCase())
+    .filter(Boolean)
+  const lowerCsv = csv.toLowerCase()
+  const leaked = accountEmails.filter((e) => lowerCsv.includes(e))
+  check('no account email address reaches the export', leaked.length === 0, leaked.slice(0, 3).join(', '))
+  check('no credential field reaches the export', !/password|salt|hash|reset_?token|api[_-]?key/i.test(csv))
+
+  // The identity columns still carry only what a profile shows publicly.
+  const publicHandles = new Set(scoped.map((r) => (r.cueverseId ?? '').toLowerCase()).filter(Boolean))
+  const atInCsv = [...lowerCsv.matchAll(/[^\s,"]*@[^\s,"]*/g)].map((m) => m[0])
+  check('any "@" in the file is a player\'s own public CueVerse ID',
+    atInCsv.every((a) => publicHandles.has(a)), atInCsv.filter((a) => !publicHandles.has(a)).slice(0, 3).join(', '))
 
   const name = csvFilename(state, '2026-08-19')
   check('the filename distinguishes a filtered range from all time',
