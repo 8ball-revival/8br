@@ -455,13 +455,60 @@ export async function computeExplorer(
          AND lower(se."runnerUpHandle") = lower(e."username")
        GROUP BY e."playerId"
     ),
+    /*
+     * Who won the whole thing, taken from the bracket rather than from a name field.
+     *
+     * The highest round a Tournament has is its last, so its winner is the champion — true of a
+     * single-elimination final and of a double-elimination grand final alike, since the grand final
+     * carries the highest encoded round number. Reading it here means a title is counted the moment
+     * the last match is decided, with nothing to keep in step.
+     */
+    tfinal AS (
+      SELECT DISTINCT ON (pm."tournamentId")
+             pm."tournamentId" AS tid, pm."winnerRegistrationId" AS reg
+        FROM "public"."comp_playoff_match" pm
+        JOIN "public"."comp_tournament" t
+          ON t."id" = pm."tournamentId" AND t."lifecycleState" = 'COMPLETED'
+       WHERE pm."winnerRegistrationId" IS NOT NULL
+       ORDER BY pm."tournamentId", pm."round" DESC, pm."slot" ASC
+    ),
+    /*
+     * Tournament titles.
+     *
+     * Three ways in, because there are three shapes of champion:
+     *   - a handle recorded on the Tournament, which is how Swiss (no bracket) and archive
+     *     corrections say who won;
+     *   - the person who won the final;
+     *   - EVERY member of the team that won the final. A 5v5 title belongs to the five who played
+     *     it, not to the team name — which is not a person and matches no CueVerse ID, so the old
+     *     handle join credited nobody at all.
+     *
+     * Counted DISTINCT by tournament, so a champion found by more than one route still has one title.
+     */
     tchamps AS (
-      SELECT p."id" AS "playerId", count(*)::int AS tournament_titles
-        FROM "public"."comp_tournament" t
-        JOIN "public"."Player" p
-          ON p."cueverseId" IS NOT NULL
-         AND lower(p."cueverseId") = lower(t."championHandle")
-       WHERE t."championHandle" IS NOT NULL
+      SELECT x."playerId", count(DISTINCT x.tid)::int AS tournament_titles
+        FROM (
+          SELECT p."id" AS "playerId", t."id" AS tid
+            FROM "public"."comp_tournament" t
+            JOIN "public"."Player" p
+              ON p."cueverseId" IS NOT NULL
+             AND lower(p."cueverseId") = lower(t."championHandle")
+           WHERE t."championHandle" IS NOT NULL AND t."lifecycleState" = 'COMPLETED'
+
+          UNION ALL
+
+          SELECT r."playerId", f.tid
+            FROM tfinal f
+            JOIN "public"."comp_registration" r ON r."id" = f.reg
+
+          UNION ALL
+
+          SELECT tm."playerId", f.tid
+            FROM tfinal f
+            JOIN "public"."comp_tournament_team" tt ON tt."registrationId" = f.reg
+            JOIN "public"."comp_tournament_team_member" tm ON tm."teamId" = tt."id"
+        ) x
+       WHERE x."playerId" IS NOT NULL
        GROUP BY 1
     ),
     grp AS (

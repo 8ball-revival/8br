@@ -113,11 +113,37 @@ async function materialiseBracket(tournamentId: number): Promise<void> {
       const runnerUpName = homeWon ? final.awayUsername : final.homeUsername
       const cScore = homeWon ? final.homeGames : final.awayGames
       const rScore = homeWon ? final.awayGames : final.homeGames
+
+      /*
+       * Record the CueVerse ID as well as the name.
+       *
+       * Only Swiss ever wrote this, so a completed bracket left championHandle null — and a title is
+       * a person, which a display name alone does not identify. A team has no CueVerse ID and gets
+       * none here: its members are credited from the roster instead.
+       */
+      const idOf = async (regId: number | null) => {
+        if (regId == null) return null
+        const r = await tx.registration.findUnique({ where: { id: regId }, select: { cueverseId: true, playerId: true } })
+        if (!r) return null
+        if (r.playerId) {
+          const p = await tx.player.findUnique({ where: { id: r.playerId }, select: { cueverseId: true } })
+          if (p?.cueverseId) return p.cueverseId
+        }
+        return r.cueverseId ?? null
+      }
+      const isTeam = (await tx.tournament.findUnique({
+        where: { id: tournamentId }, select: { participantFormat: true },
+      }))?.participantFormat === 'TEAM'
+      const champReg = homeWon ? final.homeRegistrationId : final.awayRegistrationId
+      const runnerReg = homeWon ? final.awayRegistrationId : final.homeRegistrationId
+
       await tx.tournament.update({
         where: { id: tournamentId },
         data: {
           championName: championName ?? null,
           runnerUpName: runnerUpName ?? null,
+          championHandle: isTeam ? null : await idOf(champReg),
+          runnerUpHandle: isTeam ? null : await idOf(runnerReg),
           finalScore: cScore != null && rScore != null ? `${cScore}–${rScore}` : null,
         },
       })

@@ -263,8 +263,27 @@ export async function computePlayerDetail(
       (se."championPlayerId" = $1) AS won_season,
       (se."runnerUpHandle" IS NOT NULL
         AND lower(se."runnerUpHandle") = lower(coalesce(p."cueverseId", ''))) AS runner_up_season,
-      (t."championHandle" IS NOT NULL
-        AND lower(t."championHandle") = lower(coalesce(p."cueverseId", ''))) AS won_tournament
+      /*
+       * Won it, by any of the three routes Rankings counts a title by: the handle on the Tournament,
+       * winning the final, or being on the roster of the team that won the final.
+       */
+      (
+        (t."championHandle" IS NOT NULL
+          AND lower(t."championHandle") = lower(coalesce(p."cueverseId", '')))
+        OR EXISTS (
+          SELECT 1 FROM (
+            SELECT DISTINCT ON (pm."tournamentId") pm."tournamentId" AS tid, pm."winnerRegistrationId" AS reg
+              FROM "public"."comp_playoff_match" pm
+             WHERE pm."winnerRegistrationId" IS NOT NULL
+             ORDER BY pm."tournamentId", pm."round" DESC, pm."slot" ASC
+          ) f
+          LEFT JOIN "public"."comp_registration" wr ON wr."id" = f.reg
+          LEFT JOIN "public"."comp_tournament_team" wt ON wt."registrationId" = f.reg
+          LEFT JOIN "public"."comp_tournament_team_member" wm ON wm."teamId" = wt."id"
+         WHERE f.tid = t."id"
+           AND (wr."playerId" = $1 OR wm."playerId" = $1)
+        )
+      ) AS won_tournament
     FROM per_comp pc
     LEFT JOIN "public"."season" se ON se."id" = pc.season_id
     LEFT JOIN "public"."competition_series" cs ON cs."id" = se."competitionSeriesId"

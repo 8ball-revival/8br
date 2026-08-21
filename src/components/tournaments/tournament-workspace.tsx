@@ -47,6 +47,23 @@ export function TournamentWorkspace({
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
+  /*
+   * Placement mode: arranging an unpublished draft on the Bracket tab.
+   *
+   * The chrome above the board — the workspace toolbar and the lifecycle controls — costs about a
+   * hundred and fifty pixels, which is the difference between seeing the whole first round and
+   * scrolling while dragging. It is also the least useful thing on screen at that moment: nobody
+   * arranging a draw needs the state machine's buttons. So it folds away on its own and can be
+   * brought back, rather than being decided once in a settings menu.
+   */
+  const placing = tab === 'bracket'
+    && data.hasBracket
+    && !data.hasPublishedBracket
+    && (data.tournament.lifecycleState === 'REGISTRATION_CLOSED' || data.tournament.lifecycleState === 'BRACKET_GENERATED')
+  const [headerOpen, setHeaderOpen] = useState(false)
+  // Collapsed while placing unless the reader has asked for it back; always open everywhere else.
+  const chromeHidden = placing && !headerOpen
+
   const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string } | void>) =>
     start(async () => {
       try {
@@ -77,18 +94,46 @@ export function TournamentWorkspace({
   return (
     <div className="mt-6 rounded-xl border border-brand/30 bg-card/40">
       {/* Admin toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
-        <Badge variant="default">Admin</Badge>
-        <span className="text-sm font-medium text-foreground">Competition workspace</span>
-        <span className="text-xs text-muted-foreground">
-          {data.tournament.code} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
-          {(data.tournament.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase()}
-        </span>
-        {pending && <span className="ml-auto text-xs text-muted-foreground">Working…</span>}
+      <div className={cn('flex flex-wrap items-center gap-2 border-b border-border px-4', chromeHidden ? 'py-1' : 'py-2.5')}>
+        {chromeHidden ? (
+          <>
+            <Badge variant="default">Placement</Badge>
+            <span className="text-xs text-muted-foreground">
+              {data.tournament.code} · arranging the draw — the workspace controls are folded away
+            </span>
+            <button
+              type="button"
+              onClick={() => setHeaderOpen(true)}
+              className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-brand"
+            >
+              <ChevronDown className="size-3.5" /> Show controls
+            </button>
+          </>
+        ) : (
+          <>
+            <Badge variant="default">Admin</Badge>
+            <span className="text-sm font-medium text-foreground">Competition workspace</span>
+            <span className="text-xs text-muted-foreground">
+              {data.tournament.code} · {data.isTeam ? `${data.tournament.teamSize ?? 2}-player teams` : 'Individual'} ·{' '}
+              {(data.tournament.tournamentFormat ?? 'SINGLE_ELIM').replace(/_/g, ' ').toLowerCase()}
+            </span>
+            {placing && (
+              <button
+                type="button"
+                onClick={() => setHeaderOpen(false)}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-brand"
+              >
+                <ChevronUp className="size-3.5" /> Hide while placing
+              </button>
+            )}
+            {pending && <span className="ml-auto text-xs text-muted-foreground">Working…</span>}
+          </>
+        )}
+        {chromeHidden && pending && <span className="text-xs text-muted-foreground">Working…</span>}
       </div>
 
       {/* Lifecycle controls (state machine — server-enforced + audited). */}
-      {canManage && !data.isHistorical && (
+      {canManage && !data.isHistorical && !chromeHidden && (
         <div className="px-4 pt-4">
           <TournamentLifecycleControls
             tournamentId={data.tournament.id}
@@ -663,7 +708,7 @@ function FirstRoundBoard({ data, matches, identityById, run }: {
 
   return (
     <div>
-      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2">
+      <div className="mb-1 flex flex-wrap items-baseline gap-x-2">
         <p className="eyebrow text-foreground">Round 1</p>
         <p className="text-[0.7rem] text-muted-foreground">
           Drag a name onto any position — the two swap. Byes advance when you publish.
@@ -674,7 +719,7 @@ function FirstRoundBoard({ data, matches, identityById, run }: {
         stay legible at this density — the height saved is what makes the whole field visible at once,
         which is the point of the screen.
       */}
-      <div className="grid gap-0.5">
+      <div className="grid gap-px">
         {matches.map((m) => (
           <div key={m.id} className="divide-y divide-border/60 overflow-hidden rounded border border-border bg-background/40">
             <Slot m={m} side="home" />

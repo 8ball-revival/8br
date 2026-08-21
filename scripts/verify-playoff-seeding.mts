@@ -207,10 +207,24 @@ try {
       check('every rendered bracket slot shows a seed',
         slots.every((s) => typeof s?.seed === 'number'), `${slots.filter((s) => s?.seed == null).length} without one`)
 
-      // The champion appears in all four rounds; the number must never change between them.
-      const champ = slots.filter((s) => s?.handle === 'xlx_cerebro_xlx')
+      /*
+       * The champion appears in all four rounds; the number must never change between them.
+       *
+       * Read the champion off the Season rather than naming a handle. This used to look for
+       * 'xlx_cerebro_xlx' and broke the day that player's CueVerse ID became 'real_creampuff' —
+       * which is a rename the app explicitly supports, not a fault. The season row is the
+       * authority on who won, so asking it keeps the check about seeding instead of about one
+       * person's choice of handle.
+       */
+      const s1row = await prisma.season.findUniqueOrThrow({
+        where: { id: s1.id }, select: { championHandle: true, championName: true },
+      })
+      const wanted = (s1row.championHandle ?? '').toLowerCase()
+      check('the Season records who won it', wanted !== '', JSON.stringify(s1row))
+      const champ = slots.filter((s) => (s?.handle ?? '').toLowerCase() === wanted)
       check('the champion carries one seed in every round they reached',
-        champ.length === 4 && new Set(champ.map((s) => s?.seed)).size === 1, `${champ.length} appearances`)
+        champ.length === 4 && new Set(champ.map((s) => s?.seed)).size === 1,
+        `${champ.length} appearances for ${wanted}`)
       check('and it is seed 1, as the group results dictated', champ[0]?.seed === 1, String(champ[0]?.seed))
     }
   }

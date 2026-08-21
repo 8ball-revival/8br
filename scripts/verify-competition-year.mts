@@ -46,10 +46,22 @@ async function main() {
   const seasons = await prisma.season.findMany({ select: { id: true, number: true, competitionYear: true } })
   check('every tournament has a competition year', tours.every((t) => Number.isInteger(t.competitionYear)), `${tours.length} rows`)
   check('every season has a competition year', seasons.every((s) => Number.isInteger(s.competitionYear)), `${seasons.length} rows`)
-  const wrong = tours.filter(
-    (t) => t.competitionYear !== new Date(t.scheduledStartAt ?? t.createdAt).getFullYear(),
+  /*
+   * A scheduled tournament must agree with its own start date. One without a scheduled start must
+   * not: the competition year is a deliberate, editable field, and a historical reconstruction —
+   * an archived 2006 event entered today — is exactly the case where it should differ from the
+   * creation date. Requiring them to match asserted that the past cannot be recorded, which was
+   * the backfill's rule mistaken for a standing one.
+   */
+  const scheduled = tours.filter((t) => t.scheduledStartAt != null)
+  const wrong = scheduled.filter(
+    (t) => t.competitionYear !== new Date(t.scheduledStartAt!).getFullYear(),
   )
-  check('tournament years match start-date-else-createdAt', wrong.length === 0, wrong.map((w) => w.name).join(', '))
+  check('a scheduled tournament\'s year matches its start date', wrong.length === 0,
+    wrong.map((w) => w.name).join(', '))
+  check('an unscheduled tournament still has a sane year',
+    tours.filter((t) => t.scheduledStartAt == null)
+      .every((t) => t.competitionYear >= 1990 && t.competitionYear <= new Date().getFullYear() + 1))
   check(
     'every value sits inside the supported range',
     [...tours, ...seasons].every((r) => r.competitionYear >= COMPETITION_YEAR_MIN && r.competitionYear <= COMPETITION_YEAR_MAX),

@@ -138,8 +138,19 @@ try {
 
   // Competitions, Seasons and accounts are none of Rules' business.
   check('Seasons are untouched', (await prisma.season.count()) > 0)
+  /*
+   * Season numbers are per competition and per year now, so `number: 1` matches a Season 1 in every
+   * year of every series — about twenty of them — and counting seeds across all of them answers a
+   * question nobody asked. Name the one Season this check is actually about.
+   */
+  const season1 = await prisma.season.findFirst({
+    where: { number: 1, competitionYear: 2005, competitionSeries: { slug: '8brcam' } },
+    select: { id: true },
+  })
+  check('the 2005 8BR Season 1 is still there', season1 != null)
   check('Season 1 still holds its playoff seeds',
-    (await prisma.seasonEntrant.count({ where: { season: { number: 1 }, playoffSeed: { not: null } } })) === 16)
+    season1 != null &&
+    (await prisma.seasonEntrant.count({ where: { seasonId: season1.id, playoffSeed: { not: null } } })) === 16)
 } catch (e) {
   fail++
   console.error(e)

@@ -451,6 +451,14 @@ async function main() {
         `${stats.yearsOfHistory} vs ${expected}`)
     }
 
+    /*
+     * The independent count has to cover the same four tables the stat does.
+     *
+     * It only counted the two Season tables, so every Tournament match ever played read as a
+     * discrepancy — and the gap grew each time somebody entered a Tournament result, which made a
+     * stale test look like a drifting statistic. Tournaments are competitions; their matches are
+     * matches.
+     */
     const legit = await prisma.$queryRawUnsafe<{ n: bigint }[]>(`
       SELECT count(*)::bigint AS n FROM (
         SELECT 1 FROM "public"."season_match"
@@ -459,6 +467,16 @@ async function main() {
            AND btrim(coalesce("homeUsername",'')) <> '' AND btrim(coalesce("awayUsername",'')) <> ''
         UNION ALL
         SELECT 1 FROM "public"."season_playoff_match"
+         WHERE "status" IN ('COMPLETED','FORFEIT') AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
+           AND "completedAt" IS NOT NULL
+           AND btrim(coalesce("homeUsername",'')) <> '' AND btrim(coalesce("awayUsername",'')) <> ''
+        UNION ALL
+        SELECT 1 FROM "public"."comp_tournament_match"
+         WHERE "status" IN ('COMPLETED','FORFEIT') AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
+           AND "completedAt" IS NOT NULL
+           AND btrim(coalesce("homeUsername",'')) <> '' AND btrim(coalesce("awayUsername",'')) <> ''
+        UNION ALL
+        SELECT 1 FROM "public"."comp_playoff_match"
          WHERE "status" IN ('COMPLETED','FORFEIT') AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
            AND "completedAt" IS NOT NULL
            AND btrim(coalesce("homeUsername",'')) <> '' AND btrim(coalesce("awayUsername",'')) <> ''
@@ -486,8 +504,26 @@ async function main() {
       `${stats.players} vs ${entrants} entrant rows`)
   }
   {
-    // An in-progress competition must not award a champion.
-    const season = await prisma.season.findFirst({ where: { lifecycleState: 'COMPLETED' }, select: { id: true, championName: true } })
+    /*
+     * An in-progress competition must not award a champion.
+     *
+     * `champions` counts unique PLAYERS, by design — four titles is still one champion. So this has
+     * to reopen a Season whose champion won nothing else, or the distinct count legitimately does
+     * not move and the test fails on a correct statistic. It used to take whichever completed
+     * Season came back first, which happened to be one of Luis's several.
+     */
+    const soloChampion = await (async () => {
+      const completed = await prisma.season.findMany({
+        where: { lifecycleState: 'COMPLETED', championName: { not: null } },
+        select: { id: true, championName: true, championPlayerId: true },
+      })
+      const key = (s: { championName: string | null; championPlayerId: string | null }) =>
+        s.championPlayerId ?? `name:${(s.championName ?? '').trim().toLowerCase()}`
+      const tally = new Map<string, number>()
+      for (const s of completed) tally.set(key(s), (tally.get(key(s)) ?? 0) + 1)
+      return completed.find((s) => tally.get(key(s)) === 1) ?? null
+    })()
+    const season = soloChampion
     if (season) {
       const withChampion = await computeRegistryStats()
       await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFFS_LIVE' } })
@@ -500,7 +536,8 @@ async function main() {
       const restored = await computeRegistryStats()
       check('...and closing it again restores the championship', restored.champions === withChampion.champions)
     } else {
-      check('reopening a Season withdraws its championship', true, 'no completed Season to exercise')
+      check('reopening a Season withdraws its championship', true,
+        'no Season whose champion won only that one — nothing to exercise')
     }
   }
 
