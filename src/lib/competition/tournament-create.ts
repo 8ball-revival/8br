@@ -5,6 +5,7 @@ import { recordAudit, type Actor } from './audit'
 import { hashJoinPassword } from './join-password'
 import { normalizeFlair, type FlairInput } from './flair'
 import { currentCompetitionYear, parseCompetitionYear } from './competition-year'
+import { resolveCompetitionId } from './competition-options'
 
 export type SeedingMethod = 'rating' | 'rank' | 'random' | 'registration'
 export type TeamFormationInput = 'PICK' | 'RANDOM'
@@ -21,6 +22,15 @@ export interface CreateTournamentConfig {
   name: string
   /** Competition Year (four-digit). Omitted = the current calendar year. */
   competitionYear?: number | string | null
+  /**
+   * Which Competition this Tournament belongs to. REQUIRED at creation.
+   *
+   * Required here and nullable in the schema is deliberate: existing rows predate the relationship
+   * and have no true answer, but the person creating one always knows, and asking at that moment is
+   * the only way the field stays trustworthy. Validated against the canonical table below — a
+   * dangling id is refused with a sentence rather than a foreign-key error page.
+   */
+  competitionSeriesId: number | string
   participantFormat: ParticipantFormat // INDIVIDUAL | TEAM
   teamSize?: number | null // members per team when TEAM (2–6)
   teamFormation?: TeamFormationInput // TEAM only: captains PICK rosters, or RANDOM draw at close
@@ -86,6 +96,11 @@ export async function createTournament(
   if (!SUPPORTED_FORMATS.includes(cfg.tournamentFormat)) {
     return { ok: false, error: 'Unsupported tournament format.' }
   }
+
+  // The Competition, checked against the canonical table before anything is written. Two
+  // Tournaments may share a title under different Competitions, so this is what tells them apart.
+  const competitionSeriesId = await resolveCompetitionId(cfg.competitionSeriesId)
+  if (competitionSeriesId == null) return { ok: false, error: 'Choose a Competition.' }
 
   const isTeam = cfg.participantFormat === 'TEAM'
   const teamSize = isTeam ? Math.trunc(cfg.teamSize ?? 0) : null
@@ -157,6 +172,7 @@ export async function createTournament(
           slug,
           name,
           competitionYear,
+          competitionSeriesId,
           code,
           number: nextNumber,
           gameType: cfg.gameType ?? null,

@@ -31,7 +31,7 @@ export function RegisterForm({ identity, missing }: { identity: SignupIdentity |
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         <div>
           <p className="font-medium text-foreground">
-            {state.already ? 'You are already registered for this Cup.' : "You're registered for this Cup!"}
+            {state.already ? 'You are already registered for this Tournament.' : "You're registered for this Tournament!"}
           </p>
           <p className="mt-1 text-muted-foreground">Your entry is active — you appear on the registered-players list immediately.</p>
         </div>
@@ -52,7 +52,7 @@ export function RegisterForm({ identity, missing }: { identity: SignupIdentity |
 
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="rulesAck" required className="mt-0.5 size-4 rounded border-input accent-brand" />
-        <span className="text-muted-foreground">I have read and agree to the this Cup rules and format.</span>
+        <span className="text-muted-foreground">I have read and agree to the these Tournament rules and format.</span>
       </label>
 
       {state.error && (

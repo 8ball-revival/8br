@@ -56,7 +56,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
           {([
             ['all', 'All', page.facets.counts.all],
             ['seasons', 'Seasons', page.facets.counts.seasons],
-            ['cups', 'Cups', page.facets.counts.tournaments],
+            ['cups', 'Tournaments', page.facets.counts.tournaments],
           ] as const).map(([id, label, count]) => (
             <button
               key={id}
@@ -132,12 +132,12 @@ export function CompletedList({ page }: { page: CompletedPage }) {
         <div className="scrollbar-themed overflow-x-auto rounded-md border border-border">
           <table className="w-full min-w-max border-separate border-spacing-0 text-sm">
             <caption className="sr-only">
-              Completed Seasons and Cups. Selecting a row opens it in Creator; the archive
+              Completed Seasons and Tournaments. Selecting a row opens it in Creator; the archive
               link opens the public read-only page.
             </caption>
             <thead>
               <tr>
-                {['Type', 'Competition', 'Season / Cup', 'Year', 'Division', 'Entrants', 'Champion', 'Data', 'Completed', ''].map((h, i) => (
+                {['Type', 'Competition', 'Season / Tournament', 'Year', 'Division', 'Entrants', 'Champion', 'Data', 'Completed', ''].map((h, i) => (
                   <th
                     key={h || 'actions'}
                     scope="col"
@@ -231,7 +231,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
                         aria-label={`View the public ${r.kind === 'season' ? 'Season' : 'Cup'} page for ${r.title}`}
                       >
                         <ExternalLink className="size-3" aria-hidden />
-                        <span className="hidden sm:inline">{r.kind === 'season' ? 'View Season' : 'View Cup'}</span>
+                        <span className="hidden sm:inline">{r.kind === 'season' ? 'View Season' : 'View Tournament'}</span>
                       </Link>
                     </td>
                   </tr>

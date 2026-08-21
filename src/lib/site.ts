@@ -14,7 +14,7 @@ export const organizationName = '8 Ball Registry'
 /** Default document title (home / root). */
 export const SITE_TITLE_DEFAULT = '8 Ball Registry'
 export const SITE_DESCRIPTION =
-  '8 Ball Registry (8BR) — the home of competitive cue sports. Enter standalone Cups, follow live brackets and standings, and climb the rankings.'
+  '8 Ball Registry (8BR) — the home of competitive cue sports. Enter standalone Tournaments, follow live brackets and standings, and climb the rankings.'
 
 // Back-compat aliases (metadata helpers reference these).
 export const SITE_NAME = brandName

@@ -93,7 +93,7 @@ export function RecordDetail({
           <Field label="Runner-up" value={review.runnerUp ?? '—'} />
           <Field label="Final score" value={review.finalScore ?? '—'} />
           <Field
-            label={review.award === 'SC' ? 'Season Championship' : 'Cup Title'}
+            label={review.award === 'SC' ? 'Season Championship' : 'Tournament Title'}
             value={review.champion ? `Awarded to ${review.champion}` : 'None'}
           />
           <Field label="Data status" value={review.completeness === 'partial' ? 'Partial Historical Data' : 'Full Data'} />

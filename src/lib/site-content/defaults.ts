@@ -24,10 +24,10 @@ export const APPROVED_SITE_CONTENT = {
   headlineLine1: 'COMPETITION',
   headlineLine2: 'HISTORY',
   description:
-    'Explore seasons, Cups, champions, and results from across the competitive 8-ball community.',
+    'Explore seasons, Tournaments, champions, and results from across the competitive 8-ball community.',
   supportingSentence: 'Every competition. Every result. One permanent record.',
   primaryButtonLabel: 'Seasons',
   primaryButtonHref: '/seasons',
-  secondaryButtonLabel: 'Cups',
-  secondaryButtonHref: '/cups',
+  secondaryButtonLabel: 'Tournaments',
+  secondaryButtonHref: '/tournaments',
 } as const

@@ -1,7 +1,7 @@
 /** Client-safe Activity Log types + classification (pure, no server-only / no DB). */
 
 export const ACTIVITY_CATEGORIES = [
-  'Authentication', 'Accounts', 'Password resets', 'Roles', 'Seasons', 'Cups', 'Registration',
+  'Authentication', 'Accounts', 'Password resets', 'Roles', 'Seasons', 'Tournaments', 'Registration',
   'Teams', 'Results', 'FF', 'KO', 'No Contest', 'Wildcards', 'Disqualifications', 'Rankings', 'Awards',
   'Settings', 'Deletion', 'Security', 'System', 'QA',
 ] as const
@@ -43,7 +43,7 @@ export function classify(action: string, actorUsername: string): { category: Act
     : /result|score|correct|report|save/.test(a) ? 'Results'
     : /account|user|suspend|ban|warn|timeout|moderat/.test(a) ? 'Accounts'
     : /season/.test(a) ? 'Seasons'
-    : /tournament|cup|playoff|swiss|group|bracket/.test(a) ? 'Cups'
+    : /tournament|cup|playoff|swiss|group|bracket/.test(a) ? 'Tournaments'
     : 'Accounts'
 
   const severity: Severity =

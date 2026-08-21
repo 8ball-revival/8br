@@ -65,16 +65,19 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       /*
-       * There is deliberately NO Cups → Tournaments redirect here.
+       * Legacy "Cups" URLs live under "Tournaments" again.
        *
-       * Two lines used to send /cups to /tournaments, from back when Tournaments was the canonical
-       * name. The rename went the other way and the route handlers under
-       * src/app/(frontend)/tournaments now redirect Tournaments → Cups — so the two pointed at each
-       * other and every public Cup URL bounced between them until the browser gave up. /cups and
-       * /cups/12 were both unreachable.
+       * These two lines are the ONLY place that mapping lives. It matters: the pair briefly existed
+       * alongside route handlers under src/app/(frontend)/tournaments that redirected the other way,
+       * the two pointed at each other, and every public URL bounced between them until the browser
+       * gave up — /cups and /cups/12 were both unreachable. Those handlers are gone. If a
+       * /cups/... route file is ever added back, this has to go, or the loop returns.
        *
-       * The route handlers are the single place that mapping lives. Nothing belongs here.
+       * :path* carries the rest of the path; Next preserves the query string on a redirect, which
+       * matters here because the query string IS the view on these listings.
        */
+      { source: '/cups', destination: '/tournaments', permanent: true },
+      { source: '/cups/:path*', destination: '/tournaments/:path*', permanent: true },
       // Canonical host (www → apex) for cueverse.net.
       // Set SITE_WWW_HOST="www.cueverse.net" + SITE_APEX_ORIGIN="https://cueverse.net".
       ...(process.env.SITE_WWW_HOST && process.env.SITE_APEX_ORIGIN

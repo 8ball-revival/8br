@@ -213,6 +213,10 @@ export async function createDraft(actor: Actor, input: SetupInput): Promise<Setu
   const created = await createTournament(actor, {
     name: title,
     competitionYear: input.competitionYear,
+    // Carried through rather than dropped. This path validated a Competition and then threw it
+    // away, because comp_tournament had nowhere to put it — the Tournament came out belonging to
+    // nothing while the form had plainly asked which one it was.
+    competitionSeriesId: input.competitionSeriesId,
     participantFormat: 'INDIVIDUAL',
     tournamentFormat: CUP_FORMAT[input.structure] ?? 'SINGLE_ELIM',
     // A Cup carries one race length. The Season form's three-tier race settings have no equivalent

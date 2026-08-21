@@ -14,8 +14,8 @@ function isActive(pathname: string, href: string) {
  * Primary navigation.
  *
  * Every entry is a destination. This used to carry a dropdown for Live and Archives — triggers that
- * opened a Seasons/Cups pair rather than navigating — and that machinery is gone with them: Seasons
- * and Cups are top-level tabs now, so there is nothing left to open.
+ * opened a Seasons/Tournaments pair rather than navigating — and that machinery is gone with them: Seasons
+ * and Tournaments are top-level tabs now, so there is nothing left to open.
  */
 export function MainNav({
   className, entries, extraItems = [],

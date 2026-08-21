@@ -58,7 +58,7 @@ export default async function StaffDashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <QuickAction href="/seasons/new" icon={Plus} label="Create Season" />
-          <QuickAction href="/creator/new?type=cup" icon={Plus} label="Create Cup" />
+          <QuickAction href="/tournaments/new" icon={Plus} label="Create Tournament" />
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export default async function StaffDashboardPage() {
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Active Seasons" value={o.activeSeasons} href="/seasons" />
         <StatCard label="Upcoming Seasons" value={o.upcomingSeasons} href="/seasons" />
-        <StatCard label="Active Cups" value={o.activeTournaments} href="/cups" />
+        <StatCard label="Active Tournaments" value={o.activeTournaments} href="/tournaments" />
         <StatCard label="Open Registrations" value={o.openRegistrations} tone="attention" />
         <StatCard label="Unresolved Group Matches" value={o.unresolvedGroupMatches} tone="attention" />
         <StatCard label="Unresolved Playoff Matches" value={o.unresolvedPlayoffMatches} tone="attention" />
@@ -92,7 +92,7 @@ export default async function StaffDashboardPage() {
         <SectionCard href="/staff/audit" icon={ScrollText} title="Activity Log" desc="Immutable record of every staff and security action." />
         <SectionCard href="/staff/members" icon={UserCog} title="Player Management" desc="Search accounts, review profiles, suspend, ban, and moderate." />
         {actor.can('manage_staff') && <SectionCard href="/staff/staff" icon={ShieldCheck} title="Staff Management" desc="Promote and demote Admins, reset Admin passwords." gold />}
-        <SectionCard href="/creator" icon={Trophy} title="Competition Oversight" desc="Active Seasons and Cups — jump to any workspace." />
+        <SectionCard href="/creator" icon={Trophy} title="Competition Oversight" desc="Active Seasons and Tournaments — jump to any workspace." />
       </div>
 
       {/* Recent activity */}

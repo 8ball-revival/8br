@@ -55,7 +55,10 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 export function SetupForm({ competitions, structures, initialType, currentYear }: SetupFormProps) {
   const router = useRouter()
-  const [type, setType] = useState<'season' | 'cup'>(initialType)
+  // Fixed for the lifetime of the form: Creator creates Seasons, and /tournaments/new creates
+  // Tournaments. Kept as state (rather than inlined) because the submit path, the structure list and
+  // several labels are still keyed on it, and a Tournament-shaped Creator flow may return one day.
+  const [type] = useState<'season' | 'cup'>(initialType)
   const [v, setV] = useState<Record<string, string>>({
     competitionYear: String(currentYear),
     competitionSeriesId: competitions[0] ? String(competitions[0].id) : '',
@@ -109,7 +112,7 @@ export function SetupForm({ competitions, structures, initialType, currentYear }
       return
     }
     if (type === 'cup' && !v.title.trim()) {
-      setError('A Cup needs a title.')
+      setError('A Tournament needs a title.')
       return
     }
 
@@ -133,29 +136,14 @@ export function SetupForm({ competitions, structures, initialType, currentYear }
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <Field label="What are you creating?">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          {(['season', 'cup'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              aria-pressed={type === t}
-              onClick={() => {
-                setType(t)
-                setV((p) => ({ ...p, structure: '' }))
-              }}
-              className={`flex-1 rounded-md border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60 ${type === t ? CHOICE_ON : CHOICE_OFF}`}
-            >
-              <span className="block font-display text-sm font-bold">{t === 'season' ? 'Season' : 'Cup'}</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                {t === 'season'
-                  ? 'A numbered Season within a Competition, with a group stage.'
-                  : 'A standalone Cup, decided by a bracket or by Swiss rounds.'}
-              </span>
-            </button>
-          ))}
-        </div>
-      </Field>
+      {/*
+        No Season/Tournament chooser.
+
+        Creating a Tournament lives at /tournaments/new — one create flow per record type, so the
+        validation and the Competition selector exist in one place rather than two that have to be
+        kept in step. Creator is Seasons. The `type` prop remains because the submit path and the
+        structure list are still keyed on it; it is fixed to 'season' by the page.
+      */}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Competition Year" hint="The year it was PLAYED, not today.">

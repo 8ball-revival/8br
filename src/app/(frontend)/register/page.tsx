@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic' // auth-dependent
 
 export const metadata: Metadata = pageMetadata({
   title: 'Create your account',
-  description: 'Create a 8 Ball Registry account to enter Cups.',
+  description: 'Create a 8 Ball Registry account to enter Tournaments.',
   path: '/register',
   index: false,
 })
@@ -34,7 +34,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       <p className="eyebrow text-primary">8 Ball Registry</p>
       <h1 className="mt-2 font-display text-2xl font-bold tracking-tight">Create your account</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Your CueVerse ID is your public identity and your login. You can enter any open Cup
+        Your CueVerse ID is your public identity and your login. You can enter any open Tournament
         from its page once you&apos;re signed in.
       </p>
 

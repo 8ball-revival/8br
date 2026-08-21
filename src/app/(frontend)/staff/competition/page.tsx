@@ -16,7 +16,7 @@ export default async function CompetitionOversightPage() {
   return (
     <AdminShell actor={access.actor} active="competition">
       <h1 className="font-display text-2xl font-bold tracking-tight">Competition Oversight</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Every Season and Cup at a glance — phase, registration, entrants, and unresolved work. Filter, then open the workspace to manage.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Every Season and Tournament at a glance — phase, registration, entrants, and unresolved work. Filter, then open the workspace to manage.</p>
       <div className="mt-6"><CompetitionOversightView rows={rows} /></div>
     </AdminShell>
   )

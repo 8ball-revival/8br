@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 
 import { requireCreator } from '@/lib/creator/access'
@@ -9,7 +10,7 @@ import { currentCompetitionYear } from '@/lib/competition/competition-year'
 import { SetupForm } from '@/components/creator/setup-form'
 
 export const metadata: Metadata = {
-  title: 'Create a Season or Cup',
+  title: 'Create a Season',
   robots: { index: false, follow: false },
 }
 
@@ -29,6 +30,15 @@ export default async function CreatorNewPage({
 }) {
   await requireCreator()
   const { type } = await searchParams
+  /*
+   * Creating a Tournament belongs in the Tournaments section.
+   *
+   * Two create flows for one record is two places for the validation to drift, and the Competition
+   * selector added to the Tournament flow would have had to be built twice to stay honest. Creator
+   * keeps Seasons and their historical reconstruction; the legacy ?type=cup link lands where the
+   * work actually happens rather than 404ing.
+   */
+  if (type === 'cup' || type === 'tournament') redirect('/tournaments/new')
   const competitions = await listAllCompetitions()
 
   return (
@@ -41,7 +51,7 @@ export default async function CreatorNewPage({
         Creator
       </Link>
 
-      <h1 className="font-display text-2xl font-bold">Create a Season or Cup</h1>
+      <h1 className="font-display text-2xl font-bold">Create a Season</h1>
       <p className="mb-6 mt-1 text-sm text-muted-foreground">
         A record is created empty. Nothing is published, and no results are invented — entrants and
         results are entered in the next step.
@@ -50,7 +60,7 @@ export default async function CreatorNewPage({
       <SetupForm
         competitions={competitions.map((c) => ({ id: c.id, name: c.name }))}
         structures={STRUCTURES.map((s) => ({ ...s }))}
-        initialType={type === 'cup' ? 'cup' : 'season'}
+        initialType="season"
         currentYear={currentCompetitionYear()}
       />
     </div>

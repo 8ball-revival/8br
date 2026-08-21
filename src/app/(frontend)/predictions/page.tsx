@@ -8,13 +8,13 @@ import { pageMetadata } from '@/lib/site'
 export const metadata: Metadata = pageMetadata({
   title: 'Predictions',
   description:
-    'Predictions are coming soon to 8 Ball Registry — publish match predictions, Cup picks, analysis, and upset calls directly on 8BR.',
+    'Predictions are coming soon to 8 Ball Registry — publish match predictions, Tournament picks, analysis, and upset calls directly on 8BR.',
   path: '/predictions',
 })
 
 const PLANNED: { icon: typeof Target; title: string; body: string }[] = [
-  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming Cup matchups.' },
-  { icon: Trophy, title: 'Cup predictions', body: 'Pick group qualifiers, bracket runs, and champions.' },
+  { icon: Target, title: 'Match predictions', body: 'Call the score on upcoming Tournament matchups.' },
+  { icon: Trophy, title: 'Tournament predictions', body: 'Pick group qualifiers, bracket runs, and champions.' },
   { icon: MessagesSquare, title: 'Community analysis', body: 'Share breakdowns, form reads, and upset calls.' },
   { icon: LineChart, title: 'Prediction accuracy tracking', body: 'Build a record — see who actually calls it right.' },
   { icon: Star, title: 'Featured prediction posts', body: 'The best analysis gets highlighted across the site.' },
@@ -36,7 +36,7 @@ export default function PredictionsPage() {
             <span className="block text-brand-gradient">Coming Soon</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground text-pretty">
-            Soon, registered 8 Ball Registry members will be able to publish match predictions, Cup picks,
+            Soon, registered 8 Ball Registry members will be able to publish match predictions, Tournament picks,
             analysis, and upset calls directly on 8BR.
           </p>
           <div className="mt-6 flex justify-center">

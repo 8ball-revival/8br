@@ -24,12 +24,27 @@ const FMT_LABEL: Record<Format, string> = {
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-brand'
 
-export function CreateTournamentForm() {
+export interface CompetitionChoice {
+  id: number
+  name: string
+  shortName: string
+  active: boolean
+}
+
+export function CreateTournamentForm({ competitions }: { competitions: CompetitionChoice[] }) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
+  /*
+   * Which Competition this Tournament belongs to.
+   *
+   * Deliberately starts EMPTY rather than pre-selecting the first row. A pre-filled required field
+   * is one nobody reads, and the whole point of asking is that two Tournaments can share a title
+   * under different Competitions — a silent default would file them together.
+   */
+  const [competitionSeriesId, setCompetitionSeriesId] = useState('')
   // Competition Year defaults to the current calendar year; the server re-validates the range.
   const [competitionYear, setCompetitionYear] = useState(String(currentCompetitionYear()))
   const [race, setRace] = useState(7)
@@ -67,13 +82,15 @@ export function CreateTournamentForm() {
 
   const submit = () => {
     setError(null)
-    if (!name.trim()) return setError('Give the Cup a name.')
+    if (!name.trim()) return setError('Give the Tournament a name.')
+    if (!competitionSeriesId) return setError('Choose a Competition.')
     if (access === 'PASSWORD' && joinPassword.trim().length < 4) return setError('Set a join password of at least 4 characters.')
     if (scheduleLater && !date) return setError('Pick a date for the scheduled start.')
 
     const cfg: CreateTournamentConfig = {
       name: name.trim(),
       competitionYear,
+      competitionSeriesId,
       participantFormat: participant,
       teamSize: participant === 'TEAM' ? teamSize : null,
       teamFormation: participant === 'TEAM' ? teamFormation : undefined,
@@ -89,8 +106,8 @@ export function CreateTournamentForm() {
     }
     start(async () => {
       const r = await createTournamentAction(cfg)
-      if (r.error || !r.number) return setError(r.error ?? 'Could not create the Cup.')
-      router.push(`/cups/${r.number}`)
+      if (r.error || !r.number) return setError(r.error ?? 'Could not create the Tournament.')
+      router.push(`/tournaments/${r.number}`)
     })
   }
 
@@ -131,8 +148,28 @@ export function CreateTournamentForm() {
         <section className="p-6">
           <p className={eyebrow}><span className="text-muted-foreground/50">03</span> Basics</p>
           <div className="mt-4 space-y-4">
-            <Labeled label="Cup name" hint="optional">
+            <Labeled label="Tournament name" hint="required">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 8BR Winter Open" maxLength={80} className={input} />
+            </Labeled>
+            <Labeled label="Competition" hint="required">
+              <select
+                value={competitionSeriesId}
+                onChange={(e) => setCompetitionSeriesId(e.target.value)}
+                className={input}
+                required
+                aria-describedby="competition-hint"
+              >
+                <option value="">Choose a Competition…</option>
+                {competitions.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name}{c.active ? '' : ' (retired)'}
+                  </option>
+                ))}
+              </select>
+              <p id="competition-hint" className="mt-1 text-[0.7rem] text-muted-foreground/70">
+                Which Competition this Tournament belongs to. Two Tournaments may share a name under
+                different Competitions — this is what tells them apart.
+              </p>
             </Labeled>
             <Labeled label="Competition Year" hint="required">
               <input

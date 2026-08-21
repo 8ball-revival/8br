@@ -4,8 +4,8 @@ export type NavItem = { label: string; href: string }
 /**
  * Build the navigation for one request.
  *
- * ── Seasons and Cups are permanent top-level tabs ────────────────────────────────────────────────
- * They used to be Live and Archives: two dropdown triggers, each opening a Seasons/Cups pair, so
+ * ── Seasons and Tournaments are permanent top-level tabs ────────────────────────────────────────────────
+ * They used to be Live and Archives: two dropdown triggers, each opening a Seasons/Tournaments pair, so
  * reaching a Season meant knowing in advance whether it had finished. That is a distinction the site
  * cares about and the reader does not — they want the Seasons, and whether one is still running is
  * something the page should tell them, not something they should have to guess before clicking.
@@ -25,7 +25,7 @@ export function buildNav(opts: {
   const entries: NavItem[] = [
     { label: 'Home', href: '/' },
     { label: 'Seasons', href: '/seasons' },
-    { label: 'Cups', href: '/cups' },
+    { label: 'Tournaments', href: '/tournaments' },
   ]
 
   if (canCreate) entries.push({ label: 'Creator', href: '/creator' })
@@ -42,7 +42,7 @@ export function buildNav(opts: {
 export const PRIMARY_NAV: NavItem[] = [
   { label: 'Home', href: '/' },
   { label: 'Seasons', href: '/seasons' },
-  { label: 'Cups', href: '/cups' },
+  { label: 'Tournaments', href: '/tournaments' },
   { label: 'Rankings', href: '/rankings' },
   { label: 'The Break', href: '/the-break' },
 ]

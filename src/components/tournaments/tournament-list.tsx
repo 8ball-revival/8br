@@ -72,7 +72,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
       <div className="mb-6 space-y-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Cups, players, teams, aliases, champions…" className="h-10 pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Tournaments, players, teams, aliases, champions…" className="h-10 pl-9" />
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           <Select label="Status" value={status} onChange={setStatus} options={[['all', 'All statuses'], ['active', 'Active & Upcoming'], ['completed', 'Completed']]} />
@@ -92,7 +92,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
       <section>
         <h2 className="eyebrow mb-3 text-muted-foreground">Archive {archive.length > 0 && `· ${archive.length}`}</h2>
         {archive.length === 0 && active.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No Cups match your search.</p>
+          <p className="text-sm text-muted-foreground">No Tournaments match your search.</p>
         ) : (
           <ul className="space-y-2">{archive.map((c) => <Row key={c.number} c={c} rel={relFor(c)} />)}</ul>
         )}
@@ -116,9 +116,9 @@ function Row({ c, rel }: { c: TournamentListItem; rel: { display: string; relati
   const completed = !isActive(c.status)
   return (
     <li>
-      <Link href={`/cups/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
+      <Link href={`/tournaments/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="tabular text-sm font-semibold text-brand">Cup #{c.number}</span>
+          <span className="tabular text-sm font-semibold text-brand">Tournament #{c.number}</span>
           <span className="tabular text-xs text-muted-foreground">{c.code}</span>
           <span className="font-display font-semibold text-foreground">{c.name}</span>
           {c.year && <span className="text-xs text-muted-foreground">· {c.year}</span>}

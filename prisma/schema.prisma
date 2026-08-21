@@ -1231,6 +1231,13 @@ model Tournament {
   reconstruction       Boolean                   @default(false)
   reopenedAt           DateTime?
   dataCompleteness     String                    @default("full")
+  /// The Competition this Tournament belongs to — the same canonical table Seasons use.
+  ///
+  /// Nullable because Tournaments predate the relationship: rows created before it existed have no
+  /// answer, and inventing one would be a guess recorded as fact. New Tournaments require it at the
+  /// point of creation, which is where the operator actually knows.
+  competitionSeriesId  Int?
+  competitionSeries    CompetitionSeries?        @relation(fields: [competitionSeriesId], references: [id], onDelete: Restrict)
   code                 String?                   @unique // permanent immutable id, e.g. "T001"
   number               Int?                      @unique // public tournament number
   gameType             String? // e.g. "8-Ball"
@@ -1289,6 +1296,7 @@ model Tournament {
   @@index([competitionYear])
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
+  @@index([competitionSeriesId])
   @@map("comp_tournament")
 }
 
@@ -1579,27 +1587,29 @@ model GroupPlayer {
 
 /// A round-robin group match.
 model TournamentMatch {
-  id                   Int               @id @default(autoincrement())
-  tournamentId         Int
-  tournament           Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  groupId              Int
-  group                TournamentGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  round                Int
-  homeRegistrationId   Int
-  awayRegistrationId   Int
-  homeUsername         String
-  awayUsername         String
-  status               LiveMatchStatus   @default(SCHEDULED)
-  homeGames            Int?
-  awayGames            Int?
-  winnerRegistrationId Int?
-  loserRegistrationId  Int?
-  verification         VerificationState @default(UNVERIFIED)
-  note                 String? // optional admin note attached to the result
-  scheduledAt          DateTime?
-  completedAt          DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  id                    Int               @id @default(autoincrement())
+  tournamentId          Int
+  tournament            Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  groupId               Int
+  group                 TournamentGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  round                 Int
+  homeRegistrationId    Int
+  awayRegistrationId    Int
+  homeUsername          String
+  awayUsername          String
+  status                LiveMatchStatus   @default(SCHEDULED)
+  homeGames             Int?
+  awayGames             Int?
+  winnerRegistrationId  Int?
+  loserRegistrationId   Int?
+  /// FF: the forfeiting (losing) registration. See PlayoffMatch.forfeitRegistrationId.
+  forfeitRegistrationId Int?
+  verification          VerificationState @default(UNVERIFIED)
+  note                  String? // optional admin note attached to the result
+  scheduledAt           DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   @@index([groupId])
   @@index([tournamentId, verification])
@@ -1610,36 +1620,40 @@ model TournamentMatch {
 /// A single-elimination playoff match. Participants may be undetermined until
 /// feeding matches resolve. `feedsMatchId`/`feedsSlot` wire the bracket together.
 model PlayoffMatch {
-  id                   Int               @id @default(autoincrement())
-  tournamentId         Int
-  tournament           Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  round                Int
-  slot                 Int
-  label                String?
-  homeRegistrationId   Int?
-  awayRegistrationId   Int?
-  homeUsername         String?
-  awayUsername         String?
-  homeSeed             Int?
-  awaySeed             Int?
-  homeGames            Int?
-  awayGames            Int?
-  status               LiveMatchStatus   @default(SCHEDULED)
-  winnerRegistrationId Int?
-  verification         VerificationState @default(UNVERIFIED)
-  note                 String? // optional admin note attached to the result
-  feedsMatchId         Int? // where the WINNER advances
-  feedsSlot            Int?
+  id                    Int               @id @default(autoincrement())
+  tournamentId          Int
+  tournament            Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  round                 Int
+  slot                  Int
+  label                 String?
+  homeRegistrationId    Int?
+  awayRegistrationId    Int?
+  homeUsername          String?
+  awayUsername          String?
+  homeSeed              Int?
+  awaySeed              Int?
+  homeGames             Int?
+  awayGames             Int?
+  status                LiveMatchStatus   @default(SCHEDULED)
+  winnerRegistrationId  Int?
+  /// FF: the forfeiting (losing) registration. Same convention as SeasonMatch.forfeitEntrantId —
+  /// one rule, two models. Set together with status = FORFEIT and with homeGames/awayGames left
+  /// NULL, because no games were played and a fabricated score would be indistinguishable from one.
+  forfeitRegistrationId Int?
+  verification          VerificationState @default(UNVERIFIED)
+  note                  String? // optional admin note attached to the result
+  feedsMatchId          Int? // where the WINNER advances
+  feedsSlot             Int?
   // Double-elimination: where the LOSER drops to (null = eliminated, e.g. single-elim or LB matches).
-  loserFeedsMatchId    Int?
-  loserFeedsSlot       Int?
+  loserFeedsMatchId     Int?
+  loserFeedsSlot        Int?
   // Bracket section for double-elim rendering/logic: "WB" (winners) | "LB" (losers) | "GF" (grand final).
   // Null for single-elimination brackets (rendered as one tree).
-  section              String?
-  published            Boolean           @default(false)
-  completedAt          DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  section               String?
+  published             Boolean           @default(false)
+  completedAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   @@index([tournamentId, round, slot])
   @@map("comp_playoff_match")
@@ -1889,7 +1903,8 @@ model CompetitionSeries {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  seasons Season[]
+  seasons     Season[]
+  tournaments Tournament[]
 
   /// Articles that reference this Competition.
   articleRelations ArticleRelation[]
