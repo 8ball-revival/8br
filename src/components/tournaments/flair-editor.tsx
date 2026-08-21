@@ -39,7 +39,7 @@ export function FlairEditor({ value, onChange }: { value: FlairValue; onChange: 
       {/* Description */}
       <div>
         <label className="mb-1.5 block text-[0.8rem] font-semibold text-foreground">Description / announcement <span className="font-normal text-muted-foreground/60">(optional)</span></label>
-        <textarea value={value.description ?? ''} onChange={(e) => set({ description: e.target.value || null })} maxLength={DESCRIPTION_MAX} rows={3} placeholder="A short note shown on the Cup page — plain text." className={cn(input, 'resize-y')} />
+        <textarea value={value.description ?? ''} onChange={(e) => set({ description: e.target.value || null })} maxLength={DESCRIPTION_MAX} rows={3} placeholder="A short note shown on the Tournament page — plain text." className={cn(input, 'resize-y')} />
         <p className="mt-1 text-right text-[0.7rem] text-muted-foreground/60">{(value.description ?? '').length}/{DESCRIPTION_MAX}</p>
       </div>
 
@@ -59,9 +59,9 @@ export function FlairPreview({ value, name }: { value: FlairValue; name: string 
       <div className="p-4">
         <div className="flex items-center gap-2">
           {badge && <span className="text-lg" aria-hidden>{badge.emoji}</span>}
-          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-brand">Cup</span>
+          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-brand">Tournament</span>
         </div>
-        <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground">{name.trim() || 'Untitled Cup'}</h4>
+        <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground">{name.trim() || 'Untitled Tournament'}</h4>
         {value.description && <p className="mt-1.5 whitespace-pre-wrap text-xs text-muted-foreground">{value.description}</p>}
         <div className="mt-3 flex items-center gap-2">
           <span className="rounded-full bg-brand px-2.5 py-1 text-[0.65rem] font-semibold text-primary-foreground">Registration Open</span>

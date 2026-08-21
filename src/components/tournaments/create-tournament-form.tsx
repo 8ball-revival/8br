@@ -275,7 +275,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
               </div>
             </Reveal>
           )}
-          <p className="mt-3 text-xs text-muted-foreground">“Start now” opens registration immediately — you advance it through close → bracket → begin yourself. Cups stay open as long as needed.</p>
+          <p className="mt-3 text-xs text-muted-foreground">“Start now” opens registration immediately — you advance it through close → bracket → begin yourself. Tournaments stay open as long as needed.</p>
         </section>
 
         {/* Flair */}
@@ -296,7 +296,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
           </div>
           <div className="border-b border-border/60 p-5">
             <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Review</h3>
-            <p className={cn('mt-2 text-lg font-bold', name.trim() ? 'text-foreground' : 'text-muted-foreground/60')}>{name.trim() || 'Untitled Cup'}</p>
+            <p className={cn('mt-2 text-lg font-bold', name.trim() ? 'text-foreground' : 'text-muted-foreground/60')}>{name.trim() || 'Untitled Tournament'}</p>
             <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-success/25 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
               <span className="size-1.5 rounded-full bg-success" /> Reports to Rankings
             </span>
@@ -313,7 +313,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
           <div className="flex flex-col gap-2 p-5">
             {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
             <Button onClick={submit} disabled={pending}>
-              <Users className="size-4" /> {pending ? 'Creating…' : 'Create Cup'}
+              <Users className="size-4" /> {pending ? 'Creating…' : 'Create Tournament'}
             </Button>
             <button
               type="button"
@@ -322,7 +322,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
             >
               {savedDefault ? (<><Check className="size-3.5 text-success" /> Saved as your default</>) : (<><Sparkles className="size-3.5" /> Save flair as my default</>)}
             </button>
-            <p className="text-center text-[0.7rem] text-muted-foreground/60">A Cup number + code are assigned automatically.</p>
+            <p className="text-center text-[0.7rem] text-muted-foreground/60">A Tournament number + code are assigned automatically.</p>
           </div>
         </div>
       </div>
