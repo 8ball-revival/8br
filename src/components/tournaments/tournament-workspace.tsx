@@ -463,56 +463,224 @@ function TeamCard({ team, teamSize, run, disabled }: { team: TournamentWorkspace
 function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   // Seedable pool: teams (team cups) or entrants (individual), non-withdrawn.
   const pool = data.isTeam
-    ? data.teams.filter((t) => !t.withdrawn).map((t) => ({ id: t.registrationId, name: t.name }))
-    : data.entrants.filter((e) => !e.withdrawn).map((e) => ({ id: e.registrationId, name: e.name }))
+    // A team has a name and no CueVerse ID — there is no person to identify.
+    ? data.teams.filter((t) => !t.withdrawn).map((t) => ({ id: t.registrationId, name: t.name, handle: null }))
+    : data.entrants.filter((e) => !e.withdrawn).map((e) => ({ id: e.registrationId, name: e.name, handle: e.handle }))
   const poolKey = pool.map((p) => p.id).join(',') // reset the seed builder when the pool changes
   // Bracket generation/regeneration is only possible after registration closes and before the
   // tournament begins (server-enforced too). Once In Progress/Completed the bracket is fixed.
   const canBuild = data.tournament.lifecycleState === 'REGISTRATION_CLOSED' || data.tournament.lifecycleState === 'BRACKET_GENERATED'
-  // If a draft bracket already exists (e.g. just seeded from the group qualifiers), initialise the seed
-  // builder FROM it — the qualifiers in seed order, top-N field — so the review reflects the real seeding.
-  const seededOrder = (() => {
-    if (!data.hasBracket || data.matches.length === 0) return null
+  /*
+   * The field, read straight off the first round in bracket order: slot by slot, home then away.
+   *
+   * It used to be re-derived by sorting the seats by seed, which cannot survive hand-placement — two
+   * players swapping seats leaves every seed number exactly where it was, so the sorted list came
+   * back identical and the entrant list quietly disagreed with the board. Reading positions instead
+   * means the list IS the bracket, and a drag on either side shows up on both.
+   */
+  const firstRound = useMemo(() => {
+    if (data.matches.length === 0) return []
     const minR = Math.min(...data.matches.map((m) => m.round))
-    const pairs: { id: number; seed: number }[] = []
-    for (const m of data.matches.filter((m) => m.round === minR)) {
-      if (m.homeRegistrationId != null) pairs.push({ id: m.homeRegistrationId, seed: m.homeSeed ?? 9999 })
-      if (m.awayRegistrationId != null) pairs.push({ id: m.awayRegistrationId, seed: m.awaySeed ?? 9999 })
+    return data.matches.filter((m) => m.round === minR).slice().sort((a, b) => a.slot - b.slot)
+  }, [data.matches])
+
+  /** Bracket line → who is on it, taken from the seats themselves. */
+  const seedById = useMemo(() => {
+    const m = new Map<number, number>()
+    for (const x of firstRound) {
+      if (x.homeRegistrationId != null && x.homeSeed != null) m.set(x.homeRegistrationId, x.homeSeed)
+      if (x.awayRegistrationId != null && x.awaySeed != null) m.set(x.awayRegistrationId, x.awaySeed)
     }
-    pairs.sort((a, b) => a.seed - b.seed)
-    return pairs.map((p) => p.id)
-  })()
+    return m
+  }, [firstRound])
+
+  const seededOrder = useMemo(() => {
+    if (!data.hasBracket || firstRound.length === 0) return null
+    const ids: number[] = []
+    for (const m of firstRound) {
+      if (m.homeRegistrationId != null) ids.push(m.homeRegistrationId)
+      if (m.awayRegistrationId != null) ids.push(m.awayRegistrationId)
+    }
+    // By line, so the list reads in the same order the bracket does and shows the same numbers.
+    return ids.sort((a, b) => (seedById.get(a) ?? 9999) - (seedById.get(b) ?? 9999))
+  }, [data.hasBracket, firstRound, seedById])
+
+  // A draft is arranged; a published bracket is read. Different jobs, so different screens.
+  const arranging = !disabled && canBuild && data.hasBracket && !data.hasPublishedBracket
+  // Remount the seed list whenever the board moves, so it re-derives from the new arrangement.
+  const arrangementKey = firstRound
+    .map((m) => m.id + ':' + (m.homeRegistrationId ?? '') + ':' + (m.awayRegistrationId ?? ''))
+    .join(',')
+
+  const seedList = !disabled && canBuild
+    ? <SeedBuilder key={poolKey + '|' + arrangementKey} data={data} pool={pool} seededOrder={seededOrder}
+        seedById={arranging ? seedById : null} run={run} />
+    : null
+
+  // registrationId → identity, so a bracket seat can be named properly from the entrant record
+  // rather than from the single name string the seat stores.
+  const identityById = new Map(pool.map((p) => [p.id, { name: p.name, handle: p.handle }]))
 
   return (
     <div className="space-y-6">
-      {!disabled && canBuild && <SeedBuilder key={poolKey} data={data} pool={pool} seededOrder={seededOrder} run={run} />}
-      {!disabled && !canBuild && (
-        <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
-          {data.tournament.lifecycleState === 'IN_PROGRESS'
-            ? 'The Tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
-            : data.tournament.lifecycleState === 'COMPLETED'
-              ? 'This Tournament is completed — the bracket is read-only.'
-              : 'Close registration to generate the bracket.'}
-        </p>
-      )}
-      <div>
-        <p className="eyebrow mb-3 text-foreground">Bracket preview</p>
-        {data.bracketRounds.length > 0 ? (
-          <Bracket rounds={data.bracketRounds} />
-        ) : (
-          <p className="text-sm text-muted-foreground">No bracket yet — build one from the seed order above.</p>
-        )}
-        {data.bracketRounds.length > 0 && (
+      {arranging ? (
+        <>
+          {/*
+            Side by side while the draw is being made: who is entered on the left, where they play on
+            the right. Only the first round is shown — nothing later is decided yet, and an empty
+            Round of 16 hanging off the side is only noise to arrange around.
+          */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start">
+            <div>{seedList}</div>
+            <FirstRoundBoard data={data} matches={firstRound} identityById={identityById} run={run} />
+          </div>
           <PlayoffDisclaimer kind="tournament" id={data.tournament.id} value={data.tournament.playoffDisclaimer} canManage />
+        </>
+      ) : (
+        <>
+          {seedList}
+          {!disabled && !canBuild && (
+            <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+              {data.tournament.lifecycleState === 'IN_PROGRESS'
+                ? 'The Tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
+                : data.tournament.lifecycleState === 'COMPLETED'
+                  ? 'This Tournament is completed — the bracket is read-only.'
+                  : 'Close registration to generate the bracket.'}
+            </p>
+          )}
+          <div>
+            <p className="eyebrow mb-3 text-foreground">Bracket preview</p>
+            {data.bracketRounds.length > 0 ? (
+              <Bracket rounds={data.bracketRounds} />
+            ) : (
+              <p className="text-sm text-muted-foreground">No bracket yet — build one from the seed order above.</p>
+            )}
+            {data.bracketRounds.length > 0 && (
+              <PlayoffDisclaimer kind="tournament" id={data.tournament.id} value={data.tournament.playoffDisclaimer} canManage />
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A competitor named for the draw board: preferred name first, CueVerse ID after it, on one line.
+ *
+ * Deliberately not the house style, and deliberately local to this screen. Everywhere else the ID
+ * leads, because in a table you are reading down, the ID is what tells two Mikes apart. Arranging a
+ * draw is the opposite job — you are hunting for someone you already have in mind, by the name you
+ * know them by — and a stacked two-line identity halves how much of the bracket fits on screen,
+ * which is the whole difficulty of placing twenty-odd people by hand.
+ */
+function DrawName({ name, handle, className }: { name: string | null; handle: string | null; className?: string }) {
+  const n = (name ?? '').trim()
+  const h = (handle ?? '').trim()
+  // An ID that merely repeats the name is noise, exactly as in the house rule.
+  const showId = h !== '' && n !== '' && h.toLowerCase() !== n.toLowerCase()
+  return (
+    <span className={cn('flex min-w-0 items-baseline gap-1.5 leading-none', className)} title={showId ? `${n} - ${h}` : n || h}>
+      <span className="truncate font-medium leading-none">{n || h || '\u2014'}</span>
+      {showId && <span className="min-w-0 shrink truncate text-[0.7rem] leading-none text-muted-foreground">- {h}</span>}
+    </span>
+  )
+}
+
+/** What is being dragged. Module-scoped because a drag is one gesture at a time. */
+let dragging: { registrationId: number } | null = null
+
+/**
+ * The first round of a draft bracket, as drop targets.
+ *
+ * This is the placement an ordered seed list cannot express. Once the field is not a power of two,
+ * the empty positions belong to seed numbers the list does not contain, so "give THIS player THAT
+ * bye" is unsayable as an ordering — and it is exactly what reproducing a real draw requires.
+ *
+ * Every drop is a swap, so the field stays a permutation and nobody falls out of the draw.
+ */
+function FirstRoundBoard({ data, matches, identityById, run }: {
+  data: TournamentWorkspaceData
+  matches: PlayoffRow[]
+  identityById: Map<number, { name: string; handle: string | null }>
+  run: Run
+}) {
+  const [over, setOver] = useState<string | null>(null)
+
+  const drop = (m: PlayoffRow, side: 'home' | 'away') => {
+    const d = dragging
+    dragging = null
+    setOver(null)
+    if (!d) return
+    const already = side === 'home' ? m.homeRegistrationId : m.awayRegistrationId
+    if (already === d.registrationId) return // dropped back where it started
+    run(() => A.setTournamentBracketSlotAction(data.tournament.id, m.id, side, d.registrationId))
+  }
+
+  const Slot = ({ m, side }: { m: PlayoffRow; side: 'home' | 'away' }) => {
+    const regId = side === 'home' ? m.homeRegistrationId : m.awayRegistrationId
+    const name = side === 'home' ? m.homeUsername : m.awayUsername
+    const seed = side === 'home' ? m.homeSeed : m.awaySeed
+    const key = m.id + ':' + side
+    // Prefer the entrant record, which carries both halves; the seat only stores one name.
+    const who = regId == null ? null : identityById.get(regId) ?? { name: name ?? '', handle: null }
+    return (
+      <div
+        draggable={regId != null}
+        onDragStart={(e) => {
+          if (regId == null) return
+          dragging = { registrationId: regId }
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', String(regId))
+        }}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(key) }}
+        onDragLeave={() => setOver((v) => (v === key ? null : v))}
+        onDragEnd={() => { dragging = null; setOver(null) }}
+        onDrop={(e) => { e.preventDefault(); drop(m, side) }}
+        className={cn(
+          'flex items-center gap-2 px-2 leading-none',
+          regId != null
+            ? 'cursor-grab py-[3px] text-[0.8125rem] active:cursor-grabbing'
+            : 'py-px text-[0.65rem] italic text-muted-foreground/50',
+          over === key && 'bg-brand/15 ring-1 ring-inset ring-brand',
         )}
+      >
+        <span className="tabular w-5 shrink-0 text-right text-[0.7rem] text-muted-foreground">{seed ?? '–'}</span>
+        {who ? <DrawName name={who.name} handle={who.handle} className="flex-1" />
+             : <span className="flex-1 truncate leading-none">bye</span>}
       </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2">
+        <p className="eyebrow text-foreground">Round 1</p>
+        <p className="text-[0.7rem] text-muted-foreground">
+          Drag a name onto any position — the two swap. Byes advance when you publish.
+        </p>
+      </div>
+      {/*
+        One column, tightly stacked. Each match keeps its own frame and inner divider, so the pairs
+        stay legible at this density — the height saved is what makes the whole field visible at once,
+        which is the point of the screen.
+      */}
+      <div className="grid gap-0.5">
+        {matches.map((m) => (
+          <div key={m.id} className="divide-y divide-border/60 overflow-hidden rounded border border-border bg-background/40">
+            <Slot m={m} side="home" />
+            <Slot m={m} side="away" />
+          </div>
+        ))}
+      </div>
+      {matches.length === 0 && <p className="text-sm text-muted-foreground">No first-round matches yet.</p>}
     </div>
   )
 }
 
 /** Seed-order builder. Keyed on the pool so it re-initialises when entrants/teams change
  *  (no effect needed). Drag to reorder, or use the up/down controls. */
-function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string }[]; seededOrder: number[] | null; run: Run }) {
+function SeedBuilder({ data, pool, seededOrder, seedById, run }: { data: TournamentWorkspaceData; pool: { id: number; name: string; handle: string | null }[]; seededOrder: number[] | null; seedById: Map<number, number> | null; run: Run }) {
   const confirm = useConfirm()
   // Start from the existing draft seeding when present (qualifiers first, in seed order), else the pool.
   const initialOrder = useMemo(() => {
@@ -529,6 +697,7 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
   // field (qualifier count) when a draft exists, else the full pool.
   const [fieldSize, setFieldSize] = useState<number>(() => (seededOrder && seededOrder.length ? seededOrder.length : pool.length))
   const nameById = useMemo(() => new Map(pool.map((p) => [p.id, p.name])), [pool])
+  const identityById = useMemo(() => new Map(pool.map((p) => [p.id, { name: p.name, handle: p.handle }])), [pool])
   const dragIndex = useRef<number | null>(null)
   const [dragFrom, setDragFrom] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
@@ -577,7 +746,7 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
           private draft until you publish it again.
         </p>
       )}
-      <ol className="mt-2 max-w-md space-y-1">
+      <ol className="mt-2 max-w-md space-y-0.5">
         {order.map((id, i) => {
           const inField = i < cut
           return (
@@ -592,30 +761,41 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
                 onDragStart={(e) => {
                   dragIndex.current = i
                   setDragFrom(i)
+                  // The same gesture can end on the round-1 board, which places rather than reorders.
+                  dragging = { registrationId: id }
                   // Firefox refuses to start a drag unless the payload is set, even an unused one.
                   e.dataTransfer.effectAllowed = 'move'
                   e.dataTransfer.setData('text/plain', String(id))
                 }}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOverIndex(i) }}
                 onDragLeave={() => setOverIndex((v) => (v === i ? null : v))}
-                onDragEnd={() => { dragIndex.current = null; setDragFrom(null); setOverIndex(null) }}
+                onDragEnd={() => { dragIndex.current = null; dragging = null; setDragFrom(null); setOverIndex(null) }}
                 onDrop={(e) => {
                   e.preventDefault()
+                  // dragIndex is null when the drag began on the board, and that gesture means
+                  // nothing here — the list has no position to move it to.
                   if (dragIndex.current != null) move(dragIndex.current, i)
                   dragIndex.current = null
+                  dragging = null
                   setDragFrom(null)
                   setOverIndex(null)
                 }}
                 className={cn(
-                  'flex cursor-grab items-center gap-2 rounded-md border px-2 py-1.5 text-sm active:cursor-grabbing',
+                  'flex cursor-grab items-center gap-1.5 rounded border px-2 py-1 text-[0.8125rem] leading-none active:cursor-grabbing',
                   inField ? 'border-border bg-background/50' : 'border-border/40 bg-background/20 opacity-50',
                   dragFrom === i && 'opacity-40',
                   overIndex === i && dragFrom !== i && 'border-brand ring-1 ring-brand',
                 )}
               >
-                <GripVertical className="size-4 shrink-0 text-muted-foreground" />
-                <span className="tabular w-5 text-right text-xs text-muted-foreground">{inField ? i + 1 : '–'}</span>
-                <span className="flex-1 truncate">{nameById.get(id)}</span>
+                <GripVertical className="size-3 shrink-0 text-muted-foreground/50" />
+                <span className="tabular w-5 text-right text-[0.7rem] text-muted-foreground">
+                  {inField ? (seedById?.get(id) ?? i + 1) : '–'}
+                </span>
+                <DrawName
+                  name={identityById.get(id)?.name ?? nameById.get(id) ?? null}
+                  handle={identityById.get(id)?.handle ?? null}
+                  className="flex-1"
+                />
                 {/* Keyboard/pointer equivalent of the drag — the list must be reorderable without one. */}
                 <span className="flex gap-0.5">
                   <button type="button" aria-label={`Move ${nameById.get(id) ?? ''} up`} disabled={i === 0} onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-brand disabled:opacity-25"><ChevronUp className="size-4" /></button>
@@ -631,11 +811,19 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
         <Button
           disabled={cut < 2}
           onClick={async () => {
-            if (published) {
+            /*
+             * This redraws the whole bracket from the list using standard seeding (1 v 32, 2 v 31
+             * and so on). Any placement made by hand on the board is therefore replaced, not merged
+             * — so an existing bracket always asks first, and says which of the two it is about to
+             * throw away.
+             */
+            if (data.hasBracket) {
               const r = await confirm({
-                title: 'Reseed the published bracket?',
-                message: 'Applying a new seed order returns the bracket to a private draft, so members and the public stop seeing it until you publish it again. No results have been entered, so nothing is lost.',
-                confirmLabel: 'Apply new seed order',
+                title: published ? 'Redraw the published bracket?' : 'Redraw the bracket from this list?',
+                message: published
+                  ? 'The bracket will be redrawn from this order using standard seeding, replacing any placement made by hand, and returned to a private draft — so members and the public stop seeing it until you publish again. No results have been entered, so nothing is lost.'
+                  : 'The bracket will be redrawn from this order using standard seeding. Any placement you made by hand on the board will be replaced.',
+                confirmLabel: 'Redraw bracket',
                 tone: 'warning',
               })
               if (!r.confirmed) return
@@ -643,7 +831,7 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
             run(() => A.buildTournamentBracketAction(data.tournament.id, included))
           }}
         >
-          {data.hasBracket ? 'Apply seed order' : 'Build draft bracket'}
+          {data.hasBracket ? 'Redraw from this order' : 'Build draft bracket'}
         </Button>
         {data.hasBracket && !published && (
           <Button onClick={async () => { const r = await confirm({ title: 'Publish the playoff bracket?', message: 'This makes the playoff seeds and matchups visible to EVERYONE — all members and logged-out visitors. Groups stay visible too. You can return it to draft afterward.', confirmLabel: 'Publish bracket', tone: 'warning' }); if (r.confirmed) run(() => A.publishTournamentBracketAction(data.tournament.id)) }}>

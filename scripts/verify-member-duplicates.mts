@@ -190,6 +190,13 @@ async function main() {
   const before = await prisma.player.count()
   await findPossibleDuplicates(real.cueverseId, real.primaryName)
   check('the player count is unchanged', (await prisma.player.count()) === before)
+
+  // Sweep on the way OUT as well as on the way in. Sweeping only at the start meant every run left
+  // its fixture player sitting in the database until the next one happened to clear it, which shows
+  // up as a phantom member in counts and in the members list.
+  await sweepFixtures()
+  check('the fixture player is not left behind',
+    (await prisma.player.count({ where: { primaryName: FIXTURE_NAME } })) === 0)
 }
 
 let code = 0

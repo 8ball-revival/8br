@@ -8,7 +8,7 @@ import { roundRobin, type SchedulePlayer } from './schedule'
 import { computeStandings, type StandingMatchInput } from './standings'
 import { validateResult } from './scoring'
 import { isGroupsPlayoffs, GROUP_STAGE_GAMES, computeBracketShape, playoffRaceLength } from './match-format'
-import { planBracket, orderQualifiers, type GroupQualifiers, type BracketPlan, type Qualifier } from './bracket'
+import { planBracket, orderQualifiers, seedOrder, type GroupQualifiers, type BracketPlan, type BracketSlot, type Qualifier } from './bracket'
 import { planDoubleElim } from './bracket-de'
 
 // ---------------------------------------------------------------------------
@@ -1272,12 +1272,7 @@ export async function generatePlayoff(
           round: m.round,
           slot: m.slot,
           label: m.label,
-          homeRegistrationId: m.home.registrationId,
-          awayRegistrationId: m.away.registrationId,
-          homeUsername: m.home.username,
-          awayUsername: m.away.username,
-          homeSeed: m.home.seed,
-          awaySeed: m.away.seed,
+          ...draftSeats(m),
         },
       })
       idByIndex[m.index] = created.id
@@ -1295,12 +1290,96 @@ export async function generatePlayoff(
   return { ok: true }
 }
 
+/**
+ * A DRAFT bracket seats round 1 and nothing else.
+ *
+ * planBracket walks a bye straight through into round 2 so the finished shape is complete, which is
+ * right for a bracket that is settled and wrong for one still being arranged: it shows a player
+ * already through before anybody has agreed the draw. Those seats are dropped here and re-applied
+ * by publishPlayoff, so a draft only ever states who plays whom in the first round.
+ *
+ * Round 1 is the only round planBracket seats from the seed list; every later round is filled by
+ * advancement alone. Dropping everything above round 1 therefore removes exactly the bye walk-through
+ * and nothing else.
+ */
+function draftSeats(m: { round: number; home: BracketSlot; away: BracketSlot }) {
+  const seated = m.round === 1
+  return {
+    homeRegistrationId: seated ? m.home.registrationId : null,
+    awayRegistrationId: seated ? m.away.registrationId : null,
+    homeUsername: seated ? m.home.username : null,
+    awayUsername: seated ? m.away.username : null,
+    homeSeed: seated ? m.home.seed : null,
+    awaySeed: seated ? m.away.seed : null,
+  }
+}
+
+/**
+ * Walk every round-1 bye through into round 2. Called when the bracket is published, which is the
+ * point the draw stops being provisional.
+ *
+ * No winner is recorded on the bye itself. A walkover is not a result — nobody played — and writing
+ * one would also bar returnPlayoffToDraft, which refuses once any result exists, making publication
+ * a one-way door. Seating the player downstream is the whole of the advancement; the bye match has
+ * no second name, so the Results tab never offers it for scoring either.
+ *
+ * Writing the same seats again is harmless, so re-publishing after a correction is safe.
+ */
+async function seatByes(tx: Prisma.TransactionClient, tournamentId: number): Promise<void> {
+  /*
+   * Recompute advancement rather than trust what is already sitting there.
+   *
+   * Brackets drafted before byes moved to publish time still carry walked-through seats, and a draft
+   * that has since been rearranged by hand carries seats belonging to a draw that no longer exists.
+   * Clearing first means publication states the advancement implied by the round-1 draw as it stands,
+   * whatever route the draft took to get there.
+   *
+   * Only ever done to an unplayed bracket: once a single result exists those later seats were earned,
+   * not derived, and nothing here may touch them.
+   */
+  const played = await tx.playoffMatch.count({ where: { tournamentId, NOT: { winnerRegistrationId: null } } })
+  if (played === 0) {
+    await tx.playoffMatch.updateMany({
+      where: { tournamentId, round: { gt: 1 } },
+      data: {
+        homeRegistrationId: null, homeUsername: null, homeSeed: null,
+        awayRegistrationId: null, awayUsername: null, awaySeed: null,
+      },
+    })
+  }
+
+  const first = await tx.playoffMatch.findMany({
+    where: { tournamentId, round: 1 },
+    select: {
+      id: true, feedsMatchId: true, feedsSlot: true,
+      homeRegistrationId: true, homeUsername: true, homeSeed: true,
+      awayRegistrationId: true, awayUsername: true, awaySeed: true,
+    },
+  })
+  for (const m of first) {
+    const homeReal = m.homeRegistrationId != null
+    const awayReal = m.awayRegistrationId != null
+    // Exactly one side present is a bye. Two is a tie to be played; none is an empty pairing.
+    if (homeReal === awayReal || m.feedsMatchId == null) continue
+    const who = homeReal
+      ? { id: m.homeRegistrationId, name: m.homeUsername, seed: m.homeSeed }
+      : { id: m.awayRegistrationId, name: m.awayUsername, seed: m.awaySeed }
+    await tx.playoffMatch.update({
+      where: { id: m.feedsMatchId },
+      data: m.feedsSlot === 0
+        ? { homeRegistrationId: who.id, homeUsername: who.name, homeSeed: who.seed }
+        : { awayRegistrationId: who.id, awayUsername: who.name, awaySeed: who.seed },
+    })
+  }
+}
+
 export async function publishPlayoff(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
   await assertCompetitionUnlocked(prisma, tournamentId)
   const count = await prisma.playoffMatch.count({ where: { tournamentId } })
   if (count === 0) return { ok: false, error: 'Generate the bracket before publishing.' }
   await prisma.$transaction(async (tx) => {
     await tx.playoffMatch.updateMany({ where: { tournamentId }, data: { published: true } })
+    await seatByes(tx, tournamentId)
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PUBLISHED' } })
   })
   await recordAudit(actor, { action: 'playoff.publish', entity: 'Tournament', entityId: tournamentId, newValue: { published: true } })
@@ -1356,12 +1435,7 @@ export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, o
           round: m.round,
           slot: m.slot,
           label: m.label,
-          homeRegistrationId: m.home.registrationId,
-          awayRegistrationId: m.away.registrationId,
-          homeUsername: m.home.username,
-          awayUsername: m.away.username,
-          homeSeed: m.home.seed,
-          awaySeed: m.away.seed,
+          ...draftSeats(m),
         },
       })
       idByIndex[m.index] = created.id
@@ -1373,6 +1447,113 @@ export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, o
     }
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
     await recordAudit(actor, { action: 'playoff.manualBuild', entity: 'Tournament', entityId: tournamentId, newValue: { seeds: qualifiers.length, size: plan.bracketSize } }, tx)
+  })
+  return { ok: true }
+}
+
+/**
+ * Seat one entrant in one round-1 bracket position while the bracket is still a draft.
+ *
+ * This is the drag-and-drop the seed list cannot express. An ordered list of N names can only
+ * describe the standard seeding table's arrangement of those N; it has no way to say "this player
+ * takes THAT bye" once the field is not a power of two, because the empty positions belong to seed
+ * numbers the list does not contain. Writing the position directly does say it.
+ *
+ * Placement is a swap, never an overwrite: the player already sitting in the target changes places
+ * with the one being dragged, so the field is a permutation throughout and nobody is silently
+ * dropped from the draw.
+ *
+ * The seed number belongs to the POSITION and stays put — only the name moves. A seed is the line
+ * of the draw, not a possession, and pinning it to the seat is what lets the entrant list be read
+ * straight off the bracket: arrange the board and the list agrees, with no third place for the two
+ * to disagree. It also keeps the numbering of a hand-made draw sane, rather than ending up with
+ * seeds 1 and 2 meeting in the first round because they carried their numbers across with them.
+ *
+ * Round 1 only. Later rounds are decided by playing, not by arranging.
+ */
+export async function setTournamentBracketSlot(
+  actor: Actor,
+  tournamentId: number,
+  matchId: number,
+  side: 'home' | 'away',
+  registrationId: number | null,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+  const published = await prisma.playoffMatch.count({ where: { tournamentId, published: true } })
+  if (published > 0) return { ok: false, error: 'The bracket is published — return it to draft before moving players.' }
+
+  const target = await prisma.playoffMatch.findFirst({ where: { id: matchId, tournamentId } })
+  if (!target) return { ok: false, error: 'Bracket match not found.' }
+  if (target.round !== 1) return { ok: false, error: 'Only the first round can be arranged by hand.' }
+  if (target.winnerRegistrationId != null) return { ok: false, error: 'That match already has a result — clear it before moving players.' }
+
+  // The resolved public name travels with the player, so a moved entrant keeps the identity the
+  // bracket already shows rather than reverting to a raw username.
+  let moving: { id: number; name: string | null } | null = null
+  if (registrationId != null) {
+    const reg = await prisma.registration.findFirst({
+      where: { id: registrationId, tournamentId },
+      select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true },
+    })
+    if (!reg) return { ok: false, error: 'That entrant does not belong to this Tournament.' }
+    const { resolveEntrants } = await import('./entrants')
+    const idn = await resolveEntrants([reg])
+    moving = { id: reg.id, name: idn.get(reg.id)?.displayName ?? reg.username }
+  }
+
+  const displacedId = side === 'home' ? target.homeRegistrationId : target.awayRegistrationId
+  const displaced = displacedId == null ? null : {
+    id: displacedId,
+    name: side === 'home' ? target.homeUsername : target.awayUsername,
+  }
+
+  /*
+   * The line this position occupies in the standard draw.
+   *
+   * planBracket numbers a seat by the rank of whoever it seated there, which comes to the same thing
+   * for a bracket it drew itself but leaves a bye with no number at all. Once a player can be dragged
+   * onto a bye that gap matters: they would sit in the draw showing nothing, and the entrant list —
+   * which reads its order off these numbers — would not know where to put them. Deriving the number
+   * from the position closes it, and cannot disagree with the shape of the bracket.
+   */
+  const firstRoundCount = await prisma.playoffMatch.count({ where: { tournamentId, round: 1 } })
+  const positionSeed = (() => {
+    const size = firstRoundCount * 2
+    if (size < 2) return null
+    const line = seedOrder(size)[target.slot * 2 + (side === 'home' ? 0 : 1)]
+    return line ?? null
+  })()
+  const seatSeed = (side === 'home' ? target.homeSeed : target.awaySeed) ?? positionSeed
+
+  await prisma.$transaction(async (tx) => {
+    if (moving) {
+      // Wherever this player currently sits, the displaced one takes that position — a straight swap.
+      const origin = await tx.playoffMatch.findFirst({
+        where: {
+          tournamentId, round: 1, id: { not: matchId },
+          OR: [{ homeRegistrationId: moving.id }, { awayRegistrationId: moving.id }],
+        },
+      })
+      if (origin) {
+        const wasHome = origin.homeRegistrationId === moving.id
+        await tx.playoffMatch.update({
+          where: { id: origin.id },
+          data: wasHome
+            ? { homeRegistrationId: displaced?.id ?? null, homeUsername: displaced?.name ?? null }
+            : { awayRegistrationId: displaced?.id ?? null, awayUsername: displaced?.name ?? null },
+        })
+      }
+    }
+    await tx.playoffMatch.update({
+      where: { id: matchId },
+      data: side === 'home'
+        ? { homeRegistrationId: moving?.id ?? null, homeUsername: moving?.name ?? null, homeSeed: seatSeed }
+        : { awayRegistrationId: moving?.id ?? null, awayUsername: moving?.name ?? null, awaySeed: seatSeed },
+    })
+    await recordAudit(actor, {
+      action: 'playoff.slot', entity: 'Tournament', entityId: tournamentId,
+      newValue: { matchId, side, registrationId, displaced: displaced?.id ?? null },
+    }, tx)
   })
   return { ok: true }
 }

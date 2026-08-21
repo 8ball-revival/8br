@@ -667,6 +667,27 @@ export async function buildTournamentBracketAction(tournamentId: number, ordered
 }
 
 /**
+ * Drag-and-drop placement into a first-round bracket position, while the bracket is a draft.
+ *
+ * Distinct from buildTournamentBracketAction, which reseeds the whole field from an ordered list.
+ * This moves one player into one position, which an ordered list cannot express once byes exist.
+ */
+export async function setTournamentBracketSlotAction(
+  tournamentId: number,
+  matchId: number,
+  side: 'home' | 'away',
+  registrationId: number | null,
+): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const gate = await requireTournamentState(tournamentId, BRACKET_EDIT_STATES)
+  if (!gate.ok) return { error: gate.error }
+  const r = await svc.setTournamentBracketSlot(actor, tournamentId, matchId, side, registrationId)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true }
+}
+
+/**
  * Publish the generated bracket so it is publicly visible. This does NOT begin the tournament —
  * it moves REGISTRATION_CLOSED → BRACKET_GENERATED (bracket visible, reporting/scoring still off;
  * admins may review + regenerate). Re-publishing after a regeneration keeps the state.
