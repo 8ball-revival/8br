@@ -1412,24 +1412,131 @@ export async function recordPlayoffScore(
   // wins, and a tie is rejected. The configured race length is an informational format, not a limit.
   const result = validateResult(match.homeRegistrationId, match.awayRegistrationId, homeGames, awayGames, { allowDraw: false })
   if (!result.ok) return { ok: false, error: result.error }
-  await prisma.playoffMatch.update({
-    where: { id: matchId },
-    data: {
-      homeGames,
-      awayGames,
-      status: 'COMPLETED',
-      winnerRegistrationId: result.winnerRegistrationId,
-      verification: 'UNVERIFIED',
-      completedAt: new Date(),
-    },
+  await prisma.$transaction(async (tx) => {
+    // Correcting a forfeit into a real score clears the forfeit, or the match would carry both a
+    // score and a record of nobody having played it, and the ledger would still call it Elo-neutral.
+    await clearStaleAdvancement(tx, match, result.winnerRegistrationId!)
+    await tx.playoffMatch.update({
+      where: { id: matchId },
+      data: {
+        homeGames,
+        awayGames,
+        status: 'COMPLETED',
+        winnerRegistrationId: result.winnerRegistrationId,
+        forfeitRegistrationId: null,
+        verification: 'UNVERIFIED',
+        completedAt: new Date(),
+      },
+    })
+    await recordAudit(actor, {
+      action: 'playoff.recordScore',
+      entity: 'PlayoffMatch',
+      entityId: matchId,
+      oldValue: { homeGames: match.homeGames, awayGames: match.awayGames, status: match.status, forfeitRegistrationId: match.forfeitRegistrationId },
+      newValue: { homeGames, awayGames, status: 'COMPLETED' },
+      reason,
+    }, tx)
   })
-  await recordAudit(actor, {
-    action: 'playoff.recordScore',
-    entity: 'PlayoffMatch',
-    entityId: matchId,
-    oldValue: { homeGames: match.homeGames, awayGames: match.awayGames },
-    newValue: { homeGames, awayGames },
-    reason,
+  return { ok: true }
+}
+
+/**
+ * Clear a downstream slot that still holds the player this match USED to send there.
+ *
+ * A correction that changes who won leaves the previous winner sitting in the next round. Advancing
+ * the new one overwrites that slot when both feed the same place, but on a double-elimination
+ * bracket the loser's destination changes too. This clears whatever this match put there before the
+ * new result is written, so a corrected bracket never shows both players.
+ *
+ * Only ever clears a slot that still holds THIS match's previous winner or loser. Somebody who
+ * arrived there from a different match is left exactly where they are.
+ */
+async function clearStaleAdvancement(
+  tx: Prisma.TransactionClient,
+  match: {
+    homeRegistrationId: number | null
+    awayRegistrationId: number | null
+    winnerRegistrationId: number | null
+    feedsMatchId: number | null
+    feedsSlot: number | null
+    loserFeedsMatchId: number | null
+    loserFeedsSlot: number | null
+  },
+  newWinnerId: number,
+): Promise<void> {
+  const prevWinner = match.winnerRegistrationId
+  if (prevWinner == null || prevWinner === newWinnerId) return
+  const prevLoser = prevWinner === match.homeRegistrationId ? match.awayRegistrationId : match.homeRegistrationId
+
+  const clear = async (downId: number | null, slot: number | null, held: number | null) => {
+    if (downId == null || slot == null || held == null) return
+    const down = await tx.playoffMatch.findUnique({ where: { id: downId } })
+    if (!down) return
+    const occupant = slot === 0 ? down.homeRegistrationId : down.awayRegistrationId
+    if (occupant !== held) return
+    await tx.playoffMatch.update({
+      where: { id: downId },
+      data: slot === 0
+        ? { homeRegistrationId: null, homeUsername: null, homeSeed: null }
+        : { awayRegistrationId: null, awayUsername: null, awaySeed: null },
+    })
+  }
+  await clear(match.feedsMatchId, match.feedsSlot, prevWinner)
+  await clear(match.loserFeedsMatchId, match.loserFeedsSlot, prevLoser)
+}
+
+/**
+ * Record a FORFEIT — one player did not play, and the other moves on.
+ *
+ * -- The opponent advances; the opponent does not earn a win --------------------------------------
+ * `winnerRegistrationId` is set, because that is what the bracket advances on: `verifyPlayoffMatch`
+ * reads it to fill the next slot, and leaving it null would strand the round. What stops it becoming
+ * a competitive victory is the STATUS. `FORFEIT` makes the ledger row Elo-neutral (see matchDeltas)
+ * and excludes it from W-L, streaks and the singles/team split (see computeAllTime), so the
+ * advancing player's record is exactly what it was before.
+ *
+ * -- No fabricated score --------------------------------------------------------------------------
+ * homeGames/awayGames stay NULL. A 7-0 written here would be indistinguishable from a real 7-0
+ * forever after, and would feed a point differential nobody played for.
+ */
+export async function recordPlayoffForfeit(
+  actor: Actor,
+  matchId: number,
+  forfeiter: 'home' | 'away',
+  reason?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const match = await prisma.playoffMatch.findUniqueOrThrow({ where: { id: matchId }, include: { tournament: true } })
+  await assertCompetitionUnlocked(prisma, match.tournamentId)
+  // Both sides must be real people. Without an opponent there is nobody to advance -- and a bye,
+  // which is an empty slot rather than a no-show, must never be recordable as somebody's forfeit.
+  if (match.homeRegistrationId == null || match.awayRegistrationId == null) {
+    return { ok: false, error: 'Both players must be determined before a forfeit can be recorded.' }
+  }
+  const forfeiterId = forfeiter === 'home' ? match.homeRegistrationId : match.awayRegistrationId
+  const winnerId = forfeiter === 'home' ? match.awayRegistrationId : match.homeRegistrationId
+
+  await prisma.$transaction(async (tx) => {
+    await clearStaleAdvancement(tx, match, winnerId)
+    await tx.playoffMatch.update({
+      where: { id: matchId },
+      data: {
+        homeGames: null,
+        awayGames: null,
+        status: 'FORFEIT',
+        winnerRegistrationId: winnerId,
+        forfeitRegistrationId: forfeiterId,
+        verification: 'UNVERIFIED',
+        completedAt: new Date(),
+      },
+    })
+    await recordAudit(actor, {
+      action: 'playoff.recordForfeit',
+      entity: 'PlayoffMatch',
+      entityId: matchId,
+      oldValue: { homeGames: match.homeGames, awayGames: match.awayGames, status: match.status, winnerRegistrationId: match.winnerRegistrationId },
+      newValue: { status: 'FORFEIT', forfeitRegistrationId: forfeiterId, advanced: winnerId },
+      reason,
+    }, tx)
   })
   return { ok: true }
 }
@@ -1538,7 +1645,7 @@ export async function undoPlayoffResult(actor: Actor, matchId: number, reason?: 
     }
     await tx.playoffMatch.update({
       where: { id: matchId },
-      data: { status: 'SCHEDULED', homeGames: null, awayGames: null, winnerRegistrationId: null, verification: 'UNVERIFIED', completedAt: null },
+      data: { status: 'SCHEDULED', homeGames: null, awayGames: null, winnerRegistrationId: null, forfeitRegistrationId: null, verification: 'UNVERIFIED', completedAt: null },
     })
     await recordAudit(actor, {
       action: 'playoff.undo',

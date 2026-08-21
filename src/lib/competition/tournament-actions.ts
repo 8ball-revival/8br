@@ -713,6 +713,29 @@ export async function recordTournamentScoreAction(matchId: number, home: number,
   return { ok: true, message: 'Result saved and winner advanced.' }
 }
 
+/**
+ * Record a forfeit on a bracket match.
+ *
+ * Same capability, same lifecycle gate and same follow-through as a numeric result: the opponent is
+ * advanced by the ordinary verify path, and the snapshot is resynced so the Rankings reflect the
+ * change. What differs is only what gets stored — see recordPlayoffForfeit.
+ */
+export async function recordTournamentForfeitAction(matchId: number, forfeiter: 'home' | 'away', reason?: string): Promise<ActionResult> {
+  const actor = await requireCapability('edit_results')
+  if (forfeiter !== 'home' && forfeiter !== 'away') return { error: 'Say which side forfeited.' }
+  const sid = await seasonIdOfMatch(matchId)
+  if (sid) { const gate = await requireTournamentState(sid, ['IN_PROGRESS']); if (!gate.ok) return { error: gate.error } }
+  const r = await svc.recordPlayoffForfeit(actor, matchId, forfeiter, reason)
+  if (!r.ok) return { error: r.error }
+  // The opponent advances through the ordinary path — structurally identical to a win, which is the
+  // point: the bracket does not care why the slot emptied.
+  await svc.verifyPlayoffMatch(actor, matchId, reason)
+  const tournamentId = await seasonIdOfMatch(matchId)
+  if (tournamentId) await syncLiveTournamentToSnapshot(tournamentId)
+  revalidateTournament(await cupNumberOfMatch(matchId))
+  return { ok: true, message: 'Forfeit recorded and the opponent advanced.' }
+}
+
 export async function undoTournamentResultAction(matchId: number, reason?: string): Promise<ActionResult> {
   const actor = await requireCapability('edit_results')
   const sid = await seasonIdOfMatch(matchId)

@@ -21,6 +21,13 @@ export interface BracketSlot {
   slug?: string
   seed?: number
   score?: number
+  /**
+   * This side forfeited. Shown as FF where a score would be.
+   *
+   * Separate from `score` on purpose: a forfeited match HAS no score, and the two must never be
+   * expressible at once — that is exactly the fabricated 0-7 this design exists to avoid.
+   */
+  forfeit?: boolean
   /** Team-format: the roster + supporting data for the team-details popover. The bracket row shows
    *  ONLY the team name; members/record/avgRating power the hover/focus/click card. */
   members?: { name: string; handle?: string; slug?: string; rating?: number | null; captain?: boolean }[]

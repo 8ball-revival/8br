@@ -182,6 +182,10 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
             edit!.dirty(matchId!) ? 'border-[var(--gold)] ring-1 ring-[var(--gold)]/40' : 'border-input',
           )}
         />
+      ) : slot?.forfeit ? (
+        /* A forfeit reads as FF on the side that forfeited. No number is shown for the opponent
+           either: they advanced without playing, and a score there would be an invention. */
+        <span className="shrink-0 text-[0.78rem] font-semibold uppercase tracking-wide text-muted-foreground" title="Forfeit — this player did not play">FF</span>
       ) : slot?.score != null ? (
         <span className={cn('tabular shrink-0 text-[0.95rem]', won ? 'font-bold text-gold' : 'font-medium text-foreground/70')}>{slot.score}</span>
       ) : null}

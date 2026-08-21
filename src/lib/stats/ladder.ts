@@ -122,12 +122,22 @@ function computeAllTime(rows: Row[]): Map<string, PlayerStats> {
   const stats = new Map<string, PlayerStats>()
   for (const [pid, prs] of byPlayer) {
     prs.sort((a, b) => a.sequence - b.sequence)
-    const results = prs.map((r) => r.result)
+    /*
+     * A forfeit is not a competitive result.
+     *
+     * The row stays in the ledger — it is how the site can say afterwards that somebody forfeited,
+     * and the Forfeits column counts exactly these — but it is excluded from every figure that
+     * assumes the match was PLAYED. The opponent advanced because of the bracket, not because they
+     * beat anybody: no win, no loss, no draw, no streak, and (already, via matchDeltas) no rating
+     * movement. Counting it would let a player build a record out of matches nobody turned up to.
+     */
+    const played = prs.filter((r) => !r.isForfeit)
+    const results = played.map((r) => r.result)
     const wins = results.filter((r) => r === 'WIN').length
     const losses = results.filter((r) => r === 'LOSS').length
     const draws = results.filter((r) => r === 'DRAW').length
-    const singles = prs.filter((r) => !r.isTeamMatch)
-    const team = prs.filter((r) => r.isTeamMatch)
+    const singles = played.filter((r) => !r.isTeamMatch)
+    const team = played.filter((r) => r.isTeamMatch)
     stats.set(pid, {
       playerId: pid,
       name: prs[prs.length - 1].playerName,
@@ -204,7 +214,8 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
     const apply = (side: Row[], delta: number) => {
       for (const r of side) {
         name.set(r.playerId, r.playerName)
-        push(r.playerId, r.result)
+        // Same rule as All-Time: a forfeit moves nobody's W–L or streak. See computeAllTime.
+        if (!forfeit) push(r.playerId, r.result)
         rating.set(r.playerId, cur(r.playerId) + delta)
         highestRating.set(r.playerId, Math.max(highestRating.get(r.playerId) ?? ELO_START, cur(r.playerId)))
         const prev = latest.get(r.playerId)
@@ -226,10 +237,10 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
     stats.set(pid, {
       playerId: pid, name: name.get(pid) ?? pid, rating: Math.round(cur(pid)),
       wins, losses, draws,
-      singlesWins: wr.filter((r) => !r.isTeamMatch && r.result === 'WIN').length,
-      singlesLosses: wr.filter((r) => !r.isTeamMatch && r.result === 'LOSS').length,
-      teamWins: wr.filter((r) => r.isTeamMatch && r.result === 'WIN').length,
-      teamLosses: wr.filter((r) => r.isTeamMatch && r.result === 'LOSS').length,
+      singlesWins: wr.filter((r) => !r.isForfeit && !r.isTeamMatch && r.result === 'WIN').length,
+      singlesLosses: wr.filter((r) => !r.isForfeit && !r.isTeamMatch && r.result === 'LOSS').length,
+      teamWins: wr.filter((r) => !r.isForfeit && r.isTeamMatch && r.result === 'WIN').length,
+      teamLosses: wr.filter((r) => !r.isForfeit && r.isTeamMatch && r.result === 'LOSS').length,
       streak: trailingStreak(results),
       longestWinStreak: longestWins(results),
       highestRating: Math.round(highestRating.get(pid) ?? ELO_START),

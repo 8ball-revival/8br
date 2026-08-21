@@ -61,6 +61,8 @@ export type PlayoffRow = {
   homeGames: number | null
   awayGames: number | null
   winnerRegistrationId: number | null
+  /** FF: who forfeited. Null on every ordinary result. See competition/forfeit.ts. */
+  forfeitRegistrationId: number | null
   verification: string
   status: string
   note: string | null
@@ -104,7 +106,7 @@ export function playoffToBracketRounds(
     if (!byRound.has(r.round)) byRound.set(r.round, [])
     byRound.get(r.round)!.push(r)
   }
-  const slotFor = (regId: number | null, name: string | null, seed: number | null, score: number | null, isFirstRound: boolean): BracketSlot | undefined => {
+  const slotFor = (regId: number | null, name: string | null, seed: number | null, score: number | null, isFirstRound: boolean, forfeited = false): BracketSlot | undefined => {
     if (name == null && regId == null) {
       // Empty side: an explicit bye in round 1, otherwise "to be determined".
       return isFirstRound ? { name: 'Bye' } : undefined
@@ -120,6 +122,8 @@ export function playoffToBracketRounds(
     if (slug != null) s.slug = slug // profile-link target (kept even when it equals the name)
     if (seed != null) s.seed = seed
     if (score != null) s.score = score
+    // A forfeited side shows FF rather than a number, and never both.
+    if (forfeited) s.forfeit = true
     if (regId != null && membersByRegId?.has(regId)) {
       s.members = membersByRegId.get(regId)!.map((m) => ({ name: m.name, ...(m.handle ? { handle: m.handle } : {}) }))
     }
@@ -134,8 +138,9 @@ export function playoffToBracketRounds(
       name: isDoubleElim ? deColumnName(ms[0].section ?? 'WB', round) : roundColumnName(round, totalRounds),
       matches: ms.map((r): BracketMatch => {
         const m: BracketMatch = {}
-        const a = slotFor(r.homeRegistrationId, r.homeUsername, r.homeSeed, r.homeGames, isFirst)
-        const b = slotFor(r.awayRegistrationId, r.awayUsername, r.awaySeed, r.awayGames, isFirst)
+        const ff = r.forfeitRegistrationId
+        const a = slotFor(r.homeRegistrationId, r.homeUsername, r.homeSeed, r.homeGames, isFirst, ff != null && ff === r.homeRegistrationId)
+        const b = slotFor(r.awayRegistrationId, r.awayUsername, r.awaySeed, r.awayGames, isFirst, ff != null && ff === r.awayRegistrationId)
         if (a) m.a = a
         if (b) m.b = b
         if (r.winnerRegistrationId != null) m.winner = r.winnerRegistrationId === r.homeRegistrationId ? 'a' : 'b'
@@ -476,6 +481,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       id: true, round: true, slot: true, label: true,
       homeRegistrationId: true, awayRegistrationId: true, homeUsername: true, awayUsername: true,
       homeSeed: true, awaySeed: true, homeGames: true, awayGames: true, winnerRegistrationId: true,
+      forfeitRegistrationId: true,
       verification: true, status: true, note: true, feedsMatchId: true, feedsSlot: true, published: true, section: true,
     },
   })

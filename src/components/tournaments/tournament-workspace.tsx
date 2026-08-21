@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Bracket } from '@/components/tournaments/bracket'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
+import { interpretForfeit, FORFEIT_LABEL } from '@/lib/competition/forfeit'
 import { PlayerName } from '@/components/identity/player-name'
 import { fromNameHandle } from '@/lib/identity/display'
 import { TournamentLifecycleControls } from '@/components/tournaments/tournament-lifecycle-controls'
@@ -638,7 +639,11 @@ function ResultsTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
           <>Race to <span className="font-semibold text-foreground">{data.tournament.raceLength}</span> — the intended match format.</>
         )}
       </p>
-      <p className="text-xs text-muted-foreground/80">Enter the final score actually played. The higher score will be recorded as the winner.</p>
+      <p className="text-xs text-muted-foreground/80">
+        Enter the final score actually played — the higher score is recorded as the winner. For a
+        no-show, type <b className="text-foreground">FF</b> in the forfeiting player&apos;s box and
+        leave the other blank: the opponent advances, and no result is added to either record.
+      </p>
       {playable.length === 0 && <p className="text-sm text-muted-foreground">No playable matches yet. Build and publish the bracket first.</p>}
       {playable.map((m) => (
         <ResultRow key={m.id} m={m} raceLength={raceFor(m)} run={run} disabled={disabled} />
@@ -648,34 +653,62 @@ function ResultsTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
 }
 
 function ResultRow({ m, raceLength, run, disabled }: { m: PlayoffRow; raceLength: number; run: Run; disabled: boolean }) {
-  const [home, setHome] = useState(m.homeGames?.toString() ?? '')
-  const [away, setAway] = useState(m.awayGames?.toString() ?? '')
+  // A forfeited match has no score to show, so the forfeiting side is seeded with the word instead.
+  const forfeited = m.status === 'FORFEIT'
+  const homeForfeited = forfeited && m.forfeitRegistrationId === m.homeRegistrationId
+  const awayForfeited = forfeited && m.forfeitRegistrationId === m.awayRegistrationId
+  const [home, setHome] = useState(homeForfeited ? FORFEIT_LABEL : m.homeGames?.toString() ?? '')
+  const [away, setAway] = useState(awayForfeited ? FORFEIT_LABEL : m.awayGames?.toString() ?? '')
   const decided = m.winnerRegistrationId != null
   const homeWon = decided && m.winnerRegistrationId === m.homeRegistrationId
-  const bothFilled = home.trim() !== '' && away.trim() !== ''
-  // Elimination: any non-negative whole-number score is accepted, the higher score wins, a tie is
-  // rejected. The race length is an informational format, not a limit.
-  const preview = bothFilled ? previewResult(Number(home), Number(away), false) : null
-  const canSave = preview != null && preview.status !== 'invalid'
+
+  /*
+   * One interpreter for both kinds of entry.
+   *
+   * `interpretForfeit` is the same pure function the server uses, so what the button enables and
+   * what the action accepts cannot drift apart — including the refusals: two FFs, or an FF against
+   * a slot with nobody in it yet.
+   */
+  const bothPresent = m.homeRegistrationId != null && m.awayRegistrationId != null
+  const entry = interpretForfeit(home, away, { bothPresent })
+  const preview = entry.kind === 'score' ? previewResult(entry.homeGames, entry.awayGames, false) : null
+  const canSave =
+    entry.kind === 'forfeit' || (entry.kind === 'score' && preview != null && preview.status !== 'invalid')
+  const problem =
+    entry.kind === 'invalid' && (home.trim() !== '' || away.trim() !== '')
+      ? entry.error
+      : entry.kind === 'score' && preview?.status === 'invalid'
+        ? preview.reason ?? 'Enter a valid score.'
+        : null
+
+  const save = () => {
+    if (entry.kind === 'forfeit') return run(() => A.recordTournamentForfeitAction(m.id, entry.forfeiter))
+    if (entry.kind === 'score') return run(() => A.recordTournamentScoreAction(m.id, entry.homeGames, entry.awayGames))
+  }
+
+  const winsHere = (side: 'home' | 'away') =>
+    entry.kind === 'forfeit' ? entry.forfeiter !== side : preview?.status === side
+
   return (
     <div className="rounded-md border border-border bg-background/40 p-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="w-16 text-xs text-muted-foreground">{m.label ?? `R${m.round}·${m.slot + 1}`}</span>
         <span className="w-16 shrink-0 text-[0.65rem] text-muted-foreground/70">race to {raceLength}</span>
-        <span className={cn('flex-1', (homeWon || preview?.status === 'home') && 'font-semibold text-brand')}>{m.homeUsername}</span>
-        <input value={home} onChange={(e) => setHome(e.target.value)} disabled={disabled} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
+        <span className={cn('flex-1', (homeWon || winsHere('home')) && 'font-semibold text-brand')}>{m.homeUsername}</span>
+        <input value={home} onChange={(e) => setHome(e.target.value)} disabled={disabled} className="w-14 rounded border border-border bg-background px-2 py-1 text-center text-sm uppercase" aria-label={`${m.homeUsername ?? 'Home'} score or FF`} />
         <span className="text-muted-foreground">–</span>
-        <input value={away} onChange={(e) => setAway(e.target.value)} disabled={disabled} inputMode="numeric" className="w-12 rounded border border-border bg-background px-2 py-1 text-center text-sm" />
-        <span className={cn('flex-1 text-right', ((decided && !homeWon) || preview?.status === 'away') && 'font-semibold text-brand')}>{m.awayUsername}</span>
+        <input value={away} onChange={(e) => setAway(e.target.value)} disabled={disabled} className="w-14 rounded border border-border bg-background px-2 py-1 text-center text-sm uppercase" aria-label={`${m.awayUsername ?? 'Away'} score or FF`} />
+        <span className={cn('flex-1 text-right', ((decided && !homeWon) || winsHere('away')) && 'font-semibold text-brand')}>{m.awayUsername}</span>
       </div>
       {!disabled && (
-        <div className="mt-2 flex items-center gap-2">
-          <Button size="sm" onClick={() => run(() => A.recordTournamentScoreAction(m.id, Number(home), Number(away)))} disabled={!canSave}>
-            {decided ? 'Update result' : 'Save result'}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={save} disabled={!canSave}>
+            {entry.kind === 'forfeit' ? (forfeited ? 'Update forfeit' : 'Record forfeit') : decided ? 'Update result' : 'Save result'}
           </Button>
           {decided && <Button size="sm" variant="ghost" onClick={() => run(() => A.undoTournamentResultAction(m.id))}>Undo</Button>}
+          {forfeited && <Badge variant="muted">forfeit</Badge>}
           {decided && <Badge variant={m.verification === 'VERIFIED' ? 'gold' : 'muted'}>{m.verification === 'VERIFIED' ? 'advanced' : 'recorded'}</Badge>}
-          {bothFilled && preview?.status === 'invalid' && <span className="text-xs text-destructive">{preview.reason ?? 'Enter a valid score.'}</span>}
+          {problem && <span className="text-xs text-destructive">{problem}</span>}
         </div>
       )}
       {m.note && <p className="mt-1 text-xs text-muted-foreground">{m.note}</p>}
