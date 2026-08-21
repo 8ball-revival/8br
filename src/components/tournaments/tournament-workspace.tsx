@@ -530,6 +530,8 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
   const [fieldSize, setFieldSize] = useState<number>(() => (seededOrder && seededOrder.length ? seededOrder.length : pool.length))
   const nameById = useMemo(() => new Map(pool.map((p) => [p.id, p.name])), [pool])
   const dragIndex = useRef<number | null>(null)
+  const [dragFrom, setDragFrom] = useState<number | null>(null)
+  const [overIndex, setOverIndex] = useState<number | null>(null)
   const published = data.hasPublishedBracket
 
   const move = (from: number, to: number) => {
@@ -547,7 +549,7 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
       <div className="flex flex-wrap items-center gap-2">
         <p className="eyebrow text-muted-foreground">Seed order ({order.length})</p>
         {published ? <Badge variant="default">Published</Badge> : data.hasBracket ? <Badge variant="muted">Unpublished draft</Badge> : null}
-        {!published && order.length > 2 && (
+        {order.length > 2 && (
           <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
             Players in playoffs
             <input
@@ -568,6 +570,13 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
           This is a private, unpublished draft — members and the public cannot see the playoff bracket yet. Publish it to make the seeds and matchups public.
         </p>
       )}
+      {published && (
+        <p className="mt-2 rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+          This bracket is published. Reorder the seeds below, then press{' '}
+          <span className="font-medium text-foreground">Apply seed order</span> — that returns it to a
+          private draft until you publish it again.
+        </p>
+      )}
       <ol className="mt-2 max-w-md space-y-1">
         {order.map((id, i) => {
           const inField = i < cut
@@ -579,21 +588,39 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
                 </li>
               )}
               <li
-                draggable={!published}
-                onDragStart={() => (dragIndex.current = i)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => { if (dragIndex.current != null) move(dragIndex.current, i); dragIndex.current = null }}
-                className={cn('flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm', inField ? 'border-border bg-background/50' : 'border-border/40 bg-background/20 opacity-50')}
+                draggable
+                onDragStart={(e) => {
+                  dragIndex.current = i
+                  setDragFrom(i)
+                  // Firefox refuses to start a drag unless the payload is set, even an unused one.
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', String(id))
+                }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOverIndex(i) }}
+                onDragLeave={() => setOverIndex((v) => (v === i ? null : v))}
+                onDragEnd={() => { dragIndex.current = null; setDragFrom(null); setOverIndex(null) }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragIndex.current != null) move(dragIndex.current, i)
+                  dragIndex.current = null
+                  setDragFrom(null)
+                  setOverIndex(null)
+                }}
+                className={cn(
+                  'flex cursor-grab items-center gap-2 rounded-md border px-2 py-1.5 text-sm active:cursor-grabbing',
+                  inField ? 'border-border bg-background/50' : 'border-border/40 bg-background/20 opacity-50',
+                  dragFrom === i && 'opacity-40',
+                  overIndex === i && dragFrom !== i && 'border-brand ring-1 ring-brand',
+                )}
               >
                 <GripVertical className="size-4 shrink-0 text-muted-foreground" />
                 <span className="tabular w-5 text-right text-xs text-muted-foreground">{inField ? i + 1 : '–'}</span>
                 <span className="flex-1 truncate">{nameById.get(id)}</span>
-                {!published && (
-                  <span className="flex gap-0.5">
-                    <button onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-brand"><ChevronUp className="size-4" /></button>
-                    <button onClick={() => move(i, i + 1)} className="text-muted-foreground hover:text-brand"><ChevronDown className="size-4" /></button>
-                  </span>
-                )}
+                {/* Keyboard/pointer equivalent of the drag — the list must be reorderable without one. */}
+                <span className="flex gap-0.5">
+                  <button type="button" aria-label={`Move ${nameById.get(id) ?? ''} up`} disabled={i === 0} onClick={() => move(i, i - 1)} className="text-muted-foreground hover:text-brand disabled:opacity-25"><ChevronUp className="size-4" /></button>
+                  <button type="button" aria-label={`Move ${nameById.get(id) ?? ''} down`} disabled={i === order.length - 1} onClick={() => move(i, i + 1)} className="text-muted-foreground hover:text-brand disabled:opacity-25"><ChevronDown className="size-4" /></button>
+                </span>
               </li>
             </div>
           )
@@ -601,11 +628,23 @@ function SeedBuilder({ data, pool, seededOrder, run }: { data: TournamentWorkspa
         {order.length === 0 && <li className="text-sm text-muted-foreground">Add {data.isTeam ? 'teams' : 'entrants'} first.</li>}
       </ol>
       <div className="mt-3 flex flex-wrap gap-2">
-        {!published && (
-          <Button onClick={() => run(() => A.buildTournamentBracketAction(data.tournament.id, included))} disabled={cut < 2}>
-            {data.hasBracket ? 'Rebuild draft bracket' : 'Build draft bracket'}
-          </Button>
-        )}
+        <Button
+          disabled={cut < 2}
+          onClick={async () => {
+            if (published) {
+              const r = await confirm({
+                title: 'Reseed the published bracket?',
+                message: 'Applying a new seed order returns the bracket to a private draft, so members and the public stop seeing it until you publish it again. No results have been entered, so nothing is lost.',
+                confirmLabel: 'Apply new seed order',
+                tone: 'warning',
+              })
+              if (!r.confirmed) return
+            }
+            run(() => A.buildTournamentBracketAction(data.tournament.id, included))
+          }}
+        >
+          {data.hasBracket ? 'Apply seed order' : 'Build draft bracket'}
+        </Button>
         {data.hasBracket && !published && (
           <Button onClick={async () => { const r = await confirm({ title: 'Publish the playoff bracket?', message: 'This makes the playoff seeds and matchups visible to EVERYONE — all members and logged-out visitors. Groups stay visible too. You can return it to draft afterward.', confirmLabel: 'Publish bracket', tone: 'warning' }); if (r.confirmed) run(() => A.publishTournamentBracketAction(data.tournament.id)) }}>
             Publish bracket
