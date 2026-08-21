@@ -574,13 +574,22 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
  * know them by — and a stacked two-line identity halves how much of the bracket fits on screen,
  * which is the whole difficulty of placing twenty-odd people by hand.
  */
-function DrawName({ name, handle, className }: { name: string | null; handle: string | null; className?: string }) {
+function DrawName({ name, handle, align = 'left', className }: {
+  name: string | null
+  handle: string | null
+  /** `right` for the away half of a results row, where the pair reads inward from the edge. */
+  align?: 'left' | 'right'
+  className?: string
+}) {
   const n = (name ?? '').trim()
   const h = (handle ?? '').trim()
   // An ID that merely repeats the name is noise, exactly as in the house rule.
   const showId = h !== '' && n !== '' && h.toLowerCase() !== n.toLowerCase()
   return (
-    <span className={cn('flex min-w-0 items-baseline gap-1.5 leading-none', className)} title={showId ? `${n} - ${h}` : n || h}>
+    <span
+      className={cn('flex min-w-0 items-baseline gap-1.5 leading-none', align === 'right' && 'justify-end', className)}
+      title={showId ? `${n} - ${h}` : n || h}
+    >
       <span className="truncate font-medium leading-none">{n || h || '\u2014'}</span>
       {showId && <span className="min-w-0 shrink truncate text-[0.7rem] leading-none text-muted-foreground">- {h}</span>}
     </span>
@@ -854,6 +863,18 @@ function SeedBuilder({ data, pool, seededOrder, seedById, run }: { data: Tournam
 
 function ResultsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run: Run; disabled: boolean }) {
   const playable = data.matches.filter((m) => m.homeUsername && m.awayUsername)
+  /*
+   * Both halves of the identity, on every row.
+   *
+   * A bare preferred name cannot be scored against: this field alone has two Craigs and two Ryans,
+   * and the row gives no way to tell which is which. The CueVerse ID is what distinguishes them, so
+   * it travels with the name here exactly as it does on the draw board.
+   */
+  const identityById = new Map(
+    (data.isTeam
+      ? data.teams.map((t) => [t.registrationId, { name: t.name, handle: null as string | null }] as const)
+      : data.entrants.map((e) => [e.registrationId, { name: e.name, handle: e.handle }] as const)),
+  )
   // Group Stage + Playoffs uses a hard-coded per-stage race length; other formats use the configured one.
   const shape = data.isGroupStage ? computeBracketShape(data.matches) : null
   const raceFor = (m: PlayoffRow) => (shape ? playoffRaceLength({ round: m.round, section: m.section }, shape) : data.tournament.raceLength)
@@ -873,13 +894,19 @@ function ResultsTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
       </p>
       {playable.length === 0 && <p className="text-sm text-muted-foreground">No playable matches yet. Build and publish the bracket first.</p>}
       {playable.map((m) => (
-        <ResultRow key={m.id} m={m} raceLength={raceFor(m)} run={run} disabled={disabled} />
+        <ResultRow key={m.id} m={m} raceLength={raceFor(m)} identityById={identityById} run={run} disabled={disabled} />
       ))}
     </div>
   )
 }
 
-function ResultRow({ m, raceLength, run, disabled }: { m: PlayoffRow; raceLength: number; run: Run; disabled: boolean }) {
+function ResultRow({ m, raceLength, identityById, run, disabled }: {
+  m: PlayoffRow
+  raceLength: number
+  identityById: Map<number, { name: string; handle: string | null }>
+  run: Run
+  disabled: boolean
+}) {
   // A forfeited match has no score to show, so the forfeiting side is seeded with the word instead.
   const forfeited = m.status === 'FORFEIT'
   const homeForfeited = forfeited && m.forfeitRegistrationId === m.homeRegistrationId
@@ -916,16 +943,37 @@ function ResultRow({ m, raceLength, run, disabled }: { m: PlayoffRow; raceLength
   const winsHere = (side: 'home' | 'away') =>
     entry.kind === 'forfeit' ? entry.forfeiter !== side : preview?.status === side
 
+  const who = (side: 'home' | 'away') => {
+    const id = side === 'home' ? m.homeRegistrationId : m.awayRegistrationId
+    const fallback = side === 'home' ? m.homeUsername : m.awayUsername
+    return (id != null && identityById.get(id)) || { name: fallback, handle: null }
+  }
+  const label = (side: 'home' | 'away') => {
+    const w = who(side)
+    return w.handle && w.handle.toLowerCase() !== (w.name ?? '').toLowerCase()
+      ? `${w.name} - ${w.handle}`
+      : w.name ?? (side === 'home' ? 'Home' : 'Away')
+  }
+
   return (
     <div className="rounded-md border border-border bg-background/40 p-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="w-16 text-xs text-muted-foreground">{m.label ?? `R${m.round}·${m.slot + 1}`}</span>
         <span className="w-16 shrink-0 text-[0.65rem] text-muted-foreground/70">race to {raceLength}</span>
-        <span className={cn('flex-1', (homeWon || winsHere('home')) && 'font-semibold text-brand')}>{m.homeUsername}</span>
-        <input value={home} onChange={(e) => setHome(e.target.value)} disabled={disabled} className="w-14 rounded border border-border bg-background px-2 py-1 text-center text-sm uppercase" aria-label={`${m.homeUsername ?? 'Home'} score or FF`} />
+        <DrawName
+          name={who('home').name}
+          handle={who('home').handle}
+          className={cn('flex-1', (homeWon || winsHere('home')) && 'font-semibold text-brand')}
+        />
+        <input value={home} onChange={(e) => setHome(e.target.value)} disabled={disabled} className="w-14 rounded border border-border bg-background px-2 py-1 text-center text-sm uppercase" aria-label={`${label('home')} score or FF`} />
         <span className="text-muted-foreground">–</span>
-        <input value={away} onChange={(e) => setAway(e.target.value)} disabled={disabled} className="w-14 rounded border border-border bg-background px-2 py-1 text-center text-sm uppercase" aria-label={`${m.awayUsername ?? 'Away'} score or FF`} />
-        <span className={cn('flex-1 text-right', ((decided && !homeWon) || winsHere('away')) && 'font-semibold text-brand')}>{m.awayUsername}</span>
+        <input value={away} onChange={(e) => setAway(e.target.value)} disabled={disabled} className="w-14 rounded border border-border bg-background px-2 py-1 text-center text-sm uppercase" aria-label={`${label('away')} score or FF`} />
+        <DrawName
+          name={who('away').name}
+          handle={who('away').handle}
+          align="right"
+          className={cn('flex-1', ((decided && !homeWon) || winsHere('away')) && 'font-semibold text-brand')}
+        />
       </div>
       {!disabled && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
