@@ -441,12 +441,12 @@ function invalidate(id: number, kind: CorrectionKind) {
   // committed by the time this runs.
   try {
     revalidatePath('/seasons')
-    revalidatePath('/cups')
+    revalidatePath('/tournaments')
     revalidatePath('/creator')
     // The Rankings need their cached AGGREGATE dropped, not just the page re-rendered — see
     // invalidateRankings. Revalidating the path alone re-reads the same stale rows.
     invalidateRankings()
-    revalidatePath(kind === 'season' ? `/seasons/${id}` : `/cups/${id}`)
+    revalidatePath(kind === 'season' ? `/seasons/${id}` : `/tournaments/${id}`)
   } catch {
     // Not in a request. Nothing is cached here, so there is nothing to invalidate.
   }

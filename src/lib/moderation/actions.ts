@@ -17,7 +17,7 @@ export interface ModResult {
 }
 
 function revalidateModeration(userId: number) {
-  for (const p of ['/staff/members', `/staff/members/${userId}`, '/staff/registrations', '/', '/groups', '/playoffs', '/cups']) revalidatePath(p)
+  for (const p of ['/staff/members', `/staff/members/${userId}`, '/staff/registrations', '/', '/groups', '/playoffs', '/tournaments']) revalidatePath(p)
 }
 
 /**

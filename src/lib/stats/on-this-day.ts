@@ -250,7 +250,7 @@ export async function computeOnThisDay(now = new Date()): Promise<OnThisDayEvent
       awayInitials: initialsOf(second),
       description,
       context,
-      href: season ? `/seasons/${season.id}` : tournament?.number != null ? `/cups/${tournament.number}` : null,
+      href: season ? `/seasons/${season.id}` : tournament?.number != null ? `/tournaments/${tournament.number}` : null,
     })
   }
 

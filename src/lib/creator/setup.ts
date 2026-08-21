@@ -125,7 +125,7 @@ export interface SetupResult {
  * There is no manually entered Cup number to ask for or to route on.
  */
 export const draftHref = (type: RecordType, id: number) =>
-  type === 'season' ? `/creator/seasons/${id}` : `/creator/cups/${id}`
+  type === 'season' ? `/creator/seasons/${id}` : `/creator/tournaments/${id}`
 
 /**
  * In-flight and recently completed submissions, by idempotency key.

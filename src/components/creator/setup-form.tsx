@@ -127,7 +127,7 @@ export function SetupForm({ competitions, structures, initialType, currentYear }
       }
       // Deliberately not clearing `busy` on success: the navigation is the end of this form's life,
       // and re-enabling the button during the transition invites the second submit.
-      router.push(res.type === 'cup' ? `/creator/cups/${res.id}` : `/creator/seasons/${res.id}`)
+      router.push(res.type === 'cup' ? `/creator/tournaments/${res.id}` : `/creator/seasons/${res.id}`)
     } catch {
       setError('The record could not be created. Nothing was saved — try again.')
       setBusy(false)

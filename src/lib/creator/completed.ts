@@ -121,8 +121,8 @@ export async function listCompleted(q: CompletedQuery = {}): Promise<CompletedPa
     champion: t.championHandle || t.championName || null,
     completeness: t.dataCompleteness === 'partial' ? 'partial' : 'full',
     completedAt: t.archivedAt?.toISOString() ?? null,
-    href: `/creator/cups/${t.id}`,
-    publicHref: `/cups/${t.number ?? t.id}`,
+    href: `/creator/tournaments/${t.id}`,
+    publicHref: `/tournaments/${t.number ?? t.id}`,
   }))
 
   const all = [...seasons, ...tournaments]

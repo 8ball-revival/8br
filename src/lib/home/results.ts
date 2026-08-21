@@ -127,7 +127,7 @@ export async function computeRecentResults(limit = 3): Promise<RecentResult[]> {
         competitionName: t.name,
         competitionType: 'Tournament',
         stageLabel: r.stage === 'playoff' ? r.round_label ?? 'Playoffs' : 'Group stage',
-        href: t.number != null ? `/cups/${t.number}` : '/cups',
+        href: t.number != null ? `/tournaments/${t.number}` : '/tournaments',
         iconMediaId: null,
         initials: initialsOf(t.name),
         homeName: r.home_name,

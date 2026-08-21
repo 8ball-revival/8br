@@ -752,7 +752,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
     startDelete(async () => {
       const r = await A.deleteTournamentAction(data.tournament.id, delCode)
       if (r.error) return setDelError(r.error)
-      router.push("/cups") // the tournament no longer exists — leave the workspace
+      router.push("/tournaments") // the tournament no longer exists — leave the workspace
       router.refresh()
     })
   }

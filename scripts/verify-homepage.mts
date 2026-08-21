@@ -214,7 +214,8 @@ async function main() {
     check('Season Championships counts Season titles', seasons.metricLabel === 'Season titles')
     check('...and every value is a whole number', seasons.rows.every((r) => /^\d+$/.test(r.value)))
     const tournaments = await getTop10('tournament-championships')
-    check('Cup Championships is a separate mode', tournaments.metricLabel === 'Cup titles')
+    check('Tournament Championships is a separate mode', tournaments.metricLabel === 'Tournament titles')
+    check('...linking at the Tournaments section, not the retired path', tournaments.href === '/tournaments')
     // There are no completed Tournaments in this database, so the two must not bleed into each other.
     check('...and does not inherit Season titles',
       tournaments.rows.length === 0 || tournaments.rows.every((r) => r.value !== undefined))

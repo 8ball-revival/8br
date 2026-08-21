@@ -389,7 +389,7 @@ export async function updateMyProfileAction(_prev: FormResult, formData: FormDat
     timeZone: timeZone || null,
   })
   // Public identity appears across the site — refresh derived surfaces.
-  for (const p of ['/account', '/players', '/cups', '/seasons', '/groups', '/playoffs']) revalidatePath(p)
+  for (const p of ['/account', '/players', '/tournaments', '/seasons', '/groups', '/playoffs']) revalidatePath(p)
   invalidateRankings()
   return { ok: true }
 }
@@ -443,7 +443,7 @@ export async function changeMyCueverseId(_prev: FormResult, formData: FormData):
   if (!res.ok) return { error: res.error }
 
   // The display identity appears across the whole site — refresh the derived surfaces.
-  for (const p of ['/account', '/players', '/cups', '/seasons', '/groups', '/playoffs', '/search', '/register']) revalidatePath(p)
+  for (const p of ['/account', '/players', '/tournaments', '/seasons', '/groups', '/playoffs', '/search', '/register']) revalidatePath(p)
   invalidateRankings()
   return { ok: true }
 }
@@ -494,8 +494,8 @@ export async function joinTournamentAction(_prev: FormResult, formData: FormData
   const joinPassword = String(formData.get('joinPassword') ?? '')
   const res = await createPublicRegistration(cup.id, Number(user.id), user.username, identity, joinPassword)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/cups/${number}`)
-  revalidatePath("/cups")
+  revalidatePath(`/tournaments/${number}`)
+  revalidatePath("/tournaments")
   revalidatePath('/account')
   return { ok: true, already: res.already }
 }
@@ -511,8 +511,8 @@ export async function withdrawTournamentAction(_prev: FormResult, formData: Form
 
   const res = await withdrawPublicRegistration(cup.id, Number(user.id), user.username)
   if (!res.ok) return { error: res.error }
-  revalidatePath(`/cups/${number}`)
-  revalidatePath("/cups")
+  revalidatePath(`/tournaments/${number}`)
+  revalidatePath("/tournaments")
   revalidatePath('/account')
   return { ok: true }
 }
@@ -524,8 +524,8 @@ async function playerIdentityOf(userId: number): Promise<{ userId: number; playe
   return { userId, playerId: profile.id, name: profile.primaryName, handle: profile.cueverseId }
 }
 function teamRevalidate(number: number) {
-  revalidatePath(`/cups/${number}`)
-  revalidatePath('/cups')
+  revalidatePath(`/tournaments/${number}`)
+  revalidatePath('/tournaments')
   revalidatePath('/account')
 }
 

@@ -166,8 +166,8 @@ export async function listCreatorProjects(): Promise<CreatorProject[]> {
       reconstruction: t.reconstruction,
       completeness: t.dataCompleteness === 'partial' ? 'partial' : 'full',
       entrants: t.entrantsCount ?? 0,
-      href: `/creator/cups/${t.id}`,
-      publicHref: isPublic ? `/cups/${t.number ?? t.id}` : null,
+      href: `/creator/tournaments/${t.id}`,
+      publicHref: isPublic ? `/tournaments/${t.number ?? t.id}` : null,
       warning,
       updatedAt: t.updatedAt.toISOString(),
     })

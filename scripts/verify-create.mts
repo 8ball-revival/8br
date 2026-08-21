@@ -36,10 +36,19 @@ async function ok(cfg: Partial<CreateTournamentConfig>, name: string) {
 }
 
 console.log('\n--- formats ---')
-// GROUPS_PLAYOFFS is a SEASON-only format now (Season Championships own groups→playoffs); Tournament
-// creation supports only the three bracket/round formats below and must REJECT GROUPS_PLAYOFFS.
-for (const fmt of ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS'] as const) {
-  const extra = fmt === 'SWISS' ? { swissRounds: 5 } : {}
+/*
+ * Four formats, Groups + Playoffs among them.
+ *
+ * It used to be rejected here, on the reasoning that groups-into-a-bracket WAS a Season. That is
+ * true of the annual Season Championship and false of a one-off event with the same shape, so the
+ * format is a Tournament format again — and this now checks it is accepted and stores its group
+ * settings, rather than checking it is refused.
+ */
+for (const fmt of ['SINGLE_ELIM', 'DOUBLE_ELIM', 'GROUPS_PLAYOFFS', 'SWISS'] as const) {
+  const extra =
+    fmt === 'SWISS' ? { swissRounds: 5 }
+    : fmt === 'GROUPS_PLAYOFFS' ? { groupCount: 4, qualifiersPerGroup: 2 }
+    : {}
   const r = await ok({ tournamentFormat: fmt, ...extra }, `VC ${fmt}`)
   check(`create ${fmt}`, r.ok)
   if (r.id) {
@@ -47,12 +56,28 @@ for (const fmt of ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS'] as const) {
     check(`${fmt} persisted format`, t.tournamentFormat === fmt)
     check(`${fmt} starts in DRAFT + start-now flag`, t.lifecycleState === 'DRAFT' && r.startNow === true)
     if (fmt === 'SWISS') check('swiss rounds stored', t.swissRounds === 5)
+    if (fmt === 'GROUPS_PLAYOFFS') {
+      check('group settings stored', t.groupCount === 4 && t.qualifiersPerGroup === 2)
+      // No Tournament may be born mid-group-stage: the groups are created empty, later, by hand.
+      check('no groups exist yet', (await prisma.tournamentGroup.count({ where: { tournamentId: r.id } })) === 0)
+    }
   }
 }
 {
-  const r = await make({ tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 4, qualifiersPerGroup: 2 }, 'VC reject GROUPS_PLAYOFFS')
-  check('GROUPS_PLAYOFFS is rejected for Tournaments (Season-only format)', !r.ok)
-  if (r.ok && r.id) createdIds.push(r.id)
+  // Its own settings are still validated, and only for it.
+  check('rejects: too many groups',
+    !(await make({ tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 99, qualifiersPerGroup: 2 }, 'VC groups 99')).ok)
+  check('rejects: no groups',
+    !(await make({ tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 0, qualifiersPerGroup: 2 }, 'VC groups 0')).ok)
+  check('rejects: too many advancing',
+    !(await make({ tournamentFormat: 'GROUPS_PLAYOFFS', groupCount: 4, qualifiersPerGroup: 99 }, 'VC qpg 99')).ok)
+  // A bracket format is unaffected by group settings being absent.
+  const se = await ok({ tournamentFormat: 'SINGLE_ELIM' }, 'VC SE no group settings')
+  check('a bracket format needs no group settings', se.ok)
+  if (se.id) {
+    const t = await prisma.tournament.findUniqueOrThrow({ where: { id: se.id } })
+    check('...and gains none', t.groupCount === null)
+  }
 }
 
 console.log('\n--- participants / team sizes / formation ---')

@@ -257,7 +257,14 @@ async function main() {
   // ── Continuation
   section('Where setup continues')
   check('a Season continues in Creator', draftHref('season', 7) === '/creator/seasons/7')
-  check('a Cup continues in Creator', draftHref('cup', 7) === '/creator/cups/7')
+  /*
+   * The Tournament branch is unreachable from Creator now — creating one starts at
+   * /tournaments/new — but the helper still has to name a route that EXISTS. /creator/tournaments/<id>
+   * translates the internal id to the public number and lands in the Tournaments section;
+   * /creator/cups/<id> was the old path and is only kept alive as a redirect.
+   */
+  check('a Tournament continues in the Tournaments section',
+    draftHref('cup', 7) === '/creator/tournaments/7')
 
   // ── Nothing created here touched the Rankings
   section('Setup writes nothing to the Rankings')

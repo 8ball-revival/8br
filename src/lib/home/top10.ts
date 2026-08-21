@@ -177,7 +177,7 @@ export async function getTop10(mode: Top10Mode): Promise<Top10Result> {
       mode,
       metricLabel: 'Tournament titles',
       rows: await careerRanking({ kind: 'tournament' }),
-      href: '/cups',
+      href: '/tournaments',
     }
   }
 

@@ -141,7 +141,7 @@ function tournamentCard(t: TournamentRow, participants: number): CompetitionCard
     lifecycle: String(t.lifecycleState ?? t.status ?? ''),
     publiclyVisible: t.publiclyVisible,
     completeness: completenessOf(t.dataCompleteness),
-    href: `/cups/${t.number ?? t.id}`,
+    href: `/tournaments/${t.number ?? t.id}`,
   }
 }
 
