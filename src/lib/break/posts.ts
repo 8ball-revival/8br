@@ -407,12 +407,21 @@ function postInclude(viewer: BreakActor | null) {
         publishedAt: true, state: true, deletedAt: true, removedAt: true,
       },
     },
+    /*
+     * With no viewer there is no vote and no save to find, so the relation matches nothing.
+     *
+     * This used to say `playerId: '\0none'` — a literal NUL byte, meant as an id nobody could
+     * ever hold. Postgres accepts a NUL in no text value at all and rejects the whole query with
+     * "invalid byte sequence for encoding UTF8: 0x00", so every read that took this branch died
+     * at the database rather than returning an empty list. `in: []` says the same thing and is a
+     * query Postgres will actually run.
+     */
     votes: viewer
       ? { where: { playerId: viewer.playerId }, select: { value: true } }
-      : { where: { playerId: ' none' }, select: { value: true } },
+      : { where: { playerId: { in: [] } }, select: { value: true } },
     saves: viewer
       ? { where: { playerId: viewer.playerId }, select: { playerId: true } }
-      : { where: { playerId: ' none' }, select: { playerId: true } },
+      : { where: { playerId: { in: [] } }, select: { playerId: true } },
   }
 }
 
