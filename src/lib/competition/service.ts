@@ -1080,9 +1080,23 @@ export async function recomputeStandings(tournamentId: number): Promise<void> {
     }))
     const rows = computeStandings(roster, inputs, tournament.qualifiersPerGroup)
 
+    /*
+     * An administrator's answer beats the calculation.
+     *
+     * `qualifierOverride` is read from the ENTRANT, not from the standings row this is about to
+     * delete and rebuild — that is the whole reason it lives there. Null means nobody has said
+     * anything, so the computed top-N stands; true and false are deliberate decisions, and a
+     * historical reconstruction needs both (a group whose real qualifier is not the one the points
+     * would pick is exactly the case this exists for).
+     */
+    const overrides = new Map(
+      group.players.map((gp) => [gp.registrationId, gp.registration.qualifierOverride]),
+    )
+
     await prisma.$transaction(async (tx) => {
       await tx.standing.deleteMany({ where: { groupId: group.id } })
       for (const r of rows) {
+        const override = overrides.get(r.registrationId)
         await tx.standing.create({
           data: {
             tournamentId,
@@ -1092,12 +1106,13 @@ export async function recomputeStandings(tournamentId: number): Promise<void> {
             played: r.played,
             wins: r.wins,
             losses: r.losses,
+            draws: r.draws,
             gamesWon: r.gamesWon,
             gamesLost: r.gamesLost,
             gameDiff: r.gameDiff,
             points: r.points,
             rank: r.rank,
-            qualified: r.qualified,
+            qualified: override ?? r.qualified,
           },
         })
       }

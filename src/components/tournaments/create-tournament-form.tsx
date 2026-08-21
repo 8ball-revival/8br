@@ -10,16 +10,26 @@ import { Button } from '@/components/ui/button'
 import { createTournamentAction, saveFlairDefaultAction, getFlairDefaultAction } from '@/lib/competition/tournament-actions'
 import type { CreateTournamentConfig } from '@/lib/competition/tournament-create'
 import { FlairEditor, FlairPreview, EMPTY_FLAIR, type FlairValue } from '@/components/tournaments/flair-editor'
+import { GROUPS_PLAYOFFS_FORMAT_SUMMARY } from '@/lib/competition/match-format'
 
-// Season Championship (GROUPS_PLAYOFFS) is now its own first-class competition type at /seasons — it is
-// NOT a Tournament format. Tournaments offer only these three formats.
-type Format = 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'SWISS'
+/*
+ * Groups + Playoffs is a Tournament format.
+ *
+ * It is not the annual Season Championship, which lives at /seasons and stays there. This is a
+ * one-off event that happens to run groups before its bracket — the shape the first 8BR Tournament
+ * had — and filing it as a Season would put it under Season Championships and Season W-L.
+ */
+type Format = 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'GROUPS_PLAYOFFS' | 'SWISS'
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
 const FMT_LABEL: Record<Format, string> = {
   SINGLE_ELIM: 'Single Elimination',
   DOUBLE_ELIM: 'Double Elimination',
+  GROUPS_PLAYOFFS: 'Groups + Playoffs',
   SWISS: 'Swiss System',
 }
+
+/** The bracket a field of N needs: the next power of two, at least 2. Mirrors recommendedBracketSize. */
+const nextPow2 = (n: number) => (n <= 2 ? 2 : 2 ** Math.ceil(Math.log2(n)))
 
 const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-brand'
@@ -53,6 +63,14 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
   const [format, setFormat] = useState<Format>('SINGLE_ELIM')
   const [swissRounds, setSwissRounds] = useState(4)
 
+  // Groups + Playoffs only. Defaults describe the commonest shape rather than a rule: four groups,
+  // top two through, single-elimination after. Every one is editable, and the bracket size is only
+  // ever a recommendation — the real field is not known until the groups finish.
+  const [groupCount, setGroupCount] = useState(4)
+  const [qualifiersPerGroup, setQualifiersPerGroup] = useState(2)
+  const [playoffDoubleElim, setPlayoffDoubleElim] = useState(false)
+  const [playoffSeeding, setPlayoffSeeding] = useState<'standing' | 'random' | 'manual'>('standing')
+
   const [participant, setParticipant] = useState<'INDIVIDUAL' | 'TEAM'>('INDIVIDUAL')
   const [teamSize, setTeamSize] = useState(2)
   const [teamFormation, setTeamFormation] = useState<'PICK' | 'RANDOM'>('PICK')
@@ -77,8 +95,11 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
   const summary = useMemo(() => {
     let fmt: string = FMT_LABEL[format]
     if (format === 'SWISS') fmt += ` · ${swissRounds} rounds`
+    if (format === 'GROUPS_PLAYOFFS') {
+      fmt += ` · ${groupCount} group${groupCount === 1 ? '' : 's'}, top ${qualifiersPerGroup}`
+    }
     return { fmt }
-  }, [format, swissRounds])
+  }, [format, swissRounds, groupCount, qualifiersPerGroup])
 
   const submit = () => {
     setError(null)
@@ -102,6 +123,10 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
       scheduleForLater: scheduleLater,
       scheduledStartAt: scheduleLater ? `${date}T${time || '00:00'}` : null,
       swissRounds: format === 'SWISS' ? swissRounds : null,
+      // Sent only for the format that uses them, so no other format's record gains a group setting.
+      ...(format === 'GROUPS_PLAYOFFS'
+        ? { groupCount, qualifiersPerGroup, playoffDoubleElim, playoffSeeding }
+        : {}),
       flair,
     }
     start(async () => {
@@ -121,6 +146,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
           <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
             <Choice active={format === 'SINGLE_ELIM'} onClick={() => setFormat('SINGLE_ELIM')} title="Single Elimination" body="One loss and you're out" />
             <Choice active={format === 'DOUBLE_ELIM'} onClick={() => setFormat('DOUBLE_ELIM')} title="Double Elimination" body="Winners + losers bracket" />
+            <Choice active={format === 'GROUPS_PLAYOFFS'} onClick={() => setFormat('GROUPS_PLAYOFFS')} title="Groups + Playoffs" body="Round-robin groups into a bracket" />
             <Choice active={format === 'SWISS'} onClick={() => setFormat('SWISS')} title="Swiss System" body="Fixed rounds, no elimination" />
           </div>
         </section>
@@ -131,6 +157,67 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
           <div className="mt-4 space-y-4">
             {(format === 'SINGLE_ELIM' || format === 'DOUBLE_ELIM') && (
               <p className="text-sm text-muted-foreground">No additional settings for {FMT_LABEL[format]}.</p>
+            )}
+
+            {/* Shown only for Groups + Playoffs — every other format is unchanged by its presence. */}
+            {format === 'GROUPS_PLAYOFFS' && (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Labeled label="Number of groups">
+                    <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))} className={cn(input, 'max-w-[140px]')}>
+                      {Array.from({ length: 16 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      Created empty. You place entrants into them yourself before the group stage starts.
+                    </p>
+                  </Labeled>
+                  <Labeled label="Advancing per group">
+                    <select value={qualifiersPerGroup} onChange={(e) => setQualifiersPerGroup(Number(e.target.value))} className={cn(input, 'max-w-[140px]')}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      The calculated qualifiers. You can override who goes through before the bracket is built.
+                    </p>
+                  </Labeled>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Labeled label="Playoff bracket">
+                    <select value={playoffDoubleElim ? 'de' : 'se'} onChange={(e) => setPlayoffDoubleElim(e.target.value === 'de')} className={input}>
+                      <option value="se">Single elimination</option>
+                      <option value="de">Double elimination</option>
+                    </select>
+                  </Labeled>
+                  <Labeled label="Playoff seeding">
+                    <select value={playoffSeeding} onChange={(e) => setPlayoffSeeding(e.target.value as typeof playoffSeeding)} className={input}>
+                      <option value="standing">By group standing</option>
+                      <option value="random">Random draw</option>
+                      <option value="manual">Manual — I will place them</option>
+                    </select>
+                  </Labeled>
+                </div>
+
+                <div className="rounded-md border border-border bg-card/60 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    <b className="text-foreground">Recommended bracket: {nextPow2(groupCount * qualifiersPerGroup)} places</b>
+                    {' '}for {groupCount * qualifiersPerGroup} qualifiers ({groupCount} × {qualifiersPerGroup}).
+                    The bracket is sized from the field you actually confirm, so this is a guide, not a
+                    setting — withdrawals and overrides can change it before the playoffs are built.
+                  </p>
+                </div>
+
+                <div className="rounded-md border border-border bg-card/60 px-3 py-2.5">
+                  <p className="mb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">Match format</p>
+                  <dl className="space-y-0.5">
+                    {GROUPS_PLAYOFFS_FORMAT_SUMMARY.map((r) => (
+                      <div key={r.stage} className="flex justify-between text-xs">
+                        <dt className="text-muted-foreground">{r.stage}</dt>
+                        <dd className="font-medium text-foreground">{r.format}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </div>
             )}
 
             {format === 'SWISS' && (

@@ -860,6 +860,14 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
 // --------------------------------------------------------------------------- Group Stage
 
 function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentWorkspaceData; run: Run; canEditResults: boolean; canManage: boolean }) {
+  /*
+   * Who goes through is editable only while the group stage is running.
+   *
+   * After the qualifiers are confirmed the bracket is already seated; changing the answer then would
+   * leave the standings and the bracket disagreeing about who is in it. Returning the bracket to
+   * draft is the deliberate way back, and it is its own button.
+   */
+  const canOverride = canManage && data.tournament.lifecycleState === 'GROUPS_IN_PROGRESS'
   // Draft Group Setup phase (registration closed, groups not yet published): show the organize-and-publish board.
   if (canManage && data.groupSetup && !data.groupsPublished) {
     return (
@@ -894,25 +902,65 @@ function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentW
                   <th className="w-10 py-1 text-center">P</th>
                   <th className="w-10 py-1 text-center">W</th>
                   <th className="w-10 py-1 text-center">L</th>
+                  <th className="w-10 py-1 text-center" title="Draws — a group set finishing 5–5">D</th>
                   <th className="w-14 py-1 text-center" title="Game differential">+/−</th>
                   <th className="w-12 py-1 text-center">Pts</th>
+                  {canOverride && <th className="w-28 py-1 text-center">Through</th>}
                 </tr>
               </thead>
               <tbody>
                 {g.standings.length === 0 ? (
-                  <tr><td colSpan={7} className="py-2 text-muted-foreground">No results yet.</td></tr>
+                  <tr><td colSpan={canOverride ? 9 : 8} className="py-2 text-muted-foreground">No results yet.</td></tr>
                 ) : (
-                  g.standings.map((s) => (
+                  g.standings.map((s) => {
+                    const overridden = s.qualifierOverride != null && s.qualifierOverride !== s.calculatedQualified
+                    return (
                     <tr key={s.registrationId} className={cn('border-t border-border/60', s.qualified && 'bg-brand/10')}>
                       <td className="py-1.5 tabular">{s.rank}</td>
-                      <td className={cn('py-1.5', s.qualified && 'font-medium text-brand')}>{s.username}</td>
+                      <td className={cn('py-1.5', s.qualified && 'font-medium text-brand')}>
+                        {s.username}
+                        {/* Only shown when a person disagreed with the points — otherwise it is noise. */}
+                        {overridden && (
+                          <span className="ml-1.5 rounded bg-[var(--gold)]/15 px-1 py-px text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--gold)]" title="Set by an administrator, not by the standings">
+                            set
+                          </span>
+                        )}
+                      </td>
                       <td className="py-1.5 text-center tabular">{s.played}</td>
                       <td className="py-1.5 text-center tabular">{s.wins}</td>
                       <td className="py-1.5 text-center tabular">{s.losses}</td>
+                      <td className="py-1.5 text-center tabular">{s.draws}</td>
                       <td className="py-1.5 text-center tabular">{s.gameDiff > 0 ? `+${s.gameDiff}` : s.gameDiff}</td>
                       <td className="py-1.5 text-center tabular font-medium">{s.points}</td>
+                      {canOverride && (
+                        <td className="py-1.5 text-center">
+                          {/*
+                            Three answers, not two: in, out, and "I have not said".
+                            Clearing hands the decision back to the standings, which is a different
+                            statement from "not going through" and has to stay expressible.
+                          */}
+                          <select
+                            aria-label={`Does ${s.username} go through?`}
+                            value={s.qualifierOverride == null ? 'auto' : s.qualifierOverride ? 'in' : 'out'}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              run(() => A.setQualifierOverrideAction(
+                                data.tournament.id,
+                                s.registrationId,
+                                v === 'auto' ? null : v === 'in',
+                              ))
+                            }}
+                            className="w-full rounded border border-border bg-background px-1.5 py-1 text-xs"
+                          >
+                            <option value="auto">By standings</option>
+                            <option value="in">In</option>
+                            <option value="out">Out</option>
+                          </select>
+                        </td>
+                      )}
                     </tr>
-                  ))
+                    )
+                  })
                 )}
               </tbody>
             </table>

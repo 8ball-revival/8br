@@ -12,9 +12,19 @@ export type TeamFormationInput = 'PICK' | 'RANDOM'
 export type AccessModeInput = 'OPEN' | 'PASSWORD'
 
 /** Formats the 8BR create flow supports end-to-end (creation → completion). */
-// Season Championship (GROUPS_PLAYOFFS) is now its own competition type at /seasons — Tournaments
-// only support these three formats. Creation rejects anything else (backend enforcement).
-const SUPPORTED_FORMATS: TournamentFormat[] = ['SINGLE_ELIM', 'DOUBLE_ELIM', 'SWISS']
+/*
+ * Groups + Playoffs is a Tournament format again.
+ *
+ * It was removed from this list when Seasons became their own competition type, on the reasoning
+ * that a group stage into a bracket WAS a Season. That is true of the annual Season Championship and
+ * false of everything else shaped like it — a one-off team event with groups is a Tournament, and
+ * routing it through Seasons would file it under Season Championships and Season W-L.
+ *
+ * The engine never went anywhere: TournamentGroup, GroupPlayer, Standing and TournamentMatch are all
+ * Tournament-keyed tables, and the group-stage services, the Group Setup board and the workspace tab
+ * all still work. Only creation was closed off, so only creation is being reopened.
+ */
+const SUPPORTED_FORMATS: TournamentFormat[] = ['SINGLE_ELIM', 'DOUBLE_ELIM', 'GROUPS_PLAYOFFS', 'SWISS']
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
 const SEEDING: SeedingMethod[] = ['rating', 'rank', 'random', 'registration']
 

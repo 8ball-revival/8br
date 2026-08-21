@@ -249,12 +249,19 @@ export interface WorkspaceStandingRow {
   played: number
   wins: number
   losses: number
+  /** A 10-game group set at 5-5. Counted all along; now it has somewhere to be shown. */
+  draws: number
   gamesWon: number
   gamesLost: number
   gameDiff: number
   points: number
   rank: number
+  /** What will happen — an administrator's override when they gave one, else the calculation. */
   qualified: boolean
+  /** What the points alone decided, so the two can be told apart on screen. */
+  calculatedQualified: boolean
+  /** The administrator's answer, or null when they have not given one. */
+  qualifierOverride: boolean | null
 }
 export interface WorkspaceGroup {
   id: number
@@ -341,6 +348,15 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
   // Resolve CANONICAL identity for every group player (the linked profile's Preferred Name + CueVerse
   // ID), exactly like the entrant list and the playoff bracket, so names are consistent everywhere.
   const groupIdn = await resolveEntrants(gs.flatMap((g) => g.players.map((p) => p.registration)))
+
+  // What the points decided, and what a person decided, kept as separate answers. The override lives
+  // on the entrant because recomputeStandings rebuilds every standings row.
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId }, select: { qualifiersPerGroup: true },
+  })
+  const overrideByRegId = new Map<number, boolean | null>(
+    gs.flatMap((g) => g.players.map((p) => [p.registrationId, p.registration.qualifierOverride] as const)),
+  )
   const groups: WorkspaceGroup[] = gs.map((g) => ({
     id: g.id,
     code: g.code,
@@ -377,12 +393,17 @@ async function loadGroupStage(tournamentId: number): Promise<{ groups: Workspace
       played: s.played,
       wins: s.wins,
       losses: s.losses,
+      draws: s.draws,
       gamesWon: s.gamesWon,
       gamesLost: s.gamesLost,
       gameDiff: s.gameDiff,
       points: s.points,
       rank: s.rank,
       qualified: s.qualified,
+      // Re-derived from rank rather than read off `qualified`, which already has any override folded
+      // into it — the row has to be able to say "the points said X, a person said Y".
+      calculatedQualified: s.rank > 0 && s.rank <= (tournament?.qualifiersPerGroup ?? 2),
+      qualifierOverride: overrideByRegId.get(s.registrationId) ?? null,
     })),
   }))
   const total = await prisma.tournamentMatch.count({ where: { tournamentId } })

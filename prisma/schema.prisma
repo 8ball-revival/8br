@@ -1516,29 +1516,36 @@ model AccountClaim {
 /// login. Admins add entrants directly (manual / bulk import); if the player later
 /// creates an account, staff link it to the profile and the account adopts the entry.
 model Registration {
-  id               Int                @id @default(autoincrement())
-  tournamentId     Int
-  tournament       Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  id                Int                @id @default(autoincrement())
+  tournamentId      Int
+  tournament        Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   // OPTIONAL Payload account link. Null for account-less entrants (admin-added).
-  userId           Int?
-  username         String
-  status           RegistrationStatus @default(PENDING)
-  seed             Int?
-  note             String?
+  userId            Int?
+  username          String
+  status            RegistrationStatus @default(PENDING)
+  seed              Int?
+  note              String?
   // How the entrant was added — public self-registration vs. admin add / bulk import.
-  addedByAdmin     Boolean            @default(false)
+  addedByAdmin      Boolean            @default(false)
   // Identity submitted at registration by an UNLINKED account. Shown publicly until
   // the account is linked to a canonical Player profile, after which `playerId`
   // resolves the entrant to that profile (no duplicate entrant is created).
-  displayName      String?
-  cueverseId       String?
-  discord          String?
-  timeZone         String?
-  playerId         String? // canonical Player.id — the entrant's competitive identity
-  createdAt        DateTime           @default(now())
-  approvedAt       DateTime?
-  withdrawnAt      DateTime?
-  approvedByUserId Int?
+  displayName       String?
+  cueverseId        String?
+  discord           String?
+  timeZone          String?
+  playerId          String? // canonical Player.id — the entrant's competitive identity
+  /// Group Stage + Playoffs: an administrator's explicit answer to "does this entrant go through?",
+  /// overriding the calculated top-N.
+  ///
+  /// It lives HERE rather than on Standing because recomputeStandings deletes and rebuilds every
+  /// standings row — an override stored there would vanish the next time a result was entered. Null
+  /// means "follow the calculation"; true and false are deliberate human decisions that survive it.
+  qualifierOverride Boolean?
+  createdAt         DateTime           @default(now())
+  approvedAt        DateTime?
+  withdrawnAt       DateTime?
+  approvedByUserId  Int?
 
   groupPlayers GroupPlayer[]
   team         TournamentTeam? // set when this entrant is a team-format tournament's team
@@ -1672,6 +1679,10 @@ model Standing {
   played         Int             @default(0)
   wins           Int             @default(0)
   losses         Int             @default(0)
+  /// Group-stage draws. computeStandings has always counted them — a 10-game group set at 5-5 is a
+  /// draw worth a point — but there was nowhere to put the number, so the W-L-D on screen was
+  /// really W-L with the draws silently folded into neither.
+  draws          Int             @default(0)
   gamesWon       Int             @default(0)
   gamesLost      Int             @default(0)
   gameDiff       Int             @default(0)

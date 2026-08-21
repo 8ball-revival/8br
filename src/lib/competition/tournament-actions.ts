@@ -12,6 +12,7 @@ import type { ClosingPlan, EligibleAccount, FreeAgentRow } from './free-agents'
 import { captureTeamRatingsAtClose } from './team-ratings'
 import { recordGroupResult, confirmQualifiersAndSeed } from './group-stage'
 import * as gsetup from './group-setup'
+import * as quals from './qualifiers'
 import { startSwiss, recordSwissResult, pairNextRound, completeSwiss } from './swiss'
 import { syncLiveTournamentToSnapshot } from './tournament-sync'
 import { transitionTournamentState, requireTournamentState, bracketMatchesEntrants, type TournamentState } from './tournament-lifecycle'
@@ -424,6 +425,40 @@ export async function recordGroupResultAction(matchId: number, home: number, awa
 }
 
 /** Confirm the final qualifiers and seed them into the playoff bracket (single or double elim). */
+/**
+ * List every entrant with a standing, and whether they are going through.
+ *
+ * A read. Gated all the same: an unpublished group stage's standings are not public, and this is the
+ * shape the qualifier review reads from.
+ */
+export async function listQualifiersAction(tournamentId: number) {
+  await requireCapability('manage_competitions')
+  return quals.listQualifiers(tournamentId)
+}
+
+/**
+ * Override one entrant in or out of the playoffs — or clear the override and hand the decision back
+ * to the calculation.
+ *
+ * Only while the group stage is running or closed. Once the bracket is generated the field is
+ * already seated, and changing who qualified would leave the two disagreeing; the bracket is
+ * returned to draft first, which is a separate deliberate act.
+ */
+export async function setQualifierOverrideAction(
+  tournamentId: number,
+  registrationId: number,
+  override: boolean | null,
+): Promise<ActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const gate = await requireTournamentState(tournamentId, ['GROUPS_IN_PROGRESS'])
+  if (!gate.ok) return { error: gate.error }
+  if (override !== true && override !== false && override !== null) return { error: 'Say whether the entrant is in, out, or unset.' }
+  const r = await quals.setQualifierOverride(actor, tournamentId, registrationId, override)
+  if (!r.ok) return { error: r.error }
+  revalidateTournament(await tournamentNumberOf(tournamentId))
+  return { ok: true, message: override == null ? 'Back to the calculated result.' : override ? 'Marked as qualifying.' : 'Marked as not qualifying.' }
+}
+
 export async function confirmQualifiersAction(tournamentId: number): Promise<ActionResult> {
   const actor = await requireCapability('manage_competitions')
   const gate = await requireTournamentState(tournamentId, ['GROUPS_IN_PROGRESS'])
