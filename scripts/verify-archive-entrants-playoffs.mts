@@ -95,6 +95,74 @@ section('The playoff manifest separates what is documented from what is guessed'
     champions.every((e) => e.playoff.participants.some((p) => p.sourceId === e.playoff.championSourceId)))
 }
 
+// ──────────────────────────────────────────── the annotations the archive prints beside a handle
+section('A status printed next to a handle is not part of the handle')
+{
+  const m = loadManifest()
+  const SUFFIX = /\s+(?:[-–]\s+(?:x|w\/c)|\(wc\))(?:\s*\(\d+\))?$/i
+
+  /*
+   * The original group tables annotate some rows — "mr.8pac - x", "badass_drummer - w/c",
+   * "krazy_kevy - x (4)", "ta.lent (wc)". The scraper captured the annotation as part of the handle and minted a
+   * separate player id for that spelling, so the same person exists twice in the source: annotated
+   * in the group table, plain in the playoff bracket. Left attached, nothing matched an annotated
+   * row — one Season had 154 of its 200 group results unresolvable against accounts that were all
+   * present and correctly named.
+   */
+  const annotated = m.entries.flatMap((e) => e.participants.filter((p) => p.sourceNote))
+  const sharedAnnotated = m.undividedSources.flatMap((u) => u.participants.filter((p) => p.sourceNote))
+  console.log(`  (${annotated.length + sharedAnnotated.length} annotated rows across the archive)`)
+  check('the annotations were found and kept', annotated.length + sharedAnnotated.length === 84,
+    String(annotated.length + sharedAnnotated.length))
+
+  const allParticipants = [
+    ...m.entries.flatMap((e) => e.participants),
+    ...m.undividedSources.flatMap((u) => u.participants),
+  ]
+  check('no participant handle still carries one', allParticipants.every((p) => !SUFFIX.test(p.rawHandle)))
+  check('...and none is left blank', allParticipants.every((p) => p.rawHandle.trim().length > 0))
+
+  const allMatches = [
+    ...m.entries.flatMap((e) => e.matches),
+    ...m.undividedSources.flatMap((u) => u.matches),
+  ]
+  check('no match row shows one either', allMatches.every((x) => !SUFFIX.test(x.aRawHandle) && !SUFFIX.test(x.bRawHandle)))
+  check('...so every result names both players', allMatches.every((x) => x.aRawHandle.trim() && x.bRawHandle.trim()))
+
+  check('only the markers the archive actually uses were treated as annotations',
+    [...annotated, ...sharedAnnotated].every((p) => /^(?:x|w\/c|\(wc\))(?:\s*\(\d+\))?$/i.test(p.sourceNote ?? '')),
+    [...new Set([...annotated, ...sharedAnnotated].map((p) => p.sourceNote))].join(' | '))
+
+  const kinds = new Set([...annotated, ...sharedAnnotated].map((p) => (p.sourceNote ?? '').replace(/\s*\(\d+\)$/, '')))
+  check('and there are exactly three of them', kinds.size === 3, [...kinds].join(' | '))
+  check('...x, w/c and (wc)', ['x', 'w/c', '(wc)'].every((k) => kinds.has(k)), [...kinds].join(' | '))
+
+  // The point of stripping: the annotated row and its plain twin become one person again.
+  const s6 = m.entries.find((e) => e.templateKey === '8brcam-2006-s6-a')
+  const gus = s6?.participants.find((p) => p.sourceId === 'P0367')
+  check('an annotated group row reads as the plain handle', gus?.rawHandle === 'xx_apocalipsys_xx', gus?.rawHandle)
+  check('...with the annotation kept beside it', gus?.sourceNote === 'x', gus?.sourceNote ?? 'null')
+  check('...and its playoff twin agrees',
+    s6?.playoff.participants.some((p) => p.normalizedHandle === 'xx_apocalipsys_xx') === true)
+
+  /*
+   * Stripping must not merge two DIFFERENT people. Within one group table, and within one playoff
+   * field, no two rows may end up with the same handle through this.
+   */
+  for (const e of m.entries) {
+    const byGroup = new Map<string, string[]>()
+    for (const p of e.participants) {
+      if (!byGroup.has(p.groupName)) byGroup.set(p.groupName, [])
+      byGroup.get(p.groupName)!.push(p.normalizedHandle)
+    }
+    for (const [g, hs] of byGroup) {
+      const dupes = hs.filter((h, i) => hs.indexOf(h) !== i && /^(?!tbd$)/.test(h))
+      if (dupes.length) check(`${e.templateKey} group ${g} has no handle twice`, false, [...new Set(dupes)].join(','))
+    }
+  }
+  check('stripping merged nobody inside a single group', true)
+}
+
 // ─────────────────────────────────────────────────────────── matching, as used by both actions
 section('Matching for entrants behaves as the group step does')
 {

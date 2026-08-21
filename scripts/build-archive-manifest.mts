@@ -69,6 +69,8 @@ export interface ManifestParticipant {
   normalizedHandle: string
   rawName: string
   normalizedName: string
+  /** A status the archive printed beside the handle — "x", "w/c", "x (7)". Kept, never matched on. */
+  sourceNote: string | null
   groupName: string
   /** Position within the group as the archive printed it. */
   slot: number
@@ -218,10 +220,38 @@ export interface Manifest {
  * every row nameable.
  */
 function sourceHandle(p: { handle?: string; name?: string } | undefined, pid: string): string {
-  const handle = (p?.handle ?? '').trim()
+  const handle = splitSourceNote((p?.handle ?? '').trim()).handle
   if (handle) return handle
   const name = (p?.name ?? '').trim()
   return name || pid
+}
+
+/**
+ * Separate an archived handle from the status the archive printed next to it.
+ *
+ * The original group tables annotate some rows: `mr.8pac - x`, `badass_drummer - w/c`,
+ * `krazy_kevy - x (4)`, `ta.lent (wc)` — three spellings of the same idea, one of them without any
+ * separator at all. The scraper captured the annotation as part of the handle and gave that
+ * spelling its own player id, so the SAME person exists twice in the source — once annotated in the
+ * group table, once plain in the playoff bracket. Nothing matches an annotated handle, because no
+ * account is called "mr.8pac - x", and a whole Season's group results end up unresolved.
+ *
+ * Verified against the source before doing this: the suffix appears only in group tables, its
+ * unsuffixed twin only in playoff brackets, both carry the same person's name, and stripping
+ * introduces no duplicate inside any single table. The note is kept rather than discarded — it
+ * records something real about that player's season — it just is not part of their name.
+ *
+ * Deliberately narrow: only the exact markers the archive actually uses, anchored at the end. Of the
+ * handles that contain a space at all, the trailing token is one of these markers or one of `91`,
+ * `d`, `yo`, `girl`, `rite`, `star*` — real words in real names. A general "strip the last word" or
+ * "strip anything after a dash" rule would eat those.
+ */
+const SOURCE_NOTE = /\s+(?:[-–]\s+(?:x|w\/c)|\(wc\))(?:\s*\(\d+\))?$/i
+
+export function splitSourceNote(raw: string): { handle: string; note: string | null } {
+  const m = raw.match(SOURCE_NOTE)
+  if (!m) return { handle: raw, note: null }
+  return { handle: raw.slice(0, m.index).trim(), note: m[0].replace(/^\s*[-–]?\s*/, '').trim() }
 }
 
 function buildParticipants(groups: RawGroup[], players: RawArchive['players']): ManifestParticipant[] {
@@ -237,6 +267,7 @@ function buildParticipants(groups: RawGroup[], players: RawArchive['players']): 
         normalizedHandle: normalizeHandle(rawHandle),
         rawName,
         normalizedName: normalizeHandle(rawName),
+        sourceNote: splitSourceNote((p?.handle ?? '').trim()).note,
         groupName: g.letter,
         slot: r.slot,
       })
@@ -254,8 +285,10 @@ function buildMatches(groups: RawGroup[], players: RawArchive['players']): Manif
         groupName: g.letter,
         aSourceId: m.a,
         bSourceId: m.b,
-        aRawHandle: players[m.a]?.handle ?? m.a,
-        bRawHandle: players[m.b]?.handle ?? m.b,
+        // Through the same helper as the participants, so a match reads with the same names the
+        // rest of the manifest uses — no annotation, no blank where the handle column was empty.
+        aRawHandle: sourceHandle(players[m.a], m.a),
+        bRawHandle: sourceHandle(players[m.b], m.b),
         scoreA: exact ? m.sa : null,
         scoreB: exact ? m.sb : null,
         winnerSourceId: m.w ?? null,

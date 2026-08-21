@@ -86,7 +86,22 @@ function archivedPeople(entry: ManifestEntry, shared: ManifestEntry['participant
       })
     }
   }
-  return [...byId.values()]
+  /*
+   * One person, one row — keyed on the handle, not the source id.
+   *
+   * The archive gives the same player two ids when its group table annotated them ("mr.8pac - x" in
+   * the group, "mr.8pac" in the bracket). The annotation is stripped when the manifest is built, so
+   * both now normalize to the same handle; without collapsing them here the matcher would claim the
+   * entrant for the first and report the second as an account that does not exist.
+   */
+  const byHandle = new Map<string, ReturnType<typeof byId.get> & object>()
+  for (const p of byId.values()) {
+    const seen = byHandle.get(p.normalizedHandle)
+    // Keep whichever row knows the person's name; the playoff copy carries none.
+    if (!seen) byHandle.set(p.normalizedHandle, p)
+    else if (!seen.rawName && p.rawName) byHandle.set(p.normalizedHandle, p)
+  }
+  return [...byHandle.values()]
 }
 
 async function guardEntrants(seasonId: number): Promise<

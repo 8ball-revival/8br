@@ -22,6 +22,14 @@ export interface ManifestParticipant {
   normalizedHandle: string
   rawName: string
   normalizedName: string
+  /**
+   * A status the archive printed beside the handle in the group table — "x", "w/c", "x (7)".
+   *
+   * Split off the handle at build time, because no account is called "mr.8pac - x" and leaving it
+   * attached made every annotated row unmatchable. Kept because it records something real about
+   * that player's season; never matched on.
+   */
+  sourceNote: string | null
   groupName: string
   slot: number
 }
