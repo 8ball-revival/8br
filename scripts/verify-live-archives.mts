@@ -190,10 +190,10 @@ section('Navigation offers one permanent destination per competition type')
     entries.find((e) => e.label === label)?.href
 
   const pub = buildNav({})
-  check('the public order is Home · Seasons · Cups · Rankings · The Break',
-    labels(pub) === 'Home · Seasons · Cups · Rankings · The Break', labels(pub))
+  check('the public order is Home · Seasons · Tournaments · Rankings · The Break',
+    labels(pub) === 'Home · Seasons · Tournaments · Rankings · The Break', labels(pub))
   check('Seasons points at /seasons', href(pub, 'Seasons') === '/seasons', href(pub, 'Seasons'))
-  check('Cups points at /cups', href(pub, 'Cups') === '/cups', href(pub, 'Cups'))
+  check('Tournaments points at /tournaments', href(pub, 'Tournaments') === '/tournaments', href(pub, 'Tournaments'))
 
   // The whole point of the change: neither tab is conditional, and neither hides behind a menu.
   check('there is no Live tab', !pub.some((e) => e.label === 'Live'), labels(pub))
@@ -204,15 +204,15 @@ section('Navigation offers one permanent destination per competition type')
     JSON.stringify(pub))
 
   const admin = buildNav({ canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
-  check('the administrative order is Home · Seasons · Cups · Creator · Rankings · The Break · Admin',
-    labels(admin) === 'Home · Seasons · Cups · Creator · Rankings · The Break · Admin', labels(admin))
+  check('the administrative order is Home · Seasons · Tournaments · Creator · Rankings · The Break · Admin',
+    labels(admin) === 'Home · Seasons · Tournaments · Creator · Rankings · The Break · Admin', labels(admin))
   check('Creator sits between Cups and Rankings', href(admin, 'Creator') === '/creator')
   check('Creator is absent for a public visitor', !pub.some((e) => e.label === 'Creator'))
   check('Admin is absent for a public visitor', !pub.some((e) => e.label === 'Admin'))
 
   // Seasons and Cups are public and unconditional: they must not appear or vanish with a role.
-  check('Seasons and Cups are shown to everyone',
-    ['Seasons', 'Cups'].every((l) => pub.some((e) => e.label === l) && admin.some((e) => e.label === l)))
+  check('Seasons and Tournaments are shown to everyone',
+    ['Seasons', 'Tournaments'].every((l) => pub.some((e) => e.label === l) && admin.some((e) => e.label === l)))
 }
 
 section('Public branding')

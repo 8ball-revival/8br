@@ -139,7 +139,7 @@ function StreakCell({ streak }: { streak: number }) {
  * A championship count.
  *
  * Season Championships wear the gold diamond the rest of the site uses for a Season title;
- * Cup Titles wear the trophy. Clicking opens the player's expanded row, where the
+ * Tournament Titles wear the trophy. Clicking opens the player's expanded row, where the
  * exact competitions behind the number are listed and linked — a count nobody can trace is a count
  * nobody should have to take on trust.
  */
@@ -152,7 +152,7 @@ function TitleCell({ n, kind, onOpen, playerName }: {
   // A dash is the whole answer for nobody. An icon beside it would decorate an absence.
   if (n === 0) return <span className="text-muted-foreground">—</span>
   const Icon = kind === 'season' ? Crown : Trophy
-  const what = kind === 'season' ? 'Season Championship' : 'Cup Title'
+  const what = kind === 'season' ? 'Season Championship' : 'Tournament Title'
   return (
     <button
       type="button"

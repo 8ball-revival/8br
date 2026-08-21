@@ -129,7 +129,7 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
     setDraft((d) => ({ ...d, toYear: Math.max(v, d.fromYear) }))
   }
 
-  // Only the Seasons and Cups the other choices actually permit — an empty control that filters
+  // Only the Seasons and Tournaments the other choices actually permit — an empty control that filters
   // nothing is worse than no control.
   const seasons = useMemo(() => facets.seasons.filter((s) =>
     (draft.competitionSeriesId == null || s.seriesId === draft.competitionSeriesId)
@@ -235,7 +235,7 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
 
           <Section title="Event Type">
             <div className="space-y-1.5">
-              {([['all', 'Seasons and Cups'], ['seasons', 'Seasons only'], ['cups', 'Cups only']] as const)
+              {([['all', 'Seasons and Tournaments'], ['seasons', 'Seasons only'], ['cups', 'Tournaments only']] as const)
                 .map(([id, label]) => (
                   <label key={id} className="flex items-center gap-2 text-sm">
                     <input type="radio" name="eventType" checked={draft.eventType === id}
@@ -258,10 +258,10 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
           )}
 
           {draft.eventType !== 'seasons' && cups.length > 0 && (
-            <Section title="Specific Cup">
+            <Section title="Specific Tournament">
               <select value={draft.tournamentId ?? ''} className={FIELD}
                 onChange={(e) => set({ tournamentId: e.target.value ? Number(e.target.value) : null })}>
-                <option value="">All Cups</option>
+                <option value="">All Tournaments</option>
                 {cups.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </Section>
@@ -318,11 +318,11 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
                 <input type="checkbox" checked={draft.rowFilters.cupChampionsOnly}
                   onChange={(e) => setFilters({ cupChampionsOnly: e.target.checked })}
                   className="accent-[var(--gold)]" />
-                Cup Titleholders
+                Tournament Titleholders
               </label>
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Both ticked shows players who have won <strong>both</strong> a Season and a Cup.
+              Both ticked shows players who have won <strong>both</strong> a Season and a Tournament.
             </p>
           </Section>
 

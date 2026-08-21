@@ -14,7 +14,17 @@ let pass = 0, fail = 0
 const check = (n: string, c: boolean) => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n) } }
 const actor = { userId: 950001, username: 'create-verify' }
 
-const base: CreateTournamentConfig = { name: 'X', participantFormat: 'INDIVIDUAL', tournamentFormat: 'SINGLE_ELIM', raceLength: 7 }
+/*
+ * Every Tournament belongs to a Competition now, so the shared base carries one.
+ *
+ * Read from the canonical table rather than hardcoded: the id differs between databases, and a
+ * literal would make this suite pass or fail on which machine it ran.
+ */
+const anyCompetition = await prisma.competitionSeries.findFirstOrThrow({ select: { id: true } })
+const base: CreateTournamentConfig = {
+  name: 'X', competitionSeriesId: anyCompetition.id,
+  participantFormat: 'INDIVIDUAL', tournamentFormat: 'SINGLE_ELIM', raceLength: 7,
+}
 async function make(cfg: Partial<CreateTournamentConfig>, name: string) {
   return createTournament(actor, { ...base, ...cfg, name })
 }
@@ -82,6 +92,9 @@ console.log('\n--- flair (validated + sanitized) ---')
 
 console.log('\n--- validation guards (all must be refused) ---')
 check('rejects: empty name', !(await createTournament(actor, { ...base, name: '   ' })).ok)
+// The Competition is required and checked against the canonical table, not merely type-checked.
+check('rejects: no Competition', !(await createTournament(actor, { ...base, competitionSeriesId: '' as unknown as number, name: 'VC No Comp' })).ok)
+check('rejects: unknown Competition', !(await createTournament(actor, { ...base, competitionSeriesId: 999_999_999, name: 'VC Bad Comp' })).ok)
 const bad: [string, Partial<CreateTournamentConfig>][] = [
   ['race length 0', { raceLength: 0 }],
   ['team size 1', { participantFormat: 'TEAM', teamSize: 1 }],

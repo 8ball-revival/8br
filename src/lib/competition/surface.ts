@@ -128,7 +128,7 @@ function tournamentCard(t: TournamentRow, participants: number): CompetitionCard
     id: t.id,
     // The title leads. The sequence number is internal and stays out of the name.
     title: t.name,
-    competition: 'Cup',
+    competition: 'Tournament',
     competitionSeriesId: null,
     year: t.competitionYear,
     number: null,

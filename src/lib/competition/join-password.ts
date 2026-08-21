@@ -25,7 +25,7 @@ export function verifyJoinPassword(plain: string, stored: string | null | undefi
  */
 export function joinPasswordError(accessMode: string | null | undefined, joinPasswordHash: string | null | undefined, password: string | null | undefined): string | null {
   if (accessMode !== 'PASSWORD') return null
-  return verifyJoinPassword((password ?? '').trim(), joinPasswordHash) ? null : 'Incorrect join password for this private Cup.'
+  return verifyJoinPassword((password ?? '').trim(), joinPasswordHash) ? null : 'Incorrect join password for this private Tournament.'
 }
 
 /** DB-backed gate: loads the tournament's access mode and validates the supplied password. Returns an

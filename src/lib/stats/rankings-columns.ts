@@ -70,7 +70,7 @@ export const COLUMNS: ColumnDef[] = [
   },
   {
     key: 'player', label: 'Player', group: 'identity', align: 'left', locked: true,
-    tooltip: 'Preferred name over CueVerse ID. Both belong to one canonical player account, so changing a CueVerse ID updates every season, Cup and match that player appears in.',
+    tooltip: 'Preferred name over CueVerse ID. Both belong to one canonical player account, so changing a CueVerse ID updates every season, Tournament and match that player appears in.',
     value: (r) => r.preferredName || r.cueverseId || '',
   },
   {
@@ -80,7 +80,7 @@ export const COLUMNS: ColumnDef[] = [
   },
   {
     key: 'record', label: 'Overall Record', short: 'W–L–D', group: 'match', align: 'right',
-    tooltip: 'W–L–D — every eligible match from completed, archived Seasons and Cups: wins, losses and draws. A draw is possible in group play and never in a knockout. Sorts by wins.',
+    tooltip: 'W–L–D — every eligible match from completed, archived Seasons and Tournaments: wins, losses and draws. A draw is possible in group play and never in a knockout. Sorts by wins.',
     value: (r) => r.wins,
     format: (r) => record3(r.wins, r.losses, r.draws),
   },
@@ -117,11 +117,11 @@ export const COLUMNS: ColumnDef[] = [
     format: (r) => record2(r.playoffWins, r.playoffLosses),
   },
   {
-    key: 'cupRecord', label: 'Cup Record', short: 'Cup W–L', group: 'match', align: 'right',
-    tooltip: 'Eligible matches from completed, archived Cups only. Draws are counted where a Cup format genuinely allows one and are shown as a third number when any exist. Sorts by wins.',
+    key: 'cupRecord', label: 'Tournament Record', short: 'Tournament W–L', group: 'match', align: 'right',
+    tooltip: 'Eligible matches from completed, archived Tournaments only. Draws are counted where a Tournament format genuinely allows one and are shown as a third number when any exist. Sorts by wins.',
     value: (r) => r.tournamentWins,
-    // A Cup draw is possible in a group or round-robin format. The third number appears only when
-    // there IS one, rather than printing a permanent "–0" that says nothing about most Cups.
+    // A Tournament draw is possible in a group or round-robin format. The third number appears only
+    // when there IS one, rather than a permanent "–0" that says nothing about most Tournaments.
     format: (r) => (r.tournamentDraws > 0
       ? record3(r.tournamentWins, r.tournamentLosses, r.tournamentDraws)
       : record2(r.tournamentWins, r.tournamentLosses)),
@@ -133,8 +133,8 @@ export const COLUMNS: ColumnDef[] = [
     format: (r) => dash(r.seasonTitles),
   },
   {
-    key: 'tournamentTitles', label: 'Cup Titles', short: 'Cup Titles', group: 'titles', align: 'right',
-    tooltip: 'Cup Titles — Cups this player won, from the titleholder recorded on each completed, archived Cup. Click a count to see which ones.',
+    key: 'tournamentTitles', label: 'Tournament Titles', short: 'Tournament Titles', group: 'titles', align: 'right',
+    tooltip: 'Tournament Titles — Tournaments this player won, from the titleholder recorded on each completed, archived Tournament. Click a count to see which ones.',
     value: (r) => r.tournamentTitles,
     format: (r) => dash(r.tournamentTitles),
   },
@@ -200,7 +200,7 @@ export const COLUMNS: ColumnDef[] = [
   {
     key: 'groupPoints', label: 'Group Points', short: 'Pts', group: 'group', align: 'right',
     views: ['overall', 'group'],
-    tooltip: 'Group Points — the sum of the standings points this player was awarded across every group stage they entered, read from the stored standings rather than recalculated. Group scoring is 3 points for a win, 1 for a draw, 0 for a loss. Hidden in the Playoffs and Cups views, where no standings points exist.',
+    tooltip: 'Group Points — the sum of the standings points this player was awarded across every group stage they entered, read from the stored standings rather than recalculated. Group scoring is 3 points for a win, 1 for a draw, 0 for a loss. Hidden in the Playoffs and Tournaments views, where no standings points exist.',
     value: (r) => r.groupPoints,
     format: (r) => (r.groupPoints == null ? '—' : String(r.groupPoints)),
   },
@@ -234,7 +234,7 @@ export const COLUMNS: ColumnDef[] = [
   },
   {
     key: 'competitionsEntered', label: 'Competitions', short: 'Comps', group: 'activity', align: 'right',
-    tooltip: 'Distinct Seasons and Cups with at least one recorded match in scope.',
+    tooltip: 'Distinct Seasons and Tournaments with at least one recorded match in scope.',
     value: (r) => r.competitionsEntered,
   },
   {
@@ -354,7 +354,7 @@ export function sortRows(
 export interface RowFilters {
   search: string
   minMatches: number
-  /** Season Championships and Cup Titles are separate questions, so they are separate filters. */
+  /** Season Championships and Tournament Titles are separate questions, so they are separate filters. */
   seasonChampionsOnly: boolean
   cupChampionsOnly: boolean
   /** 'all' | 'singles' | 'teams' */
@@ -456,7 +456,7 @@ export type EventType = 'all' | 'seasons' | 'cups'
  *
  * Scope and record view are gone: the page is permanently the official ALL-TIME OVERALL rankings,
  * which is the question people actually arrive with. The old Current/All-Time and
- * Overall/Group/Playoffs/Cups switches produced four ways to answer a question nobody was asking
+ * Overall/Group/Playoffs/Tournaments switches produced four ways to answer a question nobody was asking
  * and pushed the table itself below the fold.
  *
  * Columns are an explicit visible set rather than a density preset. A preset is a promise that some
@@ -760,10 +760,10 @@ export function activeChips(
     chips.push({ key: 'comp', label: `Competition: ${names.competition ?? s.competitionSeriesId}` })
   }
   if (s.eventType !== d.eventType) {
-    chips.push({ key: 'event', label: `Event: ${s.eventType === 'seasons' ? 'Seasons' : 'Cups'}` })
+    chips.push({ key: 'event', label: `Event: ${s.eventType === 'seasons' ? 'Seasons' : 'Tournaments'}` })
   }
   if (s.seasonId != null) chips.push({ key: 'season', label: `Season: ${names.season ?? s.seasonId}` })
-  if (s.tournamentId != null) chips.push({ key: 'cup', label: `Cup: ${names.cup ?? s.tournamentId}` })
+  if (s.tournamentId != null) chips.push({ key: 'cup', label: `Tournament: ${names.cup ?? s.tournamentId}` })
   if (s.division) {
     chips.push({ key: 'division', label: `Division: ${s.division === UNASSIGNED_DIVISION ? 'Unassigned' : s.division}` })
   }
@@ -772,7 +772,7 @@ export function activeChips(
     chips.push({ key: 'type', label: s.rowFilters.entrantType === 'singles' ? 'Singles' : 'Teams' })
   }
   if (s.rowFilters.seasonChampionsOnly) chips.push({ key: 'sc', label: 'Season Champions' })
-  if (s.rowFilters.cupChampionsOnly) chips.push({ key: 'tc', label: 'Cup Titleholders' })
+  if (s.rowFilters.cupChampionsOnly) chips.push({ key: 'tc', label: 'Tournament Titleholders' })
   if (s.rowFilters.minMatches > 0) {
     chips.push({ key: 'min', label: `Minimum Matches: ${s.rowFilters.minMatches}` })
   }
@@ -795,7 +795,7 @@ export function removeChip(s: RankingsState, key: string, now: Date = new Date()
   const next: RankingsState = { ...s, rowFilters: { ...s.rowFilters } }
   switch (key) {
     case 'years': next.fromYear = d.fromYear; next.toYear = d.toYear; break
-    // A Season or Cup belongs to a Competition, so dropping the Competition drops them too rather
+    // A Season or Tournament belongs to a Competition, so dropping the Competition drops them too rather
     // than leaving a selection that its own filter no longer permits.
     case 'comp': next.competitionSeriesId = null; next.seasonId = null; next.tournamentId = null; break
     case 'event': next.eventType = 'all'; next.seasonId = null; next.tournamentId = null; break

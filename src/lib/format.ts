@@ -32,7 +32,7 @@ export function formatPct(value?: number): string {
 /** "2005-s1" → "2005 · Tournament 1"; falls back to the raw id if it doesn't match. */
 export function formatArchiveSeason(tournamentId: string): string {
   const m = /^(\d{4})-s(\d+)$/.exec(tournamentId)
-  return m ? `${m[1]} · Cup ${m[2]}` : tournamentId
+  return m ? `${m[1]} · Tournament ${m[2]}` : tournamentId
 }
 
 /** Divisions in the archive are e.g. "single", "A", "B". Present them tidily. */

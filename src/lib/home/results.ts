@@ -125,7 +125,7 @@ export async function computeRecentResults(limit = 3): Promise<RecentResult[]> {
       out.push({
         key: r.match_key,
         competitionName: t.name,
-        competitionType: 'Cup',
+        competitionType: 'Tournament',
         stageLabel: r.stage === 'playoff' ? r.round_label ?? 'Playoffs' : 'Group stage',
         href: t.number != null ? `/cups/${t.number}` : '/cups',
         iconMediaId: null,

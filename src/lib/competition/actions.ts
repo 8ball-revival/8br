@@ -45,15 +45,15 @@ export async function createSeasonAction(_prev: ActionResult, fd: FormData): Pro
   const actor = await requireCapability('manage_competitions')
   const slug = str(fd, 'slug').toLowerCase().replace(/[^a-z0-9-]/g, '-')
   const name = str(fd, 'name')
-  if (!slug || !name) return { error: 'Provide a Cup name and slug.' }
+  if (!slug || !name) return { error: 'Provide a Tournament name and slug.' }
   try {
     await svc.createSeason(actor, { slug, name })
     revalidateAll()
-    return { ok: true, message: 'Cup created.' }
+    return { ok: true, message: 'Tournament created.' }
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
-    if (/unique|exists/i.test(msg)) return { error: 'A Cup with that slug already exists.' }
-    return { error: 'Could not create the Cup.' }
+    if (/unique|exists/i.test(msg)) return { error: 'A Tournament with that slug already exists.' }
+    return { error: 'Could not create the Tournament.' }
   }
 }
 
@@ -79,7 +79,7 @@ export async function updateSeasonAction(_prev: ActionResult, fd: FormData): Pro
       str(fd, 'reason') || undefined,
     )
     revalidateAll()
-    return { ok: true, message: 'Cup updated. Public pages refreshed.' }
+    return { ok: true, message: 'Tournament updated. Public pages refreshed.' }
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Update failed.' }
   }

@@ -76,8 +76,8 @@ function defaultRounds(n: number): number {
 
 export async function startSwiss(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!t) return { ok: false, error: 'Cup not found.' }
-  if (t.tournamentFormat !== 'SWISS') return { ok: false, error: 'This is not a Swiss Cup.' }
+  if (!t) return { ok: false, error: 'Tournament not found.' }
+  if (t.tournamentFormat !== 'SWISS') return { ok: false, error: 'This is not a Swiss Tournament.' }
   if (getTournamentState(t) !== 'REGISTRATION_CLOSED') return { ok: false, error: 'Close registration before starting the Swiss rounds.' }
 
   const existing = await prisma.swissMatch.count({ where: { tournamentId } })
@@ -109,7 +109,7 @@ export async function startSwiss(actor: Actor, tournamentId: number): Promise<{ 
       })
     }
     await tx.tournament.update({ where: { id: tournamentId }, data: { swissRounds: totalRounds } })
-    await recordAudit(actor, { action: 'swiss.start', entity: 'Cup', entityId: tournamentId, newValue: { rounds: totalRounds, players: entrants.length } }, tx)
+    await recordAudit(actor, { action: 'swiss.start', entity: 'Tournament', entityId: tournamentId, newValue: { rounds: totalRounds, players: entrants.length } }, tx)
   })
 
   const tr = await transitionTournamentState(actor, tournamentId, 'IN_PROGRESS')
@@ -247,7 +247,7 @@ export async function getSwissState(tournamentId: number): Promise<SwissState> {
 
 export async function pairNextRound(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string; round?: number }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { swissRounds: true, tournamentFormat: true } })
-  if (!t || t.tournamentFormat !== 'SWISS') return { ok: false, error: 'This is not a Swiss Cup.' }
+  if (!t || t.tournamentFormat !== 'SWISS') return { ok: false, error: 'This is not a Swiss Tournament.' }
   await assertCompetitionUnlocked(prisma, tournamentId)
   const totalRounds = t.swissRounds ?? 0
   const all = await prisma.swissMatch.findMany({ where: { tournamentId } })
@@ -306,7 +306,7 @@ export async function pairNextRound(actor: Actor, tournamentId: number): Promise
     if (byeReg != null) {
       await tx.swissMatch.create({ data: { tournamentId, round: nextRound, boardOrder: board++, homeRegistrationId: byeReg, awayRegistrationId: null, homeName: nameOf.get(byeReg) ?? null, isBye: true, winnerRegistrationId: byeReg, reportedAt: new Date() } })
     }
-    await recordAudit(actor, { action: 'swiss.pairRound', entity: 'Cup', entityId: tournamentId, newValue: { round: nextRound, pairings: pairs.length, bye: byeReg != null } }, tx)
+    await recordAudit(actor, { action: 'swiss.pairRound', entity: 'Tournament', entityId: tournamentId, newValue: { round: nextRound, pairings: pairs.length, bye: byeReg != null } }, tx)
   })
   return { ok: true, round: nextRound }
 }
@@ -315,7 +315,7 @@ export async function pairNextRound(actor: Actor, tournamentId: number): Promise
 
 export async function completeSwiss(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { swissRounds: true, tournamentFormat: true } })
-  if (!t || t.tournamentFormat !== 'SWISS') return { ok: false, error: 'This is not a Swiss Cup.' }
+  if (!t || t.tournamentFormat !== 'SWISS') return { ok: false, error: 'This is not a Swiss Tournament.' }
   const totalRounds = t.swissRounds ?? 0
   const all = await prisma.swissMatch.findMany({ where: { tournamentId } })
   const currentRound = all.reduce((m, x) => Math.max(m, x.round), 0)

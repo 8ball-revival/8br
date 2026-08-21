@@ -78,10 +78,15 @@ section('Championship headers carry text only; the rows carry the icons')
 {
   check('the Season Championships header has no icon',
     !/[\u{1F300}-\u{1FAFF}]/u.test(COLUMN_BY_KEY.seasonTitles?.short ?? ''))
-  check('the Cup Titles header has no icon',
+  check('the Tournament Titles header has no icon',
     !/[\u{1F300}-\u{1FAFF}]/u.test(COLUMN_BY_KEY.tournamentTitles?.short ?? ''))
   check('the Season header reads Season Championships', COLUMN_BY_KEY.seasonTitles?.short === 'Season Championships')
-  check('the Cup header reads Cup Titles', COLUMN_BY_KEY.tournamentTitles?.short === 'Cup Titles')
+  check('the Tournament header reads Tournament Titles', COLUMN_BY_KEY.tournamentTitles?.short === 'Tournament Titles')
+  // Both title columns carry the full phrase in `short`, so the two headers stack the same way
+  // rather than one abbreviating beside the other.
+  check('...stacked the same way as Season Championships',
+    COLUMN_BY_KEY.tournamentTitles?.short === COLUMN_BY_KEY.tournamentTitles?.label &&
+    COLUMN_BY_KEY.seasonTitles?.short === COLUMN_BY_KEY.seasonTitles?.label)
 
   const table = readFileSync('src/components/rankings/rankings-table.tsx', 'utf8')
   check('a zero total renders a plain dash with no icon',
@@ -89,7 +94,7 @@ section('Championship headers carry text only; the rows carry the icons')
   check('a Season total wears the crown', /kind === 'season' \? Crown : Trophy/.test(table))
   check('the old diamond is gone', !/\bGem\b/.test(table))
   check('the count is announced with its kind',
-    table.includes("const what = kind === 'season' ? 'Season Championship' : 'Cup Title'"))
+    table.includes("const what = kind === 'season' ? 'Season Championship' : 'Tournament Title'"))
   check('...and pluralised correctly', table.includes("${n === 1 ? '' : 's'}"))
 }
 

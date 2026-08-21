@@ -25,7 +25,7 @@ export function CompetitionOversightView({ rows }: { rows: CompRow[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-card/40 p-3">
-        <select value={type} onChange={(e) => setType(e.target.value)} className={sel} aria-label="Type"><option value="">All types</option><option>Season</option><option>Cup</option></select>
+        <select value={type} onChange={(e) => setType(e.target.value)} className={sel} aria-label="Type"><option value="">All types</option><option>Season</option><option>Tournament</option></select>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className={sel} aria-label="Status"><option value="">All statuses</option>{statuses.map((s) => <option key={s}>{s}</option>)}</select>
         <select value={format} onChange={(e) => setFormat(e.target.value)} className={sel} aria-label="Format"><option value="">All formats</option>{formats.map((f) => <option key={f}>{f}</option>)}</select>
         <select value={year} onChange={(e) => setYear(e.target.value)} className={sel} aria-label="Year"><option value="">All years</option>{years.map((y) => <option key={y}>{y}</option>)}</select>

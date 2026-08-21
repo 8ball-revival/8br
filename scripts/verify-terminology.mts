@@ -1,17 +1,20 @@
 /**
- * Public terminology: nothing a visitor reads says "Tournament".
+ * Public terminology: nothing a visitor reads says "Cup".
  *
- * The product type is called a Cup. The rename moved navigation, routes and the obvious copy, but
- * "obvious copy" is not a category a compiler knows about, so this sweeps every source file for
- * strings that reach a reader and fails on any that still say Tournament.
+ * The product type is called a Tournament, as it is on the live site. This guard used to enforce
+ * the opposite — the Cup rename was never deployed — and its polarity is simply reversed rather
+ * than deleted, because the sweep itself is the valuable part: "obvious copy" is not a category a
+ * compiler knows about, so this reads every source file and fails on any string that reaches a
+ * reader and still says Cup.
  *
  * ── Why an allowlist rather than a clever regex ──────────────────────────────────────────────────
- * Plenty of legitimate occurrences remain: the Prisma model, its table, its enums, the services and
- * types built on them, and the `'tournament'` discriminant that several unions turn on. Renaming
- * those is a schema migration that would change no word anybody reads.
+ * Plenty of legitimate occurrences remain: the `'cup'` discriminant several unions turn on, the
+ * `cups` prop the list component has always taken, `cupNumber`/`cupRecord` keys that URLs and saved
+ * views depend on, and the generated-cups.json fixture filename. Renaming those breaks bookmarks
+ * and migrations while changing no word anybody reads.
  *
- * The tempting shortcut is one broad exclusion — skip anything matching /tournament[A-Z]/, say —
- * which silently swallows real failures the day somebody writes `tournamentLabel = 'Tournament'`.
+ * The tempting shortcut is one broad exclusion — skip anything matching /cup[A-Z]/, say — which
+ * silently swallows real failures the day somebody writes `cupLabel = 'Cup'`.
  * So exclusions are enumerated instead: each is a specific pattern with a stated reason, and
  * anything not matching one of them is a failure. The list is auditable; a regex is not.
  *
@@ -32,11 +35,8 @@ const section = (s: string) => console.log(`\n${s}`)
  */
 const EXEMPT_FILES: { path: string; why: string }[] = [
   { path: 'prisma/schema.prisma', why: 'the model, its table and its enums — a rename here is a migration' },
-  { path: 'src/lib/competition/tournament-create.ts', why: 'creation service for the Tournament model' },
-  { path: 'src/lib/competition/tournament-lifecycle.ts', why: 'lifecycle service for the Tournament model' },
-  { path: 'src/lib/competition/tournament-sync.ts', why: 'sync service for the Tournament model' },
-  { path: 'src/lib/competition/tournament-actions.ts', why: 'server actions over the Tournament model' },
-  { path: 'src/lib/tournaments', why: 'the Tournament data layer in full' },
+  { path: 'src/lib/tournaments/data', why: 'generated-cups.json and the fixtures read from it, keyed by filename' },
+  { path: 'src/lib/creator/setup.ts', why: "the 'cup' record-type discriminant the Creator flow branches on" },
   { path: 'src/lib/verification/fixture-actors.ts', why: 'names of historical verify fixtures' },
 ]
 
@@ -54,7 +54,7 @@ const EXEMPT_FILES: { path: string; why: string }[] = [
  */
 const STRINGS = /'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|`((?:\\.|[^`\\])*)`/g
 const JSX_TEXT = />([^<>{}]*)</g
-const WORD = /(?<![A-Za-z0-9_])[Tt]ournaments?(?![A-Za-z0-9_])/
+const WORD = /(?<![A-Za-z0-9_])[Cc]ups?(?![A-Za-z0-9_])/
 
 /** Bodies that are internal even though they sit inside quotes, each with the reason. */
 const EXEMPT_PATTERNS: { re: RegExp; why: string }[] = [
@@ -64,15 +64,14 @@ const EXEMPT_PATTERNS: { re: RegExp; why: string }[] = [
 
 /** String and JSX bodies that name something rather than describe it. */
 const EXEMPT_BODIES: { re: RegExp; why: string }[] = [
-  { re: /^\/?tournaments?\/?$/, why: 'an internal key or the legacy route, which the redirects already cover' },
+  { re: /^\/?cups?\/?$/, why: 'the legacy route, which the permanent redirects cover' },
   { re: /^[@./]|^https?:/, why: 'a module specifier or a URL path' },
-  { re: /ego-tournament-1/, why: 'the slug of a real historical record — renaming it would break its URL' },
-  { re: /comp_tournament|tournament_(group|playoff|titles|name|started|completed|cancelled)/,
-    why: 'a physical table or column name in raw SQL' },
-  { re: /^tournament$|^tournaments$/, why: 'a discriminant or a filter value' },
-  { re: /^tournaments?:\s*$/, why: 'half of a composite row key built by string concatenation' },
-  { re: /^tournament\.[a-z]/, why: 'an audit ACTION key — a stable machine identifier that historical rows already carry' },
-  { re: /^tournaments?[-_][a-z]/, why: 'a URL or state key — renaming it would break existing bookmarks' },
+  { re: /^cup$|^cups$/, why: 'a discriminant or a filter value the UI switches on' },
+  { re: /^cup[A-Z]/, why: 'a state or column key — cupRecord, cupChampionsOnly — that saved views carry' },
+  { re: /generated-cups/, why: 'the fixture filename on disk' },
+  { re: /^cups?[-_][a-z]/, why: 'a URL or state key — renaming it would break existing bookmarks' },
+  { re: /^cup-$/, why: 'the export-filename fragment saved CSV links already carry' },
+  { re: /^\[cups\]/, why: 'a server log prefix — read in a terminal, never by a visitor' },
 ]
 
 /** Where visible copy can live. Scripts and verification harnesses are not shipped to anybody. */
@@ -116,7 +115,7 @@ section('Documented allowlist')
   console.log(`  ${EXEMPT_FILES.length} exempt files, ${EXEMPT_PATTERNS.length} line exemptions, ${EXEMPT_BODIES.length} string exemptions — each with a stated reason`)
 }
 
-section('No visible Tournament labels remain')
+section('No visible Cup labels remain')
 {
   const offenders: string[] = []
   let scanned = 0
@@ -141,22 +140,27 @@ section('No visible Tournament labels remain')
     console.log('  Remaining occurrences that are not covered by the allowlist:')
     for (const o of offenders) console.log('    ' + o)
   }
-  check('no unexplained Tournament text in shipped source', offenders.length === 0, String(offenders.length))
+  check('no unexplained Cup text in shipped source', offenders.length === 0, String(offenders.length))
 }
 
-section('The Cup vocabulary is the one in use')
+section('The Tournament vocabulary is the one in use')
 {
   const nav = readFileSync('src/lib/nav.ts', 'utf8')
-  // Cups is a top-level tab now rather than an option inside the Live and Archives dropdowns.
-  check('navigation offers Cups as a top-level tab', nav.includes("label: 'Cups', href: '/cups'"))
+  check('navigation offers Tournaments as a top-level tab', nav.includes("label: 'Tournaments', href: '/tournaments'"))
   check('...beside Seasons', nav.includes("label: 'Seasons', href: '/seasons'"))
-  check('...and nothing is called Tournaments', !/label: 'Tournaments'/.test(nav))
+  check('...and nothing is called Cups', !/label: 'Cups'/.test(nav))
 
   const cols = readFileSync('src/lib/stats/rankings-columns.ts', 'utf8')
-  check('the Rankings column is Cup Titles', cols.includes('Cup Titles'))
-  check('...and no column says Tournament Championships', !cols.includes('Tournament Championships'))
+  check('the Rankings record column is Tournament W–L', cols.includes("short: 'Tournament W–L'"))
+  check('the Rankings titles column is Tournament Titles', cols.includes("label: 'Tournament Titles'"))
+  // Stacked the same way Season Championships is: the full phrase in `short` too, so the header
+  // wraps onto two lines instead of abbreviating to something narrower beside it.
+  check('...stacked like Season Championships', cols.includes("short: 'Tournament Titles'"))
+  check('...and Season Championships still is', cols.includes("short: 'Season Championships'"))
+  check('nothing still says Cup Titles', !cols.includes('Cup Titles'))
+  check('nothing still says Cup W–L', !cols.includes('Cup W–L'))
 
-  // "Cup Winner" was rejected as a primary title — a Cup has a titleholder.
+  // "Tournament Winner" is not the title — a Tournament has a titleholder.
   const all = ROOTS.flatMap((r) => walk(r))
     .filter((f) => !exemptFile(f))
     .map((f) => readFileSync(f, 'utf8'))
@@ -167,17 +171,16 @@ section('The Cup vocabulary is the one in use')
 section('Legacy routes still resolve')
 {
   const redirects = [
-    ['src/app/(frontend)/tournaments/route.ts', '/cups'],
-    ['src/app/(frontend)/tournaments/[number]/route.ts', '/cups/'],
-    // The Live and Archives sections were folded into /seasons and /cups. Their URLs are in the
-    // wild — in bookmarks, in shared links — so every one of them still resolves.
-    ['src/app/(frontend)/live/tournaments/route.ts', '/cups'],
-    ['src/app/(frontend)/archives/tournaments/route.ts', '/cups'],
+    // The Live and Archives sections were folded into /seasons and /tournaments. Their URLs are in
+    // the wild — in bookmarks, in shared links — so every one of them still resolves.
+    ['src/app/(frontend)/live/tournaments/route.ts', '/tournaments'],
+    ['src/app/(frontend)/archives/tournaments/route.ts', '/tournaments'],
     ['src/app/(frontend)/live/seasons/route.ts', '/seasons'],
-    ['src/app/(frontend)/live/cups/route.ts', '/cups'],
+    ['src/app/(frontend)/live/cups/route.ts', '/tournaments'],
     ['src/app/(frontend)/archives/seasons/route.ts', '/seasons'],
-    ['src/app/(frontend)/archives/cups/route.ts', '/cups'],
-    ['src/app/(frontend)/creator/tournaments/[id]/route.ts', '/creator/cups/'],
+    ['src/app/(frontend)/archives/cups/route.ts', '/tournaments'],
+    // Creator's Tournament URLs land in the Tournaments section, translating the internal id.
+    ['src/app/(frontend)/creator/tournaments/[id]/route.ts', '/tournaments'],
   ]
   for (const [file, target] of redirects) {
     let src = ''
@@ -186,11 +189,22 @@ section('Legacy routes still resolve')
     check(`${file} is permanent or a redirect`, /redirect|308|permanent/i.test(src))
   }
 
-  // A redirect that drops the query string breaks every shared filtered link.
-  const index = readFileSync('src/app/(frontend)/tournaments/route.ts', 'utf8')
-  check('the legacy index preserves query parameters', /search|query/i.test(index))
-  const detail = readFileSync('src/app/(frontend)/tournaments/[number]/route.ts', 'utf8')
-  check('the legacy detail route preserves the record id', detail.includes('number'))
+  /*
+   * The /cups mapping lives in next.config, and nowhere else.
+   *
+   * It was once duplicated by route handlers under /tournaments pointing the other way; the two
+   * aimed at each other and every public URL bounced until the browser gave up. Both halves are
+   * pinned here: the config entries exist, and no route file competes with them.
+   */
+  const cfg = readFileSync('next.config.ts', 'utf8')
+  check('/cups redirects to /tournaments', /source: '\/cups',\s*destination: '\/tournaments'/.test(cfg))
+  check('...and every path beneath it', /source: '\/cups\/:path\*',\s*destination: '\/tournaments\/:path\*'/.test(cfg))
+  check('...permanently', /permanent: true/.test(cfg))
+  for (const gone of ['src/app/(frontend)/tournaments/route.ts', 'src/app/(frontend)/tournaments/[number]/route.ts']) {
+    let exists = true
+    try { readFileSync(gone, 'utf8') } catch { exists = false }
+    check(`no handler at ${gone} to loop against the config`, !exists)
+  }
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

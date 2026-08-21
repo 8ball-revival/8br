@@ -125,7 +125,7 @@ export const HomepageHero: GlobalConfig = {
               admin: {
                 width: '50%',
                 description:
-                  'Second button destination — a site path like /cups, or https://…',
+                  'Second button destination — a site path like /tournaments, or https://…',
               },
             },
           ],

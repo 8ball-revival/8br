@@ -171,7 +171,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
                     <td className="whitespace-nowrap border-b border-border/60 px-3 py-2">
                       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Icon className="size-3.5" aria-hidden />
-                        {r.kind === 'season' ? 'Season' : 'Cup'}
+                        {r.kind === 'season' ? 'Season' : 'Tournament'}
                       </span>
                     </td>
                     <td className="whitespace-nowrap border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">
@@ -228,7 +228,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
                       <Link
                         href={r.publicHref}
                         className="inline-flex items-center gap-1 rounded px-1 text-xs text-muted-foreground hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-                        aria-label={`View the public ${r.kind === 'season' ? 'Season' : 'Cup'} page for ${r.title}`}
+                        aria-label={`View the public ${r.kind === 'season' ? 'Season' : 'Tournament'} page for ${r.title}`}
                       >
                         <ExternalLink className="size-3" aria-hidden />
                         <span className="hidden sm:inline">{r.kind === 'season' ? 'View Season' : 'View Tournament'}</span>

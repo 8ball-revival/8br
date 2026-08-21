@@ -43,10 +43,10 @@ section('The bar reads Home · Seasons · Cups · Creator? · Rankings · News �
   const staff = buildNav({ canCreate: true, adminItems: [{ label: 'Admin', href: '/staff' }] })
   const labels = (n: { label: string }[]) => n.map((e) => e.label).join(' · ')
 
-  check('a visitor sees Home · Seasons · Cups · Rankings · The Break',
-    labels(pub) === 'Home · Seasons · Cups · Rankings · The Break', labels(pub))
+  check('a visitor sees Home · Seasons · Tournaments · Rankings · The Break',
+    labels(pub) === 'Home · Seasons · Tournaments · Rankings · The Break', labels(pub))
   check('staff additionally see Creator and Admin, in place',
-    labels(staff) === 'Home · Seasons · Cups · Creator · Rankings · The Break · Admin', labels(staff))
+    labels(staff) === 'Home · Seasons · Tournaments · Creator · Rankings · The Break · Admin', labels(staff))
 
   // The two administrative entries are the only conditional ones. Everything else is for everybody.
   const conditional = staff.filter((e) => !pub.some((p) => p.href === e.href)).map((e) => e.label)
@@ -54,7 +54,7 @@ section('The bar reads Home · Seasons · Cups · Creator? · Rankings · News �
     conditional.join(',') === 'Creator,Admin', conditional.join(','))
 
   check('the footer list agrees with the bar',
-    PRIMARY_NAV.some((e) => e.href === '/seasons') && PRIMARY_NAV.some((e) => e.href === '/cups')
+    PRIMARY_NAV.some((e) => e.href === '/seasons') && PRIMARY_NAV.some((e) => e.href === '/tournaments')
     && !PRIMARY_NAV.some((e) => e.href.startsWith('/archives')), JSON.stringify(PRIMARY_NAV))
 }
 
@@ -82,12 +82,11 @@ section('Every retired URL still resolves, with its query string')
 {
   const redirects: [string, string][] = [
     ['src/app/(frontend)/live/seasons/route.ts', '/seasons'],
-    ['src/app/(frontend)/live/cups/route.ts', '/cups'],
-    ['src/app/(frontend)/live/tournaments/route.ts', '/cups'],
+    ['src/app/(frontend)/live/cups/route.ts', '/tournaments'],
+    ['src/app/(frontend)/live/tournaments/route.ts', '/tournaments'],
     ['src/app/(frontend)/archives/seasons/route.ts', '/seasons'],
-    ['src/app/(frontend)/archives/cups/route.ts', '/cups'],
-    ['src/app/(frontend)/archives/tournaments/route.ts', '/cups'],
-    ['src/app/(frontend)/tournaments/route.ts', '/cups'],
+    ['src/app/(frontend)/archives/cups/route.ts', '/tournaments'],
+    ['src/app/(frontend)/archives/tournaments/route.ts', '/tournaments'],
   ]
   for (const [file, target] of redirects) {
     if (!existsSync(file)) { check(`${file} exists`, false, 'missing'); continue }
@@ -104,9 +103,9 @@ section('Every retired URL still resolves, with its query string')
   /*
    * A target that bounces BACK is the failure mode that matters.
    *
-   * /cups → /tournaments in next.config.ts once did exactly that against the /tournaments → /cups
-   * route handler, and every public Cup URL was unreachable until the browser gave up. So: the
-   * target must exist, and must not send the reader back where they came from.
+   * /cups → /tournaments in next.config.ts once existed alongside a /tournaments → /cups route
+   * handler; the two aimed at each other and every public URL was unreachable until the browser
+   * gave up. So: the target must exist, and must not send the reader back where they came from.
    *
    * /seasons legitimately redirects ONWARD, into the most recent Season. That is a destination.
    */
@@ -122,10 +121,17 @@ section('Every retired URL still resolves, with its query string')
     check(`${target} does not redirect back to a retired URL`, !bouncesBack, page)
   }
 
-  // The config-level redirects must never re-enter the Cups/Tournaments mapping the routes own.
+  /*
+   * next.config now OWNS the /cups mapping, and must be the only thing that does.
+   *
+   * Both halves are pinned: the config declares it, and no route handler under /tournaments points
+   * back — which is precisely the pair that used to deadlock.
+   */
   const config = read('next.config.ts')
-  check('next.config.ts holds no Cups redirect to fight the route handlers',
-    !/source:\s*'\/cups/.test(config), 'a /cups redirect is back in next.config.ts')
+  check('next.config.ts maps /cups onto /tournaments', /source:\s*'\/cups'/.test(config))
+  check('...and every path beneath it', /source:\s*'\/cups\/:path\*'/.test(config))
+  check('no /tournaments route handler fights it', !existsSync('src/app/(frontend)/tournaments/route.ts'))
+  check('...at any depth', !existsSync('src/app/(frontend)/tournaments/[number]/route.ts'))
 }
 
 // ─────────────────────────────────────────────────────────────────── nothing points at the old ones
@@ -152,28 +158,40 @@ section('Nothing in the shipped source links into the retired sections')
     browser.includes('router.push(`/${kind}'), 'archive-browser still pushes to /archives')
 }
 
-// ─────────────────────────────────────────────────────────────────── the pages are public
-section('Cups is a read-only public listing')
+// ─────────────────────────────────────────────────────────── the listing, and its one admin door
+section('Tournaments is a public listing with a single administrative entry')
 {
-  const src = read('src/app/(frontend)/cups/page.tsx')
+  const src = read('src/app/(frontend)/tournaments/page.tsx')
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 
-  check('Cups leads with what is running', /getLiveTournaments/.test(code))
-  check('...follows with what is finished', /getArchivedTournaments/.test(code))
-  check('...marks the running ones', code.includes('live />'))
-  check('...reuses the existing browser rather than a new one', code.includes('ArchiveBrowser'))
-  check('...is never cached, so a Cup that completes leaves immediately',
+  check('Tournaments lists every Tournament, running and finished', /getTournamentList/.test(code))
+  check('...through the searchable list rather than a new component', code.includes('TournamentList'))
+  check('...is never cached, so one that completes moves out of Active immediately',
     code.includes("dynamic = 'force-dynamic'") && code.includes('revalidate = 0'))
-  check('...offers no management control',
-    !/\/creator|Reopen|Delete|New Cup/.test(code), 'management control on a public page')
-  check('...and does not resolve staff access',
-    !/resolveStaffAccess|requireCapability|canSeeCreator/.test(code))
+
+  /*
+   * This page DOES resolve staff access, unlike the read-only listing it replaced.
+   *
+   * That is the restored behaviour and the point of it: creating a Tournament starts here rather
+   * than in Creator. What matters is that the control is gated on the capability that governs the
+   * action — not on "is staff", which an editor also satisfies — and that the route behind it
+   * re-checks rather than trusting a hidden button.
+   */
+  check('the Create control is drawn from the competition-management capability',
+    code.includes("can('manage_competitions')"))
+  check('...and not from a broad staff test', !/isStaff\(/.test(code))
+  check('...pointing into the Tournaments section', code.includes('/tournaments/new'))
+
+  const create = read('src/app/(frontend)/tournaments/new/page.tsx')
+  check('the creation route enforces the same capability itself',
+    create.includes("can('manage_competitions')"))
+  check('...and sends anyone else back to the listing', create.includes("redirect('/tournaments')"))
 }
 
 /*
  * Seasons is different on purpose.
  *
- * Cups needs a listing because there is nothing else to show. Seasons has the Season browser — with
+ * Tournaments needs a listing because there is nothing else to show. Seasons has the Season browser — with
  * Competition, Year and Season pickers and the standings on screen — so the tab opens the most
  * recent Season directly rather than a page of summaries to click through.
  */
@@ -203,8 +221,8 @@ section('Seasons opens the browser on the most recent Season')
 section('Labels name the thing, not the section it used to live in')
 {
   const completed = read('src/components/creator/completed-list.tsx')
-  check('Creator links out with "View Season" / "View Cup"',
-    completed.includes("'View Season'") && completed.includes("'View Cup'"))
+  check('Creator links out with "View Season" / "View Tournament"',
+    completed.includes("'View Season'") && completed.includes("'View Tournament'"))
   check('...and no longer says "View Public Archive"', !completed.includes('View Public Archive'))
 
   const all = walk('src').map(read).join('\n')

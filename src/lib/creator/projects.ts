@@ -156,7 +156,7 @@ export async function listCreatorProjects(): Promise<CreatorProject[]> {
       kind: 'tournament',
       id: t.id,
       title: t.name,
-      competition: 'Cup',
+      competition: 'Tournament',
       year: t.competitionYear,
       number: null,
       division: null,

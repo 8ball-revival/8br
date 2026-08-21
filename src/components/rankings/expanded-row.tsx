@@ -137,10 +137,10 @@ export function ExpandedRow({
             {detail.competitions.map((c) => (
               <li key={`${c.kind}-${c.label}-${c.year}`} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
                 {c.won && (
-                  <Tip text={c.kind === 'season' ? 'Won this Season' : 'Won this Cup'}>
+                  <Tip text={c.kind === 'season' ? 'Won this Season' : 'Won this Tournament'}>
                     {c.kind === 'season'
                       ? <Crown className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Season Champion" />
-                      : <Trophy className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Cup Titleholder" />}
+                      : <Trophy className="size-3.5 shrink-0" style={{ color: 'var(--gold)' }} aria-label="Tournament Titleholder" />}
                   </Tip>
                 )}
                 {c.href
@@ -178,13 +178,13 @@ export function ExpandedRow({
             the two drift apart and the eye has to travel to pair them up. */}
         <dl className="grid max-w-[20rem] grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
           <Stat label="Overall" value={RECORD(detail.overallRecord)}
-            tip="Every recorded match, Seasons and Cups together." />
+            tip="Every recorded match, Seasons and Tournaments together." />
           <Stat label="Group play" value={RECORD(detail.groupRecord)}
             tip="Season group stages only." />
           <Stat label="Playoffs" value={RECORD(detail.playoffRecord)}
             tip="Season playoff brackets only." />
-          <Stat label="Cups" value={RECORD(detail.tournamentRecord)}
-            tip="Standalone Cups only." />
+          <Stat label="Tournaments" value={RECORD(detail.tournamentRecord)}
+            tip="Standalone Tournaments only." />
 
           <Stat
             label="Championships"
@@ -193,7 +193,7 @@ export function ExpandedRow({
                 {titles}
               </span>
             )}
-            tip="Season Championships and Cup Titles together. The competitions behind them are listed on the left."
+            tip="Season Championships and Tournament Titles together. The competitions behind them are listed on the left."
           />
           <Stat label="Finals reached" value={row.finalsAppearances || '—'}
             tip="Competitions where this player reached the final, counted from the round label stored on each match." />

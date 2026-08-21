@@ -36,11 +36,11 @@ export async function registerFreeAgent(actor: Actor, tournamentId: number, iden
   const { resolveMemberStatus } = await import('@/lib/moderation/service')
   if (!(await resolveMemberStatus(actor.userId)).canRegister) return { ok: false, error: 'This account cannot register.' }
   const st = await accountState(tournamentId, actor.userId)
-  if (st) return { ok: false, error: st.kind === 'freeagent' ? 'You are already registered as a free agent.' : `You are already on team "${st.teamName}" in this Cup.` }
+  if (st) return { ok: false, error: st.kind === 'freeagent' ? 'You are already registered as a free agent.' : `You are already on team "${st.teamName}" in this Tournament.` }
   try {
     await prisma.tournamentFreeAgent.create({ data: { tournamentId, userId: actor.userId, playerId: identity.playerId, name: identity.name, handle: identity.handle, status: 'WAITING' } })
   } catch {
-    return { ok: false, error: 'You are already registered in this Cup.' } // unique (tournamentId,userId) race
+    return { ok: false, error: 'You are already registered in this Tournament.' } // unique (tournamentId,userId) race
   }
   await recordAudit(actor, { action: 'tournament.freeAgent.register', entity: 'TournamentFreeAgent', entityId: tournamentId, newValue: { player: identity.name } })
   return { ok: true }
@@ -137,7 +137,7 @@ export async function adminAddMember(actor: Actor, tournamentId: number, teamId:
   if (!gate.ok) return gate
   const team = await prisma.tournamentTeam.findFirst({ where: { id: teamId, tournamentId, withdrawn: false } })
   if (!team) return { ok: false, error: 'Team not found.' }
-  if (await accountState(tournamentId, userId)) return { ok: false, error: 'That account is already registered in this Cup.' }
+  if (await accountState(tournamentId, userId)) return { ok: false, error: 'That account is already registered in this Tournament.' }
   const ident = await accountIdentity(userId)
   if (!ident) return { ok: false, error: 'That account has no player profile.' }
   try {
@@ -184,7 +184,7 @@ export async function adminReplaceMember(actor: Actor, tournamentId: number, tea
   if (!team) return { ok: false, error: 'Team not found.' }
   const target = team.members.find((m) => m.userId === oldUserId)
   if (!target) return { ok: false, error: 'That player is not on the team.' }
-  if (await accountState(tournamentId, newUserId)) return { ok: false, error: 'The replacement is already registered in this Cup.' }
+  if (await accountState(tournamentId, newUserId)) return { ok: false, error: 'The replacement is already registered in this Tournament.' }
   const ident = await accountIdentity(newUserId)
   if (!ident) return { ok: false, error: 'The replacement account has no player profile.' }
   await prisma.$transaction(async (tx) => {
@@ -217,7 +217,7 @@ export interface ClosingPlan {
  */
 export async function computeClosingPlan(tournamentId: number): Promise<{ ok: boolean; error?: string; plan?: ClosingPlan }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { participantFormat: true, teamFormation: true, teamSize: true } })
-  if (!t || t.participantFormat !== 'TEAM' || t.teamFormation !== 'PICK') return { ok: false, error: 'This is not a player-selected team Cup.' }
+  if (!t || t.participantFormat !== 'TEAM' || t.teamFormation !== 'PICK') return { ok: false, error: 'This is not a player-selected team Tournament.' }
   const teamSize = t.teamSize ?? 2
 
   const teams = await prisma.tournamentTeam.findMany({ where: { tournamentId, withdrawn: false }, include: { members: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })
@@ -273,7 +273,7 @@ export async function computeClosingPlan(tournamentId: number): Promise<{ ok: bo
  */
 export async function applyClosingPlan(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string; plan?: ClosingPlan }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { registrationStatus: true, participantFormat: true, teamFormation: true, teamSize: true } })
-  if (!t) return { ok: false, error: 'Cup not found.' }
+  if (!t) return { ok: false, error: 'Tournament not found.' }
   if (t.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is already closed.' }
   const computed = await computeClosingPlan(tournamentId)
   if (!computed.ok || !computed.plan) return { ok: false, error: computed.error }
@@ -327,7 +327,7 @@ export async function applyClosingPlan(actor: Actor, tournamentId: number): Prom
 
     // 5) Close registration (lock rosters).
     await tx.tournament.update({ where: { id: tournamentId }, data: { registrationStatus: 'CLOSED', lifecycleState: 'REGISTRATION_CLOSED', status: 'UPCOMING' } })
-    await recordAudit(actor, { action: 'tournament.registration.closeWithAllocation', entity: 'Cup', entityId: tournamentId, newValue: { filled: plan.fills.length, newTeams: plan.newTeams.length, notPlaced: plan.unplaced.length, finalTeams: plan.finalTeams } }, tx)
+    await recordAudit(actor, { action: 'tournament.registration.closeWithAllocation', entity: 'Tournament', entityId: tournamentId, newValue: { filled: plan.fills.length, newTeams: plan.newTeams.length, notPlaced: plan.unplaced.length, finalTeams: plan.finalTeams } }, tx)
   }).catch((e) => { if (!(e instanceof Error && e.message === 'ALREADY_CLOSED')) throw e })
 
   // Freeze each member's Ladder rating now that rosters are final (for the team-details popover).

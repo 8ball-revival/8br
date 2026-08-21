@@ -491,7 +491,7 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
   const matches: ProfileMatch[] = [...rows].sort((a, b) => b.sequence - a.sequence).map((r) => {
     const t = tById.get(r.tournamentId)
     return {
-      tournamentId: r.tournamentId, tournamentName: t?.name ?? `Cup ${r.tournamentId}`, tournamentNumber: t?.number ?? null,
+      tournamentId: r.tournamentId, tournamentName: t?.name ?? `Tournament ${r.tournamentId}`, tournamentNumber: t?.number ?? null,
       date: r.completedAt.toISOString(), stage: r.stage, roundLabel: r.roundLabel,
       opponentName: r.isTeamMatch ? r.opponentTeamName ?? r.opponentName : r.opponentName,
       isTeamMatch: r.isTeamMatch, score: scoreStr(r),
@@ -508,7 +508,7 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
     const t = tById.get(tid)
     const won = trophyTids.has(tid)
     return {
-      tournamentId: tid, name: t?.name ?? `Cup ${tid}`, number: t?.number ?? null,
+      tournamentId: tid, name: t?.name ?? `Tournament ${tid}`, number: t?.number ?? null,
       date: t?.ladderAppliedAt?.toISOString() ?? null, format: t?.tournamentFormat ?? null, participantFormat: t?.participantFormat ?? 'INDIVIDUAL',
       teamName: prs.find((r) => r.teamName)?.teamName ?? null,
       wins: prs.filter((r) => r.result === 'WIN').length,

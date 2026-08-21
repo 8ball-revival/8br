@@ -44,10 +44,10 @@ export type LadderScope = 'current' | 'all-time'
 export type RecordView = 'overall' | 'group' | 'playoff' | 'tournament'
 
 export const RECORD_VIEWS: { id: RecordView; label: string; hint: string }[] = [
-  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Cups together' },
+  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
   { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
   { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
-  { id: 'tournament', label: 'Cups', hint: 'Standalone Cups only' },
+  { id: 'tournament', label: 'Tournaments', hint: 'Standalone Tournaments only' },
 ]
 
 /** The rolling window the Current scope uses, matching the official ladder exactly. */
@@ -80,7 +80,7 @@ export interface ExplorerFilters {
   /** Inclusive competition-year range. Independent of `year`, which pins a single year. */
   fromYear?: number | null
   toYear?: number | null
-  /** Seasons, Cups, or both. Narrows which KIND of record contributes, not which year. */
+  /** Seasons, Tournaments, or both. Narrows which KIND of record contributes, not which year. */
   eventType?: 'all' | 'seasons' | 'cups' | null
 }
 
@@ -244,7 +244,7 @@ function viewFilter(view: RecordView, a: string): string {
   switch (view) {
     case 'group': return `${a}.kind = 'season' AND ${a}."stage" = 'GROUP'`
     case 'playoff': return `${a}.kind = 'season' AND ${a}."stage" = 'PLAYOFF'`
-    case 'tournament': return `${a}.kind = 'Cup'`
+    case 'tournament': return `${a}.kind = 'Tournament'`
     default: return 'true'
   }
 }
@@ -277,7 +277,7 @@ export async function computeExplorer(
   if (filters.year != null) add((n) => `l.comp_year = $${n}`, filters.year)
   if (filters.seasonId != null) add((n) => `l."seasonId" = $${n}`, filters.seasonId)
   if (filters.tournamentId != null) add((n) => `l."tournamentId" = $${n}`, filters.tournamentId)
-  // Seasons and Cups live in one ledger distinguished by `kind`, so the event filter is a predicate
+  // Seasons and Tournaments live in one ledger distinguished by `kind`, so the event filter is a predicate
   // rather than a different query.
   if (filters.eventType === 'seasons') clauses.push(`l.kind = 'season'`)
   if (filters.eventType === 'cups') clauses.push(`l.kind <> 'season'`)
@@ -838,7 +838,7 @@ export async function computeFreshness(): Promise<RankingsFreshness> {
           label: `${r.series_name ?? 'Season'} Season ${r.season_number} — ${r.season_year}`,
         }
       : r.tournamentId != null
-        ? { kind: 'tournament', id: Number(r.tournamentId), label: String(r.tournament_name ?? 'Cup') }
+        ? { kind: 'tournament', id: Number(r.tournamentId), label: String(r.tournament_name ?? 'Tournament') }
         : null
 
     return {

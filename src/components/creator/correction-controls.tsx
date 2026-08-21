@@ -49,7 +49,7 @@ export function CorrectionControls({ kind, id, title, reopenedAt, errors }: Prop
     })
   }
 
-  const label = kind === 'season' ? 'Season' : 'Cup'
+  const label = kind === 'season' ? 'Season' : 'Tournament'
 
   return (
     <>

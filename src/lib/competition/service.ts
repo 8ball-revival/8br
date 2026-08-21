@@ -23,7 +23,7 @@ export async function createSeason(
     // Competition Year is required; callers that do not supply one get the current year.
     data: { slug: data.slug, name: data.name, competitionYear: data.competitionYear ?? currentCompetitionYear() },
   })
-  await recordAudit(actor, { action: 'tournament.create', entity: 'Cup', entityId: tournament.id, newValue: data })
+  await recordAudit(actor, { action: 'tournament.create', entity: 'Tournament', entityId: tournament.id, newValue: data })
   return { id: tournament.id }
 }
 
@@ -51,7 +51,7 @@ export async function updateSeason(
   const after = await prisma.tournament.update({ where: { id: tournamentId }, data: patch })
   await recordAudit(actor, {
     action: 'tournament.update',
-    entity: 'Cup',
+    entity: 'Tournament',
     entityId: tournamentId,
     oldValue: diffSubset(before, patch),
     newValue: diffSubset(after, patch),
@@ -65,7 +65,7 @@ export async function completeCompetition(actor: Actor, tournamentId: number, re
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (s.status === 'COMPLETED') return { ok: true }
   await prisma.tournament.update({ where: { id: tournamentId }, data: { status: 'COMPLETED' } })
-  await recordAudit(actor, { action: 'competition.complete', entity: 'Cup', entityId: tournamentId, oldValue: { status: s.status }, newValue: { status: 'COMPLETED' }, reason })
+  await recordAudit(actor, { action: 'competition.complete', entity: 'Tournament', entityId: tournamentId, oldValue: { status: s.status }, newValue: { status: 'COMPLETED' }, reason })
   return { ok: true }
 }
 
@@ -75,7 +75,7 @@ export async function archiveCompetition(actor: Actor, tournamentId: number, rea
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (s.archivedAt) return { ok: true }
   await prisma.tournament.update({ where: { id: tournamentId }, data: { archivedAt: new Date() } })
-  await recordAudit(actor, { action: 'competition.archive', entity: 'Cup', entityId: tournamentId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: 'now' }, reason })
+  await recordAudit(actor, { action: 'competition.archive', entity: 'Tournament', entityId: tournamentId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: 'now' }, reason })
   return { ok: true }
 }
 
@@ -84,7 +84,7 @@ export async function unarchiveCompetition(actor: Actor, tournamentId: number, r
   if (!s) return { ok: false, error: 'Competition not found.' }
   if (!s.archivedAt) return { ok: true }
   await prisma.tournament.update({ where: { id: tournamentId }, data: { archivedAt: null } })
-  await recordAudit(actor, { action: 'competition.unarchive', entity: 'Cup', entityId: tournamentId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: null }, reason })
+  await recordAudit(actor, { action: 'competition.unarchive', entity: 'Tournament', entityId: tournamentId, oldValue: { archivedAt: s.archivedAt }, newValue: { archivedAt: null }, reason })
   return { ok: true }
 }
 
@@ -138,14 +138,14 @@ export async function createPublicRegistration(
   joinPassword?: string | null,
 ): Promise<{ ok: boolean; error?: string; already?: boolean }> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!tournament) return { ok: false, error: 'Cup not found.' }
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
   if (tournament.registrationStatus !== 'OPEN') return { ok: false, error: 'Registration is closed.' }
 
   // Private tournament: the join password is verified server-side against the stored scrypt hash.
   if (tournament.accessMode === 'PASSWORD') {
     const { verifyJoinPassword } = await import('./join-password')
     if (!verifyJoinPassword((joinPassword ?? '').trim(), tournament.joinPasswordHash)) {
-      return { ok: false, error: 'Incorrect join password for this private Cup.' }
+      return { ok: false, error: 'Incorrect join password for this private Tournament.' }
     }
   }
 
@@ -211,7 +211,7 @@ export async function createPublicRegistration(
  */
 export async function addEntrantByProfile(actor: Actor, tournamentId: number, playerId: string): Promise<{ ok: boolean; error?: string; already?: boolean }> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!tournament) return { ok: false, error: 'Cup not found.' }
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
   await assertCompetitionUnlocked(prisma, tournamentId)
   const profile = await prisma.player.findUnique({ where: { id: playerId } })
   if (!profile) return { ok: false, error: 'Player profile not found.' }
@@ -289,7 +289,7 @@ export async function bulkImportEntrants(actor: Actor, tournamentId: number, raw
     else if (res.ok) added.push(`${line} → ${profile.primaryName}`)
     else unmatched.push(line)
   }
-  await recordAudit(actor, { action: 'entrant.bulkImport', entity: 'Cup', entityId: tournamentId, newValue: { added: added.length, duplicates: duplicates.length, unmatched: unmatched.length } })
+  await recordAudit(actor, { action: 'entrant.bulkImport', entity: 'Tournament', entityId: tournamentId, newValue: { added: added.length, duplicates: duplicates.length, unmatched: unmatched.length } })
   return { ok: true, added, duplicates, unmatched }
 }
 
@@ -337,7 +337,7 @@ export async function reseedEntrants(actor: Actor, tournamentId: number, ordered
     for (let i = 0; i < ids.length; i++) {
       await tx.registration.updateMany({ where: { id: ids[i], tournamentId }, data: { seed: i + 1 } })
     }
-    await recordAudit(actor, { action: 'entrant.reseed', entity: 'Cup', entityId: tournamentId, newValue: { order: ids.length } }, tx)
+    await recordAudit(actor, { action: 'entrant.reseed', entity: 'Tournament', entityId: tournamentId, newValue: { order: ids.length } }, tx)
   })
   return { ok: true }
 }
@@ -354,7 +354,7 @@ export async function withdrawPublicRegistration(
   username: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!tournament) return { ok: false, error: 'Cup not found.' }
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
   if (tournament.registrationStatus !== 'OPEN')
     return { ok: false, error: 'Registration has closed — contact staff to withdraw.' }
   const reg = await prisma.registration.findUnique({
@@ -420,7 +420,7 @@ export async function setRegistrationState(
   reason?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const before = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!before) return { ok: false, error: 'Cup not found.' }
+  if (!before) return { ok: false, error: 'Tournament not found.' }
   if (before.registrationStatus === next) return { ok: true }
 
   const action =
@@ -435,7 +435,7 @@ export async function setRegistrationState(
   await prisma.tournament.update({ where: { id: tournamentId }, data: { registrationStatus: next } })
   await recordAudit(actor, {
     action,
-    entity: 'Cup',
+    entity: 'Tournament',
     entityId: tournamentId,
     oldValue: { registrationStatus: before.registrationStatus },
     newValue: { registrationStatus: next },
@@ -487,7 +487,7 @@ export async function generateGroups(
   if (published > 0 && !opts.force)
     return { ok: false, error: 'Groups are already published. Confirm to regenerate.' }
 
-  const seed = seedInput?.trim() || `Cup:${tournamentId}:groups:${numGroups}:${Date.now()}`
+  const seed = seedInput?.trim() || `Tournament:${tournamentId}:groups:${numGroups}:${Date.now()}`
   const regs = await approvedSeedables(tournamentId)
   let plan: GroupPlan
   try {
@@ -516,7 +516,7 @@ export async function generateGroups(
       actor,
       {
         action: 'groups.generate',
-        entity: 'Cup',
+        entity: 'Tournament',
         entityId: tournamentId,
         newValue: { numGroups, seed, players: regs.length },
       },
@@ -606,7 +606,7 @@ export async function publishGroups(actor: Actor, tournamentId: number): Promise
       const existing = await tx.tournamentMatch.count({ where: { groupId: g.id } })
       if (existing === 0) await generateMatchesForGroup(tx, tournamentId, g.id)
     }
-    await recordAudit(actor, { action: 'groups.publish', entity: 'Cup', entityId: tournamentId, newValue: { groups: groups.length } }, tx)
+    await recordAudit(actor, { action: 'groups.publish', entity: 'Tournament', entityId: tournamentId, newValue: { groups: groups.length } }, tx)
   })
   await recomputeStandings(tournamentId)
   return { ok: true }
@@ -629,7 +629,7 @@ export async function unpublishGroups(actor: Actor, tournamentId: number): Promi
     await tx.standing.deleteMany({ where: { tournamentId } })
     await tx.tournamentGroup.updateMany({ where: { tournamentId }, data: { published: false } })
     await tx.tournament.update({ where: { id: tournamentId }, data: { groupsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'groups.unpublish', entity: 'Cup', entityId: tournamentId, newValue: { published: false } }, tx)
+    await recordAudit(actor, { action: 'groups.unpublish', entity: 'Tournament', entityId: tournamentId, newValue: { published: false } }, tx)
   })
   return { ok: true }
 }
@@ -648,7 +648,7 @@ async function groupsArePublished(tournamentId: number): Promise<boolean> {
 /** Create a new empty group with the next free code (Group A, Group B, …). */
 export async function createGroup(actor: Actor, tournamentId: number): Promise<{ ok: boolean; error?: string; id?: number }> {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
-  if (!tournament) return { ok: false, error: 'Cup not found.' }
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
   const groups = await prisma.tournamentGroup.findMany({ where: { tournamentId } })
   const used = new Set(groups.map((g) => g.code))
   const code = [...GROUP_CODES].find((c) => !used.has(c))
@@ -704,7 +704,7 @@ export async function swapGroupPlayers(actor: Actor, tournamentId: number, regA:
           await generateMatchesForGroup(tx, tournamentId, gid)
         }
       }
-      await recordAudit(actor, { action: 'groups.swapPlayers', entity: 'Cup', entityId: tournamentId, newValue: { a: regA, b: regB } }, tx)
+      await recordAudit(actor, { action: 'groups.swapPlayers', entity: 'Tournament', entityId: tournamentId, newValue: { a: regA, b: regB } }, tx)
     })
     if (published) await recomputeStandings(tournamentId)
   }
@@ -776,7 +776,7 @@ export async function addPlayerToGroup(
   const group = await prisma.tournamentGroup.findFirst({ where: { id: groupId, tournamentId } })
   if (!group) return { ok: false, error: 'Group not found.' }
   const reg = await prisma.registration.findFirst({ where: { id: registrationId, tournamentId } })
-  if (!reg) return { ok: false, error: 'That registration is not part of this Cup.' }
+  if (!reg) return { ok: false, error: 'That registration is not part of this Tournament.' }
   if (reg.status !== 'APPROVED') return { ok: false, error: 'Only active (approved) registrations can be assigned to a group.' }
   const existing = await prisma.groupPlayer.findFirst({ where: { registrationId, group: { tournamentId } } })
   if (existing)
@@ -1227,7 +1227,7 @@ async function persistDoubleElimPlan(actor: Actor, tournamentId: number, qualifi
       }
     }
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'playoff.generate', entity: 'Cup', entityId: tournamentId, newValue: { matches: plan.matches.length, size: plan.bracketSize, doubleElim: true } }, tx)
+    await recordAudit(actor, { action: 'playoff.generate', entity: 'Tournament', entityId: tournamentId, newValue: { matches: plan.matches.length, size: plan.bracketSize, doubleElim: true } }, tx)
   })
   return { ok: true }
 }
@@ -1275,7 +1275,7 @@ export async function generatePlayoff(
         })
       }
     }
-    await recordAudit(actor, { action: 'playoff.generate', entity: 'Cup', entityId: tournamentId, newValue: { matches: plan.matches.length, size: plan.bracketSize } }, tx)
+    await recordAudit(actor, { action: 'playoff.generate', entity: 'Tournament', entityId: tournamentId, newValue: { matches: plan.matches.length, size: plan.bracketSize } }, tx)
   })
   return { ok: true }
 }
@@ -1288,7 +1288,7 @@ export async function publishPlayoff(actor: Actor, tournamentId: number): Promis
     await tx.playoffMatch.updateMany({ where: { tournamentId }, data: { published: true } })
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PUBLISHED' } })
   })
-  await recordAudit(actor, { action: 'playoff.publish', entity: 'Cup', entityId: tournamentId, newValue: { published: true } })
+  await recordAudit(actor, { action: 'playoff.publish', entity: 'Tournament', entityId: tournamentId, newValue: { published: true } })
   return { ok: true }
 }
 
@@ -1320,7 +1320,7 @@ export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, o
   const idn = await resolveEntrants(regs)
   const nameById = new Map(regs.map((r) => [r.id, idn.get(r.id)?.displayName ?? r.username]))
   const qualifiers = ids.filter((id) => nameById.has(id)).map((id, i) => ({ registrationId: id, username: nameById.get(id)!, seed: i + 1 }))
-  if (qualifiers.length < 2) return { ok: false, error: 'Selected players are not valid entrants for this Cup.' }
+  if (qualifiers.length < 2) return { ok: false, error: 'Selected players are not valid entrants for this Tournament.' }
 
   if (opts.doubleElim) return persistDoubleElimPlan(actor, tournamentId, qualifiers)
 
@@ -1357,7 +1357,7 @@ export async function rebuildManualPlayoff(actor: Actor, tournamentId: number, o
       }
     }
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'playoff.manualBuild', entity: 'Cup', entityId: tournamentId, newValue: { seeds: qualifiers.length, size: plan.bracketSize } }, tx)
+    await recordAudit(actor, { action: 'playoff.manualBuild', entity: 'Tournament', entityId: tournamentId, newValue: { seeds: qualifiers.length, size: plan.bracketSize } }, tx)
   })
   return { ok: true }
 }
@@ -1370,7 +1370,7 @@ export async function returnPlayoffToDraft(actor: Actor, tournamentId: number): 
   await prisma.$transaction(async (tx) => {
     await tx.playoffMatch.updateMany({ where: { tournamentId }, data: { published: false } })
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
-    await recordAudit(actor, { action: 'playoff.returnToDraft', entity: 'Cup', entityId: tournamentId, newValue: { published: false } }, tx)
+    await recordAudit(actor, { action: 'playoff.returnToDraft', entity: 'Tournament', entityId: tournamentId, newValue: { published: false } }, tx)
   })
   return { ok: true }
 }
@@ -1382,7 +1382,7 @@ export async function deletePlayoff(actor: Actor, tournamentId: number): Promise
   if (publishedCount > 0) return { ok: false, error: 'Return the bracket to draft before deleting it.' }
   await prisma.playoffMatch.deleteMany({ where: { tournamentId } })
   await prisma.tournament.update({ where: { id: tournamentId }, data: { playoffsStatus: 'PENDING' } })
-  await recordAudit(actor, { action: 'playoff.delete', entity: 'Cup', entityId: tournamentId })
+  await recordAudit(actor, { action: 'playoff.delete', entity: 'Tournament', entityId: tournamentId })
   return { ok: true }
 }
 
@@ -1551,7 +1551,7 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
   const match = await prisma.playoffMatch.findUnique({ where: { id: matchId }, include: { tournament: true } })
   if (!match) return { ok: false, error: 'Match not found.' }
   const { getTournamentState } = await import('./tournament-lifecycle')
-  if (getTournamentState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This Cup is not currently in progress.' }
+  if (getTournamentState(match.tournament) !== 'IN_PROGRESS') return { ok: false, error: 'This Tournament is not currently in progress.' }
   if (match.winnerRegistrationId != null) return { ok: false, error: 'This match already has a reported result.' }
   if (match.homeRegistrationId == null || match.awayRegistrationId == null) return { ok: false, error: 'This match is not ready to be played yet.' }
 
@@ -1561,7 +1561,7 @@ export async function reportOwnLoss(userId: number, username: string, matchId: n
     where: { tournamentId: match.tournamentId, OR: [{ userId }, ...(profile ? [{ playerId: profile.id }] : [])] },
     select: { id: true },
   })
-  if (!myReg) return { ok: false, error: 'You are not an entrant in this Cup.' }
+  if (!myReg) return { ok: false, error: 'You are not an entrant in this Tournament.' }
   const isHome = match.homeRegistrationId === myReg.id
   const isAway = match.awayRegistrationId === myReg.id
   if (!isHome && !isAway) return { ok: false, error: 'You can only report a match you are playing in.' }
@@ -1694,7 +1694,7 @@ export async function setTournamentPlayoffDisclaimer(
   text: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { id: true } })
-  if (!t) return { ok: false, error: 'Cup not found.' }
+  if (!t) return { ok: false, error: 'Tournament not found.' }
 
   const hasBracket =
     (await prisma.playoffMatch.count({ where: { tournamentId } })) > 0 ||
@@ -1706,7 +1706,7 @@ export async function setTournamentPlayoffDisclaimer(
     await tx.tournament.update({ where: { id: tournamentId }, data: { playoffDisclaimer: value } })
     await recordAudit(actor, {
       action: value ? 'tournament.playoff.disclaimer' : 'tournament.playoff.disclaimer.clear',
-      entity: 'Cup', entityId: tournamentId, newValue: { length: value?.length ?? 0 },
+      entity: 'Tournament', entityId: tournamentId, newValue: { length: value?.length ?? 0 },
     }, tx)
   })
   return { ok: true }

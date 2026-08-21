@@ -113,7 +113,7 @@ export async function listCompleted(q: CompletedQuery = {}): Promise<CompletedPa
     id: t.id,
     title: t.name,
     number: null,
-    competition: 'Cup',
+    competition: 'Tournament',
     competitionSeriesId: null,
     year: t.competitionYear,
     division: null,

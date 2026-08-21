@@ -23,7 +23,7 @@ import { Methodology } from './methodology'
  * The Rankings page shell.
  *
  * ── What this used to be ─────────────────────────────────────────────────────────────────────────
- * Current/All-Time, Overall/Group/Playoffs/Cups, four density presets, a Columns button, an SC/TC
+ * Current/All-Time, Overall/Group/Playoffs/Tournaments, four density presets, a Columns button, an SC/TC
  * switch, saved views, a pin gutter and a permanently open row of eleven filters — roughly a
  * screenful of controls above the table they configured. Every one of them answered a question, but
  * collectively they answered nobody's: the page opened on a configuration screen rather than on the
