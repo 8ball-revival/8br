@@ -56,6 +56,27 @@ for (const [secHandle, priHandle] of PAIRS) {
   const sec = await find(secHandle)
   const pri = await find(priHandle)
 
+  /*
+   * A missing secondary is the successful end state, not a failure.
+   *
+   * Once merged, the secondary no longer exists as its own Player — its handle survives as an alias
+   * on the primary. Re-running must therefore recognise that and report a no-op, because calling it
+   * REFUSED would make a correct, already-finished merge look like a problem every time.
+   */
+  if (!sec && pri) {
+    const alias = await prisma.playerAlias.count({
+      where: { playerId: pri.id, alias: { equals: secHandle, mode: 'insensitive' } },
+    })
+    results.push({
+      secondary: secHandle, primary: priHandle, status: 'ALREADY_MERGED',
+      detail: alias > 0
+        ? `handle resolves to ${priHandle} through its preserved alias`
+        : `${secHandle} no longer exists as a Player; no alias found on ${priHandle} — worth checking`,
+      primaryPlayerId: pri.id, primaryUserId: pri.linkedUserId ? Number(pri.linkedUserId) : null,
+    })
+    continue
+  }
+
   if (!sec || !pri) {
     results.push({ secondary: secHandle, primary: priHandle, status: 'REFUSED', detail: `missing side: ${!sec ? secHandle : priHandle}` })
     continue
@@ -101,7 +122,7 @@ for (const [secHandle, priHandle] of PAIRS) {
   }
 
   const canonical = await resolveCanonicalPlayerId(sec.id)
-  const alias = await prisma.playerAlias.count({ where: { playerId: pri.id, alias: { equals: secHandle.replace(/[^a-zA-Z0-9]/g, ''), mode: 'insensitive' } } })
+  const alias = await prisma.playerAlias.count({ where: { playerId: pri.id, alias: { equals: secHandle, mode: 'insensitive' } } })
   results.push({
     secondary: secHandle, primary: priHandle, status: 'MERGED',
     detail: `canonical=${canonical} aliasPreserved=${alias > 0 ? 'yes' : 'check'}`,
@@ -111,13 +132,14 @@ for (const [secHandle, priHandle] of PAIRS) {
 
 console.log('\n' + results.map((r) => `${r.status.padEnd(11)} ${r.secondary} → ${r.primary}  ${r.detail}`).join('\n'))
 
-if (APPLY) {
+const changed = results.filter((r) => r.status === 'MERGED')
+if (APPLY && changed.length > 0) {
   // The handle map must point at the canonical Player, or a rerun would resolve to a merged-away id.
   const MAP = 'reports/archive-handle-map.json'
   const map = JSON.parse(readFileSync(MAP, 'utf8')) as Record<string, {
     playerId: string | null; userId: number | null; status: string; reason: string; mergedInto?: string
   }>
-  for (const r of results.filter((x) => x.status === 'MERGED')) {
+  for (const r of changed) {
     const key = r.secondary.toLowerCase()
     if (!map[key]) continue
     map[key].playerId = r.primaryPlayerId ?? map[key].playerId
