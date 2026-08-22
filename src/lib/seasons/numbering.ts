@@ -61,12 +61,27 @@ export async function isSeasonNumberTaken(
   competitionYear: number,
   number: number,
   exceptSeasonId?: number,
+  division?: string | null,
 ): Promise<boolean> {
+  /*
+   * The DIVISION is part of the identity, and leaving it out made this stricter than the database.
+   *
+   * The unique index is (Competition, year, number, COALESCE(division, '')) — deliberately, so a
+   * divisional pair can share a number, which is the whole point of divisions. This check asked
+   * (Competition, year, number) and therefore refused Season 1 Division B whenever Season 1
+   * Division A existed: a pre-flight that rejects what the database would happily accept, making
+   * divisional Seasons impossible to create through the service at all.
+   *
+   * Normalised the same way the index normalises: a null division and an empty one are one value,
+   * or "no division" and "" would be two different Season 1s.
+   */
+  const div = (division ?? '').trim()
   const clash = await prisma.season.findFirst({
     where: {
       competitionSeriesId,
       competitionYear,
       number,
+      ...(div === '' ? { OR: [{ division: null }, { division: '' }] } : { division: div }),
       ...(exceptSeasonId != null ? { id: { not: exceptSeasonId } } : {}),
     },
     select: { id: true },
@@ -78,6 +93,8 @@ export interface NumberConflict {
   error: string
   /** What to offer instead, so the form can recover without the administrator re-deriving it. */
   suggestion: number
+  /** The Season already holding this identity, so the caller can offer to open it. */
+  existingSeasonId?: number | null
 }
 
 /** The message shown when a Competition/year/number is already spoken for. */
@@ -85,11 +102,29 @@ export async function conflictFor(
   competitionSeriesId: number,
   competitionYear: number,
   number: number,
+  division?: string | null,
 ): Promise<NumberConflict> {
   const suggestion = await suggestSeasonNumber(competitionSeriesId, competitionYear)
+  const div = (division ?? '').trim()
+  /*
+   * Name the record that already holds the number.
+   *
+   * "Season 1 already exists" leaves the reader to go and find it. Handing back its id lets the
+   * caller offer to open it, which is almost always what somebody wants when they discover they are
+   * recreating something that is already there.
+   */
+  const existing = await prisma.season.findFirst({
+    where: {
+      competitionSeriesId, competitionYear, number,
+      ...(div === '' ? { OR: [{ division: null }, { division: '' }] } : { division: div }),
+    },
+    select: { id: true },
+  })
+  const where = div === '' ? 'this Competition' : `${div} of this Competition`
   return {
-    error: `Season ${number} already exists for this Competition in ${competitionYear}. Try ${suggestion}, or pick another unused number.`,
+    error: `Season ${number} already exists for ${where} in ${competitionYear}. Try ${suggestion}, or pick another unused number.`,
     suggestion,
+    existingSeasonId: existing?.id ?? null,
   }
 }
 

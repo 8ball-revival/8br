@@ -114,6 +114,8 @@ export interface SetupResult {
   error?: string
   id?: number
   type?: RecordType
+  /** Set when the record already exists, so the caller can offer to open it rather than retry. */
+  existingSeasonId?: number | null
   /** Set when an identical submission had already created this record. */
   deduplicated?: boolean
 }
@@ -173,6 +175,9 @@ export async function createDraft(actor: Actor, input: SetupInput): Promise<Setu
       competitionYear: input.competitionYear,
       competitionSeriesId: input.competitionSeriesId,
       number: input.number ?? null,
+      // Passed in rather than applied afterwards: the identity index includes it, so a divisional
+      // pair is only creatable if the division is there when the row is written.
+      division: input.division?.trim() || null,
       subtitle: input.title?.trim() || null,
       description: input.description?.trim() || null,
       // A reconstruction has no public registration, so it is created OPEN with no password rather
@@ -186,7 +191,12 @@ export async function createDraft(actor: Actor, input: SetupInput): Promise<Setu
       finalRaceTo: input.finalRaceTo,
     })
     if (!created.ok || created.id == null) {
-      return { ok: false, error: created.error ?? 'The Season could not be created.' }
+      return {
+        ok: false,
+        error: created.error ?? 'The Season could not be created.',
+        // So the form can offer to open what already exists instead of asking again.
+        existingSeasonId: created.existingSeasonId ?? null,
+      }
     }
 
     // Creator-only fields the shared service does not know about. A reconstruction starts PRIVATE:
@@ -194,7 +204,6 @@ export async function createDraft(actor: Actor, input: SetupInput): Promise<Setu
     await prisma.season.update({
       where: { id: created.id },
       data: {
-        division: input.division?.trim() || null,
         reconstruction,
         publiclyVisible: !reconstruction,
         playoffDoubleElim: doubleElim,

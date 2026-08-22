@@ -59,6 +59,14 @@ export interface CreateSeasonConfig {
   earlyRaceTo?: number
   semifinalRaceTo?: number
   finalRaceTo?: number
+  /**
+   * Part of the Season's identity, not decoration.
+   *
+   * The unique index is (Competition, year, number, division), so a divisional pair may share a
+   * number. It has to be present at INSERT for that to mean anything: setting it afterwards makes
+   * the row briefly a duplicate of its sibling, which the index correctly refuses.
+   */
+  division?: string | null
 }
 
 const clampRace = (v: number | undefined, dflt: number) => {
@@ -69,7 +77,7 @@ const clampRace = (v: number | undefined, dflt: number) => {
 export async function createSeason(
   actor: Actor,
   cfg: CreateSeasonConfig,
-): Promise<{ ok: boolean; error?: string; id?: number; number?: number; suggestion?: number }> {
+): Promise<{ ok: boolean; error?: string; id?: number; number?: number; suggestion?: number; existingSeasonId?: number | null }> {
   const yearResult = parseCompetitionYear(
     cfg.competitionYear == null || cfg.competitionYear === '' ? currentCompetitionYear() : cfg.competitionYear,
   )
@@ -106,9 +114,10 @@ export async function createSeason(
 
   // Checked before submitting so the administrator gets a sentence rather than a constraint error.
   // The database index below is still the authority — two simultaneous creates can both pass here.
-  if (await isSeasonNumberTaken(seriesId, year, number)) {
-    const c = await conflictFor(seriesId, year, number)
-    return { ok: false, error: c.error, suggestion: c.suggestion }
+  const division = cfg.division?.trim() || null
+  if (await isSeasonNumberTaken(seriesId, year, number, undefined, division)) {
+    const c = await conflictFor(seriesId, year, number, division)
+    return { ok: false, error: c.error, suggestion: c.suggestion, existingSeasonId: c.existingSeasonId ?? null }
   }
 
   let created
@@ -121,7 +130,10 @@ export async function createSeason(
         competitionSeriesId: seriesId,
         // The slug carries the Competition too: with per-Competition numbering, "season-1-2026"
         // alone would collide the moment a second Competition ran its own Season 1 that year.
-        slug: `${series.slug}-season-${number}-${year}`,
+        division,
+        // The slug carries the division too: without it a divisional pair would collide on the slug
+        // even though the identity index allows them, and the second one could never be created.
+        slug: `${series.slug}-season-${number}-${year}${division ? `-${division.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}`,
         subtitle: cfg.subtitle?.trim() || null,
         lifecycleState: scheduled ? 'REGISTRATION_SCHEDULED' : 'REGISTRATION_OPEN',
         lounge: cfg.lounge?.trim() || 'Social',
@@ -143,8 +155,8 @@ export async function createSeason(
     // Lost the race: the composite index rejected the duplicate. Answer in the same words the
     // pre-flight check uses, and hand back a fresh suggestion so nothing has to be worked out again.
     if (isSeasonNumberCollision(e)) {
-      const c = await conflictFor(seriesId, year, number)
-      return { ok: false, error: c.error, suggestion: c.suggestion }
+      const c = await conflictFor(seriesId, year, number, division)
+      return { ok: false, error: c.error, suggestion: c.suggestion, existingSeasonId: c.existingSeasonId ?? null }
     }
     throw e
   }
