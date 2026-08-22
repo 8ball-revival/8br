@@ -127,12 +127,29 @@ export interface StageView extends Stage {
 }
 
 /**
+ * States that have finished their current stage and are waiting to be taken into the next one.
+ *
+ * ── Why this exists ──────────────────────────────────────────────────────────────────────────────
+ * A Season with closed groups still belongs to the Groups stage — the tables are the thing to look
+ * at, and reopening is still possible. But the only way forward is the playoff page, which is built
+ * to receive exactly this state and ask for one deliberate confirmation before playoff setup begins.
+ * Treating the next stage as `locked` here meant the button offering that step redirected straight
+ * back to Groups, so a finished group stage had no way out of it at all.
+ *
+ * `open` is the status for this: reachable, but not where the record currently is.
+ */
+const READY_TO_ADVANCE: Partial<Record<RecordKind, Record<string, StageId>>> = {
+  season: { GROUPS_CLOSED: 'playoffs' },
+}
+
+/**
  * The workflow bar.
  *
  * Everything before the current stage is `done` and remains reachable, because correcting an earlier
  * stage is a normal part of reconstructing a record and the confirmation for it lives on the stage
- * itself. Everything after is `locked`: offering a link to a bracket for a Season that has not
- * decided who is in it produces a page that can only apologise.
+ * itself. Everything after is `locked` — offering a link to a bracket for a Season that has not
+ * decided who is in it produces a page that can only apologise — except the one stage a finished
+ * record is waiting to be taken into, which is `open`.
  */
 export function workflowFor(
   kind: RecordKind,
@@ -144,6 +161,8 @@ export function workflowFor(
   const current = currentStage(kind, lifecycleState, format)
   const currentIndex = Math.max(0, stages.findIndex((s) => s.id === current))
 
+  const nextOpen = READY_TO_ADVANCE[kind]?.[lifecycleState] ?? null
+
   return stages.map((s, i) => ({
     ...s,
     href: stageHref(kind, id, s.id),
@@ -151,6 +170,7 @@ export function workflowFor(
       lifecycleState === 'COMPLETED' && s.id === 'complete' ? 'current'
       : i < currentIndex ? 'done'
       : i === currentIndex ? 'current'
+      : s.id === nextOpen ? 'open'
       : 'locked',
   }))
 }

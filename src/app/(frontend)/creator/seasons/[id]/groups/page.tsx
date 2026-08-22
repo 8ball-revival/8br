@@ -100,6 +100,8 @@ export default async function SeasonGroupsPage({ params }: { params: Promise<{ i
 
   return shell(
     <UnsavedGroupsProvider>
+      {live && <GroupStageControls seasonId={ctx.id} canClose />}
+      {closed && <GroupsClosedControls seasonId={ctx.id} playoffsHref={`/creator/seasons/${ctx.id}/playoffs`} />}
       <SeasonGroupStage
         seasonId={ctx.id}
         groups={groups}
@@ -112,8 +114,6 @@ export default async function SeasonGroupsPage({ params }: { params: Promise<{ i
         canClose={false}
         canReopen={false}
       />
-      {live && <GroupStageControls seasonId={ctx.id} canClose />}
-      {closed && <GroupsClosedControls seasonId={ctx.id} playoffsHref={`/creator/seasons/${ctx.id}/playoffs`} />}
     </UnsavedGroupsProvider>,
   )
 }

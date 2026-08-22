@@ -19,6 +19,17 @@ import type { CloseGroupsPreflight, ReopenImpact } from '@/lib/seasons/group-clo
  * They live outside the group tables because they act on all of them at once — and because closing
  * has to know about work the tables are still holding. `useUnsavedTotal` is how it finds out.
  */
+/*
+ * The stage controls sit ABOVE the tables, and stay put.
+ *
+ * They used to sit underneath, which is fine on a Season with two groups and wrong on one with
+ * twelve: the only way to close the stage or move on to the playoffs was to scroll past every table
+ * to find it, and the button that ends the stage is not something to go hunting for. Sticky, so it
+ * is still there after scrolling into the standings to check them.
+ *
+ * `top-16` clears the site header, which is itself sticky at `top-0`; the same offset the other
+ * secondary bars in the app use. `top-0` would park this underneath it.
+ */
 export function GroupStageControls({ seasonId, canClose }: { seasonId: number; canClose: boolean }) {
   const [pending, start] = useTransition()
   const [preflight, setPreflight] = useState<CloseGroupsPreflight | null>(null)
@@ -28,7 +39,7 @@ export function GroupStageControls({ seasonId, canClose }: { seasonId: number; c
   if (!canClose) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+    <div className="sticky top-16 z-30 -mx-1 mb-4 flex flex-wrap items-center gap-3 border-b border-border bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <button
         type="button"
         disabled={pending}
@@ -203,7 +214,7 @@ export function GroupsClosedControls({ seasonId, playoffsHref }: { seasonId: num
   const [pending, start] = useTransition()
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+    <div className="sticky top-16 z-30 -mx-1 mb-4 flex flex-wrap items-center gap-3 border-b border-border bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <button
         type="button"
         disabled={pending}

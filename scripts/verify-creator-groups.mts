@@ -14,6 +14,9 @@
  *
  * Run: npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-creator-groups.mts
  */
+import { workflowFor, stageReachable, stageHref } from '../src/lib/creator/workflow.ts'
+import { readFileSync } from 'node:fs'
+
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { createDraft } from '../src/lib/creator/setup.ts'
@@ -388,6 +391,61 @@ try {
   await cleanup()
   check('every fixture Season is removed',
     (await prisma.season.count({ where: { competitionYear: YEAR } })) === 0)
+}
+
+
+section('A closed group stage can actually reach the playoffs')
+{
+  /*
+   * The bug this covers.
+   *
+   * Closing the groups left the Season able to see the Playoffs button and unable to use it: the
+   * stage was `locked`, so the gate bounced /playoffs straight back to /groups and the page just
+   * appeared to reload. The playoff page has had a branch for this state all along — it asks for one
+   * confirmation before playoff setup — and it was simply never reachable.
+   */
+  const closed = workflowFor('season', 1, 'GROUPS_CLOSED')
+  const playoffs = closed.find((v) => v.id === 'playoffs')
+  check('the Playoffs stage is offered once groups are closed', playoffs?.status === 'open', playoffs?.status)
+  check('...and the gate lets it through', stageReachable('season', 'GROUPS_CLOSED', 'playoffs'))
+  check('...so it no longer redirects back to Groups',
+    stageHref('season', 1, 'playoffs') === '/creator/seasons/1/playoffs')
+  check('Groups stays the current stage, so reopening is still the obvious other option',
+    closed.find((v) => v.id === 'groups')?.status === 'current')
+  check('Complete is still locked — closing groups does not finish a Season',
+    closed.find((v) => v.id === 'complete')?.status === 'locked')
+
+  const live = workflowFor('season', 1, 'GROUP_STAGE_LIVE')
+  check('a group stage still being played does NOT offer the playoffs',
+    live.find((v) => v.id === 'playoffs')?.status === 'locked')
+  check('...and the gate still refuses it', !stageReachable('season', 'GROUP_STAGE_LIVE', 'playoffs'))
+
+  const page = readFileSync('src/app/(frontend)/creator/seasons/[id]/playoffs/page.tsx', 'utf8')
+  check('the playoff page has a branch for a closed group stage', page.includes("if (state === 'GROUPS_CLOSED')"))
+  check('...which asks before entering setup', page.includes('<EnterPlayoffsButton'))
+}
+
+section('The stage controls are reachable without scrolling the tables')
+{
+  /*
+   * On a Season with twelve groups the only way to close the stage was to scroll past every table.
+   * The controls belong above the board, and stay in view while the standings are being read.
+   */
+  const controls = readFileSync('src/components/creator/group-controls.tsx', 'utf8')
+  check('the control bar sticks to the top', /sticky top-16/.test(controls))
+  check('...for both the live and the closed stage', (controls.match(/sticky top-16/g) ?? []).length === 2)
+  // The site header is sticky at top-0; a secondary bar has to clear it or it scrolls underneath.
+  check('...clearing the site header rather than sliding under it', !/sticky top-0/.test(controls))
+  check('...above its content, not below it', !/border-t border-border pt-4/.test(controls))
+  check('...and stays legible over what scrolls under it', /bg-background\/95|backdrop-blur/.test(controls))
+
+  const groupsPage = readFileSync('src/app/(frontend)/creator/seasons/[id]/groups/page.tsx', 'utf8')
+  const controlsAt = groupsPage.indexOf('<GroupStageControls')
+  const boardAt = groupsPage.indexOf('<SeasonGroupStage')
+  check('the page renders them before the board', controlsAt > -1 && boardAt > -1 && controlsAt < boardAt,
+    `controls@${controlsAt} board@${boardAt}`)
+  check('...and the closed-stage bar with them',
+    groupsPage.indexOf('<GroupsClosedControls') < boardAt)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
