@@ -46,7 +46,7 @@ export async function updateTournamentDetailsAction(
 
   const before = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { id: true, name: true, competitionSeriesId: true, competitionYear: true, description: true },
+    select: { id: true, name: true, number: true, competitionSeriesId: true, competitionYear: true, description: true },
   })
   if (!before) return { error: 'That Tournament no longer exists.' }
 
@@ -98,10 +98,33 @@ export async function updateTournamentDetailsAction(
    * The year moves which era a record belongs to, and the Rankings' era filter is cached.
    * Clearing it here means the correction is visible immediately rather than after the window lapses.
    */
-  if (data.competitionYear !== undefined) invalidateRankings()
+  /*
+   * The year moves which era a record belongs to, and the Rankings' era filter is cached.
+   *
+   * A TITLE does not. Renaming a Tournament changes a label and nothing a rating is computed from,
+   * so it must not trigger a rebuild — the ledger is path-dependent and rebuilding it for a typo fix
+   * would be both pointless and, if anything went wrong, expensive.
+   */
+  if (data.competitionYear !== undefined) {
+    invalidateRankings()
+    revalidatePath('/rankings')
+  }
+
+  /*
+   * Everywhere the name is read.
+   *
+   * A Tournament's title appears in more places than the record itself: the public list and detail,
+   * the Creator lists, the homepage's recent results, and the page metadata. Missing one leaves the
+   * old title showing somewhere until that page's cache lapses, which reads as the rename having
+   * failed.
+   */
+  revalidatePath('/')
   revalidatePath('/tournaments')
+  revalidatePath(`/tournaments/${before.number ?? ''}`)
+  revalidatePath('/creator')
+  revalidatePath('/creator/tournaments')
+  revalidatePath('/creator/tournaments/completed')
   revalidatePath(`/creator/tournaments/${tournamentId}/setup`)
-  revalidatePath('/rankings')
 
   return { ok: true }
 }

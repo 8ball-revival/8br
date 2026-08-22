@@ -59,10 +59,11 @@ export function CreatorSettings({
    * archive keeps that default unless somebody notices — which is how a 2006 event ends up filed
    * under 2026. Passing this makes the row editable; leaving it out keeps the row read-only.
    */
-  onSaveDetails?: (patch: { competitionYear: number }) => Promise<{ ok?: boolean; error?: string }>
+  onSaveDetails?: (patch: { name?: string; competitionYear?: number }) => Promise<{ ok?: boolean; error?: string }>
 }) {
   const [open, setOpen] = useState(false)
   const [year, setYear] = useState(String(summary.competitionYear))
+  const [title, setTitle] = useState(summary.title)
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<string | null>(null)
   const [visible, setVisible] = useState(summary.publiclyVisible)
@@ -77,6 +78,25 @@ export function CreatorSettings({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
+
+  /*
+   * Renaming is safe at any point in the lifecycle, including after completion.
+   *
+   * A title is a label. It decides nothing: not a result, not a champion, not a rating, not who
+   * qualified. A Tournament reconstructed from the archive under a working name should not have to
+   * go through the reopen-and-recomplete cycle to be called what it was actually called.
+   */
+  const saveTitle = () => {
+    if (!onSaveDetails) return
+    const next = title.trim()
+    if (!next) { setMsg('A Tournament needs a title.'); return }
+    if (next === summary.title) { setMsg('Saved.'); return }
+    start(async () => {
+      const r = await onSaveDetails({ name: next })
+      setMsg(r.error ?? 'Saved.')
+      if (!r.error) router.refresh()
+    })
+  }
 
   const saveYear = () => {
     if (!onSaveDetails) return
@@ -138,6 +158,32 @@ export function CreatorSettings({
               {msg && <p className="rounded border border-border bg-muted/40 px-3 py-2">{msg}</p>}
 
               <Section title="Record Details">
+                {onSaveDetails ? (
+                  <div className="space-y-1.5">
+                    <label htmlFor="creator-record-title" className="text-muted-foreground">Title</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="creator-record-title"
+                        type="text"
+                        value={title}
+                        disabled={pending}
+                        onChange={(e) => setTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveTitle() } }}
+                        className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveTitle}
+                        disabled={pending || !title.trim() || title.trim() === summary.title}
+                        className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <Row label="Title" value={summary.title} />
+                )}
                 <Row label="Competition" value={summary.competition} />
                 {onSaveDetails ? (
                   <div className="flex items-baseline justify-between gap-3">
@@ -173,7 +219,7 @@ export function CreatorSettings({
                 {summary.kind === 'season' && <Row label="Division" value={summary.division?.trim() || 'No Division'} />}
                 <p className="pt-1 text-xs text-muted-foreground">
                   {onSaveDetails
-                    ? 'The Competition Year records when this was played, and moves it in the listings and the Rankings era filter. The rest re-check the duplicate rule — one record per competition, year, number and division.'
+                    ? 'The title and the Competition Year describe this record rather than decide anything about it, so both can be corrected at any stage — including after completion. Renaming changes a label only: the number, results, champion and Rankings are untouched.'
                     : 'Editing these re-checks the duplicate rule — one record per competition, year, number and division. Change them from the Setup stage.'}
                 </p>
               </Section>
