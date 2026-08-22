@@ -886,17 +886,41 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
 }
 
 /** The Season champion (once the final is decided), for close/summary. Returns null until decided. */
-export async function seasonChampion(seasonId: number): Promise<{ championId: number; championName: string; runnerUpName: string | null; finalScore: string | null } | null> {
+export async function seasonChampion(seasonId: number): Promise<{
+  championId: number
+  championName: string
+  /** The champion's CueVerse ID — the identity, not the seeded display name. */
+  championCueverseId: string | null
+  runnerUpName: string | null
+  runnerUpCueverseId: string | null
+  finalScore: string | null
+} | null> {
   const rows = await prisma.seasonPlayoffMatch.findMany({ where: { seasonId } })
   if (!rows.length) return null
   const maxRound = Math.max(...rows.map((r) => r.round))
   const final = rows.filter((r) => r.round === maxRound).sort((a, b) => a.slot - b.slot)[0]
   if (!final || final.winnerEntrantId == null) return null
   const champHome = final.winnerEntrantId === final.homeEntrantId
+  /*
+   * The handles, looked up per entrant.
+   *
+   * A playoff match stores the username it was seeded with, which names a person only if no two of
+   * them share it. Crowning "Chris" is exactly the case this site has six of.
+   */
+  const championEntrantId = final.winnerEntrantId
+  const runnerUpEntrantId = champHome ? final.awayEntrantId : final.homeEntrantId
+  const ents = await prisma.seasonEntrant.findMany({
+    where: { id: { in: [championEntrantId, runnerUpEntrantId].filter((x): x is number => x != null) } },
+    select: { id: true, cueverseId: true },
+  })
+  const handleOf = new Map(ents.map((e) => [e.id, e.cueverseId]))
+
   return {
     championId: final.winnerEntrantId,
     championName: (champHome ? final.homeUsername : final.awayUsername) ?? 'Champion',
+    championCueverseId: handleOf.get(championEntrantId) ?? null,
     runnerUpName: (champHome ? final.awayUsername : final.homeUsername) ?? null,
+    runnerUpCueverseId: runnerUpEntrantId != null ? handleOf.get(runnerUpEntrantId) ?? null : null,
     finalScore: final.homeGames != null && final.awayGames != null ? `${Math.max(final.homeGames, final.awayGames)}–${Math.min(final.homeGames, final.awayGames)}` : null,
   }
 }

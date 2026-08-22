@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, Crown, Minus, Plus, Trophy } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { identityLines, identityText, NO_IDENTITY } from '@/lib/identity/display'
 import {
   recordSeasonPlayoffResultAction, recordSeasonPlayoffForfeitAction,
 } from '@/lib/seasons/actions'
@@ -26,7 +27,12 @@ import {
 
 export interface ScoringSlotView {
   entrantId: number | null
+  /** The username the match was seeded with — kept for byes and unresolved slots. */
   name: string | null
+  /** The CueVerse ID. The identity: six players here are called Chris. */
+  cueverseId?: string | null
+  /** The Preferred Name, shown under the handle where the cell has room. */
+  preferredName?: string | null
   seed: number | null
 }
 
@@ -69,6 +75,17 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
   const [drafts, setDrafts] = useState<Record<number, Draft>>({})
   const [errors, setErrors] = useState<Record<number, string>>({})
   const [confirm, setConfirm] = useState<{ matchId: number; labels: string[]; apply: () => void } | null>(null)
+  /*
+   * Overwriting a score that is already recorded.
+   *
+   * Saving now happens on Enter or on leaving the cell, which is what makes the cards small — but it
+   * also means a stray keystroke in a decided match would rewrite a result with no deliberate act at
+   * all. A recorded score therefore asks once before it is replaced. An empty match saves straight
+   * away, because there is nothing to lose.
+   */
+  const [editing, setEditing] = useState<
+    { matchId: number; from: string; to: string; apply: () => void } | null
+  >(null)
   /** Fit Bracket by default; the control is there for a draw too wide to read at that size. */
   const [zoom, setZoom] = useState(1)
 
@@ -95,11 +112,29 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
    * minus the draw, which a playoff tie cannot have, and minus KO, which is not entered anywhere any
    * more.
    */
-  const save = (m: ScoringMatchView, opts: { confirmRebuild?: boolean } = {}) => {
+  const save = (m: ScoringMatchView, opts: { confirmRebuild?: boolean; confirmEdit?: boolean } = {}) => {
     const d = draftOf(m)
     const h = d.home.trim().toUpperCase()
     const a = d.away.trim().toUpperCase()
     setErr(m.id, null)
+
+    /*
+     * Nothing typed, nothing to do — this fires on every blur, including tabbing straight through.
+     */
+    const recorded = m.homeGames != null && m.awayGames != null
+    const wasHome = m.homeGames == null ? '' : String(m.homeGames)
+    const wasAway = m.awayGames == null ? '' : String(m.awayGames)
+    if (h === wasHome && a === wasAway) return
+
+    if (recorded && !opts.confirmEdit) {
+      setEditing({
+        matchId: m.id,
+        from: `${wasHome}–${wasAway}`,
+        to: `${h || '—'}–${a || '—'}`,
+        apply: () => save(m, { ...opts, confirmEdit: true }),
+      })
+      return
+    }
 
     if (h === 'KO' || a === 'KO') {
       setErr(m.id, 'KO is not entered here. Manage the entrant instead.')
@@ -192,6 +227,14 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
         </div>
       </div>
 
+      {editing && (
+        <EditScoreDialog
+          from={editing.from}
+          to={editing.to}
+          onCancel={() => setEditing(null)}
+          onConfirm={() => { const go = editing.apply; setEditing(null); go() }}
+        />
+      )}
       {confirm && (
         <RebuildDialog
           labels={confirm.labels}
@@ -241,25 +284,55 @@ function MatchCard({
         const slot = match[side]
         const isWinner = decided && slot.entrantId === match.winnerEntrantId
         const forfeited = match.forfeitEntrantId != null && slot.entrantId === match.forfeitEntrantId
+        const lines = identityLines({ cueverseId: slot.cueverseId, preferredName: slot.preferredName ?? slot.name })
         return (
           <div key={side} className="flex items-center gap-1">
             <span className="tabular w-4 shrink-0 text-right text-[0.6em] text-muted-foreground">{slot.seed ?? ''}</span>
+            {/*
+              The handle, then the name.
+              This board showed the seeded username alone — "Chris", "Kevin", "Josh" — which on a
+              site with six Chrises names nobody. The CueVerse ID leads and the Preferred Name sits
+              under it when the cell has room.
+            */}
+            {/*
+              One row, not two.
+              Both halves of the identity sit side by side so a slot is a single line — on a 32-player
+              draw the second line was costing sixteen rows of height per column for information that
+              fits perfectly well beside the handle.
+            */}
             <span
               className={cn(
-                'min-w-0 flex-1 truncate text-[0.75em]',
+                'flex min-w-0 flex-1 items-baseline gap-1 truncate text-[0.75em]',
                 isWinner ? 'font-semibold text-[var(--gold)]' : decided ? 'text-muted-foreground/70' : 'text-foreground',
               )}
-              title={slot.name ?? undefined}
+              title={identityText({ cueverseId: slot.cueverseId, preferredName: slot.preferredName ?? slot.name })}
             >
-              {slot.name ?? (slot.entrantId == null && (side === 'home' ? match.homeIsEntry : match.awayIsEntry) ? 'Bye' : 'TBD')}
-              {forfeited && <span className="ml-1 text-[0.85em] text-destructive">FF</span>}
+              <span className="shrink-0">
+                {lines.primary === NO_IDENTITY
+                  ? (slot.entrantId == null && (side === 'home' ? match.homeIsEntry : match.awayIsEntry) ? 'Bye' : 'TBD')
+                  : lines.primary}
+              </span>
+              {lines.secondary && (
+                <span className="min-w-0 truncate text-[0.85em] font-normal text-foreground/55">
+                  · {lines.secondary}
+                </span>
+              )}
+              {forfeited && <span className="shrink-0 text-[0.85em] text-destructive">FF</span>}
             </span>
             <input
               value={draft[side]}
               onChange={(e) => onCell(side, e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') onSave() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSave() } }}
+              /*
+               * Tabbing out commits, the same as Enter.
+               *
+               * The board is filled in by typing, and reaching for a button between every pair of
+               * numbers is what made the cards tall in the first place. Leaving the cell is the same
+               * intent as pressing Enter, so it does the same thing.
+               */
+              onBlur={onSave}
               disabled={!bothKnown || pending}
-              aria-label={`${slot.name ?? 'Unknown'} score`}
+              aria-label={`${lines.primary === NO_IDENTITY ? 'Unknown' : identityText({ cueverseId: slot.cueverseId, preferredName: slot.preferredName ?? slot.name })} score`}
               title={waiting ? 'Waiting on an earlier match' : isBye ? 'A bye is advanced automatically' : undefined}
               className={cn(
                 'h-5 w-8 shrink-0 rounded border bg-card/70 text-center text-[0.7em] tabular outline-none',
@@ -279,21 +352,52 @@ function MatchCard({
       {isBye && <p className="mt-0.5 text-[0.6em] text-muted-foreground">Bye — advanced automatically, no result recorded.</p>}
       {error && <p className="mt-0.5 text-[0.6em] text-destructive">{error}</p>}
 
-      {bothKnown && (
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={pending}
-          className="mt-0.5 w-full rounded border border-border px-1 py-0.5 text-[0.6em] text-muted-foreground transition-colors hover:border-[var(--gold)]/50 hover:text-[var(--gold)] disabled:opacity-40"
-        >
-          {decided ? 'Correct' : 'Save'}
-        </button>
-      )}
+
     </li>
   )
 }
 
 /** Changing a decided winner rebuilds what came after it. */
+/**
+ * Replacing a score that is already recorded.
+ *
+ * Deliberately smaller than the rebuild warning: this one is a check that the edit was meant, not a
+ * warning about consequences. When the change also moves the winner, the rebuild dialog follows it.
+ */
+function EditScoreDialog({ from, to, onCancel, onConfirm }: { from: string; to: string; onCancel: () => void; onConfirm: () => void }) {
+  const confirmRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    confirmRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="edit-score-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}>
+      <div className="w-full max-w-xs rounded-xl border border-border bg-card p-4 shadow-xl">
+        <h2 id="edit-score-title" className="font-display text-base font-bold text-foreground">Change this score?</h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          This tie is already recorded as{' '}
+          <span className="tabular font-semibold text-foreground">{from}</span>. Save it as{' '}
+          <span className="tabular font-semibold text-[var(--gold)]">{to}</span>?
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={onCancel}
+            className="rounded border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+            Keep {from}
+          </button>
+          <button ref={confirmRef} type="button" onClick={onConfirm}
+            className="rounded bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black hover:opacity-90">
+            Change it
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function RebuildDialog({ labels, onCancel, onConfirm }: { labels: string[]; onCancel: () => void; onConfirm: () => void }) {
   const cancelRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -330,14 +434,26 @@ function RebuildDialog({ labels, onCancel, onConfirm }: { labels: string[]; onCa
 }
 
 /** The champion strip, once the Final has a winner. */
-export function ChampionBanner({ champion, runnerUp, byForfeit }: { champion: string; runnerUp: string | null; byForfeit: boolean }) {
+export function ChampionBanner({ champion, championCueverseId, runnerUp, runnerUpCueverseId, byForfeit }: {
+  champion: string
+  /** The champion is named by handle; a banner reading "Chris" crowns one of six people. */
+  championCueverseId?: string | null
+  runnerUp: string | null
+  runnerUpCueverseId?: string | null
+  byForfeit: boolean
+}) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--gold)]/40 bg-[var(--gold)]/[0.07] px-3 py-2">
       <Crown className="size-4 text-[var(--gold)]" aria-hidden />
       <span className="font-display font-bold text-[var(--gold)]">
-        {champion}{byForfeit && <span aria-hidden>*</span>}
+        {identityText({ cueverseId: championCueverseId, preferredName: champion })}
+        {byForfeit && <span aria-hidden>*</span>}
       </span>
-      {runnerUp && <span className="text-sm text-muted-foreground">def. {runnerUp}</span>}
+      {runnerUp && (
+        <span className="text-sm text-muted-foreground">
+          def. {identityText({ cueverseId: runnerUpCueverseId, preferredName: runnerUp })}
+        </span>
+      )}
       {byForfeit && (
         <span className="w-full text-xs text-muted-foreground">
           <b className="text-foreground">FINAL WON BY FORFEIT</b> — * Championship awarded after the

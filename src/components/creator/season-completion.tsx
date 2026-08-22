@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, Crown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { identityText } from '@/lib/identity/display'
 import { previewCompletionAction, closeSeasonAction } from '@/lib/seasons/actions'
 import type { CompletionReadiness } from '@/lib/seasons/close'
 
@@ -98,10 +99,15 @@ function CompletionDialog({
         <dl className="mt-3 space-y-1.5 text-sm">
           <Row label="Champion">
             <span className="font-semibold text-[var(--gold)]">
-              {readiness.championName}{readiness.byForfeit && <span aria-hidden>*</span>}
+              {identityText({ cueverseId: readiness.championCueverseId, preferredName: readiness.championName })}
+              {readiness.byForfeit && <span aria-hidden>*</span>}
             </span>
           </Row>
-          <Row label="Runner-up">{readiness.runnerUpName ?? '—'}</Row>
+          <Row label="Runner-up">
+            {readiness.runnerUpName || readiness.runnerUpCueverseId
+              ? identityText({ cueverseId: readiness.runnerUpCueverseId, preferredName: readiness.runnerUpName })
+              : '—'}
+          </Row>
           <Row label="Final">{readiness.byForfeit ? 'Won by forfeit' : readiness.finalScore ?? '—'}</Row>
         </dl>
 
@@ -114,7 +120,10 @@ function CompletionDialog({
         )}
 
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          <li>The Season Championship is awarded to {readiness.championName}.</li>
+          <li>
+            The Season Championship is awarded to{' '}
+            {identityText({ cueverseId: readiness.championCueverseId, preferredName: readiness.championName })}.
+          </li>
           <li>The Rankings contribution for this Season is finalised.</li>
           <li>The Season moves from Manage Open to Modify Completed, where it stays correctable.</li>
         </ul>

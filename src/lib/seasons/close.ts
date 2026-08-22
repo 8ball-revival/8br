@@ -64,7 +64,10 @@ export interface CompletionReadiness {
   ok: boolean
   problems: string[]
   championName: string | null
+  /** The handles, so the confirmation names who is being crowned rather than what they are called. */
+  championCueverseId: string | null
   runnerUpName: string | null
+  runnerUpCueverseId: string | null
   finalScore: string | null
   /** The Final was a walkover, so the title is awarded without a competitive win. */
   byForfeit: boolean
@@ -109,7 +112,9 @@ export async function completionReadiness(seasonId: number): Promise<CompletionR
     ok: problems.length === 0,
     problems,
     championName: champ?.championName ?? null,
+    championCueverseId: champ?.championCueverseId ?? null,
     runnerUpName: champ?.runnerUpName ?? null,
+    runnerUpCueverseId: champ?.runnerUpCueverseId ?? null,
     finalScore: champ?.finalScore ?? null,
     byForfeit,
     needsReview,

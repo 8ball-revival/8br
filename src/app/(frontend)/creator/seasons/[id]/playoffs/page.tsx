@@ -97,10 +97,24 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
 
     return shell(
       <div className="space-y-3">
+        {/*
+          Completion sits at the top, not under the bracket.
+          A 32-player draw is several screens tall, so the control that ends the Season was only
+          reachable by scrolling past every match — including immediately after entering the Final
+          score, which is exactly when it is wanted. Sticky, and to the right, where the other
+          stage-ending actions live.
+        */}
+        {!completed && (
+          <div className="sticky top-16 z-30 -mx-1 flex justify-end border-b border-border bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <SeasonCompletion seasonId={ctx.id} readiness={readiness} />
+          </div>
+        )}
         {champion && (
           <ChampionBanner
             champion={champion.championName}
+            championCueverseId={champion.championCueverseId}
             runnerUp={champion.runnerUpName}
+            runnerUpCueverseId={champion.runnerUpCueverseId}
             byForfeit={season.finalsForfeit}
           />
         )}
@@ -112,7 +126,6 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
           </p>
         )}
         {rounds.length === 0 ? <NoBracketYet /> : <PlayoffScoring seasonId={ctx.id} rounds={rounds} />}
-        {!completed && <SeasonCompletion seasonId={ctx.id} readiness={readiness} />}
       </div>,
     )
   }

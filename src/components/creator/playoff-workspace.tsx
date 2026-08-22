@@ -445,9 +445,16 @@ function DraftBracket({
               begins; naming the range makes the split readable at a glance.
             */}
             {column.length > 0 && (
-              <p className="mb-2 border-b border-border pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                {c === 0 ? 'Top half' : 'Bottom half'}
-                <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/70">
+              <p className="mb-2 flex items-baseline justify-between gap-2 border-b border-[var(--gold)]/25 pb-1">
+                {/*
+                  Two halves of one bracket, not two brackets.
+                  The wording says so explicitly, because "left" and "right" invite the reading that
+                  these are separate draws.
+                */}
+                <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Round 1 · {c === 0 ? 'Top half' : 'Bottom half'}
+                </span>
+                <span className="tabular shrink-0 text-[0.62rem] text-[var(--gold)]/70">
                   M{c === 0 ? 1 : half + 1}–M{c === 0 ? half : ties.length}
                 </span>
               </p>

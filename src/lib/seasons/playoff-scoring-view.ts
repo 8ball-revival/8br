@@ -27,14 +27,35 @@ const roundName = (round: number, section: string | null, maxRound: number): str
 }
 
 export async function playoffScoringRounds(seasonId: number): Promise<ScoringRound[]> {
-  const [rows, topo] = await Promise.all([
+  const [rows, topo, entrants] = await Promise.all([
     prisma.seasonPlayoffMatch.findMany({
       where: { seasonId },
       orderBy: [{ round: 'asc' }, { slot: 'asc' }],
     }),
     bracketTopology(seasonId),
+    /*
+     * The handle, which the match rows do not carry.
+     *
+     * A playoff match stores the username it was seeded with. That is a display name, and on this
+     * site a display name is not an identity — there are six players called Chris. The board has to
+     * be able to show the CueVerse ID, so it is looked up per entrant here rather than left to the
+     * component to go and find.
+     */
+    prisma.seasonEntrant.findMany({
+      where: { seasonId },
+      select: { id: true, cueverseId: true, displayName: true, username: true },
+    }),
   ])
   if (rows.length === 0) return []
+
+  const identityOf = new Map(entrants.map((e) => [e.id, {
+    cueverseId: e.cueverseId,
+    preferredName: e.displayName ?? e.username ?? null,
+  }]))
+  const sideIdentity = (entrantId: number | null, fallback: string | null) =>
+    entrantId != null
+      ? identityOf.get(entrantId) ?? { cueverseId: null, preferredName: fallback }
+      : { cueverseId: null, preferredName: fallback }
 
   // Which ties decide each position, so a waiting match can name what it is waiting for.
   const feeders = new Map<number, string[]>()
@@ -57,8 +78,14 @@ export async function playoffScoringRounds(seasonId: number): Promise<ScoringRou
     slot: m.slot,
     section: m.section,
     label: m.label,
-    home: { entrantId: m.homeEntrantId, name: m.homeUsername, seed: m.homeSeed },
-    away: { entrantId: m.awayEntrantId, name: m.awayUsername, seed: m.awaySeed },
+    home: {
+      entrantId: m.homeEntrantId, name: m.homeUsername, seed: m.homeSeed,
+      ...sideIdentity(m.homeEntrantId, m.homeUsername),
+    },
+    away: {
+      entrantId: m.awayEntrantId, name: m.awayUsername, seed: m.awaySeed,
+      ...sideIdentity(m.awayEntrantId, m.awayUsername),
+    },
     homeGames: m.homeGames,
     awayGames: m.awayGames,
     status: String(m.status),
