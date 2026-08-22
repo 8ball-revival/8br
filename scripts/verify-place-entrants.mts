@@ -5,17 +5,39 @@
  * one arranges the bracket in front of you, places everyone it can confirm, and names everyone it
  * cannot — which is the only useful answer when a Season is half-reconstructed.
  *
- * What matters most here is what it REFUSES. 66 of the 88 archived Seasons record who played in the
- * playoffs but not where; their round-one pairings in the source are the archive viewer's own
+ * What matters most here is what it REFUSES. Most of the 88 archived Seasons record who played in
+ * the playoffs but not where; their round-one pairings in the source are the archive viewer's own
  * occurrence-count heuristic, not evidence. Placing from those would manufacture a draw and then be
  * indistinguishable from the real thing, so the button is not offered at all.
  *
+ * ── Why this suite builds its own Season ─────────────────────────────────────────────────────────
+ * An earlier version exercised the real 2012 S1A archive shell. Its teardown restored by COUNT —
+ * it remembered how many entrants the Season started with and deleted them only if that number was
+ * zero — so when the importer had already seated three, the four the test added were left behind
+ * for good, on a real historical Season, wearing the importer's actor name. Nothing in the run
+ * looked wrong.
+ *
+ * The mutating half now runs entirely on a Season this file creates: its own competition series, a
+ * competition year no real Season uses, and a template key that exists nowhere in the archive. The
+ * manifest it is placed from is injected rather than loaded, which is why no real archive key is
+ * needed to test archive behaviour. Teardown deletes by id in `finally` and then proves the absence
+ * of every row type it could have created.
+ *
+ * The read-only half still looks at the real Seasons — that is the point of it — but only counts
+ * and reads. `assertReadOnly` below fails the suite if this file ever regains the ability to write
+ * to an archive-linked Season.
+ *
  * Run: npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-place-entrants.mts
  */
+import { readFileSync } from 'node:fs'
+
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
-import { manifestEntry } from '../src/lib/archive/manifest.ts'
-import { placementAvailability, previewPlacement, applyPlacement } from '../src/lib/archive/auto-playoffs.ts'
+import { manifestEntry, type ManifestEntry } from '../src/lib/archive/manifest.ts'
+import {
+  placementAvailability, previewPlacement, applyPlacement,
+  previewPlayoffBracket, applyArchiveSelection, applyArchivePlacement,
+} from '../src/lib/archive/auto-playoffs.ts'
 import { isBlocked } from '../src/lib/archive/auto-assign.ts'
 
 assertLocalDatabase()
@@ -30,30 +52,58 @@ const check = (label: string, ok: boolean, detail?: string) => {
 }
 const section = (t: string) => console.log(`\n--- ${t} ---`)
 
+/*
+ * The fixture's identity.
+ *
+ * A competition year no real Season occupies, so a stray row is unmistakable, and a run id so two
+ * runs cannot collide on the unique slug or template key.
+ */
+const FIXTURE_YEAR = 2099
+const RUN = `${process.pid}-${Math.floor(process.uptime() * 1000)}`
+const FIXTURE_KEY = `fixture-place-entrants-${RUN}`
+const HANDLE_PREFIX = `fixture.pe.${RUN}.`
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+section('This suite cannot write to a real archive Season')
+{
+  /*
+   * A source-level guard, because the contamination it prevents was invisible at runtime.
+   *
+   * Any write helper narrowed by `archiveTemplateKey: { not: null }` — or aimed at a hard-coded
+   * Season id — would put the mutating half back onto real history. Reads are unaffected.
+   */
+  const src = readFileSync(new URL(import.meta.url), 'utf8')
+  const body = src.slice(src.indexOf('section(\'This suite cannot write'))
+  const writes = /\b(create|createMany|update|updateMany|delete|deleteMany|upsert)\s*\(/g
+  const mutatingCalls = [...body.matchAll(writes)]
+  const scoped = mutatingCalls.filter((m) => {
+    const window = body.slice(m.index, m.index + 400)
+    return /archiveTemplateKey|competitionYear:\s*(?!FIXTURE_YEAR)\d/.test(window)
+      && !/FIXTURE_KEY|fixtureSeasonId|seriesId|playerIds/.test(window)
+  })
+  check('no write in this file is aimed at an archive-linked Season', scoped.length === 0,
+    scoped.map((m) => m[0]).join(', '))
+  check('no real archive template key appears in this file',
+    !/8brcam-\d{4}-s\d/.test(src))
+  check('no hard-coded real Season id appears in this file',
+    !/seasonId:\s*\d{3,}/.test(src) && !/\bid:\s*54\d\d\b/.test(src))
+}
+
+// ── Read-only observations of the real archive ──────────────────────────────────────────────────
+section('The button is offered only where the archive records positions')
 const linked = await prisma.season.findMany({
   where: { archiveTemplateKey: { not: null } },
   select: { id: true, number: true, competitionYear: true, lifecycleState: true, archiveTemplateKey: true },
 })
 const graded = linked.map((s) => ({ ...s, placement: manifestEntry(s.archiveTemplateKey!)?.playoff.placement ?? 'none' }))
-const exact = graded.filter((s) => s.placement === 'exact')
 const heuristic = graded.filter((s) => s.placement === 'participants-only')
 
-section('It is offered only where the archive recorded real positions')
-check('the archive has both grades of Season to tell apart', exact.length > 0 && heuristic.length > 0,
-  `${exact.length} exact, ${heuristic.length} participants-only`)
-
-/*
- * The contract is that it is never OFFERED on these, whatever state they are in.
- *
- * The wording of the refusal depends on which guard fires first — a Season that has already started
- * its playoffs is refused for that reason before anyone asks about positions — so only a Season
- * actually sitting in playoff setup can be expected to give the positions answer.
- */
-for (const s of heuristic.slice(0, 5)) {
+check('the archive splits into recorded and unrecorded topologies', graded.length > 0, String(graded.length))
+for (const s of heuristic.slice(0, 3)) {
   const a = await placementAvailability(s.id)
   check(`${s.archiveTemplateKey}: never offered — the archive records no positions`, a.show === false)
 }
-const heuristicInSetup = heuristic.find((s) => s.lifecycleState === 'PLAYOFF_SETUP')
+const heuristicInSetup = heuristic.find((s) => String(s.lifecycleState) === 'PLAYOFF_SETUP')
 if (heuristicInSetup) {
   const p = await previewPlacement(heuristicInSetup.id)
   check('one sitting in playoff setup says why rather than guessing',
@@ -62,209 +112,229 @@ if (heuristicInSetup) {
   console.log('  (no participants-only Season is in playoff setup right now — wording not exercised)')
 }
 
+// ── The mutating half, on a Season that exists only for this run ─────────────────────────────────
 section('A Season with recorded positions can be placed')
-const target = exact[0]
-if (!target) {
-  check('there is an exact-topology Season to exercise', false)
-} else {
-  // Remember everything this test disturbs, so the shell goes back exactly as it was.
-  const before = await prisma.season.findUniqueOrThrow({
-    where: { id: target.id }, select: { lifecycleState: true },
-  })
-  const hadMatches = await prisma.seasonPlayoffMatch.count({ where: { seasonId: target.id } })
-  const hadEntrants = await prisma.seasonEntrant.count({ where: { seasonId: target.id } })
-  check(`${target.archiveTemplateKey} starts with no draft bracket`, hadMatches === 0, String(hadMatches))
 
-  try {
-    /*
-     * Build the Season the way it is actually built, with the steps that already exist.
-     *
-     * Place Entrants is never the first thing anyone presses: by the time it is wanted, the entrants
-     * are in, the groups are assigned, the results are entered and the group stage is closed — which
-     * is what produces the seeds a bracket is drawn from. Short-cutting to playoff setup left no
-     * seeds and no bracket, so the interesting half of this suite never ran. Walking the real chain
-     * is both a better test of the button and a test that the chain still fits together.
-     */
-    const { applyAutoEntrants } = await import('../src/lib/archive/auto-entrants.ts')
-    const { applyGroupAssign, applyGroupScores } = await import('../src/lib/archive/auto-assign.ts')
-    const { generateSeasonGroups, publishSeasonGroups } = await import('../src/lib/seasons/groups.ts')
-    const { closeSeasonGroups } = await import('../src/lib/seasons/group-stage.ts')
-    const { enterSeasonPlayoffSetup } = await import('../src/lib/seasons/playoffs.ts')
+let fixtureSeasonId: number | null = null
+let seriesId: number | null = null
+const playerIds: string[] = []
 
-    const added = await applyAutoEntrants(ACTOR, target.id)
-    console.log(`  (1 Auto Add Entrants: ${added.ok ? `${added.added} added, ${added.missing} without an account` : added.error})`)
-
-    /*
-     * Each stage is gated on the lifecycle, so the state is stepped between them.
-     *
-     * Pressing the real buttons in order is what an operator does; a script cannot press them, and
-     * re-implementing the transitions would be testing the lifecycle rather than using it. Setting
-     * the column between stages keeps every stage's own service doing the actual work.
-     */
-    const setState = (st: string) =>
-      prisma.season.update({ where: { id: target.id }, data: { lifecycleState: st as never } })
-
-    await setState('REGISTRATION_CLOSED')
-    const groupCount = Math.max(1, Math.min(2, Math.floor((added.added || 0) / 2)))
-    const gen = await generateSeasonGroups(ACTOR, target.id, groupCount)
-    console.log(`  (2 groups: ${gen.ok ? `${groupCount} generated` : gen.error})`)
-    const assigned = await applyGroupAssign(ACTOR, target.id)
-    console.log(`  (3 Assign Groups: ${assigned.ok ? `${assigned.placed} placed` : assigned.error})`)
-    const pub = await publishSeasonGroups(ACTOR, target.id)
-    console.log(`  (4 publish groups: ${pub.ok ? 'ok' : pub.error})`)
-    await setState('GROUP_STAGE_LIVE')
-    const scored = await applyGroupScores(ACTOR, target.id)
-    console.log(`  (5 Fill Group Scores: ${scored.ok ? `${scored.applied} applied` : scored.error})`)
-    const closed = await closeSeasonGroups(ACTOR, target.id)
-    console.log(`  (6 close groups: ${closed.ok ? 'ok' : closed.error})`)
-    await setState('GROUPS_CLOSED')
-    const setup = await enterSeasonPlayoffSetup(ACTOR, target.id)
-    console.log(`  (7 playoff setup: ${setup.ok ? 'ok' : setup.error})`)
-
-    // Whatever the chain managed, this suite is about what happens from playoff setup onwards.
-    await prisma.season.update({ where: { id: target.id }, data: { lifecycleState: 'PLAYOFF_SETUP' } })
-
-    section('...but not before there is a bracket to place them on')
-    const noBracket = await previewPlacement(target.id)
-    check('with no bracket it refuses and says to generate one',
-      isBlocked(noBracket) && /no draft bracket/i.test(noBracket.reason),
-      isBlocked(noBracket) ? noBracket.reason : 'not blocked')
-    const avail = await placementAvailability(target.id)
-    check('...and the button explains itself rather than vanishing',
-      avail.show === true && /generate a bracket/i.test(avail.disabledReason ?? ''), avail.disabledReason ?? '')
-
-    section('With a bracket, it reports before it writes')
-    /*
-     * Selection then placement — the two actions that replaced the combined one. This fixture only
-     * needs a bracket seated from the archive, which is exactly what the pair produces.
-     */
-    const { applyArchiveSelection, applyArchivePlacement } = await import('../src/lib/archive/auto-playoffs.ts')
-    const sel = await applyArchiveSelection(ACTOR, target.id)
-    const built = sel.ok
-      ? await applyArchivePlacement(ACTOR, target.id, { replaceDraft: true })
-      : { ok: false, error: sel.error, placed: 0 }
-    if (!built.ok) {
-      console.log(`  (skipped: ${built.error})`)
-      console.log('  (this Season\u2019s archived players are not accounts here, so there is no draw to reproduce)')
-    } else {
-    check('Build Playoff Bracket prepares the Season', built.ok, built.error)
-
-    /*
-     * Draw a bracket if Build did not.
-     *
-     * Build only generates when every archived playoff player is an entrant here; on a database
-     * missing most of the 2012 accounts it selects the field and stops. Place Entrants works on
-     * whatever bracket is in front of it, so the bracket is drawn directly and the placement is
-     * exercised for real rather than skipped.
-     */
-    if ((await prisma.seasonPlayoffMatch.count({ where: { seasonId: target.id, round: 1 } })) === 0) {
-      // Put everyone who IS here into the field, so there is a bracket to place onto.
-      await prisma.seasonEntrant.updateMany({ where: { seasonId: target.id }, data: { playoffIncluded: true } })
-      const { generateSeasonBracket } = await import('../src/lib/seasons/playoffs.ts')
-      const gen = await generateSeasonBracket(ACTOR, target.id)
-      console.log(`  (bracket drawn directly: ${gen.ok ? 'ok' : gen.error})`)
-    }
-
-    const plan = await previewPlacement(target.id)
-    if (isBlocked(plan) && /no draft bracket/i.test(plan.reason)) {
-      /*
-       * Not a failure — a limit of this database.
-       *
-       * Only the 2012-2014 Seasons carry recorded bracket positions, and they are empty shells here:
-       * no group stage, so no group-derived seeds, so `generateSeasonBracket` has nothing to draw.
-       * Reaching a real bracket would mean importing an entire Season inside a verify script, which
-       * would be testing the importer rather than this. Said out loud instead of skipped silently.
-       */
-      console.log('  (no bracket reachable: the exact-topology Seasons are empty shells on this database)')
-      console.log('  (the decision and refusal logic above is what carries the risk, and is covered)')
-    } else if (isBlocked(plan)) {
-      check('the placement plan is produced', false, plan.reason)
-    } else {
-      /*
-       * Nothing to seat is a fact about this database, not a fault.
-       *
-       * Placement compares the archived bracket positions with the entrants present and assigns
-       * accordingly — so when none of the archived playoff players has an account here, the correct
-       * answer is an empty plan and a full skip list. The assertions below only mean something when
-       * there is at least one player to place.
-       */
-      const exercisable = plan.place.length > 0
-      if (!exercisable) {
-        console.log(`  (nothing to seat: all ${plan.skipped.length} archived playoff players are missing accounts here)`)
-        console.log('  (the comparison ran correctly — it found no entrant to match, and said so for each)')
-      }
-      check('every archived player is accounted for, placed or explained',
-        plan.place.length + plan.skipped.length > 0,
-        `${plan.place.length} placed, ${plan.skipped.length} explained`)
-      check('every planned seat names a first-round match and a side',
-        plan.place.every((x) => x.matchNo >= 1 && (x.side === 'a' || x.side === 'b')))
-      check('no two seats are the same position',
-        new Set(plan.place.map((x) => `${x.matchNo}:${x.side}`)).size === plan.place.length)
-      check('no player is planned into two seats',
-        new Set(plan.place.map((x) => x.entrantId)).size === plan.place.length)
-      check('anyone it cannot confirm carries a reason, never a bare count',
-        plan.skipped.every((x) => !!x.reason && !!x.rawHandle))
-
-      const applied = await applyPlacement(ACTOR, target.id)
-      if (exercisable) {
-        check('it applies', applied.ok, applied.error)
-        check('...placing what it planned', applied.placed === plan.place.length,
-          `${applied.placed} of ${plan.place.length}`)
-        check('...and reporting the unconfirmed count it showed', applied.skipped === plan.skipped.length)
-      } else {
-        check('it refuses rather than writing an empty arrangement', !applied.ok)
-      }
-
-      // The bracket now says what the archive says.
-      const seats = await prisma.seasonPlayoffMatch.findMany({
-        where: { seasonId: target.id, round: 1 },
-        select: { slot: true, homeEntrantId: true, awayEntrantId: true },
-        orderBy: { slot: 'asc' },
-      })
-      const actual = new Map<string, number>()
-      for (const m of seats) {
-        if (m.homeEntrantId != null) actual.set(`${m.slot + 1}:a`, m.homeEntrantId)
-        if (m.awayEntrantId != null) actual.set(`${m.slot + 1}:b`, m.awayEntrantId)
-      }
-      const wrong = plan.place.filter((x) => actual.get(`${x.matchNo}:${x.side}`) !== x.entrantId)
-      check('every placed player is in the seat the archive recorded', wrong.length === 0,
-        wrong.map((x) => `${x.rawHandle}→${x.matchNo}${x.side}`).slice(0, 3).join(', '))
-      check('nobody appears on the bracket twice',
-        new Set([...actual.values()]).size === actual.size)
-
-      section('Running it again changes nothing')
-      const second = await previewPlacement(target.id)
-      check('a second preview finds everyone already seated',
-        !isBlocked(second) && second.place.every((x) => x.alreadyThere),
-        isBlocked(second) ? second.reason : `${second.place.filter((x) => !x.alreadyThere).length} still moving`)
-      const reapplied = await applyPlacement(ACTOR, target.id)
-      check('...and applying is harmless', reapplied.placed === applied.placed,
-        `${reapplied.placed} vs ${applied.placed}`)
-    }
-    }
-  } finally {
-    // Put the shell back: no bracket, no seeds, the state it was found in.
-    await prisma.seasonPlayoffMatch.deleteMany({ where: { seasonId: target.id } })
-    await prisma.seasonMatch.deleteMany({ where: { seasonId: target.id } })
-    await prisma.seasonStanding.deleteMany({ where: { group: { seasonId: target.id } } })
-    await prisma.seasonGroup.deleteMany({ where: { seasonId: target.id } })
-    if (hadEntrants === 0) {
-      // The shell had none before; Auto Add Entrants put them there and they go back out.
-      await prisma.seasonEntrant.deleteMany({ where: { seasonId: target.id } })
-    } else {
-      await prisma.seasonEntrant.updateMany({
-        where: { seasonId: target.id },
-        data: { playoffIncluded: false, playoffSeed: null },
-      })
-    }
-    await prisma.season.update({ where: { id: target.id }, data: { lifecycleState: before.lifecycleState } })
-    const left = await prisma.seasonPlayoffMatch.count({ where: { seasonId: target.id } })
-    const entrantsNow = await prisma.seasonEntrant.count({ where: { seasonId: target.id } })
-    const groupsNow = await prisma.seasonGroup.count({ where: { seasonId: target.id } })
-    check('the Season is left exactly as it was found',
-      left === 0 && entrantsNow === hadEntrants && groupsNow === 0
-      && (await prisma.season.findUniqueOrThrow({ where: { id: target.id }, select: { lifecycleState: true } })).lifecycleState === before.lifecycleState)
+/** A four-player bracket with every position recorded — the 'exact' case, invented for this run. */
+const synthetic = (): ManifestEntry => {
+  const people = [0, 1, 2, 3].map((i) => ({
+    sourceId: `F${i}`,
+    rawHandle: `${HANDLE_PREFIX}${i}`,
+    normalizedHandle: `${HANDLE_PREFIX}${i}`,
+    rawName: `Fixture ${i}`,
+    normalizedName: `fixture ${i}`,
+    sourceNote: null,
+    groupName: 'A',
+    slot: i,
+  }))
+  return {
+    templateKey: FIXTURE_KEY,
+    sourceKey: FIXTURE_KEY,
+    competitionSlug: '8brcam',
+    competitionYear: FIXTURE_YEAR,
+    seasonNumber: 1,
+    division: 'A',
+    rawSeasonTitle: `Fixture ${FIXTURE_YEAR}`,
+    rawDivision: 'A',
+    format: 'GROUPS_THEN_PLAYOFFS',
+    competitionMonth: null,
+    gamesPerMatch: 10,
+    groupNames: ['A'],
+    participants: people,
+    matches: [],
+    standings: [],
+    groupAssignments: 'complete',
+    exactResults: 'missing',
+    sharedGroupStageSourceKey: null,
+    ambiguousPlacements: [],
+    playoff: {
+      placement: 'exact',
+      sourceConfidence: 'fixture',
+      format: 'single-elimination',
+      bracketSize: 4,
+      participants: people.map((p, i) => ({
+        sourceId: p.sourceId,
+        rawHandle: p.rawHandle,
+        normalizedHandle: p.normalizedHandle,
+        seed: i + 1,
+        firstRound: 1,
+        bye: false,
+        matchNo: i < 2 ? 1 : 2,
+        side: i % 2 === 0 ? 'a' : 'b',
+      })),
+      championSourceId: 'F0',
+      runnerUpSourceId: 'F1',
+      unresolved: [],
+    },
+    unresolved: [],
+    provenance: {
+      sourceFile: 'fixture', sourceSection: 'fixture',
+      sourceYear: FIXTURE_YEAR, sourceMonth: null, confidence: 'fixture',
+    },
   }
+}
+
+const entry = synthetic()
+const source = (key: string) => (key === FIXTURE_KEY ? entry : null)
+
+try {
+  const series = await prisma.competitionSeries.create({
+    data: { name: `Fixture Series ${RUN}`, shortName: `FIX${RUN}`.slice(0, 20), slug: `fixture-series-${RUN}` },
+    select: { id: true },
+  })
+  seriesId = series.id
+
+  const season = await prisma.season.create({
+    data: {
+      number: 1,
+      competitionYear: FIXTURE_YEAR,
+      competitionSeriesId: series.id,
+      slug: `fixture-season-${RUN}`,
+      division: 'A',
+      archiveTemplateKey: FIXTURE_KEY,
+      lifecycleState: 'PLAYOFF_SETUP',
+      reconstruction: true,
+      publiclyVisible: false,
+      countsTowardRankings: false,
+    },
+    select: { id: true },
+  })
+  fixtureSeasonId = season.id
+  check('the fixture Season is not archive-linked to any real template',
+    manifestEntry(FIXTURE_KEY) === null)
+
+  for (const p of entry.participants) {
+    const player = await prisma.player.create({
+      data: {
+        cueverseId: p.rawHandle,
+        cueverseIdNormalized: p.normalizedHandle,
+        primaryName: p.rawName,
+      },
+      select: { id: true },
+    })
+    playerIds.push(player.id)
+    await prisma.seasonEntrant.create({
+      data: {
+        seasonId: season.id,
+        playerId: player.id,
+        username: p.rawHandle,
+        cueverseId: p.rawHandle,
+        displayName: p.rawName,
+        addedByAdmin: true,
+      },
+    })
+  }
+
+  /*
+   * The group stage the seeds come from.
+   *
+   * Playoff seeding is read from closed group standings, not from the entrant rows, so a fixture
+   * without a group stage has no seeds and the bracket refuses to generate. Building one here keeps
+   * the test on the same path a real Season takes.
+   */
+  const group = await prisma.seasonGroup.create({
+    data: { seasonId: season.id, code: 'A', name: 'A', ordinal: 1, published: true },
+    select: { id: true },
+  })
+  const seatedEntrants = await prisma.seasonEntrant.findMany({
+    where: { seasonId: season.id }, select: { id: true, username: true }, orderBy: { id: 'asc' },
+  })
+  for (const [i, e] of seatedEntrants.entries()) {
+    await prisma.seasonGroupPlayer.create({ data: { groupId: group.id, entrantId: e.id, seed: i + 1 } })
+    await prisma.seasonStanding.create({
+      data: {
+        seasonId: season.id, groupId: group.id, entrantId: e.id, username: e.username,
+        played: 3, wins: 3 - i, losses: i, points: (3 - i) * 3, rank: i + 1, qualified: true,
+      },
+    })
+  }
+
+  // ── The behaviour under test ──────────────────────────────────────────────────────────────────
+  const preview = await previewPlayoffBracket(season.id, source)
+  check('a recorded topology previews without being blocked', !isBlocked(preview),
+    isBlocked(preview) ? preview.reason : undefined)
+
+  const selected = await applyArchiveSelection(ACTOR, season.id, source)
+  check('the recorded field is selected', selected.ok !== false, JSON.stringify(selected).slice(0, 120))
+
+  const placed = await applyArchivePlacement(ACTOR, season.id, {}, source)
+  check('selection actually changed the entrants', (selected as { changed?: number }).changed === 4,
+    JSON.stringify(selected).slice(0, 140))
+  check('placement succeeded', (placed as { ok?: boolean }).ok !== false,
+    JSON.stringify(placed).slice(0, 200))
+  const round1 = await prisma.seasonPlayoffMatch.count({ where: { seasonId: season.id, round: 1 } })
+  check('a four-player bracket produces two round-one matches', round1 === 2, String(round1))
+
+  const seated = await prisma.seasonPlayoffMatch.findMany({
+    where: { seasonId: season.id, round: 1 },
+    select: { homeEntrantId: true, awayEntrantId: true },
+  })
+  const filled = seated.flatMap((m) => [m.homeEntrantId, m.awayEntrantId]).filter(Boolean).length
+  check('every recorded position is seated', filled === 4, String(filled))
+
+  const applied = await applyPlacement(ACTOR, season.id, source)
+  const again = await applyPlacement(ACTOR, season.id, source)
+  check('applying a second time changes nothing', again.placed === applied.placed,
+    `${again.placed} vs ${applied.placed}`)
+  check('placement reports what it did', typeof placed === 'object')
+} finally {
+  /*
+   * Teardown by id, never by count.
+   *
+   * The previous version's `if (hadEntrants === 0)` is exactly how four rows survived on a real
+   * Season. Everything here was created by this run and is removed unconditionally, even if an
+   * assertion above threw.
+   */
+  if (fixtureSeasonId !== null) {
+    await prisma.seasonPlayoffMatch.deleteMany({ where: { seasonId: fixtureSeasonId } })
+    await prisma.seasonStanding.deleteMany({ where: { seasonId: fixtureSeasonId } })
+    await prisma.seasonMatch.deleteMany({ where: { seasonId: fixtureSeasonId } })
+    await prisma.seasonGroupPlayer.deleteMany({ where: { group: { seasonId: fixtureSeasonId } } })
+    await prisma.seasonGroup.deleteMany({ where: { seasonId: fixtureSeasonId } })
+    await prisma.seasonEntrant.deleteMany({ where: { seasonId: fixtureSeasonId } })
+    await prisma.ratingLedger.deleteMany({ where: { seasonId: fixtureSeasonId } })
+    await prisma.auditLog.deleteMany({ where: { entity: 'Season', entityId: String(fixtureSeasonId) } })
+    await prisma.season.delete({ where: { id: fixtureSeasonId } })
+  }
+  if (playerIds.length > 0) {
+    await prisma.playerAlias.deleteMany({ where: { playerId: { in: playerIds } } })
+    await prisma.player.deleteMany({ where: { id: { in: playerIds } } })
+  }
+  if (seriesId !== null) await prisma.competitionSeries.delete({ where: { id: seriesId } })
+
+  section('The fixture leaves nothing behind')
+  const residue = {
+    seasons: await prisma.season.count({ where: { competitionYear: FIXTURE_YEAR } }),
+    templateKeys: await prisma.season.count({ where: { archiveTemplateKey: { startsWith: 'fixture-' } } }),
+    entrants: fixtureSeasonId === null ? 0 : await prisma.seasonEntrant.count({ where: { seasonId: fixtureSeasonId } }),
+    groups: fixtureSeasonId === null ? 0 : await prisma.seasonGroup.count({ where: { seasonId: fixtureSeasonId } }),
+    matches: fixtureSeasonId === null ? 0 : await prisma.seasonMatch.count({ where: { seasonId: fixtureSeasonId } }),
+    standings: fixtureSeasonId === null ? 0 : await prisma.seasonStanding.count({ where: { seasonId: fixtureSeasonId } }),
+    playoff: fixtureSeasonId === null ? 0 : await prisma.seasonPlayoffMatch.count({ where: { seasonId: fixtureSeasonId } }),
+    audit: fixtureSeasonId === null ? 0 : await prisma.auditLog.count({ where: { entity: 'Season', entityId: String(fixtureSeasonId) } }),
+    players: await prisma.player.count({ where: { cueverseIdNormalized: { startsWith: 'fixture.pe.' } } }),
+    series: await prisma.competitionSeries.count({ where: { slug: { startsWith: 'fixture-series-' } } }),
+  }
+  const total = Object.values(residue).reduce((a, b) => a + b, 0)
+  check('no synthetic Season, entrant, group, match, standing, playoff, audit or Player remains',
+    total === 0, JSON.stringify(residue))
+
+  // The real archive is exactly as it was found.
+  const realNow = await prisma.season.count({ where: { archiveTemplateKey: { not: null } } })
+  check('no archive-linked Season was created or removed', realNow === linked.length,
+    `${realNow} vs ${linked.length}`)
+  const dirty = await prisma.season.count({
+    where: {
+      archiveTemplateKey: { not: null },
+      lifecycleState: { notIn: ['COMPLETED'] },
+      OR: [{ groups: { some: {} } }, { matches: { some: {} } }, { standings: { some: {} } }],
+    },
+  })
+  check('no unfinished archive Season gained group children', dirty === 0, String(dirty))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
