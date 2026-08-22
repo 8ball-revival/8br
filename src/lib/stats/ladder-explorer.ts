@@ -115,6 +115,8 @@ export interface ExplorerRow {
   longestStreak: number
 
   competitionsEntered: number
+  /** Distinct Seasons entered and not withdrawn from — how many Seasons this player took part in. */
+  seasonsPlayed: number
   forfeits: number
   idleDays: number | null
 
@@ -530,7 +532,16 @@ export async function computeExplorer(
     quals AS (
       SELECT e."playerId",
              count(*) FILTER (WHERE e."qualification" IN ('AUTOMATIC', 'WILDCARD'))::int AS qualifications,
-             count(*)::int AS season_entries
+             count(*)::int AS season_entries,
+             /*
+              * Seasons the player actually took part in.
+              *
+              * DISTINCT on the Season, because a divisional pair can put one person in two entrant
+              * rows for what a reader would call one Season. WITHDRAWN is excluded: pulling out
+              * before it started is the opposite of taking part, and counting it would inflate the
+              * figure for exactly the people who played least.
+              */
+             count(DISTINCT e."seasonId") FILTER (WHERE e."status" <> 'WITHDRAWN')::int AS seasons_played
         FROM "public"."season_entrant" e
        WHERE e."playerId" IS NOT NULL
        GROUP BY e."playerId"
@@ -544,7 +555,7 @@ export async function computeExplorer(
       coalesce(ru.runner_ups, 0)::int        AS runner_ups,
       coalesce(tc.tournament_titles, 0)::int AS tournament_titles,
       g.group_points, g.groups_entered, g.first_places, g.perfect_stages,
-      q.qualifications, q.season_entries,
+      q.qualifications, q.season_entries, q.seasons_played,
       coalesce(al.alias_list, ARRAY[]::text[]) AS aliases,
       p."primaryName", p."cueverseId", coalesce(p."active", true) AS active
     FROM agg a
@@ -619,6 +630,7 @@ export async function computeExplorer(
       currentStreak: lastResult === 'WIN' ? lastRun : lastResult === 'LOSS' ? -lastRun : 0,
       longestStreak: num(r.longest_win_run),
       competitionsEntered: num(r.competitions),
+      seasonsPlayed: num(r.seasons_played),
       forfeits: num(r.forfeits),
       idleDays: lastPlayed
         ? Math.max(0, Math.floor((now.getTime() - lastPlayed.getTime()) / 86_400_000))

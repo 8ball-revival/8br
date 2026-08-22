@@ -97,6 +97,12 @@ export const COLUMNS: ColumnDef[] = [
     format: (r) => (r.currentStreak === 0 ? '—' : signed(r.currentStreak)),
   },
   {
+    key: 'seasonsPlayed', label: 'Seasons Played', short: 'Seasons Played', group: 'match', align: 'right',
+    tooltip: 'How many Seasons this player took part in. Counts each Season once — a divisional pair is one Season, not two — and does not count a Season they withdrew from before it started.',
+    value: (r) => r.seasonsPlayed,
+    format: (r) => dash(r.seasonsPlayed),
+  },
+  {
     key: 'groupRecord', label: 'Group Record', short: 'Groups W–L–D', group: 'match', align: 'right',
     /*
      * GROUP PLAY ONLY.
@@ -485,6 +491,7 @@ export interface RankingsState {
  */
 export const OPTIONAL_COLUMN_KEYS = [
   'record', 'matchWinPct', 'currentStreak',
+  'seasonsPlayed',
   'groupRecord', 'playoffRecord', 'cupRecord',
   'seasonTitles', 'tournamentTitles',
 ] as const

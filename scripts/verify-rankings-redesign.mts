@@ -115,7 +115,7 @@ section('The page defaults to the whole archive with every optional column')
 
   const keys = visibleColumnKeys(d)
   check('the default column order is the specified one',
-    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,groupRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
+    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonsPlayed,groupRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
     keys.join(','))
   check('Rank is first', keys[0] === 'rank')
   check('Player is second', keys[1] === 'player')
@@ -279,7 +279,8 @@ section('Applied filters appear as chips; defaults do not')
   check('the minimum is a chip', labels.includes('Minimum Matches: 10'))
   check('the achievement is a chip', labels.includes('Season Champions'))
   check('hidden columns are ONE chip', labels.filter((l) => l.startsWith('Columns:')).length === 1)
-  check('...that counts them', labels.includes('Columns: 7 hidden'), labels.join(' | '))
+  check('...that counts them',
+    labels.includes(`Columns: ${OPTIONAL_COLUMN_KEYS.length - 1} hidden`), labels.join(' | '))
 
   // A single year reads as a year, not as a range from itself to itself.
   check('one year reads as one year',
