@@ -578,6 +578,9 @@ async function settleByes(tx: Prisma.TransactionClient, seasonId: number): Promi
     for (const m of all) {
       // A decided tie is done, and a tie that feeds nowhere has no round to advance into.
       if (m.winnerEntrantId != null || m.feedsMatchId == null) continue
+      // A flagged tie holds a result nobody has confirmed yet. Advancing from it would carry an
+      // unreviewed outcome further into the bracket.
+      if (m.needsReview) continue
       const homeReal = m.homeEntrantId != null
       const awayReal = m.awayEntrantId != null
       const homeBye = !homeReal && isEntrySlot(m.id, 0)
@@ -658,7 +661,7 @@ export async function recordSeasonPlayoffResult(
   homeGames: number,
   awayGames: number,
   opts: { confirmRebuild?: boolean; note?: string | null; expectedUpdatedAt?: string } = {},
-): Promise<{ ok: boolean; error?: string; conflict?: boolean; warning?: DownstreamWarning }> {
+): Promise<{ ok: boolean; error?: string; conflict?: boolean; warning?: DownstreamWarning; preserved?: number; needsReview?: number }> {
   const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId } })
   if (!m) return { ok: false, error: 'Match not found.' }
   // Stale-edit protection: reject if the matchup changed after the admin loaded it.
@@ -688,9 +691,14 @@ export async function recordSeasonPlayoffResult(
   const loserName = winnerHome ? m.awayUsername! : m.homeUsername!
   const loserSeed = winnerHome ? m.awaySeed : m.homeSeed
 
+  let reconciled = { preserved: 0, flagged: 0 }
   await prisma.$transaction(async (tx) => {
-    if (winnerChanged) await clearDownstream(tx, m.seasonId, m)
-    await tx.seasonPlayoffMatch.update({ where: { id: matchId }, data: { homeGames, awayGames, winnerEntrantId: winnerId, status: 'COMPLETED', verification: 'VERIFIED', completedAt: new Date() } })
+    const { snapshotAndClearDownstream, reconcileDownstream } = await import('./playoff-correction')
+    // Remembered before the chain is cleared, so a downstream result between two players the
+    // correction does not touch can be put back rather than re-entered by hand.
+    const snapshots = winnerChanged ? await snapshotAndClearDownstream(tx, m.seasonId, m) : []
+    // Entering a real result is exactly what clears a review flag on this match.
+    await tx.seasonPlayoffMatch.update({ where: { id: matchId }, data: { homeGames, awayGames, winnerEntrantId: winnerId, status: 'COMPLETED', verification: 'VERIFIED', completedAt: new Date(), needsReview: false } })
     // Re-advance only when the winner changed (or this is the first result); a same-winner score edit
     // leaves the already-seated downstream players untouched.
     if (!wasDecided || winnerChanged) {
@@ -698,15 +706,21 @@ export async function recordSeasonPlayoffResult(
       if (m.loserFeedsMatchId != null) await placeInto(tx, m.loserFeedsMatchId, m.loserFeedsSlot ?? 0, { id: loserId, name: loserName, seed: loserSeed })
       await settleByes(tx, m.seasonId)
     }
+    // After the new winner has advanced: restore what still describes a real matchup, flag the rest.
+    if (snapshots.length) reconciled = await reconcileDownstream(tx, snapshots)
     await recordAudit(actor, {
       action: wasDecided ? 'season.playoff.correct' : 'season.playoff.result',
       entity: 'Season', entityId: m.seasonId,
       oldValue: wasDecided ? { matchId, home: m.homeGames, away: m.awayGames, winnerEntrantId: m.winnerEntrantId } : undefined,
-      newValue: { matchId, home: homeGames, away: awayGames, winnerEntrantId: winnerId, winnerChanged },
+      newValue: {
+        matchId, home: homeGames, away: awayGames, winnerEntrantId: winnerId, winnerChanged,
+        // The impact, in the audit trail: how much survived and how much a person now has to settle.
+        downstreamPreserved: reconciled.preserved, downstreamNeedsReview: reconciled.flagged,
+      },
       reason: opts.note?.trim() || undefined,
     }, tx)
   })
-  return { ok: true }
+  return { ok: true, preserved: reconciled.preserved, needsReview: reconciled.flagged }
 }
 
 /** Every match reachable downstream of `m` (winner + DE loser paths). */
@@ -733,52 +747,6 @@ async function downstreamMatches(seasonId: number, m: { feedsMatchId: number | n
  *  path. A slot seated from OUTSIDE this path (a bye winner, a match on another branch) is left in
  *  place — so correcting one result never evicts an unrelated player who happens to share the next
  *  matchup (the georgiapoolking→missy / travis-bye bug). */
-async function clearDownstream(
-  tx: Prisma.TransactionClient,
-  seasonId: number,
-  origin: { feedsMatchId: number | null; feedsSlot: number | null; loserFeedsMatchId: number | null; loserFeedsSlot: number | null },
-): Promise<void> {
-  const all = await tx.seasonPlayoffMatch.findMany({ where: { seasonId }, select: { id: true, feedsMatchId: true, feedsSlot: true, loserFeedsMatchId: true, loserFeedsSlot: true } })
-  const byId = new Map(all.map((x) => [x.id, x]))
-
-  // Matches whose RESULTS become invalid (everything reachable downstream via winner + DE-loser edges).
-  const affected = new Set<number>()
-  const queue = [origin.feedsMatchId, origin.loserFeedsMatchId].filter((x): x is number => x != null)
-  while (queue.length) {
-    const id = queue.shift()!
-    if (affected.has(id)) continue
-    affected.add(id)
-    const n = byId.get(id)
-    if (n?.feedsMatchId != null) queue.push(n.feedsMatchId)
-    if (n?.loserFeedsMatchId != null) queue.push(n.loserFeedsMatchId)
-  }
-
-  // Incoming slots to clear = every edge EMITTED by the origin match or an affected match. A slot fed
-  // from outside this set is preserved (it holds a player unaffected by this correction).
-  const clear = new Map<number, Set<number>>()
-  const mark = (mid: number | null, slot: number | null) => { if (mid == null) return; if (!clear.has(mid)) clear.set(mid, new Set()); clear.get(mid)!.add(slot ?? 0) }
-  mark(origin.feedsMatchId, origin.feedsSlot)
-  mark(origin.loserFeedsMatchId, origin.loserFeedsSlot)
-  for (const id of affected) {
-    const n = byId.get(id)
-    if (!n) continue
-    mark(n.feedsMatchId, n.feedsSlot)
-    mark(n.loserFeedsMatchId, n.loserFeedsSlot)
-  }
-
-  for (const id of affected) {
-    const slots = clear.get(id) ?? new Set<number>()
-    await tx.seasonPlayoffMatch.update({
-      where: { id },
-      data: {
-        winnerEntrantId: null, status: 'SCHEDULED', verification: 'UNVERIFIED', homeGames: null, awayGames: null, completedAt: null,
-        ...(slots.has(0) ? { homeEntrantId: null, homeUsername: null, homeSeed: null } : {}),
-        ...(slots.has(1) ? { awayEntrantId: null, awayUsername: null, awaySeed: null } : {}),
-      },
-    })
-  }
-}
-
 // ---- Renderer view --------------------------------------------------------
 
 function columnName(round: number, totalRounds: number): string {
@@ -811,7 +779,7 @@ export async function recordSeasonPlayoffForfeit(
   matchId: number,
   forfeiter: 'home' | 'away',
   opts: { confirmRebuild?: boolean; note?: string | null; expectedUpdatedAt?: string } = {},
-): Promise<{ ok: boolean; error?: string; conflict?: boolean; warning?: DownstreamWarning }> {
+): Promise<{ ok: boolean; error?: string; conflict?: boolean; warning?: DownstreamWarning; preserved?: number; needsReview?: number }> {
   const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId } })
   if (!m) return { ok: false, error: 'Match not found.' }
   if (opts.expectedUpdatedAt && m.updatedAt.toISOString() !== opts.expectedUpdatedAt) {
@@ -838,15 +806,17 @@ export async function recordSeasonPlayoffForfeit(
     if (affected.length) return { ok: false, warning: { affected: affected.map((x) => ({ id: x.id, label: x.label ?? `Round ${x.round}` })) } }
   }
 
+  let reconciledFf = { preserved: 0, flagged: 0 }
   await prisma.$transaction(async (tx) => {
-    if (winnerChanged) await clearDownstream(tx, m.seasonId, m)
+    const { snapshotAndClearDownstream, reconcileDownstream } = await import('./playoff-correction')
+    const snapshots = winnerChanged ? await snapshotAndClearDownstream(tx, m.seasonId, m) : []
     await tx.seasonPlayoffMatch.update({
       where: { id: matchId },
       data: {
         // No games, in either column: the match produced none.
         homeGames: null, awayGames: null,
         winnerEntrantId: winnerId, forfeitEntrantId: forfeiterId,
-        status: 'FORFEIT', verification: 'VERIFIED', completedAt: new Date(),
+        status: 'FORFEIT', verification: 'VERIFIED', completedAt: new Date(), needsReview: false,
       },
     })
     if (!wasDecided || winnerChanged) {
@@ -854,15 +824,19 @@ export async function recordSeasonPlayoffForfeit(
       if (m.loserFeedsMatchId != null) await placeInto(tx, m.loserFeedsMatchId, m.loserFeedsSlot ?? 0, { id: forfeiterId, name: loserName, seed: loserSeed })
       await settleByes(tx, m.seasonId)
     }
+    if (snapshots.length) reconciledFf = await reconcileDownstream(tx, snapshots)
     await recordAudit(actor, {
       action: wasDecided ? 'season.playoff.correct' : 'season.playoff.forfeit',
       entity: 'Season', entityId: m.seasonId,
       oldValue: wasDecided ? { matchId, home: m.homeGames, away: m.awayGames, winnerEntrantId: m.winnerEntrantId } : undefined,
-      newValue: { matchId, forfeit: forfeiter, winnerEntrantId: winnerId, winnerChanged },
+      newValue: {
+        matchId, forfeit: forfeiter, winnerEntrantId: winnerId, winnerChanged,
+        downstreamPreserved: reconciledFf.preserved, downstreamNeedsReview: reconciledFf.flagged,
+      },
       reason: opts.note?.trim() || undefined,
     }, tx)
   })
-  return { ok: true }
+  return { ok: true, preserved: reconciledFf.preserved, needsReview: reconciledFf.flagged }
 }
 
 export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRound[]> {

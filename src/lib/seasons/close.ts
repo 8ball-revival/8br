@@ -52,6 +52,71 @@ export async function seasonCloseSummary(seasonId: number): Promise<SeasonCloseS
  * diamond Season Championship award is derived from completed Seasons (computeSeasonTrophies), so no
  * separate award row is written here. `ladderAppliedAt` guards idempotency.
  */
+/**
+ * Whether the Season can be closed, and what closing it would record.
+ *
+ * ── Read-only, and complete ──────────────────────────────────────────────────────────────────────
+ * The button is drawn from this and the confirmation is written from it, so both describe the same
+ * decision. It lists every unmet condition rather than the first, because a Season that is not ready
+ * usually has one obvious problem and one nobody has noticed.
+ */
+export interface CompletionReadiness {
+  ok: boolean
+  problems: string[]
+  championName: string | null
+  runnerUpName: string | null
+  finalScore: string | null
+  /** The Final was a walkover, so the title is awarded without a competitive win. */
+  byForfeit: boolean
+  needsReview: number
+  alreadyCompleted: boolean
+}
+
+export async function completionReadiness(seasonId: number): Promise<CompletionReadiness> {
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId }, select: { lifecycleState: true },
+  })
+  const problems: string[] = []
+  const state = String(season?.lifecycleState ?? '')
+  const alreadyCompleted = state === 'COMPLETED'
+
+  if (!season) problems.push('That Season no longer exists.')
+  else if (alreadyCompleted) problems.push('This Season is already completed.')
+  else if (state !== 'PLAYOFFS_LIVE') problems.push('The playoffs are not live yet.')
+
+  const needsReview = await prisma.seasonPlayoffMatch.count({ where: { seasonId, needsReview: true } })
+  if (needsReview > 0) {
+    problems.push(
+      `${needsReview} playoff match${needsReview === 1 ? '' : 'es'} need${needsReview === 1 ? 's' : ''} review after a correction. `
+      + 'Re-enter the result to clear it — the Season cannot be completed while a result is unattributed.',
+    )
+  }
+
+  const champ = await seasonChampion(seasonId)
+  if (!champ) problems.push('The Final has no winner yet.')
+
+  /*
+   * Is the Final a walkover?
+   *
+   * Asked of the canonical Final — highest round, lowest slot — through the same helper completion
+   * uses to write the marker, so the confirmation cannot promise one thing and the transaction
+   * record another. A forfeited SEMI-final is not this: only the Final decides the marker.
+   */
+  const { finalsForfeitOf } = await import('@/lib/competition/finals-forfeit')
+  const byForfeit = (await finalsForfeitOf(prisma, 'season', seasonId)) === true
+
+  return {
+    ok: problems.length === 0,
+    problems,
+    championName: champ?.championName ?? null,
+    runnerUpName: champ?.runnerUpName ?? null,
+    finalScore: champ?.finalScore ?? null,
+    byForfeit,
+    needsReview,
+    alreadyCompleted,
+  }
+}
+
 export async function closeSeason(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
   if (!s) return { ok: false, error: 'Season not found.' }
@@ -60,7 +125,25 @@ export async function closeSeason(actor: Actor, seasonId: number): Promise<{ ok:
   if (!champ) return { ok: false, error: 'Close Season is unavailable until the playoff bracket produces one champion.' }
   const champEnt = await prisma.seasonEntrant.findUnique({ where: { id: champ.championId }, select: { playerId: true, cueverseId: true } })
 
+  let refusal: string | null = null
   await prisma.$transaction(async (tx) => {
+    /*
+     * Re-checked here, holding the transaction.
+     *
+     * Completion awards a title and rewrites the ranking ledger. Between the confirmation being read
+     * and accepted, another administrator can correct a result and leave a match unattributed, so
+     * the condition that decides is the one evaluated against the rows being written.
+     */
+    const stillLive = await tx.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+    if (stillLive?.lifecycleState !== 'PLAYOFFS_LIVE') {
+      refusal = 'This Season is no longer in the live playoffs phase.'
+      return
+    }
+    const flagged = await tx.seasonPlayoffMatch.count({ where: { seasonId, needsReview: true } })
+    if (flagged > 0) {
+      refusal = `${flagged} playoff match${flagged === 1 ? '' : 'es'} still need review. Re-enter the result before completing the Season.`
+      return
+    }
     await tx.season.update({
       where: { id: seasonId },
       data: { championName: champ.championName, championHandle: champEnt?.cueverseId ?? null, championPlayerId: champEnt?.playerId ?? null, runnerUpName: champ.runnerUpName, finalScore: champ.finalScore, ladderAppliedAt: new Date() },
@@ -82,5 +165,6 @@ export async function closeSeason(actor: Actor, seasonId: number): Promise<{ ok:
     const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
     await rebuildRatingLedger(tx)
   })
+  if (refusal) return { ok: false, error: refusal }
   return { ok: true }
 }

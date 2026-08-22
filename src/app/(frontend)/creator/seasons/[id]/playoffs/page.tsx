@@ -6,10 +6,12 @@ import { CreatorSettings } from '@/components/creator/settings-panel'
 import { PlayoffWorkspace } from '@/components/creator/playoff-workspace'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { PlayoffScoring, ChampionBanner, NoBracketYet, ReviewWarning } from '@/components/creator/playoff-scoring'
+import { SeasonCompletion } from '@/components/creator/season-completion'
 import { loadSeasonStage } from '@/lib/creator/season-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
 import { loadSeasonSeeding, seasonChampion } from '@/lib/seasons/playoffs'
 import { playoffScoringRounds, playoffNeedsReviewCount } from '@/lib/seasons/playoff-scoring-view'
+import { completionReadiness } from '@/lib/seasons/close'
 import { bracketTopology, startReadiness } from '@/lib/seasons/playoff-topology'
 import { playoffBracketAvailability, placementAvailability } from '@/lib/archive/auto-playoffs'
 import { prisma } from '@/lib/prisma'
@@ -84,11 +86,12 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
 
   // ── Live: the administrative scoring board ────────────────────────────────────────────────────
   if (state === 'PLAYOFFS_LIVE' || state === 'COMPLETED') {
-    const [rounds, needsReview, champion, season] = await Promise.all([
+    const [rounds, needsReview, champion, season, readiness] = await Promise.all([
       playoffScoringRounds(ctx.id),
       playoffNeedsReviewCount(ctx.id),
       seasonChampion(ctx.id),
       prisma.season.findUniqueOrThrow({ where: { id: ctx.id }, select: { finalsForfeit: true } }),
+      completionReadiness(ctx.id),
     ])
     const completed = state === 'COMPLETED'
 
@@ -109,6 +112,7 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
           </p>
         )}
         {rounds.length === 0 ? <NoBracketYet /> : <PlayoffScoring seasonId={ctx.id} rounds={rounds} />}
+        {!completed && <SeasonCompletion seasonId={ctx.id} readiness={readiness} />}
       </div>,
     )
   }

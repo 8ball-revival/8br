@@ -350,6 +350,23 @@ export async function recordSeasonPlayoffForfeitAction(
   return { ok: true, message: 'Forfeit recorded.' }
 }
 
+/** What Close Season would record, and every reason it cannot yet. Read-only. */
+export async function previewCompletionAction(seasonId: number): Promise<import('./close').CompletionReadiness> {
+  await requireCapability('manage_competitions')
+  const { completionReadiness } = await import('./close')
+  return completionReadiness(seasonId)
+}
+
+/** The correction impact for one playoff match, before anything is written. Read-only. */
+export async function previewCorrectionAction(
+  matchId: number,
+  proposed: { kind: 'score'; homeGames: number; awayGames: number } | { kind: 'forfeit'; forfeiter: 'home' | 'away' },
+): Promise<import('./playoff-correction').CorrectionImpact | { error: string }> {
+  await requireCapability('edit_results')
+  const { correctionImpact } = await import('./playoff-correction')
+  return correctionImpact(matchId, proposed)
+}
+
 export async function closeSeasonAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await closeSeason(actor, seasonId)
