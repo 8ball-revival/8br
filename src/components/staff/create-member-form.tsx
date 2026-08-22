@@ -13,10 +13,16 @@ const input =
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /**
- * "Create New Member" — an inline panel on the Member Management page, built for entering a roster
- * in one sitting rather than one person at a time.
+ * The new-member form on the Member Management page, built for entering a roster in one sitting
+ * rather than one person at a time.
  *
- * On success the panel STAYS OPEN, clears, and puts the cursor back in the CueVerse ID field, so
+ * ── Why there is no button in front of it ────────────────────────────────────────────────────────
+ * Adding members IS the page. A button that revealed this form put one click in front of the only
+ * thing anybody comes here to do, and — worse for a long roster — gave the form a hidden state to
+ * fall back into. It is rendered permanently now: it cannot collapse, and there is no state in which
+ * the page is showing a control instead of the work.
+ *
+ * On success the form clears, and puts the cursor back in the CueVerse ID field, so
  * thirty names are thirty type-Enter cycles rather than thirty round trips through the button. The
  * member list below refreshes each time, and a running tally of who was added this sitting sits in
  * the panel so it is obvious where you are in a long list.
@@ -29,9 +35,8 @@ const input =
  * New accounts are always created as `member`. Promoting someone is a separate, Owner-gated action
  * in Staff Management — minting staff is deliberately not possible from here.
  */
-export function CreateMemberButton() {
+export function CreateMemberForm() {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /** Who was added since the panel was opened — the progress marker for a long roster. */
@@ -47,16 +52,16 @@ export function CreateMemberButton() {
     setError(null)
   }
 
-  function openPanel() {
-    setAdded([])
+  /*
+   * Clear, not Cancel.
+   *
+   * There is nothing to cancel out of any more — the form is always here. What somebody actually
+   * wants at this point is an empty form, so that is what the control does, and the running tally of
+   * who was added stays put because it is a record of the sitting rather than part of the entry.
+   */
+  function clearForm() {
     clearFields()
-    setOpen(true)
-  }
-
-  function closePanel() {
-    setOpen(false)
-    setAdded([])
-    clearFields()
+    cueRef.current?.focus()
   }
 
   async function submit() {
@@ -84,24 +89,13 @@ export function CreateMemberButton() {
   }
 
   return (
-    <div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => (open ? closePanel() : openPanel())}
-          aria-expanded={open}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <UserPlus className="size-4" aria-hidden />
-          Create New Member
-        </button>
-      </div>
-
-      {open && (
-        <div className="mt-4 grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-semibold text-foreground">New member account</p>
+            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <UserPlus className="size-4 text-muted-foreground" aria-hidden />
+              New member account
+            </p>
             {added.length > 0 && (
               <p className="text-xs font-semibold text-success" aria-live="polite">
                 {added.length} added
@@ -169,11 +163,11 @@ export function CreateMemberButton() {
               </button>
               <button
                 type="button"
-                onClick={closePanel}
-                disabled={pending}
-                className="rounded-md border border-border px-4 py-2 text-sm font-semibold"
+                onClick={clearForm}
+                disabled={pending || (!cueverseId && !preferredName)}
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold disabled:opacity-50"
               >
-                {added.length > 0 ? 'Done' : 'Cancel'}
+                Clear
               </button>
             </div>
           </form>
@@ -197,8 +191,6 @@ export function CreateMemberButton() {
 
         {/* Beside the form, not under it: a duplicate found after the account exists is a merge. */}
         <DuplicatePanel cueverseId={cueverseId} preferredName={preferredName} />
-        </div>
-      )}
     </div>
   )
 }

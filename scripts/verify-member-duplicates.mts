@@ -43,7 +43,7 @@ section('Handles are compared the way a person would compare them')
 
 section('The form no longer asks for a password')
 {
-  const form = readFileSync('src/components/staff/create-member-button.tsx', 'utf8')
+  const form = readFileSync('src/components/staff/create-member-form.tsx', 'utf8')
   check('there is no temporary-password input', !/Temporary password/.test(form))
   check('the fixed password is still stated in one line', form.includes('{TEMPORARY_PASSWORD}'))
   check('every account still starts on the shared password', TEMPORARY_PASSWORD === 'Luna8ear')
@@ -63,7 +63,7 @@ section('The panel is gated and rendered beside the form')
   check('...before it reads anything',
     body.indexOf('requireCapability') < body.indexOf('findPossibleDuplicates('))
 
-  const form = readFileSync('src/components/staff/create-member-button.tsx', 'utf8')
+  const form = readFileSync('src/components/staff/create-member-form.tsx', 'utf8')
   check('the panel is rendered', form.includes('<DuplicatePanel'))
   check('...beside the form, not under it', form.includes('lg:grid-cols-[minmax(0,1fr)_20rem]'))
   check('it reacts to both fields', form.includes('cueverseId={cueverseId} preferredName={preferredName}'))

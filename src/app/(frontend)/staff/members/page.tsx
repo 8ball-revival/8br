@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/staff/status-badge'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { listMembers } from '@/lib/staff/members'
-import { CreateMemberButton } from '@/components/staff/create-member-button'
+import { compareMembersByName, compareMembersByColumn } from '@/lib/staff/member-order'
+import { CreateMemberForm } from '@/components/staff/create-member-form'
 import { mergedSecondaryPlayerIds, primaryOfMergedPlayer } from '@/lib/players/merge'
 import { MemberRowEditor } from '@/components/staff/member-row-editor'
 import { prisma } from '@/lib/prisma'
@@ -50,20 +51,19 @@ export default async function MembersPage({ searchParams }: SP) {
   const mergedUserIds = new Map(linked.map((p) => [Number(p.linkedUserId), p.id]))
   const filtered = showMerged ? all : all.filter((mem) => !mergedUserIds.has(mem.userId))
 
-  // Sorting is applied here rather than in the query so it works the same across every filter, and
-  // stays off entirely until a header is clicked. Blank values sort last in both directions, so an
-  // empty Preferred Name never leads the table.
+  /*
+   * Sorting is applied here rather than in the query so it works the same across every filter: the
+   * filtering above happens in memory, so an ORDER BY would describe the rows that arrived rather
+   * than the rows on screen.
+   *
+   * There is always an order. Without an explicit header choice the list is by Preferred Name, which
+   * is what somebody scanning for a person actually reads; clicking a header overrides it for that
+   * column. Both rules live in member-order.ts so the default and the override cannot disagree, and
+   * neither depends on the runtime's locale or the database's collation.
+   */
   const members = sortKey
-    ? [...filtered].sort((a, b) => {
-        const av = (sortKey === 'cueverseId' ? a.cueverseId : a.preferredName) ?? ''
-        const bv = (sortKey === 'cueverseId' ? b.cueverseId : b.preferredName) ?? ''
-        if (!av && !bv) return 0
-        if (!av) return 1
-        if (!bv) return -1
-        const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' })
-        return sortDir === 'asc' ? cmp : -cmp
-      })
-    : filtered
+    ? [...filtered].sort((a, b) => compareMembersByColumn(a, b, sortKey, sortDir))
+    : [...filtered].sort(compareMembersByName)
 
   // Resolve each visible secondary's primary once, for the "merged into" link.
   const primaryByUserId = new Map<number, { userId: number | null; label: string }>()
@@ -86,7 +86,7 @@ export default async function MembersPage({ searchParams }: SP) {
 
       {access.actor.can('manage_players') && (
         <div className="mt-5">
-          <CreateMemberButton />
+          <CreateMemberForm />
         </div>
       )}
 
