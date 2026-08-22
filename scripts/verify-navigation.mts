@@ -182,10 +182,25 @@ section('Tournaments is a public listing with a single administrative entry')
   check('...and not from a broad staff test', !/isStaff\(/.test(code))
   check('...pointing into the Tournaments section', code.includes('/tournaments/new'))
 
-  const create = read('src/app/(frontend)/tournaments/new/page.tsx')
+/*
+ * The gate moved with the work.
+ *
+ * These routes are redirect stubs now: creating and editing a competition happens in Creator, and
+ * Creator's own page enforces the capability. Asserting the check on the OLD file would be asserting
+ * that a redirect guards something it no longer does, so the assertion follows the work.
+ */
+  const create = read('src/app/(frontend)/creator/tournaments/new/page.tsx')
+  /*
+   * `requireCreator` IS the capability check.
+   *
+   * It resolves staff access, tests `manage_competitions`, and renders a not-found to everybody
+   * else — so grepping for the capability string in the page would now assert the absence of a
+   * helper rather than the presence of a guard. The named guard is the thing to look for.
+   */
   check('the creation route enforces the same capability itself',
-    create.includes("can('manage_competitions')"))
-  check('...and sends anyone else back to the listing', create.includes("redirect('/tournaments')"))
+    create.includes('requireCreator'))
+  check('...and the legacy URL only forwards to it',
+    read('src/app/(frontend)/tournaments/new/page.tsx').includes('/creator/tournaments/new'))
 }
 
 /*

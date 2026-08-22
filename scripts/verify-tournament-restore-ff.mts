@@ -53,7 +53,7 @@ section('The section is called Tournaments, and the old URLs still work')
   const read = (p: string) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
 
   check('/tournaments has a page', read('src/app/(frontend)/tournaments/page.tsx') != null)
-  check('/tournaments/new has a page', read('src/app/(frontend)/tournaments/new/page.tsx') != null)
+  check('/creator/tournaments/new has a page', read('src/app/(frontend)/creator/tournaments/new/page.tsx') != null)
   check('/tournaments/[number] has a page', read('src/app/(frontend)/tournaments/[number]/page.tsx') != null)
   check('the /cups pages are gone', read('src/app/(frontend)/cups/page.tsx') == null)
 
@@ -80,9 +80,24 @@ section('The section is called Tournaments, and the old URLs still work')
   check('...only to the competition-management capability', list.includes("can('manage_competitions')"))
   check('...and links into the Tournaments section', list.includes('/tournaments/new'))
 
-  const create = read('src/app/(frontend)/tournaments/new/page.tsx') ?? ''
-  check('creation re-checks the capability server-side', create.includes("can('manage_competitions')"))
-  check('...and redirects anyone else away', create.includes("redirect('/tournaments')"))
+/*
+ * The gate moved with the work.
+ *
+ * These routes are redirect stubs now: creating and editing a competition happens in Creator, and
+ * Creator's own page enforces the capability. Asserting the check on the OLD file would be asserting
+ * that a redirect guards something it no longer does, so the assertion follows the work.
+ */
+  const create = read('src/app/(frontend)/creator/tournaments/new/page.tsx') ?? ''
+  /*
+   * `requireCreator` IS the capability check.
+   *
+   * It resolves staff access, tests `manage_competitions`, and renders a not-found to everybody
+   * else — so grepping for the capability string in the page would now assert the absence of a
+   * helper rather than the presence of a guard. The named guard is the thing to look for.
+   */
+  check('creation re-checks the capability server-side', create.includes('requireCreator'))
+  check('...and the legacy URL only forwards to it',
+    (read('src/app/(frontend)/tournaments/new/page.tsx') ?? '').includes('/creator/tournaments/new'))
 
   const creatorNew = read('src/app/(frontend)/creator/new/page.tsx') ?? ''
   check('Creator sends Tournament creation here', creatorNew.includes("redirect('/tournaments/new')"))

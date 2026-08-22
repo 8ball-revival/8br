@@ -27,7 +27,14 @@ const stripComments = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 
 const PAGE = 'src/app/(frontend)/seasons/[seasonId]/page.tsx'
-const SETTINGS = 'src/app/(frontend)/seasons/[seasonId]/settings/page.tsx'
+/*
+ * The gate moved with the work.
+ *
+ * These routes are redirect stubs now: creating and editing a competition happens in Creator, and
+ * Creator's own page enforces the capability. Asserting the check on the OLD file would be asserting
+ * that a redirect guards something it no longer does, so the assertion follows the work.
+ */
+const SETTINGS = 'src/app/(frontend)/creator/seasons/[id]/setup/page.tsx'
 const RULE = 'src/lib/seasons/visibility.ts'
 
 section('There is one rule, and it is not scoped to a subset')
@@ -82,8 +89,14 @@ section('Every public Season surface consults it')
     !/archiveTemplateKey.*publiclyVisible|publiclyVisible.*archiveTemplateKey/.test(code))
 
   const settings = stripComments(read(SETTINGS))
-  check('the settings route requires management', /manage_competitions/.test(settings))
-  check('...and 404s without it', /notFound\(\)/.test(settings))
+  /*
+   * `loadSeasonStage` gates this page: it calls `requireCreator`, which tests the capability and
+   * renders a not-found to anybody without it. The guard is named rather than inlined, so the check
+   * looks for the guard.
+   */
+  check('the settings route requires management', /loadSeasonStage|requireCreator/.test(settings))
+  check('...and the legacy URL only forwards to it',
+    (read('src/app/(frontend)/seasons/[seasonId]/settings/page.tsx') ?? '').includes('/creator/seasons/'))
 }
 
 section('The public listings still exclude private Seasons')

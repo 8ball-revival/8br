@@ -1,35 +1,18 @@
-import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
-import { Container } from '@/components/ui/container'
-import { SectionHeader } from '@/components/section-header'
-import { getSeasonView } from '@/lib/seasons/service'
-import { SeasonSettingsForm } from '@/components/seasons/season-settings-form'
-import { listActiveCompetitions } from '@/lib/competitions/service'
-import { resolveStaffAccess } from '@/lib/competition/staff-auth'
-import { prisma } from '@/lib/prisma'
-
-export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'Season Settings', robots: { index: false } }
-
-export default async function SeasonSettingsPage({ params }: { params: Promise<{ seasonId: string }> }) {
+/**
+ * Season settings moved into Creator's persistent Settings panel.
+ *
+ * The old page was a separate screen you had to leave the Season to reach; Settings now opens over
+ * whatever stage you are working on. The redirect lands on the Setup stage, which is where the
+ * record's own details are edited — and Creator's own guard sends anyone without the capability to
+ * a not-found, so this does not widen access.
+ */
+export default async function LegacySeasonSettingsPage({
+  params,
+}: {
+  params: Promise<{ seasonId: string }>
+}): Promise<never> {
   const { seasonId } = await params
-  const view = await getSeasonView(Number(seasonId))
-  if (!view) notFound()
-  const access = await resolveStaffAccess()
-  if (access.status !== 'ok' || !access.actor.can('manage_competitions')) notFound()
-  const season = await prisma.season.findUnique({ where: { id: view.id }, select: { id: true } })
-  if (!season) notFound()
-
-  const competitions = await listActiveCompetitions()
-
-
-  return (
-    <Container className="py-10">
-      <Link href={`/seasons/${view.id}`} className="text-sm text-muted-foreground hover:text-foreground">← {view.title}</Link>
-      <SectionHeader eyebrow="Season Settings" title={view.title} description={view.subtitle ?? undefined} />
-      <SeasonSettingsForm seasonId={view.id} view={view} isHeadAdmin={access.actor.isHeadAdmin} competitions={competitions} />
-    </Container>
-  )
+  redirect(`/creator/seasons/${seasonId}/setup`)
 }
