@@ -82,7 +82,7 @@ try {
    * `entrantName`, `homeUsername`, `championName` and friends hold a display string with no handle
    * attached. Rendering one is fine — as long as the same file can also reach the CueVerse ID.
    */
-  const BARE = /\b(entrantName|homeUsername|awayUsername|championName|runnerUpName|displayName)\b/
+  const BARE = /\b(entrantName|homeUsername|awayUsername|championName|runnerUpName|displayName|primaryName|preferredName|playerName)\b/
   const HAS_IDENTITY = /identityLines|identityText|PlayerName|PublicPlayerIdentity|cueverseid|CueVerse ID|identity\./i
   const offenders: string[] = []
   for (const f of [...files('src/components'), ...files('src/app')]) {
@@ -90,10 +90,12 @@ try {
     if (BARE.test(c) && !HAS_IDENTITY.test(c)) offenders.push(f.replace('src/', ''))
   }
   /*
-   * Two public views still render a bare seeded username: the Tournament bracket sides and the group
-   * match rows. Neither data layer carries the handle yet, so fixing them means threading it through
-   * those views — real work, not a styling change. This check is left failing deliberately rather
-   * than allow-listed, because an allow-list is how a known gap becomes a permanent one.
+   * There is no allow-list, and there is not going to be one.
+   *
+   * The two files this used to fail on — a public bracket view and a group standings table — turned
+   * out to be dead code from the era when this page WAS the management interface: nothing imported
+   * either of them. Deleting them was the honest fix, and the live equivalents already carry the
+   * handle. An allow-list is how a known gap quietly becomes a permanent one.
    */
   check('every file rendering a display name can also reach the handle', offenders.length === 0,
     offenders.join(', '))
