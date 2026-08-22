@@ -128,7 +128,7 @@ for (const s of seasons) {
    * the Rankings. The manifest marks them and the assignment service refuses them; this skips them
    * before doing any work rather than getting a refusal halfway through.
    */
-  if (entry.undividedSource) {
+  if (entry.undividedSource || entry.groupAssignments === 'undivided-source') {
     p.stage = 'blocked'
     p.error = 'undivided shared group stage — applying it per division would double-count matches'
     save(); continue
