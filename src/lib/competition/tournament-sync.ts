@@ -137,6 +137,14 @@ async function materialiseBracket(tournamentId: number): Promise<void> {
       const champReg = homeWon ? final.homeRegistrationId : final.awayRegistrationId
       const runnerReg = homeWon ? final.awayRegistrationId : final.homeRegistrationId
 
+      /*
+       * The Finals-forfeit marker is computed from the same Final this block just read.
+       *
+       * This runs on every lifecycle transition, so correcting a Final — either way round — puts the
+       * marker right on the next transition without a separate code path that could be forgotten.
+       */
+      const { syncFinalsForfeit } = await import('./finals-forfeit')
+
       await tx.tournament.update({
         where: { id: tournamentId },
         data: {
@@ -147,6 +155,7 @@ async function materialiseBracket(tournamentId: number): Promise<void> {
           finalScore: cScore != null && rScore != null ? `${cScore}–${rScore}` : null,
         },
       })
+      await syncFinalsForfeit(tx, 'tournament', tournamentId)
     }
   })
 }

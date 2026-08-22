@@ -65,7 +65,17 @@ export async function closeSeason(actor: Actor, seasonId: number): Promise<{ ok:
       where: { id: seasonId },
       data: { championName: champ.championName, championHandle: champEnt?.cueverseId ?? null, championPlayerId: champEnt?.playerId ?? null, runnerUpName: champ.runnerUpName, finalScore: champ.finalScore, ladderAppliedAt: new Date() },
     })
-    await recordAudit(actor, { action: 'season.close', entity: 'Season', entityId: seasonId, newValue: { champion: champ.championName, runnerUp: champ.runnerUpName, finalScore: champ.finalScore } }, tx)
+    /*
+     * The Finals-forfeit marker moves with the champion, in the same transaction.
+     *
+     * It is a stored derivative of the Final, so the only thing keeping it honest is that it is
+     * recomputed wherever the Final can change. Completion is one of those places; recompleting
+     * after a correction is the same call, so a Final corrected from a walkover to a played result
+     * clears the marker without anybody remembering to.
+     */
+    const { syncFinalsForfeit } = await import('@/lib/competition/finals-forfeit')
+    const forfeited = await syncFinalsForfeit(tx, 'season', seasonId)
+    await recordAudit(actor, { action: 'season.close', entity: 'Season', entityId: seasonId, newValue: { champion: champ.championName, runnerUp: champ.runnerUpName, finalScore: champ.finalScore, finalsForfeit: forfeited } }, tx)
     const t = await transitionSeasonState(actor, seasonId, 'COMPLETED', { tx })
     if (!t.ok) throw new Error(t.error)
     // Apply rankings through the established pipeline (deterministic full rebuild across all completed comps).
