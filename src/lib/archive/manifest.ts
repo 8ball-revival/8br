@@ -173,6 +173,25 @@ export function loadManifest(): Manifest {
   return cached
 }
 
+
+/**
+ * Strip a source annotation the archive printed beside a handle in a PLAYOFF table.
+ *
+ * The manifest builder splits these off group rows — "mr.8pac - x" becomes "mr.8pac" — but playoff
+ * rows kept theirs, so 24 handles arrived as "d.aym0 w/c" or "xxl_machine_lxx [w/c]". Matching those
+ * literally finds nobody, and creating accounts for them would have minted a second identity for
+ * people who already exist; one of them was a handle that had just been merged.
+ *
+ * "w/c" is the archive's wildcard marker. It records how someone qualified, not who they are.
+ */
+export function stripSourceNote(handle: string): string {
+  return handle
+    .replace(/\s*[[(]?\s*w\/c\s*[\])]?\s*$/i, '')
+    .replace(/[·•]\s*$/, '')
+    .replace(/\s*-\s*x$/i, '')
+    .trim()
+}
+
 export function manifestEntry(templateKey: string): ManifestEntry | null {
   return loadManifest().entries.find((e) => e.templateKey === templateKey) ?? null
 }

@@ -30,13 +30,14 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
-import { manifestEntry } from '../src/lib/archive/manifest.ts'
+import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
 import { applyAutoEntrants } from '../src/lib/archive/auto-entrants.ts'
 import { applyGroupAssign, applyGroupScores } from '../src/lib/archive/auto-assign.ts'
 import { applyArchiveSelection, applyArchivePlacement } from '../src/lib/archive/auto-playoffs.ts'
 import { closeRegistration } from '../src/lib/seasons/service.ts'
 import { closeSeasonGroups } from '../src/lib/seasons/group-stage.ts'
 import { publishSeasonGroups } from '../src/lib/seasons/groups.ts'
+import { generateSeasonBracket } from '../src/lib/seasons/playoffs.ts'
 import { transitionSeasonState } from '../src/lib/seasons/lifecycle.ts'
 
 assertLocalDatabase()
@@ -149,16 +150,98 @@ for (const s of seasons) {
   }
 
   try {
-    // ── 1–2. Entrants (resolves existing Players, creates missing ones canonically) ─────────────
-    const before = await prisma.seasonEntrant.count({ where: { seasonId: s.id } })
-    if (before === 0) {
+    /*
+     * ── 1-2. Entrants: complete the field, rather than skip a Season that has some ──────────────
+     *
+     * The first run tested `before === 0` and left anything non-empty alone. Because entrants were
+     * added before every archive handle had a Player, 65 Seasons ended up holding only the fraction
+     * that happened to resolve — 17 of 49, 12 of 42 — and the skip meant no later run would ever
+     * finish them. Completeness is measured against the manifest, not against zero.
+     *
+     * Entrant entry is only open during registration, so a Season already advanced to group setup
+     * is walked BACK through the lifecycle's own legal transition rather than having rows inserted
+     * behind the service's back. It is returned to where it was before the step either way.
+     */
+    /*
+     * Who the archive records as having played in this Season — both tables, not just the first.
+     *
+     * 261 handles across 56 Seasons appear in a playoff bracket without appearing in that Season's
+     * group table, because the archived group page is truncated or they came through as a wildcard.
+     * Taking only the group list left them out of the field, which then made the playoff bracket
+     * unplaceable: it needs every recorded playoff player present before it will seat anyone.
+     *
+     * They are entrants with no recorded group. That is what the source says, and leaving them
+     * ungrouped is more faithful than inventing a group for them.
+     */
+    const manifestHandles = new Set([
+      ...entry.participants.map((x) => stripSourceNote(x.normalizedHandle).toLowerCase()),
+      ...(entry.playoff?.participants ?? []).map((x) => stripSourceNote(x.normalizedHandle).toLowerCase()),
+    ])
+    const wanted = manifestHandles.size
+
+    /*
+     * Entrants the archive does not record are removed before the field is completed.
+     *
+     * The first import seated whoever happened to resolve, by a looser rule than the manifest, and
+     * left people on Seasons they never entered. An entrant is kept only if this Season's own
+     * participant list names them — by CueVerse ID, or by an alias, which is how a merged handle
+     * still counts as the person the archive printed.
+     *
+     * Removed outright rather than withdrawn: WITHDRAWN would assert they entered and pulled out.
+     */
+    const existing = await prisma.seasonEntrant.findMany({
+      where: { seasonId: s.id },
+      select: { id: true, playerId: true, cueverseId: true, username: true },
+    })
+    const strays: number[] = []
+    for (const e of existing) {
+      const handle = String(e.cueverseId ?? e.username).toLowerCase()
+      let recorded = manifestHandles.has(handle)
+      if (!recorded && e.playerId) {
+        const aliases = await prisma.playerAlias.findMany({ where: { playerId: e.playerId }, select: { alias: true } })
+        recorded = aliases.some((a) => manifestHandles.has(a.alias.toLowerCase()))
+      }
+      if (!recorded) strays.push(e.id)
+    }
+    if (strays.length > 0) {
+      await prisma.seasonEntrant.deleteMany({ where: { id: { in: strays } } })
+      p.notes.push(`removed ${strays.length} entrant(s) the archive does not record for this Season`)
+    }
+
+    const before = await prisma.seasonEntrant.count({ where: { seasonId: s.id, status: 'APPROVED' } })
+
+    if (before < wanted) {
+      const stateNow = String((await prisma.season.findUniqueOrThrow({
+        where: { id: s.id }, select: { lifecycleState: true },
+      })).lifecycleState)
+      if (stateNow === 'GROUP_SETUP' || stateNow === 'REGISTRATION_CLOSED') {
+        const back = await transitionSeasonState(ACTOR, s.id, 'REGISTRATION_OPEN',
+          { reason: 'archive reconstruction: completing the recorded entrant field' })
+        if (!back.ok) { p.stage = 'partial'; p.error = `reopen registration: ${back.error}`; save(); continue }
+      }
       const r = await applyAutoEntrants(ACTOR, s.id)
       if (!r.ok) { p.stage = 'blocked'; p.error = `entrants: ${r.error}`; save(); continue }
       p.entrantsAdded = (r as { added?: number }).added ?? 0
       p.unresolved.push(...((r as { missingHandles?: string[] }).missingHandles ?? []))
-    } else {
-      p.notes.push(`${before} entrants already present`)
     }
+
+    // The field must now match the archive exactly, or this Season goes no further.
+    const nowEntrants = await prisma.seasonEntrant.findMany({
+      where: { seasonId: s.id, status: 'APPROVED' },
+      select: { playerId: true, cueverseId: true, username: true },
+    })
+    const players = nowEntrants.map((e) => e.playerId).filter(Boolean)
+    if (new Set(players).size !== players.length) {
+      p.stage = 'partial'; p.error = 'entrants: the same Player is entered twice'; save(); continue
+    }
+    if (nowEntrants.length !== wanted) {
+      p.stage = 'partial'
+      p.error = `entrants: ${nowEntrants.length} of ${wanted} manifest participants`
+      save(); continue
+    }
+    p.error = null
+    p.notes = p.notes.filter((n) => n.startsWith('removed '))
+    p.unresolved = []
     p.stage = 'entrants'; save()
 
     /*
@@ -206,9 +289,19 @@ for (const s of seasons) {
       const pub = await publishSeasonGroups(ACTOR, s.id)
       if (!pub.ok) { stop('publish groups', pub.error); continue }
     }
+    /*
+     * Resumption, not just first-run correctness.
+     *
+     * A Season that already reached playoff setup on an earlier run has passed this point; demanding
+     * exactly GROUP_STAGE_LIVE made every rerun of a finished group stage report a failure. What
+     * matters is that the stage is at or beyond live, never that it stopped there.
+     */
+    const ORDER = ['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP',
+      'GROUP_STAGE_LIVE', 'GROUPS_CLOSED', 'PLAYOFF_SETUP', 'PLAYOFFS_LIVE', 'COMPLETED']
+    const atLeast = (a: string, b: string) => ORDER.indexOf(a) >= ORDER.indexOf(b)
     const afterPublish = await state()
-    if (afterPublish !== 'GROUP_STAGE_LIVE' && afterPublish !== 'GROUPS_CLOSED') {
-      stop('publish groups', `expected GROUP_STAGE_LIVE, found ${afterPublish}`)
+    if (!atLeast(afterPublish, 'GROUP_STAGE_LIVE')) {
+      stop('publish groups', `expected the group stage to be live, found ${afterPublish}`)
       continue
     }
 
@@ -245,6 +338,20 @@ for (const s of seasons) {
 
     // ── 9–10. Bracket and Round 1, only where the archive proves the positions ──────────────────
     if (entry.playoff?.placement === 'exact') {
+      /*
+       * The bracket has to exist before anyone can be seated on it.
+       *
+       * Its SIZE comes from the archive, not from the size of the field: a 26-player playoff was
+       * played as a bracket of 32 with six byes, and rebuilding it as a bracket of 32 is what
+       * happened rather than a preference. Placement then fills the recorded positions.
+       */
+      const size = entry.playoff.bracketSize ?? undefined
+      const drafted = await prisma.seasonPlayoffMatch.count({ where: { seasonId: s.id } })
+      if (drafted === 0) {
+        const gen = await generateSeasonBracket(ACTOR, s.id, size ? { size } : {})
+        if (!gen.ok) { p.notes.push(`bracket: ${gen.error}`); p.stage = 'partial'; save(); continue }
+        p.bracketSize = gen.size ?? size ?? null
+      }
       const place = await applyArchivePlacement(ACTOR, s.id, { replaceDraft: true })
       if (place.ok) {
         p.round1Placed = place.placed

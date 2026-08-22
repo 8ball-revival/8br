@@ -29,7 +29,7 @@ assertLocalDatabase()
 const APPLY = process.argv.includes('--apply')
 const ACTOR = { userId: 2, username: 'archive-import-merge' }
 
-/** secondary (created by this import) → primary (the person's real account). */
+/** secondary (created by this import) → primary (the person's real account). Seven owner-confirmed pairs. */
 const PAIRS: [string, string][] = [
   ['i.am_the_zodiac', 'jabronni16'],
   ['ll_ketan_ll', 'l_ketan_l'],
@@ -37,6 +37,9 @@ const PAIRS: [string, string][] = [
   ['mj_the_king', 'pool.instinct'],
   ['x_therage', 't_an_may'],
   ['xxl_machine_lxx', 'xxl_themachine_lxx'],
+  // Added after the reconstruction surfaced it: the spaced-letter variant matches no existing alias,
+  // so it was created as its own identity and the owner confirmed it is the same person.
+  ['xlx_k_e_t_a_n_xlx', 'l_ketan_l'],
 ]
 
 const find = (handle: string) => prisma.player.findFirst({

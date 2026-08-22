@@ -27,7 +27,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
-import { manifestEntry } from '../src/lib/archive/manifest.ts'
+import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
 import { previewAutoEntrants } from '../src/lib/archive/auto-entrants.ts'
 import { createMember } from '../src/lib/staff/create-member-service.ts'
 
@@ -67,22 +67,49 @@ console.log(`scanning ${seasons.length} unfinished Season(s) for unresolved arch
 const needed = new Map<string, { rawHandle: string; seasons: string[]; candidates: MapEntry['candidates'] }>()
 let skipped = 0
 
+/*
+ * Resolution is done here, against the manifest, rather than through `previewAutoEntrants`.
+ *
+ * The preview is an entrant-screen service and is only available while registration is open. An
+ * earlier version of this pass called it for every Season, and because all 70 had already advanced
+ * to group setup, every preview came back blocked and was quietly skipped — so the pass reported
+ * "0 unresolved handles" having examined none of them. Reading the manifest directly means the
+ * answer does not depend on what phase a Season happens to be sitting in.
+ *
+ * The matching rules are the strict ones: exact CueVerse ID, exact alias, or the persisted map.
+ * Preferred Name is never used — six Chrises and six Craigs is precisely why.
+ */
+const resolvedCache = new Map<string, boolean>()
+const resolves = async (handle: string): Promise<boolean> => {
+  const key = handle.toLowerCase()
+  const hit = resolvedCache.get(key)
+  if (hit !== undefined) return hit
+  const byId = await prisma.player.count({ where: { cueverseIdNormalized: key } })
+  const byAlias = byId > 0 ? 0 : await prisma.playerAlias.count({ where: { alias: { equals: handle, mode: 'insensitive' } } })
+  const mapped = map[key]?.playerId ? 1 : 0
+  const ok = byId + byAlias + mapped > 0
+  resolvedCache.set(key, ok)
+  return ok
+}
+
 for (const s of seasons) {
   const entry = manifestEntry(s.archiveTemplateKey!)
   // The undivided shells are never reconstructed, so their handles are not wanted either.
-  if (!entry || entry.undividedSource || entry.groupAssignments === 'undivided-source') { skipped++; continue }
+  if (!entry || entry.sharedGroupStageSourceKey || entry.groupAssignments === 'undivided-source') { skipped++; continue }
 
   const label = `${s.competitionYear} S${s.number}${s.division ?? ''}`
-  const preview = await previewAutoEntrants(s.id)
-  if ('blocked' in preview && preview.blocked) continue
-
-  for (const m of preview.missing) {
-    const key = norm(m.rawHandle)
-    const cur = needed.get(key) ?? { rawHandle: m.rawHandle, seasons: [], candidates: [] }
-    cur.seasons.push(label)
-    for (const c of m.suggestions) {
-      if (!cur.candidates.some((x) => x.cueverseId === c.cueverseId)) cur.candidates.push(c)
-    }
+  /*
+   * Both tables. 261 handles across 56 Seasons appear in a playoff bracket but not in that Season's
+   * group table, and the entrant service needs every one of them present before a recorded bracket
+   * can be seated.
+   */
+  const recorded = [...entry.participants, ...(entry.playoff?.participants ?? [])]
+  for (const participant of recorded) {
+    const handle = stripSourceNote(participant.normalizedHandle)
+    const key = handle.toLowerCase()
+    if (!handle || await resolves(handle)) continue
+    const cur = needed.get(key) ?? { rawHandle: stripSourceNote(participant.rawHandle), seasons: [], candidates: [] }
+    if (!cur.seasons.includes(label)) cur.seasons.push(label)
     needed.set(key, cur)
   }
 }

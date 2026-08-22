@@ -3,7 +3,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/lib/competition/audit'
 import { addSeasonEntrant } from '@/lib/seasons/service'
-import { manifestEntry, isSharedStage, SHARED_STAGE_MESSAGE, type ManifestEntry } from './manifest'
+import { manifestEntry, isSharedStage, SHARED_STAGE_MESSAGE, type ManifestEntry, stripSourceNote } from './manifest'
 import { matchHandles, UNRESOLVED_LABEL, type EntrantIdentity } from './matching'
 import { isBlocked, type AutoAssignBlocked } from './auto-assign'
 
@@ -81,8 +81,8 @@ function archivedPeople(entry: ManifestEntry, shared: ManifestEntry['participant
   for (const p of entry.playoff?.participants ?? []) {
     if (!byId.has(p.sourceId)) {
       byId.set(p.sourceId, {
-        sourceId: p.sourceId, rawHandle: p.rawHandle,
-        normalizedHandle: p.normalizedHandle, rawName: '',
+        sourceId: p.sourceId, rawHandle: stripSourceNote(p.rawHandle),
+        normalizedHandle: stripSourceNote(p.normalizedHandle), rawName: '',
       })
     }
   }
@@ -253,7 +253,13 @@ export async function applyAutoEntrants(
     if (r.ok) added++
   }
 
-  await recordAudit(actor, {
+  /*
+   * A run that adds nobody is not an event.
+   *
+   * Re-running the reconstruction must be provably free of side effects, and an audit entry is a
+   * side effect. Only a run that actually changed the field is recorded.
+   */
+  if (added > 0) await recordAudit(actor, {
     action: 'season.archive.autoentrants',
     entity: 'Season',
     entityId: seasonId,
