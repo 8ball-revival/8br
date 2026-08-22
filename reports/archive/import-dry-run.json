@@ -1,0 +1,103 @@
+{
+  "mode": "dry-run",
+  "databaseConnection": "none",
+  "rowsWritten": 0,
+  "scope": {
+    "entity": null,
+    "competition": null
+  },
+  "gates": {
+    "schemaBlockers": 0,
+    "itemsRequiringReview": 924,
+    "maxReview": null,
+    "wouldHalt": false
+  },
+  "plan": [
+    {
+      "entity": "sources",
+      "file": "sources.json",
+      "wouldUpsert": 13
+    },
+    {
+      "entity": "players",
+      "file": "players.json",
+      "wouldUpsert": 1948
+    },
+    {
+      "entity": "competitors",
+      "file": "competitors.json",
+      "wouldUpsert": 1948
+    },
+    {
+      "entity": "aliases",
+      "file": "aliases.json",
+      "wouldUpsert": 5572
+    },
+    {
+      "entity": "competitions",
+      "file": "competitions.json",
+      "wouldUpsert": 48
+    },
+    {
+      "entity": "divisions",
+      "file": "divisions.json",
+      "wouldUpsert": 94
+    },
+    {
+      "entity": "stages",
+      "file": "stages.json",
+      "wouldUpsert": 181
+    },
+    {
+      "entity": "groups",
+      "file": "groups.json",
+      "wouldUpsert": 634
+    },
+    {
+      "entity": "entries",
+      "file": "entries.json",
+      "wouldUpsert": 4347
+    },
+    {
+      "entity": "seeds",
+      "file": "seeds.json",
+      "wouldUpsert": 2824
+    },
+    {
+      "entity": "standings",
+      "file": "standings.json",
+      "wouldUpsert": 4443
+    },
+    {
+      "entity": "matches",
+      "file": "matches.json",
+      "wouldUpsert": 12486
+    },
+    {
+      "entity": "championships",
+      "file": "championships.json",
+      "wouldUpsert": 92
+    },
+    {
+      "entity": "achievements",
+      "file": "achievements.json",
+      "wouldUpsert": 656
+    },
+    {
+      "entity": "identityRelationships",
+      "file": "identity-relationships.json",
+      "wouldUpsert": 9
+    },
+    {
+      "entity": "sourceReferences",
+      "file": "source-references.json",
+      "wouldUpsert": 2134
+    },
+    {
+      "entity": "historicalNotes",
+      "file": "historical-notes.json",
+      "wouldUpsert": 2
+    }
+  ],
+  "totalPlanned": 37431
+}

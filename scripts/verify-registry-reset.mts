@@ -17,7 +17,15 @@ import { prisma } from '../src/lib/prisma.ts'
  * without weakening it: real leftover data - an archive account, an imported Season - carries none of
  * them and is still caught.
  */
-const FIXTURE = ['zz', 'idv-', 'APV-']
+/*
+ * `zz_` alone is too broad to be a fixture marker.
+ *
+ * zz_lazyass_zz played four archived Seasons between 2011 and 2013, and excluding them made the
+ * profile count come up one short of the account count — reported as a missing profile when nothing
+ * was missing. A naming convention adopted for fixtures cannot be assumed unused by people who were
+ * playing years before it was chosen, so the fixture prefixes now carry their own separator.
+ */
+const FIXTURE = ['zz_ui', 'zz_browser', 'zz-', 'idv-', 'APV-']
 const notFixtureText = (field: string) =>
   // Case-insensitive: the convention is a lowercase `zz`, but a fixture named `ZZ …` would otherwise
   // slip past the filter and be counted as real leftover data — which is precisely what happened.

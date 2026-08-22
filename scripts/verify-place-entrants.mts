@@ -96,6 +96,21 @@ const linked = await prisma.season.findMany({
   select: { id: true, number: true, competitionYear: true, lifecycleState: true, archiveTemplateKey: true },
 })
 const graded = linked.map((s) => ({ ...s, placement: manifestEntry(s.archiveTemplateKey!)?.playoff.placement ?? 'none' }))
+
+/*
+ * A baseline, not a fixed expectation.
+ *
+ * This once asserted that no unfinished archive Season held group children, which was true only
+ * because none had been reconstructed yet. Seventy now hold them legitimately. What the check is
+ * actually for is that THIS suite does not touch them, so it compares against what it found.
+ */
+const archiveChildrenBefore = await prisma.season.count({
+  where: {
+    archiveTemplateKey: { not: null },
+    lifecycleState: { notIn: ['COMPLETED'] },
+    OR: [{ groups: { some: {} } }, { matches: { some: {} } }, { standings: { some: {} } }],
+  },
+})
 const heuristic = graded.filter((s) => s.placement === 'participants-only')
 
 check('the archive splits into recorded and unrecorded topologies', graded.length > 0, String(graded.length))
@@ -334,7 +349,8 @@ try {
       OR: [{ groups: { some: {} } }, { matches: { some: {} } }, { standings: { some: {} } }],
     },
   })
-  check('no unfinished archive Season gained group children', dirty === 0, String(dirty))
+  check('no unfinished archive Season gained or lost group children',
+    dirty === archiveChildrenBefore, `${dirty} vs ${archiveChildrenBefore}`)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

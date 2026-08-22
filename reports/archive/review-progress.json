@@ -1,0 +1,64 @@
+{
+  "totals": {
+    "total": 921,
+    "decided": 2,
+    "applied": 1,
+    "unresolved": 920
+  },
+  "byCategory": {
+    "shared-alias": {
+      "total": 407,
+      "pending": 407,
+      "approved": 0,
+      "rejected": 0,
+      "deferred": 0,
+      "needs_evidence": 0,
+      "resolved": 0
+    },
+    "name-duplicate": {
+      "total": 278,
+      "pending": 278,
+      "approved": 0,
+      "rejected": 0,
+      "deferred": 0,
+      "needs_evidence": 0,
+      "resolved": 0
+    },
+    "match": {
+      "total": 143,
+      "pending": 143,
+      "approved": 0,
+      "rejected": 0,
+      "deferred": 0,
+      "needs_evidence": 0,
+      "resolved": 0
+    },
+    "championship": {
+      "total": 90,
+      "pending": 90,
+      "approved": 0,
+      "rejected": 0,
+      "deferred": 0,
+      "needs_evidence": 0,
+      "resolved": 0
+    },
+    "historical-note": {
+      "total": 2,
+      "pending": 1,
+      "approved": 0,
+      "rejected": 0,
+      "deferred": 1,
+      "needs_evidence": 0,
+      "resolved": 0
+    },
+    "entry-method": {
+      "total": 1,
+      "pending": 0,
+      "approved": 1,
+      "rejected": 0,
+      "deferred": 0,
+      "needs_evidence": 0,
+      "resolved": 0
+    }
+  }
+}

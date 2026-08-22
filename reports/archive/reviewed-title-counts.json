@@ -1,0 +1,23 @@
+{
+  "note": "Preview of official title totals under approved decisions. Public title totals are NOT changed in this phase.",
+  "playersWithTitles": 2,
+  "changed": 0,
+  "players": [
+    {
+      "competitor": "co:P0004",
+      "legacyId": "P0004",
+      "name": "adam",
+      "current": 1,
+      "reviewed": 1,
+      "delta": 0
+    },
+    {
+      "competitor": "co:P0081",
+      "legacyId": "P0081",
+      "name": "joey",
+      "current": 1,
+      "reviewed": 1,
+      "delta": 0
+    }
+  ]
+}

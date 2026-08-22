@@ -86,11 +86,21 @@ try {
   const raw = <T>(sql: string, ...a: unknown[]) => prisma.$queryRawUnsafe<T[]>(sql, ...a)
   const n = async (sql: string, ...a: unknown[]) => Number((await raw<{ c: bigint }>(sql, ...a))[0].c)
 
-  check('no user with a testing handle', await n(`SELECT count(*) c FROM payload.users WHERE username LIKE 'zz\\_%'`) === 0)
+  /*
+   * The fixture handles by name, rather than by prefix.
+   *
+   * Banning everything beginning "zz_" caught zz_lazyass_zz, who played four archived Seasons
+   * between 2011 and 2013. A naming convention chosen for fixtures cannot be assumed unused by
+   * people who were playing years before it existed.
+   */
+  check('no user with a testing handle',
+    await n(`SELECT count(*) c FROM payload.users WHERE username IN ('zz_ui_test_admin','zz_ui_probe','zz_browser_test_admin','browser-harness')`) === 0)
   check('...nor a non-deliverable test address',
     await n(`SELECT count(*) c FROM payload.users WHERE email LIKE '%@local.invalid'`) === 0)
   check('...nor a Player profile for one',
-    (await prisma.player.count({ where: { cueverseId: { startsWith: 'zz_' } } })) === 0)
+    (await prisma.player.count({
+      where: { cueverseId: { in: ['zz_ui_test_admin', 'zz_ui_probe', 'zz_browser_test_admin', 'browser-harness'] } },
+    })) === 0)
   check('...nor an alias', (await prisma.playerAlias.count({ where: { alias: { startsWith: 'zz_' } } })) === 0)
   check('...nor a fixture audit entry',
     (await prisma.auditLog.count({ where: { actorUsername: { in: ['browser-harness', 'zz_ui_test_admin', 'zz_ui_probe', 'zz_browser_test_admin'] } } })) === 0)
@@ -151,7 +161,18 @@ try {
     const byAlias = await prisma.playerAlias.count({
       where: { alias: { equals: key.replace(/[^a-z0-9]/g, ''), mode: 'insensitive' } },
     })
-    if (byAlias === 0) missing.push(handle)
+    if (byAlias > 0) continue
+    /*
+     * A merged member is meant to be gone.
+     *
+     * Six handles were absorbed into the accounts the owner confirmed they belonged to. The merge
+     * keeps the record and retires the duplicate identity, so finding no Player under the old
+     * handle is the merge having worked, not a member having been lost.
+     */
+    const merged = await prisma.playerMerge.count({
+      where: { mergedPlayer: { primaryName: { equals: handle, mode: 'insensitive' } } },
+    })
+    if (merged === 0) missing.push(handle)
   }
   check(`every member created through the page still exists (${createdHandles.length} checked)`,
     missing.length === 0, missing.join(', '))
