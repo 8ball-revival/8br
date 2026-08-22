@@ -1,4 +1,5 @@
 import 'server-only'
+import { RANKING_ELIGIBLE_SEASON, RANKING_ELIGIBLE_TOURNAMENT } from './eligibility'
 import type { Prisma } from '@prisma/client'
 import { ELO_START, matchDeltas } from './elo'
 
@@ -160,13 +161,23 @@ async function collectSeasonMatchups(tx: Tx, seasonId: number, fallbackDate: Dat
 /** Full deterministic rebuild of the entire rating ledger from every COMPLETED Tournament AND Season,
  *  interleaved in close order. Idempotent: safe to call on every close, retry, or correction. */
 export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; seasons: number; entries: number }> {
+  /*
+   * Only records that currently satisfy the eligibility rule.
+   *
+   * It used to be `lifecycleState: 'COMPLETED'` alone, which meant `countsTowardRankings` was stored
+   * and inert — switching it off changed a checkbox and nothing else — and a record Under Correction
+   * kept contributing while its results were being changed.
+   *
+   * Rebuilding from whatever is eligible RIGHT NOW is also why withdrawal and restoration are the
+   * same operation: nothing is ever subtracted, so repeated correction cycles cannot drift.
+   */
   const tournaments = await tx.tournament.findMany({
-    where: { lifecycleState: 'COMPLETED' },
+    where: RANKING_ELIGIBLE_TOURNAMENT,
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
     select: { id: true, participantFormat: true, ladderAppliedAt: true, createdAt: true },
   })
   const seasons = await tx.season.findMany({
-    where: { lifecycleState: 'COMPLETED' },
+    where: RANKING_ELIGIBLE_SEASON,
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
     select: { id: true, ladderAppliedAt: true, createdAt: true },
   })

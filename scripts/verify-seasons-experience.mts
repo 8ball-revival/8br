@@ -193,11 +193,21 @@ try {
     check('and is marked as not completed',
       browse.seasons.find((x) => x.number === live.number)?.isCompleted === false)
 
-    // The ledger is the ranking boundary: it reads COMPLETED Seasons only.
-    const ledger = readFileSync('src/lib/stats/ledger.ts', 'utf8')
-    check('the ranking rebuild reads only COMPLETED Seasons',
-      /season\.findMany\(\{\s*\n?\s*where: \{ lifecycleState: 'COMPLETED' \}/.test(ledger) ||
-      ledger.includes("where: { lifecycleState: 'COMPLETED' },"))
+    /*
+     * The ranking boundary, asserted as a RULE rather than as a string in a file.
+     *
+     * This used to grep ledger.ts for `where: { lifecycleState: 'COMPLETED' }`, which broke the
+     * moment the clause moved into a shared constant - and would equally have passed if somebody
+     * had left that literal behind in a comment. The eligibility object is the thing that decides,
+     * so it is the thing to check.
+     */
+    const { RANKING_ELIGIBLE_SEASON } = await import('../src/lib/stats/eligibility.ts')
+    check('the ranking rebuild requires a COMPLETED Season',
+      RANKING_ELIGIBLE_SEASON.lifecycleState === 'COMPLETED')
+    check('...that was actually finalised', RANKING_ELIGIBLE_SEASON.ladderAppliedAt != null)
+    check('...that is not Under Correction', RANKING_ELIGIBLE_SEASON.reopenedAt === null)
+    check('...that is not deleted', RANKING_ELIGIBLE_SEASON.deletedAt === null)
+    check('...and whose owner has left it counting', RANKING_ELIGIBLE_SEASON.countsTowardRankings === true)
     const trophies = readFileSync('src/lib/seasons/trophies.ts', 'utf8')
     check('championship totals count only COMPLETED Seasons',
       trophies.includes("lifecycleState: 'COMPLETED'"))
