@@ -31,8 +31,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
-import { applyAutoEntrants } from '../src/lib/archive/auto-entrants.ts'
-import { applyGroupAssign, applyGroupScores } from '../src/lib/archive/auto-assign.ts'
+import { applyAutoEntrants, previewAutoEntrants } from '../src/lib/archive/auto-entrants.ts'
+import { applyGroupAssign, applyGroupScores, isBlocked } from '../src/lib/archive/auto-assign.ts'
 import { applyArchiveSelection, applyArchivePlacement } from '../src/lib/archive/auto-playoffs.ts'
 import { closeRegistration } from '../src/lib/seasons/service.ts'
 import { closeSeasonGroups } from '../src/lib/seasons/group-stage.ts'
@@ -272,10 +272,46 @@ for (const s of seasons) {
     if (new Set(players).size !== players.length) {
       p.stage = 'partial'; p.error = 'entrants: the same Player is entered twice'; save(); continue
     }
-    if (nowEntrants.length !== wanted) {
+    /*
+     * Completeness is judged by what the entrant service still cannot place, not by a head count.
+     *
+     * Two archive handles can be one person — a handle and the handle it was merged into can both
+     * appear in the same Season's tables — and one person is one entrant. Comparing against the
+     * number of distinct SPELLINGS therefore declared seven Seasons short by exactly one when
+     * nothing was actually missing.
+     */
+    const after = await previewAutoEntrants(s.id)
+    const reportedMissing = isBlocked(after) ? [] : after.missing.map((m) => m.rawHandle)
+
+    /*
+     * A handle that survives as somebody's alias is not missing — that person is already entered.
+     *
+     * The archive spells one player two ways across a Season's tables, and after a merge the older
+     * spelling lives on as an alias of the account that absorbed it. The entrant preview matches on
+     * CueVerse ID, so it calls the alias an account that does not exist; adding it would be a second
+     * entrant row for one person, which the unique key on (Season, Player) rightly refuses.
+     */
+    const stillMissing: string[] = []
+    for (const handle of reportedMissing) {
+      const alias = await prisma.playerAlias.findFirst({
+        where: { alias: { equals: stripSourceNote(handle), mode: 'insensitive' } },
+        select: { playerId: true },
+      })
+      const entered = alias
+        ? await prisma.seasonEntrant.count({ where: { seasonId: s.id, playerId: alias.playerId } })
+        : 0
+      if (entered > 0) p.notes.push(`${handle} is entered as an alias of an existing entrant`)
+      else stillMissing.push(handle)
+    }
+
+    if (stillMissing.length > 0) {
       p.stage = 'partial'
-      p.error = `entrants: ${nowEntrants.length} of ${wanted} manifest participants`
+      p.error = `entrants: ${stillMissing.length} recorded handle(s) have no account`
+      p.unresolved.push(...stillMissing.slice(0, 10))
       save(); continue
+    }
+    if (nowEntrants.length !== wanted) {
+      p.notes.push(`${wanted} recorded handles resolve to ${nowEntrants.length} distinct people`)
     }
     p.error = null
     p.notes = p.notes.filter((n) => n.startsWith('removed '))

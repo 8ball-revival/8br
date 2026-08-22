@@ -250,7 +250,15 @@ export async function validateSeasonGroupDraft(seasonId: number): Promise<{ ok: 
   if (groups.length === 0) issues.push({ code: 'no_groups', detail: 'No groups yet — generate groups first.' })
   const assigned = new Map<number, number>() // entrantId → count
   for (const g of groups) {
-    if (g.players.length < MIN_GROUP_SIZE) issues.push({ code: 'too_small', detail: `Group ${g.name || g.code} has ${g.players.length} player(s) (min ${MIN_GROUP_SIZE}).` })
+    /*
+     * A rebuilt Season may hold a group of one, because that is what survives in the source.
+     * Ten archived Seasons have a group whose table was cut off mid-list. A group of one plays no
+     * fixtures, so it costs nothing to keep, whereas refusing means the other six groups and every
+     * result in them cannot be published either. A live Season still cannot start one.
+     */
+    if (g.players.length < MIN_GROUP_SIZE && !season?.reconstruction) {
+      issues.push({ code: 'too_small', detail: `Group ${g.name || g.code} has ${g.players.length} player(s) (min ${MIN_GROUP_SIZE}).` })
+    }
     for (const p of g.players) assigned.set(p.entrantId, (assigned.get(p.entrantId) ?? 0) + 1)
   }
   const unassigned = entrants.filter((e) => !assigned.has(e.id)).length
