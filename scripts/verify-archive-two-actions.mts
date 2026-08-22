@@ -100,11 +100,20 @@ const cleanup = async () => {
 }
 
 /** A Season sitting in PLAYOFF_SETUP with six entrants, four of whom the archive knows. */
+let fixtureNumber = 0
 async function makeSeason(key: string) {
+  /*
+   * Each fixture Season needs its own number.
+   *
+   * One competition, one year, one number, one division — the duplicate rule is a unique index, and
+   * two fixtures sharing a number is a constraint violation rather than a test failure. It threw
+   * after the counter had printed, which made 28/28 look like a clean run.
+   */
+  fixtureNumber++
   const series = await prisma.competitionSeries.findFirst({ select: { id: true }, orderBy: { id: 'asc' } })
   const season = await prisma.season.create({
     data: {
-      number: 1, competitionYear: YEAR, competitionSeriesId: series!.id,
+      number: fixtureNumber, competitionYear: YEAR, competitionSeriesId: series!.id,
       slug: `${key}-${Math.trunc(YEAR)}`,
       lifecycleState: 'PLAYOFF_SETUP', archiveTemplateKey: key,
       publiclyVisible: false, countsTowardRankings: false,
@@ -237,8 +246,13 @@ try {
   section('A stale preview cannot write')
   await transitionSeasonState(ACTOR, fresh, 'PLAYOFFS_LIVE').catch(() => {})
   const stale = await applyArchiveSelection(ACTOR, fresh, templateFor(key2))
+  /*
+   * The refusal comes from the preview's own guard rather than the transaction's re-read — the
+   * archive tools stop looking at a Season the moment its playoffs are live. Either wording is a
+   * correct refusal; what matters is that nothing was written.
+   */
   check('selection refuses once the Season has left playoff setup',
-    stale.ok === false && /left playoff setup|not in playoff setup|blocked/i.test(stale.error ?? ''), stale.error)
+    stale.ok === false && /playoff setup|playoffs have already started/i.test(stale.error ?? ''), stale.error)
 
   section('No real archive record was touched')
   check('the archive Season count is unchanged',
@@ -249,6 +263,13 @@ try {
       select: { id: true, lifecycleState: true, archiveTemplateKey: true },
       orderBy: { id: 'asc' },
     })) === realSeasonFingerprint)
+} catch (e) {
+  /*
+   * A throw is a failed suite, not a short one — the counter only knows about checks that ran,
+   * so an exception halfway through would otherwise print a clean-looking RESULT line.
+   */
+  fail++
+  console.log('  FAILED before finishing: ' + (e as Error).message.split('\n')[0])
 } finally {
   await cleanup()
   check('no fixture Season remains', (await prisma.season.count({ where: { competitionYear: YEAR } })) === 0)
