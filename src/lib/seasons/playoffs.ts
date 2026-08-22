@@ -793,6 +793,78 @@ function columnName(round: number, totalRounds: number): string {
 }
 
 /** Build the shared bracket renderer's BracketRound[] from the Season's playoff matches. */
+/**
+ * Record a playoff match won by forfeit.
+ *
+ * ── Why this is not a score ──────────────────────────────────────────────────────────────────────
+ * A forfeit decides who advances and nothing else. Writing it as 7-0, which is how it is often
+ * described out loud, would put seven games that were never played into the winner's differential,
+ * their game-win percentage and their rating — and take seven off somebody who never sat down. So
+ * the games stay null and `forfeitEntrantId` carries the fact.
+ *
+ * Everything after that is identical to a played result: the same advancement, the same downstream
+ * rebuild when a correction changes the winner, the same bye settlement. That shared tail is why
+ * this lives beside `recordSeasonPlayoffResult` rather than in a component somewhere.
+ */
+export async function recordSeasonPlayoffForfeit(
+  actor: Actor,
+  matchId: number,
+  forfeiter: 'home' | 'away',
+  opts: { confirmRebuild?: boolean; note?: string | null; expectedUpdatedAt?: string } = {},
+): Promise<{ ok: boolean; error?: string; conflict?: boolean; warning?: DownstreamWarning }> {
+  const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId } })
+  if (!m) return { ok: false, error: 'Match not found.' }
+  if (opts.expectedUpdatedAt && m.updatedAt.toISOString() !== opts.expectedUpdatedAt) {
+    return { ok: false, conflict: true, error: 'This matchup was updated elsewhere. Refresh before saving.' }
+  }
+  const season = await prisma.season.findUnique({ where: { id: m.seasonId }, select: { lifecycleState: true } })
+  if (season?.lifecycleState !== 'PLAYOFFS_LIVE') return { ok: false, error: 'Playoffs are not live.' }
+  if (m.homeEntrantId == null || m.awayEntrantId == null) {
+    return { ok: false, error: 'Both players must be determined first.' }
+  }
+
+  const forfeiterId = forfeiter === 'home' ? m.homeEntrantId : m.awayEntrantId
+  const winnerId = forfeiter === 'home' ? m.awayEntrantId : m.homeEntrantId
+  const winnerHome = winnerId === m.homeEntrantId
+  const winnerName = winnerHome ? m.homeUsername! : m.awayUsername!
+  const winnerSeed = winnerHome ? m.homeSeed : m.awaySeed
+  const loserName = winnerHome ? m.awayUsername! : m.homeUsername!
+  const loserSeed = winnerHome ? m.awaySeed : m.homeSeed
+
+  const wasDecided = m.winnerEntrantId != null
+  const winnerChanged = wasDecided && m.winnerEntrantId !== winnerId
+  if (winnerChanged && !opts.confirmRebuild) {
+    const affected = await downstreamMatches(m.seasonId, m)
+    if (affected.length) return { ok: false, warning: { affected: affected.map((x) => ({ id: x.id, label: x.label ?? `Round ${x.round}` })) } }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (winnerChanged) await clearDownstream(tx, m.seasonId, m)
+    await tx.seasonPlayoffMatch.update({
+      where: { id: matchId },
+      data: {
+        // No games, in either column: the match produced none.
+        homeGames: null, awayGames: null,
+        winnerEntrantId: winnerId, forfeitEntrantId: forfeiterId,
+        status: 'FORFEIT', verification: 'VERIFIED', completedAt: new Date(),
+      },
+    })
+    if (!wasDecided || winnerChanged) {
+      if (m.feedsMatchId != null) await placeInto(tx, m.feedsMatchId, m.feedsSlot ?? 0, { id: winnerId, name: winnerName, seed: winnerSeed })
+      if (m.loserFeedsMatchId != null) await placeInto(tx, m.loserFeedsMatchId, m.loserFeedsSlot ?? 0, { id: forfeiterId, name: loserName, seed: loserSeed })
+      await settleByes(tx, m.seasonId)
+    }
+    await recordAudit(actor, {
+      action: wasDecided ? 'season.playoff.correct' : 'season.playoff.forfeit',
+      entity: 'Season', entityId: m.seasonId,
+      oldValue: wasDecided ? { matchId, home: m.homeGames, away: m.awayGames, winnerEntrantId: m.winnerEntrantId } : undefined,
+      newValue: { matchId, forfeit: forfeiter, winnerEntrantId: winnerId, winnerChanged },
+      reason: opts.note?.trim() || undefined,
+    }, tx)
+  })
+  return { ok: true }
+}
+
 export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRound[]> {
   const rows = await prisma.seasonPlayoffMatch.findMany({ where: { seasonId }, orderBy: [{ round: 'asc' }, { slot: 'asc' }] })
   if (!rows.length) return []

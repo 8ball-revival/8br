@@ -335,6 +335,21 @@ export async function recordSeasonPlayoffResultAction(
 // ============================================================================
 // Phase F — Close + delete
 // ============================================================================
+/** Record a playoff match won by forfeit. Canonical service; no games are written. */
+export async function recordSeasonPlayoffForfeitAction(
+  matchId: number,
+  forfeiter: 'home' | 'away',
+  opts: { confirmRebuild?: boolean; note?: string | null; expectedUpdatedAt?: string } = {},
+): Promise<SeasonActionResult & { conflict?: boolean; warning?: po.DownstreamWarning }> {
+  const actor = await requireCapability('edit_results')
+  const r = await po.recordSeasonPlayoffForfeit(actor, matchId, forfeiter, opts)
+  if (r.warning) return { warning: r.warning }
+  if (!r.ok) return { error: r.error, conflict: r.conflict }
+  const m = await prisma.seasonPlayoffMatch.findUnique({ where: { id: matchId }, select: { seasonId: true } })
+  revalidateSeason(m?.seasonId ?? null)
+  return { ok: true, message: 'Forfeit recorded.' }
+}
+
 export async function closeSeasonAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
   const r = await closeSeason(actor, seasonId)

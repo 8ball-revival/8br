@@ -2194,6 +2194,20 @@ model SeasonPlayoffMatch {
   awayGames         Int?
   status            SeasonMatchStatus @default(SCHEDULED)
   winnerEntrantId   Int?
+  /// Who forfeited, when the tie was decided that way. Null for a played result.
+  ///
+  /// A forfeit awards the match and no games. Writing it as a score would put games nobody played
+  /// into the winner's differential, win percentage and rating, so the games stay null and this
+  /// carries the fact instead.
+  forfeitEntrantId  Int?
+  /// Set when an upstream correction replaced one of this match's participants, so the recorded
+  /// score belongs to a matchup that no longer exists.
+  ///
+  /// Its own column, not another `status` value: the status describes what happened in the match,
+  /// and this describes what a correction elsewhere did to it. Folding the two together would also
+  /// make every existing status check quietly wrong for these rows. A match needing review cannot
+  /// advance a winner and blocks Season completion until it is re-entered.
+  needsReview       Boolean           @default(false)
   verification      VerificationState @default(UNVERIFIED)
   note              String?
   feedsMatchId      Int?

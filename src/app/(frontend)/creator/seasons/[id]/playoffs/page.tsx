@@ -5,10 +5,11 @@ import { CreatorShell } from '@/components/creator/creator-shell'
 import { CreatorSettings } from '@/components/creator/settings-panel'
 import { PlayoffWorkspace } from '@/components/creator/playoff-workspace'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
-import { SeasonLiveBracket } from '@/components/seasons/season-live-bracket'
+import { PlayoffScoring, ChampionBanner, NoBracketYet, ReviewWarning } from '@/components/creator/playoff-scoring'
 import { loadSeasonStage } from '@/lib/creator/season-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
-import { loadSeasonSeeding, seasonPlayoffRounds } from '@/lib/seasons/playoffs'
+import { loadSeasonSeeding, seasonChampion } from '@/lib/seasons/playoffs'
+import { playoffScoringRounds, playoffNeedsReviewCount } from '@/lib/seasons/playoff-scoring-view'
 import { bracketTopology, startReadiness } from '@/lib/seasons/playoff-topology'
 import { playoffBracketAvailability, placementAvailability } from '@/lib/archive/auto-playoffs'
 import { prisma } from '@/lib/prisma'
@@ -81,18 +82,33 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
     )
   }
 
-  // ── Live: the published bracket, read-only here ───────────────────────────────────────────────
+  // ── Live: the administrative scoring board ────────────────────────────────────────────────────
   if (state === 'PLAYOFFS_LIVE' || state === 'COMPLETED') {
-    const rounds = await seasonPlayoffRounds(ctx.id)
+    const [rounds, needsReview, champion, season] = await Promise.all([
+      playoffScoringRounds(ctx.id),
+      playoffNeedsReviewCount(ctx.id),
+      seasonChampion(ctx.id),
+      prisma.season.findUniqueOrThrow({ where: { id: ctx.id }, select: { finalsForfeit: true } }),
+    ])
+    const completed = state === 'COMPLETED'
+
     return shell(
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          The bracket is published and public. Score entry and Season completion arrive with the next
-          Creator stage; results can still be recorded on the Season page in the meantime.
-        </p>
-        <div className="season-bracket">
-          <SeasonLiveBracket rounds={rounds} canManage={false} />
-        </div>
+      <div className="space-y-3">
+        {champion && (
+          <ChampionBanner
+            champion={champion.championName}
+            runnerUp={champion.runnerUpName}
+            byForfeit={season.finalsForfeit}
+          />
+        )}
+        {needsReview > 0 && <ReviewWarning count={needsReview} />}
+        {completed && (
+          <p className="rounded-md border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+            This Season is completed. Results are shown as recorded; correcting them happens through
+            the correction workflow.
+          </p>
+        )}
+        {rounds.length === 0 ? <NoBracketYet /> : <PlayoffScoring seasonId={ctx.id} rounds={rounds} />}
       </div>,
     )
   }

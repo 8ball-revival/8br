@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { getSeasonView } from '@/lib/seasons/service'
 import { getSeasonGroupStage } from '@/lib/seasons/views'
-import { seasonPlayoffRounds, seasonChampion } from '@/lib/seasons/playoffs'
+import { seasonPlayoffRounds } from '@/lib/seasons/playoffs'
 import {
   getSeasonBrowseData, seasonNeighbours, seasonPlayoffParticipants, hasPublicPlayoffBracket,
   getSeasonGlance,
@@ -13,7 +13,6 @@ import { SeasonControls } from '@/components/seasons/season-controls'
 import { SeasonGroupsView, GroupsStillInProgress } from '@/components/seasons/season-presentation'
 import { SeasonMasthead } from '@/components/seasons/season-masthead'
 import { SeasonRegistration } from '@/components/seasons/season-registration'
-import { SeasonPlayoffs } from '@/components/seasons/season-playoffs'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -205,9 +204,7 @@ export default async function SeasonPage({
           ) : (
             <PlayoffsView
               seasonId={view.id}
-              state={state}
               bracketPublic={bracketPublic}
-              canManage={canManage}
               canManageComp={canManageComp}
               champion={
                 state === 'COMPLETED' && (view.championHandle || view.championName)
@@ -254,12 +251,10 @@ export default async function SeasonPage({
  * would leave no way to record a playoff result at all.
  */
 async function PlayoffsView({
-  seasonId, state, bracketPublic, canManage, canManageComp, champion,
+  seasonId, bracketPublic, canManageComp, champion,
 }: {
   seasonId: number
-  state: string
   bracketPublic: boolean
-  canManage: boolean
   canManageComp: boolean
   champion: { cueverseId: string | null; preferredName: string | null; runnerUp: string | null; finalScore: string | null } | null
 }) {
@@ -268,26 +263,15 @@ async function PlayoffsView({
   if (rounds.length === 0) return <GroupsStillInProgress />
   const note = await playoffDisclaimerOf(seasonId)
 
-  // An admin running LIVE playoffs keeps the editable bracket: that component carries inline score
-  // entry and Close Season, and swapping it for the read-only panel would take those away.
-  if (state === 'PLAYOFFS_LIVE' && canManage) {
-    return (
-      <div className="season-bracket">
-        <SeasonPlayoffs
-          seasonId={seasonId}
-          phase="live"
-          seeding={[]}
-          rounds={rounds}
-          doubleElim={false}
-          hasDraft
-          canManage={canManage}
-          canClose={canManageComp && !!(await seasonChampion(seasonId))}
-          disclaimer={note}
-        />
-      </div>
-    )
-  }
-
+  /*
+   * Everybody sees the same read-only bracket, including an Owner.
+   *
+   * Score entry, corrections and Close Season used to appear here for an administrator, which meant
+   * the bracket could be edited from a public URL by a component that happened to be handed a
+   * permission flag. Playoff scoring is Creator's now — see /creator/seasons/[id]/playoffs — and the
+   * server actions behind it require the Creator capability, so removing the controls is the
+   * presentation half of a rule the services already enforce.
+   */
   return (
     <div>
       <SeasonBracketPanel rounds={rounds} note={note} champion={champion} />
