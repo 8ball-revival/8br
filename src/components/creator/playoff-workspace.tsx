@@ -9,6 +9,7 @@ import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
 import type { BracketTopology, EntrySlot, StartReadiness } from '@/lib/seasons/playoff-topology'
+import { applySwap, canPlaceInto, describeSwap, sameSlot, type SlotRef } from '@/lib/seasons/bracket-swap'
 import {
   setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, setSeasonPlayoffTypeAction,
   generateSeasonBracketAction, startSeasonPlayoffsAction, swapSeasonBracketSlotsAction,
@@ -49,7 +50,34 @@ export function PlayoffWorkspace({
   const [confirmType, setConfirmType] = useState<boolean | null>(null)
   const [confirmRegen, setConfirmRegen] = useState(false)
   /** The slot picked up, waiting for its partner. Click-then-click, so it works without a mouse. */
-  const [picked, setPicked] = useState<{ matchId: number; side: 'home' | 'away' } | null>(null)
+  const [picked, setPicked] = useState<SlotRef | null>(null)
+  /** The card currently under the pointer, so invalid targets can say so before the drop. */
+  const [dragging, setDragging] = useState<SlotRef | null>(null)
+  /*
+   * The slots as drawn, which may be one swap ahead of the server.
+   *
+   * Applying the exchange immediately makes dragging feel like moving a card rather than like
+   * submitting a form. The cost is that a refusal has to put it back, so the pre-swap array is kept
+   * and restored on failure — the alternative, leaving the optimistic state in place, would show an
+   * arrangement the database does not have.
+   */
+  const [slots, setSlots] = useState<EntrySlot[]>(topology.entrySlots)
+  const [announcement, setAnnouncement] = useState('')
+
+  /*
+   * A fresh render from the server is the truth; adopt it whenever the draft really changed.
+   *
+   * Adjusted during render rather than in an effect. `topology.entrySlots` is a new array on every
+   * render, so an identity check would reset forever and an effect would paint the stale board
+   * first and then correct it — a visible flicker on every keystroke elsewhere on the page. The
+   * signature compares the CONTENT, so it changes exactly when a position does.
+   */
+  const serverSignature = topology.entrySlots.map((x) => `${x.matchId}:${x.side}:${x.entrantId ?? ''}`).join('|')
+  const [signature, setSignature] = useState(serverSignature)
+  if (signature !== serverSignature) {
+    setSignature(serverSignature)
+    setSlots(topology.entrySlots)
+  }
 
   const hasDraft = topology.matches > 0
   const selectable = seeding.filter((r) => r.qualification !== 'KICKED_OUT')
@@ -62,12 +90,42 @@ export function PlayoffWorkspace({
       router.refresh()
     })
 
-  const swap = (target: { matchId: number; side: 'home' | 'away' }) => {
+  /**
+   * Exchange two positions.
+   *
+   * The same path for both interactions, so a drag and a pair of clicks cannot disagree about what
+   * a swap means. Refused targets never get here — see `canPlaceInto` — but the server checks again
+   * regardless, and its refusal is what restores the board.
+   */
+  const commitSwap = (from: SlotRef, target: SlotRef) => {
+    if (sameSlot(from, target)) return
+    if (!canPlaceInto(topology.entryKeys, target) || !canPlaceInto(topology.entryKeys, from)) {
+      setMsg({ ok: false, text: 'That position is decided by an earlier match — it cannot be set by hand.' })
+      return
+    }
+    const before = slots
+    setSlots(applySwap(slots, from, target))
+    setAnnouncement(describeSwap(slots, from, target))
+    start(async () => {
+      const r = await swapSeasonBracketSlotsAction(seasonId, from, target)
+      if (r.error) {
+        // Put the board back exactly as it was: an optimistic arrangement the database refused is
+        // worse than no move at all, because it looks saved.
+        setSlots(before)
+        setAnnouncement('The move was refused and has been undone.')
+        setMsg({ ok: false, text: r.error })
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  const swap = (target: SlotRef) => {
     if (!picked) { setPicked(target); return }
-    if (picked.matchId === target.matchId && picked.side === target.side) { setPicked(null); return }
     const from = picked
     setPicked(null)
-    run(() => swapSeasonBracketSlotsAction(seasonId, from, target))
+    if (sameSlot(from, target)) return
+    commitSwap(from, target)
   }
 
   return (
@@ -81,6 +139,9 @@ export function PlayoffWorkspace({
           {msg.text}
         </div>
       )}
+
+      {/* Announcements for a screen reader: a swap is a visual change with nothing else to hear. */}
+      <p aria-live="polite" className="sr-only">{announcement}</p>
 
       <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.05] px-3 py-2">
         <p className="text-sm font-semibold text-[var(--gold)]">Private Draft</p>
@@ -168,7 +229,17 @@ export function PlayoffWorkspace({
           onToggle={(entrantId, included) => run(() => setSeasonPlayoffIncludedAction(seasonId, entrantId, included))}
           onToggleAll={(included) => run(() => setSeasonPlayoffFieldAction(seasonId, included))}
         />
-        <DraftBracket topology={topology} picked={picked} onPick={swap} hasDraft={hasDraft} />
+        <DraftBracket
+          slots={slots}
+          entryKeys={topology.entryKeys}
+          picked={picked}
+          dragging={dragging}
+          onPick={swap}
+          onDragStart={setDragging}
+          onDragEnd={() => setDragging(null)}
+          onDrop={(target) => { if (dragging) commitSwap(dragging, target); setDragging(null) }}
+          hasDraft={hasDraft}
+        />
       </div>
 
       {confirmType !== null && (
@@ -292,11 +363,16 @@ function ParticipantTable({
  * players the marker was competing with the names for attention and winning.
  */
 function DraftBracket({
-  topology, picked, onPick, hasDraft,
+  slots, entryKeys, picked, dragging, onPick, onDragStart, onDragEnd, onDrop, hasDraft,
 }: {
-  topology: BracketTopology
-  picked: { matchId: number; side: 'home' | 'away' } | null
-  onPick: (t: { matchId: number; side: 'home' | 'away' }) => void
+  slots: EntrySlot[]
+  entryKeys: Set<string>
+  picked: SlotRef | null
+  dragging: SlotRef | null
+  onPick: (t: SlotRef) => void
+  onDragStart: (t: SlotRef) => void
+  onDragEnd: () => void
+  onDrop: (t: SlotRef) => void
   hasDraft: boolean
 }) {
   if (!hasDraft) {
@@ -309,7 +385,7 @@ function DraftBracket({
 
   // Group the entry positions by the tie they belong to, in bracket order.
   const byMatch = new Map<number, EntrySlot[]>()
-  for (const s of topology.entrySlots) {
+  for (const s of slots) {
     const list = byMatch.get(s.matchId) ?? []
     list.push(s)
     byMatch.set(s.matchId, list)
@@ -320,9 +396,10 @@ function DraftBracket({
 
   return (
     <div className="rounded-lg border border-border p-3">
-      <p className="mb-2 text-xs text-muted-foreground">
-        Click a player, then click where they should go — the two swap. Positions decided by an
-        earlier match are not shown, because they cannot be set by hand.
+      <p id="draft-help" className="mb-2 text-xs text-muted-foreground">
+        Drag a player onto another position to swap them, or click one and then the other — both do
+        the same thing, so the board works without a mouse. Positions decided by an earlier match are
+        not shown, because they cannot be set by hand.
       </p>
       <ul className="grid gap-2 sm:grid-cols-2">
         {ties.map((t, i) => (
@@ -341,8 +418,14 @@ function DraftBracket({
                 <SlotButton
                   key={`${s.matchId}:${s.side}`}
                   slot={s}
-                  picked={picked?.matchId === s.matchId && picked.side === s.side}
+                  picked={!!picked && sameSlot(picked, s)}
+                  dragging={!!dragging && sameSlot(dragging, s)}
+                  droppable={!!dragging && !sameSlot(dragging, s) && canPlaceInto(entryKeys, s)}
+                  anyDragging={!!dragging}
                   onPick={() => onPick({ matchId: s.matchId, side: s.side })}
+                  onDragStart={() => onDragStart({ matchId: s.matchId, side: s.side })}
+                  onDragEnd={onDragEnd}
+                  onDrop={() => onDrop({ matchId: s.matchId, side: s.side })}
                 />
               ))}
             </span>
@@ -353,16 +436,50 @@ function DraftBracket({
   )
 }
 
-function SlotButton({ slot, picked, onPick }: { slot: EntrySlot; picked: boolean; onPick: () => void }) {
+/**
+ * One position: a button first, draggable second.
+ *
+ * It stays a real <button> so it is reachable, focusable and operable from the keyboard whatever the
+ * pointer is doing. Dragging is layered on top; nothing depends on it.
+ */
+function SlotButton({
+  slot, picked, dragging, droppable, anyDragging, onPick, onDragStart, onDragEnd, onDrop,
+}: {
+  slot: EntrySlot
+  picked: boolean
+  dragging: boolean
+  /** A legal target for the card currently being dragged. */
+  droppable: boolean
+  anyDragging: boolean
+  onPick: () => void
+  onDragStart: () => void
+  onDragEnd: () => void
+  onDrop: () => void
+}) {
   const empty = slot.entrantId == null
+  // While a drag is in progress, everything that is not a legal target says so rather than staying
+  // neutral — an unmarked slot that silently refuses the drop reads as a broken interaction.
+  const invalidTarget = anyDragging && !droppable && !dragging
   return (
     <button
       type="button"
+      draggable={!empty}
       onClick={onPick}
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', `${slot.matchId}:${slot.side}`); onDragStart() }}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => { if (droppable) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
+      onDrop={(e) => { if (droppable) { e.preventDefault(); onDrop() } }}
       aria-pressed={picked}
+      aria-describedby="draft-help"
+      aria-label={`${slot.entrantName ?? 'Bye'}, seed ${slot.seed ?? 'none'}`}
       className={cn(
         'flex w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs transition-colors',
-        picked ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-border bg-background/60 hover:border-[var(--gold)]/40',
+        !empty && 'cursor-grab active:cursor-grabbing',
+        picked && 'border-[var(--gold)] bg-[var(--gold)]/10',
+        dragging && 'opacity-40',
+        droppable && 'border-dashed border-[var(--gold)] bg-[var(--gold)]/[0.06]',
+        invalidTarget && 'cursor-not-allowed opacity-40',
+        !picked && !droppable && !invalidTarget && 'border-border bg-background/60 hover:border-[var(--gold)]/40',
       )}
     >
       <span className="tabular w-5 shrink-0 text-right text-[0.65rem] text-muted-foreground">{slot.seed ?? ''}</span>

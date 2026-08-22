@@ -76,7 +76,26 @@ export interface PlayoffApplyResult {
   ambiguous: number
 }
 
-async function guardPlayoffs(seasonId: number): Promise<
+/**
+ * Where the archive template comes from.
+ *
+ * ── Why this is a parameter ──────────────────────────────────────────────────────────────────────
+ * Everything below is a pure decision about one template and one Season's rows. Nothing in it needs
+ * to know that templates normally live in a JSON file on disk — but because it CALLED the file
+ * loader directly, none of it could be exercised without a real archived Season, and every real
+ * template key belongs to a Season somebody's history depends on.
+ *
+ * So the lookup is injected. Production passes nothing and gets `manifestEntry`, which reads the
+ * manifest exactly as before; a test passes a synthetic template and exercises the same code with
+ * no archive and no Season at risk. Not a global switch, not a test-only branch inside the engine —
+ * an argument, typed, with the real implementation as its default.
+ */
+export type TemplateSource = (templateKey: string) => ManifestEntry | null
+
+async function guardPlayoffs(
+  seasonId: number,
+  templateSource: TemplateSource = manifestEntry,
+): Promise<
   { blocked?: false; ok: true; entry: ManifestEntry; lifecycleState: string } | AutoAssignBlocked
 > {
   const season = await prisma.season.findUnique({
@@ -86,7 +105,7 @@ async function guardPlayoffs(seasonId: number): Promise<
   if (!season) return { blocked: true, reason: 'That Season no longer exists.' }
   if (!season.archiveTemplateKey) return { blocked: true, reason: 'This Season has no verified archive template.' }
 
-  const entry = manifestEntry(season.archiveTemplateKey)
+  const entry = templateSource(season.archiveTemplateKey)
   if (!entry) return { blocked: true, reason: 'No verified archive data for this Season.' }
   if (entry.playoff.placement === 'none') {
     return { blocked: true, reason: 'The archive holds no playoff record for this Season.' }
@@ -110,8 +129,11 @@ async function guardPlayoffs(seasonId: number): Promise<
   return { ok: true, entry, lifecycleState: season.lifecycleState }
 }
 
-export async function previewPlayoffBracket(seasonId: number): Promise<PlayoffPlan | AutoAssignBlocked> {
-  const g = await guardPlayoffs(seasonId)
+export async function previewPlayoffBracket(
+  seasonId: number,
+  templateSource: TemplateSource = manifestEntry,
+): Promise<PlayoffPlan | AutoAssignBlocked> {
+  const g = await guardPlayoffs(seasonId, templateSource)
   if (isBlocked(g)) return g
   const { entry } = g
   const po = entry.playoff
@@ -258,8 +280,9 @@ export async function applyPlayoffBracket(
   actor: { userId: number; username: string },
   seasonId: number,
   opts: { replaceDraft?: boolean } = {},
+  templateSource: TemplateSource = manifestEntry,
 ): Promise<PlayoffApplyResult> {
-  const preview = await previewPlayoffBracket(seasonId)
+  const preview = await previewPlayoffBracket(seasonId, templateSource)
   if (isBlocked(preview)) {
     return { ok: false, error: preview.reason, selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0 }
   }
@@ -482,8 +505,11 @@ export interface PlacementApplyResult {
  *
  * It never generates, never changes the field, never touches a later round. First-round seats only.
  */
-export async function previewPlacement(seasonId: number): Promise<PlacementPlan | AutoAssignBlocked> {
-  const g = await guardPlayoffs(seasonId)
+export async function previewPlacement(
+  seasonId: number,
+  templateSource: TemplateSource = manifestEntry,
+): Promise<PlacementPlan | AutoAssignBlocked> {
+  const g = await guardPlayoffs(seasonId, templateSource)
   if (isBlocked(g)) return g
   const { entry } = g
   const po = entry.playoff
@@ -640,8 +666,9 @@ export async function previewPlacement(seasonId: number): Promise<PlacementPlan 
 export async function applyPlacement(
   actor: { userId: number; username: string },
   seasonId: number,
+  templateSource: TemplateSource = manifestEntry,
 ): Promise<PlacementApplyResult> {
-  const preview = await previewPlacement(seasonId)
+  const preview = await previewPlacement(seasonId, templateSource)
   if (isBlocked(preview)) return { ok: false, error: preview.reason, placed: 0, skipped: 0, displaced: 0 }
   if (preview.refusal) return { ok: false, error: preview.refusal, placed: 0, skipped: 0, displaced: 0 }
 
