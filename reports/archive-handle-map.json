@@ -2,14 +2,15 @@
   "mj_the_king": {
     "rawHandle": "mj_the_king",
     "cueverseId": "mj_the_king",
-    "playerId": "cmt4rsw8p00006rhk4ypsmwdm",
-    "userId": 5139,
-    "status": "created",
+    "playerId": "cmt0q3eyc00206rpo0313fhcm",
+    "userId": 4247,
+    "status": "merged",
     "seasons": [
       "2009 S5A"
     ],
     "candidates": [],
-    "reason": "no existing Player matched this archive handle by CueVerse ID, alias or attached handle"
+    "reason": "owner-confirmed the same person as pool.instinct; merged through the canonical service, original handle preserved as an alias",
+    "mergedInto": "pool.instinct"
   },
   "zach_23_": {
     "rawHandle": "zach_23_",
@@ -38,9 +39,9 @@
   "ll_ketan_ll": {
     "rawHandle": "ll_ketan_ll",
     "cueverseId": "ll_ketan_ll",
-    "playerId": "cmt4rswgm00036rhkajjrv059",
-    "userId": 5142,
-    "status": "created",
+    "playerId": "cmt0q1ad6001t6rpo2lf471ji",
+    "userId": 4240,
+    "status": "merged",
     "seasons": [
       "2009 S5A"
     ],
@@ -51,19 +52,21 @@
         "why": "archived handle contains their CueVerse ID"
       }
     ],
-    "reason": "no existing Player matched this archive handle by CueVerse ID, alias or attached handle"
+    "reason": "owner-confirmed the same person as l_ketan_l; merged through the canonical service, original handle preserved as an alias",
+    "mergedInto": "l_ketan_l"
   },
   "i.am_the_zodiac": {
     "rawHandle": "i.am_the_zodiac",
     "cueverseId": "i.am_the_zodiac",
-    "playerId": "cmt4rswiz00046rhkyo1vypry",
-    "userId": 5143,
-    "status": "created",
+    "playerId": "cmt0qd455002q6rpo8ff2w31b",
+    "userId": 4265,
+    "status": "merged",
     "seasons": [
       "2009 S5A"
     ],
     "candidates": [],
-    "reason": "no existing Player matched this archive handle by CueVerse ID, alias or attached handle"
+    "reason": "owner-confirmed the same person as jabronni16; merged through the canonical service, original handle preserved as an alias",
+    "mergedInto": "jabronni16"
   },
   "mustang9082": {
     "rawHandle": "MUSTANG9082",
@@ -104,14 +107,15 @@
   "xxl_machine_lxx": {
     "rawHandle": "xxl_machine_lxx",
     "cueverseId": "xxl_machine_lxx",
-    "playerId": "cmt4rsws700086rhkvfpoad1t",
-    "userId": 5147,
-    "status": "created",
+    "playerId": "cmt1nniq7000d6r0c3y471in8",
+    "userId": 4319,
+    "status": "merged",
     "seasons": [
       "2009 S5A"
     ],
     "candidates": [],
-    "reason": "no existing Player matched this archive handle by CueVerse ID, alias or attached handle"
+    "reason": "owner-confirmed the same person as xxl_themachine_lxx; merged through the canonical service, original handle preserved as an alias",
+    "mergedInto": "xxl_themachine_lxx"
   },
   "sergio_zarate_7": {
     "rawHandle": "sergio_zarate_7",
@@ -128,14 +132,15 @@
   "x_therage": {
     "rawHandle": "x_therage",
     "cueverseId": "x_therage",
-    "playerId": "cmt4rswwv000a6rhk6khpkm98",
-    "userId": 5149,
-    "status": "created",
+    "playerId": "cmt1x90kt007i6r0ca4nzqnig",
+    "userId": 4426,
+    "status": "merged",
     "seasons": [
       "2009 S5A"
     ],
     "candidates": [],
-    "reason": "no existing Player matched this archive handle by CueVerse ID, alias or attached handle"
+    "reason": "owner-confirmed the same person as t_an_may; merged through the canonical service, original handle preserved as an alias",
+    "mergedInto": "t_an_may"
   },
   "powers_seduction": {
     "rawHandle": "Powers_Seduction",
@@ -188,14 +193,15 @@
   "luisj_barreto": {
     "rawHandle": "luisj_barreto",
     "cueverseId": "luisj_barreto",
-    "playerId": "cmt4rsx8x000f6rhkwg9u5flm",
-    "userId": 5154,
-    "status": "created",
+    "playerId": "cmsxh8m4l00006rf405ws72ne",
+    "userId": 3964,
+    "status": "merged",
     "seasons": [
       "2009 S5A"
     ],
     "candidates": [],
-    "reason": "no existing Player matched this archive handle by CueVerse ID, alias or attached handle"
+    "reason": "owner-confirmed the same person as real_creampuff; merged through the canonical service, original handle preserved as an alias",
+    "mergedInto": "real_creampuff"
   },
   "adambuddy": {
     "rawHandle": "adambuddy",
