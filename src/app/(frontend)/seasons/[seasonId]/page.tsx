@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { getSeasonView } from '@/lib/seasons/service'
 import { getSeasonGroupStage } from '@/lib/seasons/views'
-import { loadSeasonSeeding, seasonPlayoffRounds, seasonChampion } from '@/lib/seasons/playoffs'
+import { seasonPlayoffRounds, seasonChampion } from '@/lib/seasons/playoffs'
 import {
   getSeasonBrowseData, seasonNeighbours, seasonPlayoffParticipants, hasPublicPlayoffBracket,
   getSeasonGlance,
@@ -20,7 +20,6 @@ import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
 import { publicRegistrationOpen } from '@/lib/competition/registration-policy'
 import { autoEntrantsAvailability } from '@/lib/archive/auto-entrants'
-import { playoffBracketAvailability, placementAvailability } from '@/lib/archive/auto-playoffs'
 import { getCurrentUser } from '@/lib/account/auth'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_COMPETITION_SLUG } from '@/lib/seasons/browse'
@@ -121,16 +120,9 @@ export default async function SeasonPage({
    * Both boards receive it rather than working it out themselves — otherwise the entrant board and
    * the score board would each carry a copy of the phase and blocking rules, and they would drift.
    */
-  const [addEntrantsAuto, playoffAuto, placementAuto] = canManageComp
-    ? await Promise.all([
-        autoEntrantsAvailability(view.id),
-        playoffBracketAvailability(view.id),
-        placementAvailability(view.id),
-      ])
-    : [
-        { show: false, disabledReason: null }, { show: false, disabledReason: null },
-        { show: false, disabledReason: null },
-      ]
+  const [addEntrantsAuto] = canManageComp
+    ? await Promise.all([autoEntrantsAvailability(view.id)])
+    : [{ show: false, disabledReason: null }]
 
   // The masthead's "View Playoffs" switches the same toggle the control bar drives, so it is built
   // from the URL already on screen rather than a second source of truth.
@@ -213,8 +205,6 @@ export default async function SeasonPage({
           ) : (
             <PlayoffsView
               seasonId={view.id}
-              playoffAuto={playoffAuto}
-              placementAuto={placementAuto}
               state={state}
               bracketPublic={bracketPublic}
               canManage={canManage}
@@ -242,8 +232,6 @@ export default async function SeasonPage({
           registered={registered}
           memberRegistrationOpen={memberRegistrationOpen}
           addEntrantsAuto={addEntrantsAuto}
-          playoffAuto={playoffAuto}
-          placementAuto={placementAuto}
         />
       </div>
     </div>
@@ -257,9 +245,16 @@ export default async function SeasonPage({
  * Season control — so switching to this tab costs an admin nothing. A closed Season renders the
  * finished bracket read-only. With no public bracket the toggle still works and says so plainly.
  */
+/**
+ * The public playoff view.
+ *
+ * Build Playoff Bracket and Place Entrants are gone: they build a PRIVATE draft, which has no
+ * business being reachable from the page the draft is hidden from. Live score entry stays for now
+ * because Creator has nowhere to put it yet - it moves with the next stage, and removing it first
+ * would leave no way to record a playoff result at all.
+ */
 async function PlayoffsView({
   seasonId, state, bracketPublic, canManage, canManageComp, champion,
-  playoffAuto, placementAuto,
 }: {
   seasonId: number
   state: string
@@ -267,10 +262,6 @@ async function PlayoffsView({
   canManage: boolean
   canManageComp: boolean
   champion: { cueverseId: string | null; preferredName: string | null; runnerUp: string | null; finalScore: string | null } | null
-  /** Decided by the page: one source for whether Build Playoff Bracket belongs here. */
-  playoffAuto?: { show: boolean; disabledReason: string | null }
-  /** The same, for Place Entrants — offered only where the archive recorded real positions. */
-  placementAuto?: { show: boolean; disabledReason: string | null }
 }) {
   if (!bracketPublic) return <GroupsStillInProgress />
   const rounds = await seasonPlayoffRounds(seasonId)
@@ -292,8 +283,6 @@ async function PlayoffsView({
           canManage={canManage}
           canClose={canManageComp && !!(await seasonChampion(seasonId))}
           disclaimer={note}
-          autoPlayoffs={playoffAuto}
-          autoPlacement={placementAuto}
         />
       </div>
     )
@@ -316,8 +305,8 @@ async function PlayoffsView({
  * here — they render above instead, so an admin edits in place rather than in a duplicate table.
  */
 async function AdminSurfaces({
-  view, state, canManage, canManageComp, isLoggedIn, registered, addEntrantsAuto, playoffAuto,
-  placementAuto, memberRegistrationOpen,
+  view, state, canManage, canManageComp, isLoggedIn, registered, addEntrantsAuto,
+  memberRegistrationOpen,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>
   state: string
@@ -329,8 +318,6 @@ async function AdminSurfaces({
   memberRegistrationOpen: boolean
   /** Decided by the page, not here: one source for whether Auto Assign belongs on this screen. */
   addEntrantsAuto?: { show: boolean; disabledReason: string | null }
-  playoffAuto?: { show: boolean; disabledReason: string | null }
-  placementAuto?: { show: boolean; disabledReason: string | null }
 }) {
   if (state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_SCHEDULED') {
     return (
@@ -387,25 +374,27 @@ async function AdminSurfaces({
   }
 
   if (state === 'PLAYOFF_SETUP') {
-    return canManageComp
-      ? (
-        <div className="season-bracket">
-          <SeasonPlayoffs
-            seasonId={view.id}
-            phase="setup"
-            seeding={await loadSeasonSeeding(view.id)}
-            rounds={await seasonPlayoffRounds(view.id)}
-            doubleElim={await playoffTypeOf(view.id)}
-            hasDraft={(await prisma.seasonPlayoffMatch.count({ where: { seasonId: view.id } })) > 0}
-            canManage
-            canClose={false}
-            disclaimer={await playoffDisclaimerOf(view.id)}
-            autoPlayoffs={playoffAuto}
-            autoPlacement={placementAuto}
-          />
-        </div>
-      )
-      : <Info>Group stage complete — the playoff field is being finalized.</Info>
+    /*
+     * The private draft is not rendered here any more.
+     *
+     * It was: the setup board shipped the whole unpublished bracket - every participant and their
+     * position - into a public route's markup, guarded by a permission flag on the component. A
+     * draft that is meant to be invisible should not be in the response at all. It lives in Creator
+     * now, which is also the only place it can be edited.
+     */
+    return (
+      <Info>
+        Group Stage Complete — playoff bracket coming shortly.
+        {canManageComp && (
+          <>
+            {' '}
+            <a href={`/creator/seasons/${view.id}/playoffs`} className="font-semibold text-brand hover:underline">
+              Build the bracket in Creator
+            </a>.
+          </>
+        )}
+      </Info>
+    )
   }
 
   return null
@@ -416,10 +405,6 @@ async function playoffDisclaimerOf(seasonId: number): Promise<string | null> {
   return s?.playoffDisclaimer ?? null
 }
 
-async function playoffTypeOf(seasonId: number): Promise<boolean> {
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { playoffDoubleElim: true } })
-  return s?.playoffDoubleElim ?? false
-}
 
 function Info({ children }: { children: React.ReactNode }) {
   return <div className="mt-8 rounded-lg border border-border bg-card/40 p-6 text-sm text-muted-foreground">{children}</div>

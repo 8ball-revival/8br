@@ -29,6 +29,9 @@ import { createDraft } from '../src/lib/creator/setup.ts'
 import { addSeasonEntrant, closeRegistration } from '../src/lib/seasons/service.ts'
 import { transitionSeasonState } from '../src/lib/seasons/lifecycle.ts'
 import { generateSeasonGroups, publishSeasonGroups } from '../src/lib/seasons/groups.ts'
+import { saveSeasonGroupResults, closeSeasonGroups } from '../src/lib/seasons/group-stage.ts'
+import { enterSeasonPlayoffSetup, generateSeasonBracket, startSeasonPlayoffs } from '../src/lib/seasons/playoffs.ts'
+import { bracketTopology } from '../src/lib/seasons/playoff-topology.ts'
 
 assertLocalDatabase()
 
@@ -48,6 +51,7 @@ const series = await prisma.competitionSeries.findFirstOrThrow({ select: { id: t
 async function cleanup() {
   const rows = await prisma.season.findMany({ where: { competitionYear: YEAR }, select: { id: true } })
   for (const r of rows) {
+    await prisma.seasonPlayoffMatch.deleteMany({ where: { seasonId: r.id } })
     await prisma.seasonMatch.deleteMany({ where: { seasonId: r.id } })
     await prisma.seasonStanding.deleteMany({ where: { seasonId: r.id } })
     await prisma.seasonGroup.deleteMany({ where: { seasonId: r.id } })
@@ -152,6 +156,54 @@ try {
     section('...but still no management controls')
     for (const control of ['Close Groups', 'Save Group', 'Reopen Groups', 'Generate Groups', 'Number of Groups']) {
       check(`the public page has no "${control}"`, !after.body.includes(control))
+    }
+
+    /*
+     * The PLAYOFF draft is the same rule, one stage later.
+     *
+     * It used to be worse than the group draft: the whole setup board - participants, seeds and
+     * every bracket position - was rendered into this public route behind a permission flag on the
+     * component. The draw of a Season that has not started its playoffs is exactly the thing nobody
+     * outside Creator should be able to read.
+     */
+    section('The playoff draft is private too')
+    const groups = await prisma.seasonGroup.findMany({ where: { seasonId: id }, select: { id: true } })
+    for (const g of groups) {
+      const ms = await prisma.seasonMatch.findMany({ where: { seasonId: id, groupId: g.id }, orderBy: { id: 'asc' } })
+      await saveSeasonGroupResults(ACTOR, id, g.id, ms.map((m, i) => ({
+        matchId: m.id, home: '7', away: String(i % 5), version: m.version,
+      })))
+    }
+    await closeSeasonGroups(ACTOR, id)
+    const setup = await enterSeasonPlayoffSetup(ACTOR, id)
+    check('the Season enters playoff setup', setup.ok === true, setup.error)
+    const bracket = await generateSeasonBracket(ACTOR, id)
+    check('a private bracket draft is generated', bracket.ok === true, bracket.error)
+
+    const draftTopo = await bracketTopology(id)
+    check('...with entry positions filled', draftTopo.entrySlots.some((x) => x.entrantId != null))
+    check('...and nothing published',
+      (await prisma.seasonPlayoffMatch.count({ where: { seasonId: id, published: true } })) === 0)
+
+    for (const path of [`/seasons/${id}`, `/seasons/${id}?view=playoffs`, `/seasons/${id}?view=groups`]) {
+      const { status, body } = await getPublic(path)
+      check(`${path} responds`, status === 200, `status ${status}`)
+      // The bracket's own vocabulary. Present on a published bracket, absent on a draft.
+      for (const word of ['Quarter-final', 'Semi-final', 'Start Playoffs', 'Generate Bracket', 'Regenerate Bracket', 'Private Draft']) {
+        check(`${path} does not show "${word}"`, !body.includes(word))
+      }
+    }
+
+    section('Starting the playoffs is what makes the bracket public')
+    const live = await startSeasonPlayoffs(ACTOR, id)
+    check('the playoffs start', live.ok === true, live.error)
+    const livePage = await getPublic(`/seasons/${id}?view=playoffs`)
+    check('the public page now shows the bracket',
+      /Final|Semi-final|Quarter-final/.test(livePage.body), 'no round names found')
+    const livePlayers = placedHandles.filter((h) => livePage.body.includes(h))
+    check('...with the players in it', livePlayers.length > 0, `${livePlayers.length}`)
+    for (const control of ['Start Playoffs', 'Generate Bracket', 'Regenerate Bracket', 'Private Draft', 'Select All']) {
+      check(`the published page has no "${control}"`, !livePage.body.includes(control))
     }
   }
 } finally {

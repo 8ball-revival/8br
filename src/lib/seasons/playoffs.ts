@@ -289,6 +289,21 @@ export async function swapSeasonBracketSlots(
     return { ok: false, error: 'That tie already has a result — clear it before moving players.' }
   }
 
+  /*
+   * Both ends must be positions a person may fill.
+   *
+   * A position some match feeds is decided by play. Swapping into one puts a player in a tie they
+   * have not qualified for, and the placement vanishes the moment the feeder resolves and overwrites
+   * it — a change that appears to work and then silently undoes itself.
+   */
+  const { bracketTopology, slotKey } = await import('./playoff-topology')
+  const topo = await bracketTopology(seasonId)
+  for (const end of [a, b]) {
+    if (!topo.entryKeys.has(slotKey(end.matchId, end.side))) {
+      return { ok: false, error: 'That position is decided by an earlier match — it cannot be set by hand.' }
+    }
+  }
+
   const read = (m: typeof ma, side: 'home' | 'away') =>
     side === 'home'
       ? { entrantId: m.homeEntrantId, username: m.homeUsername, seed: m.homeSeed }
@@ -343,6 +358,13 @@ export async function setSeasonBracketSlot(
   const target = await prisma.seasonPlayoffMatch.findFirst({ where: { id: matchId, seasonId } })
   if (!target) return { ok: false, error: 'Bracket match not found.' }
   if (target.status === 'COMPLETED') return { ok: false, error: 'That tie already has a result — clear it before moving players.' }
+
+  // Only a position nothing feeds may be filled by hand. See playoff-topology for why the rule is
+  // structural rather than "round one".
+  const { isEntrySlot } = await import('./playoff-topology')
+  if (!(await isEntrySlot(seasonId, matchId, side))) {
+    return { ok: false, error: 'That position is decided by an earlier match — it cannot be set by hand.' }
+  }
 
   const seedOf = async (id: number | null) =>
     id == null ? null : (await prisma.seasonEntrant.findUnique({ where: { id }, select: { playoffSeed: true } }))?.playoffSeed ?? null
@@ -405,11 +427,42 @@ const emptyPlanSlot = { registrationId: null, username: null, seed: null } as co
 
 /** Build a PRIVATE draft bracket from the included players in locked seed order (single or double
  *  elim per the Season setting). Byes are handled automatically. Replaces any prior draft. */
-export async function generateSeasonBracket(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string; matches?: number }> {
+export async function generateSeasonBracket(
+  actor: Actor,
+  seasonId: number,
+  opts: { size?: number } = {},
+): Promise<{ ok: boolean; error?: string; matches?: number; size?: number }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true, playoffDoubleElim: true } })
   if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'Generate the bracket during playoff setup.' }
   const seeding = (await loadSeasonSeeding(seasonId)).filter((r) => r.included && r.overallSeed != null)
   if (seeding.length < 2) return { ok: false, error: 'Select at least two players for the playoffs.' }
+
+  /*
+   * Bracket size: the smallest that fits, unless told otherwise.
+   *
+   * An override exists because a historical bracket's SIZE is part of the record. A 1990s field of
+   * six played a bracket of eight with two byes, and rebuilding it as a bracket of eight is not a
+   * preference — it is what happened. Refusing a size smaller than the field, rather than silently
+   * growing it, keeps the operator's intent legible: they asked for something impossible and should
+   * be told, not quietly given something else.
+   */
+  const { BRACKET_SIZES, smallestBracketFor } = await import('./playoff-topology')
+  const natural = smallestBracketFor(seeding.length)
+  if (natural == null) {
+    return { ok: false, error: `${seeding.length} participants is more than the largest bracket (${BRACKET_SIZES.at(-1)}).` }
+  }
+  let size: number = natural
+  if (opts.size != null) {
+    if (!(BRACKET_SIZES as readonly number[]).includes(opts.size)) {
+      return { ok: false, error: `Choose a bracket size of ${BRACKET_SIZES.join(', ')}.` }
+    }
+    if (opts.size < seeding.length) {
+      return { ok: false, error: `A bracket of ${opts.size} cannot hold ${seeding.length} participants.` }
+    }
+    size = opts.size
+  }
+  // Empty capacity becomes byes: the planner seats real players and leaves the rest unoccupied.
+  const padding = size - seeding.length
 
   // Bracket seeds are 1..N over the players actually IN the bracket, densified from the
   // group-derived order. The order itself is untouched, so leaving someone out never promotes
@@ -419,6 +472,16 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
   const qualifiers: Qualifier[] = seeding.map((r) => ({
     registrationId: r.entrantId, username: r.name, seed: seedOfEntrant.get(r.entrantId)!,
   }))
+  /*
+   * Pad the field to the requested size with placeholders the planner reads as byes.
+   *
+   * The planner sizes the bracket from the number of qualifiers it is given, so asking for a larger
+   * bracket means handing it a larger field. A padding entry carries no registrationId, which is
+   * exactly what an empty entry slot is.
+   */
+  for (let i = 0; i < padding; i++) {
+    qualifiers.push({ registrationId: null as unknown as number, username: null as unknown as string, seed: seeding.length + i + 1 })
+  }
 
   try {
   await prisma.$transaction(async (tx) => {
@@ -476,7 +539,7 @@ export async function generateSeasonBracket(actor: Actor, seasonId: number): Pro
     throw e
   }
   const n = await prisma.seasonPlayoffMatch.count({ where: { seasonId } })
-  return { ok: true, matches: n }
+  return { ok: true, matches: n, size }
 }
 
 /**
@@ -556,7 +619,20 @@ export async function startSeasonPlayoffs(actor: Actor, seasonId: number): Promi
   if (s?.lifecycleState !== 'PLAYOFF_SETUP') return { ok: false, error: 'Start playoffs from the playoff setup phase.' }
   const count = await prisma.seasonPlayoffMatch.count({ where: { seasonId } })
   if (count === 0) return { ok: false, error: 'Generate the bracket before starting the playoffs.' }
+
+  const { startReadiness } = await import('./playoff-topology')
+  let refusal: string | null = null
   await prisma.$transaction(async (tx) => {
+    /*
+     * Checked again, here, holding the transaction.
+     *
+     * The page checked before drawing the button, and that answer is already stale: another
+     * administrator may have unticked a participant while this one was reading the confirmation.
+     * Publishing is the irreversible half of the workflow, so the condition that decides it is the
+     * one evaluated against the rows being written, not the ones that were rendered.
+     */
+    const ready = await startReadiness(seasonId, tx)
+    if (!ready.ok) { refusal = ready.problems.join(' '); return }
     // Byes are awarded HERE rather than at generation, so the draft stayed freely editable right up
     // to this point. Whoever is sitting alone in an entry slot now is who advances.
     await settleByes(tx, seasonId)
@@ -565,6 +641,7 @@ export async function startSeasonPlayoffs(actor: Actor, seasonId: number): Promi
     const t = await transitionSeasonState(actor, seasonId, 'PLAYOFFS_LIVE', { tx })
     if (!t.ok) throw new Error(t.error)
   })
+  if (refusal) return { ok: false, error: refusal }
   return { ok: true }
 }
 

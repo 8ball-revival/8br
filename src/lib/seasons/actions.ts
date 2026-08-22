@@ -289,11 +289,26 @@ export async function setSeasonPlayoffTypeAction(seasonId: number, doubleElim: b
   if (!r.ok) return { error: r.error }
   revalidateSeason(seasonId); return { ok: true }
 }
-export async function generateSeasonBracketAction(seasonId: number): Promise<SeasonActionResult> {
+/** Every unmet Start condition, for the client to explain. The server checks again before it acts. */
+export async function previewStartReadinessAction(seasonId: number): Promise<import('./playoff-topology').StartReadiness> {
+  await requireCapability('manage_competitions')
+  const { startReadiness } = await import('./playoff-topology')
+  return startReadiness(seasonId)
+}
+
+/** The bracket's entry positions and what fills the rest, for the draft workspace. */
+export async function previewBracketTopologyAction(seasonId: number): Promise<import('./playoff-topology').BracketTopology> {
+  await requireCapability('manage_competitions')
+  const { bracketTopology } = await import('./playoff-topology')
+  return bracketTopology(seasonId)
+}
+
+export async function generateSeasonBracketAction(seasonId: number, opts: { size?: number } = {}): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const r = await po.generateSeasonBracket(actor, seasonId)
+  const r = await po.generateSeasonBracket(actor, seasonId, opts)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(seasonId); return { ok: true, message: 'Draft bracket generated (private).' }
+  revalidateSeason(seasonId)
+  return { ok: true, message: `Draft bracket of ${r.size} generated — private until you start the playoffs.` }
 }
 export async function startSeasonPlayoffsAction(seasonId: number): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
