@@ -214,7 +214,45 @@ for (const s of seasons) {
       const stateNow = String((await prisma.season.findUniqueOrThrow({
         where: { id: s.id }, select: { lifecycleState: true },
       })).lifecycleState)
-      if (stateNow === 'GROUP_SETUP' || stateNow === 'REGISTRATION_CLOSED') {
+
+      /*
+       * A Season that has already advanced is rewound before its field is completed.
+       *
+       * Entrant entry closes at registration, and the lifecycle deliberately offers no way back to
+       * it from a live group stage — the groups and their schedule are derived from the field, so
+       * changing the field afterwards would leave them describing a competition that no longer
+       * matches. That guard is right, and the answer is to undo the derived work rather than to
+       * force an entrant in behind it.
+       *
+       * Only ever for a reconstruction that has contributed nothing: no ledger row, no champion,
+       * not completed. Everything deleted here is rebuilt from the manifest moments later, and the
+       * rollback itself goes through the lifecycle's own recovery path so it is audited as what it
+       * is rather than done behind the service's back.
+       */
+      if (stateNow !== 'REGISTRATION_OPEN' && stateNow !== 'REGISTRATION_CLOSED') {
+        const guard = {
+          ledger: await prisma.ratingLedger.count({ where: { seasonId: s.id } }),
+          champion: (await prisma.season.findUniqueOrThrow({ where: { id: s.id }, select: { championName: true } })).championName,
+        }
+        if (stateNow === 'COMPLETED' || guard.ledger > 0 || guard.champion) {
+          p.stage = 'partial'
+          p.error = `entrants: ${before} of ${wanted}, and this Season has already contributed results — not rewound`
+          save(); continue
+        }
+        await prisma.$transaction(async (tx) => {
+          await tx.seasonPlayoffMatch.deleteMany({ where: { seasonId: s.id } })
+          await tx.seasonStanding.deleteMany({ where: { seasonId: s.id } })
+          await tx.seasonMatch.deleteMany({ where: { seasonId: s.id } })
+          await tx.seasonGroupPlayer.deleteMany({ where: { group: { seasonId: s.id } } })
+          await tx.seasonGroup.deleteMany({ where: { seasonId: s.id } })
+        }, { timeout: 120_000 })
+        const back = await transitionSeasonState(ACTOR, s.id, 'REGISTRATION_OPEN', {
+          recovery: true,
+          reason: 'archive reconstruction: the recorded entrant field was incomplete, so the derived group stage was rebuilt from it',
+        })
+        if (!back.ok) { p.stage = 'partial'; p.error = `rewind: ${back.error}`; save(); continue }
+        p.notes.push(`rewound from ${stateNow} to complete the entrant field`)
+      } else if (stateNow === 'REGISTRATION_CLOSED') {
         const back = await transitionSeasonState(ACTOR, s.id, 'REGISTRATION_OPEN',
           { reason: 'archive reconstruction: completing the recorded entrant field' })
         if (!back.ok) { p.stage = 'partial'; p.error = `reopen registration: ${back.error}`; save(); continue }
@@ -352,6 +390,31 @@ for (const s of seasons) {
         if (!gen.ok) { p.notes.push(`bracket: ${gen.error}`); p.stage = 'partial'; save(); continue }
         p.bracketSize = gen.size ?? size ?? null
       }
+      /*
+       * Placement is skipped once the recorded positions are already on the board.
+       *
+       * Re-placing produced an identical bracket but wrote a fresh audit entry for every slot it
+       * touched — 28 rows per rerun that record no change. Replacing the draft is also the one
+       * step here that would discard a position somebody had since set by hand.
+       */
+      const expected = entry.playoff.participants.length
+      const seated = await prisma.seasonPlayoffMatch.count({
+        where: { seasonId: s.id, round: 1, OR: [{ homeEntrantId: { not: null } }, { awayEntrantId: { not: null } }] },
+      })
+      const alreadyPlaced = await prisma.seasonPlayoffMatch.findMany({
+        where: { seasonId: s.id, round: 1 },
+        select: { homeEntrantId: true, awayEntrantId: true },
+      })
+      const seatedPlayers = alreadyPlaced.flatMap((m) => [m.homeEntrantId, m.awayEntrantId]).filter(Boolean).length
+      if (seatedPlayers >= expected) {
+        p.round1Placed = seatedPlayers
+        p.byes = entry.playoff.participants.filter((x) => x.bye).length
+        p.stage = 'round1-placed'
+        save()
+        log(`   entrants=${p.entrantsAdded} groups=${p.groupsPlaced} results=${p.resultsImported} selected=${p.playoffSelected} round1=${p.round1Placed} stage=${p.stage}`)
+        continue
+      }
+      void seated
       const place = await applyArchivePlacement(ACTOR, s.id, { replaceDraft: true })
       if (place.ok) {
         p.round1Placed = place.placed
