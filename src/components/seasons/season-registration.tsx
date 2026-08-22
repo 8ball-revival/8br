@@ -36,7 +36,7 @@ export function SeasonRegistration({
   isOpen,
   isLoggedIn,
   alreadyRegistered,
-  requiresPassword,
+  memberRegistrationOpen,
   autoEntrants,
 }: {
   seasonId: number
@@ -47,7 +47,14 @@ export function SeasonRegistration({
   isOpen: boolean
   isLoggedIn: boolean
   alreadyRegistered: boolean
-  requiresPassword: boolean
+  /**
+   * Whether a signed-in member may enter this Season themselves.
+   *
+   * Decided on the server by the site-wide policy — the component does not reason about it, and
+   * there is no per-Season password to satisfy on top of it. A Season that is OPEN under an
+   * ADMIN_ONLY policy simply shows no registration control.
+   */
+  memberRegistrationOpen: boolean
 }) {
   const router = useRouter()
   const confirm = useConfirm()
@@ -98,10 +105,10 @@ export function SeasonRegistration({
 
       {/* Member self-registration / admin controls */}
       <div className="flex flex-wrap items-center gap-3">
-        {isOpen && !canManage && isLoggedIn && !alreadyRegistered && (
-          <SelfRegister seasonId={seasonId} requiresPassword={requiresPassword} onDone={(r) => (r.error ? flash({ ok: false, text: r.error }) : (flash({ ok: true, text: r.message ?? 'Registered.' }), router.refresh()))} />
+        {memberRegistrationOpen && !canManage && isLoggedIn && !alreadyRegistered && (
+          <SelfRegister seasonId={seasonId} onDone={(r) => (r.error ? flash({ ok: false, text: r.error }) : (flash({ ok: true, text: r.message ?? 'Registered.' }), router.refresh()))} />
         )}
-        {isOpen && !canManage && !isLoggedIn && (
+        {memberRegistrationOpen && !canManage && !isLoggedIn && (
           <Button asChild size="sm"><Link href={`/login?returnTo=${encodeURIComponent(`/seasons/${seasonId}`)}`}>Sign in to register</Link></Button>
         )}
         {alreadyRegistered && !canManage && (
@@ -163,17 +170,21 @@ export function SeasonRegistration({
   )
 }
 
-function SelfRegister({ seasonId, requiresPassword, onDone }: { seasonId: number; requiresPassword: boolean; onDone: (r: SeasonActionResult) => void }) {
+/**
+ * One button. There is nothing else to satisfy.
+ *
+ * The Season password field lived here, and is gone: the site-wide policy is the sole gate, so a
+ * member who is offered this control is already permitted to use it. Asking for a second secret
+ * after already deciding "yes" was a gate that could only ever produce a refusal the member could
+ * not act on.
+ */
+function SelfRegister({ seasonId, onDone }: { seasonId: number; onDone: (r: SeasonActionResult) => void }) {
   const [pending, start] = useTransition()
-  const [pw, setPw] = useState('')
   return (
     <form
       className="flex flex-wrap items-center gap-2"
-      onSubmit={(e) => { e.preventDefault(); start(async () => onDone(await registerForSeasonAction(seasonId, pw))) }}
+      onSubmit={(e) => { e.preventDefault(); start(async () => onDone(await registerForSeasonAction(seasonId, ''))) }}
     >
-      {requiresPassword && (
-        <input value={pw} onChange={(e) => setPw(e.target.value)} type="password" required placeholder="Season password" className="rounded-md border border-input bg-card px-3 py-2 text-sm" autoComplete="off" />
-      )}
       <Button size="sm" type="submit" disabled={pending}><UserPlus className="size-4" /> {pending ? 'Registering…' : 'Register for this Season'}</Button>
     </form>
   )

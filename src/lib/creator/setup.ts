@@ -41,7 +41,13 @@ export const STRUCTURES = [
     id: 'groups_only',
     label: 'Groups only',
     hint: 'A group stage that decides the standings outright. No bracket is created.',
+    /*
+     * Legacy. Recognised so existing records keep working and keep their label, but never offered
+     * for a new Season: every Season now runs its groups into a bracket. Removing the entry outright
+     * would leave the Seasons that already use it describing themselves as nothing.
+     */
     seasons: true,
+    retired: true,
     cups: false,
   },
   {
@@ -71,6 +77,16 @@ export type StructureId = (typeof STRUCTURES)[number]['id']
 
 export const structuresFor = (type: RecordType) =>
   STRUCTURES.filter((s) => (type === 'season' ? s.seasons : s.cups))
+
+/**
+ * What a NEW record may be created as.
+ *
+ * Narrower than `structuresFor`, which still recognises everything the database contains. A retired
+ * structure is valid history and an invalid choice — the two are different questions and conflating
+ * them either breaks old records or keeps offering a shape nobody wants any more.
+ */
+export const structuresForCreation = (type: RecordType) =>
+  structuresFor(type).filter((s) => !('retired' in s && s.retired))
 
 /** The Cup format each Cup structure maps onto. Seasons have no such field — see below. */
 const CUP_FORMAT: Record<string, 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'SWISS'> = {
@@ -158,7 +174,7 @@ export async function createDraft(actor: Actor, input: SetupInput): Promise<Setu
   if (input.type !== 'season' && input.type !== 'cup') return { ok: false, error: 'Choose a Season or a Cup.' }
   if (!Number.isInteger(input.competitionYear)) return { ok: false, error: 'A competition year is required.' }
   if (!Number.isInteger(input.competitionSeriesId)) return { ok: false, error: 'A Competition is required.' }
-  if (!structuresFor(input.type).some((s) => s.id === input.structure)) {
+  if (!structuresForCreation(input.type).some((s) => s.id === input.structure)) {
     return { ok: false, error: 'Choose a structure this application can actually run.' }
   }
 

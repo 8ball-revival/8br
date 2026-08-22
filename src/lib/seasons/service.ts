@@ -6,7 +6,7 @@ import { recordAudit, type Actor } from '@/lib/competition/audit'
 import {
   parseSeasonNumber, suggestSeasonNumber, isSeasonNumberTaken, conflictFor, isSeasonNumberCollision,
 } from './numbering'
-import { hashJoinPassword, verifyJoinPassword } from '@/lib/competition/join-password'
+import { hashJoinPassword } from '@/lib/competition/join-password'
 import { transitionSeasonState } from './lifecycle'
 import { isPreGroupPhase } from './shared'
 
@@ -378,18 +378,32 @@ export async function removeSeasonEntrant(actor: Actor, seasonId: number, entran
   return { ok: true }
 }
 
-/** Self-registration by an authenticated player. */
+/**
+ * Self-registration by an authenticated player.
+ *
+ * ── The gate is enforced here, not on the page ───────────────────────────────────────────────────
+ * Hiding the button is presentation. This is the check, and it asks the same question the page does:
+ * the site-wide policy, plus the Season's lifecycle. A member who posts this action directly under
+ * an ADMIN_ONLY policy is refused, whatever their browser was showing.
+ *
+ * The per-Season join password is deliberately no longer consulted. Two gates that both have to
+ * agree meant a member could satisfy the policy and still be refused for a secret nobody had given
+ * them, and there was no message that could usefully explain which one had said no. Legacy
+ * PASSWORD Seasons keep `accessMode` and `joinPasswordHash` — the records are intact and readable —
+ * the values simply no longer decide who may enter.
+ */
 export async function registerSelf(
   userId: number,
   identity: { playerId?: string | null; name: string; handle?: string | null },
   seasonId: number,
-  joinPassword?: string | null,
+  _joinPassword?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId } })
   if (!s) return { ok: false, error: 'Season not found.' }
   if (s.lifecycleState !== 'REGISTRATION_OPEN') return { ok: false, error: 'Registration is not open for this Season.' }
-  if (s.accessMode === 'PASSWORD' && !verifyJoinPassword((joinPassword ?? '').trim(), s.joinPasswordHash)) {
-    return { ok: false, error: 'Incorrect join password for this private Season.' }
+  const { publicRegistrationOpen } = await import('@/lib/competition/registration-policy')
+  if (!(await publicRegistrationOpen({ lifecycleState: s.lifecycleState }))) {
+    return { ok: false, error: 'Entries for this Season are added by an administrator.' }
   }
   const { resolveMemberStatus } = await import('@/lib/moderation/service')
   const mod = await resolveMemberStatus(userId)

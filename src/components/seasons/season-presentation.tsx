@@ -34,11 +34,25 @@ export function SeasonGroupsView({
   if (groups.length === 0) {
     return (
       <EmptyPanel
-        title="Groups Not Published Yet"
+        /*
+         * Three different silences, told apart.
+         *
+         * "No groups yet" means something different before entry closes than after it. Once
+         * registration is closed the field is settled and the delay is the draw being made, which is
+         * a wait with an end — so the panel says that, rather than repeating a generic "not
+         * published" that reads as though the Season has stalled.
+         */
+        title={
+          state === 'REGISTRATION_CLOSED' || state === 'GROUP_SETUP'
+            ? 'Registration Closed'
+            : 'Groups Not Published Yet'
+        }
         body={
           state === 'REGISTRATION_OPEN' || state === 'REGISTRATION_SCHEDULED'
             ? 'Registration is still open. Group tables appear here as soon as the groups are published.'
-            : 'The groups are being set up. They appear here as soon as they are published.'
+            : state === 'REGISTRATION_CLOSED' || state === 'GROUP_SETUP'
+              ? 'Groups will be published shortly.'
+              : 'The groups are being set up. They appear here as soon as they are published.'
         }
       />
     )

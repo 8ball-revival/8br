@@ -21,6 +21,7 @@ import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
+import { publicRegistrationOpen } from '@/lib/competition/registration-policy'
 import { autoAssignAvailability } from '@/lib/archive/auto-assign'
 import { autoEntrantsAvailability } from '@/lib/archive/auto-entrants'
 import { playoffBracketAvailability, placementAvailability } from '@/lib/archive/auto-playoffs'
@@ -99,6 +100,16 @@ export default async function SeasonPage({
     : false
 
   const state = view.lifecycleState
+  /*
+   * Whether a member may enter this Season themselves — one question, one answer, asked here.
+   *
+   * The Season's own access mode is no longer a second gate. It used to be: a Season could be OPEN
+   * and still demand a join password, so "can I register" had two answers that could disagree, and
+   * a member locked out by the wrong one had no way to tell which. The site-wide policy decides it
+   * now. Legacy password-protected Seasons keep their mode and their hash — the data is preserved
+   * and still readable — it simply is not consulted when deciding whether to show the control.
+   */
+  const memberRegistrationOpen = await publicRegistrationOpen({ lifecycleState: state })
   const [browse, neighbours, groups, qualified, bracketPublic, glance] = await Promise.all([
     getSeasonBrowseData(competition),
     seasonNeighbours(id, competition),
@@ -241,6 +252,7 @@ export default async function SeasonPage({
           isLoggedIn={!!user}
           registered={registered}
           entrantAuto={entrantAuto}
+          memberRegistrationOpen={memberRegistrationOpen}
           addEntrantsAuto={addEntrantsAuto}
           playoffAuto={playoffAuto}
           placementAuto={placementAuto}
@@ -317,7 +329,7 @@ async function PlayoffsView({
  */
 async function AdminSurfaces({
   view, state, canManage, canManageComp, isLoggedIn, registered, entrantAuto, addEntrantsAuto, playoffAuto,
-  placementAuto,
+  placementAuto, memberRegistrationOpen,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>
   state: string
@@ -325,6 +337,8 @@ async function AdminSurfaces({
   canManageComp: boolean
   isLoggedIn: boolean
   registered: boolean
+  /** The site-wide policy's answer for this Season. The ONLY thing that opens self-registration. */
+  memberRegistrationOpen: boolean
   /** Decided by the page, not here: one source for whether Auto Assign belongs on this screen. */
   entrantAuto?: { show: boolean; disabledReason: string | null }
   addEntrantsAuto?: { show: boolean; disabledReason: string | null }
@@ -340,7 +354,7 @@ async function AdminSurfaces({
         isOpen={state === 'REGISTRATION_OPEN'}
         isLoggedIn={isLoggedIn}
         alreadyRegistered={registered}
-        requiresPassword={view.requiresJoinPassword}
+        memberRegistrationOpen={memberRegistrationOpen}
         autoEntrants={addEntrantsAuto}
       />
     )
