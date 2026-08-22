@@ -20,7 +20,6 @@ import { TOURNAMENT_STATE_LABEL, getTournamentHistory, type TournamentHistoryEve
 import { TournamentHistory } from '@/components/tournaments/tournament-history'
 import { TournamentWinnerSummary, type PodiumIdentity } from '@/components/tournaments/tournament-winner-summary'
 import { TournamentReportLoss } from '@/components/tournaments/tournament-report-loss'
-import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getCurrentUser } from '@/lib/account/auth'
 import { getProfileByUserId } from '@/lib/players/service'
 import { getUserRegistration } from '@/lib/competition/queries'
@@ -356,9 +355,12 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
   const num = Number(number)
   const sp = await searchParams
 
-  const access = await resolveStaffAccess()
-  const isStaffOk = access.status === 'ok'
-  const canManage = isStaffOk && access.actor.can('manage_competitions')
+  /*
+   * No staff lookup here any more.
+   *
+   * Nothing on this page varies by role, so asking who the viewer is would only invite something to
+   * start depending on the answer again. The absence of the check is the guarantee.
+   */
 
   const ws = await getTournamentWorkspace(num)
   const cup = getTournament(num)
@@ -376,10 +378,19 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
     const statusLabel = TOURNAMENT_STATE_LABEL[ws.tournament.lifecycleState as keyof typeof TOURNAMENT_STATE_LABEL] ?? ws.tournament.lifecycleState
     const live = ws.tournament.lifecycleState !== 'COMPLETED' && ws.tournament.lifecycleState !== 'CANCELLED' && ws.tournament.lifecycleState !== 'DRAFT'
 
-    // Member view context (only needed when the viewer is not managing): are they signed in,
-    // already entered, and is their identity linked to a profile.
+    /*
+     * Built for every viewer, including administrators.
+     *
+     * This used to be computed only when the viewer could NOT manage, which meant an administrator
+     * opening a Tournament got a note pointing at Creator INSTEAD of the Tournament — the page
+     * simply had no content for them. The public page is the public page: the same read-only view
+     * for a signed-out visitor, a member, a moderator, an administrator and the Owner.
+     *
+     * The member context is per-viewer by nature (am I entered, is my profile complete) and stays
+     * that way; what must not vary is the Tournament content itself.
+     */
     let publicView: ReactNode = null
-    if (!canManage) {
+    {
       const user = await getCurrentUser()
       const profile = user ? await getProfileByUserId(Number(user.id)) : null
       const myReg = user ? await getUserRegistration(ws.tournament.id, Number(user.id)) : null
@@ -430,21 +441,18 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
           <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">{ws.tournament.description}</p>
         )}
         {/*
-          The workspace has moved to Creator.
-          This page used to BE the management interface for anybody with the capability: rosters,
-          groups, brackets, score entry and Settings all rendered here, on a public URL, behind a
-          flag on a component. Management lives at /creator/tournaments/[id] now, and everybody —
-          Owner included — sees the same public view here.
+          The workspace has moved to Creator, and nothing about that belongs on this page.
+
+          This used to BE the management interface for anybody with the capability: rosters, groups,
+          brackets, score entry and Settings all rendered here, on a public URL, behind a flag on a
+          component. Management lives at /creator/tournaments/[id] now.
+
+          There is no signpost to it here either. A banner telling an administrator where to go is
+          still a difference in the page, and the rule is that the Tournament content region is
+          identical for every viewer — signed out, member, moderator, administrator, Owner. The
+          header carries whatever navigation a person's role earns them; this region does not.
         */}
         {publicView}
-        {canManage && (
-          <p className="mt-6 rounded-lg border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
-            Managing this Tournament happens in{' '}
-            <a href={`/creator/tournaments/${ws.tournament.id}/setup`} className="font-semibold text-brand hover:underline">
-              Creator
-            </a>.
-          </p>
-        )}
       </div>
     )
   }
@@ -537,14 +545,7 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
         </section>
       )}
 
-      {canManage && ws && (
-        <p className="mt-6 rounded-lg border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
-          Correcting this Tournament happens in{' '}
-          <a href={`/creator/tournaments/${ws.tournament.id}/setup`} className="font-semibold text-brand hover:underline">
-            Creator
-          </a>.
-        </p>
-      )}
+
     </Container>
   )
 }
