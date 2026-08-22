@@ -166,7 +166,7 @@ export function TournamentWorkspace({
             onClick={() => setTab(t.id)}
             className={cn(
               'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              tab === t.id ? 'bg-brand/15 text-brand' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              tab === t.id ? 'bg-[var(--selected-surface)] text-brand' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
             <t.icon className="size-4" /> {t.label}
@@ -175,7 +175,7 @@ export function TournamentWorkspace({
       </div>
 
       {msg && (
-        <div className={cn('mx-4 mt-3 rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-brand/30 bg-brand/[0.06] text-foreground' : 'border-destructive/40 bg-destructive/[0.06] text-destructive')}>
+        <div className={cn('mx-4 mt-3 rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-brand/30 bg-[var(--selected-surface)] text-foreground' : 'border-destructive/40 bg-destructive/[0.06] text-destructive')}>
           {msg.text}
         </div>
       )}
@@ -403,7 +403,7 @@ function RandomEntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceD
         </p>
       )}
       {generated && (
-        <p className="rounded-md border border-brand/30 bg-brand/[0.06] px-3 py-2 text-xs text-foreground">
+        <p className="rounded-md border border-brand/30 bg-[var(--selected-surface)] px-3 py-2 text-xs text-foreground">
           Teams have been generated and are permanently locked. Each player below shows the team they were drawn into.
         </p>
       )}
@@ -705,7 +705,7 @@ function FirstRoundBoard({ data, matches, identityById, run }: {
           regId != null
             ? 'cursor-grab py-[3px] text-[0.8125rem] active:cursor-grabbing'
             : 'py-px text-[0.65rem] italic text-muted-foreground/50',
-          over === key && 'bg-brand/15 ring-1 ring-inset ring-brand',
+          over === key && 'bg-[var(--selected-surface)] ring-1 ring-inset ring-brand',
         )}
       >
         <span className="tabular w-5 shrink-0 text-right text-[0.7rem] text-muted-foreground">{seed ?? '–'}</span>
@@ -1146,7 +1146,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
       </section>
 
       {canManage && !data.isHistorical && data.tournament.lifecycleState !== 'COMPLETED' && data.tournament.lifecycleState !== 'CANCELLED' && (
-        <section className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-4">
+        <section className="rounded-lg border border-[var(--gold)]/45 bg-[var(--attention-surface)] p-4">
           <p className="text-sm font-semibold text-foreground">Cancel Tournament</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Cancel this tournament. It becomes read-only and cannot be resumed except by an Owner recovery. History is preserved (use Delete below to remove it entirely).
@@ -1214,7 +1214,7 @@ function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentW
     <div className="space-y-8">
       <p className="text-xs text-muted-foreground">
         Round-robin groups. Enter every match result; standings update automatically. The
-        <span className="mx-1 rounded bg-brand/15 px-1.5 py-0.5 text-brand">highlighted</span>
+        <span className="mx-1 rounded bg-[var(--selected-surface)] px-1.5 py-0.5 text-brand">highlighted</span>
         rows are the current qualifying positions. Once every match is decided, confirm qualifiers from the Overview.
       </p>
       {data.groups.map((g) => (
@@ -1244,13 +1244,13 @@ function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentW
                   g.standings.map((s) => {
                     const overridden = s.qualifierOverride != null && s.qualifierOverride !== s.calculatedQualified
                     return (
-                    <tr key={s.registrationId} className={cn('border-t border-border/60', s.qualified && 'bg-brand/10')}>
+                    <tr key={s.registrationId} className={cn('border-t border-border/60', s.qualified && 'bg-[var(--selected-surface)]')}>
                       <td className="py-1.5 tabular">{s.rank}</td>
                       <td className={cn('py-1.5', s.qualified && 'font-medium text-brand')}>
                         {s.username}
                         {/* Only shown when a person disagreed with the points — otherwise it is noise. */}
                         {overridden && (
-                          <span className="ml-1.5 rounded bg-[var(--gold)]/15 px-1 py-px text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--gold)]" title="Set by an administrator, not by the standings">
+                          <span className="ml-1.5 rounded bg-[var(--selected-surface)] px-1 py-px text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--gold)]" title="Set by an administrator, not by the standings">
                             set
                           </span>
                         )}
@@ -1429,7 +1429,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
             </thead>
             <tbody>
               {s.standings.map((r) => (
-                <tr key={r.registrationId} className={cn('border-t border-border/60', r.rank === 1 && 'bg-brand/10')}>
+                <tr key={r.registrationId} className={cn('border-t border-border/60', r.rank === 1 && 'bg-[var(--selected-surface)]')}>
                   <td className="py-1.5 tabular">{r.rank}</td>
                   <td className={cn('py-1.5', r.rank === 1 && 'font-medium text-brand')}>
                     <PlayerName identity={fromNameHandle(r)} size="sm" emphasis="plain" />
@@ -1472,7 +1472,7 @@ function SwissMatchRow({ m, raceLength, run, disabled }: { m: NonNullable<Tourna
     return (
       <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
         <span className="min-w-0 flex-1 truncate font-medium text-brand">{m.homeName}</span>
-        <span className="rounded bg-brand/15 px-2 py-0.5 text-xs font-semibold text-brand">Bye</span>
+        <span className="rounded bg-[var(--selected-surface)] px-2 py-0.5 text-xs font-semibold text-brand">Bye</span>
         <span className="min-w-0 flex-1" />
       </div>
     )

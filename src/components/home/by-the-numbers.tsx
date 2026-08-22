@@ -40,7 +40,7 @@ function StatCard({
     <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-4 text-center">
       <span
         aria-hidden
-        className="inline-flex size-9 items-center justify-center rounded-full bg-brand/10 text-brand"
+        className="inline-flex size-9 items-center justify-center rounded-full bg-[var(--selected-surface)] text-brand"
       >
         <Icon className="size-4" />
       </span>

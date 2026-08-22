@@ -137,7 +137,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
         <section className="p-6">
           <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Season Identity</p>
           <div className="mt-4 space-y-4">
-            <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.05] px-3 py-2.5 text-sm">
+            <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--selected-surface)] px-3 py-2.5 text-sm">
               <span className="text-muted-foreground">Official title: </span>
               <span className="font-display font-bold text-[var(--gold-soft)]">{officialTitle}</span>
               <p className="mt-1 text-[0.7rem] text-muted-foreground/70">

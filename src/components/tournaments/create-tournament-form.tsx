@@ -440,7 +440,7 @@ function Choice({ active, onClick, title, body }: { active: boolean; onClick: ()
       aria-pressed={active}
       className={cn(
         'relative rounded-lg border p-3 pl-10 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
-        active ? 'border-brand bg-brand/[0.08]' : 'border-border bg-card hover:border-border/70',
+        active ? 'border-brand bg-[var(--selected-surface)]' : 'border-border bg-card hover:border-border/70',
       )}
     >
       <span className={cn('absolute left-3.5 top-3.5 size-4 rounded-full border-2', active ? 'border-brand shadow-[inset_0_0_0_3px_var(--color-brand)]' : 'border-border')} />

@@ -144,7 +144,7 @@ function CueVerseTop5({ snapshot }: { snapshot: CueVerseSnapshotView | null }) {
                 <li key={e.rank} className="flex items-center gap-3 px-4 py-2">
                   <span
                     className={`inline-flex size-6 shrink-0 items-center justify-center rounded text-xs font-semibold tabular-nums ${
-                      e.rank === 1 ? 'bg-brand/15 text-brand' : 'bg-muted text-muted-foreground'
+                      e.rank === 1 ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {e.rank}

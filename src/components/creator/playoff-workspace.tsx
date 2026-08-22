@@ -144,7 +144,7 @@ export function PlayoffWorkspace({
       {/* Announcements for a screen reader: a swap is a visual change with nothing else to hear. */}
       <p aria-live="polite" className="sr-only">{announcement}</p>
 
-      <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.05] px-3 py-2">
+      <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--selected-surface)] px-3 py-2">
         <p className="text-sm font-semibold text-[var(--gold)]">Private Draft</p>
         <p className="text-xs text-muted-foreground">
           Nothing on this page appears on the Season page. The bracket becomes public only when you
@@ -212,7 +212,7 @@ export function PlayoffWorkspace({
       </div>
 
       {!readiness.ok && readiness.problems.length > 0 && (
-        <ul className="rounded-md border border-amber-500/40 bg-amber-500/[0.08] px-3 py-2 text-xs text-amber-500">
+        <ul className="rounded-md border border-[var(--gold)]/45 bg-[var(--attention-surface)] px-3 py-2 text-xs text-[var(--gold)]">
           {readiness.problems.map((p, i) => (
             <li key={i} className="flex items-start gap-1.5">
               <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden />{p}
@@ -466,7 +466,7 @@ function DraftBracket({
               return (
           <li key={t.matchId} className="flex items-center gap-2">
             {/* Short thin connector into the match pill. */}
-            <span aria-hidden className="h-px w-3 shrink-0 bg-[var(--gold)]/40" />
+            <span aria-hidden className="h-px w-3 shrink-0 bg-[var(--selected-surface)]" />
             <span
               className="shrink-0 rounded-full border border-[var(--gold)]/50 px-1.5 py-0.5 text-[0.65rem] font-semibold text-[var(--gold)]/80"
               title={`Round ${t.ref.round} · Match ${i + 1}`}
@@ -549,9 +549,9 @@ function SlotButton({
       className={cn(
         'flex w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs transition-colors',
         !empty && 'cursor-grab active:cursor-grabbing',
-        picked && 'border-[var(--gold)] bg-[var(--gold)]/10',
+        picked && 'border-[var(--gold)] bg-[var(--selected-surface)]',
         dragging && 'opacity-40',
-        droppable && 'border-dashed border-[var(--gold)] bg-[var(--gold)]/[0.06]',
+        droppable && 'border-dashed border-[var(--gold)] bg-[var(--selected-surface)]',
         invalidTarget && 'cursor-not-allowed opacity-40',
         !picked && !droppable && !invalidTarget && 'border-border bg-background/60 hover:border-[var(--gold)]/40',
       )}

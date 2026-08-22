@@ -221,7 +221,7 @@ function ConfirmDialog({
         <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
           {consequences.map((c) => (
             <li key={c} className="flex gap-2">
-              <span aria-hidden className="mt-[0.45rem] block size-1 shrink-0 rounded-full bg-[var(--gold)]/60" />
+              <span aria-hidden className="mt-[0.45rem] block size-1 shrink-0 rounded-full bg-[var(--selected-surface)]" />
               <span>{c}</span>
             </li>
           ))}

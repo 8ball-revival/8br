@@ -29,7 +29,7 @@ export function TournamentWinnerSummary({
   completedAt: string | null
 }) {
   return (
-    <section className="mt-6 rounded-xl border border-brand/25 bg-brand/[0.06] p-5">
+    <section className="mt-6 rounded-xl border border-brand/25 bg-[var(--selected-surface)] p-5">
       <div className="flex items-center gap-2">
         <Trophy className="size-5 text-brand" aria-hidden />
         <span className="eyebrow text-brand">Final Result</span>

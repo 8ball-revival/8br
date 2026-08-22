@@ -33,7 +33,7 @@ export function StaffManagementPanel({ roster, canManage }: { roster: StaffRoste
       {msg && <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>}
 
       {/* Head Admin */}
-      <section className="rounded-lg border border-[var(--gold)]/40 bg-[var(--gold)]/[0.06] p-4">
+      <section className="rounded-lg border border-[var(--gold)]/40 bg-[var(--selected-surface)] p-4">
         <p className="eyebrow text-[var(--gold)]">Head Admin</p>
         {roster.headAdmin ? (
           <p className="mt-1 flex items-center gap-2 font-display text-lg font-bold"><Crown className="size-4 text-[var(--gold)]" /> {nameOf(roster.headAdmin)}</p>

@@ -84,7 +84,7 @@ function FreeAgentCard({ number, identity, joinableTeams, registrationOpen, requ
   const [state, action, pending] = useActionState(withdrawFreeAgentAction, initial)
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-md border border-brand/30 bg-brand/[0.06] px-4 py-3 text-sm">
+      <div className="flex items-start gap-3 rounded-md border border-brand/30 bg-[var(--selected-surface)] px-4 py-3 text-sm">
         <UserRound className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
         <div>
           <p className="font-semibold text-foreground">You&apos;re registered as a Free Agent.</p>
@@ -231,7 +231,7 @@ function JoinTeamForm({ number, joinableTeams, requiresPassword }: { number: num
             ) : filtered.map((t) => (
               <li key={t.teamId}>
                 <button type="button" disabled={t.full} onClick={() => { setSelected(t); setQuery('') }}
-                  className={cn('flex w-full items-center justify-between px-3 py-2 text-left text-sm', t.full ? 'cursor-not-allowed text-muted-foreground/50' : 'hover:bg-brand/10')}>
+                  className={cn('flex w-full items-center justify-between px-3 py-2 text-left text-sm', t.full ? 'cursor-not-allowed text-muted-foreground/50' : 'hover:bg-[var(--selected-surface)]')}>
                   <span className="flex items-center gap-2 font-medium">
                     {t.protected && <Shield className="size-3.5 text-muted-foreground" aria-hidden />}
                     {t.name}
@@ -284,7 +284,7 @@ function MyTeamCard({ number, team, currentUserId, registrationOpen }: { number:
       </ul>
 
       {!team.complete && registrationOpen && (
-        <p className="text-xs text-amber-500">Incomplete teams can&apos;t enter — fill your roster before registration closes.</p>
+        <p className="text-xs text-[var(--gold)]">Incomplete teams can&apos;t enter — fill your roster before registration closes.</p>
       )}
 
       {team.isCaptain && registrationOpen && <CaptainCodeControl number={number} isProtected={team.protected} />}
@@ -366,6 +366,6 @@ function Success({ text }: { text: string }) {
   )
 }
 function Badge({ text, icon, tone }: { text: string; icon?: React.ReactNode; tone?: 'ok' | 'warn' }) {
-  const cls = tone === 'ok' ? 'border-success/30 bg-success/10 text-success' : tone === 'warn' ? 'border-amber-500/30 bg-amber-500/10 text-amber-500' : 'border-border bg-card text-muted-foreground'
+  const cls = tone === 'ok' ? 'border-success/30 bg-success/10 text-success' : tone === 'warn' ? 'border-[var(--gold)]/45 bg-[var(--attention-surface)] text-[var(--gold)]' : 'border-border bg-card text-muted-foreground'
   return <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold', cls)}>{icon}{text}</span>
 }

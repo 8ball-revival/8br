@@ -304,6 +304,13 @@ function SlotRow({
   slot, won, lost, activeKey, championKey = null,
 }: {
   slot?: BracketSlot
+  /*
+   * A winner is marked by gold, not filled with it.
+   *
+   * The old highlight was gold at 8% over charcoal, which mixes to olive-brown rather than
+   * to a pale gold wash. The row now sits on a neutral raised surface and carries the gold
+   * on its border and its text, where gold still looks like gold.
+   */
   won: boolean
   lost: boolean
   activeKey: string | null
@@ -342,8 +349,8 @@ function SlotRow({
       aria-label={`${identityText(fromNameHandle(slot))}${slot?.seed != null ? `, seed ${slot.seed}` : ''}${won ? ', winner' : ''}${slot?.score != null ? `, ${slot.score}` : ''}`}
       className={cn(
         'flex cursor-pointer items-center gap-2.5 px-2.5 outline-none transition-colors',
-        won && 'bg-gold/[0.07]',
-        lit && 'bg-gold/[0.16]',
+        won && 'bg-[var(--selected-surface)]',
+        lit && 'bg-[var(--selected-surface)]',
         isChampion && 'bp-champion-row',
         'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--gold)]/60',
       )}

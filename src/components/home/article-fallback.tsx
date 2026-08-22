@@ -119,7 +119,7 @@ export function ArticleFallback({
       <div className={`relative flex size-full ${feature ? 'flex-col justify-end p-5' : 'items-center justify-center'}`}>
         {feature ? (
           <>
-            <span className="mb-auto inline-flex size-10 items-center justify-center rounded-full border border-brand/25 bg-brand/[0.07] text-brand">
+            <span className="mb-auto inline-flex size-10 items-center justify-center rounded-full border border-brand/25 bg-[var(--selected-surface)] text-brand">
               <Icon className="size-4" />
             </span>
             <span className="font-display text-[3.25rem] font-bold leading-none text-white/[0.07] select-none">
@@ -131,7 +131,7 @@ export function ArticleFallback({
           </>
         ) : (
           <span className="inline-flex flex-col items-center gap-1.5">
-            <span className="inline-flex size-8 items-center justify-center rounded-full border border-brand/20 bg-brand/[0.06] text-brand/80">
+            <span className="inline-flex size-8 items-center justify-center rounded-full border border-brand/20 bg-[var(--selected-surface)] text-brand/80">
               <Icon className="size-3.5" />
             </span>
             <span className="text-[0.55rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

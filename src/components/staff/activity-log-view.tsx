@@ -13,7 +13,7 @@ import { ACTIVITY_CATEGORIES, type ActivityRow, type ActivityFilters } from '@/l
 const SEVERITIES = ['info', 'notice', 'warning', 'critical'] as const
 const sevClass: Record<string, string> = {
   info: 'bg-muted text-muted-foreground', notice: 'bg-sky-500/15 text-sky-400',
-  warning: 'bg-[var(--gold)]/15 text-[var(--gold)]', critical: 'bg-destructive/15 text-destructive',
+  warning: 'bg-[var(--selected-surface)] text-[var(--gold)]', critical: 'bg-destructive/15 text-destructive',
 }
 const input = 'rounded-md border border-input bg-card px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand'
 

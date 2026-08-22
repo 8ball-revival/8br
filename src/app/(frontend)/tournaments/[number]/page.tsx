@@ -477,7 +477,7 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
       />
 
       {cup.champion && !live && (
-        <div className="mt-4 inline-flex items-center gap-2.5 rounded-lg border border-brand/25 bg-brand/[0.06] px-4 py-2.5">
+        <div className="mt-4 inline-flex items-center gap-2.5 rounded-lg border border-brand/25 bg-[var(--selected-surface)] px-4 py-2.5">
           <Trophy className="size-5 text-brand" aria-hidden />
           <PlayerAvatar name={cup.champion.name} size="sm" />
           <div>

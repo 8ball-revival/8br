@@ -61,7 +61,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
   const toneClass: Record<Tone, string> = {
     win: 'bg-success/15 text-success font-semibold',
     loss: 'bg-destructive/15 text-destructive',
-    pending: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400',
+    pending: 'bg-[var(--attention-surface)] text-[var(--gold)] dark:text-[var(--gold)]',
     none: 'bg-muted/50 text-muted-foreground/70 text-[0.65rem]',
     self: 'bg-foreground/[0.06]',
   }
@@ -73,7 +73,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
         <h3 className="font-display text-lg font-semibold">{group.name}</h3>
         <span className="flex items-center gap-2 text-[0.65rem] text-muted-foreground">
           <Legend className="bg-success/40" /> Win <Legend className="bg-destructive/40" /> Loss
-          <Legend className="bg-yellow-500/40" /> Pending <Legend className="bg-muted-foreground/30" /> Not played
+          <Legend className="bg-[var(--attention-surface)]" /> Pending <Legend className="bg-muted-foreground/30" /> Not played
         </span>
       </div>
 
@@ -87,7 +87,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                 {players.map((c) => (
                   <th
                     key={c.id}
-                    className={cn('h-10 min-w-14 px-2 text-center text-[0.7rem] font-medium', hl(c.id) ? 'bg-brand/10 text-brand' : 'text-muted-foreground')}
+                    className={cn('h-10 min-w-14 px-2 text-center text-[0.7rem] font-medium', hl(c.id) ? 'bg-[var(--selected-surface)] text-brand' : 'text-muted-foreground')}
                     onMouseEnter={() => setHoverId(c.id)}
                     onMouseLeave={() => setHoverId(null)}
                     title={identityText(c.identity)}
@@ -111,7 +111,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
             </thead>
             <tbody>
               {players.map((row) => (
-                <tr key={row.id} className={cn(hl(row.id) && 'bg-brand/5')}>
+                <tr key={row.id} className={cn(hl(row.id) && 'bg-[var(--selected-surface)]')}>
                   <th
                     scope="row"
                     className={cn('sticky left-0 z-10 h-10 min-w-40 border-t border-border bg-card px-3 text-left font-medium', hl(row.id) && 'text-brand')}
@@ -167,7 +167,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                 return (
                   <tr
                     key={row.id}
-                    className={cn(hl(row.id) && 'bg-brand/5', s?.qualified && 'bg-success/5')}
+                    className={cn(hl(row.id) && 'bg-[var(--selected-surface)]', s?.qualified && 'bg-success/5')}
                     onMouseEnter={() => setHoverId(row.id)}
                     onMouseLeave={() => setHoverId(null)}
                   >

@@ -113,7 +113,7 @@ export function OnThisDayCard({ almanac }: { almanac: Almanac }) {
             <span
               aria-hidden
               className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-semibold ${
-                almanac.fact.kind === 'match' ? 'bg-muted text-muted-foreground' : 'bg-brand/15 text-brand'
+                almanac.fact.kind === 'match' ? 'bg-muted text-muted-foreground' : 'bg-[var(--selected-surface)] text-brand'
               }`}
             >
               {almanac.fact.kind === 'match' ? almanac.fact.homeInitials : <Crown className="size-3.5" />}
@@ -142,7 +142,7 @@ export function OnThisDayCard({ almanac }: { almanac: Almanac }) {
             <span
               aria-hidden
               className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-semibold ${
-                event.kind === 'championship' ? 'bg-brand/15 text-brand' : 'bg-muted text-muted-foreground'
+                event.kind === 'championship' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground'
               }`}
             >
               {event.kind === 'championship' ? <Crown className="size-3.5" /> : event.homeInitials}

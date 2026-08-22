@@ -93,7 +93,7 @@ export default async function PostPage({
                 </span>
               )}
               {post.official && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
                   <BadgeCheck className="size-3" aria-hidden />Official
                 </span>
               )}
@@ -213,7 +213,7 @@ export default async function PostPage({
                 aria-current={sort === s ? 'page' : undefined}
                 className={cn(
                   'rounded-full px-2 py-1 font-medium capitalize transition-colors',
-                  sort === s ? 'bg-[var(--gold)]/15 text-[var(--gold)]' : 'text-muted-foreground hover:text-foreground',
+                  sort === s ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {s}

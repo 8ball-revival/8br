@@ -133,7 +133,7 @@ export function TournamentCreateForm({
           <div className="grid gap-2 sm:grid-cols-2">
             {FORMATS.map((f) => (
               <label key={f.id} className={cn('cursor-pointer rounded-lg border px-3 py-2.5 transition-colors',
-                format === f.id ? 'border-[var(--gold)]/50 bg-[var(--gold)]/[0.07]' : 'border-border bg-card/40 hover:border-[var(--gold)]/30')}>
+                format === f.id ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]' : 'border-border bg-card/40 hover:border-[var(--gold)]/30')}>
                 <span className="flex items-start gap-2">
                   <input type="radio" name="format" checked={format === f.id} onChange={() => setFormat(f.id)} className="mt-1 accent-[var(--gold)]" />
                   <span className="min-w-0">
@@ -224,7 +224,7 @@ export function TournamentCreateForm({
         </button>
       </div>
 
-      <aside className="h-max rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.05] p-4 lg:sticky lg:top-4">
+      <aside className="h-max rounded-lg border border-[var(--gold)]/30 bg-[var(--selected-surface)] p-4 lg:sticky lg:top-4">
         <p className="eyebrow text-muted-foreground">This will create</p>
         <p className="mt-1 font-display text-lg font-bold text-[var(--gold)]">{previewTitle}</p>
         <ul className="mt-2 space-y-1 text-xs text-muted-foreground">

@@ -268,7 +268,7 @@ function MatchCard({
     <li
       className={cn(
         'rounded border px-1.5 py-1',
-        match.needsReview ? 'border-amber-500/60 bg-amber-500/[0.07]'
+        match.needsReview ? 'border-[var(--gold)]/45 bg-[var(--attention-surface)]'
         : decided ? 'border-border bg-background/50'
         : 'border-border bg-background/70',
       )}
@@ -276,7 +276,7 @@ function MatchCard({
       <p className="mb-0.5 flex items-center gap-1 text-[0.6em] uppercase tracking-wide text-muted-foreground">
         {match.label ?? `R${match.round}`}
         {match.needsReview && (
-          <span className="rounded-full border border-amber-500/60 px-1 text-amber-500">Needs Review</span>
+          <span className="rounded-full border border-[var(--gold)]/45 px-1 text-[var(--gold)]">Needs Review</span>
         )}
       </p>
 
@@ -443,7 +443,7 @@ export function ChampionBanner({ champion, championCueverseId, runnerUp, runnerU
   byForfeit: boolean
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--gold)]/40 bg-[var(--gold)]/[0.07] px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2">
       <Crown className="size-4 text-[var(--gold)]" aria-hidden />
       <span className="font-display font-bold text-[var(--gold)]">
         {identityText({ cueverseId: championCueverseId, preferredName: champion })}
@@ -474,7 +474,7 @@ export function NoBracketYet() {
 
 export function ReviewWarning({ count }: { count: number }) {
   return (
-    <p className="flex items-start gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/[0.08] px-3 py-2 text-xs text-amber-500">
+    <p className="flex items-start gap-1.5 rounded-md border border-[var(--gold)]/45 bg-[var(--attention-surface)] px-3 py-2 text-xs text-[var(--gold)]">
       <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
       {count} match{count === 1 ? '' : 'es'} need{count === 1 ? 's' : ''} review: an earlier correction
       replaced a participant, so the recorded score belongs to a matchup that no longer exists.

@@ -114,7 +114,7 @@ function Comment({
             {node.authorHandle && <span className="text-foreground">{node.authorHandle}</span>}
 
             {node.distinguished && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">
                 <BadgeCheck className="size-3" aria-hidden />Staff
               </span>
             )}

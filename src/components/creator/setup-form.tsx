@@ -40,7 +40,7 @@ const YEAR_MIN = 1900
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 
-const CHOICE_ON = 'border-[var(--gold)] bg-[var(--gold)]/10 text-foreground'
+const CHOICE_ON = 'border-[var(--gold)] bg-[var(--selected-surface)] text-foreground'
 const CHOICE_OFF = 'border-border text-muted-foreground hover:border-[var(--gold)]/40 hover:text-foreground'
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -194,7 +194,7 @@ export function SetupForm({ competitions, structures, initialType, currentYear }
           {available.map((s) => (
             <label
               key={s.id}
-              className={`flex cursor-pointer gap-3 rounded-md border px-3 py-2.5 transition-colors ${v.structure === s.id ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-border hover:border-[var(--gold)]/40'}`}
+              className={`flex cursor-pointer gap-3 rounded-md border px-3 py-2.5 transition-colors ${v.structure === s.id ? 'border-[var(--gold)] bg-[var(--selected-surface)]' : 'border-border hover:border-[var(--gold)]/40'}`}
             >
               <input
                 type="radio"

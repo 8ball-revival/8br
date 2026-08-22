@@ -99,7 +99,14 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
       } : undefined}
       className={cn(
         'flex items-center gap-2 px-2.5 py-2',
-        won && 'bracket-winner-row bg-gold/[0.08]',
+        /*
+         * A winner is marked by gold, not filled with it.
+         *
+         * The old highlight was gold at 8% over charcoal, which mixes to olive-brown rather than
+         * to a pale gold wash. The row now sits on a neutral raised surface and carries the gold
+         * on its border and its text, where gold still looks like gold.
+         */
+        won && 'bracket-winner-row bg-[var(--selected-surface)]',
         dim && 'bracket-loser-row',
         !slot?.name && 'text-muted-foreground',
         swappable && 'hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',

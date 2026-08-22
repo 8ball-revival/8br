@@ -61,7 +61,7 @@ export function NewsShell({
             {chrome.canWrite && (
               <Link
                 href="/news/new"
-                className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:bg-brand/90"
+                className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:bg-[var(--selected-surface)]"
               >
                 <PenLine className="size-4" aria-hidden />
                 Write an article
@@ -114,7 +114,7 @@ function CategoryLink({
       className={[
         'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
         active
-          ? 'border-brand/50 bg-brand/10 text-brand'
+          ? 'border-brand/50 bg-[var(--selected-surface)] text-brand'
           : 'border-border text-muted-foreground hover:border-brand/30 hover:text-foreground',
       ].join(' ')}
     >
@@ -157,7 +157,7 @@ export function Pagination({
             aria-current={p === page ? 'page' : undefined}
             className={[
               'min-w-9 rounded-md border px-3 py-1.5 text-center text-sm',
-              p === page ? 'border-brand/50 bg-brand/10 text-brand' : 'border-border hover:border-brand/40',
+              p === page ? 'border-brand/50 bg-[var(--selected-surface)] text-brand' : 'border-border hover:border-brand/40',
             ].join(' ')}
           >
             {p}

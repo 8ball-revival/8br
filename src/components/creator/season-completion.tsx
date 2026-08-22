@@ -112,7 +112,7 @@ function CompletionDialog({
         </dl>
 
         {readiness.byForfeit && (
-          <p className="mt-3 rounded-md border border-[var(--gold)]/40 bg-[var(--gold)]/[0.06] px-3 py-2 text-xs text-foreground">
+          <p className="mt-3 rounded-md border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2 text-xs text-foreground">
             <b>FINAL WON BY FORFEIT</b><br />
             * Championship awarded after the opponent forfeited the Final. The title is awarded; no
             competitive win, rating, games, differential or streak is recorded for it.

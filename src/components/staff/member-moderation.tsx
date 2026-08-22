@@ -183,7 +183,7 @@ function TimeoutCard({ userId, run, pending }: { userId: number; run: (fn: () =>
       <p className="text-xs text-muted-foreground">Blocks Tournament signup and withdraws active participation. Expires automatically.</p>
       <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((p) => (
-          <button key={p.hours} type="button" onClick={() => { setHours(p.hours); setCustom('') }} className={`rounded-md border px-2.5 py-1 text-xs ${!custom && hours === p.hours ? 'border-brand bg-brand/10 text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>{p.label}</button>
+          <button key={p.hours} type="button" onClick={() => { setHours(p.hours); setCustom('') }} className={`rounded-md border px-2.5 py-1 text-xs ${!custom && hours === p.hours ? 'border-brand bg-[var(--selected-surface)] text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>{p.label}</button>
         ))}
       </div>
       <label className="block text-xs text-muted-foreground">Or custom end: <input type="datetime-local" value={custom} onChange={(e) => setCustom(e.target.value)} className={`${FIELD} mt-1`} /></label>

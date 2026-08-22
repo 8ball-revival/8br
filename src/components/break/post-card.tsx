@@ -54,7 +54,7 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
             </span>
           )}
           {card.official && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
+            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
               <BadgeCheck className="size-3" aria-hidden />Official
             </span>
           )}

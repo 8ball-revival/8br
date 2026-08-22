@@ -3,7 +3,7 @@ import type { TournamentHistoryEvent } from '@/lib/competition/tournament-lifecy
 const DOT: Record<string, string> = {
   created: 'bg-muted-foreground',
   registration_open: 'bg-success',
-  registration_closed: 'bg-amber-500',
+  registration_closed: 'bg-[var(--gold)]',
   bracket_generated: 'bg-sky-500',
   bracket_regenerated: 'bg-sky-500',
   teams_generated: 'bg-brand',

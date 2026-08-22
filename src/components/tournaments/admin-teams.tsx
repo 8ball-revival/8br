@@ -72,7 +72,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
             <div key={team.id} className="overflow-hidden rounded-lg border border-border">
               <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/40 px-4 py-2">
                 <span className="text-sm font-semibold text-foreground">{team.name}</span>
-                <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', filled >= teamSize ? 'bg-success/10 text-success' : 'bg-amber-500/10 text-amber-500')}>{filled} of {teamSize}</span>
+                <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', filled >= teamSize ? 'bg-success/10 text-success' : 'bg-[var(--attention-surface)] text-[var(--gold)]')}>{filled} of {teamSize}</span>
                 <div className="ml-auto flex gap-1">
                   <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Rename team', confirmLabel: 'Rename', input: { label: 'Team name', defaultValue: team.name, required: true } }); if (res.confirmed && res.value.trim()) run(() => renameTeamAction(team.id, res.value.trim())) }} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Rename</button>
                   <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Delete this team?', message: `"${team.name}" is deleted and its players return to the eligible pool.`, confirmLabel: 'Delete team', tone: 'danger' }); if (res.confirmed) run(() => deleteTeamAction(team.id)) }} className="rounded px-2 py-1 text-xs text-destructive hover:underline">Delete</button>
@@ -187,7 +187,7 @@ function CloseRegistration({ tournamentId, onDone }: { tournamentId: number; onD
   })
 
   return (
-    <div className="rounded-lg border border-brand/30 bg-brand/[0.04] p-4">
+    <div className="rounded-lg border border-brand/30 bg-[var(--selected-surface)] p-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">Close registration</p>
@@ -244,12 +244,12 @@ function CloseRegistration({ tournamentId, onDone }: { tournamentId: number; onD
 }
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: 'warn' }) {
-  return <div><div className={cn('text-xl font-bold tabular-nums', tone === 'warn' ? 'text-amber-500' : 'text-foreground')}>{value}</div><div className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{label}</div></div>
+  return <div><div className={cn('text-xl font-bold tabular-nums', tone === 'warn' ? 'text-[var(--gold)]' : 'text-foreground')}>{value}</div><div className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{label}</div></div>
 }
 function Section({ title, tone, children }: { title: string; tone?: 'warn'; children: React.ReactNode }) {
   return (
     <div>
-      <p className={cn('mb-1 text-xs font-semibold', tone === 'warn' ? 'text-amber-500' : 'text-foreground')}>{title}</p>
+      <p className={cn('mb-1 text-xs font-semibold', tone === 'warn' ? 'text-[var(--gold)]' : 'text-foreground')}>{title}</p>
       <ul className="space-y-1 rounded-md border border-border/60 bg-background/40 p-2.5 text-[0.8rem]">{children}</ul>
     </div>
   )

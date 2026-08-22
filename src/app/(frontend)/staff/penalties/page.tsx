@@ -31,7 +31,7 @@ export default async function PenaltiesPage({ searchParams }: SP) {
 
       <div className="mt-5 flex flex-wrap gap-1.5">
         {FILTERS.map((x) => (
-          <Link key={x} href={`/staff/penalties?filter=${x}`} className={`rounded-md border px-3 py-1.5 text-sm ${x === f ? 'border-brand bg-brand/10 text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>
+          <Link key={x} href={`/staff/penalties?filter=${x}`} className={`rounded-md border px-3 py-1.5 text-sm ${x === f ? 'border-brand bg-[var(--selected-surface)] text-brand' : 'border-border text-muted-foreground hover:bg-muted'}`}>
             {x === 'ALL' ? 'All' : x.charAt(0) + x.slice(1).toLowerCase()}
           </Link>
         ))}

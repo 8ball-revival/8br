@@ -26,7 +26,7 @@ export function AdminSubnav({ items, active }: { items: AdminNavItem[]; active: 
           <ul className="absolute z-30 mt-1 w-full space-y-0.5 rounded-md border border-border bg-popover p-1 shadow-lg">
             {items.map((i) => (
               <li key={i.key}>
-                <Link href={i.href} onClick={() => setOpen(false)} className={cn('block rounded px-3 py-2 text-sm', i.key === active ? 'bg-brand/15 font-semibold text-brand' : 'hover:bg-muted')}>{i.label}</Link>
+                <Link href={i.href} onClick={() => setOpen(false)} className={cn('block rounded px-3 py-2 text-sm', i.key === active ? 'bg-[var(--selected-surface)] font-semibold text-brand' : 'hover:bg-muted')}>{i.label}</Link>
               </li>
             ))}
           </ul>

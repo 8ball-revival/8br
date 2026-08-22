@@ -86,7 +86,7 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
           </Link>
           <Link
             href="/news/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:bg-brand/90"
+            className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:bg-[var(--selected-surface)]"
           >
             <PenLine className="size-4" aria-hidden />Write
           </Link>

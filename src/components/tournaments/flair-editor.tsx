@@ -26,10 +26,10 @@ export function FlairEditor({ value, onChange }: { value: FlairValue; onChange: 
       <div>
         <label className="mb-1.5 block text-[0.8rem] font-semibold text-foreground">Badge <span className="font-normal text-muted-foreground/60">(optional)</span></label>
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => set({ badge: null })} aria-pressed={!value.badge} className={cn('rounded-md border px-3 py-1.5 text-xs font-medium', !value.badge ? 'border-brand bg-brand/10 text-brand' : 'border-border bg-card text-muted-foreground hover:text-foreground')}>None</button>
+          <button type="button" onClick={() => set({ badge: null })} aria-pressed={!value.badge} className={cn('rounded-md border px-3 py-1.5 text-xs font-medium', !value.badge ? 'border-brand bg-[var(--selected-surface)] text-brand' : 'border-border bg-card text-muted-foreground hover:text-foreground')}>None</button>
           {BADGES.map((b) => (
             <button key={b.key} type="button" onClick={() => set({ badge: b.key })} aria-pressed={value.badge === b.key} title={b.label}
-              className={cn('rounded-md border px-2.5 py-1.5 text-base leading-none', value.badge === b.key ? 'border-brand bg-brand/10' : 'border-border bg-card hover:border-border/70')}>
+              className={cn('rounded-md border px-2.5 py-1.5 text-base leading-none', value.badge === b.key ? 'border-brand bg-[var(--selected-surface)]' : 'border-border bg-card hover:border-border/70')}>
               <span aria-hidden>{b.emoji}</span>
             </button>
           ))}

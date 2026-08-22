@@ -84,7 +84,7 @@ export function SeasonCreateForm({
       className="max-w-2xl space-y-5"
       onSubmit={(e) => { e.preventDefault(); submit() }}
     >
-      <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.05] px-4 py-3">
+      <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--selected-surface)] px-4 py-3">
         <p className="eyebrow text-muted-foreground">This will create</p>
         <p className="mt-0.5 font-display text-lg font-bold text-[var(--gold)]">{preview}</p>
       </div>
@@ -155,7 +155,7 @@ export function SeasonCreateForm({
               className={cn(
                 'cursor-pointer rounded-lg border px-3 py-2.5 transition-colors',
                 structure === s.id
-                  ? 'border-[var(--gold)]/50 bg-[var(--gold)]/[0.07]'
+                  ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]'
                   : 'border-border bg-card/40 hover:border-[var(--gold)]/30',
               )}
             >

@@ -46,7 +46,7 @@ export function RegistrationModeForm({ initial }: { initial: { mode: Registratio
               key={id}
               className={`flex cursor-pointer gap-2.5 rounded-md border p-3 transition-colors ${
                 mode === id
-                  ? 'border-[var(--gold)]/50 bg-[var(--gold)]/[0.07]'
+                  ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]'
                   : 'border-border hover:border-brand/40'
               }`}
             >

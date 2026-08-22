@@ -204,7 +204,7 @@ export function TournamentLifecycleControls({
       </div>
 
       {state === 'BRACKET_GENERATED' && bracketStale && !isGroupStage && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-amber-500">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-[var(--gold)]">
           <AlertTriangle className="size-4" /> The entrant list changed after this bracket was generated — regenerate it before starting the tournament.
         </p>
       )}

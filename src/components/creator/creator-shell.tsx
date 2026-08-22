@@ -76,7 +76,7 @@ export function CreatorShell({
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>
           <p className="text-sm text-muted-foreground">{summary}</p>
-          <span className="rounded-full border border-brand/30 bg-brand/[0.08] px-2.5 py-0.5 text-xs font-medium text-brand">
+          <span className="rounded-full border border-brand/30 bg-[var(--selected-surface)] px-2.5 py-0.5 text-xs font-medium text-brand">
             {status}
           </span>
         </div>
@@ -118,7 +118,7 @@ function WorkflowBar({ workflow, kind }: { workflow: StageView[]; kind: 'season'
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                   s.status === 'current'
-                    ? 'bg-[var(--gold)]/15 font-semibold text-[var(--gold)]'
+                    ? 'bg-[var(--selected-surface)] font-semibold text-[var(--gold)]'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >

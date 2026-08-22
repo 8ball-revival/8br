@@ -109,7 +109,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
           </p>
           {numberError && <p role="alert" className="mt-1 text-[0.7rem] text-destructive">{numberError}</p>}
         </Field>
-        <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--gold)]/[0.05] px-3 py-2.5 text-sm">
+        <div className="rounded-md border border-[var(--gold-dim)]/50 bg-[var(--selected-surface)] px-3 py-2.5 text-sm">
           <span className="text-muted-foreground">Official title: </span>
           <span className="font-display font-bold text-[var(--gold-soft)]">{previewTitle}</span>
         </div>
@@ -142,7 +142,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
             </Field>
           ))}
         </div>
-        {formatWarn && <p className="mt-2 text-xs text-amber-500">Changing the match format after the group stage is live requires confirmation.</p>}
+        {formatWarn && <p className="mt-2 text-xs text-[var(--gold)]">Changing the match format after the group stage is live requires confirmation.</p>}
       </Section>
 
       <div className="flex flex-wrap gap-2">

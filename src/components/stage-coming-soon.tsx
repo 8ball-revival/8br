@@ -45,11 +45,11 @@ export function StageComingSoon({
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 px-6 py-12 text-center sm:px-12">
         <div className="bg-grid absolute inset-0 opacity-40" aria-hidden />
         <div
-          className="absolute -top-24 left-1/2 h-48 w-96 max-w-[90vw] -translate-x-1/2 rounded-full bg-brand/10 blur-3xl"
+          className="absolute -top-24 left-1/2 h-48 w-96 max-w-[90vw] -translate-x-1/2 rounded-full bg-[var(--selected-surface)] blur-3xl"
           aria-hidden
         />
         <div className="relative">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-brand/25 bg-brand/10 text-brand">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-brand/25 bg-[var(--selected-surface)] text-brand">
             <Icon className="size-7" aria-hidden />
           </span>
           <div className="mt-5 flex justify-center">

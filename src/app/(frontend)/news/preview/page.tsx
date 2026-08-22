@@ -39,7 +39,7 @@ export default async function PreviewPage({ searchParams }: SP) {
 
   return (
     <article className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-      <div className="mb-6 rounded-md border border-brand/40 bg-brand/10 px-4 py-3 text-sm">
+      <div className="mb-6 rounded-md border border-brand/40 bg-[var(--selected-surface)] px-4 py-3 text-sm">
         <p className="font-medium text-brand">Preview</p>
         <p className="mt-0.5 text-muted-foreground">
           A private link to an unpublished article. It expires, and it grants access to nothing else.

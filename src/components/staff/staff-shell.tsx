@@ -74,7 +74,7 @@ export async function StaffShell({
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                  isActive ? 'bg-brand/10 text-brand' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  isActive ? 'bg-[var(--selected-surface)] text-brand' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
                 <item.icon className="size-4" aria-hidden />

@@ -28,7 +28,7 @@ export function HeroBanner({
         aria-hidden
       />
       <div
-        className="absolute -top-40 left-1/2 h-72 w-[46rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-brand/10 blur-3xl"
+        className="absolute -top-40 left-1/2 h-72 w-[46rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-[var(--selected-surface)] blur-3xl"
         aria-hidden
       />
       <Container className="relative py-20 sm:py-28">

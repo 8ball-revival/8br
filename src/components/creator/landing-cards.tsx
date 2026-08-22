@@ -49,7 +49,7 @@ export function CreatorColumn({
                 'group flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                 a.primary
-                  ? 'border-[var(--gold)]/50 bg-[var(--gold)]/[0.07] hover:border-[var(--gold)] hover:bg-[var(--gold)]/[0.12]'
+                  ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)] hover:border-[var(--gold)] hover:bg-[var(--selected-surface)]'
                   : 'border-border bg-card/40 hover:border-[var(--gold)]/40 hover:bg-card',
               )}
             >

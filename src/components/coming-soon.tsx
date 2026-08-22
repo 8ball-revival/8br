@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 export function ComingSoon({ title, description }: { title: string; description?: string }) {
   return (
     <Container className="flex min-h-[60vh] flex-col items-center justify-center py-24 text-center">
-      <span className="mb-6 flex size-16 items-center justify-center rounded-full bg-brand/10 ring-1 ring-brand/20">
+      <span className="mb-6 flex size-16 items-center justify-center rounded-full bg-[var(--selected-surface)] ring-1 ring-brand/20">
         <Construction className="size-7 text-brand" />
       </span>
       <Badge variant="default" className="mb-4">

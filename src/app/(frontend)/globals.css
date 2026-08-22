@@ -133,6 +133,22 @@
   --gold-soft: oklch(0.87 0.1 88);
   --gold-dim: oklch(0.62 0.1 80);
 
+  /*
+   * Semantic surfaces — the reason nothing here is a tinted gold.
+   *
+   * Gold is a warm yellow (hue 84). Laid over a charcoal panel at 6–15% alpha it does not read as a
+   * pale gold wash; it mixes to olive-brown, which is how a black-and-gold interface ends up looking
+   * muddy. So a selected, hovered or targeted surface is a NEUTRAL step up in lightness, and gold
+   * does its work on the border, the icon and the text where it stays gold.
+   *
+   * Red keeps its meaning: danger, forfeits and destructive confirmations, nothing else.
+   */
+  --selected-surface: oklch(0.26 0.008 265);   /* chosen / active row */
+  --selected-border: var(--gold);
+  --drop-surface: oklch(0.24 0.007 265);       /* a legal drag target */
+  --attention-surface: oklch(0.23 0.007 265);  /* needs review, unsaved, pending */
+  --attention-accent: var(--gold);             /* its border and icon */
+
   --chart-1: oklch(0.8 0.125 84);
   --chart-2: oklch(0.7 0.13 200);
   --chart-3: oklch(0.68 0.15 300);
@@ -223,6 +239,13 @@
   --gold: oklch(0.62 0.12 74);
   --gold-soft: oklch(0.7 0.12 78);
   --gold-dim: oklch(0.55 0.1 74);
+
+  /* The same roles on a light ground: a neutral step DOWN in lightness rather than a gold wash. */
+  --selected-surface: oklch(0.93 0.004 260);
+  --selected-border: var(--gold);
+  --drop-surface: oklch(0.95 0.004 260);
+  --attention-surface: oklch(0.96 0.004 260);
+  --attention-accent: var(--gold);
 }
 
 @theme inline {

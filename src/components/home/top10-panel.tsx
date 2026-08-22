@@ -32,7 +32,7 @@ const STORAGE_KEY = '8br.top10.mode'
  * saying. Gold, then silver, then bronze, then neutral.
  */
 function rankBadge(rank: number): string {
-  if (rank === 1) return 'bg-brand/15 text-brand'
+  if (rank === 1) return 'bg-[var(--selected-surface)] text-brand'
   if (rank === 2) return 'bg-[#c0c4cc]/15 text-[#c8ccd4]'
   if (rank === 3) return 'bg-[#b08d57]/15 text-[#c49a63]'
   return 'bg-muted text-muted-foreground'

@@ -631,7 +631,7 @@ function PlayoffPreview({
       </p>
 
       {plan.draftPlacements > 0 && (
-        <label className="mb-3 flex items-start gap-2 rounded border border-[var(--gold)]/40 bg-[var(--gold)]/5 px-3 py-2 text-xs">
+        <label className="mb-3 flex items-start gap-2 rounded border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2 text-xs">
           <input
             type="checkbox"
             checked={confirmReplace}

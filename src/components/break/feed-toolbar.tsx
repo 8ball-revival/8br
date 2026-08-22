@@ -66,7 +66,7 @@ export function FeedToolbar({
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                   active
-                    ? 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                    ? 'bg-[var(--selected-surface)] text-[var(--gold)]'
                     : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
                 )}
               >

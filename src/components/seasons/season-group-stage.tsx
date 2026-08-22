@@ -191,7 +191,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
         <span className="text-muted-foreground">Top 3 Advance</span>
         {canManage && (
           <span className="ml-auto flex items-center gap-2">
-            {dirty.length > 0 && <span className="text-xs text-amber-500">{dirty.length} unsaved</span>}
+            {dirty.length > 0 && <span className="text-xs text-[var(--gold)]">{dirty.length} unsaved</span>}
             <Button size="sm" disabled={pending || dirty.length === 0} onClick={() => save()}>Save Group</Button>
           </span>
         )}
@@ -299,8 +299,8 @@ function ResultCell({ row, col, matchOf, draft, dirty, rowBg, canManage, setCell
 
   if (canManage) {
     return (
-      <td className={`${td} ${isDirty ? 'bg-amber-500/15' : rowBg} px-1 py-1`}>
-        <input value={value} onChange={(e) => setCell(match.id, side, e.target.value)} className={cn('h-7 w-full max-w-[3rem] rounded border bg-card/70 text-center text-xs tabular outline-none focus-visible:border-brand', isDirty ? 'border-amber-500' : 'border-input')} aria-label={`${row.cueverseId ?? row.username} vs ${col.cueverseId ?? col.username}`} />
+      <td className={`${td} ${isDirty ? 'bg-[var(--attention-surface)]' : rowBg} px-1 py-1`}>
+        <input value={value} onChange={(e) => setCell(match.id, side, e.target.value)} className={cn('h-7 w-full max-w-[3rem] rounded border bg-card/70 text-center text-xs tabular outline-none focus-visible:border-brand', isDirty ? 'border-[var(--gold)]/45' : 'border-input')} aria-label={`${row.cueverseId ?? row.username} vs ${col.cueverseId ?? col.username}`} />
       </td>
     )
   }

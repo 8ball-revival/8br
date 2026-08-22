@@ -88,7 +88,7 @@ export function SeasonGroupSetup({
       {hasGroups && (
         <>
           {view.issues.length > 0 && (
-            <ul className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+            <ul className="rounded-md border border-[var(--gold)]/45 bg-[var(--attention-surface)] px-3 py-2 text-xs text-[var(--gold)]">
               {view.issues.map((i, k) => <li key={k}>• {i.detail}</li>)}
             </ul>
           )}

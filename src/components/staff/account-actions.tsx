@@ -158,7 +158,7 @@ function MergePanel({
           )}
 
           {picked && (
-            <div className="mt-3 max-w-xl rounded-md border border-brand/40 bg-brand/[0.06] p-4">
+            <div className="mt-3 max-w-xl rounded-md border border-brand/40 bg-[var(--selected-surface)] p-4">
               <p className="text-sm font-semibold text-foreground">Confirm merge</p>
               <dl className="mt-2 space-y-1 text-xs">
                 <div className="flex gap-2">

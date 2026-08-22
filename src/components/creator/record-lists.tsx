@@ -72,7 +72,7 @@ export function OpenRecordList({
               >
                 <span className="truncate text-sm font-semibold text-foreground">{r.title}</span>
                 <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                  <span className="rounded-full border border-brand/30 bg-brand/[0.08] px-2 py-0.5 text-brand">{r.status}</span>
+                  <span className="rounded-full border border-brand/30 bg-[var(--selected-surface)] px-2 py-0.5 text-brand">{r.status}</span>
                   {r.entrants > 0 && <span className="tabular">{r.entrants} entrants</span>}
                 </span>
               </Link>

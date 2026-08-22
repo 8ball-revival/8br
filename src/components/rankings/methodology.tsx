@@ -98,7 +98,7 @@ export function Methodology() {
                 <ul className="space-y-1 text-sm text-muted-foreground">
                   {s.points.map((p) => (
                     <li key={p} className="flex gap-2">
-                      <span aria-hidden className="mt-[0.45rem] block size-1 shrink-0 rounded-full bg-[var(--gold)]/60" />
+                      <span aria-hidden className="mt-[0.45rem] block size-1 shrink-0 rounded-full bg-[var(--selected-surface)]" />
                       <span>{p}</span>
                     </li>
                   ))}

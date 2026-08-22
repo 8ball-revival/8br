@@ -441,7 +441,7 @@ function CloseDialog({
           </p>
         )}
         {!preflight.noEntrants && preflight.unresolvedArchive != null && preflight.unresolvedArchive > 0 && (
-          <p className="mt-3 rounded-md border border-[var(--gold)]/40 bg-[var(--gold)]/[0.06] px-3 py-2 text-sm text-foreground">
+          <p className="mt-3 rounded-md border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2 text-sm text-foreground">
             {preflight.unresolvedArchive} archived player{preflight.unresolvedArchive === 1 ? ' is' : 's are'} still
             outside the entrant list. Run Auto Add Entrants first if they belong in this Season.
           </p>

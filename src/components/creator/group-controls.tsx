@@ -49,7 +49,7 @@ export function GroupStageControls({ seasonId, canClose }: { seasonId: number; c
         <Lock className="size-4" aria-hidden /> Close Groups
       </button>
       {unsaved > 0 && (
-        <span className="inline-flex items-center gap-1.5 text-xs text-amber-500">
+        <span className="inline-flex items-center gap-1.5 text-xs text-[var(--gold)]">
           <AlertTriangle className="size-3.5" aria-hidden />
           {unsaved} unsaved score{unsaved === 1 ? '' : 's'} — save each group before closing.
         </span>
@@ -118,7 +118,7 @@ function CloseDialog({
       <h2 id="close-groups-title" className="font-display text-lg font-bold text-foreground">Close Groups?</h2>
 
       {unsaved > 0 && (
-        <p className="mt-3 rounded-md border border-amber-500/50 bg-amber-500/[0.08] px-3 py-2 text-sm text-amber-500">
+        <p className="mt-3 rounded-md border border-[var(--gold)]/45 bg-[var(--attention-surface)] px-3 py-2 text-sm text-[var(--gold)]">
           {unsaved} score{unsaved === 1 ? '' : 's'} {unsaved === 1 ? 'is' : 'are'} typed but not saved. Close the dialog,
           press Save Group in each table, then come back — closing now would lock the standings without them.
         </p>
@@ -267,7 +267,7 @@ function ReopenDialog({ seasonId, impact, onClose }: { seasonId: number; impact:
       </p>
 
       {impact.requiresReview.length > 0 && (
-        <div className="mt-3 rounded-md border border-[var(--gold)]/40 bg-[var(--gold)]/[0.06] px-3 py-2">
+        <div className="mt-3 rounded-md border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2">
           <p className="text-sm font-semibold text-foreground">Worth checking afterwards</p>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
             {impact.requiresReview.map((line, i) => <li key={i}>{line}</li>)}
