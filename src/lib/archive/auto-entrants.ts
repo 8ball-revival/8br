@@ -104,7 +104,17 @@ function archivedPeople(entry: ManifestEntry, shared: ManifestEntry['participant
   return [...byHandle.values()]
 }
 
-async function guardEntrants(seasonId: number): Promise<
+/**
+ * The archive entry a Season is built from, injectable for tests.
+ *
+ * The playoff services already take one. Without the same door here, a suite could only exercise
+ * "this handle has no account" by finding a real archive handle that happened to have none — which
+ * stopped existing once every recorded handle was given one, and could otherwise only be recreated
+ * by damaging a real identity.
+ */
+export type EntrantTemplateSource = (key: string) => ManifestEntry | null
+
+async function guardEntrants(seasonId: number, templateSource: EntrantTemplateSource = manifestEntry): Promise<
   { blocked?: false; ok: true; entry: ManifestEntry; lifecycleState: string } | AutoAssignBlocked
 > {
   const season = await prisma.season.findUnique({
@@ -114,7 +124,7 @@ async function guardEntrants(seasonId: number): Promise<
   if (!season) return { blocked: true, reason: 'That Season no longer exists.' }
   if (!season.archiveTemplateKey) return { blocked: true, reason: 'This Season has no verified archive template.' }
 
-  const entry = manifestEntry(season.archiveTemplateKey)
+  const entry = templateSource(season.archiveTemplateKey)
   if (!entry) return { blocked: true, reason: 'No verified archive data for this Season.' }
 
   // Entrants are added while registration is open or closed, before the groups are built.
@@ -150,8 +160,11 @@ async function allPlayerIdentities(): Promise<EntrantIdentity[]> {
   }))
 }
 
-export async function previewAutoEntrants(seasonId: number): Promise<EntrantPlan | AutoAssignBlocked> {
-  const g = await guardEntrants(seasonId)
+export async function previewAutoEntrants(
+  seasonId: number,
+  templateSource: EntrantTemplateSource = manifestEntry,
+): Promise<EntrantPlan | AutoAssignBlocked> {
+  const g = await guardEntrants(seasonId, templateSource)
   if (isBlocked(g)) return g
   const { entry } = g
 
@@ -225,8 +238,9 @@ export async function previewAutoEntrants(seasonId: number): Promise<EntrantPlan
 export async function applyAutoEntrants(
   actor: { userId: number; username: string },
   seasonId: number,
+  templateSource: EntrantTemplateSource = manifestEntry,
 ): Promise<EntrantApplyResult> {
-  const preview = await previewAutoEntrants(seasonId)
+  const preview = await previewAutoEntrants(seasonId, templateSource)
   if (isBlocked(preview)) {
     return { ok: false, error: preview.reason, added: 0, alreadyEntered: 0, ambiguous: 0, missing: 0 }
   }

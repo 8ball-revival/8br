@@ -267,6 +267,20 @@ export async function deleteWithHooks(
       // Rebuilt from what remains: the only way to undo a path-dependent rating history.
       await rebuildRatingLedger(tx)
 
+      /*
+       * The Tournament snapshot has to be rebuilt too, or the deleted competition survives publicly.
+       *
+       * comp_tournament_snapshot is the derived cache every consumer resolves — the tournaments
+       * list, Rankings, profiles. Deleting the rows without regenerating it left two tournaments
+       * listed there that no longer existed, so a permanently deleted competition went on appearing
+       * to anybody reading the cache rather than the tables. It regenerates inside this transaction
+       * so a failed deletion rolls the cache back with everything else.
+       */
+      if (kind === 'tournament') {
+        const { regenerateTournamentSnapshot } = await import('@/lib/tournaments/migrate')
+        await regenerateTournamentSnapshot(tx)
+      }
+
       await hooks.afterWrites?.(tx)
     })
   } catch (e) {
