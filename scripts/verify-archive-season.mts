@@ -13,8 +13,27 @@ import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
 
 assertLocalDatabase()
 
-const seasonId = Number(process.argv[2])
-if (!Number.isFinite(seasonId)) throw new Error('pass a season id')
+/*
+ * With no argument, check the most completely reconstructed Season there is.
+ *
+ * The batch runner discovers every verify-*.mts and calls it with no arguments, so demanding one
+ * made this suite fail the batch by design. Defaulting keeps it meaningful in both places.
+ */
+const argId = Number(process.argv[2])
+const seasonId = Number.isFinite(argId) ? argId : (await prisma.season.findFirstOrThrow({
+  /*
+   * A Season THIS reconstruction built, not one completed by an earlier import under other rules.
+   * The first default landed on a 2005 Season holding 98 entrants against 32 recorded handles,
+   * which says something about that old import and nothing about this one.
+   */
+  where: {
+    archiveTemplateKey: { not: null },
+    lifecycleState: { notIn: ['COMPLETED'] },
+    playoffMatches: { some: { homeEntrantId: { not: null } } },
+  },
+  select: { id: true },
+  orderBy: { id: 'asc' },
+})).id
 
 let pass = 0, fail = 0
 const check = (label: string, ok: boolean, detail?: string) => {
