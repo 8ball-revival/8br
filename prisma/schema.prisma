@@ -1269,6 +1269,10 @@ model Tournament {
   entrantsCount        Int?
   currentRound         String?
   finalScore           String?
+  /// The Final was won because the opponent forfeited.
+  /// A championship is still awarded, but no competitive result is: see lib/competition/forfeit.
+  /// Cleared automatically if the Final is later corrected to a played result.
+  finalsForfeit        Boolean   @default(false)
   championName         String?
   championHandle       String?
   runnerUpName         String?
@@ -2008,6 +2012,8 @@ model Season {
   runnerUpName     String?
   runnerUpHandle   String?
   finalScore       String?
+  /// The Final was won because the opponent forfeited. Championship yes, competitive result no.
+  finalsForfeit    Boolean   @default(false)
   completedAt      DateTime?
 
   createdAt DateTime @default(now())
