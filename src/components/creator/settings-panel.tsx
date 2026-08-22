@@ -46,12 +46,23 @@ export interface SettingsSummary {
 export function CreatorSettings({
   summary,
   onSaveDisplay,
+  onSaveDetails,
 }: {
   summary: SettingsSummary
   /** Server action: the two switches that are safe to change at any stage. */
   onSaveDisplay: (patch: { publiclyVisible: boolean; countsTowardRankings: boolean }) => Promise<{ ok?: boolean; error?: string }>
+  /**
+   * Server action for the Competition Year, where the record has no other way to correct it.
+   *
+   * A Season states its year on the Setup stage and can be corrected there. A Tournament cannot: the
+   * create form defaults the year to the current one, and a Tournament reconstructed from the
+   * archive keeps that default unless somebody notices — which is how a 2006 event ends up filed
+   * under 2026. Passing this makes the row editable; leaving it out keeps the row read-only.
+   */
+  onSaveDetails?: (patch: { competitionYear: number }) => Promise<{ ok?: boolean; error?: string }>
 }) {
   const [open, setOpen] = useState(false)
+  const [year, setYear] = useState(String(summary.competitionYear))
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<string | null>(null)
   const [visible, setVisible] = useState(summary.publiclyVisible)
@@ -66,6 +77,19 @@ export function CreatorSettings({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
+
+  const saveYear = () => {
+    if (!onSaveDetails) return
+    const n = Number(year)
+    // Checked again on the server; this only spares an obviously-wrong value the round trip.
+    if (!Number.isInteger(n) || n < 1900 || n > 2100) { setMsg('Competition Year must be between 1900 and 2100.'); return }
+    if (n === summary.competitionYear) { setMsg('Saved.'); return }
+    start(async () => {
+      const r = await onSaveDetails({ competitionYear: n })
+      setMsg(r.error ?? 'Saved.')
+      if (!r.error) router.refresh()
+    })
+  }
 
   const saveDisplay = (next: { publiclyVisible: boolean; countsTowardRankings: boolean }) => {
     start(async () => {
@@ -115,12 +139,42 @@ export function CreatorSettings({
 
               <Section title="Record Details">
                 <Row label="Competition" value={summary.competition} />
-                <Row label="Competition Year" value={String(summary.competitionYear)} />
+                {onSaveDetails ? (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <label htmlFor="creator-competition-year" className="text-muted-foreground">
+                      Competition Year
+                    </label>
+                    <span className="flex items-center gap-2">
+                      <input
+                        id="creator-competition-year"
+                        type="number"
+                        inputMode="numeric"
+                        min={1900}
+                        max={2100}
+                        value={year}
+                        disabled={pending}
+                        onChange={(e) => setYear(e.target.value)}
+                        className="w-20 rounded border border-border bg-background px-2 py-1 text-right font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveYear}
+                        disabled={pending || year === String(summary.competitionYear)}
+                        className="rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                      >
+                        Save
+                      </button>
+                    </span>
+                  </div>
+                ) : (
+                  <Row label="Competition Year" value={String(summary.competitionYear)} />
+                )}
                 {summary.number != null && <Row label="Season Number" value={String(summary.number)} />}
                 {summary.kind === 'season' && <Row label="Division" value={summary.division?.trim() || 'No Division'} />}
                 <p className="pt-1 text-xs text-muted-foreground">
-                  Editing these re-checks the duplicate rule — one record per competition, year, number
-                  and division. Change them from the Setup stage.
+                  {onSaveDetails
+                    ? 'The Competition Year records when this was played, and moves it in the listings and the Rankings era filter. The rest re-check the duplicate rule — one record per competition, year, number and division.'
+                    : 'Editing these re-checks the duplicate rule — one record per competition, year, number and division. Change them from the Setup stage.'}
                 </p>
               </Section>
 

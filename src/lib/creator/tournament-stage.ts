@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { prisma } from '@/lib/prisma'
 import { requireCreator } from './access'
-import { workflowFor, currentStage, stageReachable, type StageId, type StageView } from './workflow'
+import { workflowFor, currentStage, stageReachable, type StageId, type StageView, stageHref } from './workflow'
 import { getCompetitionRegistrationMode } from '@/lib/competition/registration-policy'
 import type { SettingsSummary } from '@/components/creator/settings-panel'
 
@@ -100,7 +100,7 @@ export async function loadTournamentStage(rawId: string, asked: StageId): Promis
 
   // A stage this record has not reached sends the reader to the one it has — see season-stage.ts.
   if (!stageReachable('tournament', state, asked, format)) {
-    redirect(`/creator/tournaments/${row.id}/${stage}`)
+    redirect(stageHref('tournament', row.id, stage))
   }
 
   const competition = row.competitionSeries?.name ?? 'Competition'

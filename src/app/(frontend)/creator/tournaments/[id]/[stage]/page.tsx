@@ -7,6 +7,7 @@ import { CreatorSettings } from '@/components/creator/settings-panel'
 import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
 import { loadTournamentStage } from '@/lib/creator/tournament-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
+import { updateTournamentDetailsAction } from '@/lib/creator/record-details'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getTournamentWorkspace } from '@/lib/tournaments/live'
 import { getTournamentHistory } from '@/lib/competition/tournament-lifecycle'
@@ -86,6 +87,10 @@ export default async function CreatorTournamentStagePage({
           onSaveDisplay={async (patch) => {
             'use server'
             return updateRecordDisplayAction('tournament', ctx.id, patch)
+          }}
+          onSaveDetails={async (patch) => {
+            'use server'
+            return updateTournamentDetailsAction(ctx.id, patch)
           }}
         />
       }

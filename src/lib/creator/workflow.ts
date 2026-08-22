@@ -100,6 +100,25 @@ export function currentStage(kind: RecordKind, lifecycleState: string, format?: 
   }
 }
 
+/**
+ * Where a stage actually lives.
+ *
+ * Tournaments are one workspace entered at a stage, so every stage is a segment under the record. A
+ * Season is not: its stages are separate pages, and the completed record has a page of its own that
+ * predates this bar — the one carrying the correction workflow and the Danger Zone. Pointing the
+ * final chip at a `/complete` segment would mean either a dead link or a second surface duplicating
+ * that one, so it points at the record page instead.
+ *
+ * Both callers that build a stage URL go through here; a second rule kept somewhere else is how the
+ * bar and the redirect drift apart.
+ */
+export function stageHref(kind: RecordKind, id: number, stage: StageId): string {
+  const base = `/creator/${kind}s/${id}`
+  if (kind === 'season' && stage === 'complete') return base
+  const segment = stagesFor(kind).find((s) => s.id === stage)?.segment ?? stage
+  return `${base}/${segment}`
+}
+
 export type StageStatus = 'done' | 'current' | 'open' | 'locked'
 
 export interface StageView extends Stage {
@@ -124,11 +143,10 @@ export function workflowFor(
   const stages = stagesFor(kind, format)
   const current = currentStage(kind, lifecycleState, format)
   const currentIndex = Math.max(0, stages.findIndex((s) => s.id === current))
-  const base = `/creator/${kind}s/${id}`
 
   return stages.map((s, i) => ({
     ...s,
-    href: `${base}/${s.segment}`,
+    href: stageHref(kind, id, s.id),
     status:
       lifecycleState === 'COMPLETED' && s.id === 'complete' ? 'current'
       : i < currentIndex ? 'done'

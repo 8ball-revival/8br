@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { prisma } from '@/lib/prisma'
 import { requireCreator } from './access'
-import { workflowFor, currentStage, stageReachable, type StageId, type StageView } from './workflow'
+import { workflowFor, currentStage, stageReachable, stageHref, type StageId, type StageView } from './workflow'
 import { getCompetitionRegistrationMode } from '@/lib/competition/registration-policy'
 import type { SettingsSummary } from '@/components/creator/settings-panel'
 
@@ -81,7 +81,7 @@ export async function loadSeasonStage(rawId: string, asked: StageId): Promise<Se
    * page with nothing on it, which reads as broken rather than as early. Redirect rather than 404,
    * because the record genuinely exists — it is the stage that does not, yet.
    */
-  if (!stageReachable('season', state, asked)) redirect(`/creator/seasons/${row.id}/${stage}`)
+  if (!stageReachable('season', state, asked)) redirect(stageHref('season', row.id, stage))
 
   /*
    * Only the Danger Zone is gated further.
