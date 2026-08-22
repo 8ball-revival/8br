@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, Check, Trophy } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { identityLines, identityText } from '@/lib/identity/display'
 import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
@@ -231,6 +232,7 @@ export function PlayoffWorkspace({
         />
         <DraftBracket
           slots={slots}
+          seeding={seeding}
           entryKeys={topology.entryKeys}
           picked={picked}
           dragging={dragging}
@@ -363,9 +365,11 @@ function ParticipantTable({
  * players the marker was competing with the names for attention and winning.
  */
 function DraftBracket({
-  slots, entryKeys, picked, dragging, onPick, onDragStart, onDragEnd, onDrop, hasDraft,
+  slots, seeding, entryKeys, picked, dragging, onPick, onDragStart, onDragEnd, onDrop, hasDraft,
 }: {
   slots: EntrySlot[]
+  /** The entrant list the board was built from — the only place a slot's CueVerse ID lives. */
+  seeding: SeasonSeedRow[]
   entryKeys: Set<string>
   picked: SlotRef | null
   dragging: SlotRef | null
@@ -394,6 +398,37 @@ function DraftBracket({
     .map(([matchId, slots]) => ({ matchId, slots: slots.sort((a, b) => (a.side === 'home' ? -1 : 1) - (b.side === 'home' ? -1 : 1)), ref: slots[0] }))
     .sort((a, b) => a.ref.round - b.ref.round || a.ref.slot - b.ref.slot)
 
+  /*
+   * Two columns read top to bottom, not side to side.
+   *
+   * A CSS grid fills row by row, so M1 and M2 landed beside each other and the numbers zig-zagged
+   * down the board — you had to read left, right, left, right to follow the order. Splitting the
+   * list in half puts M1–M8 down the left and M9–M16 down the right, which is how a draw sheet is
+   * read and how the pill numbers now run.
+   *
+   * The halves are computed rather than left to CSS column balancing, so the split is exactly the
+   * same for 8, 16, 32 or 128 matches instead of depending on how a browser decides to balance
+   * heights. Stacked on a narrow screen the two halves fall one after the other, which is M1 through
+   * Mn in true sequence.
+   *
+   * Presentation only: match ids, slot topology, seeding and feeder relationships are untouched —
+   * `ties` itself is still in bracket order, and the M number is that order's index.
+   */
+  const half = Math.ceil(ties.length / 2)
+  const columns = [ties.slice(0, half), ties.slice(half)]
+
+  /*
+   * The board only knows a slot's display name, which is not enough to identify anybody.
+   *
+   * There are six players called Chris on this site and six called Craig, so a slot reading "Chris"
+   * is not a competitor — it is a coin toss. The seeding rows on the left already carry the CueVerse
+   * ID, so the board looks the handle up by entrant and shows it as the identity, with the Preferred
+   * Name alongside it where it adds something.
+   */
+  const identityOf = new Map<number, { cueverseId: string | null; name: string | null }>(
+    seeding.map((r) => [r.entrantId, { cueverseId: r.cueverseId, name: r.name }]),
+  )
+
   return (
     <div className="rounded-lg border border-border p-3">
       <p id="draft-help" className="mb-2 text-xs text-muted-foreground">
@@ -401,8 +436,27 @@ function DraftBracket({
         the same thing, so the board works without a mouse. Positions decided by an earlier match are
         not shown, because they cannot be set by hand.
       </p>
-      <ul className="grid gap-2 sm:grid-cols-2">
-        {ties.map((t, i) => (
+      <div className="grid gap-x-5 gap-y-6 sm:grid-cols-2">
+        {columns.map((column, c) => (
+          <div key={c}>
+            {/*
+              Which half of the draw this is.
+              Sixteen identical pills in two columns give no clue where one half ends and the other
+              begins; naming the range makes the split readable at a glance.
+            */}
+            {column.length > 0 && (
+              <p className="mb-2 border-b border-border pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                {c === 0 ? 'Top half' : 'Bottom half'}
+                <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/70">
+                  M{c === 0 ? 1 : half + 1}–M{c === 0 ? half : ties.length}
+                </span>
+              </p>
+            )}
+            <ul className="flex flex-col gap-3.5">
+            {column.map((t) => {
+              // The number is the match's place in the whole draw, not its place in this column.
+              const i = c === 0 ? column.indexOf(t) : half + column.indexOf(t)
+              return (
           <li key={t.matchId} className="flex items-center gap-2">
             {/* Short thin connector into the match pill. */}
             <span aria-hidden className="h-px w-3 shrink-0 bg-[var(--gold)]/40" />
@@ -418,6 +472,7 @@ function DraftBracket({
                 <SlotButton
                   key={`${s.matchId}:${s.side}`}
                   slot={s}
+                  identity={identityOf.get(s.entrantId ?? -1) ?? { cueverseId: null, name: s.entrantName }}
                   picked={!!picked && sameSlot(picked, s)}
                   dragging={!!dragging && sameSlot(dragging, s)}
                   droppable={!!dragging && !sameSlot(dragging, s) && canPlaceInto(entryKeys, s)}
@@ -430,8 +485,12 @@ function DraftBracket({
               ))}
             </span>
           </li>
+              )
+            })}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }
@@ -443,9 +502,16 @@ function DraftBracket({
  * pointer is doing. Dragging is layered on top; nothing depends on it.
  */
 function SlotButton({
-  slot, picked, dragging, droppable, anyDragging, onPick, onDragStart, onDragEnd, onDrop,
+  slot, identity, picked, dragging, droppable, anyDragging, onPick, onDragStart, onDragEnd, onDrop,
 }: {
   slot: EntrySlot
+  /**
+   * The seated entrant's identity, resolved from the seeding rows.
+   *
+   * The slot itself only carries a display name, which on this site is not an identity — there are
+   * six players called Chris. The handle comes from the entrant list the board was built from.
+   */
+  identity: { cueverseId: string | null; name: string | null }
   picked: boolean
   dragging: boolean
   /** A legal target for the card currently being dragged. */
@@ -457,6 +523,7 @@ function SlotButton({
   onDrop: () => void
 }) {
   const empty = slot.entrantId == null
+  const lines = identityLines({ cueverseId: identity.cueverseId, preferredName: identity.name })
   // While a drag is in progress, everything that is not a legal target says so rather than staying
   // neutral — an unmarked slot that silently refuses the drop reads as a broken interaction.
   const invalidTarget = anyDragging && !droppable && !dragging
@@ -471,7 +538,7 @@ function SlotButton({
       onDrop={(e) => { if (droppable) { e.preventDefault(); onDrop() } }}
       aria-pressed={picked}
       aria-describedby="draft-help"
-      aria-label={`${slot.entrantName ?? 'Bye'}, seed ${slot.seed ?? 'none'}`}
+      aria-label={`${empty ? 'Bye' : identityText({ cueverseId: identity.cueverseId, preferredName: identity.name })}, seed ${slot.seed ?? 'none'}`}
       className={cn(
         'flex w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs transition-colors',
         !empty && 'cursor-grab active:cursor-grabbing',
@@ -483,9 +550,16 @@ function SlotButton({
       )}
     >
       <span className="tabular w-5 shrink-0 text-right text-[0.65rem] text-muted-foreground">{slot.seed ?? ''}</span>
-      <span className={cn('min-w-0 flex-1 truncate', empty ? 'italic text-muted-foreground/60' : 'text-foreground')}>
-        {slot.entrantName ?? 'Bye'}
-      </span>
+      {empty ? (
+        <span className="min-w-0 flex-1 truncate italic text-muted-foreground/60">Bye</span>
+      ) : (
+        <span className="flex min-w-0 flex-1 flex-col leading-tight">
+          <span className="truncate font-semibold text-[var(--gold)]">{lines.primary}</span>
+          {lines.secondary && (
+            <span className="truncate text-[0.62rem] text-foreground/60">{lines.secondary}</span>
+          )}
+        </span>
+      )}
     </button>
   )
 }

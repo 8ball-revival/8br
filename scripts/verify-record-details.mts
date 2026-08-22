@@ -52,7 +52,15 @@ try {
   section('A correction leaves a trail and clears what it invalidates')
   check('the update and the audit share one transaction', /\$transaction\(async \(tx\) => \{[\s\S]*recordAudit[\s\S]*\}\)/.test(svc))
   check('...recording the value it replaced', /oldValue: \{[\s\S]*competitionYear: before\.competitionYear/.test(svc))
-  check('moving the year clears the Rankings cache', /if \(data\.competitionYear !== undefined\) invalidateRankings\(\)/.test(svc))
+  /*
+   * A block now, not a one-liner: the year owns both the cache invalidation and the /rankings
+   * revalidation, and a rename must trigger neither. Renaming changes a label, and the ledger is
+   * path-dependent — rebuilding it for a typo would be pointless and slow.
+   */
+  check('moving the year clears the Rankings cache',
+    svc.includes('if (data.competitionYear !== undefined) {') && svc.includes('invalidateRankings()'))
+  check('...and nothing else invalidates them',
+    (svc.match(/invalidateRankings\(\)/g) ?? []).length === 1)
   check('...because the era filter is cached', /revalidatePath\('\/rankings'\)/.test(svc))
 
   section('It is reachable')

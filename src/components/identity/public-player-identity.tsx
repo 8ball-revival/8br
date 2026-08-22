@@ -6,8 +6,9 @@ import { cn } from '@/lib/utils'
 
 /**
  * PublicPlayerIdentity — the ONE component for rendering a player's current public identity on
- * ONE line, as `CueVerse ID (Preferred Name)`. The ID leads because it is the half that tells
- * competitors apart. The whole label links to the public profile when a `slug` is provided;
+ * ONE line, as `CueVerse ID · Preferred Name`. The handle leads because it is the half that tells
+ * two people called Chris apart, and it is never the part that gets dropped. The whole label links
+ * to the public profile when a `slug` is provided;
  * otherwise it renders as plain text (e.g. an account-less manual entrant, or before the public
  * profile route exists for this player). Never renders email.
  *
@@ -30,8 +31,12 @@ export function PublicPlayerIdentity({
   const { primary, secondary } = identityLines({ cueverseId, preferredName })
   const inner = (
     <>
-      <span className="font-medium">{primary === NO_IDENTITY ? 'Unknown' : primary}</span>
-      {secondary && <span className={cn('ml-1', muted ? 'text-muted-foreground' : undefined)}>({secondary})</span>}
+      <span className="font-semibold text-[var(--gold)]">{primary === NO_IDENTITY ? 'Unknown' : primary}</span>
+      {secondary && (
+        <span className={cn('ml-1.5', muted ? 'text-muted-foreground' : 'text-foreground/70')}>
+          <span aria-hidden>· </span>{secondary}
+        </span>
+      )}
     </>
   )
   const full = formatIdentityLabel(preferredName, cueverseId)

@@ -409,7 +409,10 @@ function PlayerSearch({ searchPlayers }: { searchPlayers: (q: string) => Promise
                 onClick={() => jump(h)}
                 className="block w-full rounded-md px-2 py-1.5 text-left hover:bg-muted"
               >
-                <span className="block text-sm font-medium text-foreground">{lines.primary}</span>
+                <span className="block text-sm font-semibold text-[var(--gold)]">{lines.primary}</span>
+                {lines.secondary && (
+                  <span className="block text-[0.7rem] leading-tight text-foreground/70">{lines.secondary}</span>
+                )}
                 {lines.secondary && <span className="block text-xs text-muted-foreground">{lines.secondary}</span>}
                 <span className="block text-[0.7rem] text-[var(--gold)]">
                   {h.groupLabel ?? 'Not in a published group'}{h.inPlayoffs ? ' · in the playoffs' : ''}

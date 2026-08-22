@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import { cn } from '@/lib/utils'
-import { identityLines, fromNameHandle } from '@/lib/identity/display'
+import { identityLines, identityText, fromNameHandle } from '@/lib/identity/display'
 import type { BracketRound, BracketMatch, BracketSlot } from '@/lib/tournaments/service'
 
 /**
@@ -334,7 +334,12 @@ function SlotRow({
       tabIndex={0}
       role="button"
       aria-pressed={lit}
-      aria-label={`${lines.primary}${slot?.seed != null ? `, seed ${slot.seed}` : ''}${won ? ', winner' : ''}${slot?.score != null ? `, ${slot.score}` : ''}`}
+      /*
+        The accessible name carries both halves too.
+        A screen reader announcing only "Chris" in a bracket of two Chrises is the same failure as
+        printing it, just less visible.
+      */
+      aria-label={`${identityText(fromNameHandle(slot))}${slot?.seed != null ? `, seed ${slot.seed}` : ''}${won ? ', winner' : ''}${slot?.score != null ? `, ${slot.score}` : ''}`}
       className={cn(
         'flex cursor-pointer items-center gap-2.5 px-2.5 outline-none transition-colors',
         won && 'bg-gold/[0.07]',
@@ -376,7 +381,12 @@ function NameLines({
         'block truncate text-[0.82rem] leading-tight',
         won ? 'font-bold text-gold' : lost ? 'text-muted-foreground' : 'text-foreground',
       )}>
-        {lines.primary}
+        <span className="block truncate">{lines.primary}</span>
+        {lines.secondary && (
+          <span className="block truncate text-[0.62rem] font-normal leading-tight text-foreground/70">
+            {lines.secondary}
+          </span>
+        )}
       </span>
       {lines.secondary && (
         <span className="block truncate text-[0.58rem] leading-tight text-muted-foreground">

@@ -92,7 +92,19 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                     onMouseLeave={() => setHoverId(null)}
                     title={identityText(c.identity)}
                   >
-                    <span className="block max-w-16 truncate">{identityLines(c.identity).primary}</span>
+                    {/*
+                      Both halves, stacked.
+                      A column head this narrow used to show one line; with the name leading, one
+                      line means a bare Preferred Name, which does not identify anybody.
+                    */}
+                    <span className="block max-w-16 truncate font-semibold text-[var(--gold)]">
+                      {identityLines(c.identity).primary}
+                    </span>
+                    {identityLines(c.identity).secondary && (
+                      <span className="block max-w-16 truncate text-[0.6rem] leading-tight text-foreground/70">
+                        {identityLines(c.identity).secondary}
+                      </span>
+                    )}
                   </th>
                 ))}
               </tr>

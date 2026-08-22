@@ -25,9 +25,17 @@ export interface IdentityInput {
 }
 
 export interface IdentityLines {
-  /** What to render large: the CueVerse ID, or the preferred name when there is no ID. */
+  /**
+   * The CueVerse ID — the thing that actually identifies a competitor.
+   *
+   * It is the primary because it is the half that must never be missing. There are six players
+   * called Chris and six called Craig on this site; a row that says "Chris" identifies nobody. A
+   * surface with room for only one line therefore shows the handle, never the name.
+   *
+   * Falls back to the Preferred Name only when there is no handle at all.
+   */
   primary: string
-  /** What to render small beneath it, or null when it would merely repeat the primary. */
+  /** The Preferred Name, shown alongside when there is room, or null when it would repeat the ID. */
   secondary: string | null
 }
 
@@ -52,6 +60,16 @@ export function identityLines(input: IdentityInput | null | undefined): Identity
   const id = clean(input?.cueverseId)
   const name = clean(input?.preferredName)
 
+  /*
+   * The handle leads, and it is the half that survives when only one can.
+   *
+   * This was briefly the other way round. It reads more naturally — until you meet the second Chris.
+   * With six of them and six Craigs already on the site, a Preferred Name is a nice addition to an
+   * identity and never an identity by itself, so the ID takes the position that every caller
+   * renders and the name takes the one that some callers have room for.
+   *
+   * With no handle the name is all there is, and nothing is invented to fill the gap.
+   */
   if (!id) return { primary: name || NO_IDENTITY, secondary: null }
   return { primary: id, secondary: name && !sameText(name, id) ? name : null }
 }
@@ -60,11 +78,14 @@ export function identityLines(input: IdentityInput | null | undefined): Identity
  * The same identity on ONE line, for places with no room for two: dropdown options, confirmation
  * prompts, audit messages, `title` attributes, exported columns.
  *
- * Renders as `CueVerseID (Preferred Name)`, or just the ID when the name adds nothing.
+ * Renders as `CueVerse ID · Preferred Name`, or just one of them when the other adds nothing.
+ *
+ * The separator is a middle dot rather than brackets: the name is part of the identity, not an
+ * aside about it.
  */
 export function identityText(input: IdentityInput | null | undefined): string {
   const { primary, secondary } = identityLines(input)
-  return secondary ? `${primary} (${secondary})` : primary
+  return secondary ? `${primary} · ${secondary}` : primary
 }
 
 /**
