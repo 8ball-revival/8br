@@ -16,6 +16,8 @@
  *
  * Run: npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-permanent-deletion.mts
  */
+import { readFileSync, readdirSync } from 'node:fs'
+
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { createDraft } from '../src/lib/creator/setup.ts'
@@ -28,7 +30,7 @@ import {
 } from '../src/lib/seasons/playoffs.ts'
 import { closeSeason } from '../src/lib/seasons/close.ts'
 import { createTournament } from '../src/lib/competition/tournament-create.ts'
-import { deletionImpact, permanentlyDelete } from '../src/lib/competition/permanent-deletion.ts'
+import { deletionImpact, permanentlyDelete, deleteWithHooks } from '../src/lib/competition/permanent-deletion.ts'
 import { rebuildRatingLedger } from '../src/lib/stats/ledger.ts'
 
 assertLocalDatabase()
@@ -167,8 +169,17 @@ try {
   }
   const othersBefore = await othersFingerprint(s1)
 
-  const failed = await permanentlyDelete(OWNER, 'season', s1, {
-    typedTitle: impact.confirmTitle, confirmedCompleted: true, __induceFailure: true,
+  /*
+   * The failure is injected, not configured.
+   *
+   * `deleteWithHooks` is the only entry point that accepts one, and what it accepts is a callback —
+   * a thing no URL, form field, Server Action argument or environment variable can carry. That is
+   * what keeps this proof from doubling as a production-callable destructive switch.
+   */
+  const failed = await deleteWithHooks(OWNER, 'season', s1, {
+    typedTitle: impact.confirmTitle, confirmedCompleted: true,
+  }, {
+    afterWrites: () => { throw new Error('Induced failure: proving the deletion rolls back.') },
   })
   check('the deletion reports failure', failed.ok === false, JSON.stringify(failed))
   check('...and says nothing was removed', /Nothing was removed/i.test(failed.error ?? ''), failed.error)
@@ -258,6 +269,39 @@ try {
   // Tombstones are the one intended residue; they are private and countable by nothing.
   const tombs = await prisma.auditLog.count({ where: { action: { contains: 'permanent_delete' } } })
   console.log(`  (${tombs} deletion tombstone(s) retained by design)`)
+}
+
+
+/** Every .ts/.tsx under src whose text contains `needle`. */
+function srcFilesContaining(needle: string): string[] {
+  const hits: string[] = []
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${e.name}`
+      if (e.isDirectory()) walk(full)
+      else if (/\.tsx?$/.test(e.name) && readFileSync(full, 'utf8').includes(needle)) hits.push(full)
+    }
+  }
+  walk('src')
+  return hits
+}
+
+section('The rollback seam is not reachable from the application')
+{
+  const svc = readFileSync('src/lib/competition/permanent-deletion.ts', 'utf8')
+  check('the old boolean flag is gone from the service', !svc.includes('__induceFailure'))
+  const flagged = srcFilesContaining('__induceFailure')
+  check('...and from the whole source tree', flagged.length === 0, flagged.join(', '))
+  check('DeleteOptions carries no failure switch', !/induce/i.test(svc.slice(svc.indexOf('interface DeleteOptions'), svc.indexOf('interface DeletionHooks'))))
+  check('the seam is a callback, so no serialised input can supply it',
+    svc.includes('afterWrites?: (tx: Prisma.TransactionClient) => Promise<void> | void'))
+  check('...and a callback cannot cross a URL, a form, a Server Action or an env var',
+    !/process\.env/.test(svc))
+  check('the public entry point exposes no hook parameter',
+    /export async function permanentlyDelete\([^)]*opts: DeleteOptions,\n\)/.test(svc))
+  check('...and forwards an empty hook set', svc.includes('return deleteWithHooks(actor, kind, id, opts, {})'))
+  const callers = srcFilesContaining('deleteWithHooks').filter((f) => !f.endsWith('permanent-deletion.ts'))
+  check('no application file imports the hooked entry point', callers.length === 0, callers.join(', '))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

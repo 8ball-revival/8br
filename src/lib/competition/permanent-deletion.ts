@@ -1,5 +1,6 @@
 import 'server-only'
 
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { rebuildRatingLedger } from '@/lib/stats/ledger'
@@ -160,15 +161,29 @@ export interface DeleteOptions {
   /** A completed record needs a second, separate acknowledgement. */
   confirmedCompleted?: boolean
   reason?: string
-  /**
-   * Test-only: abort inside the transaction, after every delete and the rebuild.
-   *
-   * Rollback is the property that makes this safe to offer at all, and the only honest way to prove
-   * it is to make the transaction fail at the last possible moment and show the record is still
-   * whole. Never set in production code — it is a parameter rather than an env flag so it cannot be
-   * switched on by accident.
-   */
-  __induceFailure?: boolean
+}
+
+/**
+ * The rollback seam.
+ *
+ * Rollback is the property that makes permanent deletion safe to offer at all, and the only honest
+ * way to prove it is to make the transaction fail at the last possible moment and show the record is
+ * still whole. That proof needs a way in — and the way in must not be something an application
+ * caller can reach.
+ *
+ * A FUNCTION is what makes that true. Everything that crosses into this service from the outside
+ * world crosses a serialisation boundary: a URL, a form field, a Server Action argument, a REST or
+ * GraphQL body, an environment variable. None of them can carry a callback. A boolean flag on the
+ * options object could travel every one of those paths — which is exactly what it used to be — so
+ * the flag is gone and the seam is a parameter only a test, holding a real reference to this module,
+ * can supply.
+ *
+ * It is deliberately not on `DeleteOptions`, and no code under `src/app` or `src/components`
+ * imports the entry point that accepts it. verify-permanent-deletion asserts both.
+ */
+export interface DeletionHooks {
+  /** Runs inside the transaction, after every delete and the rebuild, before commit. */
+  afterWrites?: (tx: Prisma.TransactionClient) => Promise<void> | void
 }
 
 export async function permanentlyDelete(
@@ -176,6 +191,23 @@ export async function permanentlyDelete(
   kind: RecordKind,
   id: number,
   opts: DeleteOptions,
+): Promise<{ ok: boolean; error?: string; removed?: DeletionImpact['counts'] }> {
+  // The application path cannot pass hooks: there is no parameter for them here.
+  return deleteWithHooks(actor, kind, id, opts, {})
+}
+
+/**
+ * The same deletion, with the rollback seam exposed.
+ *
+ * Only a test calls this. It is separate from `permanentlyDelete` so that the function every real
+ * caller uses has no parameter capable of altering what the transaction does.
+ */
+export async function deleteWithHooks(
+  actor: Actor & { canDelete: boolean },
+  kind: RecordKind,
+  id: number,
+  opts: DeleteOptions,
+  hooks: DeletionHooks,
 ): Promise<{ ok: boolean; error?: string; removed?: DeletionImpact['counts'] }> {
   if (!actor.canDelete) {
     return { ok: false, error: 'Only the Owner or Head Administrator can permanently delete a competition.' }
@@ -235,7 +267,7 @@ export async function permanentlyDelete(
       // Rebuilt from what remains: the only way to undo a path-dependent rating history.
       await rebuildRatingLedger(tx)
 
-      if (opts.__induceFailure) throw new Error('Induced failure: proving the deletion rolls back.')
+      await hooks.afterWrites?.(tx)
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'The deletion failed.'
