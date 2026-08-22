@@ -1,6 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { ELO_START, ELO_K, expectedScore } from './elo'
+import { TEAM_DELTA } from './rating-history'
 import type { SeasonTrophyEntry } from '@/lib/seasons/trophies'
 
 /**
@@ -210,7 +211,18 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
     const rA = avg(A), rB = avg(B)
     const actualA = A[0].actual
     const forfeit = m[0].isForfeit
-    const dA = forfeit ? 0 : Math.round(ELO_K * (actualA - expectedScore(rA, rB)))
+    /*
+     * Unrounded, and a fixed step for a team match.
+     *
+     * This used to be `Math.round(...)`, which made the running rating an integer at every step
+     * while the ledger writer carries a fraction and rounds only when it stores a row. Over a few
+     * hundred matches the two accumulate differently, and the difference surfaced as a one-point
+     * disagreement between this ladder and the Rankings table for whoever sat near a boundary.
+     *
+     * See lib/stats/rating-history for the canonical rule; the arithmetic here is kept identical to
+     * it deliberately, and `verify-rating-history` proves the two agree.
+     */
+    const dA = forfeit ? 0 : isTeam ? (actualA === 1 ? TEAM_DELTA : -TEAM_DELTA) : ELO_K * (actualA - expectedScore(rA, rB))
     const apply = (side: Row[], delta: number) => {
       for (const r of side) {
         name.set(r.playerId, r.playerName)
@@ -229,6 +241,7 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
 
   const stats = new Map<string, PlayerStats>()
   for (const [pid, results] of perPlayerResults) {
+    // The running figures are fractional until here; presentation is the only place they round.
     const wins = results.filter((r) => r === 'WIN').length
     const losses = results.filter((r) => r === 'LOSS').length
     const draws = results.filter((r) => r === 'DRAW').length

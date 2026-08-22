@@ -1,4 +1,5 @@
 import 'server-only'
+import { ratingsForScope, windowCutoff } from '@/lib/stats/rating-history'
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { ELO_START } from '@/lib/stats/elo'
@@ -82,6 +83,43 @@ export interface ExplorerFilters {
   toYear?: number | null
   /** Seasons, Tournaments, or both. Narrows which KIND of record contributes, not which year. */
   eventType?: 'all' | 'seasons' | 'cups' | null
+}
+
+/**
+ * Load the ledger and hand it to the canonical rating service.
+ *
+ * Deliberately its own read rather than a join into the aggregate above: the replay needs every row
+ * in completion order, and the aggregate needs one row per player. Trying to serve both from one
+ * query is what produced two different notions of "the rating" in the first place.
+ */
+async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear: number | null | undefined) {
+  const rows = await prisma.ratingLedger.findMany({
+    orderBy: { sequence: 'asc' },
+    select: {
+      playerId: true, playerName: true, matchKey: true, sequence: true, tournamentId: true,
+      seasonId: true,
+      completedAt: true, actual: true, result: true, isForfeit: true, isTeamMatch: true,
+      teamName: true, ratingChange: true, postRating: true,
+    },
+  })
+
+  /*
+   * The Competition Year of each row, from the record it belongs to.
+   *
+   * The same `coalesce(season.competitionYear, tournament.competitionYear)` the aggregate query
+   * uses, resolved once here rather than per row — a ledger row names its Season or its Tournament,
+   * never both.
+   */
+  const [seasons, tournaments] = await Promise.all([
+    prisma.season.findMany({ select: { id: true, competitionYear: true } }),
+    prisma.tournament.findMany({ select: { id: true, competitionYear: true } }),
+  ])
+  const seasonYear = new Map(seasons.map((x) => [x.id, x.competitionYear]))
+  const tournamentYear = new Map(tournaments.map((x) => [x.id, x.competitionYear]))
+  const yearOf = (r: { seasonId: number | null; tournamentId: number | null }) =>
+    (r.seasonId != null ? seasonYear.get(r.seasonId) : r.tournamentId != null ? tournamentYear.get(r.tournamentId) : null) ?? null
+
+  return ratingsForScope(rows, scope, windowCutoff(now), { toYear, yearOf })
 }
 
 export interface ExplorerRow {
@@ -588,6 +626,23 @@ export async function computeExplorer(
   const pct = (part: number, whole: number): number =>
     whole === 0 ? 0 : Math.round((part / whole) * 1000) / 10
 
+  /*
+   * The rating and the peak come from the canonical replay, not from this query.
+   *
+   * The two definitions had genuinely drifted apart. SQL read the stored running rating — the
+   * all-time figure — and called it Current; `getLadder` replayed the last 365 days from 1500. Most
+   * matches fall inside the window, so the answers were close enough that the difference showed up
+   * only as an occasional single point, which is the worst possible size of bug: too small to
+   * notice, too real to dismiss.
+   *
+   * `ratingsForScope` is now the one definition of what a rating is. Both readers call it, so they
+   * cannot disagree — not because they were reconciled, but because there is only one of them.
+   *
+   * The rest of this query is untouched: records, streaks, games and the qualification counts are
+   * legitimately per-view and SQL is the right place for them.
+   */
+  const canonicalRatings = await ratingsForScope_(scope, now, filters.toYear)
+
   const mapped: ExplorerRow[] = rows.map((r) => {
     const wins = num(r.wins)
     const losses = num(r.losses)
@@ -625,8 +680,8 @@ export async function computeExplorer(
       gamesLost,
       gameDiff: gamesWon - gamesLost,
       gameWinPct: pct(gamesWon, gamesWon + gamesLost),
-      rating: num(r.rating),
-      peakRating: num(r.peak_rating),
+      rating: canonicalRatings.get(String(r.playerId))?.rating ?? num(r.rating),
+      peakRating: canonicalRatings.get(String(r.playerId))?.highestRating ?? num(r.peak_rating),
       currentStreak: lastResult === 'WIN' ? lastRun : lastResult === 'LOSS' ? -lastRun : 0,
       longestStreak: num(r.longest_win_run),
       competitionsEntered: num(r.competitions),
