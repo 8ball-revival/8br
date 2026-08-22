@@ -41,8 +41,16 @@ const section = (t: string) => console.log(`\n--- ${t} ---`)
 
 const series = await prisma.competitionSeries.findFirstOrThrow({ select: { id: true } })
 
-/** Whatever the site is really set to, put it back at the end. */
-const originalMode = await getCompetitionRegistrationMode()
+/*
+ * Put the setting back EXACTLY as it was, including not existing.
+ *
+ * `getCompetitionRegistrationMode()` answers ADMIN_ONLY for an absent row, so restoring "what it
+ * returned" would write a row where there was none — leaving verification residue in real site
+ * settings that happens to behave the same way. Absence is a state; record it as one.
+ */
+const originalRow = await prisma.$queryRawUnsafe<{ value: string }[]>(
+  `SELECT value FROM public.site_setting WHERE key = $1 LIMIT 1`, COMPETITION_REGISTRATION_KEY)
+const originalMode = originalRow.length ? parseCompetitionRegistrationMode(originalRow[0].value) : null
 
 async function cleanup() {
   const rows = await prisma.season.findMany({ where: { competitionYear: YEAR }, select: { id: true } })
@@ -185,9 +193,16 @@ try {
   await cleanup()
   check('every fixture Season is removed',
     (await prisma.season.count({ where: { competitionYear: YEAR } })) === 0)
-  await setCompetitionRegistrationMode(originalMode)
-  check('the site policy is restored to what it was',
-    (await getCompetitionRegistrationMode()) === originalMode, originalMode)
+  if (originalMode == null) {
+    await prisma.$executeRawUnsafe(`DELETE FROM public.site_setting WHERE key = $1`, COMPETITION_REGISTRATION_KEY)
+  } else {
+    await setCompetitionRegistrationMode(originalMode)
+  }
+  const restored = await prisma.$queryRawUnsafe<{ value: string }[]>(
+    `SELECT value FROM public.site_setting WHERE key = $1`, COMPETITION_REGISTRATION_KEY)
+  check('the site policy is restored to exactly what it was',
+    originalMode == null ? restored.length === 0 : restored[0]?.value === originalMode,
+    `expected ${originalMode ?? 'no row'}, found ${restored[0]?.value ?? 'no row'}`)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

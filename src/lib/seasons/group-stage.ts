@@ -57,17 +57,26 @@ export type MatchInterpretation =
   | { kind: 'unplayed' }
   | { kind: 'result'; homeGames: number; awayGames: number; winner: 'home' | 'away' | 'draw' }
   | { kind: 'ff'; forfeiter: 'home' | 'away' }
+  /** Legacy only — `interpretMatch` no longer produces this. Kept so old readers still compile. */
   | { kind: 'ko'; who: 'home' | 'away' }
   | { kind: 'invalid'; reason: string }
 
 /** Interpret one editable matchup's two fields under the flexible Season rules. */
 export function interpretMatch(homeRaw: string, awayRaw: string): MatchInterpretation {
   const h = parseField(homeRaw), a = parseField(awayRaw)
-  // KO: exactly one field is KO, the other blank.
+  /*
+   * KO is no longer entered here.
+   *
+   * Typing KO into a score cell voided every one of that player's group matches, including results
+   * other people had already entered, from a field that looks exactly like a score. A control that
+   * destructive does not belong on the same keystroke as "7". Removing an entrant from a competition
+   * is an entrant-level decision and is made where entrants are managed.
+   *
+   * Existing kicked-out players keep their data: their VOID matches and `kickedOut` flag are
+   * untouched and still displayed. Only the ENTRY path is closed.
+   */
   if (h.kind === 'ko' || a.kind === 'ko') {
-    if (h.kind === 'ko' && a.kind === 'blank') return { kind: 'ko', who: 'home' }
-    if (a.kind === 'ko' && h.kind === 'blank') return { kind: 'ko', who: 'away' }
-    return { kind: 'invalid', reason: 'KO goes in the kicked player’s field only; leave the opponent blank.' }
+    return { kind: 'invalid', reason: 'KO is no longer entered in the score table. Manage the entrant instead.' }
   }
   // FF: exactly one field is FF, the other blank.
   if (h.kind === 'ff' || a.kind === 'ff') {
@@ -181,39 +190,124 @@ export async function seasonGroupsUnresolved(seasonId: number): Promise<{ count:
   return { count: rows.length, matchups: rows.map((r) => ({ home: r.homeUsername, away: r.awayUsername })) }
 }
 
-/** Close the group stage. Any still-unresolved (SCHEDULED) matches become NO_CONTEST (excluded from
- *  everything). Locks score entry, recomputes final standings, and transitions to GROUPS_CLOSED. */
-export async function closeSeasonGroups(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Close the group stage.
+ *
+ * Unplayed matches become NO_CONTEST - excluded from points, W/L/D, rating, game differential and
+ * streaks. That is the routine case and it proceeds.
+ *
+ * A MALFORMED match refuses. A half-entered row is somebody's result that did not land, and turning
+ * it into "never played" would erase it under the same word that describes a fixture nobody
+ * contested. The names come back so the caller can say which ones, and they must be corrected or
+ * explicitly cleared first. See `closeGroupsPreflight`.
+ */
+export async function closeSeasonGroups(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string; noContest?: number }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
   if (!s) return { ok: false, error: 'Season not found.' }
   if (s.lifecycleState !== 'GROUP_STAGE_LIVE') return { ok: false, error: 'The group stage is not live.' }
+
+  const { closeGroupsPreflight } = await import('./group-close')
+  const pre = await closeGroupsPreflight(seasonId)
+  if (!pre.canClose) {
+    const names = pre.malformed.slice(0, 3).map((m) => `${m.home} v ${m.away}`).join(', ')
+    const more = pre.malformed.length > 3 ? `, and ${pre.malformed.length - 3} more` : ''
+    return {
+      ok: false,
+      error: `${pre.malformed.length} match${pre.malformed.length === 1 ? ' is' : 'es are'} half-entered `
+        + `(${names}${more}). Correct or clear them before closing - they must not become No Contest.`,
+    }
+  }
+
+  let noContest = 0
   await prisma.$transaction(async (tx) => {
     const unresolved = await tx.seasonMatch.updateMany({ where: { seasonId, status: 'SCHEDULED' }, data: { status: 'NO_CONTEST' } })
+    noContest = unresolved.count
     await recordAudit(actor, { action: 'season.groups.close', entity: 'Season', entityId: seasonId, newValue: { noContest: unresolved.count } }, tx)
     const t = await transitionSeasonState(actor, seasonId, 'GROUPS_CLOSED', { tx })
     if (!t.ok) throw new Error(t.error)
   })
   await recomputeSeasonStandings(seasonId)
-  return { ok: true }
+  return { ok: true, noContest }
 }
 
-/** Reopen the group stage (allowed before playoffs are public). Invalidates + deletes any private
- *  draft playoff bracket, and re-opens NO_CONTEST matches for entry. */
-export async function reopenSeasonGroups(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Clear one malformed match back to unplayed, deliberately.
+ *
+ * The escape hatch that makes the block above fair: a row that cannot be reconstructed has to be
+ * removable, but by naming it, one at a time, rather than by a sweep that cannot tell a lost result
+ * from an uncontested fixture.
+ */
+export async function clearSeasonMatch(actor: Actor, seasonId: number, matchId: number): Promise<{ ok: boolean; error?: string }> {
   const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
   if (!s) return { ok: false, error: 'Season not found.' }
-  if (s.lifecycleState !== 'GROUPS_CLOSED') return { ok: false, error: 'Groups can only be reopened while they are closed and before playoffs start.' }
+  if (s.lifecycleState !== 'GROUP_STAGE_LIVE') return { ok: false, error: 'Matches can only be cleared while the group stage is live.' }
+  const m = await prisma.seasonMatch.findFirst({ where: { id: matchId, seasonId }, select: { id: true, homeUsername: true, awayUsername: true, status: true } })
+  if (!m) return { ok: false, error: 'Match not found.' }
+  if (m.status === 'VOID') return { ok: false, error: 'A voided match is legacy kick-out data and is left as it is.' }
+
   await prisma.$transaction(async (tx) => {
-    // Restore auto-closed matches (NO_CONTEST → SCHEDULED); leave FF/KO/completed results intact.
-    await tx.seasonMatch.updateMany({ where: { seasonId, status: 'NO_CONTEST' }, data: { status: 'SCHEDULED' } })
-    // Any draft (unpublished) playoff bracket is now invalid — remove it.
-    await tx.seasonPlayoffMatch.deleteMany({ where: { seasonId, published: false } })
-    // Clear any prior playoff selection so it is redone against the new standings.
-    await tx.seasonEntrant.updateMany({ where: { seasonId, kickedOut: false }, data: { playoffIncluded: false, qualification: 'NOT_SELECTED', qualificationReason: null, playoffSeed: null } })
-    await recordAudit(actor, { action: 'season.groups.reopen', entity: 'Season', entityId: seasonId }, tx)
-    const t = await transitionSeasonState(actor, seasonId, 'GROUP_STAGE_LIVE', { tx })
-    if (!t.ok) throw new Error(t.error)
+    await tx.seasonMatch.update({
+      where: { id: matchId },
+      data: {
+        status: 'SCHEDULED', homeGames: null, awayGames: null,
+        winnerEntrantId: null, loserEntrantId: null, forfeitEntrantId: null,
+        completedAt: null, version: { increment: 1 },
+      },
+    })
+    await recordAudit(actor, {
+      action: 'season.group.clear', entity: 'Season', entityId: seasonId,
+      oldValue: { matchId, matchup: `${m.homeUsername} v ${m.awayUsername}`, status: m.status },
+    }, tx)
   })
   await recomputeSeasonStandings(seasonId)
   return { ok: true }
 }
+
+/**
+ * Reopen the group stage for correction.
+ *
+ * -- What it does NOT do any more --------------------------------------------------------------
+ * It used to delete the private playoff bracket draft and wipe every playoff selection, on the
+ * reasoning that changed standings might invalidate them. They MIGHT. A draft somebody arranged by
+ * hand is real work, and destroying it to save them a review is the expensive way to be helpful --
+ * especially when the reopen is usually to fix one transposed score that changes nothing.
+ *
+ * So the structure, the scores, the selection and the draft bracket all survive, and
+ * `reopenGroupsImpact` names what needs looking at. Discarding the draft is still available, but
+ * only when the caller explicitly asks for it.
+ */
+export async function reopenSeasonGroups(
+  actor: Actor,
+  seasonId: number,
+  opts: { discardDraftBracket?: boolean } = {},
+): Promise<{ ok: boolean; error?: string; discardedDraftMatches?: number }> {
+  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (!s) return { ok: false, error: 'Season not found.' }
+  if (s.lifecycleState !== 'GROUPS_CLOSED') return { ok: false, error: 'Groups can only be reopened while they are closed and before playoffs start.' }
+
+  let discardedDraftMatches = 0
+  await prisma.$transaction(async (tx) => {
+    // Restore auto-closed matches (NO_CONTEST to SCHEDULED); leave FF/KO/completed results intact.
+    await tx.seasonMatch.updateMany({ where: { seasonId, status: 'NO_CONTEST' }, data: { status: 'SCHEDULED' } })
+
+    if (opts.discardDraftBracket) {
+      // Asked for, by name. Published playoff matches are public results and are never touched.
+      const gone = await tx.seasonPlayoffMatch.deleteMany({ where: { seasonId, published: false } })
+      discardedDraftMatches = gone.count
+      await tx.seasonEntrant.updateMany({
+        where: { seasonId, kickedOut: false },
+        data: { playoffIncluded: false, qualification: 'NOT_SELECTED', qualificationReason: null, playoffSeed: null },
+      })
+    }
+
+    await recordAudit(actor, {
+      action: 'season.groups.reopen', entity: 'Season', entityId: seasonId,
+      newValue: { discardedDraftBracket: !!opts.discardDraftBracket, discardedDraftMatches },
+    }, tx)
+    const t = await transitionSeasonState(actor, seasonId, 'GROUP_STAGE_LIVE', { tx })
+    if (!t.ok) throw new Error(t.error)
+  })
+  await recomputeSeasonStandings(seasonId)
+  return { ok: true, discardedDraftMatches }
+}
+

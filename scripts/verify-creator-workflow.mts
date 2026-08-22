@@ -48,7 +48,7 @@ section('A lifecycle state resolves to exactly one stage')
 const seasonStates: [string, string][] = [
   ['REGISTRATION_SCHEDULED', 'entrants'],
   ['REGISTRATION_OPEN', 'entrants'],
-  ['REGISTRATION_CLOSED', 'entrants'],
+  ['REGISTRATION_CLOSED', 'groups'],
   ['GROUP_SETUP', 'groups'],
   ['GROUP_STAGE_LIVE', 'groups'],
   ['GROUPS_CLOSED', 'groups'],

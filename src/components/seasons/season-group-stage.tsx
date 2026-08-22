@@ -12,6 +12,7 @@ import type { StageGroup, StageMatch, StageStandingRow } from '@/lib/seasons/vie
 import { saveSeasonGroupAction, closeSeasonGroupsAction, reopenSeasonGroupsAction } from '@/lib/seasons/actions'
 import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
+import { useReportUnsaved } from './unsaved-groups'
 
 type Draft = Record<number, { home: string; away: string }>
 
@@ -80,12 +81,19 @@ export function SeasonGroupStage({
   )
 }
 
+/**
+ * What may be typed into a score cell.
+ *
+ * KO used to be listed here. It voided every one of a player's group matches -- other people's
+ * entered results included -- from a field that looks exactly like a score, so it is no longer
+ * accepted. Players already kicked out keep their data; it is simply not entered here any more.
+ */
 function Legend() {
   return (
     <div className="sticky top-2 z-20 rounded-md border border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur">
       <span className="font-semibold text-foreground">Score Entry:</span> Enter each player&apos;s game total (e.g. <code className="text-foreground">7</code> / <code className="text-foreground">3</code>).{' '}
       <b className="text-foreground">FF</b> = forfeit (FF in the forfeiting player&apos;s cell, opponent blank).{' '}
-      <b className="text-foreground">KO</b> = kicked out (KO in the kicked player&apos;s cell only). Blank / 0–0 = unplayed.
+      Blank / 0–0 = unplayed.
     </div>
   )
 }
@@ -134,6 +142,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
     for (const mt of group.matches) {
       if (mt.status === 'COMPLETED') d[mt.id] = { home: String(mt.homeGames ?? ''), away: String(mt.awayGames ?? '') }
       else if (mt.status === 'FORFEIT') d[mt.id] = { home: mt.forfeitEntrantId === mt.homeEntrantId ? 'FF' : '', away: mt.forfeitEntrantId === mt.awayEntrantId ? 'FF' : '' }
+      // Legacy kick-out. Shown, never re-entered: the cells render read-only below.
       else if (mt.status === 'VOID') d[mt.id] = { home: 'KO', away: 'KO' }
       else d[mt.id] = { home: '', away: '' }
     }
@@ -142,6 +151,8 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
 
   const [draft, setDraft] = useState<Draft>(initial)
   const dirty = useMemo(() => group.matches.filter((m) => draft[m.id]?.home !== initial[m.id]?.home || draft[m.id]?.away !== initial[m.id]?.away).map((m) => m.id), [draft, initial, group.matches])
+  // Closing the groups while this table holds unsaved scores would lock standings without them.
+  useReportUnsaved(group.id, dirty.length)
   const setCell = (matchId: number, side: 'home' | 'away', v: string) => setDraft((d) => ({ ...d, [matchId]: { ...d[matchId], [side]: v } }))
 
   useEffect(() => {
@@ -159,12 +170,6 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
       const ff = r.needConfirmFF
       const res = await confirm({ title: 'Record forfeit(s)?', message: (<ul className="list-disc pl-5">{ff.map((f, i) => <li key={i}>{f.forfeiter} forfeits to {f.opponent}</li>)}</ul>), confirmLabel: 'Record forfeit' })
       if (res.confirmed) save({ ...opts, confirmFF: true })
-      return
-    }
-    if (r.needConfirmKO?.length) {
-      const names = r.needConfirmKO.map((k) => k.name).join(', ')
-      const res = await confirm({ title: `Kick out ${names}?`, message: 'This voids ALL of their group matches (including previously entered results) and removes them from playoff eligibility. This cannot be undone.', confirmLabel: 'Kick Out', tone: 'danger', input: { label: 'Reason (required)', placeholder: 'Why is this player being kicked out?', required: true } })
-      if (res.confirmed && res.value.trim()) save({ ...opts, confirmKO: true, koReason: res.value.trim() })
       return
     }
     if (r.conflict) { setErr(r.error ?? 'Someone else edited this group — refresh.'); return }
@@ -280,6 +285,17 @@ function ResultCell({ row, col, matchOf, draft, dirty, rowBg, canManage, setCell
   const side: 'home' | 'away' = homeId === row.entrantId ? 'home' : 'away'
   const value = draft[match.id]?.[side] ?? ''
   const isDirty = dirty.includes(match.id)
+
+  /*
+   * A voided match is legacy kick-out data, and stays that way.
+   *
+   * It renders as text rather than as an input even for an administrator: the cell holds "KO", which
+   * is no longer something the score table accepts, so an editable field here would invite a change
+   * that the save would then refuse. Showing it is the point; re-entering it is not.
+   */
+  if (canManage && match.status === 'VOID') {
+    return <td title="Kicked out - legacy record, not editable here" className={`${td} ${rowBg} text-muted-foreground/60`}>KO</td>
+  }
 
   if (canManage) {
     return (

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { getSeasonView } from '@/lib/seasons/service'
-import { getSeasonGroupSetup, getSeasonGroupStage } from '@/lib/seasons/views'
+import { getSeasonGroupStage } from '@/lib/seasons/views'
 import { loadSeasonSeeding, seasonPlayoffRounds, seasonChampion } from '@/lib/seasons/playoffs'
 import {
   getSeasonBrowseData, seasonNeighbours, seasonPlayoffParticipants, hasPublicPlayoffBracket,
@@ -13,16 +13,12 @@ import { SeasonControls } from '@/components/seasons/season-controls'
 import { SeasonGroupsView, GroupsStillInProgress } from '@/components/seasons/season-presentation'
 import { SeasonMasthead } from '@/components/seasons/season-masthead'
 import { SeasonRegistration } from '@/components/seasons/season-registration'
-import { SeasonGroupSetup } from '@/components/seasons/season-group-setup'
-import { SeasonGroupStage } from '@/components/seasons/season-group-stage'
 import { SeasonPlayoffs } from '@/components/seasons/season-playoffs'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
-import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
 import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
 import { publicRegistrationOpen } from '@/lib/competition/registration-policy'
-import { autoAssignAvailability } from '@/lib/archive/auto-assign'
 import { autoEntrantsAvailability } from '@/lib/archive/auto-entrants'
 import { playoffBracketAvailability, placementAvailability } from '@/lib/archive/auto-playoffs'
 import { getCurrentUser } from '@/lib/account/auth'
@@ -125,16 +121,13 @@ export default async function SeasonPage({
    * Both boards receive it rather than working it out themselves — otherwise the entrant board and
    * the score board would each carry a copy of the phase and blocking rules, and they would drift.
    */
-  const [entrantAuto, scoreAuto, addEntrantsAuto, playoffAuto, placementAuto] = canManageComp
+  const [addEntrantsAuto, playoffAuto, placementAuto] = canManageComp
     ? await Promise.all([
-        autoAssignAvailability(view.id, 'entrants'),
-        autoAssignAvailability(view.id, 'scores'),
         autoEntrantsAvailability(view.id),
         playoffBracketAvailability(view.id),
         placementAvailability(view.id),
       ])
     : [
-        { show: false, disabledReason: null }, { show: false, disabledReason: null },
         { show: false, disabledReason: null }, { show: false, disabledReason: null },
         { show: false, disabledReason: null },
       ]
@@ -146,9 +139,6 @@ export default async function SeasonPage({
   playoffsParams.set('view', 'playoffs')
   const playoffsHref = `/seasons/${id}?${playoffsParams.toString()}`
 
-  // Admins keep editing the group tables through the existing stage component; everyone else gets
-  // the read-only matrix. Rendering both would show the same group twice.
-  const adminEditsGroups = canManageComp && (state === 'GROUP_STAGE_LIVE' || state === 'GROUPS_CLOSED')
 
   return (
     <div className="w-full">
@@ -201,17 +191,16 @@ export default async function SeasonPage({
 
         <div className="mt-6">
           {activeView === 'groups' ? (
-            adminEditsGroups ? (
-              <SeasonGroupStage
-                seasonId={view.id}
-                groups={groups}
-                groupStageGames={view.format.groupStageGames}
-                autoAssign={scoreAuto}
-                canManage={canManage && state === 'GROUP_STAGE_LIVE'}
-                canClose={canManageComp && state === 'GROUP_STAGE_LIVE'}
-                canReopen={canManageComp && state === 'GROUPS_CLOSED'}
-              />
-            ) : (
+            (
+              /*
+               * Read-only, for everybody.
+               *
+               * Score entry, Close Groups and Reopen Groups used to appear here for an
+               * administrator, which meant the same group could be edited from two different
+               * screens with two different sets of controls. Whichever one somebody happened to be
+               * looking at decided what they could do, and the two had to be kept in step by hand.
+               * Group management is Creator's now; this page reports.
+               */
               <SeasonGroupsView
                 groups={groups}
                 groupStageGames={view.format.groupStageGames}
@@ -251,7 +240,6 @@ export default async function SeasonPage({
           canManageComp={canManageComp}
           isLoggedIn={!!user}
           registered={registered}
-          entrantAuto={entrantAuto}
           memberRegistrationOpen={memberRegistrationOpen}
           addEntrantsAuto={addEntrantsAuto}
           playoffAuto={playoffAuto}
@@ -328,7 +316,7 @@ async function PlayoffsView({
  * here — they render above instead, so an admin edits in place rather than in a duplicate table.
  */
 async function AdminSurfaces({
-  view, state, canManage, canManageComp, isLoggedIn, registered, entrantAuto, addEntrantsAuto, playoffAuto,
+  view, state, canManage, canManageComp, isLoggedIn, registered, addEntrantsAuto, playoffAuto,
   placementAuto, memberRegistrationOpen,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof getSeasonView>>>
@@ -340,7 +328,6 @@ async function AdminSurfaces({
   /** The site-wide policy's answer for this Season. The ONLY thing that opens self-registration. */
   memberRegistrationOpen: boolean
   /** Decided by the page, not here: one source for whether Auto Assign belongs on this screen. */
-  entrantAuto?: { show: boolean; disabledReason: string | null }
   addEntrantsAuto?: { show: boolean; disabledReason: string | null }
   playoffAuto?: { show: boolean; disabledReason: string | null }
   placementAuto?: { show: boolean; disabledReason: string | null }
@@ -361,17 +348,41 @@ async function AdminSurfaces({
   }
 
   if (state === 'REGISTRATION_CLOSED' || state === 'GROUP_SETUP') {
-    return canManageComp
-      ? <SeasonGroupSetup seasonId={view.id} view={await getSeasonGroupSetup(view.id)} autoAssign={entrantAuto} />
-      : <Info>Registration is closed with {view.entrantsCount} entrants. Groups are being set up — they appear above as soon as they are published.</Info>
+    /*
+     * The draft board is gone from here.
+     *
+     * It rendered the private group draft into a public route's markup, guarded only by a
+     * permission flag on the component. A draft that is meant to be invisible should not be in the
+     * page at all - see the Creator groups stage, which is where it lives now.
+     */
+    return (
+      <Info>
+        Registration is closed with {view.entrantsCount} entrants. Groups will be published shortly.
+        {canManageComp && (
+          <>
+            {' '}
+            <a href={`/creator/seasons/${view.id}/groups`} className="font-semibold text-brand hover:underline">
+              Set up the groups in Creator
+            </a>.
+          </>
+        )}
+      </Info>
+    )
   }
 
-  if (state === 'GROUPS_CLOSED' && canManageComp) {
+  if (state === 'GROUPS_CLOSED') {
     return (
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        <EnterPlayoffsButton seasonId={view.id} />
-        <span className="text-sm text-muted-foreground">Groups are closed — advance to playoff selection, or reopen above to edit results.</span>
-      </div>
+      <Info>
+        Group Stage Complete — playoff bracket coming shortly.
+        {canManageComp && (
+          <>
+            {' '}
+            <a href={`/creator/seasons/${view.id}/groups`} className="font-semibold text-brand hover:underline">
+              Advance to playoff selection in Creator
+            </a>.
+          </>
+        )}
+      </Info>
     )
   }
 

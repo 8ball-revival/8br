@@ -124,18 +124,40 @@ try {
   const ffMatch = await prisma.seasonMatch.findUnique({ where: { id: aMatches[2].id } })
   check('FF recorded (FORFEIT, no games, winner=opponent)', ffMatch?.status === 'FORFEIT' && ffMatch.homeGames == null && ffMatch.winnerEntrantId === ffMatch.awayEntrantId)
 
-  // KO in group B needs reason; voids that player's matches.
+  /*
+   * KO is no longer entered through the score table.
+   *
+   * It used to be: typing KO into a cell voided every one of that player's group matches, other
+   * people's entered results included, from a field that looks exactly like a score. This now
+   * checks the refusal, and that a kicked-out player's EXISTING data still behaves as it always
+   * did - the entry path closed, the records did not.
+   */
   const gB = groups[1]
   const bMatches = await prisma.seasonMatch.findMany({ where: { groupId: gB.id }, orderBy: { id: 'asc' } })
   const koVictim = bMatches[0].homeEntrantId
-  const koNoReason = await gs.saveSeasonGroupResults(actor, seasonId, gB.id, [{ matchId: bMatches[0].id, home: 'KO', away: '', version: bMatches[0].version }])
-  check('KO requires confirmation', !koNoReason.ok && !!koNoReason.needConfirmKO?.length)
-  const koDo = await gs.saveSeasonGroupResults(actor, seasonId, gB.id, [{ matchId: bMatches[0].id, home: 'KO', away: '', version: bMatches[0].version }], { confirmKO: true, koReason: 'Cheating' })
-  check('KO applies with reason', koDo.ok, JSON.stringify(koDo))
+  const koAttempt = await gs.saveSeasonGroupResults(actor, seasonId, gB.id, [{ matchId: bMatches[0].id, home: 'KO', away: '', version: bMatches[0].version }])
+  check('KO is refused in the score table', !koAttempt.ok, JSON.stringify(koAttempt))
+  check('...saying where to manage the entrant instead', /manage the entrant/i.test(koAttempt.error ?? ''), koAttempt.error)
+  check('...and nothing was written', (await prisma.seasonMatch.findUnique({ where: { id: bMatches[0].id } }))?.status === 'SCHEDULED')
+  check('...and the player is not kicked out', (await prisma.seasonEntrant.findUnique({ where: { id: koVictim! } }))?.kickedOut === false)
+
+  /*
+   * A player kicked out by the earlier route, reproduced directly - which is what the surviving
+   * legacy rows look like. Everything downstream must still treat them as kicked out.
+   */
+  await prisma.seasonEntrant.update({
+    where: { id: koVictim! },
+    data: { kickedOut: true, status: 'KICKED_OUT', qualification: 'KICKED_OUT', playoffIncluded: false, kickedReason: 'Legacy record', kickedAt: new Date() },
+  })
+  await prisma.seasonMatch.updateMany({
+    where: { seasonId, OR: [{ homeEntrantId: koVictim }, { awayEntrantId: koVictim }] },
+    data: { status: 'VOID', winnerEntrantId: null, loserEntrantId: null, homeGames: null, awayGames: null },
+  })
+  await gs.recomputeSeasonStandings(seasonId)
   const koEnt = await prisma.seasonEntrant.findUnique({ where: { id: koVictim! } })
-  check('KO marks entrant kickedOut + ineligible', koEnt?.kickedOut === true && koEnt.qualification === 'KICKED_OUT')
+  check('a legacy kicked-out entrant reads as kicked out', koEnt?.kickedOut === true && koEnt.qualification === 'KICKED_OUT')
   const voided = await prisma.seasonMatch.count({ where: { seasonId, status: 'VOID', OR: [{ homeEntrantId: koVictim }, { awayEntrantId: koVictim }] } })
-  check('KO voids all the player’s matches', voided >= 1)
+  check('...and their matches stay voided', voided >= 1)
 
   console.log('Close groups (unresolved → No Contest)')
   const unresolvedBefore = await prisma.seasonMatch.count({ where: { seasonId, status: 'SCHEDULED' } })

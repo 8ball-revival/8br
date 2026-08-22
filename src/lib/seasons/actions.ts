@@ -186,12 +186,51 @@ export async function closeSeasonGroupsAction(seasonId: number): Promise<SeasonA
   if (!r.ok) return { error: r.error }
   revalidateSeason(seasonId); return { ok: true, message: 'Groups closed — final standings locked.' }
 }
-export async function reopenSeasonGroupsAction(seasonId: number): Promise<SeasonActionResult> {
-  const actor = await requireCapability('manage_competitions')
-  const r = await gs.reopenSeasonGroups(actor, seasonId)
-  if (!r.ok) return { error: r.error }
-  revalidateSeason(seasonId); return { ok: true, message: 'Groups reopened — any draft bracket was discarded.' }
+/**
+ * What Close Groups would do, before it does it.
+ *
+ * Read-only. Opens no transaction and changes nothing, so opening the dialog to look at the numbers
+ * and then cancelling leaves the Season exactly as it was.
+ */
+export async function previewCloseGroupsAction(seasonId: number): Promise<import('./group-close').CloseGroupsPreflight> {
+  await requireCapability('manage_competitions')
+  const { closeGroupsPreflight } = await import('./group-close')
+  return closeGroupsPreflight(seasonId)
 }
+
+/** What reopening would put back in question. Also read-only. */
+export async function previewReopenGroupsAction(seasonId: number): Promise<import('./group-close').ReopenImpact> {
+  await requireCapability('manage_competitions')
+  const { reopenGroupsImpact } = await import('./group-close')
+  return reopenGroupsImpact(seasonId)
+}
+
+/** Clear one half-entered match back to unplayed. Named, one at a time - never a sweep. */
+export async function clearSeasonMatchAction(seasonId: number, matchId: number): Promise<SeasonActionResult> {
+  const actor = await requireCapability('edit_results')
+  const { clearSeasonMatch } = await import('./group-stage')
+  const res = await clearSeasonMatch(actor, seasonId, matchId)
+  if (!res.ok) return { error: res.error }
+  revalidateSeason(seasonId)
+  return { ok: true, message: 'Match cleared to unplayed.' }
+}
+
+export async function reopenSeasonGroupsAction(
+  seasonId: number,
+  opts: { discardDraftBracket?: boolean } = {},
+): Promise<SeasonActionResult> {
+  const actor = await requireCapability('manage_competitions')
+  const res = await gs.reopenSeasonGroups(actor, seasonId, opts)
+  if (!res.ok) return { error: res.error }
+  revalidateSeason(seasonId)
+  return {
+    ok: true,
+    message: res.discardedDraftMatches
+      ? `Groups reopened. The ${res.discardedDraftMatches}-match bracket draft was discarded as requested.`
+      : 'Groups reopened for editing. Any playoff draft has been kept.',
+  }
+}
+
 
 // ============================================================================
 // Phase E — Playoffs

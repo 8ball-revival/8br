@@ -217,10 +217,10 @@ function ChampionTrophy() {
 const STAGE_NOTE: Record<SeasonState, string> = {
   REGISTRATION_SCHEDULED: 'Registration opens soon.',
   REGISTRATION_OPEN: 'Registration is open — entrants are still joining.',
-  REGISTRATION_CLOSED: 'Registration is closed. The groups are being drawn.',
-  GROUP_SETUP: 'The groups are being drawn.',
+  REGISTRATION_CLOSED: 'Registration Closed — groups will be published shortly.',
+  GROUP_SETUP: 'Registration Closed — groups will be published shortly.',
   GROUP_STAGE_LIVE: 'Group matches are being played and results appear as they are entered.',
-  GROUPS_CLOSED: 'The group stage is complete. The playoff field is being finalised.',
+  GROUPS_CLOSED: 'Group Stage Complete — playoff bracket coming shortly.',
   PLAYOFF_SETUP: 'The playoff field is being finalised.',
   PLAYOFFS_LIVE: 'The playoff bracket is under way.',
   COMPLETED: '',

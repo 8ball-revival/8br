@@ -68,8 +68,16 @@ export function currentStage(kind: RecordKind, lifecycleState: string, format?: 
   if (kind === 'season') {
     switch (lifecycleState) {
       case 'REGISTRATION_SCHEDULED':
-      case 'REGISTRATION_OPEN':
-      case 'REGISTRATION_CLOSED': return 'entrants'
+      case 'REGISTRATION_OPEN': return 'entrants'
+      /*
+       * Registration Closed belongs to GROUPS, not to Entrants.
+       *
+       * The entrant list is settled by then and the only work left is the draw, so sending somebody
+       * back to Entrants offers them a locked list and no way forward. Closing normally moves
+       * straight through this state to GROUP_SETUP; a Season that stops here did so because the
+       * second half of that step failed, and the group board is exactly where it needs to resume.
+       */
+      case 'REGISTRATION_CLOSED':
       case 'GROUP_SETUP':
       case 'GROUP_STAGE_LIVE':
       case 'GROUPS_CLOSED': return 'groups'

@@ -8,8 +8,13 @@ import { recomputeSeasonStandings } from './group-stage'
 
 /**
  * SEASON GROUP SETUP — the private draft phase between Registration Closed and a live Group Stage.
- * Groups are drafted (never visible to members) and only materialize matches + standings on publish.
- * Distribution uses RATING-BASED snake seeding over the locked registration-close snapshots.
+ *
+ * Groups are drafted here and are never visible to members: matches and standings are materialised
+ * only on publish, so before that there is nothing for a public page to render even by accident.
+ *
+ * Distribution follows ENTRY ORDER, not rating. See `generateSeasonGroups` for why — the short
+ * version is that this is mostly used to rebuild historical Seasons, where the order the roster is
+ * typed in already is the grouping.
  */
 
 export const MIN_GROUP_SIZE = 2
@@ -120,12 +125,28 @@ export async function moveSeasonEntrantToGroup(actor: Actor, seasonId: number, e
   return { ok: true }
 }
 
+/**
+ * Add one empty group, taking the lowest code not already in use.
+ *
+ * It used to name the group after the group COUNT, which is right only while nothing has ever been
+ * deleted. Delete B from A/B/C and the count is 2, so the next group is named C — a second Group C,
+ * sitting alongside the first. Two groups with the same letter cannot be told apart on the board, in
+ * the standings, or by the archive matcher that places entrants by group name.
+ *
+ * Asking which codes are taken costs one query and cannot collide.
+ */
 export async function addSeasonGroup(actor: Actor, seasonId: number): Promise<{ ok: boolean; error?: string }> {
   const phase = await assertGroupSetupPhase(seasonId)
   if (!phase.ok) return phase
-  const count = await prisma.seasonGroup.count({ where: { seasonId } })
-  await prisma.seasonGroup.create({ data: { seasonId, code: groupCode(count), ordinal: count } })
-  await recordAudit(actor, { action: 'season.groups.add', entity: 'Season', entityId: seasonId, newValue: { code: groupCode(count) } })
+  const existing = await prisma.seasonGroup.findMany({ where: { seasonId }, select: { code: true, ordinal: true } })
+  const taken = new Set(existing.map((g) => g.code))
+  let i = 0
+  while (taken.has(groupCode(i))) i++
+  const code = groupCode(i)
+  // Ordinal decides display order, and must also not collide with a surviving group's.
+  const ordinal = existing.reduce((max, g) => Math.max(max, g.ordinal), -1) + 1
+  await prisma.seasonGroup.create({ data: { seasonId, code, ordinal } })
+  await recordAudit(actor, { action: 'season.groups.add', entity: 'Season', entityId: seasonId, newValue: { code } })
   return { ok: true }
 }
 
