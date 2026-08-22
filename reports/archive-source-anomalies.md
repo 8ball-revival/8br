@@ -26,3 +26,17 @@ each is recorded so the affected results can be left out rather than guessed at.
   - round 2 match 4: no numeric result — the page prints "ff-0"
   - round 3 match 3: no numeric result — the page prints "RT7 Win By 2"
   - round 1: tbd occupies 6 positions
+
+## The playoff field disagrees with the bracket page
+
+Several Seasons select more playoff participants than the archived bracket page seats. The season
+manifest's playoff list and the bracket page are two different records of the same event, and they
+do not agree about who was in the draw.
+
+- **2008 S5A** (Season 5463): 24 participants selected from the manifest; the page seats 20.
+  Absent from the page: `bigblue2k`, `Stuart`, `mvp.bank`, `Paul`.
+
+Neither side is preferred. Dropping the four to make the bracket start would discard a record that
+the manifest carries, and adding four positions the page does not show would invent placements. The
+Season keeps its selected field, keeps the source-proven bracket that was drawn and seated from the
+page, and stays in playoff setup with no results imported.
