@@ -186,7 +186,15 @@ export function loadManifest(): Manifest {
  */
 export function stripSourceNote(handle: string): string {
   return handle
-    .replace(/\s*[[(]?\s*w\/c\s*[\])]?\s*$/i, '')
+    /*
+     * The wildcard marker, in all seven spellings the pages use.
+     *
+     * "(W/C)", "(WC)", "(w/c)", "(wc)", "W/C", "[w/c]" and "w/c" all appear across the captures,
+     * and an earlier version matched only the four containing a slash. The others survived into the
+     * handle, so "mvp.bank (WC)" resolved to nobody and the player looked absent from a bracket
+     * they were plainly in. It records how somebody qualified, never who they are.
+     */
+    .replace(/\s*[[(]?\s*w\s*\/?\s*c\s*[\])]?\s*$/i, '')
     .replace(/[·•]\s*$/, '')
     .replace(/\s*-\s*x$/i, '')
     .trim()
