@@ -117,11 +117,20 @@ function Row({ c, rel }: { c: TournamentListItem; rel: { display: string; relati
   return (
     <li>
       <Link href={`/tournaments/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
+        {/*
+          One heading: position, title, Competition, year.
+
+          It used to read "Tournament #2  T002  Prize Tournament · 2026" — two identifiers before the
+          name, and a year that was the current one rather than the Competition Year the record
+          belongs to. The internal code identifies a row in a database; it told a reader nothing they
+          came for, and pushed the title out of the first glance.
+        */}
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="tabular text-sm font-semibold text-brand">Tournament #{c.number}</span>
-          <span className="tabular text-xs text-muted-foreground">{c.code}</span>
-          <span className="font-display font-semibold text-foreground">{c.name}</span>
-          {c.year && <span className="text-xs text-muted-foreground">· {c.year}</span>}
+          <span className="font-display text-base font-bold text-foreground">
+            {c.number != null ? `${c.number}. ` : ''}{c.name}
+          </span>
+          {c.competitionName && <span className="text-sm text-muted-foreground">· {c.competitionName}</span>}
+          {c.year && <span className="text-sm text-muted-foreground">· {c.year}</span>}
           {rel && <Badge variant="default" className="ml-1">{rel.display}: {rel.relationship}</Badge>}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

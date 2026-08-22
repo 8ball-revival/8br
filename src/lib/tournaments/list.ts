@@ -21,6 +21,15 @@ export interface TournamentListItem {
   number: number
   code: string
   name: string
+  /** The Competition this Tournament belongs to, by name. */
+  competitionName: string | null
+  /**
+   * The COMPETITION year, not the year the row happened to be inserted.
+   *
+   * This used to be `createdAt.getUTCFullYear()`, so every imported Tournament — including the 2006
+   * ones — announced itself as the year the import ran. A record's year is a fact about the
+   * competition, and the column that holds it is `competitionYear`.
+   */
   year: number | null
   date: string | null
   status: string // "completed" | "live"
@@ -40,7 +49,7 @@ export interface TournamentListItem {
 export async function getTournamentList(): Promise<TournamentListItem[]> {
   const comps = await prisma.tournament.findMany({
     orderBy: TOURNAMENT_ORDER,
-    include: { bracketMatches: true },
+    include: { bracketMatches: true, competitionSeries: { select: { name: true } } },
   })
 
   return comps.map((c) => {
@@ -73,7 +82,7 @@ export async function getTournamentList(): Promise<TournamentListItem[]> {
     add(c.thirdPlaceName, c.thirdPlaceHandle, 'Third place')
 
     const participants = [...byKey.values()]
-    const year = c.createdAt.getUTCFullYear()
+    const year = c.competitionYear ?? c.createdAt.getUTCFullYear()
     const searchBlob = [
       c.name, `#${c.number}`, c.code, c.gameType, c.tournamentFormat, c.participantFormat,
       year, c.championName, c.runnerUpName, ...participants.flatMap((p) => [p.display, ...p.keys]),
@@ -83,6 +92,7 @@ export async function getTournamentList(): Promise<TournamentListItem[]> {
       number: c.number ?? 0,
       code: c.code ?? '',
       name: c.name,
+      competitionName: c.competitionSeries?.name ?? null,
       year,
       date: null,
       status: c.lifecycleState === 'COMPLETED' || c.status === 'COMPLETED' ? 'completed' : 'live',

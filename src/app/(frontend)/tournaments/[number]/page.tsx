@@ -13,7 +13,6 @@ import { GroupCrosstable } from '@/components/tournaments/group-crosstable'
 import { ViewToggle } from '@/components/tournaments/view-toggle'
 import { canViewPlayoffs, redactPlayoffs, redactDraftGroups } from '@/lib/competition/playoff-visibility'
 import { computeBracketShape, playoffRaceLength } from '@/lib/competition/match-format'
-import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
 import { getTournament, tournamentBracket } from '@/lib/tournaments/service'
 import { tournamentStore, loadTournamentContext } from '@/lib/tournaments/prime'
 import { getTournamentWorkspace, type TournamentWorkspaceData } from '@/lib/tournaments/live'
@@ -360,8 +359,6 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
   const access = await resolveStaffAccess()
   const isStaffOk = access.status === 'ok'
   const canManage = isStaffOk && access.actor.can('manage_competitions')
-  const canEditResults = isStaffOk && access.actor.can('edit_results')
-  const isOwner = isStaffOk && access.actor.isOwner
 
   const ws = await getTournamentWorkspace(num)
   const cup = getTournament(num)
@@ -432,10 +429,21 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
         {ws.tournament.description && (
           <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">{ws.tournament.description}</p>
         )}
-        {canManage ? (
-          <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
-        ) : (
-          publicView
+        {/*
+          The workspace has moved to Creator.
+          This page used to BE the management interface for anybody with the capability: rosters,
+          groups, brackets, score entry and Settings all rendered here, on a public URL, behind a
+          flag on a component. Management lives at /creator/tournaments/[id] now, and everybody —
+          Owner included — sees the same public view here.
+        */}
+        {publicView}
+        {canManage && (
+          <p className="mt-6 rounded-lg border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
+            Managing this Tournament happens in{' '}
+            <a href={`/creator/tournaments/${ws.tournament.id}/setup`} className="font-semibold text-brand hover:underline">
+              Creator
+            </a>.
+          </p>
         )}
       </div>
     )
@@ -530,7 +538,12 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
       )}
 
       {canManage && ws && (
-        <TournamentWorkspace data={ws} canManage={canManage} canEditResults={canEditResults} isOwner={isOwner} history={await getTournamentHistory(ws.tournament.id, { admin: true })} />
+        <p className="mt-6 rounded-lg border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
+          Correcting this Tournament happens in{' '}
+          <a href={`/creator/tournaments/${ws.tournament.id}/setup`} className="font-semibold text-brand hover:underline">
+            Creator
+          </a>.
+        </p>
       )}
     </Container>
   )

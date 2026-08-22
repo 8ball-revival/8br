@@ -34,6 +34,7 @@ export function TournamentWorkspace({
   canEditResults,
   isOwner,
   history = [],
+  initialTab = 'overview',
 }: {
   data: TournamentWorkspaceData
   canManage: boolean
@@ -41,9 +42,17 @@ export function TournamentWorkspace({
   isOwner: boolean
   /** Admin (fuller) cup history — actor + reason included. Loaded server-side. */
   history?: TournamentHistoryEvent[]
+  /**
+   * Which tab to open on.
+   *
+   * Creator gives each stage its own URL and lands on the matching tab, so the workflow bar and the
+   * browser's Back button both work the way they do for a Season. The workspace itself is unchanged
+   * — one canonical Tournament surface, entered at different points.
+   */
+  initialTab?: Tab
 }) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
