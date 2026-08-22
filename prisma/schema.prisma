@@ -1228,6 +1228,9 @@ model Tournament {
   archivedAt           DateTime? // set when the tournament is archived (read-only history)
   /// See the matching fields on Season — one rule, two models.
   publiclyVisible      Boolean                   @default(true)
+  /// Whether this record contributes to Rankings at all. Default yes; an exhibition or a
+  /// reconstruction whose results should not count can be excluded without deleting it.
+  countsTowardRankings Boolean @default(true)
   reconstruction       Boolean                   @default(false)
   reopenedAt           DateTime?
   dataCompleteness     String                    @default("full")
@@ -1978,6 +1981,9 @@ model Season {
   /// private, and a published Season can be finished. Live requires BOTH.
   /// Defaults true so every existing Season keeps behaving exactly as it does today.
   publiclyVisible    Boolean   @default(true)
+  /// Whether this record contributes to Rankings at all. Default yes; an exhibition or a
+  /// reconstruction whose results should not count can be excluded without deleting it.
+  countsTowardRankings Boolean @default(true)
   /// Built in Creator by hand from an archive rather than played on the site. Never appears under
   /// Live while it is being entered; moves to Archives only once completed and finalised.
   reconstruction     Boolean   @default(false)
