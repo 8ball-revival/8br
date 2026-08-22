@@ -36,6 +36,7 @@ import { applyGroupAssign, applyGroupScores } from '../src/lib/archive/auto-assi
 import { applyArchiveSelection, applyArchivePlacement } from '../src/lib/archive/auto-playoffs.ts'
 import { closeRegistration } from '../src/lib/seasons/service.ts'
 import { closeSeasonGroups } from '../src/lib/seasons/group-stage.ts'
+import { publishSeasonGroups } from '../src/lib/seasons/groups.ts'
 import { transitionSeasonState } from '../src/lib/seasons/lifecycle.ts'
 
 assertLocalDatabase()
@@ -160,43 +161,78 @@ for (const s of seasons) {
     }
     p.stage = 'entrants'; save()
 
-    // ── Registration has to close before groups exist ───────────────────────────────────────────
-    const state = async () => String((await prisma.season.findUniqueOrThrow({ where: { id: s.id }, select: { lifecycleState: true } })).lifecycleState)
-    if (await state() === 'REGISTRATION_OPEN') await closeRegistration(ACTOR, s.id)
-    if (await state() === 'REGISTRATION_CLOSED') await transitionSeasonState(ACTOR, s.id, 'GROUP_SETUP').catch(() => {})
+    /*
+     * The canonical order, which the first run got wrong.
+     *
+     * `publishSeasonGroups` is the single action behind Creator's "Group Stage Live" button, and it
+     * owns three things at once: the round-robin schedule, the standings rows, and the transition to
+     * GROUP_STAGE_LIVE. The first run imported scores before publishing, so the standings already
+     * existed and publish died on a unique constraint — which a `` then turned into a
+     * silent skip and a misleading "group stage is not live" across all 70 Seasons.
+     *
+     * Nothing here suppresses a failure. A refusal records the stage and the original message, marks
+     * this Season partial, and lets every other Season carry on.
+     */
+    const state = async () => String((await prisma.season.findUniqueOrThrow({
+      where: { id: s.id }, select: { lifecycleState: true },
+    })).lifecycleState)
 
-    // ── 3–4. Groups and the recorded assignment ─────────────────────────────────────────────────
-    const g = await applyGroupAssign(ACTOR, s.id)
-    p.groupsPlaced = (g as { placed?: number }).placed ?? 0
-    if (!g.ok) p.notes.push(`group assign: ${g.error}`)
+    const stop = (stage: string, err: string | undefined) => {
+      p.stage = 'partial'
+      p.error = `${stage}: ${err ?? 'no reason given'}`
+      p.notes.push(`stopped at ${stage}; template=${s.archiveTemplateKey}; entrants=${p.entrantsAdded} groups=${p.groupsPlaced} results=${p.resultsImported}`)
+      save()
+      log(`   PARTIAL at ${stage}: ${err}`)
+    }
+
+    if (await state() === 'REGISTRATION_OPEN') {
+      const r = await closeRegistration(ACTOR, s.id)
+      if (!r.ok) { stop('close registration', r.error); continue }
+    }
+    if (await state() === 'REGISTRATION_CLOSED') {
+      await transitionSeasonState(ACTOR, s.id, 'GROUP_SETUP')
+    }
+
+    // ── 3-4. Groups and the recorded assignment ─────────────────────────────────────────────────
+    if (await state() === 'GROUP_SETUP') {
+      const g = await applyGroupAssign(ACTOR, s.id)
+      p.groupsPlaced = (g as { placed?: number }).placed ?? 0
+      if (!g.ok) { stop('group assign', g.error); continue }
+    }
     p.stage = 'groups'; save()
 
-    // ── 5–6. Exact recorded results, and the standings they produce ─────────────────────────────
-    if (entry.exactResults !== 'missing') {
+    // ── 5. Publish: schedule, standings and the live stage, in one canonical action ─────────────
+    if (await state() === 'GROUP_SETUP') {
+      const pub = await publishSeasonGroups(ACTOR, s.id)
+      if (!pub.ok) { stop('publish groups', pub.error); continue }
+    }
+    const afterPublish = await state()
+    if (afterPublish !== 'GROUP_STAGE_LIVE' && afterPublish !== 'GROUPS_CLOSED') {
+      stop('publish groups', `expected GROUP_STAGE_LIVE, found ${afterPublish}`)
+      continue
+    }
+
+    // ── 6. The recorded results, onto the schedule publication just created ─────────────────────
+    if (entry.exactResults === 'missing') {
+      p.notes.push('archive records no exact group results')
+    } else if (await state() === 'GROUP_STAGE_LIVE') {
       const r = await applyGroupScores(ACTOR, s.id)
       p.resultsImported = (r as { applied?: number }).applied ?? 0
-      if (!r.ok) p.notes.push(`scores: ${r.error}`)
-    } else {
-      p.notes.push('archive records no exact group results')
+      if (!r.ok) { stop('group scores', r.error); continue }
     }
     p.stage = 'results'; save()
 
-    // ── 7. Close the group stage through the canonical action ───────────────────────────────────
-    if (await state() === 'GROUP_STAGE_LIVE' || await state() === 'GROUP_SETUP') {
-      // A draft group board has to be published before it can be closed.
-      if (await state() === 'GROUP_SETUP') {
-        const { publishSeasonGroups } = await import('../src/lib/seasons/groups.ts')
-        await publishSeasonGroups(ACTOR, s.id).catch(() => {})
-      }
+    // ── 7. Close the group stage ────────────────────────────────────────────────────────────────
+    if (await state() === 'GROUP_STAGE_LIVE') {
       const c = await closeSeasonGroups(ACTOR, s.id)
-      if (!c.ok) { p.stage = 'partial'; p.error = `close groups: ${c.error}`; save(); continue }
+      if (!c.ok) { stop('close groups', c.error); continue }
       p.notes.push(`groups closed${c.noContest ? `, ${c.noContest} no-contest` : ''}`)
     }
     p.stage = 'groups-closed'; save()
 
     // ── 8. The recorded playoff field ───────────────────────────────────────────────────────────
     if (await state() === 'GROUPS_CLOSED') {
-      await transitionSeasonState(ACTOR, s.id, 'PLAYOFF_SETUP').catch(() => {})
+      await transitionSeasonState(ACTOR, s.id, 'PLAYOFF_SETUP')
     }
     const sel = await applyArchiveSelection(ACTOR, s.id)
     if (sel.ok) {
