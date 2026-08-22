@@ -30,12 +30,46 @@ import { saveSeasonGroupResults, closeSeasonGroups } from '../src/lib/seasons/gr
 import { enterSeasonPlayoffSetup, generateSeasonBracket, loadSeasonSeeding } from '../src/lib/seasons/playoffs.ts'
 import { bracketTopology } from '../src/lib/seasons/playoff-topology.ts'
 import {
-  previewPlayoffBracket, applyPlayoffBracket, previewPlacement, applyPlacement,
+  previewPlayoffBracket, applyArchiveSelection, applyArchivePlacement, previewPlacement, applyPlacement,
   type TemplateSource,
 } from '../src/lib/archive/auto-playoffs.ts'
 import type { ManifestEntry } from '../src/lib/archive/manifest.ts'
 
 assertLocalDatabase()
+
+/*
+ * The old combined action, composed from the two that replaced it.
+ *
+ * `applyPlayoffBracket` used to select the field AND reproduce the archived draw in one call. These
+ * suites were written against that behaviour, which makes them the characterization harness for the
+ * split: if selecting and then placing does not produce what the combined call produced, the split
+ * changed something it should not have.
+ *
+ * A source that records participants but no topology has no placement to apply — the combined call
+ * returned success with nothing placed, so that shape is preserved here rather than surfaced as an
+ * error the old callers never saw.
+ */
+async function applySelectionThenPlacement(
+  actor: { userId: number; username: string },
+  seasonId: number,
+  opts: { replaceDraft?: boolean } = {},
+  src?: TemplateSource,
+) {
+  const sel = src
+    ? await applyArchiveSelection(actor, seasonId, src)
+    : await applyArchiveSelection(actor, seasonId)
+  if (!sel.ok) {
+    return { ok: false, error: sel.error, selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: sel.missing, ambiguous: sel.ambiguous }
+  }
+  const place = src
+    ? await applyArchivePlacement(actor, seasonId, opts, src)
+    : await applyArchivePlacement(actor, seasonId, opts)
+  if (!place.ok && /does not record enough/.test(place.error ?? '')) {
+    return { ok: true, selected: sel.selected, excluded: sel.excluded, placed: 0, unresolvedSlots: sel.selected, missing: sel.missing, ambiguous: sel.ambiguous }
+  }
+  return place
+}
+
 
 const ACTOR = { userId: 2, username: 'verify-archive-engine' }
 const YEAR = 2090
@@ -196,7 +230,7 @@ try {
     check('...and nothing is missing', plan.missing.length === 0, JSON.stringify(plan.missing))
   }
 
-  const applied = await applyPlayoffBracket(ACTOR, s1, {}, src)
+  const applied = await applySelectionThenPlacement(ACTOR, s1, {}, src)
   check('applying builds the bracket', applied.ok === true, JSON.stringify(applied))
   const included = await prisma.seasonEntrant.count({ where: { seasonId: s1, playoffIncluded: true } })
   check('exactly the four archived players are selected', included === 4, `${included}`)
@@ -260,7 +294,7 @@ try {
       ghostPlan.include.length === 3, `${ghostPlan.include.length}`)
     check('...so a partial archive still produces a bracket', ghostPlan.refusal === null, ghostPlan.refusal ?? '')
   }
-  const ghostApplied = await applyPlayoffBracket(ACTOR, s2, {}, sourceOf(withGhost))
+  const ghostApplied = await applySelectionThenPlacement(ACTOR, s2, {}, sourceOf(withGhost))
   check('applying places the confirmed players', ghostApplied.ok === true, JSON.stringify(ghostApplied))
   check('...and nobody was invented for the unmatched handle',
     (await prisma.seasonEntrant.count({ where: { seasonId: s2 } })) === 3,
@@ -307,7 +341,7 @@ try {
     ],
   })
   const s4 = await seasonAtSetup(4, [alpha.id, bravo.id, charlie.id])
-  const byeApplied = await applyPlayoffBracket(ACTOR, s4, {}, sourceOf(withBye))
+  const byeApplied = await applySelectionThenPlacement(ACTOR, s4, {}, sourceOf(withBye))
   check('the bracket builds', byeApplied.ok === true, JSON.stringify(byeApplied))
   const byeTopo = await bracketTopology(s4)
   check('a bracket of four holds three players and one empty position',
@@ -319,7 +353,7 @@ try {
 
   section('Manual placement is preserved where the archive says nothing')
   const s5 = await seasonAtSetup(5, [alpha.id, bravo.id, charlie.id, delta.id])
-  await applyPlayoffBracket(ACTOR, s5, {}, src)
+  await applySelectionThenPlacement(ACTOR, s5, {}, src)
   const partial = makeTemplate({
     // Only the first tie is recorded; the second is the operator's to arrange.
     participants: makeTemplate().playoff.participants.slice(0, 2),

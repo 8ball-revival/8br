@@ -134,8 +134,15 @@ if (!target) {
       avail.show === true && /generate a bracket/i.test(avail.disabledReason ?? ''), avail.disabledReason ?? '')
 
     section('With a bracket, it reports before it writes')
-    const { applyPlayoffBracket } = await import('../src/lib/archive/auto-playoffs.ts')
-    const built = await applyPlayoffBracket(ACTOR, target.id, { replaceDraft: true })
+    /*
+     * Selection then placement — the two actions that replaced the combined one. This fixture only
+     * needs a bracket seated from the archive, which is exactly what the pair produces.
+     */
+    const { applyArchiveSelection, applyArchivePlacement } = await import('../src/lib/archive/auto-playoffs.ts')
+    const sel = await applyArchiveSelection(ACTOR, target.id)
+    const built = sel.ok
+      ? await applyArchivePlacement(ACTOR, target.id, { replaceDraft: true })
+      : { ok: false, error: sel.error, placed: 0 }
     if (!built.ok) {
       console.log(`  (skipped: ${built.error})`)
       console.log('  (this Season\u2019s archived players are not accounts here, so there is no draw to reproduce)')

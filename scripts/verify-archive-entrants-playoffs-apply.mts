@@ -10,6 +10,7 @@
  *
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-archive-entrants-playoffs-apply.mts
  */
+import type { TemplateSource } from '../src/lib/archive/auto-playoffs.ts'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { loadManifest } from '../src/lib/archive/manifest.ts'
@@ -17,11 +18,45 @@ import {
   previewAutoEntrants, applyAutoEntrants, autoEntrantsAvailability,
 } from '../src/lib/archive/auto-entrants.ts'
 import {
-  previewPlayoffBracket, applyPlayoffBracket, playoffBracketAvailability,
+  previewPlayoffBracket, applyArchiveSelection, applyArchivePlacement, playoffBracketAvailability,
 } from '../src/lib/archive/auto-playoffs.ts'
 import { isBlocked } from '../src/lib/archive/auto-assign.ts'
 
 assertLocalDatabase('verify-archive-entrants-playoffs-apply')
+
+/*
+ * The old combined action, composed from the two that replaced it.
+ *
+ * `applyPlayoffBracket` used to select the field AND reproduce the archived draw in one call. These
+ * suites were written against that behaviour, which makes them the characterization harness for the
+ * split: if selecting and then placing does not produce what the combined call produced, the split
+ * changed something it should not have.
+ *
+ * A source that records participants but no topology has no placement to apply — the combined call
+ * returned success with nothing placed, so that shape is preserved here rather than surfaced as an
+ * error the old callers never saw.
+ */
+async function applySelectionThenPlacement(
+  actor: { userId: number; username: string },
+  seasonId: number,
+  opts: { replaceDraft?: boolean } = {},
+  src?: TemplateSource,
+) {
+  const sel = src
+    ? await applyArchiveSelection(actor, seasonId, src)
+    : await applyArchiveSelection(actor, seasonId)
+  if (!sel.ok) {
+    return { ok: false, error: sel.error, selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: sel.missing, ambiguous: sel.ambiguous }
+  }
+  const place = src
+    ? await applyArchivePlacement(actor, seasonId, opts, src)
+    : await applyArchivePlacement(actor, seasonId, opts)
+  if (!place.ok && /does not record enough/.test(place.error ?? '')) {
+    return { ok: true, selected: sel.selected, excluded: sel.excluded, placed: 0, unresolvedSlots: sel.selected, missing: sel.missing, ambiguous: sel.ambiguous }
+  }
+  return place
+}
+
 
 const TAG = 'zzverify-aap'
 const ACTOR = { userId: 0, username: TAG }
@@ -342,7 +377,7 @@ async function main() {
   check('nothing is refused yet', po.refusal === null, po.refusal ?? '')
   check('there is no draft to replace', po.existingDraft === false || po.draftPlacements === 0)
 
-  const applied = await applyPlayoffBracket(ACTOR, season.id)
+  const applied = await applySelectionThenPlacement(ACTOR, season.id)
   check('the bracket applies', applied.ok, applied.error)
   check('it selects the archived field', applied.selected === po.include.length)
   check('it unchecks everyone else', applied.excluded === po.exclude.length)
@@ -399,21 +434,30 @@ async function main() {
     (await prisma.seasonPlayoffMatch.count({ where: { seasonId: season.id, published: true } })) === 0)
   check('no rating was written',
     (await prisma.ratingLedger.count({ where: { seasonId: season.id } })) === 0)
-  check('the run was audited',
-    (await prisma.auditLog.count({ where: { actorUsername: TAG, action: 'season.archive.autoplayoffs' } })) === 1)
+  /*
+   * Two entries now, because it is two actions.
+   *
+   * The combined run wrote one `autoplayoffs` entry. Selecting the field and reproducing the draw
+   * are separately auditable decisions, so each writes its own — which is also what lets a repeated
+   * selection be silent.
+   */
+  check('the selection was audited',
+    (await prisma.auditLog.count({ where: { actorUsername: TAG, action: 'season.archive.selection' } })) === 1)
+  check('...and the placement separately',
+    (await prisma.auditLog.count({ where: { actorUsername: TAG, action: 'season.archive.placement' } })) >= 1)
 
   section('A second build will not quietly replace a draft')
   const po2 = await previewPlayoffBracket(season.id)
   if (!isBlocked(po2)) {
     check('the preview now sees a draft', po2.existingDraft && po2.draftPlacements > 0, String(po2.draftPlacements))
   }
-  const refused = await applyPlayoffBracket(ACTOR, season.id)
+  const refused = await applySelectionThenPlacement(ACTOR, season.id)
   check('rebuilding without confirmation is refused', refused.ok === false)
   check('...and says why', /confirm replacement/i.test(refused.error ?? ''), refused.error ?? '')
   check('...changing nothing',
     (await prisma.seasonEntrant.count({ where: { seasonId: season.id, playoffIncluded: true } })) === includedNow)
 
-  const confirmed = await applyPlayoffBracket(ACTOR, season.id, { replaceDraft: true })
+  const confirmed = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true })
   check('with confirmation it rebuilds', confirmed.ok, confirmed.error)
   check('...to the same bracket, being the same archive', confirmed.selected === applied.selected && confirmed.placed === applied.placed)
   check('...still in PLAYOFF_SETUP',
@@ -432,7 +476,7 @@ async function main() {
     const withResult = await previewPlayoffBracket(season.id)
     check('the preview refuses once a result exists', !isBlocked(withResult) && withResult.refusal != null,
       isBlocked(withResult) ? withResult.reason : (withResult.refusal ?? 'no refusal'))
-    const blockedApply = await applyPlayoffBracket(ACTOR, season.id, { replaceDraft: true })
+    const blockedApply = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true })
     check('...and so does the apply', blockedApply.ok === false)
     check('...leaving the played match alone',
       (await prisma.seasonPlayoffMatch.findUnique({ where: { id: anyMatch.id }, select: { homeGames: true } }))?.homeGames === 7)
@@ -451,7 +495,7 @@ async function main() {
   check('...saying the playoffs already started',
     isBlocked(live) && /already started/i.test(live.reason), isBlocked(live) ? live.reason : '')
   check('...and the button is hidden', (await playoffBracketAvailability(season.id)).show === false)
-  const liveApply = await applyPlayoffBracket(ACTOR, season.id, { replaceDraft: true })
+  const liveApply = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true })
   check('...and the apply refuses too', liveApply.ok === false)
   check('adding entrants is refused too', isBlocked(await previewAutoEntrants(season.id)))
   const liveAdd = await applyAutoEntrants(ACTOR, season.id)
