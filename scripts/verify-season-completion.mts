@@ -31,6 +31,7 @@ import {
 import { correctionImpact } from '../src/lib/seasons/playoff-correction.ts'
 import { closeSeason, completionReadiness } from '../src/lib/seasons/close.ts'
 import { finalsForfeitOf } from '../src/lib/competition/finals-forfeit.ts'
+import { reopenForCorrection, recomplete, completionReview } from '../src/lib/competition/correction.ts'
 
 assertLocalDatabase()
 
@@ -271,6 +272,86 @@ try {
   check('the Season closes', s3Closed.ok === true, JSON.stringify(s3Closed))
   check('...with finalsForfeit false',
     (await prisma.season.findUniqueOrThrow({ where: { id: s3 }, select: { finalsForfeit: true } })).finalsForfeit === false)
+
+  section('Reopening withdraws the title and the ranking contribution')
+  const beforeReopen = await prisma.season.findUniqueOrThrow({ where: { id: s1 } })
+  // Measured while the Season is COMPLETE, so the withdrawal and the restoration are both visible.
+  const ledgerWhenComplete = await prisma.ratingLedger.count()
+  const seasonRowsWhenComplete = await prisma.ratingLedger.count({ where: { seasonId: s1 } })
+  check('the completed Season contributes ledger rows', seasonRowsWhenComplete > 0, `${seasonRowsWhenComplete}`)
+  const reopened = await reopenForCorrection(ACTOR, 'season', s1, 'verification')
+  check('the Season reopens', reopened.ok === true, JSON.stringify(reopened))
+  const underCorrection = await prisma.season.findUniqueOrThrow({ where: { id: s1 } })
+  check('it is marked Under Correction', underCorrection.reopenedAt != null)
+  check('...and the canonical result data is preserved',
+    underCorrection.championName === beforeReopen.championName
+    && underCorrection.runnerUpName === beforeReopen.runnerUpName)
+  check('...and the bracket is intact',
+    (await prisma.seasonPlayoffMatch.count({ where: { seasonId: s1 } }))
+    === (await prisma.seasonPlayoffMatch.count({ where: { seasonId: s1 } })))
+  check('the public record is still visible', underCorrection.publiclyVisible === beforeReopen.publiclyVisible)
+
+  check('its ranking contribution is withdrawn while under correction',
+    (await prisma.ratingLedger.count({ where: { seasonId: s1 } })) === 0,
+    `${await prisma.ratingLedger.count({ where: { seasonId: s1 } })}`)
+  check('...and the rest of the ledger is untouched',
+    (await prisma.ratingLedger.count()) === ledgerWhenComplete - seasonRowsWhenComplete,
+    `${await prisma.ratingLedger.count()} vs ${ledgerWhenComplete - seasonRowsWhenComplete}`)
+
+  const reopenAudits = await prisma.auditLog.count({ where: { action: 'season.reopen_for_correction', entityId: String(s1) } })
+  check('one reopen audit event', reopenAudits === 1, `${reopenAudits}`)
+  const reopenTwice = await reopenForCorrection(ACTOR, 'season', s1, 'again')
+  check('reopening again is a no-op', reopenTwice.ok === true && reopenTwice.alreadyDone === true, JSON.stringify(reopenTwice))
+  check('...writing no second audit event',
+    (await prisma.auditLog.count({ where: { action: 'season.reopen_for_correction', entityId: String(s1) } })) === 1)
+
+  section('An unreviewed correction blocks recompletion')
+  const liveAgain = (await ordered(s1)).find((m) => m.round === 1)!
+  await prisma.seasonPlayoffMatch.update({ where: { id: liveAgain.id }, data: { needsReview: true } })
+  const blockedReview = await completionReview('season', s1)
+  check('the review reports the problem',
+    (blockedReview?.errors ?? []).some((e) => /review/i.test(e)), JSON.stringify(blockedReview?.errors))
+  const refusedRecomplete = await recomplete(ACTOR, 'season', s1, 'should refuse')
+  check('recompletion is refused', refusedRecomplete.ok === false, JSON.stringify(refusedRecomplete))
+  await prisma.seasonPlayoffMatch.update({ where: { id: liveAgain.id }, data: { needsReview: false } })
+
+  section('Recompletion restores everything exactly once')
+  const done1 = await recomplete(ACTOR, 'season', s1, 'verification')
+  check('it recompletes', done1.ok === true, JSON.stringify(done1))
+  const restored = await prisma.season.findUniqueOrThrow({ where: { id: s1 } })
+  check('Under Correction is cleared', restored.reopenedAt === null)
+  check('the champion is restored', restored.championName === beforeReopen.championName)
+  check('...and the runner-up', restored.runnerUpName === beforeReopen.runnerUpName)
+  check('...and the state is Completed', String(restored.lifecycleState) === 'COMPLETED')
+  check('the ranking contribution is restored exactly',
+    (await prisma.ratingLedger.count({ where: { seasonId: s1 } })) === seasonRowsWhenComplete,
+    `${await prisma.ratingLedger.count({ where: { seasonId: s1 } })} vs ${seasonRowsWhenComplete}`)
+  check('...and the ledger is the size it was before the reopen',
+    (await prisma.ratingLedger.count()) === ledgerWhenComplete,
+    `${await prisma.ratingLedger.count()} vs ${ledgerWhenComplete}`)
+
+  const done2 = await recomplete(ACTOR, 'season', s1, 'again')
+  check('recompleting again is a no-op', done2.ok === true && done2.alreadyDone === true, JSON.stringify(done2))
+  check('...and the ledger is still the same size', (await prisma.ratingLedger.count()) === ledgerWhenComplete)
+
+  section('Repeated correction cycles stay deterministic')
+  const fingerprint = async () => {
+    const rows = await prisma.ratingLedger.findMany({
+      where: { seasonId: s1 }, orderBy: { matchKey: 'asc' },
+      select: { matchKey: true, playerId: true, stage: true },
+    })
+    return JSON.stringify(rows)
+  }
+  const fp1 = await fingerprint()
+  for (let i = 0; i < 2; i++) {
+    await reopenForCorrection(ACTOR, 'season', s1, `cycle ${i}`)
+    await recomplete(ACTOR, 'season', s1, `cycle ${i}`)
+  }
+  check('two more reopen/recomplete cycles leave the ledger identical', (await fingerprint()) === fp1)
+  check('...and the Season completed',
+    String((await prisma.season.findUniqueOrThrow({ where: { id: s1 }, select: { lifecycleState: true } })).lifecycleState) === 'COMPLETED')
+  check('...with no Under Correction flag',
+    (await prisma.season.findUniqueOrThrow({ where: { id: s1 }, select: { reopenedAt: true } })).reopenedAt === null)
 
   section('The completed Seasons carry a champion and a runner-up')
   for (const id of [s1, s2, s3]) {

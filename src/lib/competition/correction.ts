@@ -124,6 +124,20 @@ async function seasonReview(id: number): Promise<CompletionReview | null> {
   if (summary && !summary.canClose) {
     errors.push('The Season cannot be completed in its current state — the close summary reports it is not ready.')
   }
+  /*
+   * A correction that leaves a result unattributed blocks recompletion too.
+   *
+   * Reopening is how a wrong result gets fixed, and fixing one can invalidate another — so the state
+   * this check exists for is most likely to arise here, not on the first completion. Recompleting
+   * over it would finalise a bracket containing a score belonging to a matchup that no longer exists.
+   */
+  const flagged = await prisma.seasonPlayoffMatch.count({ where: { seasonId: id, needsReview: true } })
+  if (flagged > 0) {
+    errors.push(
+      `${flagged} playoff match${flagged === 1 ? '' : 'es'} still need${flagged === 1 ? 's' : ''} review after a correction. `
+      + 'Re-enter the result before completing.',
+    )
+  }
   if (s.dataCompleteness === 'partial') {
     warnings.push('Recorded as Partial Historical Data. Only verified results will count towards the Rankings; the gaps stay gaps.')
   }
@@ -397,6 +411,16 @@ export async function recomplete(
         reopenedAt: null,
       },
     })
+    /*
+     * The Finals-forfeit marker, recomputed here as well as at completion.
+     *
+     * A stored derivative is only honest if every path that can change the Final recomputes it, and
+     * correcting the Final is exactly what a reopen is usually for. Recomputing rather than carrying
+     * the old value forward means a walkover corrected to a played result clears the asterisk in the
+     * same transaction that restores the title.
+     */
+    const { syncFinalsForfeit } = await import('@/lib/competition/finals-forfeit')
+    await syncFinalsForfeit(tx, 'season', id)
 
     await recordAudit(actor, {
       action: 'season.recomplete',
