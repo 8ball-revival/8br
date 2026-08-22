@@ -113,7 +113,7 @@ function Identity({
 
       <Link
         href={playoffsHref}
-        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--gold-dim)] bg-[color-mix(in_oklch,var(--gold)_10%,transparent)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[color-mix(in_oklch,var(--gold)_18%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
+        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--gold-dim)] bg-[var(--drop-surface)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[var(--drop-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
       >
         View Playoffs <ArrowRight className="size-3.5" aria-hidden />
       </Link>

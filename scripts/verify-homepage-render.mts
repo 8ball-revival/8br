@@ -92,7 +92,9 @@ section('Top 10 panel')
   check('preferred name is the primary line', html.includes('Luis'))
   check('the CueVerse ID is the secondary line', html.includes('xlx_cerebro_xlx'))
   check('a player with no preferred name shows their handle alone', html.includes('indianhacker'))
-  check('first place carries a gold accent', html.includes('text-brand') && html.includes('bg-brand/15'))
+  // Gold as an accent on a neutral surface: a translucent gold badge fill renders brown.
+     check('first place carries a gold accent',
+    html.includes('text-brand') && html.includes('bg-[var(--selected-surface)] text-brand'))
   check('second place carries a silver accent', html.includes('#c8ccd4'))
   check('third place carries a bronze accent', html.includes('#c49a63'))
   check('a tie is stated in words, not only by an equal number', html.includes('tied'))
@@ -268,7 +270,7 @@ const SNAPSHOT = {
   check('all five rows render', SNAPSHOT.entries.every((e) => html.includes(e.name)))
   check('ratings are shown', html.includes('2535'))
   check('the secondary statistic is shown', html.includes('154') && html.includes('920'))
-  check('rank emphasis is gold for first place', html.includes('bg-brand/15 text-brand'))
+  check('rank emphasis is gold for first place', html.includes('bg-[var(--selected-surface)] text-brand'))
   check('rows below first are neutral', html.includes('bg-muted text-muted-foreground'))
   check('rows use the shared divider treatment', html.includes('divide-y divide-border'))
   check('the update time is shown', html.includes('Updated'))
@@ -347,7 +349,8 @@ const STATS = {
   check('Countries shows the fixed 8', html.includes('>8<'))
   check('the since line is present', html.includes('Since 2005'))
   check('large numbers carry group separators', html.includes('911'))
-  check('each card has a circular gold icon background', html.includes('rounded-full bg-brand/10'))
+  check('each card has a circular neutral icon background with a gold glyph',
+    html.includes('rounded-full bg-[var(--selected-surface)]'))
   check('the row can scroll rather than compress', html.includes('overflow-x-auto'))
   // With no canonical history the tile is omitted entirely, so the phone span is asserted below,
   // where an almanac with events is rendered.
@@ -372,7 +375,7 @@ const STATS = {
   check('the On This Day heading is present', html.includes('On This Day'))
   check('the original date is shown', html.includes('Aug 18, 2019'))
   check('the description is shown', html.includes('Luis won 8BRCAM Season 1'))
-  check('a championship gets its own marker', html.includes('bg-brand/15'))
+  check('a championship gets its own marker', html.includes('bg-[var(--selected-surface)]'))
   check('carousel controls are labelled', html.includes('aria-label="Previous event"') && html.includes('aria-label="Next event"'))
   check('carousel indicators are real buttons, keyboard reachable',
     (html.match(/aria-label="Show event \d+ of \d+"/g) ?? []).length === events.length)

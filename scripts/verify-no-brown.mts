@@ -56,6 +56,16 @@ try {
   const goldUtilFill = hits(/bg-(gold|brand)[a-z-]*\/\[?[\d.]+\]?/)
   check('no gold or brand utility fill at alpha', goldUtilFill.length === 0, goldUtilFill.join(', '))
 
+  /*
+   * The same mud, in a different syntax.
+   *
+   * `bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]` is a translucent gold fill written the
+   * long way round, and the alpha-slash check walks straight past it. It was hiding on the bracket
+   * row hover state.
+   */
+  const mixFill = hits(/bg-\[color-mix\([^\]]*var\(--(gold|brand)[a-z-]*\)[^\]]*\)\]/)
+  check('no gold fill written as a color-mix', mixFill.length === 0, mixFill.join(', '))
+
   section('No brown-adjacent palette is used at all')
   for (const [name, re] of [
     ['amber', /\b(bg|text|border|ring|from|to|via)-amber-\d+/],

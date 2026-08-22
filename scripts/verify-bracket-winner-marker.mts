@@ -27,8 +27,15 @@ const countLoserRows = (html: string) => (html.match(/bracket-loser-row/g) ?? []
 /** Gold text — the winning name and its score, via the themed `gold` utility.
  *  The negative lookahead keeps `text-gold-soft` / `text-gold-dim` from being counted. */
 const countGoldText = (html: string) => (html.match(/text-gold/g) ?? []).length
-/** The faint gold wash on the winning row. */
-const hasWinnerWash = (html: string) => /bg-gold\/\[0\.08\]/.test(html)
+/*
+ * The winner is marked by gold, not filled with it.
+ *
+ * The old marker was gold at 8% over charcoal, which mixes to olive-brown rather than to a pale gold
+ * wash — the whole reason the theme pass happened. The row now sits on a neutral raised surface and
+ * carries its gold on the name and the score, which is where gold stays gold.
+ */
+const hasWinnerSurface = (html: string) => /bracket-winner-row bg-\[var\(--selected-surface\)\]/.test(html)
+const hasNoGoldWash = (html: string) => !/bg-gold\/|bg-\[color-mix\([^\]]*--gold/.test(html)
 
 // 1) Completed 1v1 match with a confirmed winner (a beats b).
 console.log('Completed match (a wins)')
@@ -38,7 +45,8 @@ console.log('Completed match (a wins)')
   check('exactly one winning row', countWinnerRows(html) === 1, `found ${countWinnerRows(html)}`)
   check('exactly one losing row', countLoserRows(html) === 1, `found ${countLoserRows(html)}`)
   check('the winner is marked in gold (name + score)', countGoldText(html) === 2, `found ${countGoldText(html)}`)
-  check('the winning row carries the faint gold wash', hasWinnerWash(html))
+  check('the winning row sits on a neutral raised surface', hasWinnerSurface(html))
+  check('...with no gold wash behind it', hasNoGoldWash(html))
   check('the frame itself stays neutral', html.includes('rounded-md border border-border bg-card'))
   check('the tick icon is gone', !/lucide-circle-check|lucide-check-circle/i.test(html))
   check('no line-through anywhere on the card', !/line-through/.test(html))

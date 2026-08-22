@@ -109,11 +109,11 @@ function Slot({ slot, won, dim, champion, edit, swap, matchId, side }: { slot?: 
         won && 'bracket-winner-row bg-[var(--selected-surface)]',
         dim && 'bracket-loser-row',
         !slot?.name && 'text-muted-foreground',
-        swappable && 'hover:bg-[color-mix(in_oklab,var(--gold)_12%,transparent)]',
+        swappable && 'hover:bg-[var(--drop-surface)]',
         movable && 'cursor-grab active:cursor-grabbing',
         swappable && !movable && 'cursor-copy',
-        picked && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_16%,transparent)]',
-        dragOver && 'ring-2 ring-[var(--gold)] ring-inset bg-[color-mix(in_oklab,var(--gold)_22%,transparent)]',
+        picked && 'ring-2 ring-[var(--gold)] ring-inset bg-[var(--drop-surface)]',
+        dragOver && 'ring-2 ring-[var(--gold)] ring-inset bg-[var(--drop-surface)]',
       )}
     >
       {slot?.seed != null && (
