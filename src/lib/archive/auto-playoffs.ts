@@ -276,29 +276,47 @@ export async function previewPlayoffBracket(
   }
 }
 
-export async function applyPlayoffBracket(
+/**
+ * Select Playoff Entrants — who qualified, and nothing else.
+ *
+ * ── Why this is its own operation ────────────────────────────────────────────────────────────────
+ * These two decisions used to be one button. Choosing the playoff field and reproducing the archived
+ * draw are different questions with different evidence and different risks: the first is a set of
+ * checkboxes and is safe to redo, the second rearranges a bracket somebody may have arranged by
+ * hand. Bundling them meant you could not do the safe one without risking the other, and it meant a
+ * Season whose archive records participants but no topology went through bracket code for no reason.
+ *
+ * So this writes `playoffIncluded` and writes nothing else. No bracket is generated, no slot moves,
+ * no lifecycle changes. Applying it twice is the same as applying it once.
+ *
+ * ── The stale-preview problem ────────────────────────────────────────────────────────────────────
+ * A preview is a photograph. Between taking it and acting on it the Season can leave playoff setup
+ * or have its archive template changed, so the transaction re-reads both and refuses rather than
+ * writing against a world that has moved.
+ */
+export async function applyArchiveSelection(
   actor: { userId: number; username: string },
   seasonId: number,
-  opts: { replaceDraft?: boolean } = {},
   templateSource: TemplateSource = manifestEntry,
-): Promise<PlayoffApplyResult> {
+): Promise<SelectionApplyResult> {
   const preview = await previewPlayoffBracket(seasonId, templateSource)
-  if (isBlocked(preview)) {
-    return { ok: false, error: preview.reason, selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0 }
-  }
-  if (preview.refusal) {
-    return { ok: false, error: preview.refusal, selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0 }
-  }
-  // Replacing somebody's arranged draft is a separate, explicit decision.
-  if (preview.existingDraft && preview.draftPlacements > 0 && !opts.replaceDraft) {
+  if (isBlocked(preview)) return { ok: false, error: preview.reason, selected: 0, excluded: 0, missing: 0, ambiguous: 0 }
+  if (preview.refusal) return { ok: false, error: preview.refusal, selected: 0, excluded: 0, missing: 0, ambiguous: 0 }
+
+  /*
+   * Nothing to do is a success, not a no-op error.
+   *
+   * Re-running this after it has already been applied must be silent and must not write an audit
+   * entry: an operator checking their work should not manufacture a history of changes.
+   */
+  const toInclude = preview.include.filter((i) => !i.alreadyIncluded).map((i) => i.entrantId)
+  const toExclude = preview.exclude.filter((e) => !e.alreadyExcluded).map((e) => e.entrantId)
+  if (toInclude.length === 0 && toExclude.length === 0) {
     return {
-      ok: false,
-      error: `A draft bracket already holds ${preview.draftPlacements} placement(s). Confirm replacement to rebuild it from the archive.`,
-      selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0,
+      ok: true, selected: preview.include.length, excluded: preview.exclude.length,
+      missing: preview.missing.length, ambiguous: preview.ambiguous.length, changed: 0,
     }
   }
-
-  let placed = 0
 
   await prisma.$transaction(async (tx) => {
     const season = await tx.season.findUniqueOrThrow({
@@ -311,131 +329,198 @@ export async function applyPlayoffBracket(
       throw new Error('This Season\'s archive template changed while the preview was open. Nothing was changed.')
     }
 
-    // The field: in for the archived players, out for everyone else.
-    await tx.seasonEntrant.updateMany({
-      where: { id: { in: preview.include.map((i) => i.entrantId) } },
-      data: { playoffIncluded: true, qualification: 'AUTOMATIC', qualificationReason: null },
-    })
-    if (preview.exclude.length > 0) {
+    if (toInclude.length > 0) {
       await tx.seasonEntrant.updateMany({
-        where: { id: { in: preview.exclude.map((e) => e.entrantId) } },
-        data: { playoffIncluded: false },
+        where: { id: { in: toInclude } },
+        data: { playoffIncluded: true, qualification: 'AUTOMATIC', qualificationReason: null },
       })
+    }
+    if (toExclude.length > 0) {
+      await tx.seasonEntrant.updateMany({ where: { id: { in: toExclude } }, data: { playoffIncluded: false } })
     }
 
     await recordAudit(actor, {
-      action: 'season.archive.autoplayoffs',
+      action: 'season.archive.selection',
       entity: 'Season',
       entityId: seasonId,
       newValue: {
         templateKey: preview.templateKey,
-        placement: preview.placement,
         selected: preview.include.length,
         excluded: preview.exclude.length,
-        bracketSize: preview.bracketSize,
+        changed: toInclude.length + toExclude.length,
         missing: preview.missing.length,
         ambiguous: preview.ambiguous.length,
-        replacedDraft: !!opts.replaceDraft,
       },
     }, tx)
   }, { timeout: 120_000 })
 
-  /*
-   * The bracket is built by the site's own generator and seated by the site's own placement action.
-   *
-   * ── Why both, and in this order ──────────────────────────────────────────────────────────────────
-   * `generateSeasonBracket` owns the SHAPE: how many rounds, how the ties feed forward, where the
-   * byes fall. It seats people by the group-derived seeding, which is the right answer for a Season
-   * being played and the wrong one for a Season being reconstructed — the archive already recorded
-   * who met whom, and that is evidence, not something to re-derive from the standings.
-   *
-   * So the generator draws the bracket, then each archived player is moved into their recorded seat
-   * through `setSeasonBracketSlot` — the same call the drag-and-drop editor makes, with the same
-   * guards. Nothing here duplicates the bracket engine; it uses two parts of it in sequence.
-   *
-   * Only when the positions can actually be reproduced — see `canPlaceExactly`. With a
-   * participants-only source, or an exact one whose field is not all here yet, there is no seating
-   * this can honour, so the field is selected and the seats are left for the operator: an honest
-   * empty slot beats an invented one.
-   */
-  let unresolvedSlots = preview.include.length
-  if (preview.canPlaceExactly) {
-    const gen = await generateSeasonBracket(actor, seasonId)
-    if (!gen.ok) {
-      return {
-        ok: false, error: gen.error ?? 'The bracket could not be generated.',
-        selected: preview.include.length, excluded: preview.exclude.length,
-        placed: 0, unresolvedSlots: preview.include.length,
-        missing: preview.missing.length, ambiguous: preview.ambiguous.length,
-      }
-    }
-
-    /*
-     * Archived seeds are written AFTER generating, because generating persists its own.
-     *
-     * `generateSeasonBracket` densifies the group-derived order into bracket seeds 1..N and saves
-     * them. Writing the archived seeds first would simply have them overwritten; writing them now
-     * means the numbers beside each name are the ones the archive recorded, and the placement below
-     * picks them up as it seats people.
-     */
-    for (const i of preview.include) {
-      if (i.seed == null) continue
-      await prisma.seasonEntrant.update({ where: { id: i.entrantId }, data: { playoffSeed: i.seed } })
-    }
-
-    const firstRound = await prisma.seasonPlayoffMatch.findMany({
-      where: { seasonId, round: 1 },
-      select: { id: true, slot: true },
-      orderBy: { slot: 'asc' },
-    })
-    // The planner numbers round-one slots from zero; the archive numbers its matches from one.
-    const matchBySlot = new Map(firstRound.map((m) => [m.slot + 1, m.id]))
-
-    // Clear the generator's seating first, so a player it happened to seat correctly is not left
-    // behind in a slot the archive gives to somebody else.
-    await prisma.seasonPlayoffMatch.updateMany({
-      where: { seasonId, round: 1 },
-      data: { homeEntrantId: null, awayEntrantId: null, homeUsername: null, awayUsername: null, homeSeed: null, awaySeed: null },
-    })
-
-    let seated = 0
-    for (const i of preview.include) {
-      // Somebody who entered in a later round has no first-round seat to take. Their slot stays
-      // empty and is reported as unresolved rather than guessed at.
-      if (i.firstRound !== 1 || i.matchNo == null || i.side == null) continue
-      const matchId = matchBySlot.get(i.matchNo)
-      if (matchId == null) continue
-      const r = await setSeasonBracketSlot(actor, seasonId, matchId, i.side === 'a' ? 'home' : 'away', i.entrantId)
-      if (r.ok) seated++
-    }
-
-    /*
-     * A bye is an empty seat opposite a seeded player, and it has to say so.
-     *
-     * The generator labels its own byes as it builds; clearing the seating above wiped those labels,
-     * so they are restored here for the first-round ties the archive recorded as walkovers. Without
-     * it a bye is indistinguishable from a slot nobody has filled in yet.
-     */
-    for (const i of preview.include) {
-      if (!i.bye || i.firstRound !== 1 || i.matchNo == null || i.side == null) continue
-      const matchId = matchBySlot.get(i.matchNo)
-      if (matchId == null) continue
-      await prisma.seasonPlayoffMatch.update({
-        where: { id: matchId },
-        data: i.side === 'a' ? { awayUsername: 'Bye' } : { homeUsername: 'Bye' },
-      })
-    }
-
-    placed = seated
-    unresolvedSlots = preview.include.length - seated
+  return {
+    ok: true, selected: preview.include.length, excluded: preview.exclude.length,
+    missing: preview.missing.length, ambiguous: preview.ambiguous.length,
+    changed: toInclude.length + toExclude.length,
   }
+}
+
+export interface SelectionApplyResult {
+  ok: boolean
+  error?: string
+  selected: number
+  excluded: number
+  missing: number
+  ambiguous: number
+  /** How many entrants actually changed. Zero on a second application. */
+  changed?: number
+}
+
+/**
+ * Apply Archive Placement — reproduce the draw the archive recorded.
+ *
+ * ── What it needs before it will run ─────────────────────────────────────────────────────────────
+ * A selected playoff field. Placement seats the people who are IN the playoffs, so running it
+ * against an unselected field would either seat nobody or seat whoever happened to be ticked. It
+ * refuses rather than quietly doing half the job.
+ *
+ * ── Why it may generate ──────────────────────────────────────────────────────────────────────────
+ * The archive records who met whom, not how a bracket is wired. `generateSeasonBracket` owns the
+ * shape — rounds, feeders, where byes fall — so the draft is drawn by the site's own generator and
+ * only then re-seated from the archive. Nothing here duplicates the bracket engine; it uses two
+ * parts of it in sequence, and the seating goes through `setSeasonBracketSlot`, the same call the
+ * drag-and-drop editor makes, with the same entry-slot guards.
+ *
+ * ── Partial success is the normal case ───────────────────────────────────────────────────────────
+ * Archives are incomplete. A player who cannot be resolved leaves their seat empty and is named in
+ * the result; the run does not fail because of them. An honest empty slot beats an invented one, and
+ * guessing to make the preview look complete is the one thing this must never do.
+ */
+export async function applyArchivePlacement(
+  actor: { userId: number; username: string },
+  seasonId: number,
+  opts: { replaceDraft?: boolean } = {},
+  templateSource: TemplateSource = manifestEntry,
+): Promise<PlayoffApplyResult> {
+  const empty = { selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0 }
+  const preview = await previewPlayoffBracket(seasonId, templateSource)
+  if (isBlocked(preview)) return { ok: false, error: preview.reason, ...empty }
+  if (preview.refusal) return { ok: false, error: preview.refusal, ...empty }
+
+  if (!preview.canPlaceExactly) {
+    return {
+      ok: false,
+      error: 'The archive does not record enough of this playoff bracket to reproduce its positions. Select the field and arrange the draw by hand.',
+      ...empty,
+    }
+  }
+
+  // The field has to be chosen first — this seats the people who are in it.
+  const selectedCount = await prisma.seasonEntrant.count({ where: { seasonId, playoffIncluded: true } })
+  if (selectedCount === 0) {
+    return { ok: false, error: 'Select the playoff entrants first, then apply the archived placement.', ...empty }
+  }
+
+  // Replacing somebody's arranged draft is a separate, explicit decision.
+  if (preview.existingDraft && preview.draftPlacements > 0 && !opts.replaceDraft) {
+    return {
+      ok: false,
+      error: `A draft bracket already holds ${preview.draftPlacements} placement(s). Confirm replacement to rebuild it from the archive.`,
+      ...empty,
+    }
+  }
+
+  /*
+   * Revalidated here, not only in the preview.
+   *
+   * Generating and seating cannot all live inside one transaction — `generateSeasonBracket` and
+   * `setSeasonBracketSlot` open their own — so the lifecycle and template are re-read immediately
+   * before anything is written, and every seating call re-checks the slot it is given.
+   */
+  const season = await prisma.season.findUniqueOrThrow({
+    where: { id: seasonId }, select: { lifecycleState: true, archiveTemplateKey: true },
+  })
+  if (season.lifecycleState !== 'PLAYOFF_SETUP') {
+    return { ok: false, error: 'This Season left playoff setup while the preview was open. Nothing was changed.', ...empty }
+  }
+  if (season.archiveTemplateKey !== preview.templateKey) {
+    return { ok: false, error: 'This Season\'s archive template changed while the preview was open. Nothing was changed.', ...empty }
+  }
+
+  const gen = await generateSeasonBracket(actor, seasonId)
+  if (!gen.ok) {
+    return { ok: false, error: gen.error ?? 'The bracket could not be generated.', ...empty }
+  }
+
+  /*
+   * Archived seeds are written AFTER generating, because generating persists its own.
+   *
+   * `generateSeasonBracket` densifies the group-derived order into bracket seeds 1..N and saves
+   * them. Writing the archived seeds first would simply have them overwritten.
+   */
+  for (const i of preview.include) {
+    if (i.seed == null) continue
+    await prisma.seasonEntrant.update({ where: { id: i.entrantId }, data: { playoffSeed: i.seed } })
+  }
+
+  const firstRound = await prisma.seasonPlayoffMatch.findMany({
+    where: { seasonId, round: 1 },
+    select: { id: true, slot: true },
+    orderBy: { slot: 'asc' },
+  })
+  // The planner numbers round-one slots from zero; the archive numbers its matches from one.
+  const matchBySlot = new Map(firstRound.map((m) => [m.slot + 1, m.id]))
+
+  // Clear the generator's seating first, so a player it happened to seat correctly is not left
+  // behind in a slot the archive gives to somebody else.
+  await prisma.seasonPlayoffMatch.updateMany({
+    where: { seasonId, round: 1 },
+    data: { homeEntrantId: null, awayEntrantId: null, homeUsername: null, awayUsername: null, homeSeed: null, awaySeed: null },
+  })
+
+  let seated = 0
+  for (const i of preview.include) {
+    // Somebody who entered in a later round has no first-round seat to take. Their slot stays empty
+    // and is reported as unresolved rather than guessed at.
+    if (i.firstRound !== 1 || i.matchNo == null || i.side == null) continue
+    const matchId = matchBySlot.get(i.matchNo)
+    if (matchId == null) continue
+    const r = await setSeasonBracketSlot(actor, seasonId, matchId, i.side === 'a' ? 'home' : 'away', i.entrantId)
+    if (r.ok) seated++
+  }
+
+  /*
+   * A bye is an empty seat opposite a seeded player, and it has to say so.
+   *
+   * The generator labels its own byes as it builds; clearing the seating above wiped those labels,
+   * so they are restored for the first-round ties the archive recorded as walkovers. Without it a
+   * bye is indistinguishable from a slot nobody has filled in yet.
+   */
+  for (const i of preview.include) {
+    if (!i.bye || i.firstRound !== 1 || i.matchNo == null || i.side == null) continue
+    const matchId = matchBySlot.get(i.matchNo)
+    if (matchId == null) continue
+    await prisma.seasonPlayoffMatch.update({
+      where: { id: matchId },
+      data: i.side === 'a' ? { awayUsername: 'Bye' } : { homeUsername: 'Bye' },
+    })
+  }
+
+  await recordAudit(actor, {
+    action: 'season.archive.placement',
+    entity: 'Season',
+    entityId: seasonId,
+    newValue: {
+      templateKey: preview.templateKey,
+      bracketSize: preview.bracketSize,
+      placed: seated,
+      unresolvedSlots: preview.include.length - seated,
+      replacedDraft: !!opts.replaceDraft,
+    },
+  })
 
   return {
     ok: true,
     selected: preview.include.length,
     excluded: preview.exclude.length,
-    placed,
-    unresolvedSlots,
+    placed: seated,
+    unresolvedSlots: preview.include.length - seated,
     missing: preview.missing.length,
     ambiguous: preview.ambiguous.length,
   }

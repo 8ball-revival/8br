@@ -9,7 +9,8 @@ import {
   previewGroupAssignAction, applyGroupAssignAction,
   previewGroupScoresAction, applyGroupScoresAction,
   previewAutoEntrantsAction, applyAutoEntrantsAction,
-  previewPlayoffBracketAction, applyPlayoffBracketAction,
+  previewArchiveSelectionAction, applyArchiveSelectionAction,
+  previewArchivePlacementAction, applyArchivePlacementAction,
   previewPlacementAction, applyPlacementAction,
 } from '@/lib/archive/actions'
 import type { GroupAssignPlan, ScorePlan, AutoAssignBlocked } from '@/lib/archive/auto-assign'
@@ -39,7 +40,7 @@ import type { PlayoffPlan, PlacementPlan } from '@/lib/archive/auto-playoffs'
  * `placement` is the one that runs LAST, on a bracket that already exists — the others build a
  * Season up to that point.
  */
-type Mode = 'entrants' | 'groups' | 'scores' | 'playoffs' | 'placement'
+type Mode = 'entrants' | 'groups' | 'scores' | 'playoffs' | 'placement' | 'archive-placement'
 
 const isBlockedPlan = (v: unknown): v is AutoAssignBlocked =>
   typeof v === 'object' && v !== null && (v as { blocked?: boolean }).blocked === true
@@ -84,7 +85,8 @@ export function AutoAssignPanel({
         : mode === 'groups' ? await previewGroupAssignAction(seasonId)
         : mode === 'scores' ? await previewGroupScoresAction(seasonId)
         : mode === 'placement' ? await previewPlacementAction(seasonId)
-        : await previewPlayoffBracketAction(seasonId)
+        : mode === 'archive-placement' ? await previewArchivePlacementAction(seasonId)
+        : await previewArchiveSelectionAction(seasonId)
       setPlan(p as typeof plan)
     })
   }
@@ -97,9 +99,22 @@ export function AutoAssignPanel({
           ? `Added ${r.added}. ${r.alreadyEntered} already entered, ${r.ambiguous} ambiguous, ${r.missing} with no account.`
           : r.error ?? 'That did not apply.')
       } else if (mode === 'playoffs') {
-        const r = await applyPlayoffBracketAction(seasonId, confirmReplace)
+        /*
+         * Selection only. This writes checkboxes and nothing else — no bracket is drawn, no slot
+         * moves. `changed` is zero on a second run, which is how an operator can confirm their work
+         * without manufacturing a history of changes.
+         */
+        const r = await applyArchiveSelectionAction(seasonId)
         setResult(r.ok
-          ? `Selected ${r.selected}, unchecked ${r.excluded}, placed ${r.placed}. `
+          ? (r.changed === 0
+              ? `Already correct: ${r.selected} selected, ${r.excluded} unselected. Nothing changed.`
+              : `Selected ${r.selected}, unselected ${r.excluded} (${r.changed} changed). `)
+            + `${r.missing} missing, ${r.ambiguous} ambiguous.`
+          : r.error ?? 'That did not apply.')
+      } else if (mode === 'archive-placement') {
+        const r = await applyArchivePlacementAction(seasonId, confirmReplace)
+        setResult(r.ok
+          ? `Placed ${r.placed} into the archived positions. `
             + `${r.unresolvedSlots} position(s) left for you, ${r.missing} missing, ${r.ambiguous} ambiguous.`
           : r.error ?? 'That did not apply.')
       } else if (mode === 'placement') {
@@ -128,7 +143,8 @@ export function AutoAssignPanel({
     : mode === 'groups' ? 'Assign Groups'
     : mode === 'scores' ? 'Fill Group Scores'
     : mode === 'placement' ? 'Place Entrants'
-    : 'Build Playoff Bracket'
+    : mode === 'archive-placement' ? 'Apply Archive Placement'
+    : 'Select Playoff Entrants'
 
   const helper = mode === 'entrants'
     ? 'Finds this Season\u2019s archived players among existing accounts and enters them. Creates nobody.'
@@ -138,6 +154,8 @@ export function AutoAssignPanel({
         ? 'Fills verified archived group results for entrants already assigned to groups.'
         : mode === 'placement'
           ? 'Moves the players on this bracket into the positions the archive recorded. Places everyone it can confirm and names the rest.'
+          : mode === 'archive-placement'
+            ? 'Reproduces the archived draw: draws the private bracket if there is none, then seats every confirmed player in the exact position the archive recorded, including byes. Leaves anyone it cannot confirm for you. Nothing becomes public.'
           : 'Selects the archived playoff field and places it. Stops before Start Playoffs.'
 
   if (disabledReason) {

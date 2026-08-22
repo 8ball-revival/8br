@@ -183,8 +183,17 @@ export function PlayoffWorkspace({
         </label>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/*
+            The workflow reads left to right: choose the field, then draw the bracket, then start.
+            Select Playoff Entrants only ticks boxes. Apply Archive Placement reproduces the recorded
+            draw and will draw the private bracket itself if there is none — which is why it does not
+            wait for `hasDraft` the way Place Entrants does.
+          */}
           {autoPlayoffs?.show && (
             <AutoAssignPanel seasonId={seasonId} mode="playoffs" disabledReason={autoPlayoffs.disabledReason} />
+          )}
+          {autoPlayoffs?.show && (
+            <AutoAssignPanel seasonId={seasonId} mode="archive-placement" disabledReason={autoPlayoffs.disabledReason} />
           )}
           {hasDraft && autoPlacement?.show && (
             <AutoAssignPanel seasonId={seasonId} mode="placement" disabledReason={autoPlacement.disabledReason} />

@@ -121,9 +121,19 @@ export async function applyAutoEntrantsAction(seasonId: unknown) {
   return result
 }
 
-// ─────────────────────────────────────────────────────── Build Playoff Bracket
+// ─────────────────────────────────────────── Select Playoff Entrants / Apply Archive Placement
 
-export async function previewPlayoffBracketAction(seasonId: unknown) {
+/*
+ * Two actions, because they are two decisions.
+ *
+ * Selecting the playoff field is a set of checkboxes and is safe to redo. Reproducing the archived
+ * draw rearranges a bracket somebody may have arranged by hand. They shared a button once, which
+ * meant the safe one could not be done without risking the other.
+ *
+ * Both read the same preview — there is one archive matcher and it stays that way.
+ */
+
+export async function previewArchiveSelectionAction(seasonId: unknown) {
   await requireCapability('manage_competitions')
   const id = parseId(seasonId)
   if (id == null) return { blocked: true as const, reason: 'That is not a valid Season.' }
@@ -131,20 +141,38 @@ export async function previewPlayoffBracketAction(seasonId: unknown) {
   return previewPlayoffBracket(id)
 }
 
-export async function applyPlayoffBracketAction(seasonId: unknown, replaceDraft?: unknown) {
+/** The placement preview is the same read; the difference is what is done with it. */
+export const previewArchivePlacementAction = previewArchiveSelectionAction
+
+export async function applyArchiveSelectionAction(seasonId: unknown) {
+  const actor = await requireCapability('manage_competitions')
+  const id = parseId(seasonId)
+  if (id == null) {
+    return { ok: false, error: 'That is not a valid Season.', selected: 0, excluded: 0, missing: 0, ambiguous: 0 }
+  }
+  const { applyArchiveSelection } = await import('./auto-playoffs')
+  const result = await applyArchiveSelection({ userId: actor.userId, username: actor.username }, id)
+  if (result.ok) {
+    revalidatePath(`/creator/seasons/${id}/playoffs`)
+    revalidatePath(`/creator/seasons/${id}`)
+  }
+  return result
+}
+
+export async function applyArchivePlacementAction(seasonId: unknown, replaceDraft?: unknown) {
   const actor = await requireCapability('manage_competitions')
   const id = parseId(seasonId)
   if (id == null) {
     return { ok: false, error: 'That is not a valid Season.', selected: 0, excluded: 0, placed: 0, unresolvedSlots: 0, missing: 0, ambiguous: 0 }
   }
-  const { applyPlayoffBracket } = await import('./auto-playoffs')
-  const result = await applyPlayoffBracket(
+  const { applyArchivePlacement } = await import('./auto-playoffs')
+  const result = await applyArchivePlacement(
     { userId: actor.userId, username: actor.username },
     id,
     { replaceDraft: replaceDraft === true },
   )
   if (result.ok) {
-    revalidatePath(`/seasons/${id}`)
+    revalidatePath(`/creator/seasons/${id}/playoffs`)
     revalidatePath(`/creator/seasons/${id}`)
   }
   return result
