@@ -37,6 +37,14 @@ interface Matchup {
   isTeam: boolean
 }
 
+/**
+ * What one team result is worth to each member of a roster.
+ *
+ * Fixed rather than rated, and identical for 2v2 and 5v5: see the note where it is applied. Not
+ * divided or multiplied by roster size — a win is a win to everybody who was on the table.
+ */
+export const TEAM_DELTA = 2
+
 /** Stable identity key for a completed-match participant: the linked Player.id, else a handle key. */
 function keyOf(playerId: string | null | undefined, handle: string | null | undefined, name: string): { id: string; name: string } {
   if (playerId) return { id: playerId, name }
@@ -184,7 +192,24 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
       const homeRating = mu.home.players.reduce((s, p) => s + cur(p.id), 0) / mu.home.players.length
       const awayRating = mu.away.players.reduce((s, p) => s + cur(p.id), 0) / mu.away.players.length
       const homeActual = mu.outcome === 'HOME' ? 1 : mu.outcome === 'DRAW' ? 0.5 : 0
-      const d = matchDeltas(homeRating, awayRating, homeActual, { forfeit: mu.forfeit })
+      /*
+       * A team match moves every member by a fixed ±2, not by Elo.
+       *
+       * Elo asks "how surprising was this result", which needs two comparable ratings. A team has no
+       * rating — averaging its members invents one, and then a 5v5 win moves five people by an amount
+       * derived from a number nobody holds. Worse, the average makes the reward depend on who your
+       * team-mates are: carrying a beginner would earn you more for the same win.
+       *
+       * So a team result is worth the same to everyone who played it, whatever the roster size:
+       * +2 to each member of the winning roster, −2 to each of the losing one. A forfeit moves
+       * nobody, exactly as it does for an individual match.
+       */
+      const d = mu.isTeam
+        ? {
+            home: { delta: mu.forfeit ? 0 : homeActual === 1 ? TEAM_DELTA : -TEAM_DELTA, expected: 0.5 },
+            away: { delta: mu.forfeit ? 0 : homeActual === 1 ? -TEAM_DELTA : TEAM_DELTA, expected: 0.5 },
+          }
+        : matchDeltas(homeRating, awayRating, homeActual, { forfeit: mu.forfeit })
 
       const write = (self: Side, opp: Side, sideKind: 'home' | 'away') => {
         const info = d[sideKind]

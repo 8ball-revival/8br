@@ -102,7 +102,21 @@ async function run() {
   const t1aRows = await prisma.ratingLedger.findMany({ where: { tournamentId: tt.id, playerId: Q('T1a') } })
   check('every winning-team member gets a WIN row', (await prisma.ratingLedger.count({ where: { tournamentId: tt.id, result: 'WIN' } })) === 2)
   check('every losing-team member gets a LOSS row', (await prisma.ratingLedger.count({ where: { tournamentId: tt.id, result: 'LOSS' } })) === 2)
-  check('team-average Elo: two 1500 teams → member +16', t1aRows[0].ratingChange === 16 && t1aRows[0].isTeamMatch)
+  /*
+   * A team result is a flat +2/-2 per member, not Elo over an averaged team rating.
+   *
+   * It used to be +16 here — Elo computed from the mean of each roster. That needs two comparable
+   * ratings, and a team has none: averaging invents one, and then the reward for the same win
+   * depends on who your team-mates are. Carrying a beginner paid better than playing with equals.
+   */
+  check('a team win is a flat +2 for every winning member',
+    t1aRows[0].ratingChange === 2 && t1aRows[0].isTeamMatch, String(t1aRows[0].ratingChange))
+  const t2aRows = await prisma.ratingLedger.findMany({ where: { tournamentId: tt.id, playerId: Q('T2a') } })
+  check('...and a flat -2 for every losing member',
+    t2aRows[0].ratingChange === -2, String(t2aRows[0].ratingChange))
+  const t1bRows = await prisma.ratingLedger.findMany({ where: { tournamentId: tt.id, playerId: Q('T1b') } })
+  check('...the same amount for each member, not divided by roster size',
+    t1bRows[0].ratingChange === t1aRows[0].ratingChange)
   check('opponent recorded as the TEAM, not a player', t1aRows[0].opponentId === null && t1aRows[0].opponentTeamName === 'Beta')
   check('team NAME has no ledger rows', (await prisma.ratingLedger.count({ where: { playerId: { in: [Q('TEAM-ALPHA'), Q('TEAM-BETA')] } } })) === 0)
   const ladder = await getLadder('all-time')

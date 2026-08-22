@@ -135,6 +135,9 @@ export async function recordSwissResult(actor: Actor, matchId: number, homeGames
 
 // ---- standings -------------------------------------------------------------
 
+/** A win, and a bye, are worth this many standings points. Matches the group-stage convention. */
+export const WIN_POINTS = 2
+
 export interface SwissStandingRow {
   registrationId: number
   name: string
@@ -162,10 +165,22 @@ async function computeStandings(tournamentId: number): Promise<SwissStandingRow[
   }
   for (const e of entrants) get(e.registrationId) // ensure every entrant appears
 
+  /*
+   * Standings points: a win is 2, a bye is 2, a loss is 0.
+   *
+   * The scale used to be 1 per win, which ordered players identically but disagreed with every other
+   * table on the site — Season groups have scored Win 2 / Draw 1 for as long as they have existed.
+   * Two tables using the word "points" for different quantities is the kind of difference nobody
+   * notices until they compare them.
+   *
+   * A bye scores the same as a win because that is what a bye IS: an unopposed advance. It produces
+   * no other record — no win, no loss, no games, no differential, no streak, no rating — which is
+   * why it is counted here and nowhere else.
+   */
   for (const m of matches) {
     if (m.isBye && m.homeRegistrationId != null) {
       const a = get(m.homeRegistrationId)
-      a.points += 1
+      a.points += WIN_POINTS
       a.byes += 1
       continue
     }
@@ -180,8 +195,8 @@ async function computeStandings(tournamentId: number): Promise<SwissStandingRow[
     h.gameL += m.awayGames ?? 0
     w.gameW += m.awayGames ?? 0
     w.gameL += m.homeGames ?? 0
-    if (m.winnerRegistrationId === m.homeRegistrationId) h.points += 1
-    else w.points += 1
+    if (m.winnerRegistrationId === m.homeRegistrationId) h.points += WIN_POINTS
+    else w.points += WIN_POINTS
   }
 
   // Buchholz = sum of opponents' match points (byes contribute no opponent).
@@ -191,10 +206,19 @@ async function computeStandings(tournamentId: number): Promise<SwissStandingRow[
     const buchholz = a.opponents.reduce((s, oid) => s + pointsOf(oid), 0)
     return { registrationId: e.registrationId, name: e.name, handle: e.handle, playerId: e.playerId, rank: 0, points: a.points, played: a.played, gameW: a.gameW, gameL: a.gameL, byes: a.byes, buchholz }
   })
+  /*
+   * Points, Buchholz, game differential, game win percentage, then the original seed.
+   *
+   * Win percentage was missing and matters exactly where differential cannot separate: +4 from 12-8
+   * and +4 from 20-16 are the same margin over very different volumes. The seed is last because it
+   * is the one thing guaranteed to break every remaining tie, so the order stays total and stable.
+   */
+  const winPct = (r: SwissStandingRow) => (r.gameW + r.gameL === 0 ? 0 : r.gameW / (r.gameW + r.gameL))
   rows.sort((x, y) =>
     y.points - x.points ||
     y.buchholz - x.buchholz ||
     (y.gameW - y.gameL) - (x.gameW - x.gameL) ||
+    winPct(y) - winPct(x) ||
     (byReg.get(x.registrationId)?.order ?? 0) - (byReg.get(y.registrationId)?.order ?? 0),
   )
   rows.forEach((r, i) => (r.rank = i + 1))
