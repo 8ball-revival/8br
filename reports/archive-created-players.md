@@ -463,7 +463,6 @@ Season appearances are counted across the whole manifest, not only where the han
 | wyte.folks | `cmt4vaotg00bq6rik5g2telqs` | 5579 | wyte.folks | 7 | 2008 S5A | 2013 S1A |
 | smack_down_ | `cmt4vaovq00br6rik9tsyg6qm` | 5580 | smack_down_ | 5 | 2008 S5A | 2010 S1A |
 | ypool_star | `cmt4vaoy400bs6rikit9xge5n` | 5581 | ypool_star | 1 | 2008 S5A | 2008 S5A |
-| bigblue2k | `cmt4vap0h00bt6rikxpfe8611` | 5582 | bigblue2k | 21 | 2008 S5A | 2014 S1A |
 | sakic.returns | `cmt4vap2u00bu6rikjejryrt7` | 5583 | sakic.returns | 2 | 2008 S5A | 2009 S1B |
 | nick_ownzz | `cmt4vap5300bv6rikcs0bk184` | 5584 | nick_ownzz | 10 | 2008 S5A | 2013 S1B |
 | fsm_reaper | `cmt4vap7a00bw6rik81prc71m` | 5585 | fsm_reaper | 1 | 2008 S5A | 2008 S5A |
