@@ -81,5 +81,7 @@ So the correction is not a rename. It is:
 3. Give Craig his own identity holding `Cocky_Guy` and `I_am_AImost_God`. He has no imported
    appearance yet; the first is 2012 S3A, which has not been imported.
 
-Not applied. It moves a Season and four ledger rows between two players, and it wants doing with a
-before-and-after check rather than at the end of a session.
+**Applied.** `cockyguy` came off, the Player merged into Starkiller — which went from 13 entrants to
+14, carrying the 2010 S1A appearance and its four ledger rows — and Craig now has his own account,
+`Cocky_Guy` (`cmt5a4tcb000c6rkw74adgb1o`, 4 entrants), holding `iamaimostgod`. Starkiller holds
+`iamalmostgod`. The two spellings now sit on two people, which is what they always were.

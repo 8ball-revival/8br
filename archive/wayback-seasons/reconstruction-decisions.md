@@ -90,3 +90,26 @@ See [owner-identity-notes.md](owner-identity-notes.md) for the handles the owner
   the bracket disagreed with the page when the bracket was simply gone. Eleven Seasons stopped there.
 - The coverage scan assumed every entry beside the year folders was a year folder, and crashed on a
   documentation file.
+
+## 2009 S5A — moved, not finished
+
+This is the one Season the archive gives a complete bracket and no group stage at all: no groups, no
+group matches, no standings. Every other Season reaches playoff setup by closing its groups, so it
+sat in registration and the importer could not draw a bracket for a Season that plainly had one.
+
+Its 29 players are entered and selected and it now sits in playoff setup, which asserts nothing about
+a group stage that the empty tables did not already say. It still does not complete, for a reason
+that is mechanical rather than evidential: `generateSeasonBracket` seeds from `loadSeasonSeeding`,
+which requires an overall seed per player, and overall seeds are computed from group standings.
+
+The page prints real seed numbers for this Season — it is an original capture, not a transcription —
+so the seeds exist in the source. Using them means letting the bracket generator take a seeding from
+somewhere other than the standings, which is a change to how the product seeds a playoff and not
+something to do incidentally at the end of an import. Left for a deliberate decision.
+
+## Still open
+
+Eleven Division A Seasons. Five of them — 2009 S1, S2, S3 and 2011 S3, S4 — print `RT7 Win By 2`
+where a score belongs, and 2013 S4 prints nothing for one match. 2009 S5 is the seeding question
+above. The remaining four have no usable bracket source: 2009 S4, 2009 S6, 2010 S2 and 2011 S1 have
+pages the parser reads as contradictory.

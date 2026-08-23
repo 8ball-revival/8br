@@ -34,7 +34,7 @@ anomalies.push('on it is left unresolved.', '')
 
 const ROOT = 'archive/wayback-seasons'
 const files: string[] = []
-if (existsSync(ROOT)) for (const y of readdirSync(ROOT)) for (const f of readdirSync(join(ROOT, y))) files.push(join(ROOT, y, f))
+if (existsSync(ROOT)) for (const y of readdirSync(ROOT).filter((x) => /^\d{4}$/.test(x))) for (const f of readdirSync(join(ROOT, y))) files.push(join(ROOT, y, f))
 
 let dqCount = 0, woCount = 0
 for (const file of files.sort()) {

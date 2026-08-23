@@ -236,7 +236,7 @@ if (!existsSync(ROOT)) {
   check('the captured Wayback files are present', false)
 } else {
   const files: string[] = []
-  for (const year of readdirSync(ROOT)) {
+  for (const year of readdirSync(ROOT).filter((y) => /^\d{4}$/.test(y))) {
     const dir = join(ROOT, year)
     for (const f of readdirSync(dir)) files.push(join(dir, f))
   }
@@ -307,24 +307,52 @@ section('Forfeits, walkovers and disqualifications')
   check('a bracket decided by forfeit still validates', awayGaveUp.validation.category === 'full',
     awayGaveUp.validation.problems.join('; '))
 
+  /*
+   * A disqualification is recorded the way a forfeit is — owner decision — but it stays its own
+   * outcome, because the reports have to be able to say which of the two happened.
+   *
+   * "7-DQ" names no side. The bracket does, by carrying one player into the next round, so the side
+   * that gave it up is the one left behind.
+   */
   const dq = parseWayback(withResult('7-DQ'), 'fixtures/2011 s5.txt')
   const m3 = dq.matches[0]
   check('a disqualification is its own outcome', m3.outcome === 'disqualification', m3.outcome)
-  check('a disqualification is never treated as a forfeit', m3.forfeitedBy === null)
+  check('the side that gave it up comes from who advanced', m3.forfeitedBy === 'home', String(m3.forfeitedBy))
+  check('and that is the player the page does not carry', m3.winnerHandle === 'delta', m3.winnerHandle ?? '—')
   check('it awards no score', m3.scoreHome === null && m3.scoreAway === null)
-  check('it is not proven', !m3.proven)
-  check('the bracket stops there rather than guessing', dq.validation.category === 'partial', dq.validation.category)
-  check('the reason names the disqualification',
-    dq.validation.problems.some((p) => /disqualification/.test(p)), dq.validation.problems.join('; '))
+  check('it is a result, so the bracket runs on', m3.proven)
+  check('and the bracket is whole', dq.validation.category === 'full', dq.validation.problems.join('; '))
 
   const dqff = parseWayback(withResult("DQ'd-FF'd"), 'fixtures/2011 s5.txt')
   check('a cell naming both stays a disqualification', dqff.matches[0].outcome === 'disqualification',
     dqff.matches[0].outcome)
 
   const wo = parseWayback(withResult('--W/O'), 'fixtures/2008 s3.txt')
-  check('a walkover with no side named is not a forfeit', wo.matches[0].outcome === 'walkover', wo.matches[0].outcome)
-  check('and names nobody', wo.matches[0].forfeitedBy === null)
-  check('so it is not proven', !wo.matches[0].proven)
+  check('a walkover is its own outcome too', wo.matches[0].outcome === 'walkover', wo.matches[0].outcome)
+  check('and is settled the same way', wo.matches[0].forfeitedBy === 'home', String(wo.matches[0].forfeitedBy))
+  check('a walkover is a result', wo.matches[0].proven)
+
+  /*
+   * Deriving the side from advancement must not overrule a side the page prints.
+   *
+   * "0-FF" says the away player conceded, so the home player should advance. Here the page carries
+   * the away player instead, and the two statements cannot both be true — which is a page to stop
+   * on, not one to reconcile by preferring whichever was read last.
+   */
+  const ffContradicts = parseWayback(page(FOUR, [
+    { 0: '1', 1: 'alpha' },
+    { 0: '0-FF', 2: 'delta' },
+    { 0: '4', 1: 'delta' },
+    { 2: '9-5', 4: 'delta' },
+    { 0: '2', 1: 'bravo' },
+    { 0: '2-7', 2: 'charlie' },
+    { 0: '3', 1: 'charlie' },
+  ]), 'fixtures/2008 s4.txt')
+  check('a printed forfeit side that contradicts the advancement is refused',
+    !ffContradicts.matches[0].proven, 'it was accepted')
+  check('and the refusal says so',
+    ffContradicts.validation.problems.some((p) => /forfeit gives .* but the page advances/.test(p)),
+    ffContradicts.validation.problems.join('; '))
 
   // A bye beside a forfeit must stay a bye.
   const byeAndFf = parseWayback(page(FOUR, [
