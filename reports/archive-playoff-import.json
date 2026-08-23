@@ -2,12 +2,21 @@
   {
     "seasonId": 5463,
     "label": "2008 S5A",
-    "imported": 0,
-    "byes": 0,
-    "skipped": 0,
+    "imported": 18,
+    "byes": 8,
+    "skipped": 5,
     "finalImported": false,
     "completed": false,
-    "stoppedAt": "start playoffs: 4 selected participants have no bracket position: bigblue2k, Stuart, mvp.bank, Paul.",
-    "notes": []
+    "stoppedAt": "R1 match 8: the bracket has no pair to score",
+    "reseated": 0,
+    "deselected": [
+      "bigblue2k"
+    ],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "enter sixohtwo: Entrants can only be changed before the group stage goes live.",
+      "R2.3: the page's players are not the pair in this slot"
+    ]
   }
 ]
