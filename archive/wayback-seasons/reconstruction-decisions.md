@@ -37,11 +37,22 @@ carrying one player forward. A disqualification the bracket cannot resolve stays
 way. This extends the owner's instruction by analogy rather than by instruction. The three outcomes
 stay distinct in the data, so a report can still say which happened.
 
-**A match with no result printed at all is left unrecorded.** Five Seasons print `RT7 Win By 2` — the
-match format — where a score belongs, and one prints nothing. The winner is known from advancement,
-but the match was played and the score is simply lost. Recording it as a forfeit would assert a
-forfeit that did not happen; inventing a score would assert frames nobody played. Both are worse
-than an incomplete Season, so these stay incomplete.
+**A match the page never scored is recorded as the loser giving it up.** Owner decision, made after
+this was first raised and left open. Five Seasons print `RT7 Win By 2` — the match format — where a
+score belongs, and one prints nothing at all.
+
+It is not what happened: the match was played and its score is lost. What it buys is everything else
+the bracket does say — the winner, the advancement, the title and the Season closing — at the cost of
+one match reading as a forfeit. No score is invented, which was the alternative and the worse one.
+
+The parser keeps the outcome as `missing` rather than `forfeit`, so a report can still tell the two
+apart and this can be undone if the scores ever turn up.
+
+**Except when the cell looks like a score.** `missing` covers both an empty cell and one holding
+something unrecognised, and those must not be treated alike: two numbers either side of a dash is
+almost certainly a real result in a spelling not yet handled, and awarding that as a forfeit would
+replace a match somebody played with one nobody did. Such a cell stays unproven and is reported, so
+the spelling gets added instead.
 
 ## Who was in the draw
 
@@ -109,7 +120,48 @@ something to do incidentally at the end of an import. Left for a deliberate deci
 
 ## Still open
 
-Eleven Division A Seasons. Five of them — 2009 S1, S2, S3 and 2011 S3, S4 — print `RT7 Win By 2`
-where a score belongs, and 2013 S4 prints nothing for one match. 2009 S5 is the seeding question
-above. The remaining four have no usable bracket source: 2009 S4, 2009 S6, 2010 S2 and 2011 S1 have
-pages the parser reads as contradictory.
+Four Division A Seasons: 2009 S4, 2009 S6, 2010 S2 and 2011 S1.
+
+All four are blocked by the same thing, and it is not a missing score. Their pages carry the literal
+placeholder **`tbd`** in round-one positions — between two and six of them each — because the capture
+was taken before those slots were filled. A missing score can be settled from the advancement; a
+missing *player* cannot be settled from anything. Seating `tbd` would invent a competitor, and
+guessing who it was would be worse.
+
+2009 S4 additionally spells one player two ways (`AaaaaaaaaNiL` against `AaaaaaaaNIL`), which the
+page-level spelling fold would settle — but only the transcriptions go through that, and fixing it
+would not help while the `tbd` positions remain.
+
+These need a different capture, not a different decision.
+
+## An audit that had never been run
+
+`verify-archive-season.mts` compares one Season against the manifest and its bracket page. The batch
+runner calls it with no argument, so it only ever sampled **one** Season — and its default picked the
+first *unfinished* one, which was a reasonable sample while most were unfinished and became a benched
+Division B shell once forty of forty-four Division A Seasons had closed.
+
+Pointing it at the newest completed Division A Season instead, and then running it across all forty,
+says: **7 of 40 pass every check.**
+
+Almost none of that is new. The 2006–2007 Seasons were imported in an earlier pass under different
+rules and are untouched by this work; 2006 S1A holds 98 entrants against 31 recorded handles and 14
+groups against a manifest recording none. The manifest for those years does not describe what the
+database contains. The three commonest failures across all eras are one problem seen three ways —
+an entrant whose account is not the one the recorded handle resolves to — which is identity work,
+the same long tail that produced fifteen aliases and one merge during this pass.
+
+Written up in `reports/archive-season-audit.md`. Not acted on: it is a body of work in its own right,
+and much of it is a judgement about how much the old import should be re-litigated.
+
+Four of its checks did encode the pre-decision contract and were corrected here, not relaxed:
+
+- The expected entrant list is the manifest **and** the bracket page, since a draw routinely seats
+  people the participant table never mentions.
+- That expectation counts **people, not spellings** — the two sources spell one person two ways, so
+  the union of handles is longer than the list of players it names, and a correct import looked one
+  entrant short.
+- A forfeit row now stands for any awarded match, so the count includes disqualifications, walkovers
+  and unscored ones.
+- A disqualification may now be recorded. The invariant that replaced "it must not be" is that it
+  must never acquire a **score**, and must be written as an awarded match rather than a played one.

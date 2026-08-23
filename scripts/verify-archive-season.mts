@@ -10,7 +10,8 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
-import { parseWayback, type WaybackBracket } from '../src/lib/archive/wayback.ts'
+import { parseWayback, isForfeitLike, type WaybackBracket } from '../src/lib/archive/wayback.ts'
+import { resolveCanonical } from '../src/lib/archive/canonical-identity.ts'
 import { readFileSync as readSource, existsSync as sourceExists } from 'node:fs'
 
 assertLocalDatabase()
@@ -30,11 +31,30 @@ const seasonId = Number.isFinite(argId) ? argId : (await prisma.season.findFirst
    */
   where: {
     archiveTemplateKey: { not: null },
-    lifecycleState: { notIn: ['COMPLETED'] },
+    /*
+     * Division A, and one that finished.
+     *
+     * This used to take the first Season that had NOT completed, which was a reasonable sample when
+     * most of them had not. Now that forty of forty-four Division A Seasons are closed, the first
+     * unfinished one is a Division B shell — benched by owner decision because its playoff source
+     * does not survive — so the default sample became a Season nobody intends to finish, and the
+     * suite failed on a shortfall it was never meant to be measuring.
+     *
+     * "The most completely reconstructed Season there is" is what the comment above promises, so
+     * that is now what it picks.
+     */
+    division: 'A',
+    lifecycleState: 'COMPLETED',
     playoffMatches: { some: { homeEntrantId: { not: null } } },
   },
   select: { id: true },
-  orderBy: { id: 'asc' },
+  /*
+   * Newest first. Ascending landed on a 2006 Season an earlier import had completed under other
+   * rules — 98 entrants against 32 recorded handles, on a placement-only page — which is the exact
+   * failure the note above warns about, and it survived only because that Season used to be
+   * excluded for not having completed.
+   */
+  orderBy: { id: 'desc' },
 })).id
 
 let pass = 0, fail = 0
@@ -91,7 +111,49 @@ const entrants = await prisma.seasonEntrant.findMany({
   select: { id: true, playerId: true, cueverseId: true, username: true, playoffIncluded: true },
 })
 
-check(`entrant count matches the archive (${recorded.size})`, entrants.length === recorded.size, `${entrants.length}`)
+/*
+ * The archive's record of who took part is the manifest AND the bracket page.
+ *
+ * These two checks compared against the manifest alone, which was right while the manifest was the
+ * only source that named anybody. It is not: players changed their CueVerse ID mid-Season and the
+ * admins updated the bracket without going back to the group tables, so a draw routinely seats
+ * people the participant list never mentions. 2014 S1 has nineteen of them, and measuring against
+ * the manifest called every one an error.
+ *
+ * The bracket is added to the expectation rather than subtracted from the test: an entrant named by
+ * neither source is still a stray, which is the thing these checks exist to catch.
+ */
+const bracketRecorded = (() => {
+  const file = `archive/wayback-seasons/${season.competitionYear}/${season.competitionYear} s${season.number}.txt`
+  if ((season.division ?? 'A') !== 'A' || !sourceExists(file)) return [] as string[]
+  const b = parseWayback(readSource(file, 'utf8'), file)
+  return b.matches
+    .filter((m) => m.round === 1)
+    .flatMap((m) => [m.home, m.away])
+    .filter((x): x is NonNullable<typeof x> => Boolean(x) && !x!.bye)
+    .map((x) => stripSourceNote(x.normalizedHandle).toLowerCase())
+})()
+for (const h of bracketRecorded) recorded.add(h)
+
+/*
+ * Count people, not spellings.
+ *
+ * The two sources spell the same person differently — the bracket writes `Xx_APOCALIPSYS_xX` where
+ * the manifest has `xx_apocalypsys_xx` — so the union of their handles is one longer than the number
+ * of players it names. Comparing that string count against a row count made a correct import look
+ * one entrant short. Every handle is resolved to the Player it means and the distinct ones counted,
+ * which is the same question the rest of this script asks.
+ */
+const expectedPeople = new Set<string>()
+const unresolvedRecorded: string[] = []
+for (const h of recorded) {
+  const id = await resolveCanonical(seasonId, h)
+  if (id.resolution === 'resolved' && id.playerId) expectedPeople.add(id.playerId)
+  else unresolvedRecorded.push(h)
+}
+check(`entrant count matches the archive (${expectedPeople.size})`,
+  entrants.length === expectedPeople.size,
+  `${entrants.length}${unresolvedRecorded.length ? `; ${unresolvedRecorded.length} recorded handle(s) resolve to nobody: ${unresolvedRecorded.slice(0, 4).join(', ')}` : ''}`)
 
 const playerIds = entrants.map((e) => e.playerId).filter(Boolean)
 check('no Player is entered twice', new Set(playerIds).size === playerIds.length)
@@ -280,8 +342,14 @@ if (decided.length === 0) {
     decided.length <= provenByPage + byes,
     `${decided.length} decided, ${provenByPage} proven and ${byes} bye(s) on the page`)
 
+  /*
+   * A forfeit row now stands for any match the page awarded rather than scored: a forfeit, a
+   * disqualification, a walkover, or one the page never scored at all. They are separate facts and
+   * the parser keeps them separate, but there is one way to record "the winner advanced and no games
+   * were played", so this counts all of them.
+   */
   const forfeits = await prisma.seasonPlayoffMatch.count({ where: { seasonId, forfeitEntrantId: { not: null } } })
-  const pageForfeits = wayback.matches.filter((m) => m.outcome === 'forfeit' && m.proven).length
+  const pageForfeits = wayback.matches.filter((m) => isForfeitLike(m.outcome) && m.proven && !m.bye).length
   check(`every forfeit is one the page records (${forfeits})`, forfeits === pageForfeits,
     `${forfeits} recorded, ${pageForfeits} on the page`)
   check('no forfeit was awarded games',
@@ -295,15 +363,25 @@ if (decided.length === 0) {
    * The pages print DQ for nine matches. There is no disqualification outcome in this record, so
    * each must remain undecided — importing one would mean inventing a rule to fit an archive.
    */
+  /*
+   * A disqualification is now recorded — owner decision — so the invariant is no longer that it goes
+   * unrecorded. It is that it never acquires a SCORE: the winner advances, and no games are credited
+   * to anybody, because none were played. That is the part that would be a fabrication.
+   */
   const dq = wayback.matches.filter((m) => m.outcome === 'disqualification')
-  let dqDecided = 0
+  let dqScored = 0
+  let dqUnforfeited = 0
   for (const m of dq) {
     const row = await prisma.seasonPlayoffMatch.findFirst({
-      where: { seasonId, round: m.round, slot: m.position }, select: { winnerEntrantId: true },
+      where: { seasonId, round: m.round, slot: m.position },
+      select: { winnerEntrantId: true, homeGames: true, awayGames: true, forfeitEntrantId: true },
     })
-    if (row?.winnerEntrantId) dqDecided++
+    if (!row) continue
+    if (row.homeGames !== null || row.awayGames !== null) dqScored++
+    if (row.winnerEntrantId && !row.forfeitEntrantId) dqUnforfeited++
   }
-  check(`no disqualification was turned into a result (${dq.length} on the page)`, dqDecided === 0, `${dqDecided} decided`)
+  check(`no disqualification was given a score (${dq.length} on the page)`, dqScored === 0, `${dqScored} scored`)
+  check('and each is recorded as an awarded match, not a played one', dqUnforfeited === 0, `${dqUnforfeited} without a forfeit`)
 }
 
 // ── Rankings boundary ───────────────────────────────────────────────────────────────────────────

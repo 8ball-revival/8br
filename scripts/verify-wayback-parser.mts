@@ -148,11 +148,16 @@ section('A page that records no result')
   const b = parseWayback(text, 'fixtures/2009 s9.txt')
   const m = b.matches[0]
   check('the format text is not mistaken for a score', m.scoreHome === null && m.rawScore === 'RT7 Win By 2')
-  check('that match is not proven', !m.proven)
-  check('but its neighbours still are', b.matches[1].proven && b.matches[2].proven)
-  check('the bracket is partial rather than full', b.validation.category === 'partial', b.validation.category)
-  check('the first unsupported match is named',
-    b.validation.firstUnsupported?.round === 1 && b.validation.firstUnsupported?.position === 0,
+  /*
+   * It used to stop the bracket here. The owner's decision is that a match the page never scored is
+   * recorded as the loser giving it up, so it now carries on — but the raw text is still kept and
+   * the outcome is still `missing`, so nothing downstream can mistake it for a score that was read.
+   */
+  check('the match is settled from the advancement instead', m.proven && m.outcome === 'missing', m.outcome)
+  check('and no score is invented for it', m.scoreHome === null && m.scoreAway === null)
+  check('its neighbours still stand on their own scores', b.matches[1].proven && b.matches[2].proven)
+  check('the bracket is whole', b.validation.category === 'full', b.validation.category)
+  check('nothing is left unsupported', b.validation.firstUnsupported === null,
     JSON.stringify(b.validation.firstUnsupported))
 }
 
@@ -331,6 +336,36 @@ section('Forfeits, walkovers and disqualifications')
   check('a walkover is its own outcome too', wo.matches[0].outcome === 'walkover', wo.matches[0].outcome)
   check('and is settled the same way', wo.matches[0].forfeitedBy === 'home', String(wo.matches[0].forfeitedBy))
   check('a walkover is a result', wo.matches[0].proven)
+
+  /*
+   * A match the page never scored is recorded the same way — owner decision.
+   *
+   * Some pages print the match FORMAT where a score belongs. The match was played and its score is
+   * lost, but the bracket still says who won, so the loser is recorded as having given it up: the
+   * winner, the advancement and the title survive, and no score is invented.
+   */
+  const unscored = parseWayback(withResult('RT7 Win By 2'), 'fixtures/2009 s1.txt')
+  const m4 = unscored.matches[0]
+  check('an unreadable result is still its own outcome', m4.outcome === 'missing', m4.outcome)
+  check('the loser is the player the page does not carry', m4.forfeitedBy === 'home', String(m4.forfeitedBy))
+  check('no score is invented', m4.scoreHome === null && m4.scoreAway === null)
+  check('and the bracket runs on', m4.proven && unscored.validation.category === 'full',
+    unscored.validation.problems.join('; '))
+
+  const blank = parseWayback(withResult(' '), 'fixtures/2009 s1.txt')
+  check('an empty cell is treated the same way', blank.matches[0].proven, blank.validation.problems.join('; '))
+
+  /*
+   * But a cell holding something score-shaped is not. It was almost certainly a real result in a
+   * spelling this parser does not handle yet, and turning that into a forfeit would replace a match
+   * somebody played with one nobody did.
+   */
+  const oddScore = parseWayback(withResult('7 : 3'), 'fixtures/2009 s1.txt')
+  check('a cell that looks like a score is refused, not awarded', !oddScore.matches[0].proven,
+    'it was recorded as a forfeit')
+  check('and the refusal says the parser could not read it',
+    oddScore.validation.problems.some((p) => /looks like a score/.test(p)),
+    oddScore.validation.problems.join('; '))
 
   /*
    * Deriving the side from advancement must not overrule a side the page prints.

@@ -125,13 +125,30 @@ const FF_HOME = /^\s*FF'?d?\s*-\s*(\d{0,3})\s*$/i
 /**
  * Outcomes that award a match rather than score it.
  *
- * A disqualification, a forfeit and a walkover are different facts about why nobody played, and the
- * parser keeps them apart so the reports can say which happened. They are recorded the same way,
- * though — the opponent advances with no games either side — so everything downstream asks this
+ * A disqualification, a forfeit, a walkover and a match the page never scored are different facts,
+ * and the parser keeps them apart so the reports can say which happened. They are recorded the same
+ * way, though — the opponent advances with no games either side — so everything downstream asks this
  * rather than naming one outcome and quietly dropping the others.
+ *
+ * The last of those is the owner's decision: where a page prints the match FORMAT where a score
+ * belongs, or prints nothing at all, the bracket still says who won, and that is recorded as the
+ * loser giving the match up. It is not what happened — the match was played and the score is lost —
+ * but it keeps the winner, the advancement and the title, and no invented score is written.
  */
 export const isForfeitLike = (o: MatchOutcome): boolean =>
-  o === 'forfeit' || o === 'disqualification' || o === 'walkover'
+  o === 'forfeit' || o === 'disqualification' || o === 'walkover' || o === 'missing'
+
+/**
+ * A cell that looks like it was meant to be a score.
+ *
+ * `missing` covers both an empty cell and one holding something this parser does not understand, and
+ * those must not be treated alike. If a cell holds two numbers either side of a dash, it was almost
+ * certainly a real result in a spelling not yet handled, and turning it into a forfeit would replace
+ * a match somebody played with one nobody did. Such a cell stays unproven and is reported, so the
+ * spelling can be added rather than papered over.
+ */
+export const looksLikeAScore = (raw: string | null | undefined): boolean =>
+  Boolean(raw && /\d\s*[-–—:]\s*\d/.test(raw))
 
 const DQ_ANY = /DQ/i
 const WALKOVER = /W\s*\/?\s*O/i
@@ -494,7 +511,13 @@ export function validateBracket(input: {
        */
       if (isForfeitLike(m.outcome)) {
         const named = m.outcome === 'disqualification' ? 'a disqualification'
-          : m.outcome === 'walkover' ? 'a walkover' : 'a forfeit'
+          : m.outcome === 'walkover' ? 'a walkover'
+          : m.outcome === 'missing' ? (m.rawScore?.trim() ? `an unreadable result ("${m.rawScore}")` : 'no result at all')
+          : 'a forfeit'
+        if (m.outcome === 'missing' && looksLikeAScore(m.rawScore)) {
+          note(r, m.position, `a result this parser cannot read, but which looks like a score — the page prints "${m.rawScore}"`)
+          roundProven = false; continue
+        }
         const side: 'home' | 'away' | null =
           m.forfeitedBy ??
           (m.winnerHandle && m.home && m.away

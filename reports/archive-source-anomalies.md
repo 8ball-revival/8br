@@ -21,27 +21,27 @@ on it is left unresolved.
   - between: `Drill__` and `t_an_may`
   - source: archive/wayback-seasons/2008/2008 s3.txt, line 57
   - blocks: this match, and every later match depending on its winner (15 downstream position(s) in the bracket)
-- **2009 S5A** (Season 5473, PLAYOFF_SETUP) round 1 match 6: disqualification
+- **2009 S5A** (Season 5473, COMPLETED) round 1 match 6: disqualification
   - printed: `dq-0`
   - between: `mvp_realm` and `xl_gameover_lx`
   - source: archive/wayback-seasons/2009/2009 s5.txt, line 49
   - blocks: this match, and every later match depending on its winner (15 downstream position(s) in the bracket)
-- **2009 S5A** (Season 5473, PLAYOFF_SETUP) round 1 match 8: disqualification
+- **2009 S5A** (Season 5473, COMPLETED) round 1 match 8: disqualification
   - printed: `DQ`
   - between: `xxl_machine_lxx` and `conor_b_1992`
   - source: archive/wayback-seasons/2009/2009 s5.txt, line 57
   - blocks: this match, and every later match depending on its winner (15 downstream position(s) in the bracket)
-- **2009 S5A** (Season 5473, PLAYOFF_SETUP) round 1 match 12: disqualification
+- **2009 S5A** (Season 5473, COMPLETED) round 1 match 12: disqualification
   - printed: `DQ`
   - between: `Mr.PAKiZ_RULES` and `unreal_control`
   - source: archive/wayback-seasons/2009/2009 s5.txt, line 73
   - blocks: this match, and every later match depending on its winner (15 downstream position(s) in the bracket)
-- **2009 S5A** (Season 5473, PLAYOFF_SETUP) round 1 match 14: disqualification
+- **2009 S5A** (Season 5473, COMPLETED) round 1 match 14: disqualification
   - printed: `DQ`
   - between: `_brimstone_` and `ta.lent`
   - source: archive/wayback-seasons/2009/2009 s5.txt, line 81
   - blocks: this match, and every later match depending on its winner (15 downstream position(s) in the bracket)
-- **2009 S5A** (Season 5473, PLAYOFF_SETUP) round 2 match 6: disqualification
+- **2009 S5A** (Season 5473, COMPLETED) round 2 match 6: disqualification
   - printed: `DQ`
   - between: `Powers_Seduction` and `Mr.PAKiZ_RULES`
   - source: archive/wayback-seasons/2009/2009 s5.txt, line 71
@@ -56,7 +56,7 @@ on it is left unresolved.
   - between: `optimus.price_xl` and `_Woo_Hoo_`
   - source: archive/wayback-seasons/2009/2009 s6.txt, line 89
   - blocks: this match, and every later match depending on its winner (15 downstream position(s) in the bracket)
-- **2011 S4A** (Season 5491, PLAYOFFS_LIVE) round 1 match 4: disqualification
+- **2011 S4A** (Season 5491, COMPLETED) round 1 match 4: disqualification
   - printed: `DQ-0`
   - between: `joosed_up` and `ruffer_man`
   - source: archive/wayback-seasons/2011/2011 s4.txt, line 41
