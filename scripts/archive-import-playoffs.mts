@@ -27,7 +27,8 @@ import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { parseWayback, type WaybackBracket, type WaybackMatch } from '../src/lib/archive/wayback.ts'
 import { stripSourceNote } from '../src/lib/archive/manifest.ts'
-import { startSeasonPlayoffs, recordSeasonPlayoffResult, generateSeasonBracket, setSeasonBracketSlot } from '../src/lib/seasons/playoffs.ts'
+import { startSeasonPlayoffs, recordSeasonPlayoffResult, generateSeasonBracket, setSeasonBracketSlot, setSeasonPlayoffIncluded } from '../src/lib/seasons/playoffs.ts'
+import { addSeasonEntrant } from '../src/lib/seasons/service.ts'
 import { closeSeason } from '../src/lib/seasons/close.ts'
 
 assertLocalDatabase()
@@ -46,6 +47,15 @@ interface CoverageRow {
 
 if (!existsSync(COVERAGE)) throw new Error(`run archive-wayback-coverage.mts first — ${COVERAGE} is missing`)
 const coverage = JSON.parse(readFileSync(COVERAGE, 'utf8')) as CoverageRow[]
+
+const RECON = 'reports/archive-playoff-field-reconciliation.json'
+if (!existsSync(RECON)) throw new Error('run archive-playoff-reconcile.mts first')
+interface ReconRow {
+  seasonId: number; safeToReconcile: boolean; reason: string
+  manifestOnly: string[]; waybackOnly: string[]
+  handles: { handle: string; inBracketEntry: boolean; entrantId: number | null; playerId: string | null; resolution: string }[]
+}
+const reconciliation = JSON.parse(readFileSync(RECON, 'utf8')) as ReconRow[]
 
 const targets = coverage.filter((r) => r.eligible && r.seasonId && (ONLY === null || r.seasonId === ONLY))
 console.log(`${targets.length} eligible Season(s)${APPLY ? '' : ' — DRY RUN'}`)
@@ -80,6 +90,10 @@ interface SeasonOutcome {
   finalImported: boolean
   completed: boolean
   stoppedAt: string | null
+  reseated: number
+  deselected: string[]
+  selected: string[]
+  entered: string[]
   notes: string[]
 }
 
@@ -88,7 +102,7 @@ const outcomes: SeasonOutcome[] = []
 for (const row of targets) {
   const seasonId = row.seasonId!
   const label = `${row.competitionYear} S${row.seasonNumber}A`
-  const out: SeasonOutcome = { seasonId, label, imported: 0, byes: 0, skipped: 0, finalImported: false, completed: false, stoppedAt: null, notes: [] }
+  const out: SeasonOutcome = { seasonId, label, imported: 0, byes: 0, skipped: 0, finalImported: false, completed: false, stoppedAt: null, reseated: 0, deselected: [], selected: [], entered: [], notes: [] }
   outcomes.push(out)
 
   const bracket: WaybackBracket = parseWayback(readFileSync(row.sourceFile, 'utf8'), row.sourceFile)
@@ -104,6 +118,45 @@ for (const row of targets) {
     select: { id: true, round: true, slot: true, homeEntrantId: true, awayEntrantId: true, homeGames: true, awayGames: true, winnerEntrantId: true },
     orderBy: [{ round: 'asc' }, { slot: 'asc' }],
   })
+  /*
+   * The selected field, taken from the page when the page proves the whole of it.
+   *
+   * A qualifier who occupies no entry position on a complete bracket did not enter it, so they are
+   * deselected — and only deselected. Their Season entry and every group result they played stay
+   * exactly as they are, and nothing records them as having lost or forfeited, because the source
+   * does not say that. It says only that they are not in the draw.
+   *
+   * Somebody the page seats who the manifest never listed is added and selected, because a complete
+   * bracket showing them in an entry position is evidence they played.
+   */
+  const recon = reconciliation.find((r) => r.seasonId === seasonId)
+  if (recon?.safeToReconcile && APPLY) {
+    for (const handle of recon.manifestOnly) {
+      const e = await entrantFor(seasonId, handle)
+      if (!e) continue
+      const r = await setSeasonPlayoffIncluded(ACTOR, seasonId, e, false)
+      if (r.ok) out.deselected.push(handle)
+      else out.notes.push(`deselect ${handle}: ${r.error}`)
+    }
+    for (const handle of recon.waybackOnly) {
+      let e = await entrantFor(seasonId, handle)
+      if (!e) {
+        const hc = recon.handles.find((h) => h.handle === handle)
+        if (!hc?.playerId) { out.notes.push(`${handle} has no account to enter`); continue }
+        const added = await addSeasonEntrant(ACTOR, seasonId, hc.playerId)
+        if (!added.ok) { out.notes.push(`enter ${handle}: ${added.error}`); continue }
+        e = await entrantFor(seasonId, handle)
+        if (e) out.entered.push(handle)
+      }
+      if (!e) continue
+      const r = await setSeasonPlayoffIncluded(ACTOR, seasonId, e, true)
+      if (r.ok) out.selected.push(handle)
+      else out.notes.push(`select ${handle}: ${r.error}`)
+    }
+  } else if (recon && !recon.safeToReconcile) {
+    out.notes.push(`field left as selected — ${recon.reason}`)
+  }
+
   /*
    * The draft, drawn from the page rather than from the seeding.
    *
@@ -143,6 +196,39 @@ for (const row of targets) {
     }))
   }
   if (dbMatches.length === 0) { out.stoppedAt = 'no bracket could be drawn'; continue }
+
+  /*
+   * Bring round 1 into line with the page, writing only where it differs.
+   *
+   * A bracket drawn before the field was reconciled has a gap where the page seats somebody the
+   * manifest never listed. Re-seating unconditionally would work but would also rewrite every slot
+   * on every run, so each position is compared first and left alone when it already matches — which
+   * is what keeps a repeat run genuinely silent.
+   */
+  if (APPLY && String((await prisma.season.findUniqueOrThrow({ where: { id: seasonId }, select: { lifecycleState: true } })).lifecycleState) === 'PLAYOFF_SETUP') {
+    for (const pm of bracket.matches.filter((m) => m.round === 1)) {
+      const slot = await prisma.seasonPlayoffMatch.findFirst({
+        where: { seasonId, round: 1, slot: pm.position },
+        select: { id: true, homeEntrantId: true, awayEntrantId: true },
+      })
+      if (!slot) continue
+      const sides: ['home' | 'away', typeof pm.home][] = [['home', pm.home], ['away', pm.away]]
+      for (const [side, player] of sides) {
+        const want = player && !player.bye ? await entrantFor(seasonId, player.rawHandle) : null
+        const have = side === 'home' ? slot.homeEntrantId : slot.awayEntrantId
+        if (want === have) continue
+        const r = await setSeasonBracketSlot(ACTOR, seasonId, slot.id, side, want)
+        if (r.ok) out.reseated++
+        else out.notes.push(`reseat R1.${pm.position} ${side}: ${r.error}`)
+      }
+    }
+    dbMatches.length = 0
+    dbMatches.push(...await prisma.seasonPlayoffMatch.findMany({
+      where: { seasonId },
+      select: { id: true, round: true, slot: true, homeEntrantId: true, awayEntrantId: true, homeGames: true, awayGames: true, winnerEntrantId: true },
+      orderBy: [{ round: 'asc' }, { slot: 'asc' }],
+    }))
+  }
 
   /*
    * The database's round 1 must be the bracket the page draws.
@@ -284,7 +370,7 @@ const totals = outcomes.reduce((a, o) => ({
 
 console.log('\n' + JSON.stringify({ seasons: outcomes.length, ...totals }, null, 2))
 for (const o of outcomes) {
-  console.log(`  ${o.label} (${o.seasonId}): imported=${o.imported} byes=${o.byes} skipped=${o.skipped} final=${o.finalImported} completed=${o.completed}${o.stoppedAt ? ` — stops at ${o.stoppedAt}` : ''}`)
+  console.log(`  ${o.label} (${o.seasonId}): imported=${o.imported} byes=${o.byes} skipped=${o.skipped} final=${o.finalImported} completed=${o.completed} field(-${o.deselected.length}/+${o.selected.length}) reseated=${o.reseated}${o.stoppedAt ? ` — stops at ${o.stoppedAt}` : ''}`)
 }
 
 await prisma.$disconnect()

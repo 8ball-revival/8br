@@ -40,3 +40,40 @@ Neither side is preferred. Dropping the four to make the bracket start would dis
 the manifest carries, and adding four positions the page does not show would invent placements. The
 Season keeps its selected field, keeps the source-proven bracket that was drawn and seated from the
 page, and stays in playoff setup with no results imported.
+
+## Manifest-listed qualifiers absent from a complete bracket
+
+Applying the source-priority rule: on a page that proves the whole entry field, a qualifier who
+occupies no entry position did not enter the bracket.
+
+- **2008 S5A** (Season 5463): `bigblue2k` deselected from the playoff field. Their Season entry and
+  all six group matches are untouched. Nothing records them as losing or forfeiting — the source
+  says only that they are not in the draw.
+
+## One substitution per complete bracket — a probable identity pair
+
+Every complete page swaps exactly one handle against the manifest, and the same swap recurs:
+
+| Season | Manifest lists | Bracket seats |
+|---|---|---|
+| 2008 S5A | `bigblue2k` | `sixohtwo` |
+| 2010 S3A | `bigblue2k` | `sixohtwo` |
+| 2010 S4A | `bigblue2k` | `sixohtwo` |
+| 2010 S1A | `sykology` | `TrueBoston` |
+
+The same pair recurring across three Seasons is far better explained by one person under two handles
+than by three separate substitutions. Neither pair has been merged. Both go to the identity review
+alongside the other collision pairs, for the owner to decide.
+
+## A bracket entrant who is not a Season entrant cannot be seated
+
+`sixohtwo` holds an entry position on three complete pages but was never entered in those Seasons,
+because the manifest never listed them. Entering somebody is only possible while registration is
+open, and these Seasons closed theirs long before their group stages were played — so seating them
+would mean rewinding the Season and rebuilding the group stage that is already reconstructed and
+verified.
+
+That is not a price worth paying on an identity question that is probably a rename. 2008 S5A
+therefore stops with that slot unfilled: 18 of 23 recorded results imported, the remaining five
+depending on the unseated position. The Season stays in playoffs, is not completed, has no champion
+and contributes nothing to Rankings.
