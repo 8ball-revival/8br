@@ -193,10 +193,17 @@
     "skipped": 0,
     "finalImported": false,
     "completed": false,
-    "stoppedAt": "1 bracket position(s) could not be seated: R1.12 away TrueBoston (the handle resolves to no entrant in this Season)",
+    "stoppedAt": "2 bracket position(s) could not be seated: R1.12 away TrueBoston (the handle resolves to no entrant in this Season); R1.12 away TrueBoston (the handle resolves to no entrant in this Season)",
     "forfeits": 0,
     "reseated": 0,
     "unseated": [
+      {
+        "round": 1,
+        "slot": 11,
+        "side": "away",
+        "handle": "TrueBoston",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
       {
         "round": 1,
         "slot": 11,
