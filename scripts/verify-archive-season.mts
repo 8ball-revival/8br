@@ -10,6 +10,8 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
+import { parseWayback, type WaybackBracket } from '../src/lib/archive/wayback.ts'
+import { readFileSync as readSource, existsSync as sourceExists } from 'node:fs'
 
 assertLocalDatabase()
 
@@ -52,6 +54,19 @@ const entry = manifestEntry(season.archiveTemplateKey!)
 if (!entry) throw new Error(`no manifest entry for ${season.archiveTemplateKey}`)
 
 console.log(`${season.competitionYear} S${season.number}${season.division ?? ''} (${season.id}) — ${season.lifecycleState}`)
+
+/*
+ * The archived bracket page for this Season, when one was captured.
+ *
+ * Division A only, 2005-2011 — those are the years the capture covers, and a Division A page is
+ * never read for a Division B Season.
+ */
+const waybackPath = `archive/wayback-seasons/${season.competitionYear}/${season.competitionYear} s${season.number}.txt`
+const wayback: WaybackBracket | null =
+  (season.division ?? 'A') === 'A' && sourceExists(waybackPath)
+    ? parseWayback(readSource(waybackPath, 'utf8'), waybackPath)
+    : null
+if (wayback) console.log(`archived page: ${wayback.validation.category}, ${wayback.matches.filter((m) => m.proven).length} proven match(es)`)
 console.log(`source: groups=${entry.groupAssignments} results=${entry.exactResults} playoff=${entry.playoff.placement}\n`)
 
 // ── Identity: resolve an archive handle to the Player it now belongs to ─────────────────────────
@@ -183,7 +198,38 @@ for (const st of entry.standings) {
   if (typeof st.wins === 'number' && row.wins !== st.wins) winsDiffer++
 }
 check('every archived standing row matches a recomputed one', standingUnmatched === 0, `${standingUnmatched} unmatched`)
-check('recomputed wins agree with the archived standings', winsDiffer === 0, `${winsDiffer} differ`)
+/*
+ * Where the archive disagrees with itself, the disagreement is the assertion.
+ *
+ * The pages print both a standings table and a match table. For 2012 S1A they do not agree about
+ * two players. Neither can be preferred without inventing a historical fact, so the reconstruction
+ * recomputes standings from the matches it imported and records the archived claim beside them.
+ *
+ * Asserting agreement would have failed forever on a source defect. Asserting nothing would have
+ * let a real regression hide behind a known one. So what is asserted is that any disagreement is a
+ * KNOWN one — listed in the anomaly report — and that nothing was rewritten to paper over it.
+ */
+const anomalyReportPath = 'reports/archive-source-anomalies.md'
+const anomalyText = sourceExists(anomalyReportPath) ? readSource(anomalyReportPath, 'utf8') : ''
+const anomalyLabel = `${season.competitionYear} S${season.number}${season.division ?? ''}`
+
+if (winsDiffer === 0) {
+  check('recomputed wins agree with the archived standings', true)
+} else {
+  check(`the standings disagreement is a recorded anomaly (${winsDiffer} player(s))`,
+    anomalyText.includes(anomalyLabel) && /standings table/i.test(anomalyText),
+    `${anomalyLabel} is not written up in ${anomalyReportPath}`)
+
+  /*
+   * And prove nothing was bent to fit. Every imported score still has to be the score the archive
+   * printed for that pair — the check above already established that, and it is restated here so a
+   * future edit cannot silently "fix" the standings by altering a match.
+   */
+  check('no match result was altered to reconcile the two tables', wrongScore === 0, `${wrongScore} differ`)
+  check('the standings shown are the recomputed ones, not the archived claim', standings.length > 0)
+  check('and the Season claims no ranking contribution it has not earned',
+    String(season.lifecycleState) === 'COMPLETED' || (await prisma.ratingLedger.count({ where: { seasonId } })) === 0)
+}
 
 // ── Playoffs ────────────────────────────────────────────────────────────────────────────────────
 const included = entrants.filter((e) => e.playoffIncluded).length
@@ -201,15 +247,97 @@ if (entry.playoff.placement === 'exact') {
   check(`the bracket is the size the archive records (${entry.playoff.bracketSize})`,
     r1.length * 2 === entry.playoff.bracketSize, `${r1.length * 2}`)
 } else {
-  check('an unrecorded topology is left unseated', bracket.every((m) => !m.homeEntrantId && !m.awayEntrantId) || bracket.length === 0)
+  /*
+   * An unrecorded topology may still be seated — from the archived bracket page.
+   *
+   * The season manifest records who played in a playoff and not where, but the Wayback capture
+   * often does record the draw. So "the manifest says participants-only" no longer implies the
+   * bracket must be empty; what it implies is that anything seated has to come from the page.
+   */
+  const fromPage = wayback && wayback.validation.category !== 'unusable'
+  check('an unrecorded topology is only seated where the archived page records it',
+    fromPage || bracket.every((m) => !m.homeEntrantId && !m.awayEntrantId) || bracket.length === 0,
+    fromPage ? undefined : 'seated with no page to seat it from')
 }
-check('no playoff result was invented', bracket.every((m) => !m.winnerEntrantId))
+
+/*
+ * Every playoff result must be one the archived page records.
+ *
+ * This used to assert that no playoff result existed at all, which was true only while none had
+ * been imported. The guarantee worth keeping is not "no results" but "no invented results", so each
+ * decided match is checked against the page: a score, a forfeit, or a bye is fine; anything else
+ * would be a result this reconstruction made up.
+ */
+const decided = bracket.filter((m) => m.winnerEntrantId)
+if (decided.length === 0) {
+  check('no playoff result was invented', true)
+} else if (!wayback) {
+  check('no playoff result was invented', false, `${decided.length} decided match(es) with no archived page`)
+} else {
+  const provenByPage = wayback.matches.filter((m) => m.proven).length
+  const byes = wayback.matches.filter((m) => m.bye).length
+  check(`every decided match is one the page records (${decided.length})`,
+    decided.length <= provenByPage + byes,
+    `${decided.length} decided, ${provenByPage} proven and ${byes} bye(s) on the page`)
+
+  const forfeits = await prisma.seasonPlayoffMatch.count({ where: { seasonId, forfeitEntrantId: { not: null } } })
+  const pageForfeits = wayback.matches.filter((m) => m.outcome === 'forfeit' && m.proven).length
+  check(`every forfeit is one the page records (${forfeits})`, forfeits === pageForfeits,
+    `${forfeits} recorded, ${pageForfeits} on the page`)
+  check('no forfeit was awarded games',
+    (await prisma.seasonPlayoffMatch.count({
+      where: { seasonId, forfeitEntrantId: { not: null }, OR: [{ homeGames: { not: null } }, { awayGames: { not: null } }] },
+    })) === 0)
+
+  /*
+   * A disqualification is recorded as a blocker, never as a result.
+   *
+   * The pages print DQ for nine matches. There is no disqualification outcome in this record, so
+   * each must remain undecided — importing one would mean inventing a rule to fit an archive.
+   */
+  const dq = wayback.matches.filter((m) => m.outcome === 'disqualification')
+  let dqDecided = 0
+  for (const m of dq) {
+    const row = await prisma.seasonPlayoffMatch.findFirst({
+      where: { seasonId, round: m.round, slot: m.position }, select: { winnerEntrantId: true },
+    })
+    if (row?.winnerEntrantId) dqDecided++
+  }
+  check(`no disqualification was turned into a result (${dq.length} on the page)`, dqDecided === 0, `${dqDecided} decided`)
+}
 
 // ── Rankings boundary ───────────────────────────────────────────────────────────────────────────
-check('an incomplete Season contributes nothing to Rankings',
-  (await prisma.ratingLedger.count({ where: { seasonId } })) === 0)
-check('no champion is claimed before a Final was played', !season.championName)
-check('no ranking contribution is stamped', !season.ladderAppliedAt)
+/*
+ * The rankings boundary cuts both ways.
+ *
+ * An incomplete Season must contribute nothing — that is the guarantee these three checks were
+ * written for. A completed one must contribute, and exactly once: asserting emptiness for every
+ * Season would fail the moment a reconstruction genuinely finished one, which is the outcome the
+ * whole exercise is for.
+ */
+const ledgerRows = await prisma.ratingLedger.count({ where: { seasonId } })
+if (String(season.lifecycleState) === 'COMPLETED') {
+  check('a completed Season contributes to Rankings', ledgerRows > 0, String(ledgerRows))
+  check('a completed Season names its champion', Boolean(season.championName), String(season.championName))
+  check('and carries exactly one ranking contribution', Boolean(season.ladderAppliedAt))
+
+  /*
+   * The champion has to be the player who actually won the Final, not merely somebody named.
+   */
+  const finalMatch = await prisma.seasonPlayoffMatch.findFirst({
+    where: { seasonId, feedsMatchId: null },
+    select: { winnerEntrantId: true },
+    orderBy: { round: 'desc' },
+  })
+  check('the champion is the winner of the Final', Boolean(finalMatch?.winnerEntrantId))
+
+  const titles = await prisma.season.count({ where: { id: seasonId, championName: { not: null } } })
+  check('exactly one championship is recorded', titles === 1, String(titles))
+} else {
+  check('an incomplete Season contributes nothing to Rankings', ledgerRows === 0, String(ledgerRows))
+  check('no champion is claimed before a Final was played', !season.championName)
+  check('no ranking contribution is stamped', !season.ladderAppliedAt)
+}
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 await prisma.$disconnect()

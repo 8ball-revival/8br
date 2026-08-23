@@ -169,8 +169,19 @@ try {
      * keeps the record and retires the duplicate identity, so finding no Player under the old
      * handle is the merge having worked, not a member having been lost.
      */
+    /*
+     * A merged member is meant to be gone, and its handle lives on as an alias.
+     *
+     * Looking only at the retired row's own name missed HaVoK_73, whose row carries a different
+     * Preferred Name. The alias is the durable trace of the old handle, so that is what to look for.
+     */
     const merged = await prisma.playerMerge.count({
-      where: { mergedPlayer: { primaryName: { equals: handle, mode: 'insensitive' } } },
+      where: {
+        OR: [
+          { mergedPlayer: { primaryName: { equals: handle, mode: 'insensitive' } } },
+          { canonicalPlayer: { aliases: { some: { alias: { equals: handle, mode: 'insensitive' } } } } },
+        ],
+      },
     })
     if (merged === 0) missing.push(handle)
   }

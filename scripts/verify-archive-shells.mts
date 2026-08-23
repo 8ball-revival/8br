@@ -12,7 +12,7 @@
  */
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
-import { loadManifest, validateManifest, templateStatus, isSharedStage, SHARED_STAGE_MESSAGE } from '../src/lib/archive/manifest.ts'
+import { loadManifest, manifestEntry, validateManifest, templateStatus, isSharedStage, SHARED_STAGE_MESSAGE } from '../src/lib/archive/manifest.ts'
 import { matchHandles, RULE_CONFIDENCE, UNRESOLVED_LABEL, type EntrantIdentity, type ArchiveIdentity } from '../src/lib/archive/matching.ts'
 import {
   parseQuery, encodeQuery, applyQuery, progressOf, progressSummary,
@@ -398,18 +398,58 @@ section('Auto Assign refuses what it cannot prove')
    * guard being tested two blocks above. Naming the lifecycle states makes the fixture say what it
    * needs rather than hoping for it.
    */
-  const normalShell = await prisma.season.findFirst({
-    where: {
-      archiveTemplateKey: { startsWith: '8brcam-2007-' },
-      lifecycleState: { in: ['REGISTRATION_SCHEDULED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP'] },
+  /*
+   * A shell of this suite's own making.
+   *
+   * Group assignment used to be exercised against whichever real archive shell was still in setup.
+   * The reconstruction has now processed every one of them, so that fixture became unsatisfiable
+   * through the work succeeding — and the two that remain have no group assignments in their source,
+   * so Auto Assign refuses them for good reason and testing the preview against one would be testing
+   * the refusal while claiming otherwise.
+   *
+   * So the Season is built here, with invented participants, and the archive entry it is assigned
+   * from is injected rather than looked up. Nothing real is borrowed, renamed or mutated.
+   */
+  const SHELL_TAG = `zzshell-${process.pid}`
+  const shellSeries = await prisma.competitionSeries.create({
+    data: { name: `Shell Series ${SHELL_TAG}`, shortName: 'ZZSHELL', slug: `${SHELL_TAG}-series` },
+    select: { id: true },
+  })
+  const syntheticShell = await prisma.season.create({
+    data: {
+      number: 1, competitionYear: 2098, competitionSeriesId: shellSeries.id,
+      slug: `${SHELL_TAG}-season`, division: 'A',
+      archiveTemplateKey: `${SHELL_TAG}-template`,
+      lifecycleState: 'GROUP_SETUP', reconstruction: true, publiclyVisible: false, countsTowardRankings: false,
     },
     select: { id: true, archiveTemplateKey: true },
-    orderBy: { id: 'asc' },
   })
+  const normalShell: { id: number; archiveTemplateKey: string | null } | null = syntheticShell
+
+  /** A minimal entry with real group assignments, so the preview has something to plan. */
+  const shellTemplate = (key: string) => {
+    if (key !== syntheticShell.archiveTemplateKey) return manifestEntry(key)
+    const people = [0, 1, 2, 3].map((i) => ({
+      sourceId: `${SHELL_TAG}-P${i}`, rawHandle: `${SHELL_TAG}.p${i}`, normalizedHandle: `${SHELL_TAG}.p${i}`,
+      rawName: `Shell ${i}`, normalizedName: `shell ${i}`, sourceNote: null, groupName: 'A', slot: i,
+    }))
+    return {
+      templateKey: key, sourceKey: key, competitionSlug: '8brcam' as const, competitionYear: 2098,
+      seasonNumber: 1, division: 'A' as const, rawSeasonTitle: 'Shell', rawDivision: 'A',
+      format: 'GROUPS_THEN_PLAYOFFS' as const, competitionMonth: null, gamesPerMatch: 10,
+      groupNames: ['A'], participants: people, matches: [], standings: [],
+      groupAssignments: 'complete' as const, exactResults: 'missing' as const,
+      sharedGroupStageSourceKey: null, ambiguousPlacements: [],
+      playoff: { placement: 'none' as const, sourceConfidence: null, format: null, bracketSize: null,
+        participants: [], championSourceId: null, runnerUpSourceId: null, unresolved: [] },
+      unresolved: [],
+      provenance: { sourceFile: 'fixture', sourceSection: 'fixture', sourceYear: 2098, sourceMonth: null, confidence: 'fixture' },
+    }
+  }
   check('a normal shell exists to test', !!normalShell,
     'no 2007 shell is still in setup — every one has been closed')
   if (normalShell) {
-    const g = await previewGroupAssign(normalShell.id)
+    const g = await previewGroupAssign(normalShell.id, {}, shellTemplate)
     check('a normal shell previews rather than blocking', !isBlocked(g))
     if (!isBlocked(g)) {
       // With no entrants added, everything the archive knows is unresolved — and nothing is placed.
@@ -425,6 +465,16 @@ section('Auto Assign refuses what it cannot prove')
     const sc = await previewGroupScores(normalShell.id)
     check('score Auto Assign refuses before the group stage', isBlocked(sc))
   }
+
+  // The synthetic shell exists only for this run.
+  await prisma.seasonEntrant.deleteMany({ where: { seasonId: syntheticShell.id } })
+  await prisma.auditLog.deleteMany({ where: { entity: 'Season', entityId: String(syntheticShell.id) } })
+  await prisma.season.delete({ where: { id: syntheticShell.id } })
+  await prisma.competitionSeries.delete({ where: { id: shellSeries.id } })
+  check('the synthetic shell left nothing behind',
+    (await prisma.season.count({ where: { competitionYear: 2098 } })) === 0 &&
+    (await prisma.competitionSeries.count({ where: { slug: { startsWith: 'zzshell-' } } })) === 0)
+
 
   const notArchive = await prisma.season.findFirst({
     where: { archiveTemplateKey: null }, select: { id: true },
