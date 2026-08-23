@@ -98,7 +98,7 @@ bye
  	 	l2_o_c_k_y	 	 	 	 	 	 	 	 	 
  	 	DQ	 	 	 	 	 	 	 	 	 
  	 	Pool_Warrior2002	 	 	 	 	 	 	 	 	 
- 	 	lvlr.l3rutal_king	 	 	 	 	 	 	 	 	 
+ 	 	lvlr_.l3utal_king	 	 	 	 	 	 	 	 	 
  	 	8-6	 	 	 	 	 	 	 	 	 
  	 	sixohtwo	 	 	 	 	 	 	 	 	 
  	 	XX_APOCALIPSYS_XX	 	 	 	 	 	 	 	 	 

@@ -129,6 +129,46 @@ function convert(paste: string, title: string): { text: string; notes: string[];
   if (at !== tokens.length - 1) notes.push(`${tokens.length - at - 1} token(s) left over after the champion`)
 
   /*
+   * Settle on one spelling per person before reading any result off the page.
+   *
+   * A single bracket can spell somebody two ways -- "nichilicious" in round one and "nishilicious"
+   * in round two -- and each time it does, the page appears to advance a player who was never in
+   * the match. That is a typing slip in the source, not a fact about who played, so the spellings
+   * are grouped and the page is made to say one of them: whichever it uses most often, and the one
+   * it printed first if it uses them equally.
+   *
+   * Only near-identical spellings group. Two handles that merely resemble each other are two people
+   * until an alias says otherwise, and that decision belongs to identity resolution, not here.
+   */
+  {
+    const seen: { name: string; key: string; count: number; first: number }[] = []
+    let order = 0
+    for (const round of rounds)
+      for (const m of round)
+        for (const n of [m.a, m.b])
+          if (n) {
+            const k = key(n)
+            const hit = seen.find((x) => x.name === n)
+            if (hit) hit.count++
+            else seen.push({ name: n, key: k, count: 1, first: order++ })
+          }
+
+    const canonical = new Map<string, string>()
+    for (const x of seen) {
+      const cluster = seen.filter((y) => y.key === x.key || close(x.key, y.key))
+      if (cluster.length < 2) continue
+      const best = cluster.reduce((a, b) => (b.count > a.count || (b.count === a.count && b.first < a.first) ? b : a))
+      if (best.name !== x.name) canonical.set(x.name, best.name)
+    }
+    for (const round of rounds)
+      for (const m of round) {
+        const ra = canonical.get(m.a); if (ra) m.a = ra
+        if (m.b) { const rb = canonical.get(m.b); if (rb) m.b = rb }
+      }
+    for (const [from, to] of canonical) notes.push(`read "${from}" as "${to}" — the same handle spelled two ways on one page`)
+  }
+
+  /*
    * Resolve every match against the round that follows it, last round first, so the champion decides
    * the final and each earlier round is checked against the winners just settled.
    */

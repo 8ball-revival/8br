@@ -42,7 +42,7 @@ bye
  	Asskicking_101	 	 	 	 	 	 	 	 	 	 
 3-7	 	 	 	 	 	 	 	 	 	 	 
 21	 	 	 	 	 	 	 	 	 	 	 
- 	l00%good	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
 2	 	 	 	 	 	 	 	 	 	 	 
  	au.stralian	 	 	 	 	 	 	 	 	 	 
 bye	 	 	 	 	 	 	 	 	 	 	 
