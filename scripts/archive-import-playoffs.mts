@@ -26,9 +26,8 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { parseWayback, type WaybackBracket, type WaybackMatch } from '../src/lib/archive/wayback.ts'
-import { stripSourceNote } from '../src/lib/archive/manifest.ts'
+import { resolveCanonical } from '../src/lib/archive/canonical-identity.ts'
 import { startSeasonPlayoffs, recordSeasonPlayoffResult, generateSeasonBracket, setSeasonBracketSlot, setSeasonPlayoffIncluded } from '../src/lib/seasons/playoffs.ts'
-import { addSeasonEntrant } from '../src/lib/seasons/service.ts'
 import { closeSeason } from '../src/lib/seasons/close.ts'
 
 assertLocalDatabase()
@@ -51,34 +50,30 @@ const coverage = JSON.parse(readFileSync(COVERAGE, 'utf8')) as CoverageRow[]
 const RECON = 'reports/archive-playoff-field-reconciliation.json'
 if (!existsSync(RECON)) throw new Error('run archive-playoff-reconcile.mts first')
 interface ReconRow {
-  seasonId: number; safeToReconcile: boolean; reason: string
-  manifestOnly: string[]; waybackOnly: string[]
-  handles: { handle: string; inBracketEntry: boolean; entrantId: number | null; playerId: string | null; resolution: string }[]
+  seasonId: number
+  safeToReconcile: boolean
+  reason: string
+  toSelect: string[]
+  toDeselect: string[]
+  sameCanonicalIdentity: { manifest: string; bracket: string; playerId: string }[]
+  people: { playerId: string; entrantId: number | null; cueverseId: string | null }[]
 }
 const reconciliation = JSON.parse(readFileSync(RECON, 'utf8')) as ReconRow[]
 
 const targets = coverage.filter((r) => r.eligible && r.seasonId && (ONLY === null || r.seasonId === ONLY))
 console.log(`${targets.length} eligible Season(s)${APPLY ? '' : ' — DRY RUN'}`)
 
-/** An archive handle resolved to the entrant row that represents that person in this Season. */
+/**
+ * An archive handle resolved to the entrant that represents that person in this Season.
+ *
+ * Through the canonical resolver, because the entrant row still carries whichever spelling entered
+ * it. After the merge, the row that was `bigblue2k` belongs to the Player whose CueVerse ID is now
+ * `sixohtwo`; matching the page's `sixohtwo` against the row's stored handle finds nothing, and the
+ * bracket position it names looks unfillable.
+ */
 async function entrantFor(seasonId: number, handle: string): Promise<number | null> {
-  const h = stripSourceNote(handle).toLowerCase()
-  const direct = await prisma.seasonEntrant.findFirst({
-    where: { seasonId, cueverseId: { equals: h, mode: 'insensitive' } },
-    select: { id: true },
-  })
-  if (direct) return direct.id
-  // A merged handle survives as an alias on the account that absorbed it.
-  const alias = await prisma.playerAlias.findFirst({
-    where: { alias: { equals: stripSourceNote(handle), mode: 'insensitive' } },
-    select: { playerId: true },
-  })
-  if (!alias) return null
-  const viaAlias = await prisma.seasonEntrant.findFirst({
-    where: { seasonId, playerId: alias.playerId },
-    select: { id: true },
-  })
-  return viaAlias?.id ?? null
+  const id = await resolveCanonical(seasonId, handle)
+  return id.entrantId
 }
 
 interface SeasonOutcome {
@@ -131,31 +126,63 @@ for (const row of targets) {
    */
   const recon = reconciliation.find((r) => r.seasonId === seasonId)
   if (recon?.safeToReconcile && APPLY) {
-    for (const handle of recon.manifestOnly) {
-      const e = await entrantFor(seasonId, handle)
-      if (!e) continue
-      const r = await setSeasonPlayoffIncluded(ACTOR, seasonId, e, false)
-      if (r.ok) out.deselected.push(handle)
-      else out.notes.push(`deselect ${handle}: ${r.error}`)
+    /*
+     * One change per person, computed between finished sets.
+     *
+     * The previous version walked raw handles: it deselected everyone the manifest named but the
+     * bracket did not, then selected everyone the bracket named but the manifest did not. After a
+     * merge those two lists can name the same person under different spellings, so it acted twice on
+     * one entrant row and left them deselected — out of a playoff they had won matches in. The
+     * reconciliation now hands over Player ids, and each is touched at most once.
+     */
+    const entrantOf = async (playerId: string) => {
+      const known = recon.people.find((x) => x.playerId === playerId)?.entrantId
+      if (known) return known
+      const e = await prisma.seasonEntrant.findFirst({ where: { seasonId, playerId }, select: { id: true } })
+      return e?.id ?? null
     }
-    for (const handle of recon.waybackOnly) {
-      let e = await entrantFor(seasonId, handle)
-      if (!e) {
-        const hc = recon.handles.find((h) => h.handle === handle)
-        if (!hc?.playerId) { out.notes.push(`${handle} has no account to enter`); continue }
-        const added = await addSeasonEntrant(ACTOR, seasonId, hc.playerId)
-        if (!added.ok) { out.notes.push(`enter ${handle}: ${added.error}`); continue }
-        e = await entrantFor(seasonId, handle)
-        if (e) out.entered.push(handle)
+
+    /*
+     * Only write a selection that is not already what it should be.
+     *
+     * setSeasonPlayoffIncluded invalidates the draft, which is right — changing who is in the
+     * playoff invalidates the draw. But the reconciliation report is read from disk and describes
+     * the state before this run, so a repeat run re-applied the same selection and destroyed the
+     * bracket it had just built. Comparing first makes the second run genuinely silent.
+     */
+    const currentlyIncluded = new Set(
+      (await prisma.seasonEntrant.findMany({ where: { seasonId, playoffIncluded: true }, select: { playerId: true } }))
+        .map((e) => e.playerId)
+        .filter((x): x is string => Boolean(x)),
+    )
+
+    for (const playerId of recon.toDeselect) {
+      if (!currentlyIncluded.has(playerId)) continue
+      const entrantId = await entrantOf(playerId)
+      if (!entrantId) continue
+      const r = await setSeasonPlayoffIncluded(ACTOR, seasonId, entrantId, false)
+      if (r.ok) out.deselected.push(recon.people.find((x) => x.playerId === playerId)?.cueverseId ?? playerId)
+      else out.notes.push(`deselect ${playerId}: ${r.error}`)
+    }
+    for (const playerId of recon.toSelect) {
+      if (currentlyIncluded.has(playerId)) continue
+      const entrantId = await entrantOf(playerId)
+      if (!entrantId) {
+        out.notes.push(`${recon.people.find((x) => x.playerId === playerId)?.cueverseId ?? playerId} is on the bracket but not entered in this Season`)
+        continue
       }
-      if (!e) continue
-      const r = await setSeasonPlayoffIncluded(ACTOR, seasonId, e, true)
-      if (r.ok) out.selected.push(handle)
-      else out.notes.push(`select ${handle}: ${r.error}`)
+      const r = await setSeasonPlayoffIncluded(ACTOR, seasonId, entrantId, true)
+      if (r.ok) out.selected.push(recon.people.find((x) => x.playerId === playerId)?.cueverseId ?? playerId)
+      else out.notes.push(`select ${playerId}: ${r.error}`)
+    }
+    for (const same of recon.sameCanonicalIdentity) {
+      out.notes.push(`${same.manifest} and ${same.bracket} are one player — no selection change`)
     }
   } else if (recon && !recon.safeToReconcile) {
     out.notes.push(`field left as selected — ${recon.reason}`)
   }
+
+
 
   /*
    * The draft, drawn from the page rather than from the seeding.
