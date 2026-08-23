@@ -45,3 +45,21 @@ visible outside the tool that made it.
 - 2013 S1A — `l00%good` read as `100%good`
 - 2013 S2A — `x_i_am_me` read as `x_i_am_me_x`
 - 2013 S5A — `King_jLuis` read as `KingjLuis`
+
+## Applied
+
+`King_jLuis`, `KingjLuis`, `Kingj_Luis` and `shadow_man_` are now aliases of **Starkiller**
+(`cmsys8lj000016rigqrgtm4qb`, 13 entrants), which the owner named canonical for neo. That account
+already held `starkiller`, `cockyneo`, `poolkingneo` and `xgodneox` — so 2012 S2A's champion,
+xGodNeox, is this same person.
+
+## Open, not acted on
+
+**`trustneo`** is a separate Player with four entrants. The name suggests the same person and the
+owner has not mentioned it, so it stays separate. It is a merge if it is anybody.
+
+**`iamalmostgod` is on two people.** Starkiller already carries it as an alias. The owner separately
+said `cocky_guy` is Craig, who "also used I_am_aimost_god". Both cannot be right, and whichever way
+it resolves it moves matches between two players. Nothing should read that handle until it is
+settled — note also that Starkiller carries `cockyneo`, so the two identities may already be
+entangled from an earlier pass rather than only in the sources.
