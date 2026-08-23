@@ -9,11 +9,9 @@
       "the results run unbroken to the Final"
     ],
     "manifestPeople": 26,
-    "bracketPeople": 25,
-    "intersection": 25,
-    "manifestOnly": [
-      "l3amm_aka_legend"
-    ],
+    "bracketPeople": 26,
+    "intersection": 26,
+    "manifestOnly": [],
     "bracketOnly": [],
     "sameCanonicalIdentity": [],
     "currentlySelected": 26,
@@ -21,9 +19,7 @@
     "toSelect": [],
     "toDeselect": [],
     "unchanged": 26,
-    "unresolved": [
-      "l3amm_aka_legend®"
-    ],
+    "unresolved": [],
     "ambiguous": [],
     "safeToReconcile": false,
     "reason": "the page is not a complete entry field: the results run unbroken to the Final",
@@ -91,10 +87,12 @@
         "manifestSpellings": [
           "l3amm_aka_legend"
         ],
-        "bracketSpellings": [],
+        "bracketSpellings": [
+          "l3amm_aka_legend"
+        ],
         "selectedNow": true,
         "sameCanonicalIdentity": false,
-        "classification": "manifest only"
+        "classification": "in both sources"
       },
       {
         "playerId": "cmsxh8m4l00006rf405ws72ne",

@@ -9,7 +9,7 @@ them from a playoff they had won matches in.
 
 | Season | DB id | Category | Page complete | Manifest | Bracket | Both | Manifest-only | Bracket-only | Same person | Selected | Proposed | +/− | Safe |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2008 S3A | 5459 | partial | no | 26 | 25 | 25 | 1 | 0 | 0 | 26 | 26 | +0/−0 | no |
+| 2008 S3A | 5459 | partial | no | 26 | 26 | 26 | 0 | 0 | 0 | 26 | 26 | +0/−0 | no |
 | 2008 S4A | 5461 | partial | no | 24 | 24 | 24 | 0 | 0 | 0 | 24 | 24 | +0/−0 | no |
 | 2008 S5A | 5463 | full | yes | 24 | 24 | 24 | 0 | 0 | 1 | 24 | 24 | +0/−0 | **yes** |
 | 2009 S1A | 5465 | partial | no | 27 | 27 | 27 | 0 | 0 | 1 | 27 | 27 | +0/−0 | no |

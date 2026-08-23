@@ -86,6 +86,7 @@ interface SeasonOutcome {
   completed: boolean
   stoppedAt: string | null
   reseated: number
+  unseated: { round: number; slot: number; side: string; handle: string; reason: string }[]
   deselected: string[]
   selected: string[]
   entered: string[]
@@ -97,7 +98,7 @@ const outcomes: SeasonOutcome[] = []
 for (const row of targets) {
   const seasonId = row.seasonId!
   const label = `${row.competitionYear} S${row.seasonNumber}A`
-  const out: SeasonOutcome = { seasonId, label, imported: 0, byes: 0, skipped: 0, finalImported: false, completed: false, stoppedAt: null, reseated: 0, deselected: [], selected: [], entered: [], notes: [] }
+  const out: SeasonOutcome = { seasonId, label, imported: 0, byes: 0, skipped: 0, finalImported: false, completed: false, stoppedAt: null, reseated: 0, unseated: [], deselected: [], selected: [], entered: [], notes: [] }
   outcomes.push(out)
 
   const bracket: WaybackBracket = parseWayback(readFileSync(row.sourceFile, 'utf8'), row.sourceFile)
@@ -212,8 +213,22 @@ for (const row of targets) {
       for (const [side, player] of sides) {
         // A bye is an empty side. It is never a player and never becomes a result.
         const entrantId = player && !player.bye ? await entrantFor(seasonId, player.rawHandle) : null
+        if (player && !player.bye && entrantId === null) {
+          /*
+           * A named player who cannot be resolved leaves a hole in the draw.
+           *
+           * Writing the null anyway produced a bracket that looked seated and then failed to start,
+           * reporting only that some selected player "has no bracket position" — the symptom, with
+           * no trace of which handle failed or why. Recording it here keeps the cause.
+           */
+          out.unseated.push({ round: 1, slot: pm.position, side, handle: player.rawHandle,
+            reason: 'the handle resolves to no entrant in this Season' })
+          continue
+        }
         const r = await setSeasonBracketSlot(ACTOR, seasonId, slot.id, side, entrantId)
-        if (!r.ok) out.notes.push(`seat R1.${pm.position} ${side}: ${r.error}`)
+        if (!r.ok) {
+          out.unseated.push({ round: 1, slot: pm.position, side, handle: player?.rawHandle ?? '(bye)', reason: r.error ?? 'refused' })
+        }
       }
     }
     dbMatches.push(...await prisma.seasonPlayoffMatch.findMany({
@@ -242,11 +257,16 @@ for (const row of targets) {
       const sides: ['home' | 'away', typeof pm.home][] = [['home', pm.home], ['away', pm.away]]
       for (const [side, player] of sides) {
         const want = player && !player.bye ? await entrantFor(seasonId, player.rawHandle) : null
+        if (player && !player.bye && want === null) {
+          out.unseated.push({ round: 1, slot: pm.position, side, handle: player.rawHandle,
+            reason: 'the handle resolves to no entrant in this Season' })
+          continue
+        }
         const have = side === 'home' ? slot.homeEntrantId : slot.awayEntrantId
         if (want === have) continue
         const r = await setSeasonBracketSlot(ACTOR, seasonId, slot.id, side, want)
         if (r.ok) out.reseated++
-        else out.notes.push(`reseat R1.${pm.position} ${side}: ${r.error}`)
+        else out.unseated.push({ round: 1, slot: pm.position, side, handle: player?.rawHandle ?? '(bye)', reason: r.error ?? 'refused' })
       }
     }
     dbMatches.length = 0
@@ -292,6 +312,11 @@ for (const row of targets) {
   }
 
   // ── Start the playoffs through the canonical service ──────────────────────────────────────────
+  if (out.unseated.length > 0) {
+    out.stoppedAt = `${out.unseated.length} bracket position(s) could not be seated: ` +
+      out.unseated.slice(0, 4).map((u) => `R${u.round}.${u.slot + 1} ${u.side} ${u.handle} (${u.reason})`).join('; ')
+    continue
+  }
   if (String(season.lifecycleState) === 'PLAYOFF_SETUP') {
     const s = await startSeasonPlayoffs(ACTOR, seasonId)
     if (!s.ok) { out.stoppedAt = `start playoffs: ${s.error}`; continue }
@@ -397,7 +422,7 @@ const totals = outcomes.reduce((a, o) => ({
 
 console.log('\n' + JSON.stringify({ seasons: outcomes.length, ...totals }, null, 2))
 for (const o of outcomes) {
-  console.log(`  ${o.label} (${o.seasonId}): imported=${o.imported} byes=${o.byes} skipped=${o.skipped} final=${o.finalImported} completed=${o.completed} field(-${o.deselected.length}/+${o.selected.length}) reseated=${o.reseated}${o.stoppedAt ? ` — stops at ${o.stoppedAt}` : ''}`)
+  console.log(`  ${o.label} (${o.seasonId}): imported=${o.imported} byes=${o.byes} skipped=${o.skipped} final=${o.finalImported} completed=${o.completed} field(-${o.deselected.length}/+${o.selected.length}) reseated=${o.reseated} unseated=${o.unseated.length}${o.stoppedAt ? ` — stops at ${o.stoppedAt}` : ''}`)
 }
 
 await prisma.$disconnect()

@@ -195,7 +195,15 @@ export function stripSourceNote(handle: string): string {
      * they were plainly in. It records how somebody qualified, never who they are.
      */
     .replace(/\s*[[(]?\s*w\s*\/?\s*c\s*[\])]?\s*$/i, '')
-    .replace(/[·•]\s*$/, '')
+    /*
+     * The printing flourish some bracket pages append to a handle.
+     *
+     * It survives the capture as a lone 0xAE byte, and was only being removed inside the Wayback
+     * parser — so the same person resolved from a parsed handle and failed to resolve from the raw
+     * one, leaving four bracket positions empty in 2010 S4A. It belongs here, with the other things
+     * the source prints beside a name without meaning them as part of it.
+     */
+    .replace(/[·•®Â�]+\s*$/, '')
     .replace(/\s*-\s*x$/i, '')
     .trim()
 }
