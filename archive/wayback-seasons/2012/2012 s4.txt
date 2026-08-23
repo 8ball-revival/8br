@@ -1,11 +1,13 @@
 2012 SEASON 4 - DIVISION A Playoff
-Converted from the archived 2012-era page; one table per round in the original.
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
 Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
 1	 	 	 	 	 	 	 	 	 	 	 
  	c-b	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 32	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 16	 	 	 	 	 	 	 	 	 	 	 
  	Cocky_Guy	 	 	 	 	 	 	 	 	 	 
 7-5	 	 	 	 	 	 	 	 	 	 	 
@@ -23,9 +25,9 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	PRO_BOY	 	 	 	 	 	 	 	 	 	 
 4	 	 	 	 	 	 	 	 	 	 	 
  	Xx_CK_xX	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 29	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 13	 	 	 	 	 	 	 	 	 	 	 
  	murkedddd	 	 	 	 	 	 	 	 	 	 
 7-4	 	 	 	 	 	 	 	 	 	 	 
@@ -33,9 +35,9 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	empire_l3mx	 	 	 	 	 	 	 	 	 	 
 5	 	 	 	 	 	 	 	 	 	 	 
  	Kevins_Yahoo	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 28	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 12	 	 	 	 	 	 	 	 	 	 	 
  	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 	 
 3-7	 	 	 	 	 	 	 	 	 	 	 
@@ -43,9 +45,9 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	Jeremy__	 	 	 	 	 	 	 	 	 	 
 2	 	 	 	 	 	 	 	 	 	 	 
  	x_i_am_me_x	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 31	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 15	 	 	 	 	 	 	 	 	 	 	 
  	Mr.Marvel	 	 	 	 	 	 	 	 	 	 
 Forfeit	 	 	 	 	 	 	 	 	 	 	 
@@ -53,9 +55,9 @@ Forfeit
  	stephenb_	 	 	 	 	 	 	 	 	 	 
 7	 	 	 	 	 	 	 	 	 	 	 
  	MJ_The_King	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 26	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 10	 	 	 	 	 	 	 	 	 	 	 
  	Sourwood	 	 	 	 	 	 	 	 	 	 
 7-0	 	 	 	 	 	 	 	 	 	 	 
@@ -63,9 +65,9 @@ Forfeit
  	xlx_s_p_g_xlx	 	 	 	 	 	 	 	 	 	 
 3	 	 	 	 	 	 	 	 	 	 	 
  	deep.cerebro	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 30	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 14	 	 	 	 	 	 	 	 	 	 	 
  	sleepyman619	 	 	 	 	 	 	 	 	 	 
 7-5	 	 	 	 	 	 	 	 	 	 	 
@@ -73,9 +75,9 @@ Forfeit
  	aka_hero	 	 	 	 	 	 	 	 	 	 
 6	 	 	 	 	 	 	 	 	 	 	 
  	sixohtwo	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 27	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 11	 	 	 	 	 	 	 	 	 	 	 
  	_dante	 	 	 	 	 	 	 	 	 	 
 7-4	 	 	 	 	 	 	 	 	 	 	 

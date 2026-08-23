@@ -1,0 +1,131 @@
+2013 SEASON 2 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	sixohtwo	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	x_i_am_me	 	 	 	 	 	 	 	 	 	 
+7-2	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	Reps	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	SpinBreak	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	xz_legendary_zx	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	iiviijj	 	 	 	 	 	 	 	 	 	 
+6-8	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	bluffing	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	Asskicking_101	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	x_oldschooler_x	 	 	 	 	 	 	 	 	 	 
+7-3	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	xGodNeox	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	Buddybong	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	x_hero_x	 	 	 	 	 	 	 	 	 	 
+7-3	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	lvlr.l3rutal_king	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	AzN_PrIdE_Luva	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	cue.logic	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	Xx_Different_Class_xX	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	tanmay_keshav	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	kevin+the+one	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	grey_gooose	 	 	 	 	 	 	 	 	 	 
+ 	 	sixohtwo	 	 	 	 	 	 	 	 	 
+ 	 	7-9	 	 	 	 	 	 	 	 	 
+ 	 	x_i_am_me_x	 	 	 	 	 	 	 	 	 
+ 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 
+ 	 	7-2	 	 	 	 	 	 	 	 	 
+ 	 	SpinBreak	 	 	 	 	 	 	 	 	 
+ 	 	xz_legendary_zx	 	 	 	 	 	 	 	 	 
+ 	 	6-8	 	 	 	 	 	 	 	 	 
+ 	 	bluffing	 	 	 	 	 	 	 	 	 
+ 	 	Asskicking_101	 	 	 	 	 	 	 	 	 
+ 	 	7-1	 	 	 	 	 	 	 	 	 
+ 	 	x_oldschooler_x	 	 	 	 	 	 	 	 	 
+ 	 	Buddybong	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	x_hero_x	 	 	 	 	 	 	 	 	 
+ 	 	AzN_PrIdE_Luva	 	 	 	 	 	 	 	 	 
+ 	 	7-0	 	 	 	 	 	 	 	 	 
+ 	 	100%good	 	 	 	 	 	 	 	 	 
+ 	 	cue.logic	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	tanmay_keshav	 	 	 	 	 	 	 	 	 
+ 	 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	kevin+the+one	 	 	 	 	 	 	 	 	 
+ 	 	 	 	x_i_am_me_x	 	 	 	 	 	 	 
+ 	 	 	 	4-7	 	 	 	 	 	 	 
+ 	 	 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 
+ 	 	 	 	bluffing	 	 	 	 	 	 	 
+ 	 	 	 	7-5	 	 	 	 	 	 	 
+ 	 	 	 	Asskicking_101	 	 	 	 	 	 	 
+ 	 	 	 	x_hero_x	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	AzN_PrIdE_Luva	 	 	 	 	 	 	 
+ 	 	 	 	cue.logic	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	kevin+the+one	 	 	 	 	 	 	 
+ 	 	 	 	 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 
+ 	 	 	 	 	 	4-9	 	 	 	 	 
+ 	 	 	 	 	 	bluffing	 	 	 	 	 
+ 	 	 	 	 	 	x_hero_x	 	 	 	 	 
+ 	 	 	 	 	 	2-9	 	 	 	 	 
+ 	 	 	 	 	 	cue.logic	 	 	 	 	 
+ 	 	 	 	 	 	 	 	bluffing	 	 	 
+ 	 	 	 	 	 	 	 	9-4	 	 	 
+ 	 	 	 	 	 	 	 	cue.logic	 	 	 
+ 	 	 	 	 	 	 	 	 	 	bluffing	 

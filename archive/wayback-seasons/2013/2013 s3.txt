@@ -1,0 +1,131 @@
+2013 SEASON 3 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	sixohtwo	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	Kingj_Luis	 	 	 	 	 	 	 	 	 	 
+7-4	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	pro.jeremy*	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	zZ_LaZyAsS_Zz*	 	 	 	 	 	 	 	 	 	 
+8-6	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	handkrash	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	cue.logic	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	sykology	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	_dante	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	x_i_am_me_x	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	bluffing	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	xz_legendary_zx	 	 	 	 	 	 	 	 	 	 
+0-7	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	tanmay_keshav	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	MJ_The_King	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	murkedddd	 	 	 	 	 	 	 	 	 	 
+DQ	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	Bashful_*	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	Reps	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	Asskicking_101	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	legendary.pooler	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	safeties	 	 	 	 	 	 	 	 	 	 
+13-11	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	AzN_PrIdE_LuVa	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	joosed_up	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	_Sugarhigh__	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	x_oldschooler_x	 	 	 	 	 	 	 	 	 	 
+8-6	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	godzilla	 	 	 	 	 	 	 	 	 	 
+ 	 	sixohtwo	 	 	 	 	 	 	 	 	 
+ 	 	8-6	 	 	 	 	 	 	 	 	 
+ 	 	Kingj_Luis	 	 	 	 	 	 	 	 	 
+ 	 	zZ_LaZyAsS_Zz*	 	 	 	 	 	 	 	 	 
+ 	 	2-7	 	 	 	 	 	 	 	 	 
+ 	 	cue.logic	 	 	 	 	 	 	 	 	 
+ 	 	100%good	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	_dante	 	 	 	 	 	 	 	 	 
+ 	 	bluffing	 	 	 	 	 	 	 	 	 
+ 	 	7-2	 	 	 	 	 	 	 	 	 
+ 	 	tanmay_keshav	 	 	 	 	 	 	 	 	 
+ 	 	MJ_The_King	 	 	 	 	 	 	 	 	 
+ 	 	7-2	 	 	 	 	 	 	 	 	 
+ 	 	murkedddd	 	 	 	 	 	 	 	 	 
+ 	 	Reps	 	 	 	 	 	 	 	 	 
+ 	 	8-10	 	 	 	 	 	 	 	 	 
+ 	 	Asskicking_101	 	 	 	 	 	 	 	 	 
+ 	 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	safeties	 	 	 	 	 	 	 	 	 
+ 	 	_Sugarhigh__	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	x_oldschooler_x	 	 	 	 	 	 	 	 	 
+ 	 	 	 	sixohtwo	 	 	 	 	 	 	 
+ 	 	 	 	7-9	 	 	 	 	 	 	 
+ 	 	 	 	cue.logic	 	 	 	 	 	 	 
+ 	 	 	 	_dante	 	 	 	 	 	 	 
+ 	 	 	 	8-6	 	 	 	 	 	 	 
+ 	 	 	 	bluffing	 	 	 	 	 	 	 
+ 	 	 	 	MJ_The_King	 	 	 	 	 	 	 
+ 	 	 	 	5-7	 	 	 	 	 	 	 
+ 	 	 	 	Asskicking_101	 	 	 	 	 	 	 
+ 	 	 	 	safeties	 	 	 	 	 	 	 
+ 	 	 	 	7-2	 	 	 	 	 	 	 
+ 	 	 	 	_Sugarhigh__	 	 	 	 	 	 	 
+ 	 	 	 	 	 	cue.logic	 	 	 	 	 
+ 	 	 	 	 	 	8-10	 	 	 	 	 
+ 	 	 	 	 	 	_dante	 	 	 	 	 
+ 	 	 	 	 	 	Asskicking_101	 	 	 	 	 
+ 	 	 	 	 	 	9-6	 	 	 	 	 
+ 	 	 	 	 	 	safeties	 	 	 	 	 
+ 	 	 	 	 	 	 	 	_dante	 	 	 
+ 	 	 	 	 	 	 	 	10-8	 	 	 
+ 	 	 	 	 	 	 	 	Asskicking_101	 	 	 
+ 	 	 	 	 	 	 	 	 	 	_dante	 

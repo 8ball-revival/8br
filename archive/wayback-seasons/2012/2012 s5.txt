@@ -1,31 +1,33 @@
 2012 SEASON 5 - DIVISION A Playoff
-Converted from the archived 2012-era page; one table per round in the original.
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
 Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
 1	 	 	 	 	 	 	 	 	 	 	 
  	Show me the $	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 32	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 16	 	 	 	 	 	 	 	 	 	 	 
  	l2_o_c_k_y	 	 	 	 	 	 	 	 	 	 
 3-7	 	 	 	 	 	 	 	 	 	 	 
 17	 	 	 	 	 	 	 	 	 	 	 
- 	lilsparky67�	 	 	 	 	 	 	 	 	 	 
+ 	lilsparky67®	 	 	 	 	 	 	 	 	 	 
 8	 	 	 	 	 	 	 	 	 	 	 
  	ll_brian_ll	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 25	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 9	 	 	 	 	 	 	 	 	 	 	 
  	l_chiddy_l	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 24	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 4	 	 	 	 	 	 	 	 	 	 	 
  	xlx_skill_xlx	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 29	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 13	 	 	 	 	 	 	 	 	 	 	 
  	the_pool_professor	 	 	 	 	 	 	 	 	 	 
 3-7	 	 	 	 	 	 	 	 	 	 	 
@@ -33,9 +35,9 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	tubaccy_spittin_rebel	 	 	 	 	 	 	 	 	 	 
 5	 	 	 	 	 	 	 	 	 	 	 
  	Xx_CK_xX	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 28	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 12	 	 	 	 	 	 	 	 	 	 	 
  	sixohtwo	 	 	 	 	 	 	 	 	 	 
 7-5	 	 	 	 	 	 	 	 	 	 	 
@@ -43,9 +45,9 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	murkedddd	 	 	 	 	 	 	 	 	 	 
 2	 	 	 	 	 	 	 	 	 	 	 
  	_dante	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 31	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 15	 	 	 	 	 	 	 	 	 	 	 
  	tanmay_keshav	 	 	 	 	 	 	 	 	 	 
 6-8	 	 	 	 	 	 	 	 	 	 	 
@@ -53,19 +55,19 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	joosed_up	 	 	 	 	 	 	 	 	 	 
 7	 	 	 	 	 	 	 	 	 	 	 
  	iiviijj	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 26	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 10	 	 	 	 	 	 	 	 	 	 	 
  	aka_hero	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 23	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 3	 	 	 	 	 	 	 	 	 	 	 
  	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 30	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 14	 	 	 	 	 	 	 	 	 	 	 
  	xz_legendary_zx	 	 	 	 	 	 	 	 	 	 
 2-7	 	 	 	 	 	 	 	 	 	 	 
@@ -73,17 +75,17 @@ Round1		Round2		Quarter Finals		Semi Finals		Final		Winner
  	Kevins_Yahoo	 	 	 	 	 	 	 	 	 	 
 6	 	 	 	 	 	 	 	 	 	 	 
  	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 	 
-7-0	 	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
 27	 	 	 	 	 	 	 	 	 	 	 
- 	BYE	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
 11	 	 	 	 	 	 	 	 	 	 	 
- 	p00l_charlie�	 	 	 	 	 	 	 	 	 	 
+ 	p00l_charlie®	 	 	 	 	 	 	 	 	 	 
 DQ	 	 	 	 	 	 	 	 	 	 	 
 22	 	 	 	 	 	 	 	 	 	 	 
  	handkrash	 	 	 	 	 	 	 	 	 	 
  	 	Show me the $	 	 	 	 	 	 	 	 	 
  	 	8-6	 	 	 	 	 	 	 	 	 
- 	 	lilsparky67�	 	 	 	 	 	 	 	 	 
+ 	 	lilsparky67®	 	 	 	 	 	 	 	 	 
  	 	ll_brian_ll	 	 	 	 	 	 	 	 	 
  	 	0-3 (FF)	 	 	 	 	 	 	 	 	 
  	 	l_chiddy_l	 	 	 	 	 	 	 	 	 

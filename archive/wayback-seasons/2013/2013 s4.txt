@@ -1,0 +1,131 @@
+2013 SEASON 4 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	dramatic	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	Easyrun	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	havok	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	tanmay_keshav	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	AzN_PrIdE_LuVa	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	MJ_The_King	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 	 
+3-7	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	SpinBreak	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	Reps	 	 	 	 	 	 	 	 	 	 
+—	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	shadow_man_	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	Asskicking_101	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	master	 	 	 	 	 	 	 	 	 	 
+4-7	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	handkrash	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	zZ_LaZyAsS_Zz	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	aka_hero	 	 	 	 	 	 	 	 	 	 
+7-4	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	grey_goose	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	underrated	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	_dante	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	c-b	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	XX_APOCALIPSYS_XX	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	Buddybong	 	 	 	 	 	 	 	 	 	 
+10-8	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	shagger1_	 	 	 	 	 	 	 	 	 	 
+ 	 	PRO_BOY	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	Easyrun	 	 	 	 	 	 	 	 	 
+ 	 	havok	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	tanmay_keshav	 	 	 	 	 	 	 	 	 
+ 	 	MJ_The_King	 	 	 	 	 	 	 	 	 
+ 	 	7-3	 	 	 	 	 	 	 	 	 
+ 	 	SpinBreak	 	 	 	 	 	 	 	 	 
+ 	 	100%good	 	 	 	 	 	 	 	 	 
+ 	 	7-4	 	 	 	 	 	 	 	 	 
+ 	 	shadow_man_	 	 	 	 	 	 	 	 	 
+ 	 	Asskicking_101	 	 	 	 	 	 	 	 	 
+ 	 	7-0	 	 	 	 	 	 	 	 	 
+ 	 	handkrash	 	 	 	 	 	 	 	 	 
+ 	 	zZ_LaZyAsS_Zz	 	 	 	 	 	 	 	 	 
+ 	 	8-6	 	 	 	 	 	 	 	 	 
+ 	 	aka_hero	 	 	 	 	 	 	 	 	 
+ 	 	underrated	 	 	 	 	 	 	 	 	 
+ 	 	10-12	 	 	 	 	 	 	 	 	 
+ 	 	_dante	 	 	 	 	 	 	 	 	 
+ 	 	XX_APOCALIPSYS_XX	 	 	 	 	 	 	 	 	 
+ 	 	4-7	 	 	 	 	 	 	 	 	 
+ 	 	Buddybong	 	 	 	 	 	 	 	 	 
+ 	 	 	 	PRO_BOY	 	 	 	 	 	 	 
+ 	 	 	 	4-7	 	 	 	 	 	 	 
+ 	 	 	 	havok	 	 	 	 	 	 	 
+ 	 	 	 	MJ_The_King	 	 	 	 	 	 	 
+ 	 	 	 	7-3	 	 	 	 	 	 	 
+ 	 	 	 	100%good	 	 	 	 	 	 	 
+ 	 	 	 	Asskicking_101	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	zZ_LaZyAsS_Zz	 	 	 	 	 	 	 
+ 	 	 	 	_dante	 	 	 	 	 	 	 
+ 	 	 	 	2-7	 	 	 	 	 	 	 
+ 	 	 	 	Buddybong	 	 	 	 	 	 	 
+ 	 	 	 	 	 	havok	 	 	 	 	 
+ 	 	 	 	 	 	9-3	 	 	 	 	 
+ 	 	 	 	 	 	MJ_The_King	 	 	 	 	 
+ 	 	 	 	 	 	Asskicking_101	 	 	 	 	 
+ 	 	 	 	 	 	11-9	 	 	 	 	 
+ 	 	 	 	 	 	Buddybong	 	 	 	 	 
+ 	 	 	 	 	 	 	 	havok	 	 	 
+ 	 	 	 	 	 	 	 	6-9	 	 	 
+ 	 	 	 	 	 	 	 	Asskicking_101	 	 	 
+ 	 	 	 	 	 	 	 	 	 	Asskicking_101	 
