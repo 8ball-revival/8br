@@ -16,6 +16,8 @@
 import { prisma } from '@/lib/prisma'
 import { resolveCanonicalPlayerId } from '@/lib/players/merge'
 
+import { aliasKey } from '@/lib/players/aliases'
+
 import { stripSourceNote } from './manifest'
 
 export interface CanonicalIdentity {
@@ -54,8 +56,15 @@ export async function resolveCanonical(seasonId: number | null, rawHandle: strin
   if (byId.length === 1) return withEntrant(byId[0].id, 'cueverse-id')
   if (byId.length > 1) return { ...base, playerId: null, resolution: 'ambiguous', via: 'none' }
 
+  /*
+   * Aliases are stored with their separators removed, so the lookup has to be too.
+   *
+   * addAlias normalises "Cocky_Guy" to "cockyguy" before storing it. Comparing the printed handle
+   * against that never matches, so an alias recorded on purpose still resolved to nobody and the
+   * bracket position it names stayed unfillable. The stored form is the only form there is.
+   */
   const byAlias = await prisma.playerAlias.findMany({
-    where: { alias: { equals: handle, mode: 'insensitive' } },
+    where: { alias: { equals: aliasKey(handle), mode: 'insensitive' } },
     select: { playerId: true },
   })
   const aliasIds = [...new Set(byAlias.map((a) => a.playerId))]

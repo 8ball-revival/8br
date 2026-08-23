@@ -37,23 +37,6 @@
     ]
   },
   {
-    "seasonId": 5461,
-    "label": "2008 S4A",
-    "imported": 0,
-    "byes": 0,
-    "skipped": 0,
-    "finalImported": false,
-    "completed": false,
-    "stoppedAt": "already complete — left untouched",
-    "forfeits": 0,
-    "reseated": 0,
-    "unseated": [],
-    "deselected": [],
-    "selected": [],
-    "entered": [],
-    "notes": []
-  },
-  {
     "seasonId": 5465,
     "label": "2009 S1A",
     "imported": 0,
@@ -131,39 +114,27 @@
     "seasonId": 5469,
     "label": "2009 S3A",
     "imported": 0,
-    "byes": 6,
-    "skipped": 5,
+    "byes": 0,
+    "skipped": 0,
     "finalImported": false,
     "completed": false,
-    "stoppedAt": "R1 match 3: the page prints \"RT7 Win By 2\"",
+    "stoppedAt": "1 bracket position(s) could not be seated: R1.14 home x_therage (the handle resolves to no entrant in this Season)",
     "forfeits": 0,
     "reseated": 0,
-    "unseated": [],
+    "unseated": [
+      {
+        "round": 1,
+        "slot": 13,
+        "side": "home",
+        "handle": "x_therage",
+        "reason": "the handle resolves to no entrant in this Season"
+      }
+    ],
     "deselected": [],
     "selected": [],
     "entered": [],
     "notes": [
-      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final",
-      "R1.1 already scored — left alone",
-      "R1.3 already scored — left alone",
-      "R1.5 already scored — left alone",
-      "R1.7 already scored — left alone",
-      "R1.9 already scored — left alone",
-      "R1.10 already scored — left alone",
-      "R1.11 already scored — left alone",
-      "R1.13 already scored — left alone",
-      "R1.15 already scored — left alone",
-      "R2.0 already scored — left alone",
-      "R2.2 already decided — left alone",
-      "R2.3 already scored — left alone",
-      "R2.4 already scored — left alone",
-      "R2.5 already scored — left alone",
-      "R2.6 already scored — left alone",
-      "R2.7 already scored — left alone",
-      "R3.1 already scored — left alone",
-      "R3.2 already scored — left alone",
-      "R3.3 already scored — left alone",
-      "R4.1 already scored — left alone"
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
     ]
   },
   {
@@ -186,40 +157,6 @@
     ]
   },
   {
-    "seasonId": 5477,
-    "label": "2010 S1A",
-    "imported": 0,
-    "byes": 0,
-    "skipped": 0,
-    "finalImported": false,
-    "completed": false,
-    "stoppedAt": "2 bracket position(s) could not be seated: R1.12 away TrueBoston (the handle resolves to no entrant in this Season); R1.12 away TrueBoston (the handle resolves to no entrant in this Season)",
-    "forfeits": 0,
-    "reseated": 0,
-    "unseated": [
-      {
-        "round": 1,
-        "slot": 11,
-        "side": "away",
-        "handle": "TrueBoston",
-        "reason": "the handle resolves to no entrant in this Season"
-      },
-      {
-        "round": 1,
-        "slot": 11,
-        "side": "away",
-        "handle": "TrueBoston",
-        "reason": "the handle resolves to no entrant in this Season"
-      }
-    ],
-    "deselected": [],
-    "selected": [],
-    "entered": [],
-    "notes": [
-      "field left as selected — 1 bracket entrant(s) do not resolve: TrueBoston"
-    ]
-  },
-  {
     "seasonId": 5487,
     "label": "2011 S2A",
     "imported": 0,
@@ -227,7 +164,7 @@
     "skipped": 0,
     "finalImported": false,
     "completed": false,
-    "stoppedAt": "1 bracket position(s) could not be seated: R1.4 home Cocky_Guy (the handle resolves to no entrant in this Season)",
+    "stoppedAt": "2 bracket position(s) could not be seated: R1.4 home Cocky_Guy (the handle resolves to no entrant in this Season); R1.8 home i.am_the_zodiac (the handle resolves to no entrant in this Season)",
     "forfeits": 0,
     "reseated": 0,
     "unseated": [
@@ -237,13 +174,20 @@
         "side": "home",
         "handle": "Cocky_Guy",
         "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 7,
+        "side": "home",
+        "handle": "i.am_the_zodiac",
+        "reason": "the handle resolves to no entrant in this Season"
       }
     ],
     "deselected": [],
     "selected": [],
     "entered": [],
     "notes": [
-      "field left as selected — 1 bracket entrant(s) do not resolve: Cocky_Guy"
+      "field left as selected — 1 bracket entrant(s) do not resolve: i.am_the_zodiac"
     ]
   },
   {
@@ -254,10 +198,24 @@
     "skipped": 0,
     "finalImported": false,
     "completed": false,
-    "stoppedAt": "1 bracket position(s) could not be seated: R1.6 away Cocky_Guy (the handle resolves to no entrant in this Season)",
+    "stoppedAt": "3 bracket position(s) could not be seated: R1.1 home MJ_The_King (the handle resolves to no entrant in this Season); R1.6 home XX_APOCALIPSYS_XX (the handle resolves to no entrant in this Season); R1.6 away Cocky_Guy (the handle resolves to no entrant in this Season)",
     "forfeits": 0,
     "reseated": 0,
     "unseated": [
+      {
+        "round": 1,
+        "slot": 0,
+        "side": "home",
+        "handle": "MJ_The_King",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 5,
+        "side": "home",
+        "handle": "XX_APOCALIPSYS_XX",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
       {
         "round": 1,
         "slot": 5,
@@ -281,15 +239,15 @@
     "skipped": 0,
     "finalImported": false,
     "completed": false,
-    "stoppedAt": "1 bracket position(s) could not be seated: R1.8 home jmunoz3rd (the handle resolves to no entrant in this Season)",
+    "stoppedAt": "1 bracket position(s) could not be seated: R1.11 home i.am_the_zodiac (the handle resolves to no entrant in this Season)",
     "forfeits": 0,
     "reseated": 0,
     "unseated": [
       {
         "round": 1,
-        "slot": 7,
+        "slot": 10,
         "side": "home",
-        "handle": "jmunoz3rd",
+        "handle": "i.am_the_zodiac",
         "reason": "the handle resolves to no entrant in this Season"
       }
     ],
@@ -336,6 +294,284 @@
       "R3.1 already scored — left alone",
       "R3.3 already scored — left alone",
       "R4.0 already scored — left alone"
+    ]
+  },
+  {
+    "seasonId": 5501,
+    "label": "2012 S4A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "19 bracket position(s) could not be seated: R1.1 home c-b (the handle resolves to no entrant in this Season); R1.2 home Cocky_Guy (the handle resolves to no entrant in this Season); R1.2 away Toadkats (the handle resolves to no entrant in this Season); R1.3 home xlx_skill_xlx (the handle resolves to no entrant in this Season)",
+    "forfeits": 0,
+    "reseated": 0,
+    "unseated": [
+      {
+        "round": 1,
+        "slot": 0,
+        "side": "home",
+        "handle": "c-b",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 1,
+        "side": "home",
+        "handle": "Cocky_Guy",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 1,
+        "side": "away",
+        "handle": "Toadkats",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 2,
+        "side": "home",
+        "handle": "xlx_skill_xlx",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 2,
+        "side": "away",
+        "handle": "underrated.player",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 3,
+        "side": "home",
+        "handle": "Xx_APOCALIPSYS_xX",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 3,
+        "side": "away",
+        "handle": "PRO_BOY",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 4,
+        "side": "home",
+        "handle": "Xx_CK_xX",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 5,
+        "side": "home",
+        "handle": "murkedddd",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 5,
+        "side": "away",
+        "handle": "empire_l3mx",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 6,
+        "side": "home",
+        "handle": "Kevins_Yahoo",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 7,
+        "side": "home",
+        "handle": "xlx_britishpoolking_xlx",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 7,
+        "side": "away",
+        "handle": "Jeremy__",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 9,
+        "side": "home",
+        "handle": "Mr.Marvel",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 9,
+        "side": "away",
+        "handle": "stephenb_",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 10,
+        "side": "home",
+        "handle": "MJ_The_King",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 11,
+        "side": "away",
+        "handle": "xlx_s_p_g_xlx",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 12,
+        "side": "home",
+        "handle": "deep.cerebro",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 13,
+        "side": "away",
+        "handle": "aka_hero",
+        "reason": "the handle resolves to no entrant in this Season"
+      }
+    ],
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5503,
+    "label": "2012 S5A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "15 bracket position(s) could not be seated: R1.1 home Show me the $ (the handle resolves to no entrant in this Season); R1.2 home l2_o_c_k_y (the handle resolves to no entrant in this Season); R1.3 home ll_brian_ll (the handle resolves to no entrant in this Season); R1.4 home l_chiddy_l (the handle resolves to no entrant in this Season)",
+    "forfeits": 0,
+    "reseated": 0,
+    "unseated": [
+      {
+        "round": 1,
+        "slot": 0,
+        "side": "home",
+        "handle": "Show me the $",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 1,
+        "side": "home",
+        "handle": "l2_o_c_k_y",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 2,
+        "side": "home",
+        "handle": "ll_brian_ll",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 3,
+        "side": "home",
+        "handle": "l_chiddy_l",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 4,
+        "side": "home",
+        "handle": "xlx_skill_xlx",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 5,
+        "side": "away",
+        "handle": "tubaccy_spittin_rebel",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 6,
+        "side": "home",
+        "handle": "Xx_CK_xX",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 7,
+        "side": "away",
+        "handle": "murkedddd",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 9,
+        "side": "away",
+        "handle": "joosed_up",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 10,
+        "side": "home",
+        "handle": "iiviijj",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 11,
+        "side": "home",
+        "handle": "aka_hero",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 12,
+        "side": "home",
+        "handle": "Xx_APOCALIPSYS_xX",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 13,
+        "side": "home",
+        "handle": "xz_legendary_zx",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 13,
+        "side": "away",
+        "handle": "Kevins_Yahoo",
+        "reason": "the handle resolves to no entrant in this Season"
+      },
+      {
+        "round": 1,
+        "slot": 14,
+        "side": "home",
+        "handle": "xlx_britishpoolking_xlx",
+        "reason": "the handle resolves to no entrant in this Season"
+      }
+    ],
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
     ]
   }
 ]

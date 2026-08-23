@@ -31,6 +31,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { manifestEntry, stripSourceNote } from '../src/lib/archive/manifest.ts'
+import { parseWayback } from '../src/lib/archive/wayback.ts'
 import { applyAutoEntrants, previewAutoEntrants } from '../src/lib/archive/auto-entrants.ts'
 import { applyGroupAssign, applyGroupScores, isBlocked } from '../src/lib/archive/auto-assign.ts'
 import { applyArchiveSelection, applyArchivePlacement } from '../src/lib/archive/auto-playoffs.ts'
@@ -187,11 +188,41 @@ for (const s of seasons) {
      * They are entrants with no recorded group. That is what the source says, and leaving them
      * ungrouped is more faithful than inventing a group for them.
      */
+    /*
+     * The archived bracket page counts as a record of who played, alongside the manifest.
+     *
+     * Three people hold an entry position on a validated bracket and are absent from their Season's
+     * participant table. Treating only the manifest as evidence made the stray sweep delete them
+     * moments after they were deliberately entered — the importer undoing an owner's decision on the
+     * strength of a table that was already known to be incomplete.
+     */
+    const bracketHandles = (() => {
+      const file = `archive/wayback-seasons/${s.competitionYear}/${s.competitionYear} s${s.number}.txt`
+      if ((s.division ?? 'A') !== 'A' || !existsSync(file)) return [] as string[]
+      const b = parseWayback(readFileSync(file, 'utf8'), file)
+      return b.matches
+        .filter((m) => m.round === 1)
+        .flatMap((m) => [m.home, m.away])
+        .filter((x): x is NonNullable<typeof x> => Boolean(x) && !x!.bye)
+        .map((x) => stripSourceNote(x.normalizedHandle).toLowerCase())
+    })()
+
     const manifestHandles = new Set([
       ...entry.participants.map((x) => stripSourceNote(x.normalizedHandle).toLowerCase()),
       ...(entry.playoff?.participants ?? []).map((x) => stripSourceNote(x.normalizedHandle).toLowerCase()),
     ])
     const wanted = manifestHandles.size
+
+    /*
+     * The bracket protects people from the stray sweep; it does not raise the target.
+     *
+     * Folding bracket handles into the expected count made every Season with a bracket-only player
+     * look permanently short, so each run rewound the group stage chasing somebody applyAutoEntrants
+     * cannot add — it only enters manifest participants. The two ideas are separate: what the field
+     * should contain comes from the manifest, and who may not be swept away is anyone either source
+     * records.
+     */
+    const recordedAnywhere = new Set([...manifestHandles, ...bracketHandles])
 
     /*
      * Entrants the archive does not record are removed before the field is completed.
@@ -215,7 +246,7 @@ for (const s of seasons) {
         const aliases = await prisma.playerAlias.findMany({ where: { playerId: e.playerId }, select: { alias: true } })
         recorded = aliases.some((a) => manifestHandles.has(a.alias.toLowerCase()))
       }
-      if (!recorded) strays.push(e.id)
+      if (!recorded && !recordedAnywhere.has(handle)) strays.push(e.id)
     }
     if (strays.length > 0) {
       await prisma.seasonEntrant.deleteMany({ where: { id: { in: strays } } })

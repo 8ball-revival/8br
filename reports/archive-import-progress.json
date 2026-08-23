@@ -444,7 +444,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 35,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 56,
     "resultsImported": 149,
@@ -529,7 +529,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 35,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 56,
     "resultsImported": 147,
@@ -539,7 +539,6 @@
     "unresolved": [],
     "notes": [
       "removed 3 entrant(s) the archive does not record for this Season",
-      "selection: The playoffs have already started. The bracket can no longer be rebuilt from the archive.",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -572,7 +571,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 40,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 56,
     "resultsImported": 138,
@@ -652,7 +651,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 35,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 49,
     "resultsImported": 124,
@@ -736,7 +735,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 46,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 56,
     "resultsImported": 145,
@@ -861,7 +860,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 43,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 49,
     "resultsImported": 120,
@@ -903,9 +902,9 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 40,
+    "entrantsAdded": 0,
     "playersCreated": 0,
-    "groupsPlaced": 0,
+    "groupsPlaced": 43,
     "resultsImported": 105,
     "playoffSelected": 25,
     "round1Placed": 0,
@@ -913,6 +912,7 @@
     "unresolved": [],
     "notes": [
       "removed 3 entrant(s) the archive does not record for this Season",
+      "removed 1 entrant(s) the archive does not record for this Season",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -945,7 +945,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 45,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 49,
     "resultsImported": 132,
@@ -955,6 +955,7 @@
     "unresolved": [],
     "notes": [
       "removed 2 entrant(s) the archive does not record for this Season",
+      "removed 1 entrant(s) the archive does not record for this Season",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -987,7 +988,7 @@
     "division": "A",
     "stage": "playoff-selected",
     "bracketSize": null,
-    "entrantsAdded": 42,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 49,
     "resultsImported": 115,
@@ -997,6 +998,7 @@
     "unresolved": [],
     "notes": [
       "removed 4 entrant(s) the archive does not record for this Season",
+      "removed 1 entrant(s) the archive does not record for this Season",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -1185,7 +1187,7 @@
     "division": "A",
     "stage": "round1-placed",
     "bracketSize": 32,
-    "entrantsAdded": 46,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 49,
     "resultsImported": 107,
@@ -1223,7 +1225,7 @@
     "division": "A",
     "stage": "round1-placed",
     "bracketSize": 32,
-    "entrantsAdded": 37,
+    "entrantsAdded": 0,
     "playersCreated": 0,
     "groupsPlaced": 42,
     "resultsImported": 79,

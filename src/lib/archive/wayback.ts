@@ -161,6 +161,21 @@ export function readOutcome(raw: string | null, isBye: boolean): ParsedOutcome {
    */
   if (DQ_ANY.test(t)) return { outcome: 'disqualification', scoreHome: null, scoreAway: null, forfeitedBy: null }
 
+  /*
+   * A score annotated as a forfeit: "0-3 (FF)".
+   *
+   * Different from "0-FF", where the marker occupies a score position and names the side directly.
+   * Here both numbers are printed and the annotation says the match was conceded, so the forfeiter
+   * is the side that lost. No games are recorded either way — the numbers describe a concession,
+   * not frames anybody played.
+   */
+  const annotated = /^s*(d{1,3})s*-s*(d{1,3})s*[([]s*FF.?d?s*[)]]s*$/i.exec(t)
+  if (annotated) {
+    const a = Number(annotated[1]), b = Number(annotated[2])
+    if (a === b) return { outcome: 'missing', scoreHome: null, scoreAway: null, forfeitedBy: null }
+    return { outcome: 'forfeit', scoreHome: null, scoreAway: null, forfeitedBy: a < b ? 'home' : 'away' }
+  }
+
   const away = FF_AWAY.exec(t)
   if (away) return { outcome: 'forfeit', scoreHome: null, scoreAway: null, forfeitedBy: 'away' }
   const home = FF_HOME.exec(t)
