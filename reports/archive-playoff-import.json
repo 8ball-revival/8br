@@ -1,5 +1,39 @@
 [
   {
+    "seasonId": 5459,
+    "label": "2008 S3A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 4 selected participants have no bracket position: Luis, Stuart, Derrick, Bam.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5461,
+    "label": "2008 S4A",
+    "imported": 18,
+    "byes": 8,
+    "skipped": 5,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "R2 match 5: the page prints \"0-FF\"",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
     "seasonId": 5463,
     "label": "2008 S5A",
     "imported": 18,
@@ -17,6 +51,197 @@
     "notes": [
       "enter sixohtwo: Entrants can only be changed before the group stage goes live.",
       "R2.3: the page's players are not the pair in this slot"
+    ]
+  },
+  {
+    "seasonId": 5465,
+    "label": "2009 S1A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 5 selected participants have no bracket position: the_pool_professor, Kevin, Derrick, nakash_qamar, Tanmay.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5467,
+    "label": "2009 S2A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 1 selected participant has no bracket position: MJ.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5469,
+    "label": "2009 S3A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 5 selected participants have no bracket position: xlx_propooler_xlx, tubaccy_spittin_rebel, lvlj_the_king, xlx_skill_xlx, Kevin.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5473,
+    "label": "2009 S5A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "generate bracket: Generate the bracket during playoff setup.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5477,
+    "label": "2010 S1A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 3 selected participants have no bracket position: sykology, Tanmay, ohmygodtherearenonamesleft.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — 1 bracket entrant(s) do not resolve: TrueBoston"
+    ]
+  },
+  {
+    "seasonId": 5481,
+    "label": "2010 S3A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 7 selected participants have no bracket position: mvp_sicc, Corey, Derrick, mvp_chiddy, fsm_hero, and 2 more.",
+    "reseated": 0,
+    "deselected": [
+      "bigblue2k"
+    ],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "enter sixohtwo: Entrants can only be changed before the group stage goes live."
+    ]
+  },
+  {
+    "seasonId": 5483,
+    "label": "2010 S4A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 4 selected participants have no bracket position: underdogg_, Adam, aka_cryptic, Jason.",
+    "reseated": 0,
+    "deselected": [
+      "bigblue2k"
+    ],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "enter sixohtwo: Entrants can only be changed before the group stage goes live."
+    ]
+  },
+  {
+    "seasonId": 5487,
+    "label": "2011 S2A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 1 selected participant has no bracket position: catsslover.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5489,
+    "label": "2011 S3A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 2 selected participants have no bracket position: catsslover, lixll_god_lixll.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5491,
+    "label": "2011 S4A",
+    "imported": 0,
+    "byes": 0,
+    "skipped": 0,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "start playoffs: 8 selected participants have no bracket position: PC, iiviijj, the_pool_professor, Kevin, jesse_j, and 3 more.",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
+    ]
+  },
+  {
+    "seasonId": 5493,
+    "label": "2011 S5A",
+    "imported": 19,
+    "byes": 9,
+    "skipped": 3,
+    "finalImported": false,
+    "completed": false,
+    "stoppedAt": "R3 match 3: the page prints \"7-DQ\"",
+    "reseated": 0,
+    "deselected": [],
+    "selected": [],
+    "entered": [],
+    "notes": [
+      "field left as selected — the page is not a complete entry field: the results run unbroken to the Final"
     ]
   }
 ]

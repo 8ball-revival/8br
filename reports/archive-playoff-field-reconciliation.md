@@ -11,7 +11,7 @@ handle then means the capture is short rather than that the player was missing.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 2008 S3A | 5459 | partial | no | 26 | 26 | 25 | 1 | 1 | 26 | 26 | no | the page is not a complete entry field: the results run unbroken to the Final |
 | 2008 S4A | 5461 | partial | no | 24 | 24 | 24 | 0 | 0 | 24 | 24 | no | the page is not a complete entry field: the results run unbroken to the Final |
-| 2008 S5A | 5463 | full | yes | 24 | 24 | 23 | 1 | 1 | 24 | 24 | **yes** | the page proves the whole entry field and every entrant resolves |
+| 2008 S5A | 5463 | full | yes | 24 | 24 | 23 | 1 | 1 | 23 | 24 | **yes** | the page proves the whole entry field and every entrant resolves |
 | 2009 S1A | 5465 | partial | no | 27 | 27 | 26 | 1 | 1 | 27 | 27 | no | the page is not a complete entry field: the results run unbroken to the Final |
 | 2009 S2A | 5467 | partial | no | 27 | 27 | 27 | 0 | 0 | 27 | 27 | no | the page is not a complete entry field: the results run unbroken to the Final |
 | 2009 S3A | 5469 | partial | no | 26 | 26 | 25 | 1 | 1 | 26 | 26 | no | the page is not a complete entry field: the results run unbroken to the Final |
