@@ -35,6 +35,19 @@ assertLocalDatabase()
 const ARGS = process.argv.slice(2)
 const APPLY = ARGS.includes('--apply')
 const ONLY = ARGS.includes('--season') ? Number(ARGS[ARGS.indexOf('--season') + 1]) : null
+
+/*
+ * ── Division scope ───────────────────────────────────────────────────────────────────────────────
+ * Division B is benched by owner decision: its playoff source does not survive, so there is nothing
+ * this reconstruction can honestly add to it. Benching is not deletion — every shell and every row
+ * already imported stays exactly as it is.
+ *
+ * The scope is an explicit flag rather than a guess from a competition name or an id range, because
+ * a run that silently decides for itself which Seasons are in scope is a run nobody can audit.
+ * Passing no flag means every division, which is what the reconstruction did before this.
+ */
+const DIVISION = ARGS.includes('--division') ? ARGS[ARGS.indexOf('--division') + 1] : null
+if (DIVISION && !['A', 'B'].includes(DIVISION)) throw new Error(`--division must be A or B, got ${DIVISION}`)
 const ACTOR = { userId: 2, username: 'archive-playoffs' }
 const COVERAGE = 'reports/archive-wayback-playoff-coverage.json'
 
@@ -61,6 +74,16 @@ interface ReconRow {
 const reconciliation = JSON.parse(readFileSync(RECON, 'utf8')) as ReconRow[]
 
 const targets = coverage.filter((r) => r.eligible && r.seasonId && (ONLY === null || r.seasonId === ONLY))
+/*
+ * The captured bracket pages are Division A only — no page mentions Division B — so this importer
+ * can never reach a Division B Season. Asserting it makes the guarantee checkable rather than
+ * implicit in where the files happen to have come from.
+ */
+if (DIVISION && DIVISION !== 'A') {
+  console.log('The archived bracket pages cover Division A only; there is nothing to import for Division ' + DIVISION + '.')
+  await prisma.$disconnect()
+  process.exit(0)
+}
 console.log(`${targets.length} eligible Season(s)${APPLY ? '' : ' — DRY RUN'}`)
 
 /**

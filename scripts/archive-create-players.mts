@@ -34,6 +34,21 @@ import { createMember } from '../src/lib/staff/create-member-service.ts'
 assertLocalDatabase()
 
 const APPLY = process.argv.includes('--apply')
+
+/*
+ * ── Division scope ───────────────────────────────────────────────────────────────────────────────
+ * Division B is benched by owner decision: its playoff source does not survive, so there is nothing
+ * this reconstruction can honestly add to it. Benching is not deletion — every shell and every row
+ * already imported stays exactly as it is.
+ *
+ * The scope is an explicit flag rather than a guess from a competition name or an id range, because
+ * a run that silently decides for itself which Seasons are in scope is a run nobody can audit.
+ * Passing no flag means every division, which is what the reconstruction did before this.
+ */
+const DIVISION = process.argv.includes('--division')
+  ? process.argv[process.argv.indexOf('--division') + 1]
+  : null
+if (DIVISION && !['A', 'B'].includes(DIVISION)) throw new Error(`--division must be A or B, got ${DIVISION}`)
 const ACTOR = { userId: 2, username: 'archive-import' }
 const MAP_PATH = 'reports/archive-handle-map.json'
 
@@ -56,7 +71,7 @@ const saveMap = () => writeFileSync(MAP_PATH, JSON.stringify(map, null, 2))
 const norm = (h: string) => h.trim().toLowerCase()
 
 const seasons = await prisma.season.findMany({
-  where: { archiveTemplateKey: { not: null }, lifecycleState: { not: 'COMPLETED' } },
+  where: { archiveTemplateKey: { not: null }, lifecycleState: { not: 'COMPLETED' }, ...(DIVISION ? { division: DIVISION } : {}) },
   select: { id: true, number: true, division: true, competitionYear: true, archiveTemplateKey: true },
   orderBy: [{ competitionYear: 'asc' }, { number: 'asc' }],
 })

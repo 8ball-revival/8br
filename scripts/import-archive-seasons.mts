@@ -50,6 +50,19 @@ const VALIDATE = has('--validate')
 const LIMIT = val('--limit') ? Number(val('--limit')) : Infinity
 const ONLY = val('--season') ? Number(val('--season')) : null
 
+/*
+ * ── Division scope ───────────────────────────────────────────────────────────────────────────────
+ * Division B is benched by owner decision: its playoff source does not survive, so there is nothing
+ * this reconstruction can honestly add to it. Benching is not deletion — every shell and every row
+ * already imported stays exactly as it is.
+ *
+ * The scope is an explicit flag rather than a guess from a competition name or an id range, because
+ * a run that silently decides for itself which Seasons are in scope is a run nobody can audit.
+ * Passing no flag means every division, which is what the reconstruction did before this.
+ */
+const DIVISION = val('--division')
+if (DIVISION && !['A', 'B'].includes(DIVISION)) throw new Error(`--division must be A or B, got ${DIVISION}`)
+
 const ACTOR = { userId: 2, username: 'archive-import' }
 const PROGRESS = 'reports/archive-import-progress.json'
 
@@ -92,6 +105,7 @@ const playersBefore = new Set((await prisma.player.findMany({ select: { id: true
 
 const seasons = await prisma.season.findMany({
   where: {
+      ...(DIVISION ? { division: DIVISION } : {}),
     archiveTemplateKey: { not: null },
     lifecycleState: { not: 'COMPLETED' },
     ...(ONLY ? { id: ONLY } : {}),
