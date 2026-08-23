@@ -58,8 +58,28 @@ xGodNeox, is this same person.
 **`trustneo`** is a separate Player with four entrants. The name suggests the same person and the
 owner has not mentioned it, so it stays separate. It is a merge if it is anybody.
 
-**`iamalmostgod` is on two people.** Starkiller already carries it as an alias. The owner separately
-said `cocky_guy` is Craig, who "also used I_am_aimost_god". Both cannot be right, and whichever way
-it resolves it moves matches between two players. Nothing should read that handle until it is
-settled — note also that Starkiller carries `cockyneo`, so the two identities may already be
-entangled from an earlier pass rather than only in the sources.
+**~~`iamalmostgod` is on two people~~ — settled, correction not yet applied.**
+
+The two handles are not one handle spelled twice. They differ by a character:
+
+- `I_Am_Almost_God` — an L, "almost". **neo.** Used once in an early Season and never again.
+- `I_Am_AImost_God` — a capital i, "AImost". **Craig**, who made a lookalike copy of it later.
+
+Normalisation keeps them apart (`iamalmostgod` against `iamaimostgod`), so both can be held without
+colliding. What went wrong is which account holds which.
+
+The database currently has a Player whose CueVerse ID is `i_am_almost_god` — neo's spelling — with
+`cockyguy` attached to it as an alias, so Craig's handle sits on neo's identity. That Player has one
+entrant, **2010 S1A**, printed there as `i_am_almost_god`, and four rating-ledger rows. An early
+Season, once: neo, exactly as the owner describes.
+
+So the correction is not a rename. It is:
+
+1. Take `cockyguy` off that Player — Craig's handle does not belong to it.
+2. Merge that Player into **Starkiller**, since the 2010 S1A appearance and its four ledger rows are
+   neo's. Starkiller already holds `iamalmostgod` as an alias, which is consistent.
+3. Give Craig his own identity holding `Cocky_Guy` and `I_am_AImost_God`. He has no imported
+   appearance yet; the first is 2012 S3A, which has not been imported.
+
+Not applied. It moves a Season and four ledger rows between two players, and it wants doing with a
+before-and-after check rather than at the end of a session.
