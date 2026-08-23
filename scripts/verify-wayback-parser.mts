@@ -266,3 +266,81 @@ if (!existsSync(ROOT)) {
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exitCode = 1
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+section('Forfeits, walkovers and disqualifications')
+{
+  const withResult = (cell: string) => page(FOUR, [
+    { 0: '1', 1: 'alpha' },
+    { 0: cell, 2: 'delta' },
+    { 0: '4', 1: 'delta' },
+    { 2: '9-5', 4: 'delta' },
+    { 0: '2', 1: 'bravo' },
+    { 0: '2-7', 2: 'charlie' },
+    { 0: '3', 1: 'charlie' },
+  ])
+
+  // "0-FF": the away side gave it up, so the home player advances... except the page carries delta,
+  // so this fixture puts the FF on the home side to match.
+  const homeGaveUp = parseWayback(withResult('FF-7'), 'fixtures/2008 s4.txt')
+  const m1 = homeGaveUp.matches[0]
+  check('FF on the printed left is the home player forfeiting',
+    m1.outcome === 'forfeit' && m1.forfeitedBy === 'home', `${m1.outcome}/${m1.forfeitedBy}`)
+  check('a forfeit awards no games to either side', m1.scoreHome === null && m1.scoreAway === null)
+  check('the raw text is kept', m1.rawScore === 'FF-7')
+  check('the opponent advances', m1.winnerHandle === 'delta')
+  check('a forfeit counts as proven', m1.proven)
+
+  const awayGaveUp = parseWayback(page(FOUR, [
+    { 0: '1', 1: 'alpha' },
+    { 0: '0-FF', 2: 'alpha' },
+    { 0: '4', 1: 'delta' },
+    { 2: '9-5', 4: 'alpha' },
+    { 0: '2', 1: 'bravo' },
+    { 0: '2-7', 2: 'charlie' },
+    { 0: '3', 1: 'charlie' },
+  ]), 'fixtures/2008 s4.txt')
+  const m2 = awayGaveUp.matches[0]
+  check('FF on the printed right is the away player forfeiting',
+    m2.outcome === 'forfeit' && m2.forfeitedBy === 'away', `${m2.outcome}/${m2.forfeitedBy}`)
+  check('and the home player advances', m2.winnerHandle === 'alpha')
+  check('a bracket decided by forfeit still validates', awayGaveUp.validation.category === 'full',
+    awayGaveUp.validation.problems.join('; '))
+
+  const dq = parseWayback(withResult('7-DQ'), 'fixtures/2011 s5.txt')
+  const m3 = dq.matches[0]
+  check('a disqualification is its own outcome', m3.outcome === 'disqualification', m3.outcome)
+  check('a disqualification is never treated as a forfeit', m3.forfeitedBy === null)
+  check('it awards no score', m3.scoreHome === null && m3.scoreAway === null)
+  check('it is not proven', !m3.proven)
+  check('the bracket stops there rather than guessing', dq.validation.category === 'partial', dq.validation.category)
+  check('the reason names the disqualification',
+    dq.validation.problems.some((p) => /disqualification/.test(p)), dq.validation.problems.join('; '))
+
+  const dqff = parseWayback(withResult("DQ'd-FF'd"), 'fixtures/2011 s5.txt')
+  check('a cell naming both stays a disqualification', dqff.matches[0].outcome === 'disqualification',
+    dqff.matches[0].outcome)
+
+  const wo = parseWayback(withResult('--W/O'), 'fixtures/2008 s3.txt')
+  check('a walkover with no side named is not a forfeit', wo.matches[0].outcome === 'walkover', wo.matches[0].outcome)
+  check('and names nobody', wo.matches[0].forfeitedBy === null)
+  check('so it is not proven', !wo.matches[0].proven)
+
+  // A bye beside a forfeit must stay a bye.
+  const byeAndFf = parseWayback(page(FOUR, [
+    { 0: '1', 1: 'alpha' },
+    { 0: '0-FF', 2: 'alpha' },
+    { 0: '4', 1: 'bye' },
+    { 2: '9-5', 4: 'alpha' },
+    { 0: '2', 1: 'bravo' },
+    { 0: '2-7', 2: 'charlie' },
+    { 0: '3', 1: 'charlie' },
+  ]), 'fixtures/2008 s4.txt')
+  check('a bye beside a forfeit marker is still a bye',
+    byeAndFf.matches[0].outcome === 'bye' && byeAndFf.matches[0].bye, byeAndFf.matches[0].outcome)
+  check('and awards nothing', byeAndFf.matches[0].scoreHome === null)
+
+  // Reading is deterministic.
+  check('reading the same forfeit twice gives the same answer',
+    JSON.stringify(parseWayback(withResult('FF-7'), 'fixtures/2008 s4.txt')) === JSON.stringify(homeGaveUp))
+}

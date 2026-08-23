@@ -27,7 +27,7 @@ import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { parseWayback, type WaybackBracket, type WaybackMatch } from '../src/lib/archive/wayback.ts'
 import { resolveCanonical } from '../src/lib/archive/canonical-identity.ts'
-import { startSeasonPlayoffs, recordSeasonPlayoffResult, generateSeasonBracket, setSeasonBracketSlot, setSeasonPlayoffIncluded } from '../src/lib/seasons/playoffs.ts'
+import { startSeasonPlayoffs, recordSeasonPlayoffResult, recordSeasonPlayoffForfeit, generateSeasonBracket, setSeasonBracketSlot, setSeasonPlayoffIncluded } from '../src/lib/seasons/playoffs.ts'
 import { closeSeason } from '../src/lib/seasons/close.ts'
 
 assertLocalDatabase()
@@ -85,6 +85,7 @@ interface SeasonOutcome {
   finalImported: boolean
   completed: boolean
   stoppedAt: string | null
+  forfeits: number
   reseated: number
   unseated: { round: number; slot: number; side: string; handle: string; reason: string }[]
   deselected: string[]
@@ -98,7 +99,7 @@ const outcomes: SeasonOutcome[] = []
 for (const row of targets) {
   const seasonId = row.seasonId!
   const label = `${row.competitionYear} S${row.seasonNumber}A`
-  const out: SeasonOutcome = { seasonId, label, imported: 0, byes: 0, skipped: 0, finalImported: false, completed: false, stoppedAt: null, reseated: 0, unseated: [], deselected: [], selected: [], entered: [], notes: [] }
+  const out: SeasonOutcome = { seasonId, label, imported: 0, byes: 0, skipped: 0, finalImported: false, completed: false, stoppedAt: null, forfeits: 0, reseated: 0, unseated: [], deselected: [], selected: [], entered: [], notes: [] }
   outcomes.push(out)
 
   const bracket: WaybackBracket = parseWayback(readFileSync(row.sourceFile, 'utf8'), row.sourceFile)
@@ -198,6 +199,7 @@ for (const row of targets) {
       out.notes.push(`would draw a bracket of ${bracket.bracketSize} and seat round 1 from the page`)
       out.byes = bracket.matches.filter((m) => m.bye).length
       out.imported = bracket.matches.filter((m) => m.proven && !m.bye && m.scoreHome !== null).length
+      out.forfeits = bracket.matches.filter((m) => m.proven && m.outcome === 'forfeit').length
       out.skipped = bracket.matches.length - out.byes - out.imported
       out.finalImported = Boolean(bracket.matches.find((m) => m.advancesTo === null)?.proven)
       continue
@@ -335,6 +337,61 @@ for (const row of targets) {
   for (const pm of ordered) {
     if (stop) break
     if (pm.bye) { out.byes++; continue }
+    /*
+     * A forfeit is imported as a forfeit.
+     *
+     * The page names who gave the match up, which decides the winner as surely as a score does, so
+     * it goes through the canonical forfeit service rather than being written as 7-0 or dropped for
+     * having no numbers. Neither side is awarded games: nobody played any.
+     */
+    if (pm.proven && pm.outcome === 'forfeit' && pm.forfeitedBy) {
+      const db = await prisma.seasonPlayoffMatch.findFirst({
+        where: { seasonId, round: pm.round, slot: pm.position },
+        select: { id: true, homeEntrantId: true, awayEntrantId: true, homeGames: true, awayGames: true, winnerEntrantId: true },
+      })
+      if (!db) { out.skipped++; continue }
+      if (db.winnerEntrantId) { out.notes.push(`R${pm.round}.${pm.position} already decided — left alone`); continue }
+      if (!db.homeEntrantId || !db.awayEntrantId) {
+        out.skipped++
+        if (!out.stoppedAt) out.stoppedAt = `R${pm.round} match ${pm.position + 1}: the bracket has no pair for the forfeit`
+        continue
+      }
+
+      /*
+       * Which SIDE forfeited, mapped from the page to the bracket by identity.
+       *
+       * The page's left-hand player is not always the bracket's home slot, so taking the side
+       * positionally would make the wrong player the one who gave up.
+       */
+      const quitterHandle = pm.forfeitedBy === 'home' ? pm.home?.rawHandle : pm.away?.rawHandle
+      const quitter = quitterHandle ? await entrantFor(seasonId, quitterHandle) : null
+      if (!quitter) {
+        out.skipped++
+        out.notes.push(`R${pm.round}.${pm.position}: the forfeiting player does not resolve`)
+        continue
+      }
+      const side = quitter === db.homeEntrantId ? 'home' : quitter === db.awayEntrantId ? 'away' : null
+      if (!side) {
+        out.skipped++
+        out.notes.push(`R${pm.round}.${pm.position}: the forfeiting player is not in this slot`)
+        continue
+      }
+
+      const r = await recordSeasonPlayoffForfeit(ACTOR, db.id, side, {
+        confirmRebuild: true,
+        note: `archived source records "${pm.rawScore}" (${pm.source?.line ? `line ${pm.source.line} of ` : ''}${row.sourceFile})`,
+      })
+      if (!r.ok) {
+        out.notes.push(`R${pm.round}.${pm.position} forfeit: ${r.error}`)
+        if (!out.stoppedAt) out.stoppedAt = `R${pm.round} match ${pm.position + 1}: ${r.error}`
+        stop = pm.round > 1
+        continue
+      }
+      out.forfeits++
+      if (pm.advancesTo === null) out.finalImported = true
+      continue
+    }
+
     if (!pm.proven || pm.scoreHome === null || pm.scoreAway === null) {
       out.skipped++
       if (!out.stoppedAt) {
@@ -414,15 +471,16 @@ writeFileSync('reports/archive-playoff-import.json', JSON.stringify(outcomes, nu
 
 const totals = outcomes.reduce((a, o) => ({
   imported: a.imported + o.imported,
+  forfeits: a.forfeits + o.forfeits,
   byes: a.byes + o.byes,
   skipped: a.skipped + o.skipped,
   finals: a.finals + (o.finalImported ? 1 : 0),
   completed: a.completed + (o.completed ? 1 : 0),
-}), { imported: 0, byes: 0, skipped: 0, finals: 0, completed: 0 })
+}), { imported: 0, forfeits: 0, byes: 0, skipped: 0, finals: 0, completed: 0 })
 
 console.log('\n' + JSON.stringify({ seasons: outcomes.length, ...totals }, null, 2))
 for (const o of outcomes) {
-  console.log(`  ${o.label} (${o.seasonId}): imported=${o.imported} byes=${o.byes} skipped=${o.skipped} final=${o.finalImported} completed=${o.completed} field(-${o.deselected.length}/+${o.selected.length}) reseated=${o.reseated} unseated=${o.unseated.length}${o.stoppedAt ? ` — stops at ${o.stoppedAt}` : ''}`)
+  console.log(`  ${o.label} (${o.seasonId}): imported=${o.imported} ff=${o.forfeits} byes=${o.byes} skipped=${o.skipped} final=${o.finalImported} completed=${o.completed} field(-${o.deselected.length}/+${o.selected.length}) reseated=${o.reseated} unseated=${o.unseated.length}${o.stoppedAt ? ` — stops at ${o.stoppedAt}` : ''}`)
 }
 
 await prisma.$disconnect()

@@ -68,6 +68,10 @@ export interface WaybackMatch {
   advancesTo: { round: number; position: number; side: 'home' | 'away' } | null
   /** A walkover: one side is the page's literal "bye". No game was played. */
   bye: boolean
+  /** What the result cell says: a score, a forfeit, a disqualification, or nothing usable. */
+  outcome: MatchOutcome
+  /** For a forfeit, the printed side that gave it up. */
+  forfeitedBy: 'home' | 'away' | null
   /**
    * Whether this match on its own is supported by the page.
    *
@@ -106,6 +110,69 @@ export interface WaybackBracket {
 }
 
 const SCORE = /^(\d{1,3})\s*-\s*(\d{1,3})$/
+
+/**
+ * What a result cell actually says.
+ *
+ * The pages record more than scores. A match can be forfeited, walked over or disqualified, and each
+ * is a different fact about what happened — collapsing them into "no score" loses the forfeit that
+ * really did decide a match, while treating them all as forfeits would invent a walkover from a
+ * disqualification. The side is taken from where the marker is printed: "0-FF" is the away player
+ * forfeiting, "FF-7" the home one.
+ */
+const FF_AWAY = /^\s*(\d{0,3})\s*-\s*FF'?d?\s*$/i
+const FF_HOME = /^\s*FF'?d?\s*-\s*(\d{0,3})\s*$/i
+const DQ_ANY = /DQ/i
+const WALKOVER = /W\s*\/?\s*O/i
+
+export type MatchOutcome =
+  | 'numeric'
+  | 'bye'
+  | 'forfeit'
+  | 'disqualification'
+  | 'walkover'
+  | 'missing'
+
+export interface ParsedOutcome {
+  outcome: MatchOutcome
+  scoreHome: number | null
+  scoreAway: number | null
+  /** Which printed side gave the match up, when the source says. */
+  forfeitedBy: 'home' | 'away' | null
+}
+
+/** Read one result cell. The raw text is always kept by the caller. */
+export function readOutcome(raw: string | null, isBye: boolean): ParsedOutcome {
+  if (isBye) return { outcome: 'bye', scoreHome: null, scoreAway: null, forfeitedBy: null }
+  if (!raw || !raw.trim()) return { outcome: 'missing', scoreHome: null, scoreAway: null, forfeitedBy: null }
+
+  const t = raw.trim()
+  const numeric = SCORE.exec(t)
+  if (numeric) {
+    return { outcome: 'numeric', scoreHome: Number(numeric[1]), scoreAway: Number(numeric[2]), forfeitedBy: null }
+  }
+
+  /*
+   * Disqualification is checked before forfeit.
+   *
+   * One cell reads "DQ'd-FF'd", and a disqualification that also involved a forfeit is still a
+   * disqualification — which the owner has not defined a record for, so it stays unimported rather
+   * than being quietly downgraded to something the system already knows how to write.
+   */
+  if (DQ_ANY.test(t)) return { outcome: 'disqualification', scoreHome: null, scoreAway: null, forfeitedBy: null }
+
+  const away = FF_AWAY.exec(t)
+  if (away) return { outcome: 'forfeit', scoreHome: null, scoreAway: null, forfeitedBy: 'away' }
+  const home = FF_HOME.exec(t)
+  if (home) return { outcome: 'forfeit', scoreHome: null, scoreAway: null, forfeitedBy: 'home' }
+
+  // A bare "FF" or a walkover with no side printed says a match was given up but not by whom.
+  if (WALKOVER.test(t) || /^FF'?d?$/i.test(t)) {
+    return { outcome: 'walkover', scoreHome: null, scoreAway: null, forfeitedBy: null }
+  }
+
+  return { outcome: 'missing', scoreHome: null, scoreAway: null, forfeitedBy: null }
+}
 const BYE = /^byes?$/i
 
 /** Empty in this source means a cell the table did not fill; it never means a bye. */
@@ -239,7 +306,6 @@ export function parseColumnarBracket(text: string, sourceFile: string): WaybackB
     for (let p = 0; p < expected; p++) {
       const t = rowsOfRound[p]
       const scoreCell = t?.[1]
-      const parsed = scoreCell ? SCORE.exec(scoreCell.value) : null
 
       /*
        * Round 1's players come from the name column; every later round's come from the two
@@ -254,6 +320,7 @@ export function parseColumnarBracket(text: string, sourceFile: string): WaybackB
         : t?.[2] ? playerFromCell(t[2]!, column) : null
 
       const isBye = Boolean(home?.bye || away?.bye)
+      const read = readOutcome(scoreCell?.value ?? null, isBye)
 
       matches.push({
         round: r,
@@ -263,8 +330,10 @@ export function parseColumnarBracket(text: string, sourceFile: string): WaybackB
         away,
         // A bye is a walkover. Several pages print "7-0" beside one; recording it would manufacture
         // a whitewash against somebody who never played.
-        scoreHome: isBye ? null : parsed ? Number(parsed[1]) : null,
-        scoreAway: isBye ? null : parsed ? Number(parsed[2]) : null,
+        scoreHome: read.scoreHome,
+        scoreAway: read.scoreAway,
+        outcome: read.outcome,
+        forfeitedBy: read.forfeitedBy,
         rawScore: scoreCell?.value ?? null,
         winnerHandle: null,
         advancesTo: r < totalRounds
@@ -387,6 +456,32 @@ export function validateBracket(input: {
 
       if (sides.length < 2) { note(r, m.position, 'fewer than two participants'); roundProven = false; continue }
 
+      /*
+       * A forfeit is a result. A disqualification is not one this system can write.
+       *
+       * The page records who gave the match up, which names a winner as surely as a score does, so
+       * a forfeit is proven and advances the opponent with no games awarded either way. A
+       * disqualification is a different fact with no defined record here, and a walkover with no
+       * side printed says a match was conceded without saying by whom; neither is guessed at.
+       */
+      if (m.outcome === ('forfeit' as typeof m.outcome)) {
+        const winner = m.forfeitedBy === 'home' ? m.away : m.home
+        if (!winner) { note(r, m.position, 'a forfeit with nobody to advance'); roundProven = false; continue }
+        if (m.winnerHandle && !eq(m.winnerHandle, winner.normalizedHandle)) {
+          note(r, m.position, `the forfeit gives ${winner.normalizedHandle} but the page advances ${m.winnerHandle}`)
+          roundProven = false; continue
+        }
+        m.proven = true
+        continue
+      }
+      if (m.outcome === ('disqualification' as typeof m.outcome)) {
+        note(r, m.position, `a disqualification — the page prints "${m.rawScore}" and this record has no disqualification outcome`)
+        roundProven = false; continue
+      }
+      if (m.outcome === ('walkover' as typeof m.outcome)) {
+        note(r, m.position, `a walkover with no side named — the page prints "${m.rawScore}"`)
+        roundProven = false; continue
+      }
       if (m.scoreHome === null || m.scoreAway === null) {
         note(r, m.position, m.rawScore ? `no numeric result — the page prints "${m.rawScore}"` : 'no result recorded')
         roundProven = false
