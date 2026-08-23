@@ -81,8 +81,21 @@ export function assessFieldCompleteness(
 
   add('the winner chain fits the bracket', bracket.validation.category !== 'contradictory',
     bracket.validation.problems.slice(0, 2).join('; '))
-  add('the results run unbroken to the Final',
-    bracket.validation.category === 'full', bracket.validation.category)
+  /*
+   * The results must be trustworthy, not complete.
+   *
+   * This asked for `full` — every match proven all the way to the Final — which is a question about
+   * scores, and the thing being decided here is who was in the draw. A page that names all thirty-two
+   * players and happens not to print one round-one score is no less certain about its field, and six
+   * Seasons were refused on that alone.
+   *
+   * `partial` is therefore allowed and `contradictory` is not. The distinction is whether the page
+   * disagrees with itself: a page whose winners do not follow from its own scores may have the wrong
+   * people in it, and its field cannot be trusted to overrule anything.
+   */
+  add('the results do not contradict the page',
+    bracket.validation.category === 'full' || bracket.validation.category === 'partial',
+    bracket.validation.category)
   add('the Final produces the champion the page names', Boolean(bracket.champion))
   add('the page is the right Season',
     bracket.competitionYear === expected.competitionYear &&

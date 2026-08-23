@@ -207,6 +207,22 @@ for (const row of targets) {
     out.notes.push(`field left as selected — ${recon.reason}`)
   }
 
+  /*
+   * Re-read the bracket, because reconciling the field may have removed it.
+   *
+   * Changing who is selected invalidates a draft bracket — correctly, since a draw is drawn from a
+   * field and that field just changed. The rows were read before the reconciliation, though, so the
+   * list still held thirty-one matches that no longer existed: the generate step below saw a bracket
+   * already present and skipped, and the seating check then found nothing to check and reported that
+   * the bracket disagreed with the page. Eleven Seasons stopped there, on a bracket that was not
+   * wrong but absent.
+   */
+  dbMatches.length = 0
+  dbMatches.push(...await prisma.seasonPlayoffMatch.findMany({
+    where: { seasonId },
+    select: { id: true, round: true, slot: true, homeEntrantId: true, awayEntrantId: true, homeGames: true, awayGames: true, winnerEntrantId: true },
+    orderBy: [{ round: 'asc' }, { slot: 'asc' }],
+  }))
 
 
   /*

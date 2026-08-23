@@ -20,6 +20,25 @@ import { aliasKey } from '@/lib/players/aliases'
 
 import { stripSourceNote } from './manifest'
 
+/**
+ * Every account's CueVerse ID with its separators removed, read once per process.
+ *
+ * Resolution runs a few hundred times a batch and this list changes only when an account is created,
+ * which the batches that use it do in a separate pass beforehand.
+ */
+let strippedCache: { id: string; stripped: string }[] | null = null
+async function allPlayersStripped(): Promise<{ id: string; stripped: string }[]> {
+  if (strippedCache) return strippedCache
+  const rows = await prisma.player.findMany({ select: { id: true, cueverseIdNormalized: true } })
+  strippedCache = rows
+    .filter((r): r is { id: string; cueverseIdNormalized: string } => Boolean(r.cueverseIdNormalized))
+    .map((r) => ({ id: r.id, stripped: aliasKey(r.cueverseIdNormalized) }))
+  return strippedCache
+}
+
+/** Forget the cached list — for a process that creates accounts and then resolves against them. */
+export function resetCanonicalCache(): void { strippedCache = null }
+
 export interface CanonicalIdentity {
   /** The handle as the source printed it. */
   rawHandle: string
@@ -55,6 +74,26 @@ export async function resolveCanonical(seasonId: number | null, rawHandle: strin
   const byId = await prisma.player.findMany({ where: { cueverseIdNormalized: key }, select: { id: true } })
   if (byId.length === 1) return withEntrant(byId[0].id, 'cueverse-id')
   if (byId.length > 1) return { ...base, playerId: null, resolution: 'ambiguous', via: 'none' }
+
+  /*
+   * The same handle, written with separators or without.
+   *
+   * A bracket prints `adam_buddy` for the account whose CueVerse ID is `adambuddy`, and `pro.jeremy*`
+   * for `pro.jeremy`. The alias table already treats those as one handle — `addAlias` stores every
+   * alias with its separators removed, and refuses these outright as "already their CueVerse ID" —
+   * so the resolver was the only place still insisting on the punctuation matching exactly, and the
+   * bracket position each named stayed unfillable with no alias able to fix it.
+   *
+   * Stripped forms are compared in memory against a list read once, because the comparison cannot be
+   * expressed as a column match and the alternative is a pattern query per handle.
+   */
+  const stripped = aliasKey(handle)
+  if (stripped && stripped !== key) {
+    const byStripped = (await allPlayersStripped()).filter((p) => p.stripped === stripped)
+    const distinct = [...new Set(byStripped.map((p) => p.id))]
+    if (distinct.length === 1) return withEntrant(distinct[0], 'cueverse-id')
+    if (distinct.length > 1) return { ...base, playerId: null, resolution: 'ambiguous', via: 'none' }
+  }
 
   /*
    * Aliases are stored with their separators removed, so the lookup has to be too.
