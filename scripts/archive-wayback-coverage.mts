@@ -50,7 +50,8 @@ export interface CoverageRow {
 
 const files: string[] = []
 if (existsSync(ROOT)) {
-  for (const year of readdirSync(ROOT)) {
+  // Only the year folders hold sources; anything else beside them is documentation.
+  for (const year of readdirSync(ROOT).filter((y) => /^\d{4}$/.test(y))) {
     const dir = join(ROOT, year)
     for (const f of readdirSync(dir)) files.push(join(dir, f))
   }

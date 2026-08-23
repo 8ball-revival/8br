@@ -238,15 +238,27 @@ for (const s of seasons) {
       where: { seasonId: s.id },
       select: { id: true, playerId: true, cueverseId: true, username: true },
     })
+    /*
+     * The alias test asks the same question the direct test does, of the same set.
+     *
+     * It used to ask only the manifest, which quietly undid the exemption above: somebody entered
+     * because the bracket seats them, whose account holds a different CueVerse ID from the one the
+     * bracket prints, matched neither by handle nor by alias and was swept away on the next run.
+     * That is most of them — the reason a bracket names people the group table does not is that
+     * they had changed their ID.
+     *
+     * Aliases are stored with separators removed, so the recorded set is compared in both forms.
+     */
+    const strippedAnywhere = new Set([...recordedAnywhere].map((h) => h.replace(/[^a-z0-9]/g, '')))
     const strays: number[] = []
     for (const e of existing) {
       const handle = String(e.cueverseId ?? e.username).toLowerCase()
-      let recorded = manifestHandles.has(handle)
+      let recorded = recordedAnywhere.has(handle) || strippedAnywhere.has(handle.replace(/[^a-z0-9]/g, ''))
       if (!recorded && e.playerId) {
         const aliases = await prisma.playerAlias.findMany({ where: { playerId: e.playerId }, select: { alias: true } })
-        recorded = aliases.some((a) => manifestHandles.has(a.alias.toLowerCase()))
+        recorded = aliases.some((a) => recordedAnywhere.has(a.alias.toLowerCase()) || strippedAnywhere.has(a.alias.toLowerCase().replace(/[^a-z0-9]/g, '')))
       }
-      if (!recorded && !recordedAnywhere.has(handle)) strays.push(e.id)
+      if (!recorded) strays.push(e.id)
     }
     if (strays.length > 0) {
       await prisma.seasonEntrant.deleteMany({ where: { id: { in: strays } } })
