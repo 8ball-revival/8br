@@ -9,19 +9,19 @@ person's record to another is far harder to undo than merging two accounts later
 |---|---|---|---|---|
 | `kinglvlatt` (Matt) | 9 | `king_lvlatt` (king_lvlatt) | 1 | no Season in common, but nothing proves they are one person |
 | `chokshi_krunal` (Krunal) | 9 | `chokshi.krunal` (chokshi.krunal) | 3 | no Season in common, but nothing proves they are one person |
-| `xlx_spg_xlx` (Scotty) | 15 | `xlx_s_p_g_xlx` (xlx_s_p_g_xlx) | 3 | no Season in common, but nothing proves they are one person |
+| `xlx_spg_xlx` (Scotty) | 15 | `xlx_s_p_g_xlx` (xlx_s_p_g_xlx) | 7 | no Season in common, but nothing proves they are one person |
 | `king_vaughan` (Ross) | 5 | `kingvaughan` (kingvaughan) | 2 | no Season in common, but nothing proves they are one person |
 | `artic_wraith` (artic_wraith) | 1 | `artic.wraith` (artic.wraith) | 1 | no Season in common, but nothing proves they are one person |
 | `cool.combos` (Josh) | 6 | `cool_combos` (cool_combos) | 6 | no Season in common, but nothing proves they are one person |
 | `_KoRn_69` (Anto) | 3 | `_korn_69_` (_korn_69_) | 1 | no Season in common, but nothing proves they are one person |
 | `tino_nica` (Tino) | 44 | `tino.nica` (tino.nica) | 1 | no Season in common, but nothing proves they are one person |
-| `x_majik.shots_x` (Cal) | 8 | `x_majik_shots_x` (x_majik_shots_x) | 1 | no Season in common, but nothing proves they are one person |
+| `x_majik.shots_x` (Cal) | 9 | `x_majik_shots_x` (x_majik_shots_x) | 1 | no Season in common, but nothing proves they are one person |
 | `nakash_qamar` (nakash_qamar) | 3 | `nakash.qamar` (nakash.qamar) | 1 | both appear in 1 of the same Season(s) — likely two people |
 | `uslander@sbcglobal.net` (uslander@sbcglobal.net) | 5 | `uslander@sbcglobal.net.` (uslander@sbcglobal.net.) | 1 | both appear in 1 of the same Season(s) — likely two people |
 | `xdis.enchantedx` (xdis.enchantedx) | 3 | `x.dis.enchantedx` (x.dis.enchantedx) | 1 | both appear in 1 of the same Season(s) — likely two people |
 | `irish_gary` (irish_gary) | 1 | `irish.gary` (irish.gary) | 1 | no Season in common, but nothing proves they are one person |
 | `lll_n0_lll` (lll_n0_lll) | 5 | `lll.n0_lll` (lll.n0_lll) | 1 | both appear in 1 of the same Season(s) — likely two people |
-| `the_bez_is_back` (the_bez_is_back) | 1 | `thebezisback` (thebezisback) | 3 | no Season in common, but nothing proves they are one person |
+| `the_bez_is_back` (the_bez_is_back) | 1 | `thebezisback` (thebezisback) | 4 | no Season in common, but nothing proves they are one person |
 | `l1_stephen_1` (l1_stephen_1) | 23 | `l1_stephen_ 1` (l1_stephen_ 1) | 1 | both appear in 1 of the same Season(s) — likely two people |
 | `t_r_a_v_i_s_` (t_r_a_v_i_s_) | 1 | `t_r_a_v_i_s` (t_r_a_v_i_s) | 1 | no Season in common, but nothing proves they are one person |
 | `victoria_7k` (victoria_7k) | 6 | `Victoria7k` (Victoria7k) | 1 | both appear in 1 of the same Season(s) — likely two people |
@@ -37,10 +37,6 @@ These occupy an entry position on an archived bracket but are not entrants in th
 the position cannot be filled. Entering somebody is only possible while registration is open,
 which closed long before these group stages were played.
 
-- **2010 S1A** (Season 5477) R1.12 away: `TrueBoston` — no Player at all
-- **2011 S2A** (Season 5487) R1.4 home: `Cocky_Guy` — no Player at all
-- **2011 S3A** (Season 5489) R1.6 away: `Cocky_Guy` — no Player at all
-- **2011 S4A** (Season 5491) R1.8 home: `jmunoz3rd` — Player `cmt0jqore000o6rpo67cxegnp`, account 4199, but not entered in this Season
 
 ## Confirmed merges
 
@@ -48,6 +44,7 @@ which closed long before these group stages were played.
 |---|---|---|
 | `Luis` | `Starkiller` | `cmsys8lj000016rigqrgtm4qb` |
 | `x_therage` | `t_an_may` | `cmt1x90kt007i6r0ca4nzqnig` |
+| `i_am_almost_god` | `Starkiller` | `cmsys8lj000016rigqrgtm4qb` |
 | `i.am_the_zodiac` | `jabronni16` | `cmt0qd455002q6rpo8ff2w31b` |
 | `lvl_i_g_h_t_y` | `sir.mighty` | `cmt0jopj3000j6rpod2e0sseb` |
 | `Matt` | `superstaaaar` | `cmt0q2a94001x6rpoat4wd2ig` |

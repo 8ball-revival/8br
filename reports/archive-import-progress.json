@@ -539,6 +539,7 @@
     "unresolved": [],
     "notes": [
       "removed 3 entrant(s) the archive does not record for this Season",
+      "selection: The playoffs have already started. The bracket can no longer be rebuilt from the archive.",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -913,6 +914,7 @@
     "notes": [
       "removed 3 entrant(s) the archive does not record for this Season",
       "removed 1 entrant(s) the archive does not record for this Season",
+      "groups closed, 21 no-contest",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -956,6 +958,7 @@
     "notes": [
       "removed 2 entrant(s) the archive does not record for this Season",
       "removed 1 entrant(s) the archive does not record for this Season",
+      "selection: The playoffs have already started. The bracket can no longer be rebuilt from the archive.",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -999,6 +1002,7 @@
     "notes": [
       "removed 4 entrant(s) the archive does not record for this Season",
       "removed 1 entrant(s) the archive does not record for this Season",
+      "selection: The playoffs have already started. The bracket can no longer be rebuilt from the archive.",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -1033,7 +1037,7 @@
     "bracketSize": null,
     "entrantsAdded": 39,
     "playersCreated": 0,
-    "groupsPlaced": 0,
+    "groupsPlaced": 43,
     "resultsImported": 113,
     "playoffSelected": 23,
     "round1Placed": 0,
@@ -1041,7 +1045,7 @@
     "unresolved": [],
     "notes": [
       "removed 4 entrant(s) the archive does not record for this Season",
-      "selection: The playoffs have already started. The bracket can no longer be rebuilt from the archive.",
+      "groups closed, 13 no-contest",
       "playoff positions not recorded — selection only, bracket left unarranged"
     ],
     "error": null
@@ -1081,7 +1085,9 @@
     "round1Placed": 25,
     "byes": 7,
     "unresolved": [],
-    "notes": [],
+    "notes": [
+      "groups closed, 51 no-contest"
+    ],
     "error": null
   },
   "5496": {
@@ -1113,14 +1119,15 @@
     "bracketSize": 32,
     "entrantsAdded": 1,
     "playersCreated": 0,
-    "groupsPlaced": 0,
+    "groupsPlaced": 49,
     "resultsImported": 106,
     "playoffSelected": 26,
     "round1Placed": 26,
     "byes": 0,
     "unresolved": [],
     "notes": [
-      "removed 2 entrant(s) the archive does not record for this Season"
+      "removed 2 entrant(s) the archive does not record for this Season",
+      "groups closed, 41 no-contest"
     ],
     "error": null
   },
@@ -1158,7 +1165,8 @@
     "byes": 7,
     "unresolved": [],
     "notes": [
-      "removed 2 entrant(s) the archive does not record for this Season"
+      "removed 2 entrant(s) the archive does not record for this Season",
+      "groups closed, 41 no-contest"
     ],
     "error": null
   },
@@ -1196,7 +1204,8 @@
     "byes": 7,
     "unresolved": [],
     "notes": [
-      "removed 2 entrant(s) the archive does not record for this Season"
+      "removed 2 entrant(s) the archive does not record for this Season",
+      "groups closed, 40 no-contest"
     ],
     "error": null
   },
@@ -1234,7 +1243,8 @@
     "byes": 10,
     "unresolved": [],
     "notes": [
-      "removed 3 entrant(s) the archive does not record for this Season"
+      "removed 3 entrant(s) the archive does not record for this Season",
+      "groups closed, 47 no-contest"
     ],
     "error": null
   },
@@ -1274,7 +1284,8 @@
     "byes": 9,
     "unresolved": [],
     "notes": [
-      "removed 2 entrant(s) the archive does not record for this Season"
+      "removed 2 entrant(s) the archive does not record for this Season",
+      "groups closed, 40 no-contest"
     ],
     "error": null
   },
@@ -1314,7 +1325,8 @@
     "byes": 10,
     "unresolved": [],
     "notes": [
-      "removed 2 entrant(s) the archive does not record for this Season"
+      "removed 2 entrant(s) the archive does not record for this Season",
+      "groups closed, 47 no-contest"
     ],
     "error": null
   },
@@ -1354,7 +1366,8 @@
     "byes": 5,
     "unresolved": [],
     "notes": [
-      "removed 1 entrant(s) the archive does not record for this Season"
+      "removed 1 entrant(s) the archive does not record for this Season",
+      "groups closed, 40 no-contest"
     ],
     "error": null
   },
@@ -1394,7 +1407,8 @@
     "byes": 8,
     "unresolved": [],
     "notes": [
-      "removed 3 entrant(s) the archive does not record for this Season"
+      "removed 3 entrant(s) the archive does not record for this Season",
+      "selection: The playoffs have already started. The bracket can no longer be rebuilt from the archive."
     ],
     "error": null
   },
@@ -1432,7 +1446,8 @@
     "byes": 11,
     "unresolved": [],
     "notes": [
-      "removed 2 entrant(s) the archive does not record for this Season"
+      "removed 2 entrant(s) the archive does not record for this Season",
+      "groups closed, 36 no-contest"
     ],
     "error": null
   },
@@ -1475,7 +1490,8 @@
     "byes": 10,
     "unresolved": [],
     "notes": [
-      "removed 1 entrant(s) the archive does not record for this Season"
+      "removed 1 entrant(s) the archive does not record for this Season",
+      "groups closed, 30 no-contest"
     ],
     "error": null
   },

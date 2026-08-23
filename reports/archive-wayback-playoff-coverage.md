@@ -27,61 +27,78 @@ applied to a Division B Season or to 2012–2014, for which no bracket page surv
 | 20.txt | 0 S0A | — | — | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | no Division A Season in the database for this page |
 | 2008 s1.txt | 2008 S1A | 5455 | COMPLETED | 32 | 30/31 | 15/16 | 15 | yes | real_creampuff | Luis | partial | no | this Season is already complete; its record is canonical and read-only here |
 | 2008 s2.txt | 2008 S2A | 5457 | COMPLETED | 32 | 30/31 | 15/16 | 15 | yes | p00l_charlie | PC | partial | no | this Season is already complete; its record is canonical and read-only here |
-| 2008 s3.txt | 2008 S3A | 5459 | PLAYOFFS_LIVE | 32 | 29/31 | 14/16 | 15 | yes | xball.controlx | — | partial | **yes** |  |
+| 2008 s3.txt | 2008 S3A | 5459 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | xball.controlx | xball.controlx | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2008 s4.txt | 2008 S4A | 5461 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | x7_balledx | x7_balledx | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2008 s5.txt | 2008 S5A | 5463 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | sixohtwo | Kevin | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2009 s1.txt | 2009 S1A | 5465 | PLAYOFFS_LIVE | 32 | 28/31 | 14/16 | 14 | yes | xxx_thepower_xxx | — | partial | **yes** |  |
 | 2009 s2.txt | 2009 S2A | 5467 | PLAYOFFS_LIVE | 32 | 30/31 | 15/16 | 15 | yes | xxx_thepower_xxx | — | partial | **yes** |  |
-| 2009 s3.txt | 2009 S3A | 5469 | PLAYOFF_SETUP | 32 | 30/31 | 15/16 | 15 | yes | mvpsicc | — | partial | **yes** |  |
+| 2009 s3.txt | 2009 S3A | 5469 | PLAYOFFS_LIVE | 32 | 30/31 | 15/16 | 15 | yes | mvpsicc | — | partial | **yes** |  |
 | 2009 s4.txt | 2009 S4A | 5471 | PLAYOFF_SETUP | 32 | 30/31 | 15/16 | 15 | yes | MJ_The_King | — | contradictory | no | the page disagrees with itself |
-| 2009 s5.txt | 2009 S5A | 5473 | REGISTRATION_OPEN | 32 | 26/31 | 12/16 | 14 | yes | MJ_The_King | — | partial | **yes** |  |
-| 2009 s6.txt | 2009 S6A | 5475 | PLAYOFF_SETUP | 32 | 29/31 | 14/16 | 15 | yes | zl_stu_lz | — | contradictory | no | the page disagrees with itself |
+| 2009 s5.txt | 2009 S5A | 5473 | REGISTRATION_OPEN | 32 | 31/31 | 16/16 | 15 | yes | MJ_The_King | — | full | **yes** |  |
+| 2009 s6.txt | 2009 S6A | 5475 | PLAYOFF_SETUP | 32 | 31/31 | 16/16 | 15 | yes | zl_stu_lz | — | contradictory | no | the page disagrees with itself |
 | 2010 s1.txt | 2010 S1A | 5477 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | mvp_sicc | mvp_sicc | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2010 s2.txt | 2010 S2A | 5479 | PLAYOFF_SETUP | 32 | 31/31 | 16/16 | 15 | yes | Xx_CK_xX | — | contradictory | no | the page disagrees with itself |
 | 2010 s3.txt | 2010 S3A | 5481 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | Easyrun | easyrun | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2010 s4.txt | 2010 S4A | 5483 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | aka_hero | aka_hero | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2011 s1.txt | 2011 S1A | 5485 | PLAYOFF_SETUP | 32 | 23/31 | 9/16 | 14 | yes | xlx_britishpoolking_xlx | — | contradictory | no | the page disagrees with itself |
-| 2011 s2.txt | 2011 S2A | 5487 | PLAYOFF_SETUP | 32 | 31/31 | 16/16 | 15 | yes | underdogg_ | — | full | **yes** |  |
+| 2011 s2.txt | 2011 S2A | 5487 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | underdogg_ | underdogg_ | full | no | this Season is already complete; its record is canonical and read-only here |
 | 2011 s3.txt | 2011 S3A | 5489 | PLAYOFF_SETUP | 32 | 29/31 | 15/16 | 14 | yes | b0rn.gr3at | — | partial | **yes** |  |
-| 2011 s4.txt | 2011 S4A | 5491 | PLAYOFF_SETUP | 32 | 29/31 | 14/16 | 15 | yes | scotpool | — | partial | **yes** |  |
-| 2011 s5.txt | 2011 S5A | 5493 | PLAYOFFS_LIVE | 32 | 30/31 | 16/16 | 14 | yes | manutd_ | — | partial | **yes** |  |
-| 2012 s4.txt | 2012 S4A | 5501 | PLAYOFF_SETUP | 32 | 30/31 | 15/16 | 15 | yes | Xx_APOCALIPSYS_xX | — | partial | **yes** |  |
-| 2012 s5.txt | 2012 S5A | 5503 | PLAYOFF_SETUP | 32 | 28/31 | 15/16 | 13 | yes | xlx_skill_xlx | — | partial | **yes** |  |
-| raw-2012-s1.html | 2012 S1A | 5495 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2012-s2.html | 2012 S2A | 5497 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2012-s3.html | 2012 S3A | 5499 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2012-s4.html | 2012 S4A | 5501 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2012-s5.html | 2012 S5A | 5503 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2013-s1.html | 2013 S1A | 5505 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2013-s2.html | 2013 S2A | 5507 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2013-s3.html | 2013 S3A | 5509 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
+| 2011 s4.txt | 2011 S4A | 5491 | PLAYOFF_SETUP | 32 | 30/31 | 15/16 | 15 | yes | scotpool | — | partial | **yes** |  |
+| 2011 s5.txt | 2011 S5A | 5493 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | manutd_ | manutd_ | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2012 s1.txt | 2012 S1A | 5495 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | good-faith | Ant | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2012 s2.txt | 2012 S2A | 5497 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | xGodNeox | Neo | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2012 s3.txt | 2012 S3A | 5499 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | deep.cerebro | deep.cerebro | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2012 s4.txt | 2012 S4A | 5501 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | Xx_APOCALIPSYS_xX | xx_apocalypsys_xx | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2012 s5.txt | 2012 S5A | 5503 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | xlx_skill_xlx | xlx_skill_xlx | full | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2012-s1.txt | 2012 S1A | 5495 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | Ant | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2012-s2.txt | 2012 S2A | 5497 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | Neo | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2012-s3.txt | 2012 S3A | 5499 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | deep.cerebro | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2012-s4.txt | 2012 S4A | 5501 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | xx_apocalypsys_xx | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2012-s5.txt | 2012 S5A | 5503 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | xlx_skill_xlx | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2012-s1.html | 2012 S1A | 5495 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | Ant | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2012-s2.html | 2012 S2A | 5497 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | Neo | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2012-s3.html | 2012 S3A | 5499 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | deep.cerebro | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2012-s4.html | 2012 S4A | 5501 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | xx_apocalypsys_xx | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2012-s5.html | 2012 S5A | 5503 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | xlx_skill_xlx | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| 2013 s1.txt | 2013 S1A | 5505 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | au.stralian | au.stralia | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2013 s2.txt | 2013 S2A | 5507 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | bluffing | bluffing | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2013 s3.txt | 2013 S3A | 5509 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | _dante | _dante | full | no | this Season is already complete; its record is canonical and read-only here |
+| 2013 s4.txt | 2013 S4A | 5511 | PLAYOFF_SETUP | 32 | 30/31 | 15/16 | 15 | yes | Asskicking_101 | — | partial | **yes** |  |
+| 2013 s5.txt | 2013 S5A | 5513 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | MJ_The_King | MJ_The_King | full | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2013-s1.txt | 2013 S1A | 5505 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | au.stralia | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2013-s2.txt | 2013 S2A | 5507 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | bluffing | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2013-s3.txt | 2013 S3A | 5509 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | _dante | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2013-s4.txt | 2013 S4A | 5511 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
+| paste-2013-s5.txt | 2013 S5A | 5513 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | MJ_The_King | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2013-s1.html | 2013 S1A | 5505 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | au.stralia | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2013-s2.html | 2013 S2A | 5507 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | bluffing | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2013-s3.html | 2013 S3A | 5509 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | _dante | unusable | no | this Season is already complete; its record is canonical and read-only here |
 | raw-2013-s4.html | 2013 S4A | 5511 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
-| raw-2013-s5.html | 2013 S5A | 5513 | PLAYOFF_SETUP | — | 0/0 | 0/0 | 0 | no | — | — | unusable | no | the page does not parse as a bracket |
+| raw-2013-s5.html | 2013 S5A | 5513 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | MJ_The_King | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| 2014 s1.txt | 2014 S1A | 5515 | COMPLETED | 32 | 31/31 | 16/16 | 15 | yes | havok | havok | full | no | this Season is already complete; its record is canonical and read-only here |
+| paste-2014-s1.txt | 2014 S1A | 5515 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | havok | unusable | no | this Season is already complete; its record is canonical and read-only here |
+| raw-2014-s1.html | 2014 S1A | 5515 | COMPLETED | — | 0/0 | 0/0 | 0 | no | — | havok | unusable | no | this Season is already complete; its record is canonical and read-only here |
 
 ## Totals
 
-- Pages parsed: **50**
+- Pages parsed: **71**
 - placement-only: **13**
-- unusable: **15**
-- partial: **12**
-- full: **6**
+- unusable: **27**
+- partial: **8**
+- full: **19**
 - contradictory: **4**
-- Eligible for import: **11**
-- Proven matches across eligible Seasons: **320**
+- Eligible for import: **7**
+- Proven matches across eligible Seasons: **208**
 
 ### Eligible Seasons
 
-- **2008 S3A** (Season 5459) — 29 of 31 matches proven, category partial, stops at R1 match 6: a walkover with no side named — the page prints "--W/O"
 - **2009 S1A** (Season 5465) — 28 of 31 matches proven, category partial, stops at R1 match 4: no numeric result — the page prints "RT7 Win By 2"
 - **2009 S2A** (Season 5467) — 30 of 31 matches proven, category partial, stops at R1 match 15: no numeric result — the page prints "RT7 Win By 2"
 - **2009 S3A** (Season 5469) — 30 of 31 matches proven, category partial, stops at R1 match 3: no numeric result — the page prints "RT7 Win By 2"
-- **2009 S5A** (Season 5473) — 26 of 31 matches proven, category partial, stops at R1 match 6: a disqualification — the page prints "dq-0" and this record has no disqualification outcome
-- **2011 S2A** (Season 5487) — 31 of 31 matches proven, category full
+- **2009 S5A** (Season 5473) — 31 of 31 matches proven, category full
 - **2011 S3A** (Season 5489) — 29 of 31 matches proven, category partial, stops at R1 match 6: no numeric result — the page prints "RT7 Win By 2"
-- **2011 S4A** (Season 5491) — 29 of 31 matches proven, category partial, stops at R1 match 4: a disqualification — the page prints "DQ-0" and this record has no disqualification outcome
-- **2011 S5A** (Season 5493) — 30 of 31 matches proven, category partial, stops at R3 match 3: a disqualification — the page prints "7-DQ" and this record has no disqualification outcome
-- **2012 S4A** (Season 5501) — 30 of 31 matches proven, category partial, stops at R1 match 10: no numeric result — the page prints "Forfeit"
-- **2012 S5A** (Season 5503) — 28 of 31 matches proven, category partial, stops at R1 match 16: a disqualification — the page prints "DQ" and this record has no disqualification outcome
+- **2011 S4A** (Season 5491) — 30 of 31 matches proven, category partial, stops at R1 match 16: no numeric result — the page prints "RT7 Win By 2"
+- **2013 S4A** (Season 5511) — 30 of 31 matches proven, category partial, stops at R1 match 8: no numeric result — the page prints "—"
 
 ### Completed Seasons compared but not touched
 
@@ -104,8 +121,41 @@ applied to a Division B Season or to 2012–2014, for which no bracket page surv
 - 2007 S6A (Season 5453) — champion on the page: —; canonical: Ant
 - 2008 S1A (Season 5455) — champion on the page: real_creampuff; canonical: Luis — **differs**
 - 2008 S2A (Season 5457) — champion on the page: p00l_charlie; canonical: PC — **differs**
+- 2008 S3A (Season 5459) — champion on the page: xball.controlx; canonical: xball.controlx
 - 2008 S4A (Season 5461) — champion on the page: x7_balledx; canonical: x7_balledx
 - 2008 S5A (Season 5463) — champion on the page: sixohtwo; canonical: Kevin — **differs**
 - 2010 S1A (Season 5477) — champion on the page: mvp_sicc; canonical: mvp_sicc
 - 2010 S3A (Season 5481) — champion on the page: Easyrun; canonical: easyrun
 - 2010 S4A (Season 5483) — champion on the page: aka_hero; canonical: aka_hero
+- 2011 S2A (Season 5487) — champion on the page: underdogg_; canonical: underdogg_
+- 2011 S5A (Season 5493) — champion on the page: manutd_; canonical: manutd_
+- 2012 S1A (Season 5495) — champion on the page: good-faith; canonical: Ant — **differs**
+- 2012 S2A (Season 5497) — champion on the page: xGodNeox; canonical: Neo — **differs**
+- 2012 S3A (Season 5499) — champion on the page: deep.cerebro; canonical: deep.cerebro
+- 2012 S4A (Season 5501) — champion on the page: Xx_APOCALIPSYS_xX; canonical: xx_apocalypsys_xx — **differs**
+- 2012 S5A (Season 5503) — champion on the page: xlx_skill_xlx; canonical: xlx_skill_xlx
+- 2012 S1A (Season 5495) — champion on the page: —; canonical: Ant
+- 2012 S2A (Season 5497) — champion on the page: —; canonical: Neo
+- 2012 S3A (Season 5499) — champion on the page: —; canonical: deep.cerebro
+- 2012 S4A (Season 5501) — champion on the page: —; canonical: xx_apocalypsys_xx
+- 2012 S5A (Season 5503) — champion on the page: —; canonical: xlx_skill_xlx
+- 2012 S1A (Season 5495) — champion on the page: —; canonical: Ant
+- 2012 S2A (Season 5497) — champion on the page: —; canonical: Neo
+- 2012 S3A (Season 5499) — champion on the page: —; canonical: deep.cerebro
+- 2012 S4A (Season 5501) — champion on the page: —; canonical: xx_apocalypsys_xx
+- 2012 S5A (Season 5503) — champion on the page: —; canonical: xlx_skill_xlx
+- 2013 S1A (Season 5505) — champion on the page: au.stralian; canonical: au.stralia — **differs**
+- 2013 S2A (Season 5507) — champion on the page: bluffing; canonical: bluffing
+- 2013 S3A (Season 5509) — champion on the page: _dante; canonical: _dante
+- 2013 S5A (Season 5513) — champion on the page: MJ_The_King; canonical: MJ_The_King
+- 2013 S1A (Season 5505) — champion on the page: —; canonical: au.stralia
+- 2013 S2A (Season 5507) — champion on the page: —; canonical: bluffing
+- 2013 S3A (Season 5509) — champion on the page: —; canonical: _dante
+- 2013 S5A (Season 5513) — champion on the page: —; canonical: MJ_The_King
+- 2013 S1A (Season 5505) — champion on the page: —; canonical: au.stralia
+- 2013 S2A (Season 5507) — champion on the page: —; canonical: bluffing
+- 2013 S3A (Season 5509) — champion on the page: —; canonical: _dante
+- 2013 S5A (Season 5513) — champion on the page: —; canonical: MJ_The_King
+- 2014 S1A (Season 5515) — champion on the page: havok; canonical: havok
+- 2014 S1A (Season 5515) — champion on the page: —; canonical: havok
+- 2014 S1A (Season 5515) — champion on the page: —; canonical: havok
