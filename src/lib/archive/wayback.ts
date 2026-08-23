@@ -122,6 +122,17 @@ const SCORE = /^(\d{1,3})\s*-\s*(\d{1,3})$/
  */
 const FF_AWAY = /^\s*(\d{0,3})\s*-\s*FF'?d?\s*$/i
 const FF_HOME = /^\s*FF'?d?\s*-\s*(\d{0,3})\s*$/i
+/**
+ * Outcomes that award a match rather than score it.
+ *
+ * A disqualification, a forfeit and a walkover are different facts about why nobody played, and the
+ * parser keeps them apart so the reports can say which happened. They are recorded the same way,
+ * though — the opponent advances with no games either side — so everything downstream asks this
+ * rather than naming one outcome and quietly dropping the others.
+ */
+export const isForfeitLike = (o: MatchOutcome): boolean =>
+  o === 'forfeit' || o === 'disqualification' || o === 'walkover'
+
 const DQ_ANY = /DQ/i
 const WALKOVER = /W\s*\/?\s*O/i
 
@@ -169,7 +180,7 @@ export function readOutcome(raw: string | null, isBye: boolean): ParsedOutcome {
    * is the side that lost. No games are recorded either way — the numbers describe a concession,
    * not frames anybody played.
    */
-  const annotated = /^s*(d{1,3})s*-s*(d{1,3})s*[([]s*FF.?d?s*[)]]s*$/i.exec(t)
+  const annotated = /^\s*(\d{1,3})\s*-\s*(\d{1,3})\s*[([]\s*FF['’]?d?\s*[)\]]\s*$/i.exec(t)
   if (annotated) {
     const a = Number(annotated[1]), b = Number(annotated[2])
     if (a === b) return { outcome: 'missing', scoreHome: null, scoreAway: null, forfeitedBy: null }
@@ -181,8 +192,8 @@ export function readOutcome(raw: string | null, isBye: boolean): ParsedOutcome {
   const home = FF_HOME.exec(t)
   if (home) return { outcome: 'forfeit', scoreHome: null, scoreAway: null, forfeitedBy: 'home' }
 
-  // A bare "FF" or a walkover with no side printed says a match was given up but not by whom.
-  if (WALKOVER.test(t) || /^FF'?d?$/i.test(t)) {
+  // A bare "FF", "Forfeit" or a walkover says a match was given up, without saying by whom.
+  if (WALKOVER.test(t) || /^(?:FF['’]?d?|Forfeit(?:ed)?)$/i.test(t)) {
     return { outcome: 'walkover', scoreHome: null, scoreAway: null, forfeitedBy: null }
   }
 
@@ -472,30 +483,38 @@ export function validateBracket(input: {
       if (sides.length < 2) { note(r, m.position, 'fewer than two participants'); roundProven = false; continue }
 
       /*
-       * A forfeit is a result. A disqualification is not one this system can write.
+       * A forfeit is a result, and by the owner's decision so is a disqualification: the match was
+       * awarded, the winner advances, and no games are recorded for either player.
        *
-       * The page records who gave the match up, which names a winner as surely as a score does, so
-       * a forfeit is proven and advances the opponent with no games awarded either way. A
-       * disqualification is a different fact with no defined record here, and a walkover with no
-       * side printed says a match was conceded without saying by whom; neither is guessed at.
+       * "0-FF" names the side that gave the match up. A bare "DQ" does not — but the bracket does,
+       * by carrying one of the two players into the next round and leaving the other behind. So the
+       * advancing player supplies what the cell omits, and where a side IS printed it is still read
+       * from the cell and checked against the advancement, as before. Neither is guessed at: a
+       * disqualification the bracket does not resolve stays unproven.
        */
-      if (m.outcome === ('forfeit' as typeof m.outcome)) {
-        const winner = m.forfeitedBy === 'home' ? m.away : m.home
-        if (!winner) { note(r, m.position, 'a forfeit with nobody to advance'); roundProven = false; continue }
-        if (m.winnerHandle && !eq(m.winnerHandle, winner.normalizedHandle)) {
-          note(r, m.position, `the forfeit gives ${winner.normalizedHandle} but the page advances ${m.winnerHandle}`)
+      if (isForfeitLike(m.outcome)) {
+        const named = m.outcome === 'disqualification' ? 'a disqualification'
+          : m.outcome === 'walkover' ? 'a walkover' : 'a forfeit'
+        const side: 'home' | 'away' | null =
+          m.forfeitedBy ??
+          (m.winnerHandle && m.home && m.away
+            ? eq(m.winnerHandle, m.home.normalizedHandle) ? 'away'
+              : eq(m.winnerHandle, m.away.normalizedHandle) ? 'home'
+              : null
+            : null)
+        if (!side) {
+          note(r, m.position, `${named} naming no side, on a match the bracket does not resolve either — the page prints "${m.rawScore}"`)
           roundProven = false; continue
         }
+        const winner = side === 'home' ? m.away : m.home
+        if (!winner) { note(r, m.position, `${named} with nobody to advance`); roundProven = false; continue }
+        if (m.winnerHandle && !eq(m.winnerHandle, winner.normalizedHandle)) {
+          note(r, m.position, `${named} gives ${winner.normalizedHandle} but the page advances ${m.winnerHandle}`)
+          roundProven = false; continue
+        }
+        m.forfeitedBy = side
         m.proven = true
         continue
-      }
-      if (m.outcome === ('disqualification' as typeof m.outcome)) {
-        note(r, m.position, `a disqualification — the page prints "${m.rawScore}" and this record has no disqualification outcome`)
-        roundProven = false; continue
-      }
-      if (m.outcome === ('walkover' as typeof m.outcome)) {
-        note(r, m.position, `a walkover with no side named — the page prints "${m.rawScore}"`)
-        roundProven = false; continue
       }
       if (m.scoreHome === null || m.scoreAway === null) {
         note(r, m.position, m.rawScore ? `no numeric result — the page prints "${m.rawScore}"` : 'no result recorded')

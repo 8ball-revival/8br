@@ -25,7 +25,7 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
 
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
-import { parseWayback, type WaybackBracket, type WaybackMatch } from '../src/lib/archive/wayback.ts'
+import { parseWayback, isForfeitLike, type WaybackBracket, type WaybackMatch } from '../src/lib/archive/wayback.ts'
 import { resolveCanonical } from '../src/lib/archive/canonical-identity.ts'
 import { startSeasonPlayoffs, recordSeasonPlayoffResult, recordSeasonPlayoffForfeit, generateSeasonBracket, setSeasonBracketSlot, setSeasonPlayoffIncluded } from '../src/lib/seasons/playoffs.ts'
 import { closeSeason } from '../src/lib/seasons/close.ts'
@@ -222,7 +222,7 @@ for (const row of targets) {
       out.notes.push(`would draw a bracket of ${bracket.bracketSize} and seat round 1 from the page`)
       out.byes = bracket.matches.filter((m) => m.bye).length
       out.imported = bracket.matches.filter((m) => m.proven && !m.bye && m.scoreHome !== null).length
-      out.forfeits = bracket.matches.filter((m) => m.proven && m.outcome === 'forfeit').length
+      out.forfeits = bracket.matches.filter((m) => m.proven && isForfeitLike(m.outcome)).length
       out.skipped = bracket.matches.length - out.byes - out.imported
       out.finalImported = Boolean(bracket.matches.find((m) => m.advancesTo === null)?.proven)
       continue
@@ -367,7 +367,7 @@ for (const row of targets) {
      * it goes through the canonical forfeit service rather than being written as 7-0 or dropped for
      * having no numbers. Neither side is awarded games: nobody played any.
      */
-    if (pm.proven && pm.outcome === 'forfeit' && pm.forfeitedBy) {
+    if (pm.proven && isForfeitLike(pm.outcome) && pm.forfeitedBy) {
       const db = await prisma.seasonPlayoffMatch.findFirst({
         where: { seasonId, round: pm.round, slot: pm.position },
         select: { id: true, homeEntrantId: true, awayEntrantId: true, homeGames: true, awayGames: true, winnerEntrantId: true },
