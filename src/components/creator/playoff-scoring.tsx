@@ -202,11 +202,12 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
       </div>
 
       {/* The only scroller: the page itself never scrolls sideways. */}
-      <div className="scrollbar-themed max-h-[78vh] overflow-auto rounded-lg border border-border bg-card/20">
+      <div className="scrollbar-themed max-h-[78vh] overflow-auto rounded-lg border border-[var(--bracket-outline)] bg-[var(--bracket-canvas)]">
         <div className="flex min-w-max items-start gap-3 p-2" style={{ fontSize: `${zoom}rem` }}>
           {rounds.map((round) => (
             <section key={round.key} className="min-w-[13rem] shrink-0">
-              <h3 className="sticky top-0 z-10 mb-1 bg-card/95 px-1 py-1 text-[0.6em] font-semibold uppercase tracking-wide text-[var(--gold)] backdrop-blur">
+              {/* A round heading is not a result, so it does not get gold. */}
+              <h3 className="sticky top-0 z-10 mb-1 bg-[var(--bracket-canvas)]/95 px-1 py-1 text-[0.6em] font-semibold uppercase tracking-wide text-[var(--bracket-text-neutral)] backdrop-blur">
                 {round.name}
               </h3>
               <ul className="space-y-1">
@@ -268,15 +269,17 @@ function MatchCard({
     <li
       className={cn(
         'rounded border px-1.5 py-1',
-        match.needsReview ? 'border-[var(--gold)]/45 bg-[var(--attention-surface)]'
-        : decided ? 'border-border bg-background/50'
-        : 'border-border bg-background/70',
+        /* One card surface in every state. Review is told by its outline and its badge, not by a
+           tinted fill that would put a third background colour on the board. */
+        match.needsReview
+          ? 'border-[var(--bracket-review)] bg-[var(--bracket-surface)]'
+          : 'border-[var(--bracket-outline)] bg-[var(--bracket-surface)]',
       )}
     >
       <p className="mb-0.5 flex items-center gap-1 text-[0.6em] uppercase tracking-wide text-muted-foreground">
         {match.label ?? `R${match.round}`}
         {match.needsReview && (
-          <span className="rounded-full border border-[var(--gold)]/45 px-1 text-[var(--gold)]">Needs Review</span>
+          <span className="rounded-full border border-[var(--bracket-review)] px-1 text-[var(--bracket-review)]">Needs Review</span>
         )}
       </p>
 
@@ -287,7 +290,7 @@ function MatchCard({
         const lines = identityLines({ cueverseId: slot.cueverseId, preferredName: slot.preferredName ?? slot.name })
         return (
           <div key={side} className="flex items-center gap-1">
-            <span className="tabular w-4 shrink-0 text-right text-[0.6em] text-muted-foreground">{slot.seed ?? ''}</span>
+            <span className="tabular w-4 shrink-0 text-right text-[0.6em] text-[var(--bracket-text-neutral)]">{slot.seed ?? ''}</span>
             {/*
               The handle, then the name.
               This board showed the seeded username alone — "Chris", "Kevin", "Josh" — which on a
@@ -303,7 +306,9 @@ function MatchCard({
             <span
               className={cn(
                 'flex min-w-0 flex-1 items-baseline gap-1 truncate text-[0.75em]',
-                isWinner ? 'font-semibold text-[var(--gold)]' : decided ? 'text-muted-foreground/70' : 'text-foreground',
+                isWinner ? 'font-semibold text-[var(--bracket-winner)]'
+                : decided ? 'text-[var(--bracket-text-neutral)]'
+                : 'text-[var(--bracket-text)]',
               )}
               title={identityText({ cueverseId: slot.cueverseId, preferredName: slot.preferredName ?? slot.name })}
             >
@@ -335,7 +340,7 @@ function MatchCard({
               aria-label={`${lines.primary === NO_IDENTITY ? 'Unknown' : identityText({ cueverseId: slot.cueverseId, preferredName: slot.preferredName ?? slot.name })} score`}
               title={waiting ? 'Waiting on an earlier match' : isBye ? 'A bye is advanced automatically' : undefined}
               className={cn(
-                'h-5 w-8 shrink-0 rounded border bg-card/70 text-center text-[0.7em] tabular outline-none',
+                'h-5 w-8 shrink-0 rounded border bg-[var(--bracket-canvas)] text-center text-[0.7em] tabular text-[var(--bracket-text)] outline-none',
                 'focus-visible:border-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-40',
                 'border-input',
               )}

@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import { cn } from '@/lib/utils'
-import { identityLines, identityText, fromNameHandle } from '@/lib/identity/display'
+import { identityText, fromNameHandle } from '@/lib/identity/display'
+import {
+  BracketCard, BracketIdentity, BracketRow, BracketRowDivider, BracketScore, BracketSeed, slotState,
+} from '@/components/bracket/primitives'
 import type { BracketRound, BracketMatch, BracketSlot } from '@/lib/tournaments/service'
 
 /**
@@ -244,16 +247,14 @@ export function SeasonBracketPanel({
                         key={mi}
                         className={cn(
                           'bp-cell relative flex items-center',
+                          /* Gold traces the winner's path and nothing else; an undecided tie leaves
+                             its connectors grey. */
+                          (m.winner === 'a' || m.winner === 'b') && 'bp-path-won',
                           onActivePath ? 'bp-path-lit' : onChampPath ? 'bp-path-champ' : null,
                           activeKey != null && !onActivePath && 'bp-muted',
                         )}
                       >
-                        <MatchCard
-                          match={m}
-                          activeKey={activeKey}
-                          championKey={championKey}
-                          isFinal={isFinal && champion != null}
-                        />
+                        <MatchCard match={m} activeKey={activeKey} championKey={championKey} />
                       </div>
                     )
                   })}
@@ -277,146 +278,85 @@ export function SeasonBracketPanel({
 /* ---------------------------------------------------------------- an ordinary matchup */
 
 function MatchCard({
-  match, activeKey, championKey, isFinal = false,
+  match, activeKey, championKey,
 }: {
   match: BracketMatch
   activeKey: string | null
   /** Who won the Season, so their row alone can be marked as they advance. */
   championKey: string | null
-  /** The decided Final. Same card as every other tie, with a soft bloom behind it. */
-  isFinal?: boolean
 }) {
+  /*
+   * The Final is the same card as every other tie.
+   *
+   * It used to carry a soft bloom behind it. That was an ornament doing a job the results already
+   * do: a finished bracket carries an unbroken gold path into the Final, and the eye arrives there
+   * without being shown where to look.
+   */
   return (
-    <div
-      className={cn(
-        'bp-card w-full overflow-hidden rounded-lg border border-border bg-card',
-        isFinal && 'bp-final',
-      )}
-    >
-      <SlotRow slot={match.a} won={match.winner === 'a'} lost={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
-      <div className="h-px bg-border" />
-      <SlotRow slot={match.b} won={match.winner === 'b'} lost={match.winner === 'a'} activeKey={activeKey} championKey={championKey} />
-    </div>
+    <BracketCard className="bp-card w-full">
+      <SlotRow slot={match.a} won={match.winner === 'a'} activeKey={activeKey} championKey={championKey} />
+      <BracketRowDivider />
+      <SlotRow slot={match.b} won={match.winner === 'b'} activeKey={activeKey} championKey={championKey} />
+    </BracketCard>
   )
 }
 
 function SlotRow({
-  slot, won, lost, activeKey, championKey = null,
+  slot, won, activeKey, championKey = null,
 }: {
   slot?: BracketSlot
-  /*
-   * A winner is marked by gold, not filled with it.
-   *
-   * The old highlight was gold at 8% over charcoal, which mixes to olive-brown rather than
-   * to a pale gold wash. The row now sits on a neutral raised surface and carries the gold
-   * on its border and its text, where gold still looks like gold.
+  /**
+   * A winner is marked by gold, never filled with it — a rail on the leading edge, a gold ID and a
+   * gold score. Gold at low opacity over charcoal mixes to olive-brown rather than to a pale wash,
+   * which is what the old highlight was.
    */
   won: boolean
-  lost: boolean
   activeKey: string | null
-  /** When this row holds the champion, it carries the gold edge — the opponent's does not. */
+  /** Retained so the champion's route stays addressable; the rail itself is now every winner's. */
   championKey?: string | null
 }) {
-  const lines = identityLines(fromNameHandle(slot))
-  const isPlayer = !!slot?.name && slot.name !== 'Bye'
+  const state = slotState(slot)
   const k = keyOf(slot)
   const lit = k != null && activeKey === k
-  // A thin gold rule down the left of the champion's row, the same edge the group tables use to mark
-  // a qualifier. It traces their route through the bracket without boxing in the player they beat.
-  const isChampion = k != null && championKey === k
 
-  if (!isPlayer) {
+  if (state !== 'player') {
     return (
-      <div className="flex items-center px-2.5 text-[0.78rem] italic text-muted-foreground/60" style={{ height: 'var(--bp-row-h)' }}>
-        {slot?.name === 'Bye' ? 'bye' : 'TBD'}
+      <div
+        className="flex items-center px-2.5 text-[0.78rem] italic text-[var(--bracket-text-muted)]"
+        style={{ height: 'var(--bp-row-h)' }}
+      >
+        {state === 'bye' ? 'bye' : 'TBD'}
       </div>
     )
   }
 
-  const profile = slot?.slug ?? slot?.handle
-
   return (
-    <div
+    <BracketRow
+      won={won}
+      state={state}
       data-player={k ?? undefined}
+      data-champion={k != null && championKey === k ? 'true' : undefined}
       tabIndex={0}
       role="button"
       aria-pressed={lit}
       /*
-        The accessible name carries both halves too.
-        A screen reader announcing only "Chris" in a bracket of two Chrises is the same failure as
-        printing it, just less visible.
+        The accessible name carries both halves too. A screen reader announcing only "Chris" in a
+        bracket of two Chrises is the same failure as printing it, just less visible.
       */
       aria-label={`${identityText(fromNameHandle(slot))}${slot?.seed != null ? `, seed ${slot.seed}` : ''}${won ? ', winner' : ''}${slot?.score != null ? `, ${slot.score}` : ''}`}
       className={cn(
-        'flex cursor-pointer items-center gap-2.5 px-2.5 outline-none transition-colors',
-        won && 'bg-[var(--selected-surface)]',
-        lit && 'bg-[var(--selected-surface)]',
-        isChampion && 'bp-champion-row',
-        'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--gold)]/60',
+        'cursor-pointer gap-2.5 outline-none transition-colors',
+        lit && 'bg-[var(--bracket-surface-raised)]',
+        'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--bracket-focus)]',
       )}
       style={{ height: 'var(--bp-row-h)' }}
     >
-      <SeedBadge seed={slot?.seed} />
+      <BracketSeed seed={slot?.seed} />
       <span className="min-w-0 flex-1">
-        {profile ? (
-          <Link href={`/players/${encodeURIComponent(profile)}`} className="block min-w-0 hover:underline">
-            <NameLines lines={lines} won={won} lost={lost} />
-          </Link>
-        ) : (
-          <NameLines lines={lines} won={won} lost={lost} />
-        )}
+        <BracketIdentity slot={slot} won={won} state={state} />
       </span>
-      {slot?.score != null && (
-        <span className={cn('tabular shrink-0 text-sm', won ? 'font-bold text-gold' : 'text-muted-foreground')}>
-          {slot.score}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function NameLines({
-  lines, won, lost,
-}: {
-  lines: { primary: string; secondary: string | null }
-  won: boolean
-  lost: boolean
-}) {
-  return (
-    <>
-      <span className={cn(
-        'block truncate text-[0.82rem] leading-tight',
-        won ? 'font-bold text-gold' : lost ? 'text-muted-foreground' : 'text-foreground',
-      )}>
-        <span className="block truncate">{lines.primary}</span>
-        {lines.secondary && (
-          <span className="block truncate text-[0.62rem] font-normal leading-tight text-foreground/70">
-            {lines.secondary}
-          </span>
-        )}
-      </span>
-      {lines.secondary && (
-        <span className="block truncate text-[0.58rem] leading-tight text-muted-foreground">
-          {lines.secondary}
-        </span>
-      )}
-    </>
-  )
-}
-
-/** The seed, as a small circular badge. Every seeded player carries one, in every round. */
-function SeedBadge({ seed }: { seed?: number }) {
-  // Plain numerals, one colour, no enclosure. The width is still reserved when a slot has no seed —
-  // a bye, or an undecided tie — so names stay aligned down the column either way.
-  const size = 'w-[19px] text-[0.58rem]'
-  if (seed == null) return <span className={cn('shrink-0', size)} aria-hidden />
-  return (
-    <span
-      aria-hidden
-      className={cn('tabular shrink-0 text-center font-bold leading-none text-foreground', size)}
-    >
-      {seed}
-    </span>
+      <BracketScore slot={slot} won={won} state={state} />
+    </BracketRow>
   )
 }
 

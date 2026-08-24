@@ -73,7 +73,9 @@ console.log('--- A 16-player bracket ---')
 
   // Every interactive player row must announce a seed. Read the labels out and check them, rather
   // than trying to express "no row without a seed" as one negative-lookahead regex.
-  const labels = [...html.matchAll(/<div data-player="[^"]*"[^>]*aria-label="([^"]*)"/g)].map((m) => m[1])
+  /* Matched without assuming attribute order: the shared row primitive writes its own data
+     attributes before it spreads the caller's, and a test should not care which came first. */
+  const labels = [...html.matchAll(/<div[^>]*data-player="[^"]*"[^>]*aria-label="([^"]*)"/g)].map((m) => m[1])
   check('every player row is seeded',
     labels.length === 30 && labels.every((l) => /, seed \d+/.test(l)),
     `${labels.filter((l) => !/, seed \d+/.test(l)).length} of ${labels.length} without a seed`)
@@ -84,21 +86,26 @@ console.log('--- A 16-player bracket ---')
 
   check('the note is a footer strip inside the panel, not a detached box',
     html.includes('Scores were not archived') && html.lastIndexOf('Scores were not archived') > html.lastIndexOf('bp-lane'))
-  // The Final is the same card as every other tie now — no trophy, no title above it, no extra
-  // size. Only a soft bloom behind it marks the decided Final.
-  check('the Final is marked by a soft bloom and nothing else',
-    html.includes('bp-final') && !html.includes('Season Champion') && !/lucide-trophy/.test(html))
+  /*
+   * The Final is the same card as every other tie — no trophy, no title, no extra size, and no
+   * bloom behind it either. A finished bracket ends in an unbroken gold path, which is a stronger
+   * signal than an ornament and one that cannot be mistaken for decoration.
+   */
+  check('the Final carries no ornament of any kind',
+    !html.includes('bp-final') && !html.includes('Season Champion') && !/lucide-trophy|lucide-crown/.test(html))
   check('the Final shows both players and their scores on its own rows, so nothing is repeated',
     html.includes('player_01') && html.includes('player_02') && !/def\. <span/.test(html))
+  /* Every decided tie puts its connector on the winner's path, so the champion's route is marked
+     in each round it passes through as a consequence of the general rule rather than a special one. */
   check('the champion route is marked on every round it passes through',
-    (html.match(/bp-path-champ/g) ?? []).length === 4, String((html.match(/bp-path-champ/g) ?? []).length))
+    (html.match(/bp-path-won/g) ?? []).length >= 4, String((html.match(/bp-path-won/g) ?? []).length))
 }
 
 console.log('')
 console.log('--- Keyboard and assistive reach ---')
 {
   const html = render(bracketOf(16), null, CHAMPION)
-  const rows = [...html.matchAll(/<div data-player="([^"]+)"[^>]*>/g)].map((m) => m[0])
+  const rows = [...html.matchAll(/<div[^>]*data-player="([^"]+)"[^>]*>/g)].map((m) => m[0])
   check('every player row is reachable by keyboard', rows.length > 0 && rows.every((r) => r.includes('tabindex="0"')))
   check('every player row announces itself', rows.every((r) => /aria-label="/.test(r)))
   check('the highlight state is announced, not just painted', rows.every((r) => /aria-pressed="/.test(r)))
@@ -162,16 +169,16 @@ console.log('--- Fit Bracket, and the theme ---')
   check('the bracket reports when it has scaled itself', panel.includes('Scaled to'))
   check('a fitted bracket refits whenever the panel changes size', panel.includes('new ResizeObserver(autoFit)'))
 
-  check('ordinary connectors are the muted gray-gold', /--bp-line: color-mix\(in oklch, var\(--gold\)[^;]*var\(--muted-foreground\)/.test(css))
-  check('the champion route is brighter', /--bp-line-champ: color-mix\(in oklch, var\(--gold\) 70%/.test(css))
+  /* Gold on a connector has to mean something. An undecided tie is grey; a decided one is gold. */
+  check('ordinary connectors are neutral', /--bp-line: var\(--bracket-connector\)/.test(css))
+  check('a decided route is gold', /--bp-line-won: var\(--bracket-connector-winner\)/.test(css))
   check('dimming stops well short of unreadable',
     /\.bp-muted \{ opacity: 0\.4[0-9]; \}/.test(css))
   check('no crimson anywhere in the bracket',
     !/crimson|--brand\b|#dc2626|red-[456]00/.test(panel))
-  check('the Final glows softly rather than being ringed',
-    /\.bp-final \{\s*box-shadow: 0 0 26px -10px/.test(css) && !/\.bp-final \{[^}]*0 0 0 1px/.test(css))
-  check('only the champion’s own row is marked, not the tie',
-    /\.bp-champion-row \{\s*box-shadow: inset 2px 0 0 var\(--gold\)/.test(css))
+  check('the Final has no bloom, ring or ornament', !/\.bp-final/.test(css))
+  check('a winning row is marked by a rail, and its opponent is left alone',
+    /box-shadow: inset 2px 0 0 var\(--bracket-winner\)/.test(css))
 }
 
 console.log('')
@@ -183,7 +190,7 @@ console.log('--- Cards resize with the window before anything is scaled ---')
   const tight = BRACKET_METRICS.metricsFor(32)
 
   check('a card fills its lane rather than holding a fixed width',
-    /class="bp-card w-full/.test(html) && !/style="width:var\(--bp-card-w\)"/.test(html))
+    /bp-card w-full/.test(html) && !/style="width:var\(--bp-card-w\)"/.test(html))
   check('lanes share out the panel width', /\.bp-lane \{[^}]*flex: 1 1 auto;/s.test(css))
   check('a lane may shrink to the readable minimum',
     /\.bp-lane \{[^}]*min-width: calc\(var\(--bp-card-min\) \+ var\(--bp-lane-gap\)\)/s.test(css))

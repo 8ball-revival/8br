@@ -64,6 +64,30 @@
   --bkt-winner-bg: transparent;
   --bkt-loser-bg: transparent;
 
+  /*
+   * ── Bracket presentation tokens ────────────────────────────────────────────────────────────────
+   * One semantic vocabulary shared by every bracket surface — Season and Tournament, public and
+   * Creator, single and double elimination — so the treatment cannot drift between them.
+   *
+   * The rule the whole system rests on: gold means a decided winner and nothing else. A bracket with
+   * no results is entirely neutral, and gold appears only as a name, a score, a row edge and the
+   * connector that carries that winner forward. Nothing is filled with gold, because gold over
+   * charcoal mixes to olive-brown rather than to a pale gold wash.
+   */
+  --bracket-canvas: oklch(0.115 0.004 265);          /* flat void-black behind the tree */
+  --bracket-surface: oklch(0.192 0.006 265);         /* cool-charcoal matchup card */
+  --bracket-surface-raised: oklch(0.225 0.006 265);  /* hover / drop target */
+  --bracket-outline: oklch(0.27 0.007 265);          /* card border and row divider */
+  --bracket-divider: oklch(0.22 0.006 265);          /* thin round-column divider */
+  --bracket-text: oklch(0.95 0.004 260);             /* resolved identity, undecided */
+  --bracket-text-neutral: oklch(0.68 0.005 265);     /* losers, seeds, preferred names, scores */
+  --bracket-text-muted: oklch(0.52 0.006 265);       /* TBD, bye, unplayed */
+  --bracket-connector: oklch(0.38 0.006 265);        /* unresolved and losing paths */
+  --bracket-winner: var(--gold);                     /* winning ID, winning score, winning rail */
+  --bracket-connector-winner: var(--gold);           /* the advancing path only */
+  --bracket-focus: var(--ring);
+  --bracket-review: var(--warning);                  /* needs review / corrected */
+
   /* Navigation surface (header/footer). Own tokens so a personal theme can retint the nav
      without disturbing the page; the 8br.gg default keeps it level with the page ground. */
   --nav-bg: oklch(0.165 0.006 265);
@@ -198,6 +222,25 @@
 
   --bkt-winner-bg: transparent;
   --bkt-loser-bg: transparent;
+
+  /*
+   * The same vocabulary in light. Cool white and cool gray throughout — no beige, cream, tan or
+   * bronze, which is what a "warm" light translation of a gold accent drifts into. Only the gold
+   * itself changes, to the darker light-theme gold that holds contrast on a white card.
+   */
+  --bracket-canvas: oklch(0.975 0.003 260);
+  --bracket-surface: oklch(1 0 0);
+  --bracket-surface-raised: oklch(0.965 0.004 260);
+  --bracket-outline: oklch(0.895 0.004 260);
+  --bracket-divider: oklch(0.93 0.004 260);
+  --bracket-text: oklch(0.2 0.006 265);
+  --bracket-text-neutral: oklch(0.44 0.006 265);
+  --bracket-text-muted: oklch(0.58 0.005 265);
+  --bracket-connector: oklch(0.78 0.005 265);
+  --bracket-winner: var(--gold);
+  --bracket-connector-winner: var(--gold);
+  --bracket-focus: var(--ring);
+  --bracket-review: var(--warning);
 
   --nav-bg: oklch(0.99 0.003 260);
   --nav-foreground: oklch(0.2 0.006 265);
@@ -478,8 +521,15 @@
   .bkt-tree {
     --bkt-gap: 2rem;
     --bkt-half-gap: calc(var(--bkt-gap) / 2);
-    /* Connectors match the frames. Red belongs to destructive meaning, not to a bracket. */
-    --bkt-line: color-mix(in oklch, var(--gold) 45%, transparent);
+    /*
+     * Connectors are neutral until a result makes one of them a winner's path.
+     *
+     * Every elbow used to be gold, which said "advancement" on a bracket where nothing had been
+     * played yet and made the decided paths indistinguishable from the undecided ones. Gold now
+     * costs something: it appears on a segment only when the match feeding it has been decided.
+     */
+    --bkt-line: var(--bracket-connector);
+    --bkt-line-won: var(--bracket-connector-winner);
     --bkt-col-min: 9rem;
     --bkt-col-max: 20rem;
     display: flex;
@@ -536,6 +586,24 @@
     top: 50%;
     border-top: 1px solid var(--bkt-line);
     pointer-events: none;
+  }
+  /*
+   * The winner's path.
+   *
+   * `data-advanced` marks a match that has been decided: its outgoing elbow turns gold, because
+   * somebody has actually gone through it. `data-fed` marks a match that has received an advancing
+   * player, which is the other half of the same segment. A match still to be played sets neither and
+   * stays grey, so a half-finished bracket reads as exactly that.
+   */
+  .bkt-feeds > .bkt-cell[data-advanced='true']::after {
+    border-right-color: var(--bkt-line-won);
+    border-top-color: var(--bkt-line-won);
+    border-bottom-color: var(--bkt-line-won);
+    z-index: 1;
+  }
+  .bkt-receives > .bkt-cell[data-fed='true']::before {
+    border-top-color: var(--bkt-line-won);
+    z-index: 1;
   }
   @media (max-width: 640px) {
     .bkt-tree {
@@ -758,9 +826,11 @@
    which meet exactly because both are half the lane gutter wide.
    --------------------------------------------------------------------------- */
 .bp-tree {
-  --bp-line: color-mix(in oklch, var(--gold) 30%, var(--muted-foreground) 45%);
-  --bp-line-champ: color-mix(in oklch, var(--gold) 70%, transparent);
-  --bp-line-lit: var(--gold);
+  /* Neutral until a result. Gold on a connector means somebody actually advanced along it. */
+  --bp-line: var(--bracket-connector);
+  --bp-line-won: var(--bracket-connector-winner);
+  --bp-line-champ: var(--bracket-connector-winner);
+  --bp-line-lit: var(--bracket-winner);
 }
 
 /* Lanes share out whatever width the panel has. Each may grow to the comfortable card width and
@@ -825,28 +895,27 @@
 }
 
 /* The champion's route, and the route of whoever the reader is pointing at. */
+.bp-path-won { --bp-line: var(--bp-line-won); }
 .bp-path-champ { --bp-line: var(--bp-line-champ); }
 
-/* The champion is marked on their OWN row: a thin gold rule down its left edge, the same device the
-   group tables use for a qualifier. Drawn as an inset shadow rather than a border so it adds no
-   width and cannot shift the row, and it stops at that row — the player they beat is left alone. */
-.bp-champion-row {
-  box-shadow: inset 2px 0 0 var(--gold);
+/* Every winning row carries a thin gold rule down its left edge — drawn as an inset shadow rather
+   than a border so it adds no width and cannot shift the row, and it stops at that row, leaving the
+   player they beat alone. The champion needs no separate device: winning every round marks their
+   whole route by itself. */
+.bp-champion-row,
+.bp-card [data-won='true'] {
+  box-shadow: inset 2px 0 0 var(--bracket-winner);
 }
 .bp-path-lit { --bp-line: var(--bp-line-lit); }
-.bp-path-lit > .bp-card,
-.bp-path-lit .bp-final { border-color: var(--gold); }
+.bp-path-lit > .bp-card { border-color: var(--bracket-winner); }
 
 /* Unrelated matches recede while one player is singled out — never below readable. */
 .bp-muted { opacity: 0.42; }
 .bp-cell { transition: opacity 0.12s ease-out; }
 
-/* The Final sits slightly proud without becoming a different object. A soft bloom only — the crisp
-   ring that used to sit on this card framed the runner-up as well as the winner, which is exactly
-   what the champion's own row edge is for. */
-.bp-final {
-  box-shadow: 0 0 26px -10px color-mix(in oklch, var(--gold) 55%, transparent);
-}
+/* The Final is the same card as every other tie. The bloom that used to sit behind it was an
+   ornament doing a job the results already do — a finished bracket carries an unbroken gold path
+   into the Final, so the eye arrives there without being shown where to look. */
 
 @media (prefers-reduced-motion: reduce) {
   .bp-cell { transition: none; }

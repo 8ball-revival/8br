@@ -33,6 +33,7 @@ export function TeamName({
   avgRating,
   won,
   dim,
+  variant = 'name',
 }: {
   name: string
   seed?: number
@@ -41,6 +42,14 @@ export function TeamName({
   avgRating?: number | null
   won?: boolean
   dim?: boolean
+  /**
+   * `name` renders the team name as the trigger, which is how a standalone team label behaves.
+   *
+   * `details` renders a small affordance instead, for the bracket, where the row itself now prints
+   * the team name and its roster's CueVerse IDs. The popover keeps what identity does not cover —
+   * ratings and record — so nothing is lost by taking the names out from behind the hover.
+   */
+  variant?: 'name' | 'details'
 }) {
   const key = useId()
   const open = useIsOpen(key)
@@ -106,13 +115,19 @@ export function TeamName({
         onBlur={scheduleClose}
         onClick={() => { if (open && pinned) { close() } else { setPinned(true); openNow() } }}
         className={cn(
-          'block max-w-full truncate rounded text-left text-[1.02rem] leading-snug tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
-          won ? 'font-bold text-foreground' : dim ? 'bracket-loser-name font-bold italic' : 'font-medium text-foreground',
-          'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:decoration-brand',
+          'rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--bracket-focus)]',
+          variant === 'details'
+            ? 'inline-flex size-[0.95rem] shrink-0 items-center justify-center border border-[var(--bracket-outline)] rounded-full text-[0.55rem] leading-none text-[var(--bracket-text-neutral)] hover:text-[var(--bracket-text)]'
+            : cn(
+              'block max-w-full truncate text-[1.02rem] leading-snug tracking-tight',
+              won ? 'font-bold text-foreground' : dim ? 'bracket-loser-name font-bold italic' : 'font-medium text-foreground',
+              'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:decoration-brand',
+            ),
         )}
-        title={name}
+        title={variant === 'details' ? `${name} — roster, rating and record` : name}
+        aria-label={variant === 'details' ? `${name} — team details` : undefined}
       >
-        {name}
+        {variant === 'details' ? <span aria-hidden>i</span> : name}
       </button>
 
       {open && pos && (
@@ -163,4 +178,15 @@ export function TeamName({
       )}
     </span>
   )
+}
+
+/**
+ * The bracket's team affordance: ratings and record behind a small trigger.
+ *
+ * The team name and its roster's CueVerse IDs are printed on the row itself, so this carries only
+ * what identity does not — which is why hiding it behind a hover is reasonable and hiding the names
+ * there was not.
+ */
+export function TeamDetails(props: Omit<Parameters<typeof TeamName>[0], 'variant'>) {
+  return <TeamName {...props} variant="details" />
 }

@@ -22,11 +22,15 @@ const check = (n: string, c: boolean, d = '') => { if (c) { pass++; console.log(
 const render = (match: BracketMatch) => renderToStaticMarkup(React.createElement(MatchBox, { match }))
 
 /** Rows carrying the winner treatment. Themed from the token, never a hardcoded hex. */
-const countWinnerRows = (html: string) => (html.match(/bracket-winner-row/g) ?? []).length
-const countLoserRows = (html: string) => (html.match(/bracket-loser-row/g) ?? []).length
-/** Gold text — the winning name and its score, via the themed `gold` utility.
- *  The negative lookahead keeps `text-gold-soft` / `text-gold-dim` from being counted. */
-const countGoldText = (html: string) => (html.match(/text-gold/g) ?? []).length
+/*
+ * A winner is now identified by `data-won`, and marked by a gold rail rather than a background
+ * class. The loser carries nothing at all — losing a frame of pool is not a state that needs
+ * painting, so there is no longer a losing-row marker to count; its absence is the assertion.
+ */
+const countWinnerRows = (html: string) => (html.match(/data-won="true"/g) ?? []).length
+const countLoserRows = (html: string) => (html.match(/data-won="false"/g) ?? []).length
+/** Gold text — the winning name and its score, via the shared bracket winner token. */
+const countGoldText = (html: string) => (html.match(/text-\[var\(--bracket-winner\)\]/g) ?? []).length
 /*
  * The winner is marked by gold, not filled with it.
  *
@@ -34,7 +38,7 @@ const countGoldText = (html: string) => (html.match(/text-gold/g) ?? []).length
  * wash — the whole reason the theme pass happened. The row now sits on a neutral raised surface and
  * carries its gold on the name and the score, which is where gold stays gold.
  */
-const hasWinnerSurface = (html: string) => /bracket-winner-row bg-\[var\(--selected-surface\)\]/.test(html)
+const hasWinnerSurface = (html: string) => /shadow-\[inset_2px_0_0_0_var\(--bracket-winner\)\]/.test(html)
 const hasNoGoldWash = (html: string) => !/bg-gold\/|bg-\[color-mix\([^\]]*--gold/.test(html)
 
 // 1) Completed 1v1 match with a confirmed winner (a beats b).
@@ -43,11 +47,12 @@ console.log('Completed match (a wins)')
   const m: BracketMatch = { a: { name: 'Alice', seed: 1, score: 7, slug: 'alice' }, b: { name: 'Bob', seed: 2, score: 3, slug: 'bob' }, winner: 'a' }
   const html = render(m)
   check('exactly one winning row', countWinnerRows(html) === 1, `found ${countWinnerRows(html)}`)
-  check('exactly one losing row', countLoserRows(html) === 1, `found ${countLoserRows(html)}`)
+  check('the loser is not painted at all', countLoserRows(html) === 0, `found ${countLoserRows(html)}`)
   check('the winner is marked in gold (name + score)', countGoldText(html) === 2, `found ${countGoldText(html)}`)
-  check('the winning row sits on a neutral raised surface', hasWinnerSurface(html))
+  check('the winning row carries a gold rail rather than a fill', hasWinnerSurface(html))
   check('...with no gold wash behind it', hasNoGoldWash(html))
-  check('the frame itself stays neutral', html.includes('rounded-md border border-border bg-card'))
+  check('the frame itself stays neutral',
+    html.includes('border-[var(--bracket-outline)] bg-[var(--bracket-surface)]'))
   check('the tick icon is gone', !/lucide-circle-check|lucide-check-circle/i.test(html))
   check('no line-through anywhere on the card', !/line-through/.test(html))
   check('both player profile links intact', html.includes('/players/alice') && html.includes('/players/bob'))
@@ -61,7 +66,7 @@ console.log('Completed match (b wins)')
   const html = render(m)
   check('still exactly one winning row', countWinnerRows(html) === 1, `found ${countWinnerRows(html)}`)
   check('the marked row is the one holding Dan',
-    /bracket-winner-row[\s\S]{0,600}?Dan/.test(html) && !/bracket-winner-row[\s\S]{0,600}?Cara/.test(html))
+    /data-won="true"[\s\S]{0,600}?Dan/.test(html) && !/data-won="true"[\s\S]{0,600}?Cara/.test(html))
   check('no line-through', !/line-through/.test(html))
 }
 
@@ -73,7 +78,7 @@ console.log('Winner recorded against the scoreline')
   const html = render(m)
   check('exactly one winning row', countWinnerRows(html) === 1)
   check('the recorded winner is the one marked',
-    /bracket-winner-row[\s\S]{0,600}?Gil/.test(html))
+    /data-won="true"[\s\S]{0,600}?Gil/.test(html))
 }
 
 // 4) Undecided match (both present, no winner) → nobody marked.
@@ -94,23 +99,25 @@ console.log('Empty / placeholder slots')
   check('empty slots read as TBD', html.includes('TBD'))
 }
 
-// 6) The champion's crown. It belongs to the winner of the FINAL and to nobody else, so it stays
-//    one-per-bracket rather than becoming another per-row status marker.
-console.log('Champion crown')
+// 6) The Final carries no ornament at all.
+//    The champion used to be crowned. A finished bracket already ends in an unbroken gold path, so
+//    the crown was a second way of saying something the results had said — and a decorative one, on
+//    a board whose whole job is to be read quickly.
+console.log('The Final is an ordinary card')
 {
   const decidedFinal: BracketMatch = { a: { name: 'Ada', score: 9, slug: 'ada' }, b: { name: 'Bo', score: 4, slug: 'bo' }, winner: 'a' }
-  const withCrown = renderToStaticMarkup(React.createElement(MatchBox, { match: decidedFinal, isFinal: true }))
-  check('the final’s winner gets exactly one crown', (withCrown.match(/lucide-crown/g) ?? []).length === 1)
-  check('the crown is announced, not silent', withCrown.includes('aria-label="Champion"'))
-  check('the crown sits on the winning row',
-    /bracket-winner-row[\s\S]{0,400}?lucide-crown/.test(withCrown))
+  const final = renderToStaticMarkup(React.createElement(MatchBox, { match: decidedFinal }))
+  check('the Final crowns nobody', !/lucide-crown/.test(final))
+  check('and carries no circle, halo or medal', !/rounded-full/.test(final) || !/champion/i.test(final))
+  check('no element announces itself as a champion ornament', !/aria-label="Champion"/.test(final))
 
-  const notFinal = renderToStaticMarkup(React.createElement(MatchBox, { match: decidedFinal }))
-  check('an earlier round never crowns anyone', !/lucide-crown/.test(notFinal))
+  const earlier = renderToStaticMarkup(React.createElement(MatchBox, { match: decidedFinal }))
+  check('an earlier round renders identically to the Final', earlier === final)
 
-  const undecidedFinal: BracketMatch = { a: { name: 'Ada', slug: 'ada' }, b: { name: 'Bo', slug: 'bo' } }
-  const noWinnerYet = renderToStaticMarkup(React.createElement(MatchBox, { match: undecidedFinal, isFinal: true }))
-  check('an unfinished final crowns nobody', !/lucide-crown/.test(noWinnerYet))
+  // The winner is told by gold on the row, not by a fill behind it.
+  check('the winning row carries a gold rail', /inset_2px_0_0_0_var\(--bracket-winner\)/.test(final))
+  check('and is not filled with translucent gold',
+    !/bg-\[var\(--selected-surface\)\]/.test(final) && !/bracket-winner-row/.test(final))
 }
 
 // 7) A bye reads as a bye rather than as a competitor.

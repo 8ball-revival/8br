@@ -7,6 +7,7 @@ import { AlertTriangle, Check, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { identityLines, identityText } from '@/lib/identity/display'
 import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
+import { BracketDraftBadge } from '@/components/bracket/primitives'
 import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
 import type { BracketTopology, EntrySlot, StartReadiness } from '@/lib/seasons/playoff-topology'
@@ -144,9 +145,11 @@ export function PlayoffWorkspace({
       {/* Announcements for a screen reader: a swap is a visual change with nothing else to hear. */}
       <p aria-live="polite" className="sr-only">{announcement}</p>
 
-      <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--selected-surface)] px-3 py-2">
-        <p className="text-sm font-semibold text-[var(--gold)]">Private Draft</p>
-        <p className="text-xs text-muted-foreground">
+      {/* A small marker rather than a full-width coloured banner: a warning stripe across the top of
+          every draft is one people stop reading, and the page is already behind a staff gate. */}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <BracketDraftBadge />
+        <p className="text-xs text-[var(--bracket-text-neutral)]">
           Nothing on this page appears on the Season page. The bracket becomes public only when you
           press Start Playoffs.
         </p>
@@ -297,7 +300,7 @@ function ParticipantTable({
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <div className="flex items-center gap-2 border-b border-border bg-card/50 px-3 py-1.5">
+      <div className="flex items-center gap-2 border-b border-[var(--bracket-outline)] bg-[var(--bracket-surface)] px-3 py-1.5">
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input
             type="checkbox"
@@ -558,19 +561,21 @@ function SlotButton({
       className={cn(
         'flex w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs transition-colors',
         !empty && 'cursor-grab active:cursor-grabbing',
-        picked && 'border-[var(--gold)] bg-[var(--selected-surface)]',
+        picked && 'border-[var(--bracket-focus)] bg-[var(--bracket-surface-raised)]',
         dragging && 'opacity-40',
-        droppable && 'border-dashed border-[var(--gold)] bg-[var(--selected-surface)]',
+        droppable && 'border-dashed border-[var(--bracket-focus)] bg-[var(--bracket-surface-raised)]',
         invalidTarget && 'cursor-not-allowed opacity-40',
-        !picked && !droppable && !invalidTarget && 'border-border bg-background/60 hover:border-[var(--gold)]/40',
+        !picked && !droppable && !invalidTarget && 'border-[var(--bracket-outline)] bg-[var(--bracket-surface)] hover:border-[var(--bracket-focus)]/50',
       )}
     >
-      <span className="tabular w-5 shrink-0 text-right text-[0.65rem] text-muted-foreground">{slot.seed ?? ''}</span>
+      <span className="tabular w-5 shrink-0 text-right text-[0.65rem] text-[var(--bracket-text-neutral)]">{slot.seed ?? ''}</span>
       {empty ? (
-        <span className="min-w-0 flex-1 truncate italic text-muted-foreground/60">Bye</span>
+        <span className="min-w-0 flex-1 truncate italic text-[var(--bracket-text-muted)]">Bye</span>
       ) : (
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
-          <span className="truncate font-semibold text-[var(--gold)]">{lines.primary}</span>
+          {/* A draft is a placement board: no tie has been played, so no identity is a winner and
+              none of them is gold. */}
+          <span className="truncate font-semibold text-[var(--bracket-text)]">{lines.primary}</span>
           {lines.secondary && (
             <span className="truncate text-[0.62rem] text-foreground/60">{lines.secondary}</span>
           )}
