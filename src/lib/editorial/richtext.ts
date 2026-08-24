@@ -32,7 +32,15 @@ export type BlockNode =
   | { t: 'p'; c: InlineNode[] }
   | { t: 'h'; level: 2 | 3 | 4; c: InlineNode[] }
   | { t: 'ul'; items: InlineNode[][] }
-  | { t: 'ol'; items: InlineNode[][] }
+  /**
+   * An ordered list.
+   *
+   * `start` is the number the first item carries. It exists because a list is not always the whole
+   * of a ranking: a Top 10 written as ten one-item lists with commentary between them is ten
+   * separate lists to HTML, and every one of them restarts at 1. Absent means 1, which is what an
+   * ordinary list wants and what every document written before this field said implicitly.
+   */
+  | { t: 'ol'; items: InlineNode[][]; start?: number }
   | { t: 'quote'; c: InlineNode[] }
   | { t: 'code'; lang: string | null; v: string }
   | { t: 'hr' }
@@ -49,6 +57,14 @@ export const EMPTY_DOCUMENT: RichDocument = { v: 1, blocks: [] }
 export const MAX_BLOCKS = 800
 export const MAX_TEXT_PER_NODE = 20_000
 export const MAX_LIST_ITEMS = 200
+/**
+ * The largest number an ordered list may be told to start at.
+ *
+ * Three digits, matching the marker the markdown parser recognises. A ceiling exists so a hostile
+ * document cannot ask a browser to render a list numbered from a billion, which some engines pad
+ * with a very wide marker column.
+ */
+export const MAX_LIST_START = 999
 export const MAX_BODY_CHARS = 400_000
 
 // --------------------------------------------------------------------------- text hygiene
@@ -298,11 +314,16 @@ export function parseArticleBody(source: string): RichDocument {
       const isOrdered = ordered.test(line)
       const marker = isOrdered ? ordered : bullet
       const items: InlineNode[][] = []
+      /* "7." opens a list that starts at seven. Writing a number is how somebody says which one. */
+      const firstNumber = isOrdered ? Number.parseInt(line, 10) : 1
       while (i < lines.length && marker.test(lines[i]) && items.length < MAX_LIST_ITEMS) {
         items.push(parseInline(lines[i].replace(marker, '')))
         i += 1
       }
-      push(isOrdered ? { t: 'ol', items } : { t: 'ul', items })
+      if (!isOrdered) push({ t: 'ul', items })
+      else if (Number.isInteger(firstNumber) && firstNumber > 1 && firstNumber <= MAX_LIST_START) {
+        push({ t: 'ol', items, start: firstNumber })
+      } else push({ t: 'ol', items })
       continue
     }
 
@@ -368,7 +389,7 @@ export function serializeArticleBody(doc: RichDocument): string {
         case 'h': return `${'#'.repeat(b.level)} ${inline(b.c)}`
         case 'quote': return inline(b.c).split('\n').map((l) => `> ${l}`).join('\n')
         case 'ul': return b.items.map((it) => `- ${inline(it)}`).join('\n')
-        case 'ol': return b.items.map((it, n) => `${n + 1}. ${inline(it)}`).join('\n')
+        case 'ol': return b.items.map((it, n) => `${(b.start ?? 1) + n}. ${inline(it)}`).join('\n')
         case 'code': return ['```' + (b.lang ?? ''), b.v, '```'].join('\n')
         case 'hr': return '---'
         case 'img': return `![${b.alt}](media:${b.mediaId}${b.caption ? ` "${b.caption}"` : ''})`
@@ -425,7 +446,21 @@ function sanitizeBlock(input: unknown): BlockNode | null {
       const items = src.slice(0, MAX_LIST_ITEMS)
         .map((it) => sanitizeInlineList(it))
         .filter((it) => it.length > 0)
-      return items.length ? { t: n.t as 'ul' | 'ol', items } : null
+      if (!items.length) return null
+      if (n.t === 'ul') return { t: 'ul', items }
+      /*
+       * A start number is a positive whole number or it is nothing.
+       *
+       * Anything else — a float, a negative, a string, a value large enough to be a nuisance — is
+       * dropped rather than corrected, so a malformed document renders as an ordinary list from 1
+       * instead of carrying a number nobody chose. 1 is stored as absent, because that is the
+       * default and writing it would change every existing document for no reason.
+       */
+      const raw = (n as { start?: unknown }).start
+      const start = typeof raw === 'number' && Number.isInteger(raw) && raw > 1 && raw <= MAX_LIST_START
+        ? raw
+        : undefined
+      return start ? { t: 'ol', items, start } : { t: 'ol', items }
     }
     case 'code': {
       const v = cleanText(n.v)

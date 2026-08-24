@@ -261,12 +261,25 @@ section('Every migrated article is intact')
 
   check('every article has a post', posts.length === articles.length, `${posts.length} of ${articles.length}`)
 
-  const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex')
+  /*
+   * The comparison ignores ordered-list `start`, and only that.
+   *
+   * The migration could not carry list numbering, because the field did not exist: a ranking whose
+   * items each had prose between them arrived as a run of one-item lists, every one of which renders
+   * as "1.". Setting `start` on those lists restores what the source said and changes no wording, so
+   * it is the one difference this check tolerates.
+   *
+   * Everything else stays byte-identical. Stripping the field from BOTH sides means a body that
+   * differs in any other respect — a word, a link, a block, an ordering — still fails, which is what
+   * this check is for.
+   */
+  const withoutListStart = (v: unknown) => JSON.stringify(v, (k, val) => (k === 'start' ? undefined : val))
+  const sha = (v: unknown) => createHash('sha256').update(withoutListStart(v)).digest('hex')
   for (const a of articles) {
     const p = posts.find((x) => x.legacyArticleId === a.id)
     if (!p) { check(`article ${a.id} migrated`, false, 'no post'); continue }
 
-    check(`#${a.id} body is byte-identical`, sha(p.body) === sha(a.body), `${a.title}`)
+    check(`#${a.id} body is byte-identical apart from list numbering`, sha(p.body) === sha(a.body), `${a.title}`)
     check(`#${a.id} title preserved`, p.title === a.title)
     check(`#${a.id} slug preserved`, p.slug === a.slug, `${p.slug} vs ${a.slug}`)
     check(`#${a.id} author preserved`, p.authorNameSnapshot === a.authorNameSnapshot)

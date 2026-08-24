@@ -7,11 +7,12 @@ import { Wide } from '@/components/primitives'
 import { RichText } from '@/components/editorial/rich-text'
 import { VoteControl } from '@/components/break/vote-control'
 import { PostActions } from '@/components/break/post-actions'
+import { PostManageMenu } from '@/components/break/post-manage-menu'
 import { CommentThread } from '@/components/break/comment-thread'
 import { CommentComposer } from '@/components/break/comment-composer'
 import { getPostBySlug } from '@/lib/break/posts'
 import { getCommentTree } from '@/lib/break/comments'
-import { currentBreakActor, canReplyTo, canViewRemovedBody } from '@/lib/break/permissions'
+import { currentBreakActor, canReplyTo, canViewRemovedBody, manageBasis } from '@/lib/break/permissions'
 import { COMMENT_SORTS, type CommentSort } from '@/lib/break/ranking'
 import { slugKeyOf } from '@/lib/editorial/slug-format'
 import type { RichDocument } from '@/lib/editorial/richtext'
@@ -112,9 +113,23 @@ export default async function PostPage({
               )}
             </div>
 
-            <h1 className="text-balance font-display text-xl font-bold leading-tight sm:text-2xl">
-              {post.title}
-            </h1>
+            {/* The title and, for whoever may manage it, a quiet menu beside it. The page is
+                otherwise identical for staff and for everybody else. */}
+            <div className="flex items-start gap-2">
+              <h1 className="min-w-0 flex-1 text-balance font-display text-xl font-bold leading-tight sm:text-2xl">
+                {post.title}
+              </h1>
+              {manageBasis(actor, post.authorPlayerId) && (
+                <PostManageMenu
+                  postId={post.id}
+                  slug={post.slug}
+                  title={post.title}
+                  authorLabel={post.authorHandleSnapshot ?? post.authorNameSnapshot ?? 'this author'}
+                  commentCount={post.commentCount}
+                  returnTo="/the-break"
+                />
+              )}
+            </div>
 
             <p className="mt-1 text-xs text-muted-foreground">
               <span className="font-medium text-[var(--gold)]">{post.authorNameSnapshot}</span>

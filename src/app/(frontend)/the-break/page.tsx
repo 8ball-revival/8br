@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { Wide } from '@/components/primitives'
+import { Settings2 } from 'lucide-react'
 import { FeedToolbar } from '@/components/break/feed-toolbar'
 import { PostCard } from '@/components/break/post-card'
 import { getFeed, searchPosts } from '@/lib/break/feed'
-import { currentBreakActor, canPost } from '@/lib/break/permissions'
+import { currentBreakActor, canPost, canManageTheBreak } from '@/lib/break/permissions'
 import { FEED_SORTS, TOP_WINDOWS, type FeedSort, type TopWindow } from '@/lib/break/ranking'
 import { pageMetadata } from '@/lib/site'
 
@@ -54,11 +55,22 @@ export default async function TheBreakPage({
 
   return (
     <Wide name="the-break" className="py-6">
-      <header className="mb-4">
-        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">The Break</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          News, predictions, history, memes and community discussion
-        </p>
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">The Break</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            News, predictions, history, memes and community discussion
+          </p>
+        </div>
+        {/* Staff only, and drawn from the same capability the route itself enforces. */}
+        {canManageTheBreak(actor) && (
+          <Link
+            href="/the-break/manage"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-[var(--gold)]/50 hover:text-[var(--gold)]"
+          >
+            <Settings2 className="size-3.5" aria-hidden /> Manage Posts
+          </Link>
+        )}
       </header>
 
       <FeedToolbar sort={sort} window={topWindow} category={category} q={q} canPost={canPost(actor)} />

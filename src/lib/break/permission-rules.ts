@@ -57,6 +57,50 @@ export const canEditOwn = ownsContent
 export const canDeleteOwn = ownsContent
 
 /**
+ * ── Managing somebody else's post ────────────────────────────────────────────────────────────────
+ *
+ * A named capability rather than a bare `isAdmin` test scattered through the code. The name is what
+ * makes it auditable: an entry saying `manage_the_break` states which power was used, where
+ * "the actor happened to be an admin" states only that they could have used several.
+ *
+ * The Owner holds it inherently. An Admin holds it because staff moderate The Break — the same role
+ * that can already lock, pin and remove — and if that ever needs narrowing, this is the one function
+ * to narrow. Nobody else holds it, ever: it is not granted by authorship, by trust, or by tenure.
+ */
+export const MANAGE_THE_BREAK = 'manage_the_break' as const
+
+export const canManageTheBreak = (a: BreakActorShape | null): boolean => !!a && (a.isOwner || a.isAdmin)
+
+/**
+ * May this actor edit or delete this particular post?
+ *
+ * Two separate rights that happen to answer the same question: an author manages their own post, and
+ * a holder of `manage_the_break` manages anyone's. Both go through here so no call site has to
+ * remember to check the second one — the bug that leaves an admin locked out, or a member let in.
+ *
+ * Being an actor at all already means being in good standing. A banned, timed-out, soft-deleted or
+ * inactive account never resolves to one, so a suspended author cannot reach their own post either.
+ */
+export function canManagePost(a: BreakActorShape | null, authorPlayerId: string | null): boolean {
+  return ownsContent(a, authorPlayerId) || canManageTheBreak(a)
+}
+
+/**
+ * Why the actor is allowed to, which the audit trail needs to distinguish.
+ *
+ * An author editing their own post and an admin editing somebody else's are different acts with
+ * different consequences, and a log that records only "post.update" cannot tell them apart later.
+ */
+export function manageBasis(
+  a: BreakActorShape | null,
+  authorPlayerId: string | null,
+): 'author' | 'capability' | null {
+  if (ownsContent(a, authorPlayerId)) return 'author'
+  if (canManageTheBreak(a)) return 'capability'
+  return null
+}
+
+/**
  * A draft is visible to its author and to nobody else — staff included.
  *
  * Consulted by the loaders rather than only by the pages, so guessing an id does not reveal one.

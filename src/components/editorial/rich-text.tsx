@@ -73,8 +73,19 @@ function Block({ node }: { node: BlockNode }) {
       )
 
     case 'ol':
+      /*
+       * `start` is passed through when the document names one, and omitted otherwise.
+       *
+       * Nothing here continues the numbering of a previous list on its own. Two lists in one article
+       * are usually two lists, and a renderer that quietly joined them would renumber somebody's
+       * second list because their first one happened to sit above it. Where a run of lists really is
+       * one ranking, the document says so, once, per list.
+       */
       return (
-        <ol className="mb-5 ml-5 list-decimal space-y-1.5 leading-[1.7] text-foreground/90 marker:text-brand">
+        <ol
+          start={node.start}
+          className="mb-5 ml-5 list-decimal space-y-1.5 leading-[1.7] text-foreground/90 marker:text-brand"
+        >
           {node.items.map((item, i) => <li key={i}><Inline nodes={item} /></li>)}
         </ol>
       )

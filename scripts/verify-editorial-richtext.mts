@@ -11,7 +11,7 @@
 import {
   parseArticleBody, sanitizeDocument, buildDocument, serializeArticleBody, safeHref, isExternalHref,
   documentToPlainText, deriveExcerpt, readingTimeMinutes, isEmptyDocument, referencedMediaIds,
-  cleanText, isMediaId, MAX_BLOCKS, MAX_LIST_ITEMS,
+  cleanText, isMediaId, MAX_BLOCKS, MAX_LIST_ITEMS, MAX_LIST_START,
   type RichDocument, type BlockNode, type InlineNode,
 } from '../src/lib/editorial/richtext.ts'
 
@@ -356,6 +356,56 @@ check('a document with prose is not empty', !isEmptyDocument(buildDocument('Word
 {
   const ids = referencedMediaIds(buildDocument('![a](media:m1)\n\n![b](media:m2)\n\n![c](media:m1)'))
   check('referenced media ids are collected', ids.length === 2 && ids.includes('m1') && ids.includes('m2'))
+}
+
+// =========================================================================== ordered-list start
+
+section('An ordered list can say which number it starts at')
+{
+  /*
+   * Why this exists: a ranking written as one list per item, with commentary between, is many lists
+   * to HTML and every one of them restarts at 1. A migrated "Top 10" post read "1." ten times.
+   */
+  const one = blocks('1. First')[0] as Extract<BlockNode, { t: 'ol' }>
+  check('a list starting at one stores no start', one.t === 'ol' && one.start === undefined)
+
+  const seven = blocks('7. Seventh')[0] as Extract<BlockNode, { t: 'ol' }>
+  check('a list written from seven starts at seven', seven.t === 'ol' && seven.start === 7, String(seven.start))
+
+  const run = blocks(['3. Third', '4. Fourth'].join(String.fromCharCode(10)))[0] as Extract<BlockNode, { t: 'ol' }>
+  check('only the first marker decides the start', run.start === 3 && run.items.length === 2)
+
+  // It survives a round trip, which is what makes it editable rather than merely renderable.
+  const back = serializeArticleBody({ v: 1, blocks: [{ t: 'ol', items: [[{ t: 'text', v: 'Seventh' }]], start: 7 }] })
+  check('it serialises back to a numbered marker', back.trim() === '7. Seventh', back.trim())
+  check('and parses again to the same start',
+    (blocks(back)[0] as Extract<BlockNode, { t: 'ol' }>).start === 7)
+
+  // The sanitizer is the boundary, so it decides what a start may be.
+  const keep = sanitizeDocument({ v: 1, blocks: [{ t: 'ol', items: [[{ t: 'text', v: 'x' }]], start: 5 }] })
+  check('a valid start survives sanitising', (keep.blocks[0] as Extract<BlockNode, { t: 'ol' }>).start === 5)
+
+  const bad = (start: unknown) => sanitizeDocument({
+    v: 1, blocks: [{ t: 'ol', items: [[{ t: 'text', v: 'x' }]], start } as unknown as BlockNode],
+  }).blocks[0] as Extract<BlockNode, { t: 'ol' }>
+  check('a start of one is dropped as the default', bad(1).start === undefined)
+  check('zero is dropped', bad(0).start === undefined)
+  check('a negative is dropped', bad(-3).start === undefined)
+  check('a fraction is dropped', bad(2.5).start === undefined)
+  check('a string is dropped', bad('7').start === undefined)
+  check('an absurd number is dropped', bad(1_000_000).start === undefined)
+  check('the ceiling itself is allowed', bad(MAX_LIST_START).start === MAX_LIST_START)
+  check('one past the ceiling is not', bad(MAX_LIST_START + 1).start === undefined)
+
+  // An unordered list has no numbering to start.
+  const ul = sanitizeDocument({
+    v: 1, blocks: [{ t: 'ul', items: [[{ t: 'text', v: 'x' }]], start: 4 } as unknown as BlockNode],
+  }).blocks[0] as Extract<BlockNode, { t: 'ul' }>
+  check('a bullet list never carries a start', !('start' in ul))
+
+  // Plain text has no markers at all, so a start cannot leak into an excerpt or the search index.
+  check('the start does not appear in plain text',
+    !documentToPlainText({ v: 1, blocks: [{ t: 'ol', items: [[{ t: 'text', v: 'Seventh' }]], start: 7 }] }).includes('7.'))
 }
 
 // =========================================================================== summary

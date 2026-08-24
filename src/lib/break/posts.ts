@@ -4,9 +4,14 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { slugify, slugKeyOf, MAX_SLUG_LENGTH } from '@/lib/editorial/slug-format'
 import { sanitizeDocument, documentToPlainText, isEmptyDocument, type RichDocument } from '@/lib/editorial/richtext'
+import {
+  MAX_TITLE, MAX_GALLERY_ITEMS, MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type PostType,
+} from './post-types'
 import { hotRank } from './ranking'
 import { seedAuthorVote } from './voting'
 import type { BreakActor } from './permissions'
+import { manageBasis } from './permission-rules'
+import { recordBreakAudit } from './audit'
 
 /**
  * Creating, editing and publishing posts.
@@ -23,22 +28,15 @@ import type { BreakActor } from './permissions'
  * silently move the target.
  */
 
-export const MAX_TITLE = 300
-export const MAX_GALLERY_ITEMS = 20
-export const MAX_POLL_OPTIONS = 6
-export const MIN_POLL_OPTIONS = 2
+/*
+ * The shape constants live in `post-types.ts` and are re-exported here, so every existing import of
+ * `POST_TYPES` or `MAX_TITLE` from this module keeps working while client components can reach them
+ * without pulling a server-only module into the browser bundle.
+ */
+export {
+  MAX_TITLE, MAX_GALLERY_ITEMS, MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, POST_TYPES, type PostType,
+} from './post-types'
 
-export type PostType = 'TEXT' | 'IMAGE' | 'GALLERY' | 'GIF' | 'VIDEO' | 'LINK' | 'POLL'
-
-export const POST_TYPES: { key: PostType; label: string; hint: string }[] = [
-  { key: 'TEXT', label: 'Text', hint: 'Write something.' },
-  { key: 'IMAGE', label: 'Image', hint: 'One picture.' },
-  { key: 'GALLERY', label: 'Gallery', hint: 'Several pictures in order.' },
-  { key: 'GIF', label: 'GIF', hint: 'Upload one, paste one, or search GIPHY.' },
-  { key: 'VIDEO', label: 'Video', hint: 'A clip. MP4 or WebM.' },
-  { key: 'LINK', label: 'Link', hint: 'Somewhere else worth reading.' },
-  { key: 'POLL', label: 'Poll', hint: 'Ask the room to choose.' },
-]
 
 /** Types whose defining content is media, so publishing has to wait for it to be ready. */
 const MEDIA_TYPES: PostType[] = ['IMAGE', 'GALLERY', 'GIF', 'VIDEO']
@@ -223,9 +221,15 @@ export async function updatePost(
     },
   })
   if (!post) return { ok: false, error: 'That post no longer exists.' }
-  if (post.authorPlayerId !== actor.playerId && !actor.isAdmin) {
-    return { ok: false, error: 'That is not yours to edit.' }
-  }
+  /*
+   * Who is allowed, and on what grounds.
+   *
+   * `manageBasis` answers both at once, which the audit trail needs: an author correcting their own
+   * headline and an admin editing somebody else's post are different acts, and a log that records
+   * only "post.update" cannot tell them apart afterwards.
+   */
+  const basis = manageBasis(actor, post.authorPlayerId)
+  if (!basis) return { ok: false, error: 'That is not yours to edit.' }
 
   const data: Prisma.BreakPostUpdateInput = {}
 
@@ -278,7 +282,40 @@ export async function updatePost(
   // Only a published post carries an edited marker — a draft being edited is just a draft.
   if (post.state === 'PUBLISHED') data.editedAt = new Date()
 
-  const updated = await prisma.breakPost.update({ where: { id: postId }, data, select: { id: true, slug: true } })
+  /*
+   * Nothing changed, so nothing is written.
+   *
+   * An editor that saves a post it did not alter bumps `updatedAt`, adds an "edited" marker to a
+   * post nobody edited, and files an audit entry describing no change. Opening a post to look at it
+   * is not an edit.
+   */
+  const touched = Object.keys(data).filter((k) => k !== 'editedAt')
+  if (touched.length === 0) return { ok: true, postId: post.id, slug: post.slug }
+
+  /*
+   * The permission is checked again inside the transaction, against the row as it stands now.
+   *
+   * The first check read a snapshot. Authorship can be reassigned and an account can be suspended
+   * between that read and this write, and the whole point of a capability is that it is evaluated at
+   * the moment it is used rather than at the moment somebody opened a form.
+   */
+  const updated = await prisma.$transaction(async (tx) => {
+    const now = await tx.breakPost.findUnique({ where: { id: postId }, select: { authorPlayerId: true } })
+    if (!now || !manageBasis(actor, now.authorPlayerId)) return null
+
+    const row = await tx.breakPost.update({ where: { id: postId }, data, select: { id: true, slug: true } })
+    await recordBreakAudit(actor, {
+      action: 'break.post.update',
+      postId: post.id,
+      title: post.title,
+      authorPlayerId: post.authorPlayerId,
+      basis,
+      // Field NAMES only. The audit says what was touched; the post itself holds what it now says.
+      changed: touched,
+    }, tx)
+    return row
+  })
+  if (!updated) return { ok: false, error: 'That is not yours to edit.' }
   return { ok: true, postId: updated.id, slug: updated.slug }
 }
 
@@ -339,23 +376,40 @@ export async function publishPost(actor: BreakActor, postId: number): Promise<Po
  */
 export async function softDeletePost(actor: BreakActor, postId: number): Promise<PostResult> {
   const post = await prisma.breakPost.findUnique({
-    where: { id: postId }, select: { id: true, authorPlayerId: true, commentCount: true, state: true },
+    where: { id: postId }, select: { id: true, authorPlayerId: true, commentCount: true, state: true, title: true },
   })
   if (!post) return { ok: false, error: 'That post no longer exists.' }
-  if (post.authorPlayerId !== actor.playerId && !actor.isAdmin) {
-    return { ok: false, error: 'That is not yours to delete.' }
-  }
+  const basis = manageBasis(actor, post.authorPlayerId)
+  if (!basis) return { ok: false, error: 'That is not yours to delete.' }
 
-  // A draft nobody has seen can simply go.
-  if (post.state === 'DRAFT') {
-    await prisma.breakPost.delete({ where: { id: postId } })
-    return { ok: true, postId }
-  }
+  /*
+   * A published post is never destroyed, only withdrawn.
+   *
+   * `DELETED` takes it out of every feed, the search index, the homepage modules and the author's
+   * profile, and closes its public URL — while the row, its comments and its votes stay exactly
+   * where they are. Nothing here is recoverable if the row is gone, and moderation decisions get
+   * revisited. A draft nobody has ever seen is the one exception: there is no history to keep.
+   */
+  const ok = await prisma.$transaction(async (tx) => {
+    const now = await tx.breakPost.findUnique({
+      where: { id: postId }, select: { authorPlayerId: true, state: true },
+    })
+    if (!now || !manageBasis(actor, now.authorPlayerId)) return false
 
-  await prisma.breakPost.update({
-    where: { id: postId },
-    data: { deletedAt: new Date(), state: 'DELETED' },
+    if (now.state === 'DRAFT') await tx.breakPost.delete({ where: { id: postId } })
+    else await tx.breakPost.update({ where: { id: postId }, data: { deletedAt: new Date(), state: 'DELETED' } })
+
+    await recordBreakAudit(actor, {
+      action: now.state === 'DRAFT' ? 'break.post.discard' : 'break.post.delete',
+      postId: post.id,
+      title: post.title,
+      authorPlayerId: post.authorPlayerId,
+      basis,
+      commentCount: post.commentCount,
+    }, tx)
+    return true
   })
+  if (!ok) return { ok: false, error: 'That is not yours to delete.' }
   return { ok: true, postId }
 }
 
@@ -385,14 +439,31 @@ export async function getPostBySlug(slug: string, viewer: BreakActor | null) {
   }
   if (!post) return null
 
-  if (post.state === 'DRAFT' && post.authorPlayerId !== viewer?.playerId) return null
-  return post
+  return visibleTo(post, viewer)
 }
 
 export async function getPostById(id: number, viewer: BreakActor | null) {
   const post = await prisma.breakPost.findUnique({ where: { id }, include: postInclude(viewer) })
   if (!post) return null
+  return visibleTo(post, viewer)
+}
+
+/**
+ * Whether this viewer may open this post at all.
+ *
+ * A draft belongs to its author until they publish it. A withdrawn post belongs to nobody: it has
+ * left the feed, the search index and the homepage, and a URL that still served it would be a way
+ * around all three — the link is the one thing a reader is most likely to still have.
+ *
+ * Whoever may manage it still sees it, which is what makes the withdrawal reviewable and the
+ * decision reversible. That is the author and the holders of `manage_the_break`, and nobody else.
+ */
+function visibleTo<T extends { state: string; authorPlayerId: string | null }>(
+  post: T,
+  viewer: BreakActor | null,
+): T | null {
   if (post.state === 'DRAFT' && post.authorPlayerId !== viewer?.playerId) return null
+  if (post.state === 'DELETED' && !manageBasis(viewer, post.authorPlayerId)) return null
   return post
 }
 
