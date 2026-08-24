@@ -1,3 +1,4 @@
+import type { CompetitionPlatform } from '@prisma/client'
 import type { ExplorerRow, RecordView } from './ladder-explorer'
 import { UNASSIGNED_DIVISION } from './rankings-facts'
 
@@ -479,6 +480,14 @@ export interface RankingsState {
   tournamentId: number | null
   division: string | null
   eventType: EventType
+  /**
+   * Which ranking universe is being looked at.
+   *
+   * Not a filter over one ladder: the two are produced by separate replays that never see each
+   * other's matches. There is deliberately no "all platforms" value, because a combined rating would
+   * describe a career nobody had.
+   */
+  platform: CompetitionPlatform
   /** Inclusive competition-year bounds. Defaults span the whole archive. */
   fromYear: number
   toYear: number
@@ -509,6 +518,7 @@ export function defaultState(now: Date = new Date()): RankingsState {
     tournamentId: null,
     division: null,
     eventType: 'all',
+    platform: 'CUEVERSE',
     fromYear: MIN_YEAR,
     toYear: maxYear(now),
     expanded: null,
@@ -547,10 +557,13 @@ export function clampYear(value: unknown, now: Date = new Date()): number | null
  * view always produces the same URL and two shared links can be compared by eye.
  */
 export function encodeRankingsState(s: RankingsState, now: Date = new Date()): string {
+  // Platform rides in the URL so a link carries the universe it was read in.
   const p = new URLSearchParams()
   const d = defaultState(now)
 
   if (s.rowFilters.search.trim()) p.set('q', s.rowFilters.search.trim())
+  // The universe rides in the URL, so a shared link opens the ladder it was read in.
+  if (s.platform === 'YAHOO') p.set('platform', 'yahoo')
   if (s.fromYear !== d.fromYear) p.set('from', String(s.fromYear))
   if (s.toYear !== d.toYear) p.set('to', String(s.toYear))
   if (s.competitionSeriesId != null) p.set('comp', String(s.competitionSeriesId))
@@ -598,6 +611,8 @@ export function decodeRankingsState(
   const s = defaultState(now)
 
   s.rowFilters.search = p.get('q') ?? ''
+  // Yahoo only when it is asked for by name; anything else, including nonsense, is CueVerse.
+  s.platform = p.get('platform')?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
 
   const from = clampYear(p.get('from'), now)
   const to = clampYear(p.get('to'), now)
@@ -686,6 +701,8 @@ export function aggregateFilters(s: RankingsState, now: Date = new Date()) {
     tournamentId: s.tournamentId,
     division: s.division,
     eventType: s.eventType,
+    // Never null: a ranking always belongs to exactly one platform.
+    platform: s.platform,
     // Null when the range is the whole archive, so the aggregate can take its unfiltered fast path
     // and the rating snapshot is not needlessly bounded.
     fromYear: s.fromYear === d.fromYear ? null : s.fromYear,

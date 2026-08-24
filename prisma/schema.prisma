@@ -1231,6 +1231,8 @@ model Tournament {
   /// Whether this record contributes to Rankings at all. Default yes; an exhibition or a
   /// reconstruction whose results should not count can be excluded without deleting it.
   countsTowardRankings Boolean @default(true)
+  /// The platform this Tournament was played on. See Season.platform.
+  platform             CompetitionPlatform @default(CUEVERSE)
   reconstruction       Boolean                   @default(false)
   reopenedAt           DateTime?
   dataCompleteness     String                    @default("full")
@@ -1341,6 +1343,9 @@ model RatingLedger {
   expected         Float
   ratingChange     Int
   postRating       Int
+  /// The platform of the record this row came from. Denormalised so a ranking query scopes to one
+  /// universe without joining back through Season and Tournament on every read.
+  platform         CompetitionPlatform @default(CUEVERSE)
   sequence         Int // global deterministic order across the whole all-time timeline
   completedAt      DateTime
   createdAt        DateTime    @default(now())
@@ -1910,6 +1915,17 @@ enum SeasonQualification {
 /// The icon reuses the existing Payload media system: `iconMediaId` stores a Payload media id as a
 /// plain string (no cross-ORM FK, matching Season.bannerMediaId). No image bytes live in Postgres.
 /// When it is null the UI renders an initials fallback badge from `shortName`.
+/// Which platform a competition was played on.
+///
+/// Platform and Competition are different dimensions and both are kept. A Competition is WHAT the
+/// series is — 8BRCAM, a retro revival, whatever comes next. A platform is WHERE it was played, and
+/// it is the axis ratings may never cross: a Yahoo rating is not a starting point for a CueVerse
+/// one, and a combined figure would describe a career nobody had.
+enum CompetitionPlatform {
+  CUEVERSE
+  YAHOO
+}
+
 model CompetitionSeries {
   id          Int      @id @default(autoincrement())
   name        String
@@ -1947,6 +1963,10 @@ model Season {
   /// delete so removing a Competition can never silently orphan or delete its Seasons.
   competitionSeriesId Int
   competitionSeries   CompetitionSeries    @relation(fields: [competitionSeriesId], references: [id], onDelete: Restrict)
+  /// The platform this Season was played on. New Seasons are CueVerse; everything that existed at
+  /// the separation cutover is Yahoo. Stored on the record itself, so a ranking rebuild never has to
+  /// infer it from a Competition, a year or a name.
+  platform            CompetitionPlatform  @default(CUEVERSE)
   slug                String               @unique
   subtitle            String? // optional custom subtitle; official title is "8BR Season N - YEAR"
   lifecycleState      SeasonLifecycleState @default(REGISTRATION_SCHEDULED)

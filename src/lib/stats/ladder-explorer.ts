@@ -1,3 +1,4 @@
+import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
 import { ratingsForScope, windowCutoff } from '@/lib/stats/rating-history'
 import { unstable_cache } from 'next/cache'
@@ -66,6 +67,15 @@ const WINDOW_DAYS = 365
  * count, champions only) do not change any figure and are applied to the returned rows instead.
  */
 export interface ExplorerFilters {
+  /**
+   * Which platform's ranking universe this is.
+   *
+   * Not a filter over a shared ladder — the ladder itself is per platform. A Yahoo rating and a
+   * CueVerse rating are produced by separate replays that start from the same 1500 and never see
+   * each other's matches, so there is no combined figure for this to narrow. Absent means CueVerse,
+   * which is the default everywhere.
+   */
+  platform?: CompetitionPlatform | null
   /** Competition series. Seasons only: a Tournament has no series. */
   competitionSeriesId?: number | null
   year?: number | null
@@ -92,8 +102,9 @@ export interface ExplorerFilters {
  * in completion order, and the aggregate needs one row per player. Trying to serve both from one
  * query is what produced two different notions of "the rating" in the first place.
  */
-async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear: number | null | undefined) {
+async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear: number | null | undefined, platform: CompetitionPlatform = 'CUEVERSE') {
   const rows = await prisma.ratingLedger.findMany({
+    where: { platform },
     orderBy: { sequence: 'asc' },
     select: {
       playerId: true, playerName: true, matchKey: true, sequence: true, tournamentId: true,
@@ -226,7 +237,28 @@ export interface ExplorerRow {
  * A forfeit counts as a match and contributes no games. The schema records that a forfeit happened, not
  * frames that were played, and inventing a scoreline for one would be manufacturing data.
  */
-export const LEDGER_WITH_GAMES = `
+/**
+ * The ledger CTE, scoped to one platform.
+ *
+ * Scoping here rather than in each consumer is deliberate: this CTE feeds the ranking aggregate, the
+ * player detail panels and the export, and a platform filter that had to be remembered separately in
+ * four places is a filter that will eventually be forgotten in one of them — producing a table that
+ * mixes two rating universes without saying so.
+ *
+ * The value is interpolated rather than bound because it is a Postgres enum in a CTE definition, and
+ * it is safe to interpolate because it is validated against the enum first and can only ever be one
+ * of two literals.
+ */
+export function ledgerWithGames(platform: CompetitionPlatform = 'CUEVERSE'): string {
+  const safe: CompetitionPlatform = platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
+  return LEDGER_WITH_GAMES.replace(
+    'LEFT JOIN "public"."comp_tournament" tou ON tou."id" = rl."tournamentId"',
+    `LEFT JOIN "public"."comp_tournament" tou ON tou."id" = rl."tournamentId"
+    WHERE rl."platform" = '${safe}'`,
+  )
+}
+
+const LEDGER_WITH_GAMES = `
   WITH match_games AS (
     SELECT 'season-group:' || m."id" AS match_key, m."homeUsername" AS home_name,
            m."awayUsername" AS away_name, m."homeGames" AS home_games, m."awayGames" AS away_games
@@ -390,7 +422,7 @@ export async function computeExplorer(
     : Promise.resolve(null)
 
   const sql = `
-    ${LEDGER_WITH_GAMES},
+    ${ledgerWithGames(filters.platform ?? 'CUEVERSE')},
     -- Everything inside the time scope, whatever the view. Rating and peak are read from HERE, not
     -- from the view-filtered set: a player's rating is their rating, not "their rating counting only
     -- playoff matches". Narrowing it per view would print a different number for the same player on
@@ -641,7 +673,7 @@ export async function computeExplorer(
    * The rest of this query is untouched: records, streaks, games and the qualification counts are
    * legitimately per-view and SQL is the right place for them.
    */
-  const canonicalRatings = await ratingsForScope_(scope, now, filters.toYear)
+  const canonicalRatings = await ratingsForScope_(scope, now, filters.toYear, filters.platform ?? 'CUEVERSE')
 
   const mapped: ExplorerRow[] = rows.map((r) => {
     const wins = num(r.wins)

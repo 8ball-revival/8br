@@ -58,7 +58,7 @@ export default async function SeasonPage({
   params, searchParams,
 }: {
   params: Promise<{ seasonId: string }>
-  searchParams: Promise<{ view?: string; competition?: string }>
+  searchParams: Promise<{ view?: string; competition?: string; division?: string; platform?: string }>
 }) {
   const { seasonId } = await params
   const sp = await searchParams
@@ -104,8 +104,17 @@ export default async function SeasonPage({
    * and still readable — it simply is not consulted when deciding whether to show the control.
    */
   const memberRegistrationOpen = await publicRegistrationOpen({ lifecycleState: state })
+  // A division narrowing, when the reader has asked for one. Null means every division.
+  const divisionFilter = (typeof sp.division === 'string' ? sp.division : null) || null
   const [browse, neighbours, groups, qualified, bracketPublic, glance] = await Promise.all([
-    getSeasonBrowseData(competition),
+    /*
+     * The browser is scoped to the platform of the Season on screen, not to a URL parameter.
+     *
+     * Opening a Yahoo Season by link and finding CueVerse pickers around it would be the same
+     * mismatch the other way round; taking the scope from the record means a shared link always
+     * arrives in the era it belongs to.
+     */
+    getSeasonBrowseData(competition, view.platform, divisionFilter),
     seasonNeighbours(id, competition),
     getSeasonGroupStage(view.id),
     seasonPlayoffParticipants(view.id),
@@ -139,6 +148,9 @@ export default async function SeasonPage({
         years={browse.years}
         current={{ id, number, year: view.year }}
         competitionSlug={competition}
+        platform={view.platform}
+        divisions={browse.divisions}
+        division={divisionFilter}
         view={activeView}
         neighbours={neighbours}
         searchPlayers={async (q: string) => {

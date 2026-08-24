@@ -41,26 +41,48 @@ export default async function SeasonsPage({
   // Visiting Seasons with no Competition in the URL opens 8BRCAM rather than every Competition at
   // once. An explicit ?competition= still wins, so a shared link keeps its scope.
   const competition = one('competition') ?? DEFAULT_COMPETITION_SLUG
+  /*
+   * Platform and division ride in the URL and are carried into the redirect.
+   *
+   * Without that, choosing Yahoo would land on a CueVerse Season — the filter would appear to do
+   * nothing. There is deliberately no fallback to the other platform when one is empty: an empty
+   * CueVerse registry says so, rather than quietly showing the archive and implying it is current.
+   */
+  const platform = one('platform')?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
+  const division = one('division') || null
 
-  const newest = await newestSeasonId(competition)
+  const newest = await newestSeasonId(competition, platform, division)
   if (newest != null) {
     const qs = new URLSearchParams()
     if (competition) qs.set('competition', competition)
+    if (platform === 'YAHOO') qs.set('platform', 'yahoo')
+    if (division) qs.set('division', division)
     qs.set('view', one('view') === 'playoffs' ? 'playoffs' : 'groups')
     redirect(`/seasons/${newest}?${qs.toString()}`)
   }
 
-  // Nothing to open — a brand-new registry, or a Competition filter matching no Season.
-  const { competitions } = await getSeasonBrowseData(null)
+  // Nothing to open under this platform — an empty CueVerse registry, or a filter matching nothing.
+  const { competitions } = await getSeasonBrowseData(null, platform, division)
   return (
     <Wide name="seasons" className="py-16">
       <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center">
-        <h1 className="font-display text-2xl font-bold text-foreground">No Seasons Yet</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground">
+          {platform === 'YAHOO' ? 'No Yahoo Seasons' : 'No CueVerse Seasons Yet'}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          {competition && competitions.length > 0
-            ? 'That Competition has no Seasons yet. Seasons appear here as soon as one is created.'
-            : 'Seasons appear here as soon as one is created.'}
+          {platform === 'CUEVERSE'
+            ? 'Nothing has been played on CueVerse yet. The Yahoo archive is under the platform filter.'
+            : competition && competitions.length > 0
+              ? 'That Competition has no Yahoo Seasons.'
+              : 'No Yahoo Seasons match that filter.'}
         </p>
+        {/* Never a silent fall-back to the other platform: the way to the archive is a deliberate
+            choice, so an empty CueVerse registry cannot be mistaken for a populated one. */}
+        {platform === 'CUEVERSE' && (
+          <a href="/seasons?platform=yahoo" className="text-sm text-[var(--gold)] hover:underline">
+            Browse the Yahoo archive
+          </a>
+        )}
       </div>
     </Wide>
   )

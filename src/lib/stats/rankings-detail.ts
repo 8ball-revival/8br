@@ -1,6 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import { LEDGER_WITH_GAMES, type LadderScope } from './ladder-explorer'
+import { ledgerWithGames, type LadderScope } from './ladder-explorer'
+import type { CompetitionPlatform } from '@prisma/client'
 
 /**
  * Everything the expanded Rankings row and the comparison panel show about one player.
@@ -225,6 +226,8 @@ export function pickBestPlayoffRun(
 export async function computePlayerDetail(
   playerId: string,
   scope: LadderScope = 'all-time',
+  /** Which ranking universe. A player's Yahoo career and CueVerse career are separate records. */
+  platform: CompetitionPlatform = 'CUEVERSE',
 ): Promise<PlayerDetail> {
   const empty = EMPTY_DETAIL(playerId)
   const WINDOW_DAYS = 365
@@ -234,7 +237,7 @@ export async function computePlayerDetail(
   const params: unknown[] = scope === 'current' ? [playerId, windowStart] : [playerId]
 
   const perCompSql = `
-    ${LEDGER_WITH_GAMES},
+    ${ledgerWithGames(platform)},
     mine AS (SELECT l.* FROM ledger l WHERE l."playerId" = $1 ${scopeClause}),
     per_comp AS (
       SELECT
@@ -292,7 +295,7 @@ export async function computePlayerDetail(
     ORDER BY pc.year DESC, label ASC`
 
   const formSql = `
-    ${LEDGER_WITH_GAMES},
+    ${ledgerWithGames(platform)},
     mine AS (SELECT l.* FROM ledger l WHERE l."playerId" = $1 ${scopeClause})
     SELECT m."result", m."opponentName", m."isForfeit", m.has_game_data,
            m.games_for, m.games_against, m."completedAt", m."seasonId", m."tournamentId",
@@ -571,13 +574,16 @@ export interface HeadToHeadPair {
  * Emitted once per unordered pair, with `a` the lexicographically smaller id, so a pair cannot
  * appear twice with the columns swapped.
  */
-export async function computeHeadToHead(playerIds: string[]): Promise<HeadToHeadPair[]> {
+export async function computeHeadToHead(
+  playerIds: string[],
+  platform: CompetitionPlatform = 'CUEVERSE',
+): Promise<HeadToHeadPair[]> {
   const ids = [...new Set(playerIds.filter(Boolean))]
   if (ids.length < 2) return []
 
   try {
     const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `${LEDGER_WITH_GAMES}
+      `${ledgerWithGames(platform)}
        SELECT me."playerId" AS a, opp."playerId" AS b,
               count(*) FILTER (WHERE me."result" = 'WIN')::int  AS a_wins,
               count(*) FILTER (WHERE me."result" = 'LOSS')::int AS b_wins,

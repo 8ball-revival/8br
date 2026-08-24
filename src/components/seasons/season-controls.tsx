@@ -24,6 +24,9 @@ export function SeasonControls({
   competitions,
   seasons,
   years,
+  platform,
+  divisions,
+  division,
   current,
   competitionSlug,
   view,
@@ -38,6 +41,12 @@ export function SeasonControls({
   /** The Season on screen. `id` addresses it; `number` and `year` only label it. */
   current: { id: number; number: number; year: number }
   competitionSlug: string | null
+  /** Which platform this browser is scoped to. Never both. */
+  platform: 'CUEVERSE' | 'YAHOO'
+  /** Division codes present under the current scope, for the Division picker. */
+  divisions: string[]
+  /** The division currently narrowed to, or null for all of them. */
+  division: string | null
   view: 'groups' | 'playoffs'
   neighbours: { prev: number | null; next: number | null }
   searchPlayers: (q: string) => Promise<SeasonPlayerHit[]>
@@ -50,8 +59,31 @@ export function SeasonControls({
   const [, startNav] = useTransition()
 
   /** Rebuild the URL, keeping whatever is not being changed. */
-  const urlFor = (overrides: { seasonId?: number; competition?: string | null; view?: 'groups' | 'playoffs' }) => {
+  const urlFor = (overrides: {
+    seasonId?: number
+    competition?: string | null
+    view?: 'groups' | 'playoffs'
+    platform?: 'CUEVERSE' | 'YAHOO'
+    division?: string | null
+  }) => {
     const next = new URLSearchParams(params.toString())
+    /*
+     * Platform and division persist in the URL so a link carries the scope it was read in.
+     *
+     * Changing either sends the reader to /seasons rather than to the current Season id: the Season
+     * they are looking at may not exist in the scope they just chose, and landing on a Season from
+     * the other platform would make the filter look broken.
+     */
+    const plat = overrides.platform ?? platform
+    if (plat === 'YAHOO') next.set('platform', 'yahoo')
+    else next.delete('platform')
+    const div = overrides.division !== undefined ? overrides.division : division
+    if (div) next.set('division', div)
+    else next.delete('division')
+    if (overrides.platform !== undefined || overrides.division !== undefined) {
+      next.set('view', overrides.view ?? view)
+      return `/seasons?${next.toString()}`
+    }
     const comp = overrides.competition !== undefined ? overrides.competition : competitionSlug
     if (comp) next.set('competition', comp)
     else next.delete('competition')
@@ -91,6 +123,40 @@ export function SeasonControls({
         {/* Wraps on narrow screens rather than overflowing, so the bar never detaches from the
             header above it. */}
         <div className="flex flex-wrap items-end gap-2.5 py-2.5 sm:gap-3">
+          {/* Platform sits inside the filters, before Competition: it decides which archive the
+              other pickers are even describing, but the record stays the subject of the page. */}
+          <Field label="Platform" htmlFor="f-platform">
+            <select
+              id="f-platform"
+              value={platform}
+              onChange={(e) => go(urlFor({ platform: e.target.value as 'CUEVERSE' | 'YAHOO' }))}
+              className={SELECT}
+            >
+              <option value="CUEVERSE">CueVerse</option>
+              <option value="YAHOO">Yahoo</option>
+            </select>
+          </Field>
+
+          {divisions.length > 0 && (
+            <Field label="Division" htmlFor="f-division">
+              <select
+                id="f-division"
+                value={division ?? ''}
+                onChange={(e) => go(urlFor({ division: e.target.value || null }))}
+                className={SELECT}
+              >
+                <option value="">All Divisions</option>
+                {divisions.map((d) => (
+                  <option key={d} value={d}>
+                    {/* Division B is preserved in full but ranks nothing, and the picker says so
+                        rather than leaving somebody to wonder why its players have no rating. */}
+                    Division {d}{d === 'B' ? ' — unranked' : ''}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
           <Field label="Competition" htmlFor="f-comp">
             <select
               id="f-comp"

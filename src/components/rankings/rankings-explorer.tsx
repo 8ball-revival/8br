@@ -148,6 +148,29 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-3">
           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
+          {/*
+            The universe being read, not a filter over a shared one.
+            Compact and beside the heading: it changes every number on the page, so it has to be
+            visible — but it is a statement of which ladder this is, not the subject of the page.
+          */}
+          <div role="group" aria-label="Ranking platform" className="inline-flex overflow-hidden rounded-md border border-border">
+            {(['CUEVERSE', 'YAHOO'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={applied.platform === p}
+                onClick={() => { if (applied.platform !== p) navigate({ ...applied, platform: p }) }}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-medium transition-colors',
+                  applied.platform === p
+                    ? 'bg-[var(--gold)] text-black'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {p === 'CUEVERSE' ? 'CueVerse Rankings' : 'Yahoo Archive'}
+              </button>
+            ))}
+          </div>
           <p className="text-sm text-muted-foreground" aria-live="polite">
             <span className="tabular-nums">{visible.length.toLocaleString()}</span>{' '}
             {visible.length === 1 ? 'player' : 'players'}

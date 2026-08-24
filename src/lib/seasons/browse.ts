@@ -1,3 +1,4 @@
+import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 
@@ -50,10 +51,18 @@ export interface SeasonOption {
   competitionSlug: string
   lifecycleState: string
   isCompleted: boolean
+  /** Which platform this Season was played on. Drives the badge and the platform filter. */
+  platform: CompetitionPlatform
+  /** Division code, when the competition ran divided ones. 'B' is historical and unranked. */
+  division: string | null
+  /** Division B contributes nothing to any ladder, and the card says so rather than implying it. */
+  ranked: boolean
 }
 
 export interface SeasonBrowseData {
   competitions: CompetitionOption[]
+  /** Divisions present under the current filter, so the picker only offers ones that exist. */
+  divisions: string[]
   /** Every Season visible under the current Competition filter, newest first. */
   seasons: SeasonOption[]
   years: number[]
@@ -68,7 +77,17 @@ function activeWithSeasons() {
  * The Competition options, the Seasons under the current filter, and the years those Seasons fall
  * in. `competitionSlug` of null (or an unknown slug) means All Competitions.
  */
-export async function getSeasonBrowseData(competitionSlug?: string | null): Promise<SeasonBrowseData> {
+export async function getSeasonBrowseData(
+  competitionSlug?: string | null,
+  /**
+   * The platform scope. Never "both": a Yahoo Season and a CueVerse Season are different eras of
+   * different competitions, and a merged list would put them in one ordering as though they ran
+   * consecutively. Absent means CueVerse, the default everywhere.
+   */
+  platform: CompetitionPlatform = 'CUEVERSE',
+  /** A division code to narrow to, or null for every division under this platform. */
+  division: string | null = null,
+): Promise<SeasonBrowseData> {
   const comps = await prisma.competitionSeries.findMany({
     where: activeWithSeasons(),
     orderBy: { name: 'asc' },
@@ -78,10 +97,15 @@ export async function getSeasonBrowseData(competitionSlug?: string | null): Prom
   const filter = competitionSlug && known.has(competitionSlug) ? competitionSlug : null
 
   const rows = await prisma.season.findMany({
-    where: filter ? { competitionSeries: { slug: filter } } : {},
+    where: {
+      platform,
+      ...(filter ? { competitionSeries: { slug: filter } } : {}),
+      ...(division ? { division } : {}),
+    },
     orderBy: NEWEST_FIRST,
     select: {
       id: true, number: true, competitionYear: true, lifecycleState: true,
+      platform: true, division: true, countsTowardRankings: true,
       competitionSeries: { select: { slug: true, name: true } },
     },
   })
@@ -94,9 +118,18 @@ export async function getSeasonBrowseData(competitionSlug?: string | null): Prom
     competitionSlug: s.competitionSeries?.slug ?? '',
     lifecycleState: s.lifecycleState,
     isCompleted: s.lifecycleState === 'COMPLETED',
+    platform: s.platform,
+    division: s.division,
+    ranked: s.countsTowardRankings,
   }))
 
-  return { competitions: comps, seasons, years: [...new Set(seasons.map((s) => s.year))] }
+  /*
+   * The divisions actually present, rather than a fixed A/B list. A platform with no divided
+   * competitions offers no division picker at all, which is better than offering an empty one.
+   */
+  const divisions = [...new Set(rows.map((r) => r.division).filter((d): d is string => !!d))].sort()
+
+  return { competitions: comps, seasons, divisions, years: [...new Set(seasons.map((s) => s.year))] }
 }
 
 /**
@@ -113,9 +146,17 @@ export async function getSeasonBrowseData(competitionSlug?: string | null): Prom
  */
 export const DEFAULT_COMPETITION_SLUG = '8brcam'
 
-export async function newestSeasonId(competitionSlug?: string | null): Promise<number | null> {
+export async function newestSeasonId(
+  competitionSlug?: string | null,
+  platform: CompetitionPlatform = 'CUEVERSE',
+  division: string | null = null,
+): Promise<number | null> {
   const s = await prisma.season.findFirst({
-    where: competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {},
+    where: {
+      platform,
+      ...(competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {}),
+      ...(division ? { division } : {}),
+    },
     orderBy: NEWEST_FIRST,
     select: { id: true },
   })

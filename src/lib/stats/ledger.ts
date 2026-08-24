@@ -1,6 +1,6 @@
 import 'server-only'
 import { RANKING_ELIGIBLE_SEASON, RANKING_ELIGIBLE_TOURNAMENT } from './eligibility'
-import type { Prisma } from '@prisma/client'
+import type { Prisma, CompetitionPlatform } from '@prisma/client'
 import { ELO_START, matchDeltas } from './elo'
 
 /**
@@ -174,29 +174,48 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
   const tournaments = await tx.tournament.findMany({
     where: RANKING_ELIGIBLE_TOURNAMENT,
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
-    select: { id: true, participantFormat: true, ladderAppliedAt: true, createdAt: true },
+    select: { id: true, participantFormat: true, ladderAppliedAt: true, createdAt: true, platform: true },
   })
   const seasons = await tx.season.findMany({
     where: RANKING_ELIGIBLE_SEASON,
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
-    select: { id: true, ladderAppliedAt: true, createdAt: true },
+    select: { id: true, ladderAppliedAt: true, createdAt: true, platform: true },
   })
 
   // One combined, close-ordered timeline so Season and Tournament ratings interleave correctly.
-  type Source = { tournamentId?: number; seasonId?: number; isTeam: boolean; at: Date }
+  type Source = { tournamentId?: number; seasonId?: number; isTeam: boolean; at: Date; platform: CompetitionPlatform }
   const sources: Source[] = [
-    ...tournaments.map((t) => ({ tournamentId: t.id, isTeam: t.participantFormat === 'TEAM', at: t.ladderAppliedAt ?? t.createdAt })),
-    ...seasons.map((s) => ({ seasonId: s.id, isTeam: false, at: s.ladderAppliedAt ?? s.createdAt })),
+    ...tournaments.map((t) => ({ tournamentId: t.id, isTeam: t.participantFormat === 'TEAM', at: t.ladderAppliedAt ?? t.createdAt, platform: t.platform })),
+    ...seasons.map((s) => ({ seasonId: s.id, isTeam: false, at: s.ladderAppliedAt ?? s.createdAt, platform: s.platform })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime())
 
   await tx.ratingLedger.deleteMany({})
 
-  const rating = new Map<string, number>() // playerId → current rating (all-time running)
-  const cur = (id: string) => rating.get(id) ?? ELO_START
+  /*
+   * One running rating PER PLATFORM, never one across both.
+   *
+   * A Yahoo rating is not a starting point for a CueVerse one. Somebody who dominated the archive
+   * begins their CueVerse career at the same 1500 as everybody else, and somebody who never touched
+   * Yahoo is not compared against a number earned there. Sharing one map would have made every
+   * CueVerse rating a continuation of an archive most of its players were never in.
+   *
+   * Keyed by platform then player, so the two replays cannot reach each other even by accident: a
+   * rebuild of one reads and writes only its own map.
+   */
+  const rating = new Map<CompetitionPlatform, Map<string, number>>()
+  const mapFor = (p: CompetitionPlatform) => {
+    const m = rating.get(p) ?? new Map<string, number>()
+    if (!rating.has(p)) rating.set(p, m)
+    return m
+  }
+  let platform: CompetitionPlatform = 'CUEVERSE'
+  const cur = (id: string) => mapFor(platform).get(id) ?? ELO_START
   const rows: Prisma.RatingLedgerCreateManyInput[] = []
   let sequence = 0
 
   for (const c of sources) {
+    // Every rating read and written while this source is processed belongs to its platform.
+    platform = c.platform
     const matchups = c.tournamentId != null ? await collectMatchups(tx, c.tournamentId, c.isTeam, c.at) : await collectSeasonMatchups(tx, c.seasonId!, c.at)
     for (const mu of matchups) {
       sequence += 1
@@ -239,8 +258,9 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
             result, isForfeit: mu.forfeit, actual: selfActual,
             preRating: Math.round(pre), expected: info.expected, ratingChange: info.delta, postRating: Math.round(post),
             sequence, completedAt: mu.completedAt,
+            platform: c.platform,
           })
-          rating.set(p.id, post)
+          mapFor(c.platform).set(p.id, post)
         }
       }
       write(mu.home, mu.away, 'home')

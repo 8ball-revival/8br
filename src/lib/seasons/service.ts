@@ -1,5 +1,5 @@
 import 'server-only'
-import type { Prisma, SeasonLifecycleState } from '@prisma/client'
+import type { Prisma, SeasonLifecycleState, CompetitionPlatform } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { SEASON_ORDER, currentCompetitionYear, parseCompetitionYear } from '@/lib/competition/competition-year'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
@@ -229,6 +229,12 @@ export interface SeasonView {
   subtitle: string | null
   description: string | null
   lifecycleState: SeasonLifecycleState
+  /** Which platform this Season was played on — Yahoo history, or CueVerse present. */
+  platform: CompetitionPlatform
+  /** Division code, when the competition ran divided ones. */
+  division: string | null
+  /** Whether it contributes to a ladder. Division B is preserved in full but ranks nothing. */
+  ranked: boolean
   lounge: string
   accessMode: string
   requiresJoinPassword: boolean
@@ -281,6 +287,9 @@ export async function getSeasonView(id: number): Promise<SeasonView | null> {
     subtitle: s.subtitle,
     description: s.description,
     lifecycleState: s.lifecycleState,
+    platform: s.platform,
+    division: s.division,
+    ranked: s.countsTowardRankings,
     lounge: s.lounge,
     accessMode: s.accessMode,
     requiresJoinPassword: s.accessMode === 'PASSWORD',
