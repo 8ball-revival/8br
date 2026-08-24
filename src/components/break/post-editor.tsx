@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { updatePostAction } from '@/lib/break/post-actions'
 import { POST_TYPES, MAX_TITLE, type PostType } from '@/lib/break/post-types'
+import { BodyEditor } from '@/components/editorial/body-editor'
+import { parseArticleBody } from '@/lib/editorial/richtext'
 
 /**
  * The post editor, for an author or for staff.
@@ -22,6 +24,16 @@ import { POST_TYPES, MAX_TITLE, type PostType } from '@/lib/break/post-types'
  * Only what changed is sent. Fields the editor did not touch are left out of the payload, so the
  * service can tell an untouched field from one deliberately set back to its old value, and an
  * "edit" that altered nothing writes nothing at all.
+ *
+ * ── The body ─────────────────────────────────────────────────────────────────────────────────────
+ * The body is edited in `BodyEditor`, the same composer an article is written in, with the same
+ * paste-to-upload pipeline and the same GIPHY picker. What is stored is never what the composer
+ * shows: the document goes in as a node tree, is serialised for editing, and is parsed and sanitised
+ * back into a node tree on the way out. The editing surface is a representation; the canonical body
+ * is the tree, and it is the tree the service sanitises and writes.
+ *
+ * That round trip was measured before it was relied on — every post in the database survives
+ * serialise-then-parse byte-identically, including ordered-list starts and media references.
  */
 export function PostEditor({
   postId,
@@ -39,7 +51,8 @@ export function PostEditor({
     spoiler: boolean
     sensitive: boolean
     official: boolean
-    bodyText: string
+    /** The body as the composer edits it, serialised from the canonical node tree. */
+    bodySource: string
   }
   /** Only staff may mark a post as speaking for the site. */
   canMarkOfficial: boolean
@@ -56,6 +69,29 @@ export function PostEditor({
   const [spoiler, setSpoiler] = useState(initial.spoiler)
   const [sensitive, setSensitive] = useState(initial.sensitive)
   const [official, setOfficial] = useState(initial.official)
+  const [body, setBody] = useState(initial.bodySource)
+
+  const dirty =
+    title !== initial.title
+    || type !== initial.type
+    || (linkUrl || null) !== initial.linkUrl
+    || spoiler !== initial.spoiler
+    || sensitive !== initial.sensitive
+    || official !== initial.official
+    || body !== initial.bodySource
+
+  /*
+   * Leaving with unsaved work should cost a keystroke, not a post.
+   *
+   * Only the browser's own prompt: a custom dialog cannot intercept a closed tab or a typed URL, so
+   * it would guard the one route people are least likely to take.
+   */
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
 
   function save() {
     setError(null)
@@ -69,6 +105,12 @@ export function PostEditor({
     if (spoiler !== initial.spoiler) input.spoiler = spoiler
     if (sensitive !== initial.sensitive) input.sensitive = sensitive
     if (canMarkOfficial && official !== initial.official) input.official = official
+    /*
+     * Parsed here, sanitised on the server. The client's tree is a proposal: `updatePost` runs it
+     * through the same sanitizer post creation uses, so nothing reaches the database because a
+     * browser said it should.
+     */
+    if (body !== initial.bodySource) input.body = parseArticleBody(body)
 
     if (Object.keys(input).length === 0) { setSaved(true); return }
 
@@ -128,14 +170,15 @@ export function PostEditor({
       </fieldset>
 
       <div>
-        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Body</p>
-        <div className="max-h-52 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background/50 p-3 text-sm text-muted-foreground">
-          {initial.bodyText || <span className="italic">This post has no body text.</span>}
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          The body is a structured document rather than text, so it is shown here read-only. Changing
-          it belongs in the composer, which writes the same sanitised node tree the service expects.
-        </p>
+        <label htmlFor="post-body" className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">Body</label>
+        <BodyEditor
+          id="post-body"
+          value={body}
+          onChange={setBody}
+          rows={18}
+          giphyEnabled
+          placeholder="Write the post…"
+        />
       </div>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -143,7 +186,12 @@ export function PostEditor({
 
       <div className="flex justify-end gap-2">
         <button
-          type="button" onClick={() => router.push(returnTo)} disabled={pending}
+          type="button"
+          onClick={() => {
+            if (dirty && !window.confirm('Discard your unsaved changes to this post?')) return
+            router.push(returnTo)
+          }}
+          disabled={pending}
           className="rounded-md border border-input px-3 py-1.5 text-sm text-foreground hover:bg-white/[0.06] disabled:opacity-50"
         >
           Cancel

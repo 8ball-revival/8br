@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 
 import { prisma } from '@/lib/prisma'
 import { slugKeyOf } from '@/lib/editorial/slug-format'
+import { serializeArticleBody, sanitizeDocument, type RichDocument } from '@/lib/editorial/richtext'
 import { currentBreakActor, manageBasis, canMarkOfficial } from '@/lib/break/permissions'
 import { PostEditor } from '@/components/break/post-editor'
 import type { PostType } from '@/lib/break/post-types'
@@ -27,7 +28,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
     where: { slugKey: slugKeyOf(slug) },
     select: {
       id: true, slug: true, title: true, type: true, state: true, linkUrl: true,
-      spoiler: true, sensitive: true, official: true, bodyText: true,
+      spoiler: true, sensitive: true, official: true, body: true,
       authorPlayerId: true, authorHandleSnapshot: true, authorNameSnapshot: true,
     },
   })
@@ -67,7 +68,11 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
             spoiler: post.spoiler,
             sensitive: post.sensitive,
             official: post.official,
-            bodyText: post.bodyText ?? '',
+            /*
+             * Serialised from the stored node tree, not from bodyText. bodyText is a lossy plain-text
+             * projection for search; editing it would throw away every link, list and image.
+             */
+            bodySource: serializeArticleBody(sanitizeDocument(post.body as unknown as RichDocument)),
           }}
         />
       </div>

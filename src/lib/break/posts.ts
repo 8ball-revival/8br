@@ -207,6 +207,33 @@ async function createPollFor(
  * cannot change into an incompatible type, because the discussion underneath was about the thing it
  * was. That is the one conversion that is refused rather than confirmed.
  */
+/**
+ * A document as a comparable string, with object keys in a fixed order.
+ *
+ * Postgres stores jsonb with its own key ordering, and a freshly sanitised document carries insertion
+ * order, so `JSON.stringify` on the two forms of the SAME document disagrees. Comparing those
+ * directly reported every unchanged save as a change: it rewrote bodyText, moved updatedAt, marked
+ * the post edited and filed an audit entry describing an edit nobody had made.
+ *
+ * Sorting the keys is what makes the comparison about the document rather than about how it happened
+ * to be serialised. Arrays keep their order, because in a document order is meaning.
+ */
+function canonicalJson(v: unknown): string {
+  const walk = (x: unknown): unknown => {
+    if (Array.isArray(x)) return x.map(walk)
+    if (x && typeof x === 'object') {
+      return Object.fromEntries(
+        Object.entries(x as Record<string, unknown>)
+          .filter(([, val]) => val !== undefined)
+          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+          .map(([k, val]) => [k, walk(val)]),
+      )
+    }
+    return x
+  }
+  return JSON.stringify(walk(v))
+}
+
 export async function updatePost(
   actor: BreakActor,
   postId: number,
@@ -263,9 +290,23 @@ export async function updatePost(
   }
 
   if (input.body !== undefined) {
+    /*
+     * A body that normalises to what is already stored is not an edit.
+     *
+     * The composer round-trips the document through its editing surface, so opening a post and
+     * saving it untouched produces a structurally identical tree that is not the same object. Writing
+     * it would bump updatedAt, mark the post edited, and file an audit entry describing a change
+     * nobody made. Comparing the SANITISED forms is the only comparison worth making — it is the
+     * canonical shape, and the one the reader will get.
+     */
     const body = sanitizeDocument(input.body)
-    data.body = body as unknown as Prisma.InputJsonValue
-    data.bodyText = documentToPlainText(body).slice(0, 100_000)
+    const existing = await prisma.breakPost.findUnique({ where: { id: postId }, select: { body: true } })
+    if (canonicalJson(existing?.body) !== canonicalJson(body)) {
+      data.body = body as unknown as Prisma.InputJsonValue
+      // bodyText is the plain-text projection, and the generated searchVector is built from it, so
+      // rewriting it here is what keeps search and excerpts in step with the body.
+      data.bodyText = documentToPlainText(body).slice(0, 100_000)
+    }
   }
 
   if (input.categorySlug !== undefined) {

@@ -18,6 +18,10 @@ import {
   type BreakActorShape,
 } from '../src/lib/break/permission-rules.ts'
 import { updatePost, softDeletePost, getPostBySlug } from '../src/lib/break/posts.ts'
+import {
+  parseArticleBody, serializeArticleBody, sanitizeDocument, documentToPlainText,
+  readingTimeMinutes, deriveExcerpt, type RichDocument,
+} from '../src/lib/editorial/richtext.ts'
 /* The same derivation the service uses. A hand-written slugKey looks fine and then never matches. */
 import { slugKeyOf } from '../src/lib/editorial/slug-format.ts'
 
@@ -253,6 +257,94 @@ try {
     await prisma.breakPost.deleteMany({ where: { id: { in: created } } })
     console.log(`  – cleaned up ${created.length} fixture post(s) and their audit rows`)
   }
+}
+
+// -- Editing the body -----------------------------------------------------------------------------
+section('The body is editable, and survives the round trip')
+{
+  const editor = readFileSync('src/components/break/post-editor.tsx', 'utf8')
+  check('the editor uses the canonical composer', editor.includes('@/components/editorial/body-editor'))
+  check('and not a second one built for admins', !editor.includes('<textarea'))
+  check('the body is hydrated from the stored tree, not from bodyText',
+    readFileSync('src/app/(frontend)/the-break/[slug]/edit/page.tsx', 'utf8').includes('serializeArticleBody(sanitizeDocument'))
+  check('it submits a node tree, not a string', editor.includes('input.body = parseArticleBody(body)'))
+  check('leaving with unsaved work warns first',
+    editor.includes('beforeunload') && editor.includes('Discard your unsaved changes'))
+  check('the upload pipeline comes with it', editor.includes('giphyEnabled'))
+
+  /*
+   * The round trip is what this rests on: the composer edits a serialised form, so a document that
+   * did not survive serialise-then-parse would lose formatting the moment somebody opened it.
+   */
+  const rich: RichDocument = {
+    v: 1,
+    blocks: [
+      { t: 'h', level: 2, c: [{ t: 'text', v: 'A heading' }] },
+      { t: 'p', c: [
+        { t: 'text', v: 'Plain, ' },
+        { t: 'strong', c: [{ t: 'text', v: 'bold' }] },
+        { t: 'text', v: ', ' },
+        { t: 'em', c: [{ t: 'text', v: 'italic' }] },
+        { t: 'text', v: ', ' },
+        { t: 'link', href: 'https://example.com/x', c: [{ t: 'text', v: 'a link' }] },
+        { t: 'br' },
+        { t: 'text', v: 'after a break' },
+      ] },
+      { t: 'ul', items: [[{ t: 'text', v: 'one' }], [{ t: 'text', v: 'two' }]] },
+      { t: 'ol', items: [[{ t: 'text', v: 'seventh' }]], start: 7 },
+      { t: 'quote', c: [{ t: 'text', v: 'Quoted.' }] },
+      { t: 'code', lang: 'ts', v: 'const a = 1' },
+      { t: 'hr' },
+      { t: 'img', mediaId: 'media-123', alt: 'a picture', caption: 'with a caption' },
+    ],
+  }
+  const canonical = sanitizeDocument(rich)
+  const roundTripped = sanitizeDocument(parseArticleBody(serializeArticleBody(canonical)))
+  check('every supported node survives an open-and-save with no changes',
+    JSON.stringify(canonical) === JSON.stringify(roundTripped))
+
+  const kinds = (d: RichDocument) => d.blocks.map((b) => b.t).join(',')
+  check('and every block kind is still there', kinds(canonical) === kinds(roundTripped), kinds(roundTripped))
+  const ol = roundTripped.blocks.find((b) => b.t === 'ol') as { t: 'ol'; start?: number } | undefined
+  check('the ordered-list start is intact', ol?.start === 7, String(ol?.start))
+  const img = roundTripped.blocks.find((b) => b.t === 'img') as unknown as { mediaId: string; caption: string | null } | undefined
+  check('the media reference is intact', img?.mediaId === 'media-123' && img?.caption === 'with a caption')
+
+  // Anything outside the vocabulary is dropped rather than carried into the database.
+  const hostile = sanitizeDocument({
+    v: 1,
+    blocks: [
+      { t: 'script', v: 'alert(1)' },
+      { t: 'p', c: [{ t: 'link', href: 'javascript:alert(1)', c: [{ t: 'text', v: 'tap' }] }] },
+      { t: 'p', c: [{ t: 'text', v: 'kept' }] },
+    ] as never,
+  })
+  check('an unsupported block is dropped', !JSON.stringify(hostile).includes('script'))
+  check('a javascript: href does not survive', !JSON.stringify(hostile).includes('javascript:'))
+  check('the legitimate paragraph is kept', JSON.stringify(hostile).includes('kept'))
+}
+
+section('Derived fields follow the body')
+{
+  const shortDoc: RichDocument = { v: 1, blocks: [{ t: 'p', c: [{ t: 'text', v: 'short' }] }] }
+  const longDoc: RichDocument = { v: 1, blocks: [{ t: 'p', c: [{ t: 'text', v: 'word '.repeat(800) }] }] }
+  check('plain text follows the body', documentToPlainText(longDoc).length > documentToPlainText(shortDoc).length)
+  check('the excerpt follows the body', deriveExcerpt(longDoc) !== deriveExcerpt(shortDoc))
+  check('reading time follows the body', readingTimeMinutes(longDoc) > readingTimeMinutes(shortDoc))
+
+  const svc = readFileSync('src/lib/break/posts.ts', 'utf8')
+  check('saving a body rewrites bodyText', svc.includes('data.bodyText = documentToPlainText(body)'))
+  /*
+   * The comparison has to be about the document, not about how it was serialised. Postgres stores
+   * jsonb with its own key order and a freshly sanitised document carries insertion order, so a
+   * plain JSON.stringify on the two forms of the SAME body disagreed -- and every unchanged save
+   * rewrote bodyText, moved updatedAt, marked the post edited and filed an audit entry for an edit
+   * nobody had made.
+   */
+  check('an unchanged body writes nothing', svc.includes('canonicalJson(existing?.body) !== canonicalJson(body)'))
+  check('and the comparison ignores key order', svc.includes('function canonicalJson'))
+  check('while keeping array order, because in a document order is meaning',
+    svc.includes('if (Array.isArray(x)) return x.map(walk)'))
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
