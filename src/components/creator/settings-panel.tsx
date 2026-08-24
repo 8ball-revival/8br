@@ -124,7 +124,7 @@ export function CreatorSettings({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <Settings2 className="size-3.5" aria-hidden /> Settings
       </button>
@@ -148,7 +148,7 @@ export function CreatorSettings({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close settings"
-                className="grid size-8 shrink-0 place-items-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="grid size-8 shrink-0 place-items-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
               >
                 <X className="size-4" aria-hidden />
               </button>
@@ -169,13 +169,13 @@ export function CreatorSettings({
                         disabled={pending}
                         onChange={(e) => setTitle(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveTitle() } }}
-                        className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                        className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
                       />
                       <button
                         type="button"
                         onClick={saveTitle}
                         disabled={pending || !title.trim() || title.trim() === summary.title}
-                        className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                        className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
                       >
                         Save
                       </button>
@@ -200,13 +200,13 @@ export function CreatorSettings({
                         value={year}
                         disabled={pending}
                         onChange={(e) => setYear(e.target.value)}
-                        className="w-20 rounded border border-border bg-background px-2 py-1 text-right font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                        className="w-20 rounded border border-border bg-background px-2 py-1 text-right font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
                       />
                       <button
                         type="button"
                         onClick={saveYear}
                         disabled={pending || year === String(summary.competitionYear)}
-                        className="rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                        className="rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
                       >
                         Save
                       </button>
@@ -330,7 +330,7 @@ function Toggle({
           checked={checked}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
-          className="size-4 shrink-0 accent-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="size-4 shrink-0 accent-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
         />
       </label>
       <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>

@@ -156,7 +156,7 @@ export function SeasonCreateForm({
                 'cursor-pointer rounded-lg border px-3 py-2.5 transition-colors',
                 structure === s.id
                   ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]'
-                  : 'border-border bg-card/40 hover:border-[var(--gold)]/30',
+                  : 'border-border bg-card/40 hover:border-[var(--brand)]/30',
               )}
             >
               <span className="flex items-start gap-2">
@@ -199,7 +199,7 @@ export function SeasonCreateForm({
       <button
         type="submit"
         disabled={pending || !competitionSeriesId || !structure}
-        className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         {pending ? 'Creating…' : 'Create Season'}
       </button>
@@ -208,7 +208,7 @@ export function SeasonCreateForm({
 }
 
 const inputCls =
-  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

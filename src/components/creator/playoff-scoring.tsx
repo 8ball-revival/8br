@@ -341,7 +341,7 @@ function MatchCard({
               title={waiting ? 'Waiting on an earlier match' : isBye ? 'A bye is advanced automatically' : undefined}
               className={cn(
                 'h-5 w-8 shrink-0 rounded border bg-[var(--bracket-canvas)] text-center text-[0.7em] tabular text-[var(--bracket-text)] outline-none',
-                'focus-visible:border-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-40',
+                'focus-visible:border-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-40',
                 'border-input',
               )}
             />
@@ -489,4 +489,4 @@ export function ReviewWarning({ count }: { count: number }) {
 }
 
 const zoomBtn =
-  'rounded border border-border px-1 py-0.5 text-[0.7rem] text-muted-foreground transition-colors hover:border-[var(--gold)]/50 hover:text-[var(--gold)]'
+  'rounded border border-border px-1 py-0.5 text-[0.7rem] text-muted-foreground transition-colors hover:border-[var(--brand)]/50 hover:text-[var(--brand)]'

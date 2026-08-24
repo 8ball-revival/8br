@@ -27,7 +27,7 @@ function ListFrame({
     <Wide name="creator" className="py-6">
       <Link
         href="/creator"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <ArrowLeft className="size-4" aria-hidden /> Back to Creator
       </Link>
@@ -68,7 +68,7 @@ export function OpenRecordList({
             <li key={`${r.kind}-${r.id}`}>
               <Link
                 href={r.href}
-                className="flex h-full flex-col gap-1 rounded-lg border border-border bg-card/40 px-4 py-3 transition-colors hover:border-[var(--gold)]/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="flex h-full flex-col gap-1 rounded-lg border border-border bg-card/40 px-4 py-3 transition-colors hover:border-[var(--brand)]/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
               >
                 <span className="truncate text-sm font-semibold text-foreground">{r.title}</span>
                 <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
@@ -122,7 +122,7 @@ export function CompletedRecordList({
                   <td className="px-3 py-2">
                     <Link
                       href={r.href}
-                      className="font-medium text-foreground hover:text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                      className="font-medium text-foreground hover:text-[var(--brand)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
                     >
                       {r.title}
                     </Link>

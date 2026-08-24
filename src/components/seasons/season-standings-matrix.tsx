@@ -245,7 +245,7 @@ function GroupRename({ seasonId, groupId, code }: { seasonId: number; groupId: n
         onClick={() => { setValue(code); setError(null); setOpen(true) }}
         aria-label={`Rename group ${code}`}
         title="Rename this group"
-        className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <Pencil className="size-3.5" aria-hidden />
         <span className="hidden sm:inline">Rename</span>
@@ -268,17 +268,17 @@ function GroupRename({ seasonId, groupId, code }: { seasonId: number; groupId: n
           if (e.key === 'Enter') { e.preventDefault(); commit() }
           if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setError(null) }
         }}
-        className="w-16 rounded border border-input bg-card px-2 py-1 text-xs uppercase text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="w-16 rounded border border-input bg-card px-2 py-1 text-xs uppercase text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       />
       <button
         type="button" onClick={commit} disabled={pending} aria-label="Save group name"
-        className="grid size-6 place-items-center rounded text-[var(--gold)] hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="grid size-6 place-items-center rounded text-[var(--gold)] hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <Check className="size-3.5" aria-hidden />
       </button>
       <button
         type="button" onClick={() => { setOpen(false); setError(null) }} disabled={pending} aria-label="Cancel rename"
-        className="grid size-6 place-items-center rounded text-muted-foreground hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="grid size-6 place-items-center rounded text-muted-foreground hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <X className="size-3.5" aria-hidden />
       </button>

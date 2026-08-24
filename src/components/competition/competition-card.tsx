@@ -19,12 +19,12 @@ export function CompetitionCardView({ card, live = false }: { card: Card; live?:
       href={card.href}
       className={cn(
         'group flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors',
-        'hover:border-[var(--gold)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
+        'hover:border-[var(--brand)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-display text-base font-bold group-hover:text-[var(--gold)]">
+          <h3 className="truncate font-display text-base font-bold group-hover:text-[var(--brand)]">
             {card.title}
           </h3>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">

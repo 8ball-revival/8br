@@ -261,7 +261,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
                     }}
                     className={
                       'px-3 py-1.5 text-sm transition-colors '
-                      + (platform === pf ? 'bg-[var(--gold)] font-semibold text-black' : 'text-muted-foreground hover:text-foreground')
+                      + (platform === pf ? 'bg-[var(--brand)] font-semibold text-white' : 'text-muted-foreground hover:text-foreground')
                     }
                   >
                     {pf === 'CUEVERSE' ? 'CueVerse' : 'Yahoo'}

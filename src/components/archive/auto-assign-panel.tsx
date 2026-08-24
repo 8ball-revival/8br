@@ -173,7 +173,7 @@ export function AutoAssignPanel({
         type="button"
         onClick={openPreview}
         title={helper}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <Wand2 className="size-4" aria-hidden />
         {label}
@@ -202,7 +202,7 @@ export function AutoAssignPanel({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="grid size-8 shrink-0 place-items-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="grid size-8 shrink-0 place-items-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
               >
                 <X className="size-4" aria-hidden />
               </button>
@@ -236,7 +236,7 @@ export function AutoAssignPanel({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
               >
                 {result ? 'Close' : 'Cancel'}
               </button>
@@ -253,7 +253,7 @@ export function AutoAssignPanel({
                         && !confirmReplace)
                     || (mode === 'placement' && !!(plan as PlacementPlan).refusal)
                   }
-                  className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                  className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
                 >
                   {pending ? 'Applying…'
                     : mode === 'entrants' ? 'Add Matched Entrants'
@@ -740,7 +740,7 @@ function Section({ title, children, report }: { title: string; children: React.R
                 setTimeout(() => setCopied(false), 2000)
               } catch { /* a clipboard the browser will not grant is not worth an error */ }
             }}
-            className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
           >
             {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
             {copied ? 'Copied' : 'Copy report'}

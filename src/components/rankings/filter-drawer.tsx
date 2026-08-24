@@ -48,7 +48,7 @@ export interface FilterDrawerProps {
 }
 
 const FIELD =
-  'w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'
 
 /**
  * The gate.
@@ -165,7 +165,7 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
             type="button"
             onClick={onClose}
             aria-label="Close filters"
-            className="rounded p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="rounded p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -369,7 +369,7 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
           <button
             type="button"
             onClick={() => setDraft({ ...defaultState(now), rowFilters: { ...defaultState(now).rowFilters, search: draft.rowFilters.search } })}
-            className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50"
+            className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--brand)]/50"
           >
             Defaults
           </button>
@@ -399,7 +399,7 @@ function Section({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={id}
-        className="flex w-full items-center justify-between gap-2 rounded text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="flex w-full items-center justify-between gap-2 rounded text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         {title}
         <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />

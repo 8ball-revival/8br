@@ -207,7 +207,7 @@ export function PlayoffWorkspace({
             onClick={() => (hasDraft
               ? setConfirmRegen(true)
               : run(() => generateSeasonBracketAction(seasonId, size === '' ? {} : { size })))}
-            className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
           >
             {hasDraft ? 'Regenerate Bracket' : 'Generate Bracket'}
           </button>
@@ -216,7 +216,7 @@ export function PlayoffWorkspace({
             disabled={pending || !readiness.ok}
             title={readiness.ok ? undefined : readiness.problems.join(' ')}
             onClick={() => start(async () => setConfirmStart(await previewStartReadinessAction(seasonId)))}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
           >
             <Trophy className="size-4" aria-hidden /> Start Playoffs
           </button>
@@ -684,6 +684,6 @@ function Dialog({ labelledBy, onCancel, children }: { labelledBy: string; onCanc
 }
 
 const btnGhost =
-  'rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'
 const btnGold =
-  'rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'

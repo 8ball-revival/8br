@@ -260,8 +260,8 @@ const LightboxButton = function LightboxButton({
       title={label}
       className={cn(
         'rounded-md border border-white/15 p-1.5 text-white/85 transition-colors',
-        'hover:border-[var(--gold)]/50 hover:text-[var(--gold)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/70',
+        'hover:border-[var(--brand)]/50 hover:text-[var(--brand)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/70',
         'disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-white/15 disabled:hover:text-white/85',
       )}
     >

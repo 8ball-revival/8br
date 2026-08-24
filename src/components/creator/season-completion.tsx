@@ -48,7 +48,7 @@ export function SeasonCompletion({ seasonId, readiness }: { seasonId: number; re
         type="button"
         disabled={pending}
         onClick={() => start(async () => setConfirm(await previewCompletionAction(seasonId)))}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
       >
         <Crown className="size-4" aria-hidden /> Close Season &amp; Crown Champion
       </button>

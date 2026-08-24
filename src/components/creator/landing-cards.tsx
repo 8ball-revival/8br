@@ -47,15 +47,15 @@ export function CreatorColumn({
               href={a.href}
               className={cn(
                 'group flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
                 a.primary
-                  ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)] hover:border-[var(--gold)] hover:bg-[var(--selected-surface)]'
-                  : 'border-border bg-card/40 hover:border-[var(--gold)]/40 hover:bg-card',
+                  ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)] hover:border-[var(--brand)] hover:bg-[var(--selected-surface)]'
+                  : 'border-border bg-card/40 hover:border-[var(--brand)]/40 hover:bg-card',
               )}
             >
               <a.icon
                 aria-hidden
-                className={cn('size-4 shrink-0', a.primary ? 'text-[var(--gold)]' : 'text-muted-foreground group-hover:text-[var(--gold)]')}
+                className={cn('size-4 shrink-0', a.primary ? 'text-[var(--gold)]' : 'text-muted-foreground group-hover:text-[var(--brand)]')}
               />
               <span className="min-w-0 flex-1">
                 <span className={cn('block truncate text-sm', a.primary ? 'font-semibold text-[var(--gold)]' : 'font-medium text-foreground')}>

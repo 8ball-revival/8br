@@ -51,7 +51,7 @@ export function CreatorShell({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Link
             href="/creator"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
           >
             <ArrowLeft className="size-4" aria-hidden /> Back to Creator
           </Link>
@@ -59,7 +59,7 @@ export function CreatorShell({
             {publicHref && (
               <Link
                 href={publicHref}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
               >
                 <ExternalLink className="size-3.5" aria-hidden /> View Public Page
               </Link>
@@ -116,7 +116,7 @@ function WorkflowBar({ workflow, kind }: { workflow: StageView[]; kind: 'season'
                 href={s.href}
                 aria-current={s.status === 'current' ? 'step' : undefined}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
                   s.status === 'current'
                     ? 'bg-[var(--selected-surface)] font-semibold text-[var(--gold)]'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',

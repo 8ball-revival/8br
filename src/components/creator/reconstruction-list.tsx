@@ -151,7 +151,7 @@ export function ReconstructionList({
             <li key={r.id}>
               <Link
                 href={r.href}
-                className="flex flex-col gap-1 px-3 py-2 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60 sm:flex-row sm:items-center sm:gap-3"
+                className="flex flex-col gap-1 px-3 py-2 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60 sm:flex-row sm:items-center sm:gap-3"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{r.title}</span>

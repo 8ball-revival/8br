@@ -191,7 +191,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
                     }}
                     className={
                       'px-3 py-1.5 text-sm transition-colors '
-                      + (platform === pf ? 'bg-[var(--gold)] font-semibold text-black' : 'text-muted-foreground hover:text-foreground')
+                      + (platform === pf ? 'bg-[var(--brand)] font-semibold text-white' : 'text-muted-foreground hover:text-foreground')
                     }
                   >
                     {pf === 'CUEVERSE' ? 'CueVerse' : 'Yahoo'}
@@ -316,7 +316,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
           </dl>
           <div className="flex flex-col gap-2 p-5">
             {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-            <Button onClick={submit} disabled={pending} className="bg-[var(--gold)] text-black hover:bg-[var(--gold-soft)]">
+            <Button onClick={submit} disabled={pending} className="bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]">
               <Diamond className="size-4" /> {pending ? 'Creating…' : 'Create Season'}
             </Button>
             <p className="text-center text-[0.7rem] text-muted-foreground/60">A Season number is assigned automatically. Groups, qualifiers and bracket type are decided later.</p>

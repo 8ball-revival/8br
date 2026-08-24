@@ -229,7 +229,7 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
         {creating
           ? <CreatePlayerInline seasonId={seasonId} run={run} onDone={() => { setCreating(false); load(q) }} />
           : (
-            <button type="button" onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60">
+            <button type="button" onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-[var(--brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60">
               <UserPlus className="size-3.5" aria-hidden />
               Player not listed? Create one
             </button>

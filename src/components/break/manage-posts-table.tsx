@@ -51,7 +51,7 @@ export function ManagePostsTable({ posts }: { posts: ManagedPost[] }) {
     })
   }, [posts, q, state])
 
-  const field = 'rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground outline-none focus-visible:border-[var(--gold)]'
+  const field = 'rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground outline-none focus-visible:border-[var(--brand)]'
 
   return (
     <div>
@@ -87,7 +87,7 @@ export function ManagePostsTable({ posts }: { posts: ManagedPost[] }) {
             {rows.map((p) => (
               <tr key={p.id} className="border-b border-border/60 last:border-0">
                 <td className="max-w-[18rem] px-3 py-2">
-                  <Link href={`/the-break/${p.slug}`} className="line-clamp-2 font-medium text-foreground hover:text-[var(--gold)]">
+                  <Link href={`/the-break/${p.slug}`} className="line-clamp-2 font-medium text-foreground hover:text-[var(--brand)]">
                     {p.title}
                   </Link>
                 </td>

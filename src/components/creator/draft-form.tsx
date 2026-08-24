@@ -47,7 +47,7 @@ export interface DraftFormProps {
 type Values = DraftFormProps['initial']
 
 const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'
 
 /** Map the form's string fields onto the settings patch the service accepts. */
 function toPatch(patch: Partial<Values>) {
@@ -244,7 +244,7 @@ export function DraftForm({ seasonId, competitions, initial, continueHref, conti
           type="button"
           onClick={() => void saveThen('exit')}
           disabled={leaving !== null}
-          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm transition-colors hover:border-[var(--brand)]/50 disabled:opacity-60"
         >
           {leaving === 'exit' && <Loader2 className="size-4 animate-spin" aria-hidden />}
           Save and Exit
@@ -284,7 +284,7 @@ function SaveBadge({ status, onRetry }: { status: AutosaveSnapshot; onRetry: () 
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs hover:border-[var(--gold)]/50"
+          className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs hover:border-[var(--brand)]/50"
         >
           <RotateCw className="size-3" aria-hidden />
           Retry

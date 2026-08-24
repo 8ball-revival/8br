@@ -105,7 +105,7 @@ export function IdentityCell({
       <Link
         href={`/players/${encodeURIComponent(identity.slug)}`}
         className={cn(
-          'block min-w-0 rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
+          'block min-w-0 rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
           className,
         )}
       >
