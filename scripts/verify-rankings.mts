@@ -418,11 +418,31 @@ section('No glow, and none creeping back')
   // per theme and is brighter than the chrome gold, not that it is identical to it.
   check('gold is its own brighter value in both themes',
     (css.match(/--tier-gold: oklch\(/g) ?? []).length === 2)
+  /*
+   * The chrome gold is a hex primitive now, not an oklch literal.
+   *
+   * `--gold` used to hold its own oklch value, so this compared two numbers lifted straight out of
+   * the stylesheet. It now points at `--c-gold`, part of the one palette block, which is written in
+   * hex. The assertion is unchanged in substance -- the top band must lead the eye more than the
+   * chrome gold does -- so the hex is converted to the same OKLab lightness and compared as before,
+   * rather than the check being dropped because its input moved.
+   */
   check('...and it is brighter than the chrome gold it derives from', (() => {
-    const num = (re: RegExp) => [...css.matchAll(re)].map((m) => Number(m[1]))
-    const tierL = num(/--tier-gold: oklch\(([0-9.]+)/g)
-    const chromeL = num(/^  --gold: oklch\(([0-9.]+)/gm)
-    return tierL.length === 2 && chromeL.length === 2 && tierL.every((v, i) => v > chromeL[i])
+    const srgbToL = (hex: string): number => {
+      const v = [0, 2, 4].map((i) => parseInt(hex.slice(i + 1, i + 3), 16) / 255)
+      const lin = v.map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+      const [r, g, b] = lin
+      // sRGB -> LMS -> OKLab L, the standard matrix.
+      const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+      const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+      const q = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+      return 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * q
+    }
+    const tierL = [...css.matchAll(/--tier-gold: oklch\(([0-9.]+)/g)].map((m) => Number(m[1]))
+    const goldRef = [...css.matchAll(/^  --gold: var\(--(c-gold[a-z-]*)\)/gm)].map((m) => m[1])
+    const hexes = goldRef.map((name) => new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`).exec(css)?.[1] ?? null)
+    if (tierL.length !== 2 || hexes.length !== 2 || hexes.some((h) => !h)) return false
+    return tierL.every((v, i) => v > srgbToL(hexes[i]!))
   })())
   check('first place has its own colour in both themes',
     (css.match(/--rating-top:/g) ?? []).length === 2)

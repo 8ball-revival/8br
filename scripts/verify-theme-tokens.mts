@@ -72,7 +72,7 @@ section('No brown, bronze, beige, olive or mustard')
    * brown/bronze/olive band; gold lives there too, which is why the palette's own gold values are
    * allowed by name and nothing else is.
    */
-  const ALLOWED = new Set(['#F2C14E', '#FFD76A', '#B98F2E', '#FF1744', '#FF4567', '#C1102F'])
+  const ALLOWED = new Set(['#F2C14E', '#FFD76A', '#B98F2E', '#8F6C1F', '#FF1744', '#FF4567', '#C1102F'])
   const offenders: string[] = []
   for (const f of FILES) {
     /*
@@ -141,7 +141,15 @@ section('Both themes still resolve')
   check('a light block exists', /\.light\s*\{/.test(CSS))
   const light = CSS.slice(CSS.indexOf('.light {'))
   check('light has its own neutrals', /--c-l-canvas|--background:\s*var\(--c-l-/.test(light))
-  check('light gold is a gold, not a beige', /--gold:\s*var\(--c-gold-dim\)/.test(light))
+  /*
+   * Light gold is its own value, not the dark theme's dim gold reused.
+   *
+   * Gold as ink on white is a different problem from gold as a light on black: the dark dim gold
+   * scored only 2.91:1 on the light canvas -- under AA -- and was brighter than the top rating band
+   * it is meant to sit beneath, inverting the hierarchy in one theme only.
+   */
+  check('light gold is a gold, not a beige', /--gold:\s*var\(--c-gold-ink\)/.test(light))
+  check('and it is dark enough to read on white', /--c-gold-ink:\s*#8F6C1F/i.test(CSS))
   check('light brand is a red', /--brand:\s*var\(--c-brand-dim\)/.test(light))
 }
 

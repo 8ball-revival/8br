@@ -25,7 +25,15 @@ const section = (t: string) => console.log(`\n--- ${t} ---`)
 
 /** Titles by CueVerse ID, straight from the Rankings query the page uses. */
 async function titles(): Promise<Map<string, number>> {
-  const rows = await computeExplorer('all-time', 'overall')
+  /*
+   * Scoped to the platform these Tournaments are on.
+   *
+   * The ranking universe is per platform, and the default -- CueVerse -- holds nothing until a
+   * CueVerse record completes. Reading it here returned an empty title map and reported every
+   * champion as uncredited, which is the test failing to ask the right question rather than the
+   * crediting being broken.
+   */
+  const rows = await computeExplorer('all-time', 'overall', { platform: 'YAHOO' })
   return new Map(rows.filter((r) => r.cueverseId).map((r) => [r.cueverseId!.toLowerCase(), r.tournamentTitles]))
 }
 
@@ -129,7 +137,8 @@ const unfinished = await prisma.tournament.count({ where: { NOT: { lifecycleStat
 console.log(`  (${unfinished} unfinished Tournament(s) in the database, contributing nothing)`)
 
 section('Season championships are untouched')
-const rows = await computeExplorer('all-time', 'overall')
+// Same reason as the title map above: the archive lives on Yahoo, and CueVerse is empty.
+const rows = await computeExplorer('all-time', 'overall', { platform: 'YAHOO' })
 check('season titles are still counted', rows.filter((r) => r.seasonTitles > 0).length > 0,
   String(rows.filter((r) => r.seasonTitles > 0).length))
 

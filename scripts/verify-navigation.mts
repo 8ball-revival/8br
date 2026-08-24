@@ -223,7 +223,17 @@ section('Seasons opens the browser on the most recent Season')
   check('...and the requested view', code.includes("'playoffs' : 'groups'"))
   check('...never cached, so a Season that completes is not opened as if it were still running',
     code.includes("dynamic = 'force-dynamic'") && code.includes('revalidate = 0'))
-  check('an empty registry says so rather than erroring', code.includes('No Seasons Yet'))
+  /*
+   * The empty state is now per platform, because "no Seasons" is two different statements: a
+   * CueVerse registry that has not started yet, and a Yahoo filter that matches nothing. The
+   * assertion follows that rather than being dropped -- and adds the rule that matters more than the
+   * wording: an empty platform must never silently fall back to the other one.
+   */
+  check('an empty registry says so rather than erroring',
+    code.includes('No CueVerse Seasons Yet') || code.includes('No Yahoo Seasons'))
+  check('...naming which platform is empty', code.includes("platform === 'YAHOO' ?"))
+  check('...and offering the archive by name rather than substituting it',
+    code.includes('Browse the Yahoo archive'))
 
   // Read-only, same as everywhere else public.
   check('...it offers no management control',

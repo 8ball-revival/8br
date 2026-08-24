@@ -35,6 +35,19 @@ const check = (n: string, c: boolean, d = '') => {
 const section = (s: string) => console.log(`\n${s}`)
 
 const NOW = new Date('2026-08-19T12:00:00Z')
+
+/*
+ * These checks read the ladder that HAS results.
+ *
+ * The ranking universe is per platform now, and the default -- CueVerse -- is legitimately empty
+ * until a CueVerse Season completes. Every assertion below is about ordering, ranges, snapshots and
+ * rating movement, none of which an empty set can demonstrate: they would pass vacuously or fail for
+ * a reason that has nothing to do with what they test. Yahoo carries the whole archive.
+ *
+ * It goes through `defaultState` rather than round the side of it, so the platform travels the same
+ * path the page uses and the checks still exercise `aggregateFilters`.
+ */
+const archiveState = (now: Date) => ({ ...defaultState(now), platform: 'YAHOO' as const })
 const YEAR_MAX = maxYear(NOW)
 
 // ── Removed controls
@@ -101,7 +114,14 @@ section('Championship headers carry text only; the rows carry the icons')
 // ── Defaults and columns
 section('The page defaults to the whole archive with every optional column')
 {
+  /*
+   * The real default here, not the archive variant: this section is ABOUT what the page defaults to,
+   * and one of its assertions is that the default produces an empty query string. Substituting a
+   * state with an explicit platform would put `platform=yahoo` in that string and quietly turn the
+   * check into a tautology about the substitute.
+   */
   const d = defaultState(NOW)
+  check('the default platform is CueVerse', d.platform === 'CUEVERSE')
   check('starts at the first archived year', d.fromYear === MIN_YEAR)
   check('...and runs to the current year', d.toYear === YEAR_MAX)
   check('no competition filter', d.competitionSeriesId === null)
@@ -148,7 +168,7 @@ section('The page defaults to the whole archive with every optional column')
 
 section('Permanent columns cannot be hidden; optional ones can')
 {
-  const hidden = { ...defaultState(NOW), visibleColumns: [] }
+  const hidden = { ...archiveState(NOW), visibleColumns: [] }
   const keys = visibleColumnKeys(hidden)
   check('hiding every optional column still leaves the three permanent ones',
     keys.join(',') === 'rank,player,rating', keys.join(','))
@@ -157,7 +177,7 @@ section('Permanent columns cannot be hidden; optional ones can')
   check('no permanent column appears in the optional list',
     !PERMANENT_COLUMN_KEYS.some((k) => (OPTIONAL_COLUMN_KEYS as readonly string[]).includes(k)))
 
-  const some = { ...defaultState(NOW), visibleColumns: ['record', 'seasonTitles'] }
+  const some = { ...archiveState(NOW), visibleColumns: ['record', 'seasonTitles'] }
   check('an optional subset renders in canonical order, not the order chosen',
     visibleColumnKeys(some).join(',') === 'rank,player,rating,record,seasonTitles')
 }
@@ -189,7 +209,7 @@ section('The year range is clamped, never rejected')
 section('Every applied filter survives a URL round trip')
 {
   const configured = {
-    ...defaultState(NOW),
+    ...archiveState(NOW),
     fromYear: 2008, toYear: 2012,
     competitionSeriesId: 7,
     eventType: 'seasons' as const,
@@ -197,7 +217,7 @@ section('Every applied filter survives a URL round trip')
     visibleColumns: ['record', 'matchWinPct'],
     sort: [{ key: 'rating', dir: 'asc' as const }],
     rowFilters: {
-      ...defaultState(NOW).rowFilters,
+      ...archiveState(NOW).rowFilters,
       search: 'cam', minMatches: 10, activeOnly: true,
       entrantType: 'singles' as const, seasonChampionsOnly: true, cupChampionsOnly: true,
     },
@@ -221,7 +241,7 @@ section('Every applied filter survives a URL round trip')
     encodeRankingsState(round, NOW) === encodeRankingsState(configured, NOW))
 
   // Hiding every optional column is a real choice, not an absent parameter.
-  const none = { ...defaultState(NOW), visibleColumns: [] }
+  const none = { ...archiveState(NOW), visibleColumns: [] }
   check('an empty column set is written explicitly', encodeRankingsState(none, NOW).includes('cols='))
   check('...and read back as empty', decodeRankingsState(encodeRankingsState(none, NOW), NOW).visibleColumns.length === 0)
 }
@@ -249,7 +269,7 @@ section('Malformed and obsolete query strings degrade instead of throwing')
   // Bookmarks made before the redesign must still open a working page.
   const legacy = 'scope=current&view=playoff&mode=TC&density=full&preset=all-time-champions&compare=a,b&pins=x&era=golden&year=2011'
   let survived = true
-  let old = defaultState(NOW)
+  let old = archiveState(NOW)
   try { old = decodeRankingsState(legacy, NOW) } catch { survived = false }
   check('an old bookmark full of removed parameters still parses', survived)
   check('...and lands on the default table', encodeRankingsState(old, NOW) === '')
@@ -261,7 +281,7 @@ section('Malformed and obsolete query strings degrade instead of throwing')
 // ── Chips
 section('Applied filters appear as chips; defaults do not')
 {
-  const d = defaultState(NOW)
+  const d = archiveState(NOW)
   check('the default table has no chips', activeChips(d, {}, NOW).length === 0)
   check('...and nothing to clear', !hasAnyFilter(d, NOW))
 
@@ -308,7 +328,7 @@ section('Applied filters appear as chips; defaults do not')
 
 section('The More Filters badge counts groups, not individual choices')
 {
-  const d = defaultState(NOW)
+  const d = archiveState(NOW)
   check('no filters, no badge', activeFilterGroups(d, NOW).length === 0)
   check('one filter, one group', activeFilterGroups({ ...d, division: 'B' }, NOW).length === 1)
 
@@ -398,7 +418,7 @@ section('Both achievement boxes mean BOTH')
   } as never)
 
   const rows = [row(1, 1), row(1, 0), row(0, 1), row(0, 0)]
-  const base = defaultState(NOW).rowFilters
+  const base = archiveState(NOW).rowFilters
 
   check('neither box shows everyone', filterRows(rows, base).length === 4)
   check('Season Champions alone shows both Season winners',
@@ -443,7 +463,7 @@ section('The drawer is a real dialog that discards unapplied work')
 // ── The real database
 async function main() {
   section('The default table is the official all-time overall ranking')
-  const all = await computeExplorer('all-time', 'overall', aggregateFilters(defaultState(NOW), NOW))
+  const all = await computeExplorer('all-time', 'overall', aggregateFilters(archiveState(NOW), NOW))
   check('it returns players', all.length > 0, String(all.length))
   check('ranks start at 1', all[0]?.rank === 1)
   check('ranks ascend without gaps in order', all.every((r, i) => i === 0 || r.rank >= all[i - 1].rank))
@@ -483,14 +503,14 @@ async function main() {
     const hi = available[available.length - 1]
 
     const ranged = await computeExplorer('all-time', 'overall',
-      aggregateFilters({ ...defaultState(NOW), fromYear: lo, toYear: lo }, NOW))
+      aggregateFilters({ ...archiveState(NOW), fromYear: lo, toYear: lo }, NOW))
     check('a single-year range returns players', ranged.length > 0, String(ranged.length))
     check('...with fewer or equal matches than all time',
       ranged.every((r) => (all.find((x) => x.playerId === r.playerId)?.played ?? 0) >= r.played))
 
     if (available.length > 1) {
       const wide = await computeExplorer('all-time', 'overall',
-        aggregateFilters({ ...defaultState(NOW), fromYear: lo, toYear: hi }, NOW))
+        aggregateFilters({ ...archiveState(NOW), fromYear: lo, toYear: hi }, NOW))
       check('a range covering everything matches the unfiltered table',
         wide.length === all.length, `${wide.length} vs ${all.length}`)
     }
@@ -500,9 +520,9 @@ async function main() {
     // after their last result on or before that year — not a fresh 1500, and not affected by the
     // From bound at all.
     const upTo = await computeExplorer('all-time', 'overall',
-      aggregateFilters({ ...defaultState(NOW), fromYear: MIN_YEAR, toYear: hi }, NOW))
+      aggregateFilters({ ...archiveState(NOW), fromYear: MIN_YEAR, toYear: hi }, NOW))
     const narrow = await computeExplorer('all-time', 'overall',
-      aggregateFilters({ ...defaultState(NOW), fromYear: hi, toYear: hi }, NOW))
+      aggregateFilters({ ...archiveState(NOW), fromYear: hi, toYear: hi }, NOW))
 
     const sample = narrow.filter((r) => upTo.some((x) => x.playerId === r.playerId)).slice(0, 25)
     check('there are players to compare', sample.length > 0, String(sample.length))
@@ -520,9 +540,9 @@ async function main() {
       // A snapshot must not know about results that came later.
       const early = available[Math.max(0, available.length - 2)]
       const snapshot = await computeExplorer('all-time', 'overall',
-        aggregateFilters({ ...defaultState(NOW), fromYear: MIN_YEAR, toYear: early }, NOW))
+        aggregateFilters({ ...archiveState(NOW), fromYear: MIN_YEAR, toYear: early }, NOW))
       const later = await computeExplorer('all-time', 'overall',
-        aggregateFilters({ ...defaultState(NOW), fromYear: MIN_YEAR, toYear: hi }, NOW))
+        aggregateFilters({ ...archiveState(NOW), fromYear: MIN_YEAR, toYear: hi }, NOW))
       const moved = snapshot.filter((r) => {
         const l = later.find((x) => x.playerId === r.playerId)
         return l && l.rating !== r.rating
@@ -531,16 +551,16 @@ async function main() {
         moved.length > 0 || early === hi, `${moved.length} players moved between ${early} and ${hi}`)
       check('...and the snapshot itself is stable when recomputed',
         (await computeExplorer('all-time', 'overall',
-          aggregateFilters({ ...defaultState(NOW), fromYear: MIN_YEAR, toYear: early }, NOW)))
+          aggregateFilters({ ...archiveState(NOW), fromYear: MIN_YEAR, toYear: early }, NOW)))
           .every((r, i) => r.rating === snapshot[i].rating))
     }
   }
 
   section('Event type narrows which competitions count')
   const seasonsOnly = await computeExplorer('all-time', 'overall',
-    aggregateFilters({ ...defaultState(NOW), eventType: 'seasons' }, NOW))
+    aggregateFilters({ ...archiveState(NOW), eventType: 'seasons' }, NOW))
   const cupsOnly = await computeExplorer('all-time', 'overall',
-    aggregateFilters({ ...defaultState(NOW), eventType: 'cups' }, NOW))
+    aggregateFilters({ ...archiveState(NOW), eventType: 'cups' }, NOW))
   check('Seasons-only returns rows', seasonsOnly.length > 0, String(seasonsOnly.length))
   check('Seasons-only counts no Cup matches', seasonsOnly.every((r) => r.tournamentRecord == null || true))
   check('the two together account for no more than the whole',
@@ -548,7 +568,7 @@ async function main() {
 
   section('CSV exports exactly the applied view')
   const state = {
-    ...defaultState(NOW),
+    ...archiveState(NOW),
     fromYear: available[0] ?? MIN_YEAR,
     toYear: available[0] ?? MIN_YEAR,
     visibleColumns: ['record', 'matchWinPct'],
@@ -600,7 +620,7 @@ async function main() {
   check('the filename distinguishes a filtered range from all time',
     name.includes(String(state.fromYear)) && !name.includes('all-time'), name)
   check('an all-time export says so',
-    csvFilename(defaultState(NOW), '2026-08-19').includes('all-time'))
+    csvFilename(archiveState(NOW), '2026-08-19').includes('all-time'))
 }
 
 let exitCode = 0

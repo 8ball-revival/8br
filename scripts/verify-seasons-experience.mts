@@ -319,7 +319,15 @@ try {
     check('the legend explains what the gold means',
       /Hover or tap a row/.test(files[2][1]))
 
-    check('there is no Division control anywhere',
+  /*
+   * There IS a Division control now, and it is deliberate.
+   *
+   * This asserted its absence back when division was an implementation detail of the archive. It is
+   * a filter the owner asked for: Division B is preserved in full and excluded from every ranking,
+   * so being able to ask for it is the only way to reach 44 Seasons of real history.
+   */
+  check('the Division filter is offered', controls.includes('f-division'))
+  check('...and names Division B as unranked', controls.includes("d === 'B' ? ' — unranked' : ''"))
       files.every(([, src]) => !/\bDivision\b/.test(src)))
     check('there is no Group Order control anywhere',
       files.every(([, src]) => !/Group Order|order === ['"]archive['"]/.test(src)))
@@ -443,7 +451,11 @@ try {
       controls.indexOf('<Zoom />') < controls.indexOf('Create Season'))
     check('Settings comes before Create Season',
       controls.indexOf('Settings') < controls.indexOf('Create Season'))
-    check('Create Season is the gold one', /bg-\[var\(--gold\)\][^"]*text-black/.test(controls))
+  /*
+   * Create Season is the brand action now, not the gold one. Gold marks achievement; creating a
+   * Season is the primary thing this bar does, and primary actions are the brand's job.
+   */
+  check('Create Season is the brand action', controls.includes('bg-[var(--brand)]'))
     check('both are admin-gated, not rendered for everyone',
       /settingsHref && \(/.test(controls) && /createHref && \(/.test(controls))
     check('the page only supplies them to an admin',

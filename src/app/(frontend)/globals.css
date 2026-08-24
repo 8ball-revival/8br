@@ -36,8 +36,19 @@
   --c-surface: #090A0D;       /* first elevation */
   --c-elevated: #0F1115;      /* cards, tables, nav, inputs, menus, dialogs */
   --c-raised: #15181E;        /* hover and selected */
-  --c-border: #292D35;        /* ordinary edges */
-  --c-border-strong: #414752; /* edges that need to be seen */
+  /*
+   * ── Why the ordinary border is void black ──────────────────────────────────────────────────────
+   * The canvas dropped from a near-black charcoal to true void, and the border did not move with it.
+   * A #292D35 hairline that read as a quiet edge against #262629 reads as a bright white line
+   * against #030304 -- the contrast between them roughly tripled without anybody changing the
+   * border. Every panel looked outlined.
+   *
+   * A separator on a dark interface does not have to be lighter than what it separates. Void against
+   * an elevated #0F1115 card reads as a seam, which is what an edge between two surfaces should be.
+   */
+  --c-border: #030304;        /* ordinary edges — a seam, not a highlight */
+  --c-border-input: #1A1E25;  /* form controls, which have to be findable before they are pretty */
+  --c-border-strong: #414752; /* edges that genuinely need to be seen */
   --c-text: #F5F7FA;          /* primary reading colour */
   --c-text-2: #A0A7B2;        /* secondary */
   --c-text-3: #737B87;        /* muted */
@@ -51,6 +62,13 @@
   --c-gold: #F2C14E;
   --c-gold-bright: #FFD76A;
   --c-gold-dim: #B98F2E;
+  /*
+   * Gold as INK on a light background, which is a different problem from gold as a light on a dark
+   * one. The dark theme's dim gold sat at L 0.673 against a near-white canvas: only 2.91:1, under
+   * AA, and brighter than the top rating band it is supposed to sit beneath. This is 4.72:1 and
+   * darker than that band, so the hierarchy reads the same way in both themes.
+   */
+  --c-gold-ink: #8F6C1F;
 
   /* Light-theme neutrals, kept beside the dark ones so the two can be compared at a glance. */
   --c-l-canvas: #FBFCFD;
@@ -108,7 +126,7 @@
   --warning: oklch(0.8 0.13 84);
 
   --border: var(--c-border);
-  --input: var(--c-border);
+  --input: var(--c-border-input);
   --ring: var(--c-brand); /* gold focus ring */
 
   /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
@@ -142,9 +160,9 @@
 
   /* Navigation surface (header/footer). Own tokens so a personal theme can retint the nav
      without disturbing the page; the 8br.gg default keeps it level with the page ground. */
-  --nav-bg: oklch(0.165 0.006 265);
-  --nav-foreground: oklch(0.96 0.004 260);
-  --nav-border: oklch(0.28 0.007 265);
+  --nav-bg: var(--c-surface);
+  --nav-foreground: var(--c-text);
+  --nav-border: var(--c-border);
 
   /* Brand accents (emphasis, headings, active states) — gold, matching --primary. */
   --brand: var(--c-brand);
@@ -207,7 +225,7 @@
 
   --gold: var(--c-gold);
   --gold-soft: var(--c-gold-bright);
-  --gold-dim: var(--c-gold-dim);
+  --gold-dim: var(--c-gold-ink);
 
   /*
    * Semantic surfaces — the reason nothing here is a tinted gold.
@@ -294,9 +312,9 @@
   --bracket-focus: var(--ring);
   --bracket-review: var(--warning);
 
-  --nav-bg: oklch(0.99 0.003 260);
-  --nav-foreground: oklch(0.2 0.006 265);
-  --nav-border: oklch(0.9 0.004 260);
+  --nav-bg: var(--c-l-surface);
+  --nav-foreground: var(--c-l-text);
+  --nav-border: var(--c-l-border);
 
   --brand: var(--c-brand-dim);
   --brand-hover: var(--c-brand);
@@ -331,7 +349,7 @@
   --scrollbar-thumb: oklch(0.9 0.004 260);
   --scrollbar-thumb-hover: var(--gold);
 
-  --gold: var(--c-gold-dim);
+  --gold: var(--c-gold-ink);
   --gold-soft: var(--c-gold);
   --gold-dim: var(--c-gold-dim);
 

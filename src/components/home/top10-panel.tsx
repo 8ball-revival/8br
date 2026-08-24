@@ -41,7 +41,9 @@ const STORAGE_KEY = '8br.top10.mode'
  * accent colours to rank them costs the page more than it tells the reader.
  */
 function rankBadge(rank: number): string {
-  if (rank === 1) return 'bg-[color-mix(in_oklch,var(--gold)_14%,transparent)] text-[var(--gold)]'
+  // Neutral surface, gold ink. A translucent gold FILL over a dark surface is the exact mud this
+  // theme exists to remove -- it mixes to olive -- so the gold lives on the numeral, not behind it.
+  if (rank === 1) return 'bg-muted text-[var(--gold)]'
   if (rank === 2 || rank === 3) return 'bg-muted text-foreground'
   return 'bg-muted text-muted-foreground'
 }

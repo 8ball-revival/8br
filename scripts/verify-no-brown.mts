@@ -97,8 +97,15 @@ try {
   check(`gold is still used on borders (${goldBorders.length} files)`, goldBorders.length > 0)
   const goldText = hits(/text-\[var\(--gold\)\]/)
   check(`...and on text (${goldText.length} files)`, goldText.length > 0)
+  /*
+   * Focus rings moved to the brand, and this assertion moved with the contract rather than being
+   * deleted. A focus ring is interaction, and interaction is neon red now; gold means somebody won
+   * something. So the check is inverted: gold must NOT be a focus ring, and the brand must be.
+   */
   const goldRing = hits(/ring-\[var\(--gold\)\]/)
-  check(`...and on focus rings (${goldRing.length} files)`, goldRing.length > 0)
+  check('gold is no longer a focus ring', goldRing.length === 0, goldRing.join(', '))
+  const brandRing = hits(/ring-\[var\(--brand\)\]/)
+  check(`the brand is (${brandRing.length} files)`, brandRing.length > 0)
 
   section('Red keeps its meaning')
   /*

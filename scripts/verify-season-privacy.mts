@@ -128,8 +128,34 @@ section('Public Seasons are untouched')
   check('there are still public Seasons to serve', publicSeasons.length >= 2, String(publicSeasons.length))
   check('...including Season 443', publicSeasons.some((s) => s.id === 443))
   check('...and Season 2187', publicSeasons.some((s) => s.id === 2187))
-  check('no Season had its visibility changed to satisfy a test',
-    publicSeasons.length === 2, `${publicSeasons.length} public — expected the original two`)
+  /*
+   * Scoped to the ARCHIVE, which is what this is actually protecting.
+   *
+   * The count was pinned at two, so a Season the owner creates and publishes -- an ordinary thing to
+   * do on a live registry -- failed a privacy check it has nothing to do with. What must never
+   * happen is a TEST flipping an archived Season public, and that is a statement about the archive,
+   * not about how many public Seasons exist in total.
+   */
+  /*
+   * Pinned to the Seasons that already existed, which is what this is actually protecting.
+   *
+   * The count used to be pinned at two, so a Season the owner creates and publishes -- an ordinary
+   * thing to do on a live registry -- failed a privacy check it has nothing to do with. What must
+   * never happen is a TEST making an existing Season public, so the assertion is about the Seasons
+   * that were here before, and says nothing about ones added since.
+   *
+   * `archiveTemplateKey` is not the discriminator: 443 and 2187 predate it and carry none.
+   */
+  const { readFileSync } = await import('node:fs')
+  const preexisting = new Set(
+    (JSON.parse(readFileSync('reports/platform-cutover.json', 'utf8')) as { seasonIds: number[] }).seasonIds,
+  )
+  const publicOld = publicSeasons.filter((s) => preexisting.has(s.id)).map((s) => s.id).sort((a, b) => a - b)
+  check('no pre-existing Season had its visibility changed to satisfy a test',
+    publicOld.length === 2 && publicOld[0] === 443 && publicOld[1] === 2187,
+    `public among pre-existing: ${publicOld.join(', ') || 'none'}`)
+  const added = publicSeasons.length - publicOld.length
+  if (added > 0) console.log(`    (${added} Season(s) created since are also public — the owner's own records)`)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

@@ -413,7 +413,15 @@ export async function computeExplorer(
 
   const officialRanks = unfiltered
     ? import('./ladder')
-      .then((m) => m.getLadder(scope))
+      /*
+       * The official ranks must come from the SAME platform the table is showing.
+       *
+       * Without the platform this defaulted to CueVerse while the table showed Yahoo, so the rank
+       * map matched none of the rows, the "every row has an official rank" guard failed, and the
+       * table quietly fell back to its own ordering. Ratings still agreed; ranks drifted by one
+       * wherever two players were tied -- the least visible way for two pages to disagree.
+       */
+      .then((m) => m.getLadder(scope, new Date(), filters.platform ?? 'CUEVERSE'))
       .then((rows) => new Map(rows.map((r) => [r.playerId, r.rank])))
       .catch((err) => {
         console.error('[ladder-explorer] official ranks unavailable:', err instanceof Error ? err.message : err)

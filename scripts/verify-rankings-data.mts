@@ -393,7 +393,15 @@ try {
     // way for a reader to tell which is the real one. This is the check that stops that.
     const { getLadder } = await import('../src/lib/stats/ladder.ts')
     for (const scope of ['current', 'all-time'] as const) {
-      const explorer = await computeExplorer(scope, 'overall')
+      /*
+       * Both sides are asked for the SAME platform, and it is the one that has results.
+       *
+       * The ladder is per platform now, and the default -- CueVerse -- is legitimately empty until a
+       * CueVerse Season completes. Comparing an empty ladder against a table proves nothing, so the
+       * check would have passed vacuously or failed for the wrong reason. Yahoo carries the archive,
+       * so that is where the figures can actually be made to disagree.
+       */
+      const explorer = await computeExplorer(scope, 'overall', { platform: 'YAHOO' })
       const byId = new Map(explorer.map((r) => [r.playerId, r]))
 
       /*
@@ -407,8 +415,9 @@ try {
        * What must never differ is the FIGURES for anybody who appears in both — that is what stops
        * the site showing one player two ratings on two pages.
        */
-      const official = (await getLadder(scope)).filter((o) => byId.has(o.playerId))
-      const unplayed = (await getLadder(scope)).length - official.length
+      const ladder = await getLadder(scope, new Date(), 'YAHOO')
+      const official = ladder.filter((o) => byId.has(o.playerId))
+      const unplayed = ladder.length - official.length
       if (unplayed > 0) console.log(`  (${unplayed} member(s) with no recorded matches are on the ladder but not the table)`)
       check(`${scope}: there are ranked players in both`, official.length > 0, String(official.length))
       const disagreed = official.filter((o) => {
