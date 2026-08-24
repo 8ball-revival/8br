@@ -1,3 +1,4 @@
+import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { resolveIdentity } from '@/lib/stats/identity'
@@ -31,6 +32,8 @@ export interface TournamentListItem {
    * competition, and the column that holds it is `competitionYear`.
    */
   year: number | null
+  /** Which platform it was played on — Yahoo history, or CueVerse present. */
+  platform: CompetitionPlatform
   date: string | null
   status: string // "completed" | "live"
   gameType: string | null
@@ -94,6 +97,7 @@ export async function getTournamentList(): Promise<TournamentListItem[]> {
       name: c.name,
       competitionName: c.competitionSeries?.name ?? null,
       year,
+      platform: c.platform,
       date: null,
       status: c.lifecycleState === 'COMPLETED' || c.status === 'COMPLETED' ? 'completed' : 'live',
       gameType: c.gameType,

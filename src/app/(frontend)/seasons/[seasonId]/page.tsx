@@ -174,6 +174,9 @@ export default async function SeasonPage({
           subtitle={view.subtitle}
           state={state}
           glance={glance}
+          platform={view.platform}
+          division={view.division}
+          ranked={view.ranked}
           playoffsHref={playoffsHref}
           champion={
             // A champion is shown ONLY for a closed Season with a recorded winner. Anything earlier

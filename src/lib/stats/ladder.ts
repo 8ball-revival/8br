@@ -1,3 +1,4 @@
+import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { ELO_START, ELO_K, expectedScore } from './elo'
@@ -346,14 +347,22 @@ async function canonicalizeByPlayer<T>(m: Map<string, T[]>): Promise<Map<string,
   return out
 }
 
-async function loadRows(): Promise<Row[]> {
-  const rows = (await prisma.ratingLedger.findMany({ orderBy: { sequence: 'asc' } })) as unknown as Row[]
+async function loadRows(platform: CompetitionPlatform = 'CUEVERSE'): Promise<Row[]> {
+  const rows = (await prisma.ratingLedger.findMany({ where: { platform }, orderBy: { sequence: 'asc' } })) as unknown as Row[]
   return canonicalizeRows(rows)
 }
 
 /** The ranked ladder for a view, sorted by Rating → Tournament Wins → Win% → Wins → Name. */
-export async function getLadder(view: LadderView, now: Date = new Date()): Promise<LadderRow[]> {
-  const rows = await loadRows()
+export async function getLadder(
+  view: LadderView,
+  now: Date = new Date(),
+  /**
+   * Which ladder. CueVerse by default, which is what makes the homepage and every unqualified call
+   * site current rather than historical — an all-platforms ladder is not a thing that exists.
+   */
+  platform: CompetitionPlatform = 'CUEVERSE',
+): Promise<LadderRow[]> {
+  const rows = await loadRows(platform)
   if (rows.length === 0) return []
   const cutoff = new Date(now.getTime() - WINDOW_DAYS * DAY_MS)
   const stats = view === 'current' ? computeCurrent(rows, cutoff) : computeAllTime(rows)
@@ -469,7 +478,17 @@ async function scoresForKeys(keys: string[]): Promise<Map<string, [number, numbe
 }
 
 /** Full competitive profile for one player (resolved by Player.id or CueVerse ID). */
-export async function getPlayerProfile(param: string, now: Date = new Date()): Promise<PlayerProfile | null> {
+export async function getPlayerProfile(
+  param: string,
+  now: Date = new Date(),
+  /**
+   * Which career is being read.
+   *
+   * A player has one identity and two records. Reading them together would produce a rating that is
+   * neither — so the profile asks for one platform at a time, and the page offers both.
+   */
+  platform: CompetitionPlatform = 'CUEVERSE',
+): Promise<PlayerProfile | null> {
   const player = await prisma.player.findFirst({
     where: { OR: [{ id: param }, { cueverseId: { equals: param, mode: 'insensitive' } }] },
     select: { id: true, primaryName: true, cueverseId: true },
@@ -481,7 +500,7 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
   const { expandCanonicalPlayerIds } = await import('@/lib/players/merge')
   const playerIds = await expandCanonicalPlayerIds(player.id)
 
-  const rows = (await prisma.ratingLedger.findMany({ where: { playerId: { in: playerIds } }, orderBy: { sequence: 'asc' } })) as unknown as Row[]
+  const rows = (await prisma.ratingLedger.findMany({ where: { playerId: { in: playerIds }, platform }, orderBy: { sequence: 'asc' } })) as unknown as Row[]
   const [allTimeLadder, currentLadder] = await Promise.all([getLadder('all-time', now), getLadder('current', now)])
   const allTime = allTimeLadder.find((r) => playerIds.includes(r.playerId)) ?? null
   const current = currentLadder.find((r) => playerIds.includes(r.playerId)) ?? null
@@ -539,4 +558,55 @@ export async function getPlayerProfile(param: string, now: Date = new Date()): P
     bestFinish: tournamentsOut.some((t) => t.wonTournament) ? 'Champion' : (tournamentsOut.length ? '—' : null),
     tournaments: tournamentsOut, matches,
   }
+}
+
+
+/**
+ * The history that ranks nothing.
+ *
+ * Division B is recorded in full — entrants, groups, matches, playoffs, champions — and reaches no
+ * ladder, so none of it appears in a ledger and none of it can be read from one. It is queried from
+ * the Season records themselves, and shown under its own heading so it is never mistaken for a
+ * contribution to a rating.
+ */
+export interface UnrankedHistoryRow {
+  seasonId: number
+  competitionYear: number
+  number: number
+  division: string | null
+  lifecycleState: string
+  isChampion: boolean
+}
+
+export async function getUnrankedHistory(playerParam: string): Promise<UnrankedHistoryRow[]> {
+  const player = await prisma.player.findFirst({
+    where: { OR: [{ id: playerParam }, { cueverseId: { equals: playerParam, mode: 'insensitive' } }] },
+    select: { id: true, cueverseId: true },
+  })
+  if (!player) return []
+  const { expandCanonicalPlayerIds } = await import('@/lib/players/merge')
+  const ids = await expandCanonicalPlayerIds(player.id)
+
+  const entries = await prisma.seasonEntrant.findMany({
+    where: { playerId: { in: ids }, season: { countsTowardRankings: false } },
+    select: {
+      season: {
+        select: {
+          id: true, competitionYear: true, number: true, division: true,
+          lifecycleState: true, championName: true,
+        },
+      },
+    },
+    orderBy: { season: { competitionYear: 'desc' } },
+  })
+
+  return entries.map((e) => ({
+    seasonId: e.season.id,
+    competitionYear: e.season.competitionYear,
+    number: e.season.number,
+    division: e.season.division,
+    lifecycleState: String(e.season.lifecycleState),
+    // Compared on the stored champion label; an unranked Season still has a champion worth showing.
+    isChampion: !!e.season.championName && e.season.championName === player.cueverseId,
+  }))
 }

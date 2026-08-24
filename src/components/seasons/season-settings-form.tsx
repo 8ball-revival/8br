@@ -31,6 +31,16 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
 
   const [competitionYear, setCompetitionYear] = useState(String(view.year))
   const [competitionSeriesId, setCompetitionSeriesId] = useState<number | null>(view.competition.id)
+  /*
+   * Classification, correctable after the fact.
+   *
+   * These three decide whether and where a Season contributes to a ladder, so changing any of them
+   * on a Season that already has results means the ratings are recalculated — which is confirmed
+   * before it happens rather than discovered afterwards.
+   */
+  const [platform, setPlatform] = useState<'CUEVERSE' | 'YAHOO'>(view.platform)
+  const [ranked, setRanked] = useState<boolean>(view.ranked)
+  const classificationChanged = platform !== view.platform || ranked !== view.ranked
   const [subtitle, setSubtitle] = useState(view.subtitle ?? '')
   // Display identity only. Editable at any point in the lifecycle, a finished Season included —
   // renumbering changes a label, never a result.
@@ -50,6 +60,20 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
     `${competitionName} Season ${seasonNumber.trim() === '' ? '—' : seasonNumber.trim()} · ${competitionYear}`
 
   const save = async () => {
+    if (classificationChanged && completed) {
+      const res = await confirm({
+        title: 'Recalculate the rankings?',
+        message:
+          platform !== view.platform
+            ? `This Season moves from ${view.platform === 'YAHOO' ? 'Yahoo' : 'CueVerse'} to ${platform === 'YAHOO' ? 'Yahoo' : 'CueVerse'}. Its results leave one ladder and join the other, and both are replayed from scratch — every rating, rank and streak on the affected platform will change.`
+            : ranked
+              ? 'This Season starts counting toward the rankings. Its results are applied once and the ladder is replayed.'
+              : 'This Season stops counting toward the rankings. Its contribution is withdrawn and the ladder is replayed.',
+        confirmLabel: 'Recalculate',
+        tone: 'warning',
+      })
+      if (!res.confirmed) return
+    }
     if (formatWarn) {
       const res = await confirm({ title: 'Change the match format?', message: 'The group stage is already live. Changing the match format now affects the displayed labels for matches still to be played.', confirmLabel: 'Change Format', tone: 'warning' })
       if (!res.confirmed) return
@@ -58,6 +82,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
       const r = await updateSeasonSettingsAction(seasonId, {
         competitionYear: Number(competitionYear), competitionSeriesId,
         number: Number(seasonNumber),
+        platform, countsTowardRankings: ranked,
         subtitle, description, ...(completed ? {} : { lounge }),
         ...(regEditable ? { accessMode: access as 'OPEN' | 'PASSWORD', joinPassword: access === 'PASSWORD' ? joinPassword : null } : {}),
         ...(formatEditable ? { groupStageGames: fmt.groupStageGames, earlyRaceTo: fmt.earlyRaceTo, semifinalRaceTo: fmt.semifinalRaceTo, finalRaceTo: fmt.finalRaceTo } : {}),
@@ -89,8 +114,21 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
         <Field label="Competition Year">
           <input type="number" inputMode="numeric" value={competitionYear} onChange={(e) => setCompetitionYear(e.target.value)} min={COMPETITION_YEAR_MIN} max={COMPETITION_YEAR_MAX} step={1} className={input} />
         </Field>
+        <Field label="Platform">
+          <select value={platform} onChange={(e) => setPlatform(e.target.value as 'CUEVERSE' | 'YAHOO')} className={input}>
+            <option value="CUEVERSE">CueVerse</option>
+            <option value="YAHOO">Yahoo</option>
+          </select>
+        </Field>
         <Field label="Competition">
           <CompetitionSelect competitions={competitions} value={competitionSeriesId} onChange={(id) => setCompetitionSeriesId(id)} inputClassName={input} />
+        </Field>
+        <Field label="Counts toward rankings">
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input type="checkbox" checked={ranked} onChange={(e) => setRanked(e.target.checked)} />
+            {/* Division B is the standing case: recorded in full, ranks nothing. */}
+            Contributes to the {platform === 'YAHOO' ? 'Yahoo' : 'CueVerse'} ladder
+          </label>
         </Field>
         <Field label="Season Number">
           <input

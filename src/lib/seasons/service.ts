@@ -46,6 +46,14 @@ export interface CreateSeasonConfig {
   competitionYear?: number | string | null
   /** Owning Competition (CompetitionSeries id). REQUIRED — there is no 'Unassigned' Competition. */
   competitionSeriesId?: number | string | null
+  /**
+   * Which platform this Season is played on. Omitted means CueVerse.
+   *
+   * Yahoo is selectable so a Season missed by the archive import can be filed where it belongs, but
+   * a new Season is a CueVerse Season unless somebody says otherwise — the default is the common
+   * case, and the uncommon one has to be chosen deliberately.
+   */
+  platform?: 'CUEVERSE' | 'YAHOO' | null
   /** Season number, unique within this Competition and year. Omitted = the next one going spare. */
   number?: number | string | null
   subtitle?: string | null
@@ -128,6 +136,8 @@ export async function createSeason(
         number,
         competitionYear: year,
         competitionSeriesId: seriesId,
+        // CueVerse unless the creator explicitly filed it as Yahoo history.
+        platform: cfg.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE',
         // The slug carries the Competition too: with per-Competition numbering, "season-1-2026"
         // alone would collide the moment a second Competition ran its own Season 1 that year.
         division,
@@ -148,7 +158,7 @@ export async function createSeason(
         finalRaceTo: clampRace(cfg.finalRaceTo, 9),
       },
     })
-    await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: { number, year, competitionSeriesId: seriesId, title: seasonOfficialTitle(seriesName, number, year) } }, tx)
+    await recordAudit(actor, { action: 'season.create', entity: 'Season', entityId: season.id, newValue: { number, year, competitionSeriesId: seriesId, platform: cfg.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE', title: seasonOfficialTitle(seriesName, number, year) } }, tx)
     return season
   })
   } catch (e) {
@@ -460,6 +470,22 @@ export interface SeasonSettingsPatch {
   /** Season number — a display label, editable at any point including after the Season closes. */
   number?: number | string | null
   /**
+   * Which platform this Season belongs to, correctable after the fact.
+   *
+   * Moving a Season between platforms moves its whole ranking contribution: it must leave the ladder
+   * it was on and join the other one exactly once. That is why the correction ends in a full ledger
+   * rebuild rather than an adjustment — the rebuild replays from whatever is eligible right now, so
+   * withdrawal and reapplication are the same operation and repeated corrections cannot drift.
+   */
+  platform?: 'CUEVERSE' | 'YAHOO' | null
+  /**
+   * Whether this Season contributes to a ladder at all.
+   *
+   * Turning it off withdraws the contribution; turning it on applies it once. Same mechanism, same
+   * guarantee — the rebuild is the only thing that ever writes ratings.
+   */
+  countsTowardRankings?: boolean | null
+  /**
    * Division code. Identity metadata, editable at any point including after the Season closes.
    *
    * Correcting which division a finished Season belonged to changes no result, no champion and no
@@ -554,6 +580,12 @@ export async function updateSeasonSettings(
     if (!d.ok) return { ok: false, error: d.error }
     data.division = d.value
   }
+  if (patch.platform !== undefined && patch.platform !== null) {
+    data.platform = patch.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
+  }
+  if (patch.countsTowardRankings !== undefined && patch.countsTowardRankings !== null) {
+    data.countsTowardRankings = !!patch.countsTowardRankings
+  }
   if (patch.subtitle !== undefined) data.subtitle = patch.subtitle?.trim() || null
   if (patch.description !== undefined) data.description = patch.description?.trim() || null
   if (patch.bannerMediaId !== undefined) data.bannerMediaId = patch.bannerMediaId?.trim() || null
@@ -593,6 +625,19 @@ export async function updateSeasonSettings(
     throw e
   }
   await recordAudit(actor, { action: 'season.settings.update', entity: 'Season', entityId: seasonId, newValue: { fields: Object.keys(data) } })
+
+  /*
+   * A classification change is a ranking change, so the ladder is replayed once.
+   *
+   * Only when platform or eligibility actually moved — renaming a Season must not cost a rebuild.
+   * The rebuild is deliberately whole rather than incremental: it deletes and replays from whatever
+   * is eligible at this moment, which is what makes withdrawing and reapplying the same operation
+   * and what stops a correction cycle leaving a duplicate ledger row or a second championship behind.
+   */
+  if (data.platform !== undefined || data.countsTowardRankings !== undefined) {
+    const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
+    await prisma.$transaction(async (tx) => { await rebuildRatingLedger(tx) }, { timeout: 900_000 })
+  }
   return { ok: true }
 }
 

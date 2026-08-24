@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
+import { PlatformBadge } from '@/components/platform/platform-badge'
 import Link from 'next/link'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
@@ -23,6 +24,16 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
   const pathname = usePathname()
   const sp = useSearchParams()
 
+  /*
+   * The platform is a scope, not a filter, so it has no "all" value.
+   *
+   * A Yahoo Tournament and a CueVerse one are different eras; listing them together would put them
+   * in one ordering as though they ran consecutively, and the counts above the list would describe
+   * a history nobody had. CueVerse unless the URL says otherwise.
+   */
+  const [platform, setPlatform] = useState<'CUEVERSE' | 'YAHOO'>(
+    sp.get('platform')?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE',
+  )
   const [q, setQ] = useState(sp.get('q') ?? '')
   const [status, setStatus] = useState(sp.get('status') ?? 'all')
   const [pformat, setPformat] = useState(sp.get('pformat') ?? 'all')
@@ -32,6 +43,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
   // Reflect state in the URL (shareable), without scrolling.
   useEffect(() => {
     const p = new URLSearchParams()
+    if (platform === 'YAHOO') p.set('platform', 'yahoo')
     if (q.trim()) p.set('q', q.trim())
     if (status !== 'all') p.set('status', status)
     if (pformat !== 'all') p.set('pformat', pformat)
@@ -39,13 +51,18 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
     if (year !== 'all') p.set('year', year)
     const qs = p.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [q, status, pformat, tformat, year, pathname, router])
+  }, [platform, q, status, pformat, tformat, year, pathname, router])
 
-  const years = useMemo(() => [...new Set(cups.map((c) => c.year).filter((y): y is number => y != null))].sort((a, b) => b - a), [cups])
+  /*
+   * Scoped FIRST, then everything else derives from the scoped set — including the year picker, so
+   * it cannot offer a year that only exists on the other platform.
+   */
+  const inPlatform = useMemo(() => cups.filter((c) => c.platform === platform), [cups, platform])
+  const years = useMemo(() => [...new Set(inPlatform.map((c) => c.year).filter((y): y is number => y != null))].sort((a, b) => b - a), [inPlatform])
   const nkq = nk(q)
 
   const matches = useMemo(() => {
-    return cups.filter((c) => {
+    return inPlatform.filter((c) => {
       if (nkq && !nk(c.searchBlob).includes(nkq)) return false
       if (status === 'active' && !isActive(c.status)) return false
       if (status === 'completed' && isActive(c.status)) return false
@@ -54,7 +71,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
       if (year !== 'all' && String(c.year) !== year) return false
       return true
     })
-  }, [cups, nkq, status, pformat, tformat, year])
+  }, [inPlatform, nkq, status, pformat, tformat, year])
 
   const active = matches.filter((c) => isActive(c.status)).sort((a, b) => (a.status === 'live' ? -1 : 1) - (b.status === 'live' ? -1 : 1) || b.number - a.number)
   const archive = matches.filter((c) => !isActive(c.status)).sort((a, b) => b.number - a.number)
@@ -75,6 +92,13 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Tournaments, players, teams, aliases, champions…" className="h-10 pl-9" />
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
+          {/* Platform leads the filters: it decides which era the rest of them are describing. */}
+          <Select
+            label="Platform"
+            value={platform}
+            onChange={(v) => setPlatform(v as 'CUEVERSE' | 'YAHOO')}
+            options={[['CUEVERSE', 'CueVerse'], ['YAHOO', 'Yahoo']]}
+          />
           <Select label="Status" value={status} onChange={setStatus} options={[['all', 'All statuses'], ['active', 'Active & Upcoming'], ['completed', 'Completed']]} />
           <Select label="Format" value={pformat} onChange={setPformat} options={[['all', 'All formats'], ['INDIVIDUAL', '1v1'], ['TEAM', 'Team']]} />
           <Select label="Structure" value={tformat} onChange={setTformat} options={[['all', 'All structures'], ...Object.entries(TFMT)]} />
@@ -92,7 +116,15 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
       <section>
         <h2 className="eyebrow mb-3 text-muted-foreground">Archive {archive.length > 0 && `· ${archive.length}`}</h2>
         {archive.length === 0 && active.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No Tournaments match your search.</p>
+          /* Never a silent fall-back to the other platform: an empty CueVerse list says it is empty
+             and names the archive, rather than showing history as though it were current. */
+          <p className="text-sm text-muted-foreground">
+            {inPlatform.length === 0
+              ? platform === 'CUEVERSE'
+                ? 'No Tournaments have been played on CueVerse yet. The Yahoo archive is under the platform filter.'
+                : 'No Yahoo Tournaments are recorded.'
+              : 'No Tournaments match your search.'}
+          </p>
         ) : (
           <ul className="space-y-2">{archive.map((c) => <Row key={c.number} c={c} rel={relFor(c)} />)}</ul>
         )}
@@ -132,6 +164,8 @@ function Row({ c, rel }: { c: TournamentListItem; rel: { display: string; relati
           {c.competitionName && <span className="text-sm text-muted-foreground">· {c.competitionName}</span>}
           {c.year && <span className="text-sm text-muted-foreground">· {c.year}</span>}
           {rel && <Badge variant="default" className="ml-1">{rel.display}: {rel.relationship}</Badge>}
+          {/* Far right, and last in the reading order: the title and Competition stay dominant. */}
+          <PlatformBadge platform={c.platform} className="ml-auto" />
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>{PFMT(c.participantFormat, c.teamSize)}</span>

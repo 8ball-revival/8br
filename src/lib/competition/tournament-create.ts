@@ -30,6 +30,8 @@ const SEEDING: SeedingMethod[] = ['rating', 'rank', 'random', 'registration']
 
 export interface CreateTournamentConfig {
   name: string
+  /** Which platform this Tournament is played on. Omitted means CueVerse. See Season.platform. */
+  platform?: 'CUEVERSE' | 'YAHOO' | null
   /** Competition Year (four-digit). Omitted = the current calendar year. */
   competitionYear?: number | string | null
   /**
@@ -183,6 +185,8 @@ export async function createTournament(
           name,
           competitionYear,
           competitionSeriesId,
+          // CueVerse unless explicitly filed as Yahoo history.
+          platform: cfg.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE',
           code,
           number: nextNumber,
           gameType: cfg.gameType ?? null,

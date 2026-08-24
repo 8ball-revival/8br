@@ -61,7 +61,12 @@ export async function computeRecentResults(limit = 3): Promise<RecentResult[]> {
   let rows: Row[] = []
   try {
     rows = await prisma.$queryRawUnsafe<Row[]>(`
-      SELECT * FROM (${LEGITIMATE_MATCHES}) lm
+      SELECT lm.* FROM (${LEGITIMATE_MATCHES}) lm
+      -- CueVerse only. The homepage is about what is happening now, and a Yahoo result presented as
+      -- a recent one would date the whole page to 2014. The archive has its own places to appear.
+      LEFT JOIN "season" sea ON sea."id" = lm.competition_id AND lm.kind = 'season'
+      LEFT JOIN "comp_tournament" tou ON tou."id" = lm.competition_id AND lm.kind = 'tournament'
+      WHERE coalesce(sea."platform", tou."platform") = 'CUEVERSE'
       -- Newest first. match_key is the tie-break so two results completed in the same instant come
       -- back in the same order every time rather than at the planner's discretion.
       ORDER BY lm.completed_at DESC, lm.match_key DESC

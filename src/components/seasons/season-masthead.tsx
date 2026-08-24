@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PlatformBadge, UnrankedBadge } from '@/components/platform/platform-badge'
 import { Trophy, Users, LayoutGrid, Swords, Target, ArrowRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -29,7 +30,14 @@ export function SeasonMasthead({
   glance,
   champion,
   playoffsHref,
+  platform,
+  division,
+  ranked,
 }: {
+  platform: 'CUEVERSE' | 'YAHOO'
+  division: string | null
+  /** False for Division B: recorded in full, contributes to no ladder. */
+  ranked: boolean
   competitionName: string
   competitionShortName: string
   number: number
@@ -60,6 +68,9 @@ export function SeasonMasthead({
           year={year}
           subtitle={subtitle}
           state={state}
+          platform={platform}
+          division={division}
+          ranked={ranked}
           entrants={glance.entrants}
           groups={glance.groups}
           playoffsHref={playoffsHref}
@@ -83,7 +94,11 @@ export function SeasonMasthead({
 
 function Identity({
   competitionShortName, number, year, subtitle, state, entrants, groups, playoffsHref,
+  platform, division, ranked,
 }: {
+  platform: 'CUEVERSE' | 'YAHOO'
+  division: string | null
+  ranked: boolean
   competitionShortName: string
   number: number
   year: number
@@ -109,6 +124,14 @@ function Identity({
         <Pill tone={state === 'COMPLETED' ? 'gold' : 'live'}>{SEASON_STATE_LABEL[state]}</Pill>
         <Pill>{entrants} entrant{entrants === 1 ? '' : 's'}</Pill>
         <Pill>{groups} group{groups === 1 ? '' : 's'}</Pill>
+        {division && <Pill>Division {division}</Pill>}
+        {/*
+          Unranked is stated rather than left to be inferred. Without it, the only clue that a
+          Division B Season ranks nothing is that its players have no rating — which reads as
+          missing data rather than as the rule it is.
+        */}
+        {!ranked && <UnrankedBadge />}
+        <PlatformBadge platform={platform} className="ml-auto" />
       </div>
 
       <Link

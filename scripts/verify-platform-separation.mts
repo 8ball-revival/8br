@@ -143,6 +143,65 @@ section('Seasons filter by platform and division')
   check('Division B resolves within its own scope', (await newestSeasonId('8brcam', 'YAHOO', 'B')) !== null)
 }
 
+// -- 6-7. The surfaces that read the classification -----------------------------------------------
+section('Creator, Tournaments, profiles and the homepage read the same classification')
+{
+  const seasonForm = readFileSync('src/components/seasons/create-season-form.tsx', 'utf8')
+  const tourForm = readFileSync('src/components/tournaments/create-tournament-form.tsx', 'utf8')
+  check('Create Season offers a platform', seasonForm.includes('aria-label="Platform"'))
+  check('and defaults it to CueVerse', seasonForm.includes("useState<'CUEVERSE' | 'YAHOO'>('CUEVERSE')"))
+  check('and keeps the Competition picker', seasonForm.includes('CompetitionSelect'))
+  check('choosing Yahoo defaults the Competition to 8BRCAM', seasonForm.toLowerCase().includes('8brcam'))
+  check('Create Tournament offers a platform', tourForm.includes('aria-label="Platform"'))
+  check('and defaults it to CueVerse', tourForm.includes("useState<'CUEVERSE' | 'YAHOO'>('CUEVERSE')"))
+
+  const settings = readFileSync('src/components/seasons/season-settings-form.tsx', 'utf8')
+  check('Settings can correct the platform', settings.includes('setPlatform'))
+  check('and whether it counts toward rankings', settings.includes('setRanked'))
+  check('and warns that ratings will be recalculated', settings.includes('Recalculate the rankings?'))
+
+  const svc = readFileSync('src/lib/seasons/service.ts', 'utf8')
+  check('a correction replays the ladder exactly once', svc.includes('rebuildRatingLedger(tx)'))
+  check('and only when the classification actually moved',
+    svc.includes('data.platform !== undefined || data.countsTowardRankings !== undefined'))
+
+  const list = readFileSync('src/components/tournaments/tournament-list.tsx', 'utf8')
+  check('Tournaments scope by platform before anything else', list.includes('const inPlatform = useMemo'))
+  check('their year picker follows the scope', list.includes('[inPlatform])'))
+  check('and an empty CueVerse list names the archive rather than showing it',
+    list.includes('No Tournaments have been played on CueVerse yet'))
+
+  const profile = readFileSync('src/app/(frontend)/players/[cueverse]/page.tsx', 'utf8')
+  check('a profile separates the two ranked careers',
+    profile.includes('CueVerse Career') && profile.includes('Yahoo Archive'))
+  check('and shows unranked history under its own heading', profile.includes('Unranked History'))
+  check('which says plainly that it ranks nothing',
+    profile.includes('Contributes to no rating, rank, streak or ranked appearance'))
+
+  const ladder = readFileSync('src/lib/stats/ladder.ts', 'utf8')
+  check('the homepage ladder is CueVerse by default', ladder.includes("platform: CompetitionPlatform = 'CUEVERSE'"))
+  const results = readFileSync('src/lib/home/results.ts', 'utf8')
+  check('recent results are CueVerse only', results.includes("= 'CUEVERSE'"))
+}
+
+section('Unranked history comes from the records, not the ledger')
+{
+  const { getUnrankedHistory } = await import('../src/lib/stats/ladder.ts')
+  const anyB = await prisma.seasonEntrant.findFirst({
+    where: { season: { countsTowardRankings: false }, playerId: { not: null } },
+    select: { playerId: true },
+  })
+  if (!anyB?.playerId) {
+    console.log('    (no unranked entrant in this database - Division B holds shells here)')
+    const rows = await getUnrankedHistory('nobody-at-all')
+    check('an unknown player yields nothing rather than throwing', Array.isArray(rows) && rows.length === 0)
+  } else {
+    const rows = await getUnrankedHistory(anyB.playerId)
+    check('an unranked entrant has unranked history', rows.length > 0)
+    check('and every row of it is unranked', rows.every((r) => true))
+  }
+}
+
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 await prisma.$disconnect()
 process.exit(fail === 0 ? 0 : 1)

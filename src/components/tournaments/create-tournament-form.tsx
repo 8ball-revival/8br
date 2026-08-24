@@ -54,6 +54,8 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
    * is one nobody reads, and the whole point of asking is that two Tournaments can share a title
    * under different Competitions — a silent default would file them together.
    */
+  /* CueVerse by default; Yahoo files the Tournament into the historical archive. */
+  const [platform, setPlatform] = useState<'CUEVERSE' | 'YAHOO'>('CUEVERSE')
   const [competitionSeriesId, setCompetitionSeriesId] = useState('')
   // Competition Year defaults to the current calendar year; the server re-validates the range.
   const [competitionYear, setCompetitionYear] = useState(String(currentCompetitionYear()))
@@ -112,6 +114,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
       name: name.trim(),
       competitionYear,
       competitionSeriesId,
+      platform,
       participantFormat: participant,
       teamSize: participant === 'TEAM' ? teamSize : null,
       teamFormation: participant === 'TEAM' ? teamFormation : undefined,
@@ -237,6 +240,37 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
           <div className="mt-4 space-y-4">
             <Labeled label="Tournament name" hint="required">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 8BR Winter Open" maxLength={80} className={input} />
+            </Labeled>
+            {/* Before Competition, because it decides which one is the sensible default. Secondary
+                by design: a Tournament is identified by its name and its Competition. */}
+            <Labeled label="Platform" hint="required">
+              <div role="group" aria-label="Platform" className="inline-flex overflow-hidden rounded-md border border-input">
+                {(['CUEVERSE', 'YAHOO'] as const).map((pf) => (
+                  <button
+                    key={pf}
+                    type="button"
+                    aria-pressed={platform === pf}
+                    onClick={() => {
+                      setPlatform(pf)
+                      if (pf === 'YAHOO') {
+                        /* Matched on the stored short name: this choice type carries no slug, and
+                           8BRCAM is the Competition every Yahoo record belongs to. */
+                        const canonical = competitions.find((c) => c.shortName.toUpperCase() === '8BRCAM')
+                        if (canonical) setCompetitionSeriesId(String(canonical.id))
+                      }
+                    }}
+                    className={
+                      'px-3 py-1.5 text-sm transition-colors '
+                      + (platform === pf ? 'bg-[var(--gold)] font-semibold text-black' : 'text-muted-foreground hover:text-foreground')
+                    }
+                  >
+                    {pf === 'CUEVERSE' ? 'CueVerse' : 'Yahoo'}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                New Tournaments are CueVerse. Yahoo files one into the historical archive.
+              </p>
             </Labeled>
             <Labeled label="Competition" hint="required">
               <select

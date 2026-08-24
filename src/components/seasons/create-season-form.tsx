@@ -23,6 +23,15 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  /*
+   * Platform, chosen first and defaulted to CueVerse.
+   *
+   * A new Season is a CueVerse Season nearly every time; Yahoo exists so a record the archive import
+   * missed can be filed where it belongs. Choosing Yahoo defaults the Competition to 8BRCAM, because
+   * that is where every Yahoo record lives — it is still a normal Competition picker afterwards,
+   * since a future CueVerse Season may belong to several.
+   */
+  const [platform, setPlatform] = useState<'CUEVERSE' | 'YAHOO'>('CUEVERSE')
   const [subtitle, setSubtitle] = useState('')
   // Competition Year defaults to the current calendar year; the server re-validates the range.
   const [competitionYear, setCompetitionYear] = useState(String(year))
@@ -100,6 +109,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
     const cfg: CreateSeasonConfig = {
       competitionYear: Number(competitionYear),
       competitionSeriesId,
+      platform,
       number: n,
       subtitle: subtitle.trim() || null,
       lounge,
@@ -160,6 +170,36 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
               />
               <p id="competition-year-hint" className="mt-1 text-[0.7rem] text-muted-foreground/70">
                 Four-digit year this competition belongs to. Past and future years are both allowed.
+              </p>
+            </Labeled>
+            {/* Compact, and before Competition because it decides which one is the sensible default.
+                Secondary by design: the Season's identity is its Competition, number and year. */}
+            <Labeled label="Platform" hint="required">
+              <div role="group" aria-label="Platform" className="inline-flex overflow-hidden rounded-md border border-input">
+                {(['CUEVERSE', 'YAHOO'] as const).map((pf) => (
+                  <button
+                    key={pf}
+                    type="button"
+                    aria-pressed={platform === pf}
+                    onClick={() => {
+                      setPlatform(pf)
+                      // Yahoo history all belongs to 8BRCAM; offer it rather than make them find it.
+                      if (pf === 'YAHOO') {
+                        const canonical = competitions.find((c) => c.slug === '8brcam')
+                        if (canonical) setCompetitionSeriesId(canonical.id)
+                      }
+                    }}
+                    className={
+                      'px-3 py-1.5 text-sm transition-colors '
+                      + (platform === pf ? 'bg-[var(--gold)] font-semibold text-black' : 'text-muted-foreground hover:text-foreground')
+                    }
+                  >
+                    {pf === 'CUEVERSE' ? 'CueVerse' : 'Yahoo'}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                New Seasons are CueVerse. Yahoo files a Season into the historical archive.
               </p>
             </Labeled>
             <Labeled label="Competition" hint="required">
