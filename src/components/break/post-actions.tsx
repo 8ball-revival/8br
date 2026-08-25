@@ -77,7 +77,7 @@ export function PostActions({
     }
   }
 
-  const base = 'inline-flex items-center gap-1.5 rounded px-1.5 py-1 transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'
+  const base = 'inline-flex items-center gap-1.5 rounded px-1.5 py-1 transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 
   return (
     <>

@@ -60,3 +60,16 @@ export function UnrankedBadge({ className }: { className?: string }) {
     </span>
   )
 }
+
+/**
+ * A division, labelled once.
+ *
+ * The two archives disagree about what a division code is. Yahoo's Seasons store `A` and `B`, so a
+ * label has to supply the word "Division"; a Season created on CueVerse stores the whole phrase
+ * `Division A`, so supplying it again reads "Division Division A". Prefixing here rather than at
+ * each display site means a third convention only has to be handled in one place -- and normalising
+ * the stored values instead would mean rewriting canonical rows to fix a caption.
+ */
+export function divisionLabel(code: string): string {
+  return /^division/i.test(code.trim()) ? code.trim() : `Division ${code.trim()}`
+}

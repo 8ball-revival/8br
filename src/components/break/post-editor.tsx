@@ -123,7 +123,7 @@ export function PostEditor({
     })
   }
 
-  const field = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-[var(--brand)]'
+  const field = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)]'
 
   return (
     <div className="space-y-4">
@@ -198,7 +198,7 @@ export function PostEditor({
         </button>
         <button
           type="button" onClick={save} disabled={pending}
-          className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          className="rounded-md bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black hover:opacity-90 disabled:opacity-50"
         >
           {pending ? 'Saving…' : 'Save changes'}
         </button>

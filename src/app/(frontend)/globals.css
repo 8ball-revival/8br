@@ -11,76 +11,6 @@
 
 @custom-variant light (&:is(.light *));
 
-/* ── The palette ───────────────────────────────────────────────────────────────────────────────────
- *
- * One place where colour is decided. Everything below this block is a ROLE pointing at one of these
- * values, and every component reads a role — so a component cannot invent its own slightly different
- * black, red or gold, and changing the site's colour is changing this block.
- *
- * ── Why brand and achievement had to be split ─────────────────────────────────────────────────────
- * Gold used to be both. `--brand`, `--primary`, `--ring`, `--win` and `--player-name` all resolved to
- * the same gold, so gold was the navigation colour, the focus ring, the hover state, the button, the
- * link AND the champion. A colour that marks everything marks nothing: the champion's gold was the
- * same gold as a text input's border.
- *
- * Worse, gold at 8-12% over a dark charcoal does not read as pale gold. It mixes to olive-brown, and
- * because gold was the brand, that muddy wash appeared on every hover, every selected row and every
- * attention surface on the site. That is the brown nobody chose and nobody could find, because no
- * token was ever named brown.
- *
- * Brand is now neon red. Gold is now rare, and means somebody won something.
- */
-:root {
-  /* Neutrals — cool, never warm. A grey with warmth in it is where beige comes from. */
-  --c-void: #030304;          /* the page itself */
-  --c-surface: #090A0D;       /* first elevation */
-  --c-elevated: #0F1115;      /* cards, tables, nav, inputs, menus, dialogs */
-  --c-raised: #15181E;        /* hover and selected */
-  /*
-   * ── Why the ordinary border is void black ──────────────────────────────────────────────────────
-   * The canvas dropped from a near-black charcoal to true void, and the border did not move with it.
-   * A #292D35 hairline that read as a quiet edge against #262629 reads as a bright white line
-   * against #030304 -- the contrast between them roughly tripled without anybody changing the
-   * border. Every panel looked outlined.
-   *
-   * A separator on a dark interface does not have to be lighter than what it separates. Void against
-   * an elevated #0F1115 card reads as a seam, which is what an edge between two surfaces should be.
-   */
-  --c-border: #030304;        /* ordinary edges — a seam, not a highlight */
-  --c-border-input: #1A1E25;  /* form controls, which have to be findable before they are pretty */
-  --c-border-strong: #414752; /* edges that genuinely need to be seen */
-  --c-text: #F5F7FA;          /* primary reading colour */
-  --c-text-2: #A0A7B2;        /* secondary */
-  --c-text-3: #737B87;        /* muted */
-
-  /* Brand — neon red. Interactive, never celebratory. */
-  --c-brand: #FF1744;
-  --c-brand-hover: #FF4567;
-  --c-brand-dim: #C1102F;
-
-  /* Achievement — gold. Rare on purpose. */
-  --c-gold: #F2C14E;
-  --c-gold-bright: #FFD76A;
-  --c-gold-dim: #B98F2E;
-  /*
-   * Gold as INK on a light background, which is a different problem from gold as a light on a dark
-   * one. The dark theme's dim gold sat at L 0.673 against a near-white canvas: only 2.91:1, under
-   * AA, and brighter than the top rating band it is supposed to sit beneath. This is 4.72:1 and
-   * darker than that band, so the hierarchy reads the same way in both themes.
-   */
-  --c-gold-ink: #8F6C1F;
-
-  /* Light-theme neutrals, kept beside the dark ones so the two can be compared at a glance. */
-  --c-l-canvas: #FBFCFD;
-  --c-l-surface: #FFFFFF;
-  --c-l-raised: #F1F3F6;
-  --c-l-border: #DDE1E7;
-  --c-l-border-strong: #B9BFC9;
-  --c-l-text: #12141A;
-  --c-l-text-2: #4A515C;
-  --c-l-text-3: #6C7480;
-}
-
 :root {
   --radius: 0.5rem;
 
@@ -88,25 +18,25 @@
      commit 7529a31. Charcoal-black grounds, dark elevated surfaces, gold accent, white
      primary text, muted-gray secondary text, subtle neutral borders. Values stay in oklch
      so hue/chroma/lightness relationships hold when a colour is mixed or tinted. ---- */
-  --background: var(--c-void); /* page ground — near-black charcoal */
-  --foreground: var(--c-text); /* primary text — white */
+  --background: oklch(0.165 0.006 265); /* page ground — near-black charcoal */
+  --foreground: oklch(0.96 0.004 260); /* primary text — white */
 
-  --surface: var(--c-surface); /* first elevation above the page */
-  --card: var(--c-elevated); /* elevated cards / panels */
-  --card-foreground: var(--c-text);
+  --surface: oklch(0.185 0.007 265); /* first elevation above the page */
+  --card: oklch(0.205 0.007 265); /* elevated cards / panels */
+  --card-foreground: oklch(0.96 0.004 260);
 
-  --popover: var(--c-elevated);
+  --popover: oklch(0.185 0.007 265);
   --popover-foreground: oklch(0.96 0.004 260);
 
   /* Gold accent — the single brand colour. */
-  --primary: var(--c-brand);
+  --primary: oklch(0.8 0.125 84);
   --primary-foreground: oklch(0.18 0.02 80); /* dark ink on gold */
-  --primary-hover: var(--c-brand-hover);
+  --primary-hover: oklch(0.87 0.1 88);
 
-  --secondary: var(--c-raised);
+  --secondary: oklch(0.245 0.007 265);
   --secondary-foreground: oklch(0.96 0.004 260);
 
-  --muted: var(--c-raised);
+  --muted: oklch(0.245 0.007 265);
 
   /* Group-stage Discord contact row: neutral dark surface + border; the icon active state
      keeps Discord's own blurple, which is their brand, not ours. */
@@ -114,9 +44,9 @@
   --discord-row-border: oklch(0.28 0.007 265);
   --discord-icon: oklch(0.7 0.01 265);
   --discord-icon-active: #5865f2;
-  --muted-foreground: var(--c-text-2); /* secondary text — muted gray */
+  --muted-foreground: oklch(0.7 0.01 265); /* secondary text — muted gray */
 
-  --accent: var(--c-raised); /* hover surface */
+  --accent: oklch(0.27 0.008 265); /* hover surface */
   --accent-foreground: oklch(0.96 0.004 260);
 
   /* Semantic status. Red is reserved for destructive/error meaning only — never brand. */
@@ -125,9 +55,9 @@
   --success: oklch(0.7 0.14 155);
   --warning: oklch(0.8 0.13 84);
 
-  --border: var(--c-border);
-  --input: var(--c-border-input);
-  --ring: var(--c-brand); /* gold focus ring */
+  --border: oklch(0.28 0.007 265);
+  --input: oklch(0.28 0.007 265);
+  --ring: oklch(0.8 0.125 84); /* gold focus ring */
 
   /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
      so only the advancing side is emphasised. */
@@ -160,15 +90,15 @@
 
   /* Navigation surface (header/footer). Own tokens so a personal theme can retint the nav
      without disturbing the page; the 8br.gg default keeps it level with the page ground. */
-  --nav-bg: var(--c-surface);
-  --nav-foreground: var(--c-text);
-  --nav-border: var(--c-border);
+  --nav-bg: oklch(0.165 0.006 265);
+  --nav-foreground: oklch(0.96 0.004 260);
+  --nav-border: oklch(0.28 0.007 265);
 
   /* Brand accents (emphasis, headings, active states) — gold, matching --primary. */
-  --brand: var(--c-brand);
-  --brand-hover: var(--c-brand-hover);
-  --brand-soft: var(--c-brand-hover);
-  --brand-dim: var(--c-brand-dim);
+  --brand: oklch(0.8 0.125 84);
+  --brand-hover: oklch(0.87 0.1 88);
+  --brand-soft: oklch(0.87 0.1 88);
+  --brand-dim: oklch(0.62 0.1 80);
 
   /* Competitive-result semantics: the winner reads gold, the loser recedes to muted. */
   --win: oklch(0.8 0.125 84);
@@ -216,16 +146,16 @@
 
 
   /* Clickable player names (e.g. the group crosstable). */
-  --player-name: var(--c-text);
+  --player-name: oklch(0.8 0.125 84);
 
   /* Themed scrollbars (see .scrollbar-themed): dark track, neutral thumb, gold on hover. */
   --scrollbar-track: oklch(0.165 0.006 265);
   --scrollbar-thumb: oklch(0.28 0.007 265);
   --scrollbar-thumb-hover: var(--gold);
 
-  --gold: var(--c-gold);
-  --gold-soft: var(--c-gold-bright);
-  --gold-dim: var(--c-gold-ink);
+  --gold: oklch(0.8 0.125 84);
+  --gold-soft: oklch(0.87 0.1 88);
+  --gold-dim: oklch(0.62 0.1 80);
 
   /*
    * Semantic surfaces — the reason nothing here is a tinted gold.
@@ -253,32 +183,32 @@
 /* ---- Light theme (opt-in via the header toggle) — the 8br.gg light palette from 7529a31:
    near-white page, white cards, a deeper gold that holds contrast on light grounds. ---- */
 .light {
-  --background: var(--c-l-canvas);
-  --foreground: var(--c-l-text);
+  --background: oklch(0.99 0.003 260);
+  --foreground: oklch(0.2 0.006 265);
 
-  --surface: var(--c-l-raised);
-  --card: var(--c-l-surface);
-  --card-foreground: var(--c-l-text);
+  --surface: oklch(0.96 0.004 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.006 265);
 
-  --popover: var(--c-l-surface);
+  --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.006 265);
 
-  --primary: var(--c-brand-dim);
+  --primary: oklch(0.62 0.12 74);
   --primary-foreground: oklch(0.99 0.004 90);
-  --primary-hover: var(--c-brand);
+  --primary-hover: oklch(0.55 0.1 74);
 
-  --secondary: var(--c-l-raised);
+  --secondary: oklch(0.96 0.004 260);
   --secondary-foreground: oklch(0.22 0.006 265);
 
-  --muted: var(--c-l-raised);
+  --muted: oklch(0.96 0.004 260);
 
   --discord-row-bg: oklch(0.96 0.004 260);
   --discord-row-border: oklch(0.9 0.004 260);
   --discord-icon: oklch(0.48 0.008 265);
   --discord-icon-active: #5865f2;
-  --muted-foreground: var(--c-l-text-2);
+  --muted-foreground: oklch(0.48 0.008 265);
 
-  --accent: var(--c-l-raised);
+  --accent: oklch(0.95 0.006 260);
   --accent-foreground: oklch(0.22 0.006 265);
 
   --destructive: oklch(0.58 0.21 27);
@@ -286,9 +216,9 @@
   --success: oklch(0.55 0.14 155);
   --warning: oklch(0.62 0.13 74);
 
-  --border: var(--c-l-border);
-  --input: var(--c-l-border);
-  --ring: var(--c-brand-dim);
+  --border: oklch(0.9 0.004 260);
+  --input: oklch(0.9 0.004 260);
+  --ring: oklch(0.62 0.12 74);
 
   --bkt-winner-bg: transparent;
   --bkt-loser-bg: transparent;
@@ -312,14 +242,14 @@
   --bracket-focus: var(--ring);
   --bracket-review: var(--warning);
 
-  --nav-bg: var(--c-l-surface);
-  --nav-foreground: var(--c-l-text);
-  --nav-border: var(--c-l-border);
+  --nav-bg: oklch(0.99 0.003 260);
+  --nav-foreground: oklch(0.2 0.006 265);
+  --nav-border: oklch(0.9 0.004 260);
 
-  --brand: var(--c-brand-dim);
-  --brand-hover: var(--c-brand);
-  --brand-soft: var(--c-brand-hover);
-  --brand-dim: var(--c-brand-dim);
+  --brand: oklch(0.62 0.12 74);
+  --brand-hover: oklch(0.55 0.1 74);
+  --brand-soft: oklch(0.7 0.12 78);
+  --brand-dim: oklch(0.55 0.1 74);
 
   --win: oklch(0.62 0.12 74);
   --loss: oklch(0.48 0.008 265);
@@ -343,15 +273,15 @@
   --rating-top: oklch(0.55 0.22 25);
 
 
-  --player-name: var(--c-l-text);
+  --player-name: oklch(0.55 0.1 74);
 
   --scrollbar-track: oklch(0.96 0.004 260);
   --scrollbar-thumb: oklch(0.9 0.004 260);
   --scrollbar-thumb-hover: var(--gold);
 
-  --gold: var(--c-gold-ink);
-  --gold-soft: var(--c-gold);
-  --gold-dim: var(--c-gold-dim);
+  --gold: oklch(0.62 0.12 74);
+  --gold-soft: oklch(0.7 0.12 78);
+  --gold-dim: oklch(0.55 0.1 74);
 
   /* The same roles on a light ground: a neutral step DOWN in lightness rather than a gold wash. */
   --selected-surface: oklch(0.93 0.004 260);

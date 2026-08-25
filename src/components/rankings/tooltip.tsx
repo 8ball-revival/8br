@@ -46,7 +46,7 @@ export function Tip({
         {...(asChild ? {} : { type: 'button' as const })}
         tabIndex={0}
         aria-describedby={open ? id : undefined}
-        className="inline-flex items-center gap-1 rounded outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+        className="inline-flex items-center gap-1 rounded outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         {...handlers}
       >
         {children}

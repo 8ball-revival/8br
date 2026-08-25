@@ -61,7 +61,7 @@ export function CorrectionControls({ kind, id, title, reopenedAt, errors }: Prop
             disabled={pending || errors.length > 0}
             className={cn(
               'inline-flex items-center gap-2 rounded-md bg-[var(--gold)] px-3 py-2 text-sm font-semibold text-[var(--primary-foreground)]',
-              'transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+              'transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
               (pending || errors.length > 0) && 'cursor-not-allowed opacity-50',
             )}
           >
@@ -75,7 +75,7 @@ export function CorrectionControls({ kind, id, title, reopenedAt, errors }: Prop
             disabled={pending}
             className={cn(
               'inline-flex items-center gap-2 rounded-md border border-[var(--streak-cold)]/60 px-3 py-2 text-sm font-semibold text-[var(--streak-cold)]',
-              'transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+              'transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
               pending && 'cursor-not-allowed opacity-50',
             )}
           >
@@ -237,7 +237,7 @@ function ConfirmDialog({
             rows={2}
             maxLength={500}
             placeholder="What is being corrected, and why"
-            className="w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none focus-visible:border-[var(--brand)]"
+            className="w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none focus-visible:border-[var(--gold)]"
           />
         </label>
 
@@ -247,7 +247,7 @@ function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Cancel
           </button>
@@ -257,7 +257,7 @@ function ConfirmDialog({
             disabled={pending}
             className={cn(
               'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
               tone === 'warning'
                 ? 'border border-[var(--streak-cold)]/60 text-[var(--streak-cold)] hover:bg-white/[0.04]'
                 : 'bg-[var(--gold)] text-[var(--primary-foreground)] hover:opacity-90',

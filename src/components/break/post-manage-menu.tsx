@@ -79,7 +79,7 @@ export function PostManageMenu({
         aria-expanded={open}
         aria-label="Manage this post"
         data-testid="post-manage-trigger"
-        className="inline-flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+        className="inline-flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <MoreHorizontal className="size-4" aria-hidden />
       </button>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { Wide } from '@/components/primitives'
@@ -79,9 +80,9 @@ export default async function SeasonsPage({
         {/* Never a silent fall-back to the other platform: the way to the archive is a deliberate
             choice, so an empty CueVerse registry cannot be mistaken for a populated one. */}
         {platform === 'CUEVERSE' && (
-          <a href="/seasons?platform=yahoo" className="text-sm text-[var(--gold)] hover:underline">
+          <Link href="/seasons?platform=yahoo" className="text-sm text-[var(--gold)] hover:underline">
             Browse the Yahoo archive
-          </a>
+          </Link>
         )}
       </div>
     </Wide>

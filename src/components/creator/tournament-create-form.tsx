@@ -133,7 +133,7 @@ export function TournamentCreateForm({
           <div className="grid gap-2 sm:grid-cols-2">
             {FORMATS.map((f) => (
               <label key={f.id} className={cn('cursor-pointer rounded-lg border px-3 py-2.5 transition-colors',
-                format === f.id ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]' : 'border-border bg-card/40 hover:border-[var(--brand)]/30')}>
+                format === f.id ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]' : 'border-border bg-card/40 hover:border-[var(--gold)]/30')}>
                 <span className="flex items-start gap-2">
                   <input type="radio" name="format" checked={format === f.id} onChange={() => setFormat(f.id)} className="mt-1 accent-[var(--gold)]" />
                   <span className="min-w-0">
@@ -219,7 +219,7 @@ export function TournamentCreateForm({
         </Field>
 
         <button type="submit" disabled={pending || !competitionSeriesId || !name.trim()}
-          className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60">
+          className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60">
           {pending ? 'Creating…' : 'Create Tournament'}
         </button>
       </div>
@@ -240,7 +240,7 @@ export function TournamentCreateForm({
 }
 
 const inputCls =
-  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60'
+  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

@@ -92,19 +92,11 @@ section('Top 10 panel')
   check('preferred name is the primary line', html.includes('Luis'))
   check('the CueVerse ID is the secondary line', html.includes('xlx_cerebro_xlx'))
   check('a player with no preferred name shows their handle alone', html.includes('indianhacker'))
-  /*
-   * Gold as ink on a neutral surface -- never as a fill, which over a dark ground mixes to olive.
-   *
-   * Silver and bronze are gone. They were written as literals (#c8ccd4, #b08d57/#c49a63) rather than
-   * tokens, so no theme could reach them, and the bronze was the one genuinely brown thing on the
-   * site. First place keeps gold, because first place is the achievement; second and third are
-   * neutral, since two more accent colours to rank a list of ten costs more than it tells anybody.
-   */
-  check('first place carries a gold accent', html.includes('text-[var(--gold)]'))
-  check('...as ink, not as a translucent fill',
-    !/bg-\[color-mix\([^\]]*--gold/.test(html) && !/bg-\[var\(--gold\)\]/.test(html))
-  check('second and third are neutral, not silver and bronze',
-    !html.includes('#c8ccd4') && !html.includes('#c49a63') && !html.includes('#b08d57'))
+  // Gold as an accent on a neutral surface: a translucent gold badge fill renders brown.
+     check('first place carries a gold accent',
+    html.includes('text-brand') && html.includes('bg-[var(--selected-surface)] text-brand'))
+  check('second place carries a silver accent', html.includes('#c8ccd4'))
+  check('third place carries a bronze accent', html.includes('#c49a63'))
   check('a tie is stated in words, not only by an equal number', html.includes('tied'))
   check('exactly one tie label is rendered for the one tied row',
     (html.match(/>tied</g) ?? []).length === 1, String((html.match(/>tied</g) ?? []).length))

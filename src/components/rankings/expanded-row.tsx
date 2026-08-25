@@ -144,7 +144,7 @@ export function ExpandedRow({
                   </Tip>
                 )}
                 {c.href
-                  ? <Link href={c.href} className="font-medium hover:text-[var(--brand)] hover:underline">{c.label}</Link>
+                  ? <Link href={c.href} className="font-medium hover:text-[var(--gold)] hover:underline">{c.label}</Link>
                   : <span className="font-medium">{c.label}</span>}
                 <span className="tabular-nums text-muted-foreground">
                   {c.wins}–{c.losses}{c.draws > 0 ? `–${c.draws}` : ''}
@@ -215,7 +215,7 @@ export function ExpandedRow({
           />
           {detail.bestSeason && (
             <p className="col-span-2 -mt-0.5 max-w-[20rem] text-right text-[0.68rem] text-muted-foreground">
-              <Link href={`/seasons/${detail.bestSeason.seasonId}`} className="hover:text-[var(--brand)] hover:underline">
+              <Link href={`/seasons/${detail.bestSeason.seasonId}`} className="hover:text-[var(--gold)] hover:underline">
                 {detail.bestSeason.label}
               </Link>
             </p>
@@ -235,7 +235,7 @@ export function ExpandedRow({
           />
           {detail.bestPlayoffRun && (
             <p className="col-span-2 -mt-0.5 max-w-[20rem] text-right text-[0.68rem] text-muted-foreground">
-              <Link href={`/seasons/${detail.bestPlayoffRun.seasonId}`} className="hover:text-[var(--brand)] hover:underline">
+              <Link href={`/seasons/${detail.bestPlayoffRun.seasonId}`} className="hover:text-[var(--gold)] hover:underline">
                 {detail.bestPlayoffRun.label}
               </Link>
             </p>
@@ -253,7 +253,7 @@ export function ExpandedRow({
             <p className="col-span-2 -mt-0.5 max-w-[20rem] text-right text-[0.68rem] text-muted-foreground">
               beat {detail.strongestWin.opponent}
               {detail.strongestWin.href
-                ? <> · <Link href={detail.strongestWin.href} className="hover:text-[var(--brand)] hover:underline">{detail.strongestWin.competition}</Link></>
+                ? <> · <Link href={detail.strongestWin.href} className="hover:text-[var(--gold)] hover:underline">{detail.strongestWin.competition}</Link></>
                 : <> · {detail.strongestWin.competition}</>}
             </p>
           )}
@@ -318,7 +318,7 @@ export function ExpandedRow({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Link
             href={`/players/${encodeURIComponent(row.slug)}`}
-            className="inline-block rounded text-xs text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="inline-block rounded text-xs text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Full profile →
           </Link>

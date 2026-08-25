@@ -158,7 +158,7 @@ function TitleCell({ n, kind, onOpen, playerName }: {
       type="button"
       onClick={onOpen}
       aria-label={`${playerName}: ${n} ${what}${n === 1 ? '' : 's'}. Show the competitions behind this.`}
-      className="inline-flex items-center gap-1 rounded px-1 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+      className="inline-flex items-center gap-1 rounded px-1 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
     >
       <Icon className="size-3.5" style={{ color: 'var(--gold)' }} aria-hidden />
       <span className="font-semibold">{n}</span>
@@ -174,7 +174,7 @@ function EvidenceCell({ n, onOpen, label }: { n: number; onOpen: () => void; lab
       type="button"
       onClick={onOpen}
       aria-label={`${label}. Show the competitions behind this.`}
-      className="rounded px-1 underline decoration-dotted underline-offset-2 hover:text-[var(--brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+      className="rounded px-1 underline decoration-dotted underline-offset-2 hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
     >
       {n}
     </button>
@@ -399,7 +399,7 @@ function Row({
                   onClick={() => onToggleExpand(row)}
                   aria-expanded={isOpen}
                   aria-label={`${isOpen ? 'Hide' : 'Show'} career detail for ${name}`}
-                  className="block w-full min-w-0 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+                  className="block w-full min-w-0 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
                 >
                   <IdentityCell
                     identity={{ preferredName: row.preferredName, cueverseId: row.cueverseId }}

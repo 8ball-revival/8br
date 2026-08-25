@@ -27,7 +27,7 @@ export default async function NewSeasonPage() {
     <Wide name="creator" className="py-6">
       <Link
         href="/creator"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <ArrowLeft className="size-4" aria-hidden /> Back to Creator
       </Link>

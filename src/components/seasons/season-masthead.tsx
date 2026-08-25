@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PlatformBadge, UnrankedBadge } from '@/components/platform/platform-badge'
+import { PlatformBadge, divisionLabel, UnrankedBadge } from '@/components/platform/platform-badge'
 import { Trophy, Users, LayoutGrid, Swords, Target, ArrowRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -124,7 +124,7 @@ function Identity({
         <Pill tone={state === 'COMPLETED' ? 'gold' : 'live'}>{SEASON_STATE_LABEL[state]}</Pill>
         <Pill>{entrants} entrant{entrants === 1 ? '' : 's'}</Pill>
         <Pill>{groups} group{groups === 1 ? '' : 's'}</Pill>
-        {division && <Pill>Division {division}</Pill>}
+        {division && <Pill>{divisionLabel(division)}</Pill>}
         {/*
           Unranked is stated rather than left to be inferred. Without it, the only clue that a
           Division B Season ranks nothing is that its players have no rating — which reads as
@@ -136,7 +136,7 @@ function Identity({
 
       <Link
         href={playoffsHref}
-        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--brand-dim)] bg-[var(--drop-surface)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--brand)] transition-colors hover:border-[var(--brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/45"
+        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--gold-dim)] bg-[var(--drop-surface)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[var(--drop-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
       >
         View Playoffs <ArrowRight className="size-3.5" aria-hidden />
       </Link>

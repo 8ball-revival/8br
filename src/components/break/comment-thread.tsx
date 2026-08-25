@@ -103,7 +103,7 @@ function Comment({
               aria-label={collapsed
                 ? `Expand this comment and its ${node.replyCount} replies`
                 : 'Collapse this comment'}
-              className="grid size-5 place-items-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+              className="grid size-5 place-items-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
             >
               {collapsed ? <ChevronRight className="size-3.5" aria-hidden /> : <Minus className="size-3.5" aria-hidden />}
             </button>
@@ -183,7 +183,7 @@ function Comment({
                     type="button"
                     onClick={() => setReplying((v) => !v)}
                     aria-expanded={replying}
-                    className="inline-flex items-center gap-1.5 rounded px-1.5 py-1 hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+                    className="inline-flex items-center gap-1.5 rounded px-1.5 py-1 hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
                   >
                     <MessageSquare className="size-3.5" aria-hidden />Reply
                   </button>

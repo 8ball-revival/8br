@@ -160,7 +160,7 @@ export function RecordDetail({
               href={s.href}
               className={cn(
                 'rounded-md border border-border p-3 transition-colors',
-                'hover:border-[var(--brand)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+                'hover:border-[var(--gold)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                 !reopened && 'opacity-70',
               )}
             >
@@ -173,7 +173,7 @@ export function RecordDetail({
 
       <Link
         href={publicHref}
-        className="inline-flex items-center gap-1.5 rounded text-sm text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+        className="inline-flex items-center gap-1.5 rounded text-sm text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <ExternalLink className="size-3.5" aria-hidden />
         View public archive page

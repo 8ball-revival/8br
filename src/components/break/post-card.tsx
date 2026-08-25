@@ -29,7 +29,7 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
     <article
       className={cn(
         'grid grid-cols-[auto_1fr] gap-3 rounded-lg border border-border bg-card/40 p-3 transition-colors',
-        'hover:border-[var(--brand)]/30 sm:gap-4 sm:p-4',
+        'hover:border-[var(--gold)]/30 sm:gap-4 sm:p-4',
         card.pinned && 'border-[var(--gold)]/40',
       )}
     >
@@ -86,7 +86,7 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
         <div className="flex gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-balance font-display text-base font-bold leading-snug sm:text-lg">
-              <Link href={href} className="hover:text-[var(--brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60">
+              <Link href={href} className="hover:text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60">
                 {removed ? '[removed]' : deleted ? '[deleted]' : card.title}
               </Link>
             </h2>

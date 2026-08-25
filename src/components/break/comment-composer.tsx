@@ -58,14 +58,14 @@ export function CommentComposer({
         rows={compact ? 3 : 4}
         maxLength={10_000}
         placeholder={parentId ? 'Write a reply…' : 'Add a comment…'}
-        className="w-full resize-y rounded border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+        className="w-full resize-y rounded border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       />
       {error && <p role="alert" className="mt-1 text-xs text-[var(--loss)]">{error}</p>}
       <div className="mt-2 flex items-center gap-2">
         <button
           type="submit"
           disabled={pending || text.trim().length === 0}
-          className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+          className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           {pending ? 'Posting…' : parentId ? 'Reply' : 'Comment'}
         </button>
@@ -73,7 +73,7 @@ export function CommentComposer({
           <button
             type="button"
             onClick={onDone}
-            className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Cancel
           </button>

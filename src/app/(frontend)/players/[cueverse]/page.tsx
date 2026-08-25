@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { pageMetadata } from '@/lib/site'
 import { Container } from '@/components/ui/container'
 import { getPlayerProfile, getUnrankedHistory } from '@/lib/stats/ladder'
-import { UnrankedBadge } from '@/components/platform/platform-badge'
+import { UnrankedBadge, divisionLabel } from '@/components/platform/platform-badge'
 import { PlayerProfile } from '@/components/rankings/player-profile'
 
 export const dynamic = 'force-dynamic'
@@ -94,10 +94,10 @@ export default async function PlayerProfilePage({
           <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
             {unranked.map((u) => (
               <li key={u.seasonId} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
-                <Link href={`/seasons/${u.seasonId}`} className="font-medium text-foreground hover:text-[var(--brand)]">
+                <Link href={`/seasons/${u.seasonId}`} className="font-medium text-foreground hover:text-[var(--gold)]">
                   {u.competitionYear} Season {u.number}
                 </Link>
-                {u.division && <span className="text-xs text-muted-foreground">Division {u.division}</span>}
+                {u.division && <span className="text-xs text-muted-foreground">{divisionLabel(u.division)}</span>}
                 <span className="text-xs text-muted-foreground">{u.lifecycleState}</span>
                 {u.isChampion && <span className="text-xs font-semibold text-[var(--gold)]">Champion</span>}
               </li>

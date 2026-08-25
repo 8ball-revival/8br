@@ -86,7 +86,7 @@ export function VoteControl({
         aria-pressed={currentVote === 1}
         aria-label={label('Upvote')}
         className={cn(
-          'grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+          'grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
           // A comfortable target on a phone; the icon stays small.
           compact ? 'size-7' : 'size-8',
           currentVote === 1 ? 'text-[var(--gold)]' : 'text-muted-foreground hover:text-foreground',
@@ -113,7 +113,7 @@ export function VoteControl({
         aria-pressed={currentVote === -1}
         aria-label={label('Downvote')}
         className={cn(
-          'grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+          'grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
           compact ? 'size-7' : 'size-8',
           currentVote === -1 ? 'text-[var(--loss)]' : 'text-muted-foreground hover:text-foreground',
         )}

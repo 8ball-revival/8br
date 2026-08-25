@@ -106,7 +106,7 @@ export function SeasonEntrantsBoard({
             type="button"
             disabled={pending}
             onClick={() => start(async () => setClosing(await closeRegistrationPreflightAction(seasonId)))}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             <Lock className="size-4" aria-hidden /> Close Registration
           </button>
@@ -206,14 +206,14 @@ function EntrantRow({
             onChange={(e) => setHandle(e.target.value)}
             placeholder="CueVerse ID"
             aria-label="CueVerse ID"
-            className="w-40 rounded-md border border-input bg-background px-2 py-1 text-sm font-semibold text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="w-40 rounded-md border border-input bg-background px-2 py-1 text-sm font-semibold text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Preferred name"
             aria-label="Preferred name"
-            className="w-48 rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="w-48 rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           />
         </span>
       ) : (
@@ -325,7 +325,7 @@ function AddEntrant({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder="Add entrant by name or CueVerse ID…"
           aria-label="Add entrant"
-          className="w-80 rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+          className="w-80 rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         />
       </div>
       {open && (
@@ -452,7 +452,7 @@ function CloseDialog({
             ref={closeRef}
             type="button"
             onClick={onCancel}
-            className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Keep Registration Open
           </button>
@@ -460,7 +460,7 @@ function CloseDialog({
             type="button"
             onClick={confirm}
             disabled={pending}
-            className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             {pending ? 'Closing…' : 'Close and Set Up Groups'}
           </button>

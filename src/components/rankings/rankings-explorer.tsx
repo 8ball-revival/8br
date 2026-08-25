@@ -163,7 +163,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
                 className={cn(
                   'px-2.5 py-1 text-xs font-medium transition-colors',
                   applied.platform === p
-                    ? 'bg-[var(--brand)] text-white'
+                    ? 'bg-[var(--gold)] text-black'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -188,7 +188,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Find a player"
             aria-label="Find a player"
-            className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           />
           {search && (
             <button
@@ -212,7 +212,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
           onClick={() => setDrawerOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
-          className="ml-auto inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--brand)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+          className="ml-auto inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <SlidersHorizontal className="size-4" aria-hidden />
           More Filters
@@ -237,7 +237,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
               type="button"
               onClick={() => navigate(removeChip(applied, c.key, now))}
               aria-label={`Remove filter: ${c.label}`}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs transition-colors hover:border-[var(--brand)]/50"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs transition-colors hover:border-[var(--gold)]/50"
             >
               {c.label}
               <X className="size-3 text-muted-foreground" aria-hidden />
@@ -246,7 +246,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
           <button
             type="button"
             onClick={() => { setSearch(''); navigate(defaultState(now)) }}
-            className="rounded px-2 py-1 text-xs text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="rounded px-2 py-1 text-xs text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Clear All
           </button>
@@ -276,7 +276,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
         <Methodology />
         <a
           href={exportHref}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--brand)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <Download className="size-3.5" aria-hidden />
           Export CSV

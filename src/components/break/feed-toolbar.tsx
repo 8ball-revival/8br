@@ -64,7 +64,7 @@ export function FeedToolbar({
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                   active
                     ? 'bg-[var(--selected-surface)] text-[var(--gold)]'
                     : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
@@ -84,7 +84,7 @@ export function FeedToolbar({
             <select
               value={topWindow}
               onChange={(e) => router.push(withParams({ window: e.target.value }))}
-              className="rounded border border-border bg-card px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+              className="rounded border border-border bg-card px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
             >
               {TOP_WINDOWS.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
             </select>
@@ -108,14 +108,14 @@ export function FeedToolbar({
               defaultValue={q ?? ''}
               placeholder="Search The Break"
               aria-label="Search The Break"
-              className="w-full rounded-full border border-border bg-card py-1.5 pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+              className="w-full rounded-full border border-border bg-card py-1.5 pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
             />
           </div>
         </form>
 
         <Link
           href={canPost ? '/the-break/submit' : '/login?next=%2Fthe-break%2Fsubmit'}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <PenSquare className="size-4" aria-hidden />
           <span className="hidden sm:inline">Create Post</span>

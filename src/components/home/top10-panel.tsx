@@ -29,22 +29,12 @@ const STORAGE_KEY = '8br.top10.mode'
  *
  * The accent lives on the rank badge, never as a fill across the whole row. A tinted first-place row
  * read as a different sort of object from the nine beneath it, which is not what a leaderboard is
- * saying.
- *
- * ── Why the podium is no longer gold-silver-bronze ───────────────────────────────────────────────
- * Bronze was written as a literal, `#b08d57` on `#c49a63`, and it is the one genuinely brown thing
- * on the site — a warm brown badge sitting on a void-black page. Silver was a second literal beside
- * it. Neither was a token, so neither could be themed, and both had drifted out of the palette.
- *
- * First place keeps gold, because first place is an achievement and gold is what the site reserves
- * for one. Second and third are neutral: they are positions on a list, and inventing two more
- * accent colours to rank them costs the page more than it tells the reader.
+ * saying. Gold, then silver, then bronze, then neutral.
  */
 function rankBadge(rank: number): string {
-  // Neutral surface, gold ink. A translucent gold FILL over a dark surface is the exact mud this
-  // theme exists to remove -- it mixes to olive -- so the gold lives on the numeral, not behind it.
-  if (rank === 1) return 'bg-muted text-[var(--gold)]'
-  if (rank === 2 || rank === 3) return 'bg-muted text-foreground'
+  if (rank === 1) return 'bg-[var(--selected-surface)] text-brand'
+  if (rank === 2) return 'bg-[#c0c4cc]/15 text-[#c8ccd4]'
+  if (rank === 3) return 'bg-[#b08d57]/15 text-[#c49a63]'
   return 'bg-muted text-muted-foreground'
 }
 

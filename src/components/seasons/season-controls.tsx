@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Minus, Plus, Plus as PlusIcon, Search, SlidersHorizontal } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { divisionLabel } from '@/components/platform/platform-badge'
 import { identityLines } from '@/lib/identity/display'
 import type { CompetitionOption, SeasonOption, SeasonPlayerHit } from '@/lib/seasons/browse'
 
@@ -150,7 +151,7 @@ export function SeasonControls({
                   <option key={d} value={d}>
                     {/* Division B is preserved in full but ranks nothing, and the picker says so
                         rather than leaving somebody to wonder why its players have no rating. */}
-                    Division {d}{d === 'B' ? ' — unranked' : ''}
+                    {divisionLabel(d)}{d === 'B' ? ' — unranked' : ''}
                   </option>
                 ))}
               </select>
@@ -208,7 +209,7 @@ export function SeasonControls({
                   onClick={() => go(urlFor({ view: v }))}
                   className={cn(
                     'px-4 py-1.5 text-sm font-semibold capitalize transition-colors',
-                    view === v ? 'bg-[var(--brand)] text-white' : 'bg-card text-muted-foreground hover:text-foreground',
+                    view === v ? 'bg-[var(--gold)] text-black' : 'bg-card text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {v}
@@ -227,7 +228,7 @@ export function SeasonControls({
                 {settingsHref && (
                   <Link
                     href={settingsHref}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--gold-dim)] focus-visible:outline-none focus-visible:border-[var(--brand)] focus-visible:ring-2 focus-visible:ring-[var(--brand)]/25"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--gold-dim)] focus-visible:outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
                   >
                     <SlidersHorizontal className="size-3.5" aria-hidden /> Settings
                   </Link>
@@ -235,7 +236,7 @@ export function SeasonControls({
                 {createHref && (
                   <Link
                     href={createHref}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--brand-dim)] bg-[var(--brand)] px-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/45"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--gold-dim)] bg-[var(--gold)] px-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--gold-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
                   >
                     <PlusIcon className="size-3.5" aria-hidden /> Create Season
                   </Link>
@@ -295,7 +296,7 @@ function useTrackSiteHeaderHeight(): void {
 }
 
 const SELECT =
-  'h-8 min-w-[7.5rem] rounded-md border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-[var(--brand)] focus-visible:ring-2 focus-visible:ring-[var(--brand)]/25'
+  'h-8 min-w-[7.5rem] rounded-md border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25'
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
@@ -455,7 +456,7 @@ function PlayerSearch({ searchPlayers }: { searchPlayers: (q: string) => Promise
             spellCheck={false}
             onChange={(e) => load(e.target.value)}
             onFocus={() => { setOpen(true); if (hits.length === 0) load(q) }}
-            className="h-8 w-full min-w-[13rem] rounded-md border border-input bg-card py-1 pl-8 pr-2 text-sm text-foreground outline-none focus-visible:border-[var(--brand)] focus-visible:ring-2 focus-visible:ring-[var(--brand)]/25"
+            className="h-8 w-full min-w-[13rem] rounded-md border border-input bg-card py-1 pl-8 pr-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
           />
         </div>
       </Field>

@@ -55,7 +55,7 @@ export function ArchiveBrowser({
             onBlur={(e) => { if (e.target.value !== get('q')) update({ q: e.target.value }) }}
             placeholder="Search titles"
             aria-label={`Search archived ${kind} by title`}
-            className="w-44 rounded border border-input bg-card py-1 pl-7 pr-2 text-xs outline-none focus-visible:border-[var(--brand)]"
+            className="w-44 rounded border border-input bg-card py-1 pl-7 pr-2 text-xs outline-none focus-visible:border-[var(--gold)]"
           />
         </label>
 
@@ -67,7 +67,7 @@ export function ArchiveBrowser({
             onBlur={(e) => { if (e.target.value !== get('player')) update({ player: e.target.value }) }}
             placeholder="Champion or runner-up"
             aria-label="Search by champion or runner-up"
-            className="w-48 rounded border border-input bg-card px-2 py-1 text-xs outline-none focus-visible:border-[var(--brand)]"
+            className="w-48 rounded border border-input bg-card px-2 py-1 text-xs outline-none focus-visible:border-[var(--gold)]"
           />
         </label>
 
@@ -88,7 +88,7 @@ export function ArchiveBrowser({
             value={get('sort') || 'newest'}
             onChange={(e) => update({ sort: e.target.value === 'newest' ? null : e.target.value })}
             aria-label="Sort order"
-            className="rounded border border-input bg-card px-1.5 py-1 text-xs outline-none focus-visible:border-[var(--brand)]"
+            className="rounded border border-input bg-card px-1.5 py-1 text-xs outline-none focus-visible:border-[var(--gold)]"
           >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
@@ -99,7 +99,7 @@ export function ArchiveBrowser({
           <button
             type="button"
             onClick={() => update({ comp: null, year: null, division: null, q: null, player: null })}
-            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             <RotateCcw className="size-3" aria-hidden />Reset filters
           </button>
@@ -143,8 +143,8 @@ function PageLink({ label, disabled, onClick }: { label: string; disabled: boole
       disabled={disabled}
       className={cn(
         'rounded border border-border px-3 py-1 text-xs transition-colors',
-        disabled ? 'cursor-not-allowed opacity-40' : 'hover:border-[var(--brand)]/40 hover:text-foreground',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60',
+        disabled ? 'cursor-not-allowed opacity-40' : 'hover:border-[var(--gold)]/40 hover:text-foreground',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
       )}
     >
       {label}
@@ -166,7 +166,7 @@ function Select({ label, value, onChange, options }: {
         disabled={options.length === 0}
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
-        className="max-w-[11rem] rounded border border-input bg-card px-1.5 py-1 text-xs text-foreground outline-none focus-visible:border-[var(--brand)] disabled:opacity-40"
+        className="max-w-[11rem] rounded border border-input bg-card px-1.5 py-1 text-xs text-foreground outline-none focus-visible:border-[var(--gold)] disabled:opacity-40"
       >
         <option value="">{options.length === 0 ? `No ${label.toLowerCase()}s` : `All ${label.toLowerCase()}s`}</option>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

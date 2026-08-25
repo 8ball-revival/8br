@@ -87,7 +87,7 @@ export default async function CreatorSeasonPage({ params }: { params: Promise<{ 
     <Wide name="creator-season" className="py-6">
       <Link
         href={finished ? '/creator/completed' : '/creator'}
-        className="mb-3 inline-flex items-center gap-1.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/60"
+        className="mb-3 inline-flex items-center gap-1.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <ArrowLeft className="size-3.5" aria-hidden />{finished ? 'Completed records' : 'Creator'}
       </Link>
