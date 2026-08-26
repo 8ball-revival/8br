@@ -525,9 +525,26 @@ export function defaultState(now: Date = new Date()): RankingsState {
   }
 }
 
+/**
+ * Optional columns that only mean something on a live ladder.
+ *
+ * A streak is a statement about form — what this player is doing lately. The Yahoo archive closed in
+ * 2014, so every streak in it is frozen at whatever the last recorded match happened to be, and a
+ * column of stale "+3"s reads as current when nothing about it is. It is withheld rather than blanked
+ * so the table does not carry a column of dashes.
+ */
+const LIVE_ONLY_COLUMN_KEYS: readonly string[] = ['currentStreak']
+
+/** Whether a column is offered at all under this scope. */
+export function columnAppliesTo(key: string, platform: RankingsState['platform']): boolean {
+  return !(platform === 'YAHOO' && LIVE_ONLY_COLUMN_KEYS.includes(key))
+}
+
 /** The keys actually rendered, permanent columns first and optional ones in canonical order. */
 export function visibleColumnKeys(s: RankingsState): string[] {
-  const optional = OPTIONAL_COLUMN_KEYS.filter((k) => s.visibleColumns.includes(k))
+  const optional = OPTIONAL_COLUMN_KEYS
+    .filter((k) => s.visibleColumns.includes(k))
+    .filter((k) => columnAppliesTo(k, s.platform))
   return ['rank', 'player', 'rating', ...optional]
 }
 

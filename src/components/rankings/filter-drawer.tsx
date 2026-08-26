@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 
 import {
-  MIN_YEAR, maxYear, defaultState, activeChips, OPTIONAL_COLUMN_KEYS, PERMANENT_COLUMN_KEYS,
+  MIN_YEAR, maxYear, defaultState, activeChips, OPTIONAL_COLUMN_KEYS, PERMANENT_COLUMN_KEYS, columnAppliesTo,
   COLUMN_BY_KEY, clampYear,
   type RankingsState, type EventType,
 } from '@/lib/stats/rankings-columns'
@@ -346,7 +346,9 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
                   {COLUMN_BY_KEY[k]?.label ?? k} <span className="text-xs">(always shown)</span>
                 </label>
               ))}
-              {OPTIONAL_COLUMN_KEYS.map((k) => (
+              {/* A column the current scope does not offer is not listed: a checkbox that
+                  changes nothing is worse than an absent one. */}
+              {OPTIONAL_COLUMN_KEYS.filter((k) => columnAppliesTo(k, draft.platform)).map((k) => (
                 <label key={k} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"

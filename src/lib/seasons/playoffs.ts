@@ -864,17 +864,30 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
   const out: BracketRound[] = []
   for (const round of [...byRound.keys()].sort((a, b) => a - b)) {
     const matches: ViewMatch[] = byRound.get(round)!.sort((a, b) => a.slot - b.slot).map((r) => {
-      const slot = (id: number | null, name: string | null, seed: number | null, games: number | null) => {
+      const slot = (id: number | null, name: string | null, seed: number | null, games: number | null, forfeited = false) => {
         if (id == null && name == null) return undefined
         if (name === 'Bye') return { name: 'Bye' }
         const handle = id != null ? cueverseOf.get(id) ?? undefined : undefined
         const preferred = (id != null ? preferredOf.get(id) : null) ?? name ?? 'TBD'
         const shownSeed = (id != null ? seedOf.get(id) : null) ?? seed
-        return { name: preferred, ...(handle ? { handle, slug: handle } : {}), ...(shownSeed != null ? { seed: shownSeed } : {}), ...(games != null ? { score: games } : {}) }
+        /*
+         * A forfeited side carries the flag instead of a score, which is what the renderer turns
+         * into FF. `recordSeasonPlayoffForfeit` deliberately leaves the games null, so without this
+         * the slot arrived with neither a score nor a reason and the bracket drew a blank where a
+         * result belongs -- indistinguishable from a match nobody has played yet.
+         */
+        return {
+          name: preferred,
+          ...(handle ? { handle, slug: handle } : {}),
+          ...(shownSeed != null ? { seed: shownSeed } : {}),
+          ...(games != null ? { score: games } : {}),
+          ...(forfeited ? { forfeit: true } : {}),
+        }
       }
       const m: ViewMatch = { id: r.id, updatedAt: r.updatedAt.toISOString() }
-      const a = slot(r.homeEntrantId, r.homeUsername, r.homeSeed, r.homeGames)
-      const b = slot(r.awayEntrantId, r.awayUsername, r.awaySeed, r.awayGames)
+      const ff = r.forfeitEntrantId
+      const a = slot(r.homeEntrantId, r.homeUsername, r.homeSeed, r.homeGames, ff != null && ff === r.homeEntrantId)
+      const b = slot(r.awayEntrantId, r.awayUsername, r.awaySeed, r.awayGames, ff != null && ff === r.awayEntrantId)
       if (a) m.a = a
       if (b) m.b = b
       if (r.winnerEntrantId != null) m.winner = r.winnerEntrantId === r.homeEntrantId ? 'a' : 'b'

@@ -148,6 +148,19 @@ export function SeasonStandingsMatrix({
                     if (i === j) return <td key={c.entrantId} className="season-diag" aria-hidden />
                     const k = h2h.get(`${r.entrantId}|${c.entrantId}`)
                     if (!k) return <td key={c.entrantId} className="season-cell season-none" title="No match recorded">·</td>
+                    /*
+                     * A forfeit is a result, so it is spelt out rather than left as a dash. Both
+                     * halves are labelled -- FF for the side that gave it up, W for the side that
+                     * took it -- because otherwise the two differ only by colour, and the win is
+                     * the half that explains the points. The bracket can leave the winner's side
+                     * blank; a grid cannot, since every cell has to say what happened in that
+                     * pairing. Games stay out of it: nobody racked a frame.
+                     */
+                    if (k.forfeit) {
+                      return k.iForfeited
+                        ? <td key={c.entrantId} className="season-cell season-none" title="Forfeited — did not play">FF</td>
+                        : <td key={c.entrantId} className="season-cell season-score season-w" title="Won by forfeit — opponent did not play">W</td>
+                    }
                     if (k.mine == null || k.theirs == null) {
                       return <td key={c.entrantId} className="season-cell season-none" title="Played, score not recorded">–</td>
                     }
@@ -176,6 +189,7 @@ export function SeasonStandingsMatrix({
         <span><i className="not-italic text-[var(--gold)]">▮</i> gold edge = reached the playoffs</span>
         <span><i className="not-italic text-[var(--gold)]">·</i> no match recorded</span>
         <span><i className="not-italic text-[var(--gold)]">–</i> played, score not recorded</span>
+        <span><i className="not-italic text-[var(--gold)]">FF</i> forfeited · <i className="not-italic text-[var(--gold)]">W</i> won by forfeit</span>
       </footer>
     </section>
   )
@@ -316,13 +330,29 @@ function orderByPoints(rows: StageStandingRow[]): StageStandingRow[] {
 const pctOf = (r: StageStandingRow) => (r.gamesWon + r.gamesLost === 0 ? 0 : r.gamesWon / (r.gamesWon + r.gamesLost))
 const gamePct = (r: StageStandingRow) => (r.gamesWon + r.gamesLost === 0 ? '–' : `${Math.round(pctOf(r) * 100)}%`)
 
-/** Every recorded meeting, keyed both ways round so each row reads from its own point of view. */
-function headToHead(matches: StageMatch[]): Map<string, { mine: number | null; theirs: number | null }> {
-  const out = new Map<string, { mine: number | null; theirs: number | null }>()
+/**
+ * Every recorded meeting, keyed both ways round so each row reads from its own point of view.
+ *
+ * `iForfeited` travels with the pair because a forfeit has no score to show. It used to be dropped
+ * here, so both sides of a walkover fell through to "played, score not recorded" -- a dash that
+ * reads as missing data. A player who won three matches on forfeits showed three dashes and a
+ * points total nothing on the row accounted for.
+ */
+function headToHead(matches: StageMatch[]): Map<string, Cell> {
+  const out = new Map<string, Cell>()
   for (const m of matches) {
     if (m.homeEntrantId == null || m.awayEntrantId == null) continue
-    out.set(`${m.homeEntrantId}|${m.awayEntrantId}`, { mine: m.homeGames, theirs: m.awayGames })
-    out.set(`${m.awayEntrantId}|${m.homeEntrantId}`, { mine: m.awayGames, theirs: m.homeGames })
+    const ff = m.forfeitEntrantId
+    out.set(`${m.homeEntrantId}|${m.awayEntrantId}`, {
+      mine: m.homeGames, theirs: m.awayGames,
+      forfeit: ff != null, iForfeited: ff != null && ff === m.homeEntrantId,
+    })
+    out.set(`${m.awayEntrantId}|${m.homeEntrantId}`, {
+      mine: m.awayGames, theirs: m.homeGames,
+      forfeit: ff != null, iForfeited: ff != null && ff === m.awayEntrantId,
+    })
   }
   return out
 }
+
+interface Cell { mine: number | null; theirs: number | null; forfeit: boolean; iForfeited: boolean }
