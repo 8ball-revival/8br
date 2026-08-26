@@ -78,22 +78,37 @@ try {
    * work. What must not survive is a script that still names a fixture account, which is the thing
    * that would quietly recreate or reference one.
    */
-  const FIXTURE_HANDLES = /zz_ui_test_admin|zz_ui_probe|zz_browser_test_admin|browser-harness/
-  const fixtureScripts = FILES.filter((f) => f.startsWith('scripts/') && FIXTURE_HANDLES.test(read(f)))
+  /*
+   * The accounts the harness creates, named exactly.
+   *
+   * These checks used to look for any handle beginning `zz_`, on the assumption that nobody real
+   * would choose one. Somebody did — a member registered `zz_lazyass_zz`, with a Player profile and
+   * a Season entry — so the suite reported a live member as leftover test data on every run. A name
+   * is a weak signal of what an account IS; the reliable statement is that these four fixtures must
+   * not survive their own cleanup.
+   *
+   * The cost of naming them is that a NEW fixture handle has to be added here too. That is the right
+   * cost: the scan above already fails if any script still references a fixture account, so a new
+   * one cannot arrive silently, and it should be registered deliberately as these four were.
+   */
+  const FIXTURE_ACCOUNTS = ['zz_ui_test_admin', 'zz_ui_probe', 'zz_browser_test_admin', 'browser-harness'] as const
+  const FIXTURE_PATTERN = new RegExp(FIXTURE_ACCOUNTS.join('|'))
+  const inList = (col: string) => `${col} IN (${FIXTURE_ACCOUNTS.map((h) => `'${h}'`).join(', ')})`
+  const fixtureScripts = FILES.filter((f) => f.startsWith('scripts/') && FIXTURE_PATTERN.test(read(f)))
   check('no leftover script still references a fixture account', fixtureScripts.length === 0, fixtureScripts.join(', '))
 
   section('No test account remains in the database')
   const raw = <T>(sql: string, ...a: unknown[]) => prisma.$queryRawUnsafe<T[]>(sql, ...a)
   const n = async (sql: string, ...a: unknown[]) => Number((await raw<{ c: bigint }>(sql, ...a))[0].c)
 
-  check('no user with a testing handle', await n(`SELECT count(*) c FROM payload.users WHERE username LIKE 'zz\\_%'`) === 0)
+  check('no user with a fixture handle', await n(`SELECT count(*) c FROM payload.users WHERE ${inList('username')}`) === 0)
   check('...nor a non-deliverable test address',
     await n(`SELECT count(*) c FROM payload.users WHERE email LIKE '%@local.invalid'`) === 0)
   check('...nor a Player profile for one',
-    (await prisma.player.count({ where: { cueverseId: { startsWith: 'zz_' } } })) === 0)
-  check('...nor an alias', (await prisma.playerAlias.count({ where: { alias: { startsWith: 'zz_' } } })) === 0)
+    (await prisma.player.count({ where: { cueverseId: { in: [...FIXTURE_ACCOUNTS] } } })) === 0)
+  check('...nor an alias', (await prisma.playerAlias.count({ where: { alias: { in: [...FIXTURE_ACCOUNTS] } } })) === 0)
   check('...nor a fixture audit entry',
-    (await prisma.auditLog.count({ where: { actorUsername: { in: ['browser-harness', 'zz_ui_test_admin', 'zz_ui_probe', 'zz_browser_test_admin'] } } })) === 0)
+    (await prisma.auditLog.count({ where: { actorUsername: { in: [...FIXTURE_ACCOUNTS] } } })) === 0)
 
   section('Nothing was orphaned by the cleanup')
   check('no session belongs to a user that is gone',
@@ -144,12 +159,20 @@ try {
     const byId = await prisma.player.count({ where: { cueverseIdNormalized: key } })
     if (byId > 0) continue
     /*
-     * A rename leaves the old handle behind as a searchable alias, stripped of separators — and
-     * stored with its original casing, so the comparison has to ignore case. Matching exactly
-     * reported a live account (Aaron, now under another handle) as missing.
+     * The old handle survives as a searchable alias — in one of two shapes.
+     *
+     * A rename stores it stripped of separators; a MERGE stores it verbatim, underscores and all.
+     * Checking only the stripped form reported Ross as missing after his `xlx_rivaldo_xlx` account
+     * was merged into `l_inland_taipan_l`, even though the alias was sitting there the whole time.
+     * Casing is ignored because both paths keep the original.
      */
     const byAlias = await prisma.playerAlias.count({
-      where: { alias: { equals: key.replace(/[^a-z0-9]/g, ''), mode: 'insensitive' } },
+      where: {
+        OR: [
+          { alias: { equals: key, mode: 'insensitive' } },
+          { alias: { equals: key.replace(/[^a-z0-9]/g, ''), mode: 'insensitive' } },
+        ],
+      },
     })
     if (byAlias === 0) missing.push(handle)
   }
