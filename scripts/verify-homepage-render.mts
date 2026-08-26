@@ -89,14 +89,36 @@ section('Top 10 panel')
   check('the subtitle names the current mode and metric',
     html.includes('Season Championships') && html.includes('Season titles'))
 
-  check('preferred name is the primary line', html.includes('Luis'))
-  check('the CueVerse ID is the secondary line', html.includes('xlx_cerebro_xlx'))
+  /*
+   * The identity order is asserted by POSITION now, not by presence.
+   *
+   * These two checks used to be `html.includes('Luis')` and `html.includes('xlx_cerebro_xlx')`,
+   * which are both true whichever way round the two lines are rendered — so they went on passing
+   * when the ordering was inverted, and would have gone on passing if it were inverted again. What
+   * the panel is supposed to guarantee is that the handle LEADS, so that is what is measured.
+   */
+  const handleAt = html.indexOf('xlx_cerebro_xlx')
+  const nameAt = html.indexOf('Luis')
+  check('the CueVerse ID is the primary line', handleAt >= 0 && nameAt >= 0 && handleAt < nameAt,
+    `handle at ${handleAt}, name at ${nameAt}`)
+  check('...and the preferred name follows it', nameAt > handleAt)
   check('a player with no preferred name shows their handle alone', html.includes('indianhacker'))
-  // Gold as an accent on a neutral surface: a translucent gold badge fill renders brown.
-     check('first place carries a gold accent',
-    html.includes('text-brand') && html.includes('bg-[var(--selected-surface)] text-brand'))
-  check('second place carries a silver accent', html.includes('#c8ccd4'))
-  check('third place carries a bronze accent', html.includes('#c49a63'))
+
+  /*
+   * The medal palette is gone, deliberately.
+   *
+   * Second and third place were tinted silver and bronze, and third place carried
+   * `bg-[#b08d57]/15` — a brown laid over a dark panel at 15%, which is exactly the arithmetic the
+   * whole palette rebuild exists to remove. It survived every earlier sweep because it was written
+   * as a raw hex value rather than as a gold token, so nothing recognised it as the same mistake.
+   *
+   * First place keeps gold, because gold means a title and the top of a leaderboard is what it is
+   * for. The rest are neutral, and the rank number tells you which is which.
+   */
+  check('first place carries a gold accent',
+    html.includes('bg-[var(--selected-surface)] text-[var(--gold)]'))
+  check('no silver or bronze tint remains', !html.includes('#c8ccd4') && !html.includes('#c49a63'))
+  check('...and no warm fill was left behind at partial alpha', !html.includes('#b08d57'))
   check('a tie is stated in words, not only by an equal number', html.includes('tied'))
   check('exactly one tie label is rendered for the one tied row',
     (html.match(/>tied</g) ?? []).length === 1, String((html.match(/>tied</g) ?? []).length))

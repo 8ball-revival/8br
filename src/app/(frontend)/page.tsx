@@ -14,6 +14,11 @@ import { RecentResultsCard } from '@/components/home/recent-results'
 import { getHomeNews } from '@/lib/home/news'
 import { getTop10, getTop10Options } from '@/lib/home/top10'
 import { getRecentResults } from '@/lib/home/results'
+import { getAchievements } from '@/lib/achievements'
+import { BreakFeature } from '@/components/home/break-feature'
+import { RankingsSnapshot } from '@/components/home/rankings-snapshot'
+import { AchievementsCarousel } from '@/components/home/achievements-carousel'
+import { StatusRail } from '@/components/cyber/status-rail'
 import { getLatestSnapshot } from '@/lib/cueverse/service'
 import { pageMetadata, brandName } from '@/lib/site'
 
@@ -59,7 +64,7 @@ const secondaryBtn =
 export default async function HomePage() {
   // Everything the page needs, fetched together. Each of these is independently cached, so a busy
   // homepage is a handful of cache reads rather than a dozen aggregate queries.
-  const [hero, stats, almanac, news, top10Options, results, cueverse] = await Promise.all([
+  const [hero, stats, almanac, news, top10Options, results, cueverse, achievements] = await Promise.all([
     getHomepageHero(),
     getRegistryStats(),
     getAlmanac(phoenixDateKey()),
@@ -68,6 +73,13 @@ export default async function HomePage() {
     getRecentResults(),
     // Read from our own snapshot table. The homepage never calls CueVerse.
     getLatestSnapshot(),
+    /*
+     * All eighteen awards in one cached call.
+     *
+     * They share a single load of the archive rather than querying per card, which is the difference
+     * between five round trips and fifty on a page that already makes seven.
+     */
+    getAchievements('YAHOO'),
   ])
 
   // The panel's default view. A device with a saved preference swaps to it after mount, which is why
@@ -148,7 +160,25 @@ export default async function HomePage() {
       </section>
 
       {/*
-        Below the hero: a main column and a sidebar, each packing its own sections tightly.
+        ── The first viewport ────────────────────────────────────────────────────────────────────
+        The Break feature and the rankings snapshot, side by side, then the Achievements strip full
+        width beneath them. This is the order somebody actually wants the site in: what happened,
+        who is winning, and the jokes. The competition tables follow.
+      */}
+      <section className="pt-6">
+        <Wide>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,66fr)_minmax(0,34fr)] lg:items-start">
+            <BreakFeature news={news} />
+            <RankingsSnapshot result={top10} />
+          </div>
+          <div className="mt-4">
+            <AchievementsCarousel achievements={achievements} />
+          </div>
+        </Wide>
+      </section>
+
+      {/*
+        Below: a main column and a sidebar, each packing its own sections tightly.
 
         Each column packs its own sections, so the sidebar puts Recent Results directly under the
         Top 10 rather than waiting for the taller main column to finish — which is what avoids the
@@ -181,6 +211,18 @@ export default async function HomePage() {
       </section>
 
       <ByTheNumbers stats={stats} almanac={almanac} />
+
+      {/*
+        The closing rail. Real registry figures, from the same service "By the Numbers" reads
+        directly above it, so the two can never print different totals on the same screen.
+      */}
+      <Wide>
+        <StatusRail
+          players={stats.players}
+          matches={stats.matchesPlayed}
+          seasons={stats.seasons}
+        />
+      </Wide>
     </>
   )
 }

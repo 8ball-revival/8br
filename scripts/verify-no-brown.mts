@@ -15,7 +15,7 @@
  * meaning: danger, forfeits, destructive confirmation, and nothing decorative.
  */
 import { readFileSync, readdirSync } from 'node:fs'
-import { readDeclarations, resolveToken, parseColor, isNeutral } from './support/color.mts'
+import { readDeclarations, resolveToken, parseColor, isNeutral, hexToPolar } from './support/color.mts'
 
 let pass = 0
 let fail = 0
@@ -80,6 +80,37 @@ try {
   const named = FILES.filter((f) => /\b(brown|bronze|sepia|tan-\d|copper)\b/i.test(codeOf(f)))
     .map((f) => f.replace('src/', ''))
   check('no brown, bronze, sepia, tan or copper by name', named.length === 0, named.join(', '))
+
+  /*
+   * Hex literals, judged by what colour they actually are.
+   *
+   * The Top 10 panel carried `bg-[#b08d57]/15` for third place - a bronze at 15% over a dark panel,
+   * which is precisely the arithmetic every other check in this file exists to forbid. It survived
+   * because the earlier rules all looked for the WORD gold or a --gold token, and this was neither:
+   * it was a raw hex value that happened to be brown.
+   *
+   * So the colour is parsed and its hue is measured. Anything warm (roughly orange through yellow)
+   * that is neither bright nor near-black is a brown, whatever it is called and however it is
+   * spelled. Bright warm values are the acid and the championship gold and are allowed; very dark
+   * ones are effectively black.
+   */
+  section('No hex literal is a brown')
+  {
+    const suspects: string[] = []
+    for (const file of FILES) {
+      for (const m of codeOf(file).matchAll(/#[0-9a-f]{6}\b/gi)) {
+        const polar = hexToPolar(m[0])
+        if (!polar) continue
+        const warm = polar.h >= 40 && polar.h <= 105
+        const midTone = polar.l > 0.25 && polar.l < 0.78
+        const chromatic = polar.c > 0.03
+        if (warm && midTone && chromatic) {
+          suspects.push(`${file.replace('src/', '')}: ${m[0]} (L=${polar.l.toFixed(2)} h=${polar.h.toFixed(0)})`)
+        }
+      }
+    }
+    check('no mid-tone warm hex value is used anywhere', suspects.length === 0, suspects.slice(0, 6).join(' | '))
+  }
 
   section('The semantic surfaces exist, and they are neutral')
   /*

@@ -6,6 +6,7 @@ import { ArrowRight, Crown, Info } from 'lucide-react'
 
 import { fetchTop10Action } from '@/lib/home/top10-actions'
 import type { Top10Option, Top10Result, Top10Row } from '@/lib/home/top10'
+import { identityLines } from '@/lib/identity/display'
 
 /**
  * The 8 Ball Registry Top 10.
@@ -32,21 +33,35 @@ const STORAGE_KEY = '8br.top10.mode'
  * saying. Gold, then silver, then bronze, then neutral.
  */
 function rankBadge(rank: number): string {
-  if (rank === 1) return 'bg-[var(--selected-surface)] text-brand'
-  if (rank === 2) return 'bg-[#c0c4cc]/15 text-[#c8ccd4]'
-  if (rank === 3) return 'bg-[#b08d57]/15 text-[#c49a63]'
+  /*
+   * The medal tints are gone.
+   *
+   * Third place was `bg-[#b08d57]/15` — a bronze laid over a dark panel at 15%, which is the exact
+   * arithmetic that produced every muddy surface this palette was rebuilt to remove. It survived the
+   * earlier sweep only because it was written as a hex literal rather than as a gold token, so
+   * nothing recognised it as the same mistake.
+   *
+   * The rank now reads from its number and its position. Gold marks first place because a title
+   * colour on the top of a leaderboard is what gold is for; the rest are neutral.
+   */
+  if (rank === 1) return 'bg-[var(--selected-surface)] text-[var(--gold)]'
   return 'bg-muted text-muted-foreground'
 }
 
 function Row({ row }: { row: Top10Row }) {
-  // Preferred name leads, CueVerse ID beneath. With no preferred name the ID is the only line.
-  const primary = row.name
-  const secondary = row.handle && row.handle !== row.name ? row.handle : null
+  /*
+   * The handle leads, through the same helper every other surface uses.
+   *
+   * This panel had its own copy of the ordering, written the other way round, so the homepage Top 10
+   * disagreed with the Rankings table it links to. Delegating removes the copy rather than
+   * correcting it.
+   */
+  const { primary, secondary } = identityLines({ cueverseId: row.handle, preferredName: row.name })
 
   return (
     <li className="flex items-center gap-3 border-b border-border/60 py-2 last:border-b-0">
       <span
-        className={`inline-flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums ${rankBadge(row.rank)}`}
+        className={`cyber-clip-sm inline-flex size-7 shrink-0 items-center justify-center text-xs font-semibold tabular-nums ${rankBadge(row.rank)}`}
       >
         {row.rank === 1 ? <Crown className="size-3.5" aria-hidden /> : row.rank}
       </span>
