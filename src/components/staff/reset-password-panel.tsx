@@ -115,7 +115,7 @@ export function ResetPasswordPanel() {
 
       {/* One-time code display */}
       {issued && (
-        <div className="rounded-lg border border-brand/50 bg-[var(--selected-surface)] p-5" style={{ boxShadow: '0 0 0 1px color-mix(in oklch, var(--gold) 35%, transparent)' }}>
+        <div className="cyber-clip border border-brand/50 bg-[var(--selected-surface)] p-5" style={{ boxShadow: '0 0 0 1px color-mix(in oklch, var(--gold) 35%, transparent)' }}>
           <p className="eyebrow text-brand">Temporary access code — {issued.name}</p>
           <div className="mt-2 flex items-center gap-3">
             <span className="font-display text-4xl font-bold tracking-[0.3em] tabular-nums text-foreground" aria-label="temporary code">{issued.code}</span>

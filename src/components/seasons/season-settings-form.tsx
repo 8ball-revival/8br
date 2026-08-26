@@ -199,7 +199,7 @@ function DangerZone({ seasonId, completed, isHeadAdmin }: { seasonId: number; co
   const canDelete = completed ? isHeadAdmin : true
 
   return (
-    <section className="rounded-lg border border-destructive/40 bg-destructive/[0.04] p-4">
+    <section className="cyber-clip border border-destructive/40 bg-destructive/[0.04] p-4">
       <h3 className="text-sm font-bold text-destructive">Danger Zone</h3>
       <p className="mt-1 text-xs text-muted-foreground">
         Permanently delete this Season and everything in it (entrants, groups, results, standings, bracket

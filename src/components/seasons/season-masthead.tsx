@@ -59,7 +59,7 @@ export function SeasonMasthead({
   return (
     <section
       aria-label={`${competitionName} Season ${number}, ${year}`}
-      className="w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--gold-dim)_60%,transparent)] bg-card"
+      className="cyber-clip w-full overflow-hidden border border-[var(--line-strong)] bg-[var(--graphite)]"
     >
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)_minmax(0,1.45fr)]">
         <Identity
@@ -136,7 +136,7 @@ function Identity({
 
       <Link
         href={playoffsHref}
-        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--gold-dim)] bg-[var(--drop-surface)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[var(--drop-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
+        className="inline-flex w-fit items-center gap-1.5 cyber-clip border border-[var(--gold-dim)] bg-[var(--drop-surface)] px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--gold-soft)] transition-colors hover:bg-[var(--drop-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
       >
         View Playoffs <ArrowRight className="size-3.5" aria-hidden />
       </Link>
@@ -181,7 +181,13 @@ function Champion({
     // them made the section tall enough to set the height of the whole masthead, which meant
     // shrinking the trophy to compensate. Across the width, the trophy keeps its presence and the
     // section costs barely more height than a line of text.
-    <div className="flex h-full items-center justify-center gap-3 bg-[radial-gradient(120%_120%_at_50%_0%,color-mix(in_oklch,var(--gold)_11%,transparent),transparent_70%)] px-4 py-3.5">
+    //
+    // A gold RULE, not a gold wash. This panel was backed by a radial gradient of gold at 11% over
+    // the card, and a warm colour at low alpha on a dark surface does not read as a pale gold tint
+    // but as olive-brown. It was the largest remaining instance of that in the interface. The
+    // champion is marked by a lit top edge and by the gold the trophy and the name already carry,
+    // which is stronger and stays gold.
+    <div className="flex h-full items-center justify-center gap-3 border-t-2 border-[var(--gold)] bg-[var(--selected-surface)] px-4 py-3.5">
       <div className="flex shrink-0 flex-col items-center gap-1">
         <ChampionTrophy />
         <p className="whitespace-nowrap text-[0.55rem] font-extrabold uppercase tracking-[0.16em] text-[var(--gold)]">
@@ -223,7 +229,12 @@ function ChampionTrophy() {
     <span className="relative flex size-12 items-center justify-center">
       <span
         aria-hidden
-        className="absolute inset-0 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--gold)_28%,transparent),transparent_68%)]"
+        /*
+        The halo behind the trophy is gone for the same reason, and because a circular glow around a
+        medal is the decorative treatment this design brief rules out by name. The icon keeps its own
+        drop-shadow, which is light rather than a fill and so cannot mix with the surface.
+      */
+        className="absolute inset-0"
       />
       <Trophy
         aria-hidden

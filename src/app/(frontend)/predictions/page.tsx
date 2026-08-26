@@ -24,7 +24,7 @@ export default function PredictionsPage() {
   return (
     <Container className="py-12">
       {/* Coming Soon hero */}
-      <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl border border-border bg-card/40 px-6 py-14 text-center sm:px-12">
+      <div className="relative mx-auto max-w-3xl overflow-hidden cyber-clip border border-border bg-card/40 px-6 py-14 text-center sm:px-12">
         <div className="bg-grid absolute inset-0 opacity-40" aria-hidden />
         <div className="absolute -top-24 left-1/2 h-48 w-96 max-w-[90vw] -translate-x-1/2 rounded-full bg-[var(--selected-surface)] blur-3xl" aria-hidden />
         <div className="relative">
@@ -51,7 +51,7 @@ export default function PredictionsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PLANNED.map((f) => (
             <div key={f.title} className="rounded-none border border-border bg-card/40 p-5">
-              <span className="flex size-10 items-center justify-center rounded-lg border border-brand/20 bg-[var(--selected-surface)] text-brand">
+              <span className="flex size-10 items-center justify-center cyber-clip border border-brand/20 bg-[var(--selected-surface)] text-brand">
                 <f.icon className="size-5" aria-hidden />
               </span>
               <h3 className="mt-4 font-display text-base font-semibold tracking-tight">{f.title}</h3>

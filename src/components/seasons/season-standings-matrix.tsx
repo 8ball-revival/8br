@@ -1,14 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Check, Pencil, X } from 'lucide-react'
 
 import { identityLines, identityText } from '@/lib/identity/display'
 import { cn } from '@/lib/utils'
 import type { StageGroup, StageStandingRow, StageMatch } from '@/lib/seasons/views'
-import { recodeSeasonGroupAction } from '@/lib/seasons/actions'
 
 /**
  * The public group table: a head-to-head matrix with the standings frozen on the right.
@@ -35,16 +32,11 @@ export function SeasonStandingsMatrix({
   group,
   groupStageGames,
   qualified,
-  seasonId,
-  canManage = false,
 }: {
   group: StageGroup
   groupStageGames: number
   /** Entrant ids that appear in the Season's playoff bracket — the ONLY source of the gold edge. */
   qualified: Set<number>
-  seasonId?: number
-  /** Staff only. Renaming is the one edit this otherwise read-only table offers. */
-  canManage?: boolean
 }) {
   const rows = orderByPoints(group.standings)
   const h2h = headToHead(group.matches)
@@ -63,13 +55,15 @@ export function SeasonStandingsMatrix({
         <Chip>Games per match <b className="text-foreground">{groupStageGames}</b></Chip>
 
         {/*
-          Rename sits at the far end of the header, away from the reading order of the chips, so it
-          is findable without competing with the figures. Staff only, and absent entirely for
-          everyone else rather than shown disabled.
+          Rename is gone from the public table.
+
+          It was staff-only, which sounds sufficient and is not: this is a public route, and a public
+          route whose markup changes shape depending on who is reading it has two designs to keep in
+          step with one permission flag between them. The same group could also be renamed from here
+          and from Creator, so whichever screen somebody happened to open decided what they could do.
+
+          Creator's group setup still offers it, so nothing was taken away from an administrator.
         */}
-        {canManage && seasonId != null && (
-          <GroupRename seasonId={seasonId} groupId={group.id} code={group.code} />
-        )}
       </header>
 
       {/* Horizontal scrolling is the deliberate fallback when the matrix genuinely cannot fit —
@@ -134,12 +128,19 @@ export function SeasonStandingsMatrix({
                         label={identityText({ cueverseId: r.cueverseId ?? r.username, preferredName: r.preferredName })}
                         className="min-w-0"
                       >
-                        {/* Preferred name leads here and the ID sits beneath it; with no preferred
-                            name the ID becomes the single bold label rather than being repeated. */}
+                        {/*
+                          The handle leads, matching the column headers of this same table.
+
+                          It used to render `lines.secondary ?? lines.primary` as the bold line —
+                          the preferred name — so a group table named its columns one way and its
+                          rows the other, and the two identities for the same player sat at right
+                          angles to each other. `identityLines` decides which half leads; this only
+                          decides how the two look.
+                        */}
                         <span className={cn('block truncate font-semibold', r.kickedOut && 'text-muted-foreground line-through')}>
-                          {lines.secondary ?? lines.primary}
+                          {lines.primary}
                         </span>
-                        {lines.secondary && <span className="season-id block truncate">{lines.primary}</span>}
+                        {lines.secondary && <span className="season-id block truncate">{lines.secondary}</span>}
                       </PlayerCell>
                     </span>
                   </th>
@@ -218,86 +219,6 @@ function PlayerCell({
     >
       {children}
     </Link>
-  )
-}
-
-/**
- * Rename one group's letter, in place.
- *
- * ── Why it edits the letter and not a separate label ─────────────────────────────────────────────
- * "Group A" is the letter; a second display-only name would leave two things that both look like the
- * group's name and can disagree. Matches and standings reference the group by id, so the letter is
- * free to change without touching a single result.
- *
- * Opens as a text field rather than a dialog: it is one short value, and a modal for four characters
- * is more ceremony than the edit deserves. Enter commits, Escape abandons, and the field starts
- * focused and selected so typing replaces what is there.
- */
-function GroupRename({ seasonId, groupId, code }: { seasonId: number; groupId: number; code: string }) {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [value, setValue] = useState(code)
-  const [error, setError] = useState<string | null>(null)
-  const [pending, start] = useTransition()
-
-  function commit() {
-    const next = value.trim().toUpperCase()
-    if (!next || next === code) { setOpen(false); setError(null); return }
-    start(async () => {
-      const r = await recodeSeasonGroupAction(seasonId, groupId, next)
-      if (r.error) { setError(r.error); return }
-      setOpen(false)
-      setError(null)
-      router.refresh()
-    })
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => { setValue(code); setError(null); setOpen(true) }}
-        aria-label={`Rename group ${code}`}
-        title="Rename this group"
-        className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-      >
-        <Pencil className="size-3.5" aria-hidden />
-        <span className="hidden sm:inline">Rename</span>
-      </button>
-    )
-  }
-
-  return (
-    <span className="ml-auto inline-flex items-center gap-1">
-      <label className="sr-only" htmlFor={`group-code-${groupId}`}>Group name</label>
-      <input
-        id={`group-code-${groupId}`}
-        autoFocus
-        value={value}
-        maxLength={4}
-        disabled={pending}
-        onFocus={(e) => e.currentTarget.select()}
-        onChange={(e) => { setValue(e.target.value); setError(null) }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); commit() }
-          if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setError(null) }
-        }}
-        className="w-16 rounded border border-input bg-card px-2 py-1 text-xs uppercase text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-      />
-      <button
-        type="button" onClick={commit} disabled={pending} aria-label="Save group name"
-        className="grid size-6 place-items-center rounded text-[var(--gold)] hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-      >
-        <Check className="size-3.5" aria-hidden />
-      </button>
-      <button
-        type="button" onClick={() => { setOpen(false); setError(null) }} disabled={pending} aria-label="Cancel rename"
-        className="grid size-6 place-items-center rounded text-muted-foreground hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-      >
-        <X className="size-3.5" aria-hidden />
-      </button>
-      {error && <span role="alert" className="text-[0.7rem] text-[var(--loss)]">{error}</span>}
-    </span>
   )
 }
 

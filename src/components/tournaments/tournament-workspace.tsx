@@ -101,7 +101,7 @@ export function TournamentWorkspace({
   ]
 
   return (
-    <div className="mt-6 rounded-xl border border-brand/30 bg-card/40">
+    <div className="mt-6 cyber-clip border border-brand/30 bg-card/40">
       {/* Admin toolbar */}
       <div className={cn('flex flex-wrap items-center gap-2 border-b border-border px-4', chromeHidden ? 'py-1' : 'py-2.5')}>
         {chromeHidden ? (
@@ -1146,7 +1146,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
       </section>
 
       {canManage && !data.isHistorical && data.tournament.lifecycleState !== 'COMPLETED' && data.tournament.lifecycleState !== 'CANCELLED' && (
-        <section className="rounded-lg border border-[var(--gold)]/45 bg-[var(--attention-surface)] p-4">
+        <section className="cyber-clip border border-[var(--gold)]/45 bg-[var(--attention-surface)] p-4">
           <p className="text-sm font-semibold text-foreground">Cancel Tournament</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Cancel this tournament. It becomes read-only and cannot be resumed except by an Owner recovery. History is preserved (use Delete below to remove it entirely).
@@ -1162,7 +1162,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
       )}
 
       {canManage && !data.isHistorical && (
-        <section className="rounded-lg border border-destructive/30 bg-destructive/[0.05] p-4">
+        <section className="cyber-clip border border-destructive/30 bg-destructive/[0.05] p-4">
           <p className="text-sm font-semibold text-destructive">Danger zone</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Permanently delete this tournament and everything under it (entrants, teams, bracket, results). This cannot be undone. To archive

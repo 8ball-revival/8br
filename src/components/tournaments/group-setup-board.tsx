@@ -114,7 +114,7 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
       onDragLeave={() => setOverCol((c) => (c === col ? null : c))}
       onDrop={() => onDrop(col)}
       className={cn(
-        'flex w-64 shrink-0 flex-col rounded-lg border bg-card/40 transition-colors',
+        'flex w-64 shrink-0 flex-col cyber-clip border bg-card/40 transition-colors',
         overCol === col && dragId != null ? 'border-brand ring-2 ring-brand/40' : 'border-border',
       )}
     >

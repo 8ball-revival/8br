@@ -63,7 +63,7 @@ export function AdminShell({ actor, active, children }: { actor: StaffUser; acti
 export function AdminDenied({ actor, active, label }: { actor: StaffUser; active: AdminSection; label: string }) {
   return (
     <AdminShell actor={actor} active={active}>
-      <div className="rounded-lg border border-destructive/40 bg-destructive/[0.06] p-6">
+      <div className="cyber-clip border border-destructive/40 bg-destructive/[0.06] p-6">
         <p className="font-mono text-sm text-destructive">403 · Forbidden</p>
         <h1 className="mt-1 font-display text-xl font-bold">{label}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Your role does not have permission to open this section. Head-Admin-only areas require the Head Admin designation.</p>

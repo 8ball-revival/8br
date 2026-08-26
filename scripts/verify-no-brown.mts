@@ -94,6 +94,29 @@ try {
    * spelled. Bright warm values are the acid and the championship gold and are allowed; very dark
    * ones are effectively black.
    */
+  /*
+   * The same fill, written as a gradient.
+   *
+   * `bg-[radial-gradient(...,color-mix(in oklch,var(--gold) 11%,transparent),...)]` is a translucent
+   * gold laid over a dark card, which is exactly what every other rule here forbids - but none of
+   * them saw it, because they look for `bg-gold/40` or `bg-[var(--gold)]/10` and this is neither.
+   * The Season champion strip carried the largest instance of it in the interface for months.
+   *
+   * A gradient in a BORDER, a shadow or an icon fill is untouched: those sit above the surface or
+   * are the thing itself, and cannot mix with what is behind them.
+   */
+  section('No warm colour is mixed into a background')
+  {
+    const mixed: string[] = []
+    for (const file of FILES) {
+      for (const m of codeOf(file).matchAll(/\bbg-\[[^\]]*color-mix\([^\]]*--(gold|acid|warning)[^\]]*\]/g)) {
+        mixed.push(`${file.replace('src/', '')}: ${m[0].slice(0, 80)}`)
+      }
+    }
+    check('no background mixes a warm token into a gradient or a tint',
+      mixed.length === 0, mixed.slice(0, 4).join(' | '))
+  }
+
   section('No hex literal is a brown')
   {
     const suspects: string[] = []

@@ -199,14 +199,14 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
 
   if (state === 'DRAFT') {
     return (
-      <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
+      <p className="mt-8 cyber-clip border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
         This tournament isn&apos;t open for registration yet. Check back soon.
       </p>
     )
   }
   if (state === 'CANCELLED') {
     return (
-      <p className="mt-8 rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
+      <p className="mt-8 cyber-clip border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">
         This tournament was cancelled.
       </p>
     )
@@ -252,7 +252,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
       {!isGroups && bracketVisible && (
         <>
           {state === 'BRACKET_GENERATED' && (
-            <div className="mt-6 rounded-lg border border-sky-500/30 bg-sky-500/[0.06] px-4 py-3">
+            <div className="mt-6 cyber-clip border border-sky-500/30 bg-sky-500/[0.06] px-4 py-3">
               <Badge variant="muted">Awaiting Tournament Start</Badge>
               <span className="ml-2 text-sm text-muted-foreground">The bracket is published and under review — results can&apos;t be reported until play begins.</span>
             </div>
@@ -477,7 +477,7 @@ export default async function TournamentDetailPage({ params, searchParams }: { p
       />
 
       {cup.champion && !live && (
-        <div className="mt-4 inline-flex items-center gap-2.5 rounded-lg border border-brand/25 bg-[var(--selected-surface)] px-4 py-2.5">
+        <div className="mt-4 inline-flex items-center gap-2.5 cyber-clip border border-brand/25 bg-[var(--selected-surface)] px-4 py-2.5">
           <Trophy className="size-5 text-brand" aria-hidden />
           <PlayerAvatar name={cup.champion.name} size="sm" />
           <div>

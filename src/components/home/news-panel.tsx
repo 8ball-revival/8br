@@ -125,7 +125,7 @@ function EmptySlot({ variant }: { variant: 'feature' | 'secondary' }) {
   return (
     <div
       className={[
-        'flex overflow-hidden rounded-lg border border-dashed border-border bg-card/20',
+        'flex overflow-hidden cyber-clip border border-dashed border-border bg-card/20',
         feature ? 'flex-col' : 'flex-col sm:flex-row',
       ].join(' ')}
     >

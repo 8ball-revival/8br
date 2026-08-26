@@ -473,7 +473,7 @@ function Choice({ active, onClick, title, body }: { active: boolean; onClick: ()
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'relative rounded-lg border p-3 pl-10 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
+        'relative cyber-clip border p-3 pl-10 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
         active ? 'border-brand bg-[var(--selected-surface)]' : 'border-border bg-card hover:border-border/70',
       )}
     >

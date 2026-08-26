@@ -46,7 +46,7 @@ export function CreatorColumn({
             <Link
               href={a.href}
               className={cn(
-                'group flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
+                'group flex items-center gap-3 cyber-clip border px-4 py-3 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                 a.primary
                   ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)] hover:border-[var(--gold)] hover:bg-[var(--selected-surface)]'

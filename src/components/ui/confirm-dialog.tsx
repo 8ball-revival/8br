@@ -134,7 +134,7 @@ function Dialog({ opts, onClose }: { opts: Active; onClose: () => void }) {
         aria-labelledby={titleId}
         aria-describedby={message ? descId : undefined}
         onKeyDown={onKeyDown}
-        className="relative w-full max-w-md rounded-xl border bg-popover p-5 text-left shadow-2xl"
+        className="relative w-full max-w-md cyber-clip border bg-popover p-5 text-left shadow-2xl"
         style={{ borderColor: accent, boxShadow: `0 0 0 1px ${accent}, 0 0 28px -6px ${glow}` }}
       >
         <h2 id={titleId} className="font-display text-lg font-bold text-foreground">{title}</h2>

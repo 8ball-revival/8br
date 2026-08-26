@@ -84,13 +84,13 @@ export function SeasonCreateForm({
       className="max-w-2xl space-y-5"
       onSubmit={(e) => { e.preventDefault(); submit() }}
     >
-      <div className="rounded-lg border border-[var(--gold)]/30 bg-[var(--selected-surface)] px-4 py-3">
+      <div className="cyber-clip border border-[var(--gold)]/30 bg-[var(--selected-surface)] px-4 py-3">
         <p className="eyebrow text-muted-foreground">This will create</p>
         <p className="mt-0.5 font-display text-lg font-bold text-[var(--gold)]">{preview}</p>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/[0.06] px-4 py-3 text-sm text-destructive">
+        <div className="cyber-clip border border-destructive/40 bg-destructive/[0.06] px-4 py-3 text-sm text-destructive">
           <p className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
             {error}
@@ -153,7 +153,7 @@ export function SeasonCreateForm({
             <label
               key={s.id}
               className={cn(
-                'cursor-pointer rounded-lg border px-3 py-2.5 transition-colors',
+                'cursor-pointer cyber-clip border px-3 py-2.5 transition-colors',
                 structure === s.id
                   ? 'border-[var(--gold)]/50 bg-[var(--selected-surface)]'
                   : 'border-border bg-card/40 hover:border-[var(--gold)]/30',

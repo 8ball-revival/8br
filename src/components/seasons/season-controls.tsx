@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
-import Link from 'next/link'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Minus, Plus, Plus as PlusIcon, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Minus, Plus, Plus as Search } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { FilterField, filterControl } from '@/components/cyber/filter-bar'
 import { divisionLabel } from '@/components/platform/platform-badge'
 import { identityLines } from '@/lib/identity/display'
 import type { CompetitionOption, SeasonOption, SeasonPlayerHit } from '@/lib/seasons/browse'
@@ -32,9 +32,7 @@ export function SeasonControls({
   competitionSlug,
   view,
   neighbours,
-  searchPlayers,
-  settingsHref = null,
-  createHref = null,
+  searchPlayers,
 }: {
   competitions: CompetitionOption[]
   seasons: SeasonOption[]
@@ -51,9 +49,7 @@ export function SeasonControls({
   view: 'groups' | 'playoffs'
   neighbours: { prev: number | null; next: number | null }
   searchPlayers: (q: string) => Promise<SeasonPlayerHit[]>
-  /** Admin only. Null for everyone else, which is what keeps these out of a member's toolbar. */
-  settingsHref?: string | null
-  createHref?: string | null
+  /** Admin only. Null for everyone else, which is what keeps these out of a member's toolbar. */
 }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -209,7 +205,9 @@ export function SeasonControls({
                   onClick={() => go(urlFor({ view: v }))}
                   className={cn(
                     'px-4 py-1.5 text-sm font-semibold capitalize transition-colors',
-                    view === v ? 'bg-[var(--gold)] text-black' : 'bg-card text-muted-foreground hover:text-foreground',
+                    view === v
+                      ? 'bg-[var(--void)] text-[var(--acid)]'
+                      : 'text-[var(--acid-ink)]/70 hover:bg-[var(--acid-ink)]/10 hover:text-[var(--acid-ink)]',
                   )}
                 >
                   {v}
@@ -222,29 +220,15 @@ export function SeasonControls({
               Playoffs view there is nothing here to operate. */}
           {view === 'groups' && <Zoom />}
 
-          {(settingsHref || createHref) && (
-            <Field label="Admin">
-              <div className="flex items-center gap-2">
-                {settingsHref && (
-                  <Link
-                    href={settingsHref}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-none border border-input bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--gold-dim)] focus-visible:outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
-                  >
-                    <SlidersHorizontal className="size-3.5" aria-hidden /> Settings
-                  </Link>
-                )}
-                {createHref && (
-                  <Link
-                    href={createHref}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--gold-dim)] bg-[var(--gold)] px-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--gold-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/45"
-                  >
-                    <PlusIcon className="size-3.5" aria-hidden /> Create Season
-                  </Link>
-                )}
-              </div>
-            </Field>
-          )}
+          {/*
+            The Admin field is gone from the public bar.
 
+            It carried Settings and Create Season, guarded only by a permission flag on a component
+            rendered from a public route. Management belongs in Creator, and a public page that
+            changes shape depending on who is looking at it is a public page with two designs to
+            keep in step. Both destinations still exist and are reachable from Creator; nothing was
+            taken away from an administrator except a second way in.
+          */}
           <div className="ml-auto flex items-end gap-1.5">
             <NavButton
               label="Previous season"
@@ -295,17 +279,21 @@ function useTrackSiteHeaderHeight(): void {
   }, [])
 }
 
-const SELECT =
-  'h-8 min-w-[7.5rem] rounded-none border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25'
+/*
+ * Both of these now delegate to the shared filter primitives.
+ *
+ * They were a second implementation of the same two objects the Rankings bar uses, written before
+ * either bar was acid, and they had already drifted: different heights, different label colour,
+ * different focus ring. More importantly the label was `text-muted-foreground`, which is a mid grey
+ * — invisible on the acid surface this bar became.
+ */
+const SELECT = `${filterControl} h-8 min-w-[7.5rem]`
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-[0.6rem] font-bold uppercase tracking-[0.09em] text-muted-foreground">
-        {label}
-      </label>
+    <FilterField label={label} htmlFor={htmlFor ?? label}>
       {children}
-    </div>
+    </FilterField>
   )
 }
 
@@ -319,7 +307,7 @@ function NavButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-8 min-w-10 items-center justify-center rounded-none border border-input bg-card text-foreground transition-colors hover:border-[var(--gold-dim)] disabled:cursor-not-allowed disabled:opacity-35"
+      className="cyber-clip-sm flex h-8 min-w-10 items-center justify-center border border-[var(--acid-ink)]/30 bg-[var(--void)] text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>
@@ -375,7 +363,7 @@ function Zoom() {
         <ZoomButton label="Decrease text size" disabled={z <= ZOOM_MIN} onClick={() => step(-0.1)}>
           <Minus className="size-3.5" />
         </ZoomButton>
-        <output className="tabular min-w-[3rem] text-center text-xs text-muted-foreground">
+        <output className="tabular min-w-[3rem] text-center text-xs font-semibold text-[var(--acid-ink)]/75">
           {Math.round(z * 100)}%
         </output>
         <ZoomButton label="Increase text size" disabled={z >= ZOOM_MAX} onClick={() => step(0.1)}>
@@ -397,7 +385,7 @@ function ZoomButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-7 items-center justify-center rounded-none border border-input bg-card text-foreground transition-colors hover:border-[var(--gold-dim)] disabled:cursor-not-allowed disabled:opacity-35"
+      className="cyber-clip-sm flex size-7 items-center justify-center border border-[var(--acid-ink)]/30 bg-[var(--void)] text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>
@@ -456,7 +444,7 @@ function PlayerSearch({ searchPlayers }: { searchPlayers: (q: string) => Promise
             spellCheck={false}
             onChange={(e) => load(e.target.value)}
             onFocus={() => { setOpen(true); if (hits.length === 0) load(q) }}
-            className="h-8 w-full min-w-[13rem] rounded-none border border-input bg-card py-1 pl-8 pr-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)] focus-visible:ring-2 focus-visible:ring-[var(--gold)]/25"
+            className="cyber-clip-sm h-8 w-full min-w-[13rem] border border-[var(--acid-ink)]/30 bg-[var(--void)] py-1 pl-8 pr-2 text-sm text-[var(--clean-white)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)]"
           />
         </div>
       </Field>

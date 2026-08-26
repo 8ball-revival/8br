@@ -42,7 +42,7 @@ export function StageComingSoon({
   return (
     <div className="mx-auto max-w-3xl">
       {/* Hero panel */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 px-6 py-12 text-center sm:px-12">
+      <div className="relative overflow-hidden cyber-clip border border-border bg-card/40 px-6 py-12 text-center sm:px-12">
         <div className="bg-grid absolute inset-0 opacity-40" aria-hidden />
         <div
           className="absolute -top-24 left-1/2 h-48 w-96 max-w-[90vw] -translate-x-1/2 rounded-full bg-[var(--selected-surface)] blur-3xl"

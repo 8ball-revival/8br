@@ -1,11 +1,8 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
 
 import { Wide } from '@/components/primitives'
 import { SectionHeader } from '@/components/section-header'
-import { Button } from '@/components/ui/button'
 import { TournamentList } from '@/components/tournaments/tournament-list'
 import { getTournamentList } from '@/lib/tournaments/list'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
@@ -38,10 +35,15 @@ export const metadata: Metadata = pageMetadata({
  * about was a detour with nothing at the end of it.
  */
 export default async function TournamentsPage() {
-  const [tournaments, access] = await Promise.all([getTournamentList(), resolveStaffAccess()])
+  const [tournaments] = await Promise.all([getTournamentList(), resolveStaffAccess()])
   // Drawn only for the capability that actually governs the action. Every route and every mutation
   // behind this button re-checks for itself — a hidden button is not an authorisation check.
-  const canManage = access.status === 'ok' && access.actor.can('manage_competitions')
+  /*
+   * No permission is resolved for this page any more.
+   *
+   * It existed only to decide whether to draw Create Tournament, and a public list that renders
+   * nothing conditional has nothing to ask about the reader. Creation lives in Creator.
+   */
 
   return (
     <Wide name="tournaments" className="py-10">
@@ -50,13 +52,11 @@ export default async function TournamentsPage() {
         title="Tournaments"
         description="8BR tournaments — bracket and group-stage events. Search by player, alias, team, or champion."
       />
-      {canManage && (
-        <div className="mb-6">
-          <Button asChild>
-            <Link href="/tournaments/new"><Plus className="size-4" /> Create Tournament</Link>
-          </Button>
-        </div>
-      )}
+      {/*
+        Create Tournament is gone from the public list, for the same reason Settings and Create
+        Season left the Season bar: a public page must look identical to everybody, and creation
+        belongs in Creator, which is where the route it pointed at already lives.
+      */}
       <Suspense fallback={null}>
         <TournamentList cups={tournaments} />
       </Suspense>

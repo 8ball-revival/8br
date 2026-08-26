@@ -1,5 +1,5 @@
 import 'server-only'
-import type { Prisma } from '@prisma/client'
+import type {} from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/lib/competition/audit'

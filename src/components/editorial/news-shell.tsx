@@ -127,7 +127,7 @@ function CategoryLink({
 /** Shared empty state. Every listing can legitimately be empty, so it should look deliberate. */
 export function NewsEmpty({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border py-16 text-center">
+    <div className="cyber-clip border border-dashed border-border py-16 text-center">
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   )

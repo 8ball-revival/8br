@@ -417,8 +417,18 @@ try {
     check('View Playoffs switches the view in the URL', page.includes("playoffsParams.set('view', 'playoffs')"))
     check('the masthead spans the full width', page.includes('w-full max-w-none px-3'))
     check('the old centred cap is gone from the Season page', !page.includes('max-w-[120rem]'))
-    check('one gold outer border, charcoal dividers inside',
-      /border border-\[color-mix\(in_oklch,var\(--gold-dim\)/.test(mast) && mast.includes('border-t border-border lg:border-l'))
+    /*
+     * The outer border is neutral now, not gold.
+     *
+     * It was `color-mix(in oklch, var(--gold-dim) 60%, transparent)`, and while a border cannot mix
+     * with the surface behind it the way a fill does, ringing the masthead in gold spent the one
+     * colour that is supposed to mean "championship" on a container. Gold inside it - the trophy,
+     * the champion's name, the final score - is what the panel is actually saying.
+     */
+    check('the outer border is structural, not gold',
+      /border border-\[var\(--line-strong\)\]/.test(mast) && mast.includes('border-t border-border lg:border-l'))
+    check('...and gold still marks the champion within it',
+      mast.includes('border-t-2 border-[var(--gold)]'))
     check('the sections stack on narrow screens',
       mast.includes('grid-cols-1 lg:grid-cols-'))
 
@@ -443,18 +453,41 @@ try {
     check('script keeps the variable true to the rendered header',
       controls.includes('ResizeObserver') && controls.includes('--site-header-h'))
     check('exactly one border sits between the two rows',
-      controls.includes('border-b border-nav-border') && !controls.includes('border-y'))
+      controls.includes('border-b-2 border-nav-border') && !controls.includes('border-y'))
+    /*
+     * Still the same rule, on a solid surface.
+     *
+     * Both rows must share the header's background so the two read as one bar. That was asserted as
+     * the literal string `bg-nav-bg/85`; the surface is opaque now, because acid at 85% over the
+     * page renders olive rather than yellow. The assertion is that they MATCH, which is what the
+     * rule was always about.
+     */
     check('both rows share the header background',
-      controls.includes('bg-nav-bg/85') && header.includes('bg-nav-bg/85'))
-    check('the admin controls sit in the toolbar, after Text Size',
-      controls.indexOf('<Zoom />') < controls.indexOf('Create Season'))
-    check('Settings comes before Create Season',
-      controls.indexOf('Settings') < controls.indexOf('Create Season'))
-  check('Create Season is the gold one', /bg-\[var\(--gold\)\][^"]*text-black/.test(controls))
-    check('both are admin-gated, not rendered for everyone',
-      /settingsHref && \(/.test(controls) && /createHref && \(/.test(controls))
-    check('the page only supplies them to an admin',
-      page.includes('settingsHref={canManage ?') && page.includes("createHref={canManageComp ?"))
+      controls.includes('bg-nav-bg') && header.includes('bg-nav-bg')
+      && !controls.includes('bg-nav-bg/') && !header.includes('bg-nav-bg/'))
+    /*
+     * The public control bar has NO management controls, and these three checks are inverted from
+     * what they used to assert.
+     *
+     * They previously required Settings and Create Season to be present, correctly ordered and
+     * correctly gated. Gating was never the point: a public route that renders management controls
+     * for some readers has two designs to keep in step, and the permission flag is the only thing
+     * standing between them. Season creation and editing live in Creator, so the controls are gone
+     * from here rather than hidden here - which is also the only version that cannot regress into
+     * being shown to the wrong person.
+     */
+    /*
+     * Read with the comments stripped.
+     *
+     * The file explains WHY those controls were removed, and naming them in that explanation is the
+     * point of the comment - so a check that scans raw text finds "Create Season" in the very
+     * sentence recording its removal and reports a violation. What renders is what matters.
+     */
+    const controlsCode = controls.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    check('the public bar offers no Settings control', !controlsCode.includes('Settings'))
+    check('...and no Create Season control', !controlsCode.includes('Create Season'))
+    check('...and the page passes no management hrefs into it',
+      !page.includes('settingsHref') && !page.includes('createHref'))
     check('the old Settings block below the masthead is gone',
       !/mt-3 flex justify-end/.test(page))
 

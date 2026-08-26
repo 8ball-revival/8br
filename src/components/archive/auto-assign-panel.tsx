@@ -190,7 +190,7 @@ export function AutoAssignPanel({
             aria-modal="true"
             aria-labelledby="auto-assign-title"
             // Full height on a phone, a panel on a desktop. The body scrolls, not the page.
-            className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-lg border border-border bg-card sm:max-h-[85vh] sm:max-w-3xl sm:rounded-lg"
+            className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-lg border border-border bg-card sm:max-h-[85vh] sm:max-w-3xl sm:cyber-clip"
           >
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
               <div className="min-w-0">

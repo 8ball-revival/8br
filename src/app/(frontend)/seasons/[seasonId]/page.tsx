@@ -158,8 +158,6 @@ export default async function SeasonPage({
           'use server'
           return searchSeasonEntrantsAction(view.id, q)
         }}
-        settingsHref={canManage ? `/seasons/${id}/settings` : null}
-        createHref={canManageComp ? '/seasons/new' : null}
       />
 
       {/* Full bleed: only small responsive gutters, no centred cap, so the masthead and the tables
@@ -213,8 +211,6 @@ export default async function SeasonPage({
                 groupStageGames={view.format.groupStageGames}
                 qualified={qualified}
                 state={state}
-                seasonId={view.id}
-                canManage={canManageComp}
               />
             )
           ) : (

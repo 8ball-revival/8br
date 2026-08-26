@@ -132,7 +132,7 @@ export function SeasonGroupSetup({
 
 function Panel({ title, count, tone, children, onRename, onDelete }: { title: string; count?: number; tone?: 'muted'; children: React.ReactNode; onRename?: () => void; onDelete?: () => void }) {
   return (
-    <div className={cn('rounded-lg border p-3', tone === 'muted' ? 'border-dashed border-border bg-background/40' : 'border-border bg-card/40')}>
+    <div className={cn('cyber-clip border p-3', tone === 'muted' ? 'border-dashed border-border bg-background/40' : 'border-border bg-card/40')}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-foreground">{title} {count != null && <span className="text-xs text-muted-foreground">({count})</span>}</p>
         <div className="flex items-center gap-2">

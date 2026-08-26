@@ -142,7 +142,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-[var(--gold-dim)] bg-surface">
+      <div className="divide-y divide-border/60 overflow-hidden cyber-clip border border-[var(--gold-dim)] bg-surface">
         {/* Identity */}
         <section className="p-6">
           <p className={eyebrow}><Diamond className="size-3.5 fill-[var(--gold-soft)] text-[var(--gold-soft)]" aria-hidden /> Season Identity</p>
@@ -300,7 +300,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
 
       {/* Review rail */}
       <div>
-        <div className="sticky top-4 overflow-hidden rounded-xl border border-[var(--gold-dim)] bg-surface">
+        <div className="sticky top-4 overflow-hidden cyber-clip border border-[var(--gold-dim)] bg-surface">
           <div className="border-b border-border/60 p-5">
             <h3 className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[var(--gold)]">Review</h3>
             <p className="font-display text-lg font-bold text-foreground">{subtitle.trim() || officialTitle}</p>

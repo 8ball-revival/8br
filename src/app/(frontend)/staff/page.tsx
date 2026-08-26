@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: 'Admin · 8 Ball Registry', robots: {
 
 function StatCard({ label, value, href, tone }: { label: string; value: number; href?: string; tone?: 'attention' }) {
   const body = (
-    <div className={`rounded-lg border bg-card/40 p-4 transition-colors ${href ? 'hover:border-brand/50' : ''} ${tone === 'attention' && value > 0 ? 'border-brand/50' : 'border-border'}`}>
+    <div className={`cyber-clip border bg-card/40 p-4 transition-colors ${href ? 'hover:border-brand/50' : ''} ${tone === 'attention' && value > 0 ? 'border-brand/50' : 'border-border'}`}>
       <p className="eyebrow text-muted-foreground">{label}</p>
       <p className={`mt-1 font-display text-2xl font-bold tracking-tight ${tone === 'attention' && value > 0 ? 'text-brand' : ''}`}>{value}</p>
     </div>

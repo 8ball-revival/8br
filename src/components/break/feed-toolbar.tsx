@@ -52,7 +52,7 @@ export function FeedToolbar({
   }
 
   return (
-    <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-3">
+    <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur sm:mx-0 sm:cyber-clip sm:border sm:px-3">
       <div className="flex flex-wrap items-center gap-2">
         <nav aria-label="Sort the feed" className="flex items-center gap-1">
           {SORTS.map(({ key, label, Icon }) => {

@@ -67,7 +67,7 @@ export default async function PenaltiesPage({ searchParams }: SP) {
             </div>
           )
         })}
-        {penalties.length === 0 && <p className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">No penalties match this filter.</p>}
+        {penalties.length === 0 && <p className="cyber-clip border border-dashed border-border bg-card/30 px-4 py-10 text-center text-sm text-muted-foreground">No penalties match this filter.</p>}
       </div>
     </AdminShell>
   )

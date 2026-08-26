@@ -393,7 +393,7 @@ function DraftBracket({
 }) {
   if (!hasDraft) {
     return (
-      <div className="flex min-h-[12rem] items-center justify-center rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+      <div className="flex min-h-[12rem] items-center justify-center cyber-clip border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
         Select the participants, then Generate Bracket to lay out the draw.
       </div>
     )

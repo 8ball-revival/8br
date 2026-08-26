@@ -202,7 +202,7 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
       </div>
 
       {/* The only scroller: the page itself never scrolls sideways. */}
-      <div className="scrollbar-themed max-h-[78vh] overflow-auto rounded-lg border border-[var(--bracket-outline)] bg-[var(--bracket-canvas)]">
+      <div className="scrollbar-themed max-h-[78vh] overflow-auto cyber-clip border border-[var(--bracket-outline)] bg-[var(--bracket-canvas)]">
         <div className="flex min-w-max items-start gap-3 p-2" style={{ fontSize: `${zoom}rem` }}>
           {rounds.map((round) => (
             <section key={round.key} className="min-w-[13rem] shrink-0">
@@ -448,7 +448,7 @@ export function ChampionBanner({ champion, championCueverseId, runnerUp, runnerU
   byForfeit: boolean
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 cyber-clip border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2">
       <Crown className="size-4 text-[var(--gold)]" aria-hidden />
       <span className="font-display font-bold text-[var(--gold)]">
         {identityText({ cueverseId: championCueverseId, preferredName: champion })}
@@ -471,7 +471,7 @@ export function ChampionBanner({ champion, championCueverseId, runnerUp, runnerU
 
 export function NoBracketYet() {
   return (
-    <p className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+    <p className="flex items-center gap-2 cyber-clip border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
       <Trophy className="size-4" aria-hidden /> The bracket is being prepared.
     </p>
   )

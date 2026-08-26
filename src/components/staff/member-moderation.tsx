@@ -139,7 +139,7 @@ function WithdrawPreview({ regs }: { regs: { tournament: string; status: string 
 function ModCard({ icon: Icon, title, tone, children }: { icon: typeof Clock; title: string; tone: 'warning' | 'destructive' | 'muted' | 'default'; children: React.ReactNode }) {
   const border = tone === 'destructive' ? 'border-destructive/30' : tone === 'warning' ? 'border-warning/30' : 'border-border'
   return (
-    <div className={`space-y-3 rounded-lg border ${border} bg-card/40 p-4`}>
+    <div className={`space-y-3 cyber-clip border ${border} bg-card/40 p-4`}>
       <h3 className="flex items-center gap-2 text-sm font-semibold"><Icon className="size-4 text-muted-foreground" aria-hidden /> {title}</h3>
       {children}
     </div>

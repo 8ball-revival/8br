@@ -32,7 +32,7 @@ export function RecordDetail({
       {/* ── State banner ─────────────────────────────────────────────────── */}
       <div
         className={cn(
-          'rounded-lg border p-4',
+          'cyber-clip border p-4',
           reopened ? 'border-[var(--streak-cold)]/50 bg-white/[0.03]' : 'border-[var(--gold)]/40 bg-white/[0.03]',
         )}
       >

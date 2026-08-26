@@ -187,7 +187,7 @@ function CloseRegistration({ tournamentId, onDone }: { tournamentId: number; onD
   })
 
   return (
-    <div className="rounded-lg border border-brand/30 bg-[var(--selected-surface)] p-4">
+    <div className="cyber-clip border border-brand/30 bg-[var(--selected-surface)] p-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">Close registration</p>

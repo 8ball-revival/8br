@@ -137,7 +137,7 @@ export function CreatorSettings({
           className="fixed inset-0 z-50 flex justify-end bg-black/60 p-0 sm:p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
         >
-          <div className="flex h-full w-full flex-col overflow-hidden border border-border bg-card sm:max-w-lg sm:rounded-lg">
+          <div className="flex h-full w-full flex-col overflow-hidden border border-border bg-card sm:max-w-lg sm:cyber-clip">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
               <div className="min-w-0">
                 <h2 className="font-display text-lg font-bold">Settings</h2>
@@ -296,7 +296,7 @@ function Section({ title, tone, children }: { title: string; tone?: 'danger'; ch
   return (
     <section>
       <h3 className={cn('eyebrow mb-2', tone === 'danger' ? 'text-destructive' : 'text-foreground')}>{title}</h3>
-      <div className={cn('space-y-1.5 rounded-lg border p-3', tone === 'danger' ? 'border-destructive/30 bg-destructive/[0.04]' : 'border-border bg-background/40')}>
+      <div className={cn('space-y-1.5 cyber-clip border p-3', tone === 'danger' ? 'border-destructive/30 bg-destructive/[0.04]' : 'border-border bg-background/40')}>
         {children}
       </div>
     </section>

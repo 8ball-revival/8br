@@ -35,7 +35,7 @@ export function TournamentReportLoss({
 
   if (done) {
     return (
-      <p role="status" className="rounded-lg border border-success/30 bg-success/[0.06] px-4 py-3 text-sm text-success">
+      <p role="status" className="cyber-clip border border-success/30 bg-success/[0.06] px-4 py-3 text-sm text-success">
         {msg?.text ?? 'Your loss was reported and your opponent advanced.'}
       </p>
     )

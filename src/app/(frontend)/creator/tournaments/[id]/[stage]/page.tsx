@@ -113,7 +113,7 @@ export default async function CreatorTournamentStagePage({
           initialTab={TAB_FOR[stage]}
         />
       ) : (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+        <p className="cyber-clip border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
           This Tournament has no live workspace yet. It may be an imported record whose data lives in
           the archive snapshot rather than in the live tables.
         </p>

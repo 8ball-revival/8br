@@ -21,16 +21,11 @@ export function SeasonGroupsView({
   groupStageGames,
   qualified,
   state,
-  seasonId,
-  canManage = false,
 }: {
   groups: StageGroup[]
   groupStageGames: number
   qualified: Set<number>
   state: SeasonState
-  seasonId?: number
-  /** Staff only: enables the per-group rename control in each table header. */
-  canManage?: boolean
 }) {
   if (groups.length === 0) {
     return (
@@ -89,8 +84,6 @@ export function SeasonGroupsView({
             group={g}
             groupStageGames={groupStageGames}
             qualified={qualified}
-            seasonId={seasonId}
-            canManage={canManage}
           />
         ))}
       </div>

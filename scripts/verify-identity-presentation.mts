@@ -138,6 +138,30 @@ section('No surface prints a bare preferred name')
     offenders.length === 0, offenders.slice(0, 8).join(', '))
 }
 
+section('Nothing promotes the preferred name over the handle')
+{
+  /*
+   * The inversion this exists for, which the bare-name scan could not see.
+   *
+   * The Season group matrix rendered `lines.secondary ?? lines.primary` as its bold line. That is
+   * not a bare preferred name - it goes through `identityLines` correctly and then deliberately
+   * prints the SECOND line first - so every other check here passed while the table named its
+   * columns by handle and its rows by preferred name, at right angles to each other in one grid.
+   *
+   * The expression has exactly one purpose, which is to promote the name, so its presence is the
+   * violation. Comments are stripped so the sentence above does not report itself.
+   */
+  const offenders: string[] = []
+  for (const file of tsxFiles('src')) {
+    const code = readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '')
+    if (/\.secondary\s*\?\?\s*[\w.]*\.primary/.test(code)) offenders.push(file.replace('src/', ''))
+  }
+  check('no component falls back from the secondary line to the primary one',
+    offenders.length === 0, offenders.join(', '))
+}
+
 section('Identity is resolved through the canonical player, not by name')
 {
   /*

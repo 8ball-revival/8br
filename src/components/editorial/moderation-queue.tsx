@@ -65,7 +65,7 @@ export function ModerationQueue({
 
   if (total === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border py-14 text-center">
+      <div className="cyber-clip border border-dashed border-border py-14 text-center">
         <p className="text-sm text-muted-foreground">Nothing is waiting for a decision.</p>
       </div>
     )
