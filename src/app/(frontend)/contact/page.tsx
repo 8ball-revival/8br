@@ -1,92 +1,104 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Construction } from 'lucide-react'
 
 import { CyberPage, CyberPanel, SectionHeading } from '@/components/cyber/primitives'
+import { DiscordContactButton } from '@/components/identity/discord-contact-button'
 
 export const metadata: Metadata = {
-  title: 'Report an error',
-  description: 'Report an inaccuracy in the 8 Ball Registry archive.',
+  title: 'Contact',
+  description: 'How to reach 8 Ball Registry while the site is under construction.',
   alternates: { canonical: '/contact' },
 }
 
 /**
- * Where "Submit ticket" goes.
+ * Where "Submit ticket" and the footer's Contact link land.
  *
- * ── Why this page exists rather than a ticket system ─────────────────────────────────────────────
- * The homepage now invites people to report archive errors, so that invitation needs somewhere real
- * to land. There is no ticketing system on this site, and building one — a collection, a status
- * workflow, an admin queue — is a large feature that nobody asked for. What a correction actually
- * needs is a message containing the right five facts, so this page asks for those five facts and
- * hands them to whatever channel is configured.
+ * ── Why the Discord handle is shown as text AND as a button ──────────────────────────────────────
+ * Discord has no reliable way to open a DM from a bare username — the `discord.com/users/…` route
+ * takes a numeric snowflake, not a handle, so linking `…/users/stepatdis` produces a dead page. That
+ * is exactly the fabricated-link problem the shared `DiscordContactButton` was written to avoid: it
+ * copies the handle instead, and only opens a real URL when it is given one.
  *
- * ── The address is configuration, not a literal ──────────────────────────────────────────────────
- * `NEXT_PUBLIC_REPORT_EMAIL` supplies the destination. It is deliberately not hardcoded: inventing a
- * plausible-looking address would produce a button that silently goes nowhere, which is worse than
- * no button. With nothing configured the page says so plainly and still tells somebody what to
- * gather, so the report survives until there is a channel to send it to.
+ * So the icon does the useful thing (one click, handle on the clipboard) and the handle is printed
+ * beside it so somebody can simply read it. The moment there is a snowflake ID or an invite link,
+ * passing it to the same component turns the icon into a genuine link with no other change.
+ *
+ * ── Why the correction guidance stays ────────────────────────────────────────────────────────────
+ * The homepage's archive notice points here with "Found a mistake?", so the page has to tell
+ * somebody what a useful correction contains. It is short and sits under the contact details rather
+ * than above them.
  */
-const REPORT_EMAIL = process.env.NEXT_PUBLIC_REPORT_EMAIL?.trim() || null
+const DISCORD_HANDLE = 'stepatdis'
 
 const WHAT_TO_INCLUDE = [
-  ['Where', 'The Season or Tournament, and the group or round if you know it. A link to the page is ideal.'],
-  ['Who', 'The players involved, by CueVerse ID where you can — there are six players called Chris.'],
+  ['Where', 'The Season or Tournament, and the group or round. A link to the page is ideal.'],
+  ['Who', 'The players involved, by CueVerse ID where you can. There are six players called Chris.'],
   ['What is wrong', 'The value as shown, and what it should be.'],
-  ['How you know', 'A screenshot, an archived page, or simply that you were there. All three are useful.'],
 ] as const
 
 export default function ContactPage() {
-  const subject = encodeURIComponent('8 Ball Registry — archive correction')
-  const body = encodeURIComponent(
-    'Where (season/tournament, group or round):\n\n'
-    + 'Who (players, CueVerse IDs):\n\n'
-    + 'What is wrong (shown vs correct):\n\n'
-    + 'How you know (link, screenshot, memory):\n\n',
-  )
-
   return (
     <CyberPage width="narrow">
       <header className="mb-5 border-b-2 border-[var(--hot-red)] pb-3">
         <p className="eyebrow text-[var(--hot-red)]">The Registry</p>
-        <h1 className="mt-1 font-display text-3xl font-bold uppercase tracking-tight">Report an error</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Nearly fifty seasons were reconstructed by hand from archived pages, bracket images and
-          partial standings. Some of it is wrong. Telling us which part is the fastest way to fix it.
-        </p>
+        <h1 className="mt-1 font-display text-3xl font-bold uppercase tracking-tight">Contact</h1>
       </header>
 
-      <CyberPanel className="mb-4">
-        <SectionHeading title="What to include" />
+      <CyberPanel tone="danger" className="mb-4">
+        <div className="flex items-start gap-3">
+          <Construction className="mt-0.5 size-5 shrink-0 text-[var(--hot-red)]" aria-hidden />
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-bold uppercase tracking-[0.14em] text-[var(--hot-red)]">
+              Under construction
+            </h2>
+            <p className="mt-2 text-sm text-foreground">
+              8 Ball Registry is still being built. Pages, results and rankings are being added and
+              corrected as the archive is reconstructed, so things will move around for a while yet.
+            </p>
+          </div>
+        </div>
+      </CyberPanel>
+
+      <CyberPanel>
+        <SectionHeading title="Get in touch" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          For now the fastest way to reach the site is Discord.
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {/*
+            The button copies the handle rather than pretending to open a DM — see the note above.
+            The handle is printed next to it so it can also just be read.
+          */}
+          <DiscordContactButton discord={DISCORD_HANDLE} name="8 Ball Registry" />
+          <span className="tabular select-all text-base font-bold text-[var(--cyan)]">
+            {DISCORD_HANDLE}
+          </span>
+        </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          The icon copies the handle to your clipboard. Discord cannot open a direct message from a
+          username alone, so there is nothing to link to yet.
+        </p>
+      </CyberPanel>
+
+      <CyberPanel className="mt-4">
+        <SectionHeading title="Reporting an archive error" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          Nearly fifty seasons were reconstructed by hand, so some of it is wrong. If you are
+          reporting a mistake, these three things are what make it fixable:
+        </p>
         <dl className="mt-3 space-y-3">
           {WHAT_TO_INCLUDE.map(([term, detail]) => (
             <div key={term}>
-              <dt className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--cyan)]">{term}</dt>
+              <dt className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--cyan)]">
+                {term}
+              </dt>
               <dd className="mt-0.5 text-sm text-foreground">{detail}</dd>
             </div>
           ))}
         </dl>
-      </CyberPanel>
-
-      <CyberPanel tone={REPORT_EMAIL ? 'default' : 'danger'}>
-        <SectionHeading title="Send it" />
-        {REPORT_EMAIL ? (
-          <>
-            <p className="mt-3 text-sm text-muted-foreground">
-              This opens your mail client with the four headings already filled in.
-            </p>
-            <a
-              href={`mailto:${REPORT_EMAIL}?subject=${subject}&body=${body}`}
-              className="cyber-clip-sm mt-4 inline-flex items-center bg-[var(--acid)] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[var(--acid-ink)] transition-colors hover:bg-[var(--acid-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            >
-              Open a correction report
-            </a>
-          </>
-        ) : (
-          <p className="mt-3 text-sm text-foreground">
-            No reporting address is configured on this deployment yet, so there is nothing to send to
-            from here. Gather the four things above and pass them to whoever runs the site — they are
-            what a correction needs regardless of how it arrives.
-          </p>
-        )}
       </CyberPanel>
 
       <p className="mt-5 text-sm text-muted-foreground">
