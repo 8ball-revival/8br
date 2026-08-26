@@ -5,6 +5,7 @@ import { RankingsExplorer } from '@/components/rankings/rankings-explorer'
 import { decodeRankingsState, aggregateFilters } from '@/lib/stats/rankings-columns'
 import { Wide } from '@/components/primitives'
 import { pageMetadata } from '@/lib/site'
+import { prisma } from '@/lib/prisma'
 import { getRegistryStats } from '@/lib/stats/registry-stats'
 import { StatusRail } from '@/components/cyber/status-rail'
 
@@ -39,7 +40,26 @@ export default async function RankingsPage({
     else if (Array.isArray(v) && v[0] != null) params.set(k, v[0])
   }
 
-  const state = decodeRankingsState(params)
+  const requested = decodeRankingsState(params)
+
+  /*
+   * The default platform is whichever one has ranked players.
+   *
+   * `decodeRankingsState` defaults to CueVerse, and on a deployment whose live platform has no
+   * ranked matches yet that is a URL with no parameters resolving to an empty table — the page
+   * appears broken to anybody arriving from the navigation, which is exactly what was happening
+   * here with forty-eight Yahoo seasons sitting behind it.
+   *
+   * Only the DEFAULT falls back. An explicit `?platform=` is always honoured, including when it
+   * legitimately has no rows, because a reader who asked for a specific ladder should be told it is
+   * empty rather than quietly shown a different one.
+   */
+  const platformWasExplicit = params.has('platform')
+  let state = requested
+  if (!platformWasExplicit) {
+    const cueverseCount = await prisma.ratingLedger.count({ where: { platform: 'CUEVERSE' }, take: 1 })
+    if (cueverseCount === 0) state = { ...requested, platform: 'YAHOO' }
+  }
 
   const [rows, facets, freshness, stats] = await Promise.all([
     // Permanently the official all-time overall table — see the note in RankingsExplorer.

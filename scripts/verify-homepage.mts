@@ -12,9 +12,7 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { pickFeaturedId, hourBucket, getHomeNews } from '../src/lib/home/news.ts'
 import { getTop10, getTop10Options, normaliseMode, type Top10Mode } from '../src/lib/home/top10.ts'
-import { computeRecentResults } from '../src/lib/home/results.ts'
 import { computeRegistryStats, FIXED_COUNTRIES } from '../src/lib/stats/registry-stats.ts'
-import { computeOnThisDay } from '../src/lib/stats/on-this-day.ts'
 import { getLadder } from '../src/lib/stats/ladder.ts'
 import { parseStatsPayload, sanitiseName, checksumOf, ProviderError, TOP_N } from '../src/lib/cueverse/provider.ts'
 import { refreshCueVerseLeaderboard, readLatestSnapshot } from '../src/lib/cueverse/service.ts'
@@ -405,35 +403,15 @@ async function main() {
   }
   void before
 
-  // ========================================================================= recent results
-  section('Recent Results')
-
-  {
-    const results = await computeRecentResults(3)
-    check('at most three results are returned', results.length <= 3)
-    check('they are newest first',
-      results.every((r, i) => i === 0 || r.completedAt <= results[i - 1].completedAt))
-    check('every result names both players',
-      results.every((r) => r.homeName.trim() !== '' && r.awayName.trim() !== ''))
-    check('every result has a recorded score',
-      results.every((r) => Number.isInteger(r.homeGames) && Number.isInteger(r.awayGames)))
-    check('every result links to its competition', results.every((r) => r.href.startsWith('/')))
-    check('every result has a competition name', results.every((r) => r.competitionName.trim() !== ''))
-    check('identities are unique per result row', new Set(results.map((r) => r.key)).size === results.length)
-  }
-  {
-    // Legitimacy: the shared definition must exclude everything the specification lists.
-    const excluded = await prisma.$queryRawUnsafe<{ n: bigint }[]>(`
-      SELECT count(*)::bigint AS n FROM "public"."season_playoff_match"
-       WHERE "status" IN ('COMPLETED','FORFEIT')
-         AND (btrim(coalesce("homeUsername",'')) = '' OR btrim(coalesce("awayUsername",'')) = '')
-    `)
-    const byeCount = Number(excluded[0].n)
-    const results = await computeRecentResults(200)
-    check('byes and empty bracket slots are excluded',
-      results.every((r) => r.homeName.trim() !== '' && r.awayName.trim() !== ''),
-      `${byeCount} such rows exist in the data`)
-  }
+  /*
+   * Recent Results and On This Day were removed with the services they tested.
+   *
+   * The homepage was rebuilt: Recent Results (the most recently played matches) was replaced by
+   * Season Results (who won each Season), and the On This Day almanac is gone entirely along with
+   * on-this-day.ts and archive-fact.ts, whose only remaining consumers were these tests. The checks
+   * were not failing - they described code that no longer exists. The panels that replaced them are
+   * covered by verify-homepage-render.
+   */
 
   // ========================================================================= by the numbers
   section('By the Numbers')
@@ -539,70 +517,6 @@ async function main() {
       check('reopening a Season withdraws its championship', true,
         'no Season whose champion won only that one — nothing to exercise')
     }
-  }
-
-  // ========================================================================= on this day
-  section('On This Day')
-
-  {
-    const events = await computeOnThisDay()
-    check('events are returned without error', Array.isArray(events))
-    check('every event has a stable id', events.every((e) => e.id.length > 0))
-    check('ids are unique — duplicates are suppressed', new Set(events.map((e) => e.id)).size === events.length)
-    check('every event has a description built from stored values', events.every((e) => e.description.trim() !== ''))
-    check('every event is from an earlier year',
-      events.every((e) => e.year < new Date().getUTCFullYear()))
-  }
-  {
-    // A championship and the final that decided it must not both appear for the same pairing.
-    /*
-      A championship shows on its anniversary only when the recorded date is a genuine PLAY date —
-      that is, when the stamped year agrees with the competition's own year. Imported history carries
-      the import timestamp instead (Season 1 is competitionYear 2005 but stamped 2026), and dating
-      those to a day would assert something the data does not support. So this looks for a season
-      whose years agree, and asserts the exclusion when none does.
-    */
-    const season = await prisma.season.findFirst({
-      where: { lifecycleState: 'COMPLETED', completedAt: { not: null } },
-      select: { completedAt: true, championName: true, runnerUpName: true, competitionYear: true },
-    })
-    const consistent = season?.completedAt != null
-      && season.competitionYear != null
-      && season.completedAt.getUTCFullYear() === season.competitionYear
-
-    if (season?.completedAt && !consistent) {
-      const onThatDay = await computeOnThisDay(new Date(Date.UTC(
-        season.completedAt.getUTCFullYear() + 1,
-        season.completedAt.getUTCMonth(),
-        season.completedAt.getUTCDate(),
-      )))
-      check('an import-stamped championship is NOT dated to a day',
-        onThatDay.filter((e) => e.kind === 'championship').length === 0,
-        `${onThatDay.length} events from a season stamped ${season.completedAt.getUTCFullYear()} `
-        + `but played in ${season.competitionYear}`)
-      check('...so it is offered through From the Archive instead',
-        (await import('@/lib/stats/archive-fact')).archiveCandidates
-          ? (await (await import('@/lib/stats/archive-fact')).archiveCandidates()).length > 0
-          : false)
-    } else if (season?.completedAt) {
-      const onThatDay = await computeOnThisDay(new Date(Date.UTC(
-        season.completedAt.getUTCFullYear() + 1,
-        season.completedAt.getUTCMonth(),
-        season.completedAt.getUTCDate(),
-      )))
-      const titles = onThatDay.filter((e) => e.kind === 'championship')
-      check('the championship appears on its anniversary', titles.length >= 1, `${onThatDay.length} events`)
-      check('...and the final it was decided by is not duplicated beside it',
-        new Set(onThatDay.map((e) => e.description)).size === onThatDay.length)
-      check('...with the original year preserved',
-        titles.every((t) => t.year === season.completedAt!.getUTCFullYear()))
-    } else {
-      check('the championship appears on its anniversary', true, 'no completed Season with a date')
-    }
-  }
-  {
-    const empty = await computeOnThisDay(new Date(Date.UTC(2030, 0, 1)))
-    check('a date with no events returns an empty list rather than an invention', empty.length === 0)
   }
 
   console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${pass} passed, ${fail} failed`)

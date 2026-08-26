@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { computeExplorer, computeFacets } from '@/lib/stats/ladder-explorer'
 import { decodeRankingsState, aggregateFilters, activeChips } from '@/lib/stats/rankings-columns'
 import { UNASSIGNED_DIVISION } from '@/lib/stats/rankings-facts'
@@ -19,6 +20,25 @@ export const dynamic = 'force-dynamic'
  * fields are not part of the row type at all, so no future column can leak them by accident.
  */
 export async function GET(request: NextRequest) {
+  /*
+   * Staff only.
+   *
+   * The export hands over the entire ranked dataset in one file, which is a different thing from
+   * the page showing sixty rows at a time — it is the archive itself, ready to be republished
+   * somewhere else. The Owner asked for it to be restricted, so the gate is HERE, on the route.
+   *
+   * Hiding the button would have been decorative: the URL is a plain GET with query parameters and
+   * anybody who had seen it once could keep fetching it forever. The button is hidden too, but this
+   * is the part that actually refuses.
+   */
+  const access = await resolveStaffAccess()
+  if (access.status !== 'ok') {
+    return new NextResponse('The rankings export is available to staff accounts only.', {
+      status: access.status === 'anon' ? 401 : 403,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  }
+
   const params = request.nextUrl.searchParams
   const state = decodeRankingsState(params)
 

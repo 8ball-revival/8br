@@ -547,7 +547,17 @@ export function defaultState(now: Date = new Date()): RankingsState {
  * column of stale "+3"s reads as current when nothing about it is. It is withheld rather than blanked
  * so the table does not carry a column of dashes.
  */
-const LIVE_ONLY_COLUMN_KEYS: readonly string[] = ['currentStreak']
+/*
+ * Columns that mean nothing on the Yahoo archive, and are therefore not offered there.
+ *
+ * `currentStreak` is a live measure - an archive career ended years ago, so its "current" run is a
+ * fact about 2014.
+ *
+ * The two tournament columns are here because the Yahoo era has no standalone Tournaments: every
+ * row reads 0-0 and 0, which is two columns of nothing occupying the width the group and playoff
+ * records need. They remain available on the CueVerse ladder, where tournaments actually happen.
+ */
+const LIVE_ONLY_COLUMN_KEYS: readonly string[] = ['currentStreak', 'cupRecord', 'tournamentTitles']
 
 /** Whether a column is offered at all under this scope. */
 export function columnAppliesTo(key: string, platform: RankingsState['platform']): boolean {

@@ -62,9 +62,16 @@ export interface RankingsExplorerProps {
    * the server and the count in the client would have put them in different rows.
    */
   heading: React.ReactNode
+  /**
+   * Whether to offer the CSV export.
+   *
+   * Resolved on the server and handed down. The route refuses non-staff regardless; this only avoids
+   * showing a control that would answer 403.
+   */
+  canExport?: boolean
 }
 
-export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplorerProps) {
+export function RankingsExplorer({ rows, facets, state, heading, canExport = false }: RankingsExplorerProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const topOffset = useHeaderOffset()
@@ -399,13 +406,21 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
         {/* The colour key sits with the table it explains, not up in the filter bar. */}
         <RatingLegend className="min-w-0" />
         <Methodology />
-        <a
-          href={exportHref}
-          className="inline-flex items-center gap-1.5 rounded-none border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-        >
-          <Download className="size-3.5" aria-hidden />
-          Export CSV
-        </a>
+        {/*
+          Staff only, and the route refuses everybody else regardless.
+          Hiding this alone would be decorative: the export is a plain GET with query parameters, so
+          anybody who had seen the URL once could keep fetching it. The gate is on the route; this
+          just avoids offering a control that would answer 403.
+        */}
+        {canExport && (
+          <a
+            href={exportHref}
+            className="cyber-clip-sm inline-flex items-center gap-1.5 border border-[var(--line-strong)] px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--cyan)] hover:text-[var(--cyan)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          >
+            <Download className="size-3.5" aria-hidden />
+            Export CSV
+          </a>
+        )}
       </div>
 
       <FilterDrawer

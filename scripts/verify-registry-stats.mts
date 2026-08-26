@@ -8,7 +8,6 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-registry-stats.mts
  */
 import { prisma } from '../src/lib/prisma.ts'
-import { computeOnThisDay, initialsOf } from '../src/lib/stats/on-this-day.ts'
 
 const OTD_FIXTURE = 'zzotd'
 
@@ -194,48 +193,14 @@ async function main() {
     [stats.seasons, stats.matchesPlayed, stats.players, stats.champions, stats.countries, stats.gamesPlayed]
       .every((v) => Number.isInteger(v) && v >= 0))
 
-  console.log('\n--- On This Day ---')
-  check('initials from two words', initialsOf('Alice Brown') === 'AB')
-  check('initials from a handle', initialsOf('sixohtwo') === 'SI')
-  check('initials never blank', initialsOf(null) === '—')
+  /*
+   * The On This Day checks went with the feature.
+   *
+   * `on-this-day.ts` was the homepage almanac's data layer and had no consumers left once the
+   * homepage was rebuilt without it. The registry TOTALS this suite exists for are untouched and
+   * still checked above; only the almanac half of the file is gone.
+   */
 
-  const today = await computeOnThisDay()
-  check('only returns earlier years', today.every((e) => e.year < new Date().getFullYear()))
-  check('every event carries a stored description', today.every((e) => e.description.trim().length > 0))
-
-  // Build a completed result to test the populated state against. An empty site is a legitimate
-  // state, so the fixture is created here rather than borrowed from whatever happens to be seeded.
-  const fixture = await makeOnThisDayFixture()
-  const row = fixture
-    ? [{ d: fixture.completedAt }]
-    : await prisma.$queryRawUnsafe<Array<{ d: Date }>>(`
-        SELECT d FROM (
-          SELECT "completedAt" d FROM "public"."season_match"          WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-          UNION ALL SELECT "completedAt" FROM "public"."season_playoff_match"   WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-          UNION ALL SELECT "completedAt" FROM "public"."comp_tournament_match"  WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-          UNION ALL SELECT "completedAt" FROM "public"."comp_playoff_match"     WHERE "completedAt" IS NOT NULL AND "homeGames" IS NOT NULL AND "awayGames" IS NOT NULL
-        ) u LIMIT 1`)
-  check('found a completed result to test the populated state', !!row[0])
-  if (row[0]) {
-    const src = new Date(row[0].d)
-    const anniversary = new Date(src)
-    anniversary.setFullYear(src.getFullYear() + 1)
-    const found = await computeOnThisDay(anniversary)
-    check('populated state: finds the anniversary of a real result', found.length > 0, `${found.length} event(s)`)
-    if (found[0]) {
-      check('describes a real scoreline', /\d+–\d+/.test(found[0].description), found[0].description)
-      check('event year precedes the queried year', found[0].year < anniversary.getFullYear())
-    }
-    // A date with no results at all must be empty, never invented.
-    const quiet = new Date(src)
-    quiet.setFullYear(src.getFullYear() + 1)
-    quiet.setDate(src.getDate() === 1 ? 2 : 1)
-    quiet.setMonth(src.getMonth())
-    const none = await computeOnThisDay(quiet)
-    check('empty state: a quiet date returns no events', Array.isArray(none))
-  }
-
-  await dropOnThisDayFixture()
 
   console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
   await prisma.$disconnect()

@@ -61,8 +61,15 @@ export const HERO_FALLBACK: HomepageHeroContent = {
 export const BRANDING_FALLBACK: SiteBrandingContent = {
   siteName: APPROVED_SITE_CONTENT.siteName,
   logoUrl: `/${APPROVED_SITE_CONTENT.logoFile.replace(/^public\//, '')}`,
-  logoWidth: 1536,
-  logoHeight: 1024,
+  /*
+   * Square, matching the mark.
+   *
+   * The previous artwork was 3:2 and these values described it. The registry mark is a roundel, so
+   * it is stored on a square canvas and declared square here — a stale ratio makes next/image
+   * reserve the wrong box and the logo lands off-centre before it loads.
+   */
+  logoWidth: 512,
+  logoHeight: 512,
   logoAlt: APPROVED_SITE_CONTENT.logoAlt,
 }
 

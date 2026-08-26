@@ -180,8 +180,21 @@ section('Creator, Tournaments, profiles and the homepage read the same classific
 
   const ladder = readFileSync('src/lib/stats/ladder.ts', 'utf8')
   check('the homepage ladder is CueVerse by default', ladder.includes("platform: CompetitionPlatform = 'CUEVERSE'"))
-  const results = readFileSync('src/lib/home/results.ts', 'utf8')
-  check('recent results are CueVerse only', results.includes("= 'CUEVERSE'"))
+  /*
+   * The homepage panel this checked was Recent Results, which no longer exists — the homepage was
+   * rebuilt and leads with Season champions instead. The RULE is unchanged and still worth guarding:
+   * a homepage surface must describe one platform, because a CueVerse Season and a Yahoo Season are
+   * separate competitive universes and a list mixing them reads as one continuous history that never
+   * happened.
+   */
+  const seasonResults = readFileSync('src/lib/home/season-results.ts', 'utf8')
+  check('the homepage champions list is scoped to a platform',
+    /platform,/.test(seasonResults) && seasonResults.includes("CompetitionPlatform = 'CUEVERSE'"))
+  const homepage = readFileSync('src/app/(frontend)/page.tsx', 'utf8')
+  check('...and the whole homepage follows one resolved era',
+    homepage.includes('const platform = leaderboard.platform')
+    && homepage.includes('getSeasonResults(platform)')
+    && homepage.includes('getAchievements(platform)'))
 }
 
 section('Unranked history comes from the records, not the ledger')
