@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
    * stopping the dev server — which on this machine also stops the contained Postgres it was
    * launched with. Unset (every deploy, and every ordinary `npm run build`) this is exactly the
    * default, so nothing about a real build changes.
+   *
+   * One thing to expect when you do use it: Next rewrites tsconfig.json's `include` to add the
+   * chosen directory's generated types. That edit is not wanted in a commit — discard it with
+   * `git checkout tsconfig.json` once the build has been checked.
    */
   distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
