@@ -1,0 +1,11 @@
+[
+  {
+    "decisionId": "entry-method::global@v1",
+    "issueId": "entry-method::global",
+    "category": "entry-method",
+    "resolution": "historical_import",
+    "targets": [
+      "entries.json"
+    ]
+  }
+]

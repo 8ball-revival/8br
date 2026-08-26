@@ -1,0 +1,131 @@
+2014 SEASON 1 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	unskillful	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+7-3	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	spc_shogun	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	brandon	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	TrueBoston	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	MJ_The_King	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	hp_king22	 	 	 	 	 	 	 	 	 	 
+8-6	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	hab_keine_angst	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	_ladyluck_	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	xGodNeox	 	 	 	 	 	 	 	 	 	 
+DQ	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	x_majik.shots_x	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	get.tanned	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	havok	 	 	 	 	 	 	 	 	 	 
+7-3	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	xz_legendary_zx	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	master	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	fsm_drizo	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	Asskicking_101	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	camtagious	 	 	 	 	 	 	 	 	 	 
+1-7	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	OoXJoEXoO	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	shagger1_	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	murkedddd	 	 	 	 	 	 	 	 	 	 
+ 	 	unskillful	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	PRO_BOY	 	 	 	 	 	 	 	 	 
+ 	 	brandon	 	 	 	 	 	 	 	 	 
+ 	 	4-7	 	 	 	 	 	 	 	 	 
+ 	 	TrueBoston	 	 	 	 	 	 	 	 	 
+ 	 	MJ_The_King	 	 	 	 	 	 	 	 	 
+ 	 	7-1	 	 	 	 	 	 	 	 	 
+ 	 	hp_king22	 	 	 	 	 	 	 	 	 
+ 	 	_ladyluck_	 	 	 	 	 	 	 	 	 
+ 	 	9-7	 	 	 	 	 	 	 	 	 
+ 	 	xGodNeox	 	 	 	 	 	 	 	 	 
+ 	 	get.tanned	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	havok	 	 	 	 	 	 	 	 	 
+ 	 	master	 	 	 	 	 	 	 	 	 
+ 	 	7-3	 	 	 	 	 	 	 	 	 
+ 	 	fsm_drizo	 	 	 	 	 	 	 	 	 
+ 	 	Asskicking_101	 	 	 	 	 	 	 	 	 
+ 	 	5-7	 	 	 	 	 	 	 	 	 
+ 	 	100%good	 	 	 	 	 	 	 	 	 
+ 	 	OoXJoEXoO	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	murkedddd	 	 	 	 	 	 	 	 	 
+ 	 	 	 	PRO_BOY	 	 	 	 	 	 	 
+ 	 	 	 	7-5	 	 	 	 	 	 	 
+ 	 	 	 	TrueBoston	 	 	 	 	 	 	 
+ 	 	 	 	MJ_The_King	 	 	 	 	 	 	 
+ 	 	 	 	7-2	 	 	 	 	 	 	 
+ 	 	 	 	_ladyluck_	 	 	 	 	 	 	 
+ 	 	 	 	havok	 	 	 	 	 	 	 
+ 	 	 	 	7-3	 	 	 	 	 	 	 
+ 	 	 	 	master	 	 	 	 	 	 	 
+ 	 	 	 	100%good	 	 	 	 	 	 	 
+ 	 	 	 	5-7	 	 	 	 	 	 	 
+ 	 	 	 	OoXJoEXoO	 	 	 	 	 	 	 
+ 	 	 	 	 	 	PRO_BOY	 	 	 	 	 
+ 	 	 	 	 	 	0-9	 	 	 	 	 
+ 	 	 	 	 	 	MJ_The_King	 	 	 	 	 
+ 	 	 	 	 	 	havok	 	 	 	 	 
+ 	 	 	 	 	 	9-6	 	 	 	 	 
+ 	 	 	 	 	 	OoXJoEXoO	 	 	 	 	 
+ 	 	 	 	 	 	 	 	MJ_The_King	 	 	 
+ 	 	 	 	 	 	 	 	3-9	 	 	 
+ 	 	 	 	 	 	 	 	havok	 	 	 
+ 	 	 	 	 	 	 	 	 	 	havok	 

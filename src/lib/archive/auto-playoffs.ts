@@ -3,7 +3,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit } from '@/lib/competition/audit'
 import { generateSeasonBracket, seasonHasDraft, setSeasonBracketSlot } from '@/lib/seasons/playoffs'
-import { manifestEntry, type ManifestEntry } from './manifest'
+import { manifestEntry, type ManifestEntry, stripSourceNote } from './manifest'
 import { matchHandles, type EntrantIdentity } from './matching'
 import { isBlocked, type AutoAssignBlocked } from './auto-assign'
 
@@ -163,7 +163,7 @@ export async function previewPlayoffBracket(
   // Archived playoff people, matched against THIS Season's entrants only — never the wider database.
   const match = matchHandles(
     po.participants.map((p) => ({
-      sourceId: p.sourceId, rawHandle: p.rawHandle, normalizedHandle: p.normalizedHandle,
+      sourceId: p.sourceId, rawHandle: stripSourceNote(p.rawHandle), normalizedHandle: stripSourceNote(p.normalizedHandle),
       rawName: '', groupName: '-', slot: 0,
     })),
     identities,
@@ -648,7 +648,7 @@ export async function previewPlacement(
   // of Auto Assign follows, and the reason a name that exists elsewhere is still reported here.
   const match = matchHandles(
     po.participants.map((x) => ({
-      sourceId: x.sourceId, rawHandle: x.rawHandle, normalizedHandle: x.normalizedHandle,
+      sourceId: x.sourceId, rawHandle: stripSourceNote(x.rawHandle), normalizedHandle: stripSourceNote(x.normalizedHandle),
       rawName: '', groupName: '-', slot: 0,
     })),
     identities,

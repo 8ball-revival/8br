@@ -1,0 +1,92 @@
+{
+  "counts": {
+    "sourceFiles": 13,
+    "players": 1948,
+    "competitors": 1948,
+    "aliases": 5572,
+    "competitions": 48,
+    "divisions": 94,
+    "stages": 181,
+    "groups": 634,
+    "standings": 4443,
+    "entries": 4347,
+    "seeds": 2824,
+    "matches": 12486,
+    "groupMatches": 10765,
+    "playoffMatches": 1721,
+    "championships": 92,
+    "achievements": 656,
+    "identityRelationships": 9,
+    "sourceReferences": 2134,
+    "historicalNotes": 2
+  },
+  "identity": {
+    "confirmedCanonical": 1948,
+    "exactAliasMatches": 2083,
+    "normalizedAliasMatches": 3489,
+    "existingMerges": 8,
+    "existingSplits": 1,
+    "sharedAliases": 407,
+    "mergeCandidates": 0,
+    "nameOnlyDuplicateGroups": 278,
+    "unresolvedAliases": 0,
+    "unresolvedPlayers": 0
+  },
+  "competitions": {
+    "competitions": 48,
+    "divisions": 94,
+    "byCompleteness": {
+      "partial": 68,
+      "missing": 6,
+      "incomplete": 1,
+      "complete": 19
+    },
+    "byConfidence": {
+      "incomplete": 68,
+      "unknown": 7,
+      "verified": 19
+    },
+    "issues": 12,
+    "labeledAsEgoSeason": 0
+  },
+  "matches": {
+    "total": 12486,
+    "groupMatches": 10765,
+    "playoffMatches": 1721,
+    "withScore": 11270,
+    "missingScore": 1216,
+    "byes": 509,
+    "byResolution": {
+      "played": 11270,
+      "pending": 707,
+      "bye": 509
+    },
+    "missingCompetitor": 94,
+    "unresolvedCompetitor": 0,
+    "impossibleScore": 125,
+    "duplicates": 0,
+    "adminOrForfeitUnclear": 18,
+    "seedDuplicateNumbers": 0,
+    "seedNullCompetitor": 586
+  },
+  "championships": {
+    "total": 92,
+    "byConfidence": {
+      "heuristic": 68,
+      "explicit": 2,
+      "unknown": 22
+    },
+    "reconstructedBrackets": 22,
+    "decidingMatchSurvives": 22,
+    "conflicts": 0,
+    "requiresReview": 90
+  },
+  "importReadiness": {
+    "schemaBlockers": [],
+    "highSeverityIssues": 532,
+    "itemsRequiringReview": 924,
+    "recordsSafeToImportEstimate": 13950,
+    "readyForReviewedImport": true
+  },
+  "reviewQueueSize": 925
+}

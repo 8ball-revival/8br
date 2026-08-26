@@ -1,0 +1,131 @@
+2013 SEASON 5 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_s_p_g_xlx	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	AzN_PrIdE_LuVa	 	 	 	 	 	 	 	 	 	 
+7-9	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	get.tanned	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	stephenb_	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	KingjLuis	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 	 
+7-1	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	SpinBreak	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	Reps	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	xxx_thepower_xxx	 	 	 	 	 	 	 	 	 	 
+7-3	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	sykology	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	c-b	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	_dante	 	 	 	 	 	 	 	 	 	 
+7-4	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	hab_keine_angst	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	Buddybong	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	grey_gooose	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	MJ_The_King	 	 	 	 	 	 	 	 	 	 
+9-7	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	murkedddd	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	Asskicking_101	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	_ladyluck_	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+ 	 	xlx_s_p_g_xlx	 	 	 	 	 	 	 	 	 
+ 	 	DQ	 	 	 	 	 	 	 	 	 
+ 	 	get.tanned	 	 	 	 	 	 	 	 	 
+ 	 	PRO_BOY	 	 	 	 	 	 	 	 	 
+ 	 	7-0	 	 	 	 	 	 	 	 	 
+ 	 	stephenb_	 	 	 	 	 	 	 	 	 
+ 	 	KingjLuis	 	 	 	 	 	 	 	 	 
+ 	 	8-6	 	 	 	 	 	 	 	 	 
+ 	 	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 
+ 	 	Reps	 	 	 	 	 	 	 	 	 
+ 	 	7-0	 	 	 	 	 	 	 	 	 
+ 	 	xxx_thepower_xxx	 	 	 	 	 	 	 	 	 
+ 	 	c-b	 	 	 	 	 	 	 	 	 
+ 	 	7-4	 	 	 	 	 	 	 	 	 
+ 	 	_dante	 	 	 	 	 	 	 	 	 
+ 	 	Buddybong	 	 	 	 	 	 	 	 	 
+ 	 	7-3	 	 	 	 	 	 	 	 	 
+ 	 	grey_gooose	 	 	 	 	 	 	 	 	 
+ 	 	100%good	 	 	 	 	 	 	 	 	 
+ 	 	5-7	 	 	 	 	 	 	 	 	 
+ 	 	MJ_The_King	 	 	 	 	 	 	 	 	 
+ 	 	Asskicking_101	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	_ladyluck_	 	 	 	 	 	 	 	 	 
+ 	 	 	 	get.tanned	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	PRO_BOY	 	 	 	 	 	 	 
+ 	 	 	 	KingjLuis	 	 	 	 	 	 	 
+ 	 	 	 	1-7	 	 	 	 	 	 	 
+ 	 	 	 	Reps	 	 	 	 	 	 	 
+ 	 	 	 	c-b	 	 	 	 	 	 	 
+ 	 	 	 	7-5	 	 	 	 	 	 	 
+ 	 	 	 	Buddybong	 	 	 	 	 	 	 
+ 	 	 	 	MJ_The_King	 	 	 	 	 	 	 
+ 	 	 	 	7-2	 	 	 	 	 	 	 
+ 	 	 	 	_ladyluck_	 	 	 	 	 	 	 
+ 	 	 	 	 	 	get.tanned	 	 	 	 	 
+ 	 	 	 	 	 	9-3	 	 	 	 	 
+ 	 	 	 	 	 	Reps	 	 	 	 	 
+ 	 	 	 	 	 	c-b	 	 	 	 	 
+ 	 	 	 	 	 	6-9	 	 	 	 	 
+ 	 	 	 	 	 	MJ_The_King	 	 	 	 	 
+ 	 	 	 	 	 	 	 	get.tanned	 	 	 
+ 	 	 	 	 	 	 	 	4-9	 	 	 
+ 	 	 	 	 	 	 	 	MJ_The_King	 	 	 
+ 	 	 	 	 	 	 	 	 	 	MJ_The_King	 

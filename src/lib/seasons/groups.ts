@@ -235,15 +235,36 @@ export interface SeasonDraftIssue { code: 'unassigned' | 'too_small' | 'duplicat
 export async function validateSeasonGroupDraft(seasonId: number): Promise<{ ok: boolean; issues: SeasonDraftIssue[] }> {
   const groups = await prisma.seasonGroup.findMany({ where: { seasonId }, include: { players: true } })
   const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId, status: 'APPROVED', kickedOut: false }, select: { id: true } })
+  /*
+   * A reconstruction may legitimately hold an entrant with no group.
+   *
+   * 148 people across the archive appear in a Season's playoff bracket without appearing in its
+   * group table, because the archived group page is truncated or they came through as a wildcard.
+   * They played in the Season, so leaving them out loses a recorded fact; putting them in a group
+   * would invent one. For a live Season an unassigned entrant is still an unfinished draft and is
+   * still reported — this only stops a rebuilt Season from being unpublishable because the source
+   * is missing a row that nobody can recover.
+   */
+  const season = await prisma.season.findUnique({ where: { id: seasonId }, select: { reconstruction: true } })
   const issues: SeasonDraftIssue[] = []
   if (groups.length === 0) issues.push({ code: 'no_groups', detail: 'No groups yet — generate groups first.' })
   const assigned = new Map<number, number>() // entrantId → count
   for (const g of groups) {
-    if (g.players.length < MIN_GROUP_SIZE) issues.push({ code: 'too_small', detail: `Group ${g.name || g.code} has ${g.players.length} player(s) (min ${MIN_GROUP_SIZE}).` })
+    /*
+     * A rebuilt Season may hold a group of one, because that is what survives in the source.
+     * Ten archived Seasons have a group whose table was cut off mid-list. A group of one plays no
+     * fixtures, so it costs nothing to keep, whereas refusing means the other six groups and every
+     * result in them cannot be published either. A live Season still cannot start one.
+     */
+    if (g.players.length < MIN_GROUP_SIZE && !season?.reconstruction) {
+      issues.push({ code: 'too_small', detail: `Group ${g.name || g.code} has ${g.players.length} player(s) (min ${MIN_GROUP_SIZE}).` })
+    }
     for (const p of g.players) assigned.set(p.entrantId, (assigned.get(p.entrantId) ?? 0) + 1)
   }
   const unassigned = entrants.filter((e) => !assigned.has(e.id)).length
-  if (unassigned > 0) issues.push({ code: 'unassigned', detail: `${unassigned} entrant(s) not assigned to a group.` })
+  if (unassigned > 0 && !season?.reconstruction) {
+    issues.push({ code: 'unassigned', detail: `${unassigned} entrant(s) not assigned to a group.` })
+  }
   for (const [, c] of assigned) if (c > 1) { issues.push({ code: 'duplicate', detail: 'An entrant is assigned to more than one group.' }); break }
   return { ok: issues.length === 0, issues }
 }

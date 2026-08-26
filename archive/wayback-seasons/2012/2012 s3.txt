@@ -1,0 +1,131 @@
+2012 SEASON 3 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	_dante	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_s_p_g_xlx	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	deep.cerebro	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	Jeremy__	 	 	 	 	 	 	 	 	 	 
+7-5	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	ya_maybe_bro	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 	 
+7-2	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	empire_l3mx	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	nichilicious	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	stephenb_	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	lilsparky67	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	Cocky_Guy	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	i_am_the_hulk24	 	 	 	 	 	 	 	 	 	 
+8-10	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	Easyrun	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	murkedddd	 	 	 	 	 	 	 	 	 	 
+2-7	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	Xx_CK_xX	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	l2_o_c_k_y	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	ooo_franchise_ooo	 	 	 	 	 	 	 	 	 	 
+1-7	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	Kevins_Yahoo	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	sixohtwo	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	iiviijj	 	 	 	 	 	 	 	 	 	 
+7-9	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	master	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	aka_hero	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	mvp_magic	 	 	 	 	 	 	 	 	 	 
+3-7	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	u.nderrated	 	 	 	 	 	 	 	 	 	 
+ 	 	_dante	 	 	 	 	 	 	 	 	 
+ 	 	6-8	 	 	 	 	 	 	 	 	 
+ 	 	deep.cerebro	 	 	 	 	 	 	 	 	 
+ 	 	Jeremy__	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	xlx_britishpoolking_xlx	 	 	 	 	 	 	 	 	 
+ 	 	nichilicious	 	 	 	 	 	 	 	 	 
+ 	 	5-7	 	 	 	 	 	 	 	 	 
+ 	 	lilsparky67	 	 	 	 	 	 	 	 	 
+ 	 	Cocky_Guy	 	 	 	 	 	 	 	 	 
+ 	 	7-3	 	 	 	 	 	 	 	 	 
+ 	 	Easyrun	 	 	 	 	 	 	 	 	 
+ 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 
+ 	 	7-4	 	 	 	 	 	 	 	 	 
+ 	 	Xx_CK_xX	 	 	 	 	 	 	 	 	 
+ 	 	l2_o_c_k_y	 	 	 	 	 	 	 	 	 
+ 	 	7-4	 	 	 	 	 	 	 	 	 
+ 	 	Kevins_Yahoo	 	 	 	 	 	 	 	 	 
+ 	 	sixohtwo	 	 	 	 	 	 	 	 	 
+ 	 	7-3	 	 	 	 	 	 	 	 	 
+ 	 	master	 	 	 	 	 	 	 	 	 
+ 	 	aka_hero	 	 	 	 	 	 	 	 	 
+ 	 	7-2	 	 	 	 	 	 	 	 	 
+ 	 	u.nderrated	 	 	 	 	 	 	 	 	 
+ 	 	 	 	deep.cerebro	 	 	 	 	 	 	 
+ 	 	 	 	7-3	 	 	 	 	 	 	 
+ 	 	 	 	Jeremy__	 	 	 	 	 	 	 
+ 	 	 	 	lilsparky67	 	 	 	 	 	 	 
+ 	 	 	 	5-7	 	 	 	 	 	 	 
+ 	 	 	 	Cocky_Guy	 	 	 	 	 	 	 
+ 	 	 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	l2_o_c_k_y	 	 	 	 	 	 	 
+ 	 	 	 	sixohtwo	 	 	 	 	 	 	 
+ 	 	 	 	7-1	 	 	 	 	 	 	 
+ 	 	 	 	aka_hero	 	 	 	 	 	 	 
+ 	 	 	 	 	 	deep.cerebro	 	 	 	 	 
+ 	 	 	 	 	 	10-8	 	 	 	 	 
+ 	 	 	 	 	 	Cocky_Guy	 	 	 	 	 
+ 	 	 	 	 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 
+ 	 	 	 	 	 	5-9	 	 	 	 	 
+ 	 	 	 	 	 	sixohtwo	 	 	 	 	 
+ 	 	 	 	 	 	 	 	deep.cerebro	 	 	 
+ 	 	 	 	 	 	 	 	10-8	 	 	 
+ 	 	 	 	 	 	 	 	sixohtwo	 	 	 
+ 	 	 	 	 	 	 	 	 	 	deep.cerebro	 

@@ -175,7 +175,30 @@ function isRatingNeutral(platform: CompetitionPlatform, tournamentId?: number): 
 
 /** Full deterministic rebuild of the entire rating ledger from every COMPLETED Tournament AND Season,
  *  interleaved in close order. Idempotent: safe to call on every close, retry, or correction. */
+/**
+ * One rebuild at a time, database-wide.
+ *
+ * The rebuild wipes `rating_ledger` and replays every eligible record, so its delete and insert
+ * scopes are identical and it is correct on its own. What it is not is concurrent-safe: under READ
+ * COMMITTED a second rebuild does not see the first's uncommitted deletes, so it replays the same
+ * timeline and collides on the `(matchKey, playerId)` unique index.
+ *
+ * That is not hypothetical — it turned up as an intermittent failure in the verification batch,
+ * because the dev server was serving an operator at the same time and a lifecycle action there
+ * triggered its own rebuild. Closing a run of Seasons back to back makes it far more likely.
+ *
+ * A transaction-scoped advisory lock serialises them. It is taken before the delete and released by
+ * commit or rollback, so no second writer can insert between this one's delete and insert. The key
+ * is an arbitrary constant that only this function uses.
+ *
+ * Called with a non-transactional client the lock is taken and released immediately, which is the
+ * old behaviour rather than a new hazard — every production caller passes a transaction.
+ */
+const LEDGER_REBUILD_LOCK = 8_112_026n
+
 export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; seasons: number; entries: number }> {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LEDGER_REBUILD_LOCK}::bigint)`
+
   /*
    * Only records that currently satisfy the eligibility rule.
    *

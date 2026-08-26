@@ -117,7 +117,16 @@ async function sharedStageClaim(entry: ManifestEntry, seasonId: number): Promise
 }
 
 /** Every Auto Assign path refuses the same four situations, in the same order. */
-async function guard(seasonId: number, phase: 'entrants' | 'scores'): Promise<
+/**
+ * The archive entry a Season is assigned from, injectable for tests.
+ *
+ * The entrant and playoff services already take one. Without the same door here, a suite could only
+ * exercise group assignment against a real unprocessed shell — and the reconstruction has processed
+ * every one, so the fixture became unsatisfiable through the work succeeding.
+ */
+export type AssignTemplateSource = (key: string) => ReturnType<typeof manifestEntry>
+
+async function guard(seasonId: number, phase: 'entrants' | 'scores', templateSource: AssignTemplateSource = manifestEntry): Promise<
   | { ok: true; season: { id: number; archiveTemplateKey: string | null; lifecycleState: string }; entry: ManifestEntry }
   | AutoAssignBlocked
 > {
@@ -130,7 +139,7 @@ async function guard(seasonId: number, phase: 'entrants' | 'scores'): Promise<
     return { blocked: true, reason: 'This Season has no verified archive template.' }
   }
 
-  const entry = manifestEntry(season.archiveTemplateKey)
+  const entry = templateSource(season.archiveTemplateKey)
   if (!entry) return { blocked: true, reason: 'No verified archive data for this Season.' }
 
   /*
@@ -243,8 +252,9 @@ export interface GroupAssignPlan {
 export async function previewGroupAssign(
   seasonId: number,
   manualResolutions: Record<string, number> = {},
+  templateSource: AssignTemplateSource = manifestEntry,
 ): Promise<GroupAssignPlan | AutoAssignBlocked> {
-  const g = await guard(seasonId, 'entrants')
+  const g = await guard(seasonId, 'entrants', templateSource)
   if ('blocked' in g) return g
   const { entry } = g
 

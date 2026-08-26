@@ -173,6 +173,41 @@ export function loadManifest(): Manifest {
   return cached
 }
 
+
+/**
+ * Strip a source annotation the archive printed beside a handle in a PLAYOFF table.
+ *
+ * The manifest builder splits these off group rows — "mr.8pac - x" becomes "mr.8pac" — but playoff
+ * rows kept theirs, so 24 handles arrived as "d.aym0 w/c" or "xxl_machine_lxx [w/c]". Matching those
+ * literally finds nobody, and creating accounts for them would have minted a second identity for
+ * people who already exist; one of them was a handle that had just been merged.
+ *
+ * "w/c" is the archive's wildcard marker. It records how someone qualified, not who they are.
+ */
+export function stripSourceNote(handle: string): string {
+  return handle
+    /*
+     * The wildcard marker, in all seven spellings the pages use.
+     *
+     * "(W/C)", "(WC)", "(w/c)", "(wc)", "W/C", "[w/c]" and "w/c" all appear across the captures,
+     * and an earlier version matched only the four containing a slash. The others survived into the
+     * handle, so "mvp.bank (WC)" resolved to nobody and the player looked absent from a bracket
+     * they were plainly in. It records how somebody qualified, never who they are.
+     */
+    .replace(/\s*[[(]?\s*w\s*\/?\s*c\s*[\])]?\s*$/i, '')
+    /*
+     * The printing flourish some bracket pages append to a handle.
+     *
+     * It survives the capture as a lone 0xAE byte, and was only being removed inside the Wayback
+     * parser — so the same person resolved from a parsed handle and failed to resolve from the raw
+     * one, leaving four bracket positions empty in 2010 S4A. It belongs here, with the other things
+     * the source prints beside a name without meaning them as part of it.
+     */
+    .replace(/[·•®Â�]+\s*$/, '')
+    .replace(/\s*-\s*x$/i, '')
+    .trim()
+}
+
 export function manifestEntry(templateKey: string): ManifestEntry | null {
   return loadManifest().entries.find((e) => e.templateKey === templateKey) ?? null
 }

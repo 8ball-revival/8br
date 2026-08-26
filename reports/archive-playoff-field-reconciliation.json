@@ -1,0 +1,2536 @@
+[
+  {
+    "seasonId": 5465,
+    "label": "2009 S1A",
+    "sourceFile": "archive/wayback-seasons/2009/2009 s1.txt",
+    "category": "full",
+    "bracketComplete": true,
+    "completenessFailures": [],
+    "manifestPeople": 27,
+    "bracketPeople": 27,
+    "intersection": 27,
+    "manifestOnly": [],
+    "bracketOnly": [],
+    "sameCanonicalIdentity": [
+      {
+        "manifest": "bigblue2k",
+        "bracket": "sixohtwo",
+        "playerId": "cmsyrx31g00006riggac6o23n"
+      }
+    ],
+    "currentlySelected": 27,
+    "proposedSelected": 27,
+    "toSelect": [],
+    "toDeselect": [],
+    "unchanged": 27,
+    "unresolved": [],
+    "ambiguous": [],
+    "safeToReconcile": true,
+    "reason": "the page proves the whole entry field and every entrant is entered here",
+    "people": [
+      {
+        "playerId": "cmt4vaob800bi6rikug7y57pu",
+        "entrantId": 43755,
+        "cueverseId": "x7_balledx",
+        "manifestSpellings": [
+          "x7_balledx"
+        ],
+        "bracketSpellings": [
+          "x7_balledx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaquz00cl6rikgnk32lel",
+        "entrantId": 43726,
+        "cueverseId": "shinyrust",
+        "manifestSpellings": [
+          "shinyrust"
+        ],
+        "bracketSpellings": [
+          "shinyrust"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4var3l00co6rik7ripu9mg",
+        "entrantId": 43730,
+        "cueverseId": "mvp_sicc",
+        "manifestSpellings": [
+          "mvp_sicc"
+        ],
+        "bracketSpellings": [
+          "mvp_sicc"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4valj900aa6rikjv6a40mf",
+        "entrantId": 43759,
+        "cueverseId": "the_pool_professor",
+        "manifestSpellings": [
+          "the_pool_professor"
+        ],
+        "bracketSpellings": [
+          "the_pool_professor"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1x90kt007i6r0ca4nzqnig",
+        "entrantId": 42669,
+        "cueverseId": "t_an_may",
+        "manifestSpellings": [
+          "t_an_may"
+        ],
+        "bracketSpellings": [
+          "t_an_may"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4v9y3a000b6rikk5p0l0yj",
+        "entrantId": 43744,
+        "cueverseId": "ta.lent",
+        "manifestSpellings": [
+          "ta.lent"
+        ],
+        "bracketSpellings": [
+          "ta.lent"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4j2uz900306r8g5wr010eq",
+        "entrantId": 42676,
+        "cueverseId": "killah_jason",
+        "manifestSpellings": [
+          "killah_jason"
+        ],
+        "bracketSpellings": [
+          "killah_jason"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0q3eyc00206rpo0313fhcm",
+        "entrantId": 42668,
+        "cueverseId": "pool.instinct",
+        "manifestSpellings": [
+          "pool.instinct"
+        ],
+        "bracketSpellings": [
+          "pool.instinct"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4varim00cu6rikkv8sgsry",
+        "entrantId": 43741,
+        "cueverseId": "rapemoded",
+        "manifestSpellings": [
+          "rapemoded"
+        ],
+        "bracketSpellings": [
+          "rapemoded"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1sx5pp004o6r0c464qizce",
+        "entrantId": 42661,
+        "cueverseId": "the.bawbag",
+        "manifestSpellings": [
+          "the.bawbag"
+        ],
+        "bracketSpellings": [
+          "the.bawbag"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4rsxbp000g6rhkxk031nye",
+        "entrantId": 43736,
+        "cueverseId": "adambuddy",
+        "manifestSpellings": [
+          "adambuddy"
+        ],
+        "bracketSpellings": [
+          "adambuddy"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaomn00bn6rik98rcs2v3",
+        "entrantId": 43749,
+        "cueverseId": "mvp.bank",
+        "manifestSpellings": [
+          "mvp.bank"
+        ],
+        "bracketSpellings": [
+          "mvp.bank"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsxhh93k00016rf44sin01br",
+        "entrantId": 42670,
+        "cueverseId": "zl_stu_lz",
+        "manifestSpellings": [
+          "zl_stu_lz"
+        ],
+        "bracketSpellings": [
+          "zl_stu_lz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4var9800cq6rik6lilaxy6",
+        "entrantId": 43733,
+        "cueverseId": "xxx_thepower_xxx",
+        "manifestSpellings": [
+          "xxx_thepower_xxx"
+        ],
+        "bracketSpellings": [
+          "xxx_thepower_xxx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1nybgb001i6r0cm0deq7al",
+        "entrantId": 42677,
+        "cueverseId": "poolist",
+        "manifestSpellings": [
+          "poolist"
+        ],
+        "bracketSpellings": [
+          "poolist"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4varc300cr6rikwu2z4p0v",
+        "entrantId": 43738,
+        "cueverseId": "pro_game_",
+        "manifestSpellings": [
+          "pro_game_"
+        ],
+        "bracketSpellings": [
+          "pro_game_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1orhtr002d6r0c03zki5zk",
+        "entrantId": 42674,
+        "cueverseId": "xl_gameover_lx",
+        "manifestSpellings": [
+          "xl_gameover_lx"
+        ],
+        "bracketSpellings": [
+          "xl_gameover_lx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaovq00br6rik9tsyg6qm",
+        "entrantId": 43735,
+        "cueverseId": "smack_down_",
+        "manifestSpellings": [
+          "smack_down_"
+        ],
+        "bracketSpellings": [
+          "smack_down_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0q2a94001x6rpoat4wd2ig",
+        "entrantId": 42664,
+        "cueverseId": "superstaaaar",
+        "manifestSpellings": [
+          "superstaaaar"
+        ],
+        "bracketSpellings": [
+          "superstaaaar"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vas0100d26rik4dtqlpif",
+        "entrantId": 43753,
+        "cueverseId": "armani_2",
+        "manifestSpellings": [
+          "armani_2"
+        ],
+        "bracketSpellings": [
+          "Armani_2"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4j30bd00316r8g2mt1ol3s",
+        "entrantId": 42672,
+        "cueverseId": "p00l_charlie",
+        "manifestSpellings": [
+          "p00l_charlie"
+        ],
+        "bracketSpellings": [
+          "p00l_charlie"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4varp400cx6rikkcbik3tl",
+        "entrantId": 43746,
+        "cueverseId": "s.kilz",
+        "manifestSpellings": [
+          "s.kilz"
+        ],
+        "bracketSpellings": [
+          "s.kilz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsxiu3lh00076rzkponfizqq",
+        "entrantId": 42667,
+        "cueverseId": "xchriskarenx",
+        "manifestSpellings": [
+          "xchriskarenx"
+        ],
+        "bracketSpellings": [
+          "xchriskarenx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0qd455002q6rpo8ff2w31b",
+        "entrantId": 42663,
+        "cueverseId": "jabronni16",
+        "manifestSpellings": [
+          "jabronni16"
+        ],
+        "bracketSpellings": [
+          "jabronni16"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4varxv00d16rikducd22j4",
+        "entrantId": 43752,
+        "cueverseId": "intensify",
+        "manifestSpellings": [
+          "intensify"
+        ],
+        "bracketSpellings": [
+          "Intensify"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsyrx31g00006riggac6o23n",
+        "entrantId": 43731,
+        "cueverseId": "sixohtwo",
+        "manifestSpellings": [
+          "bigblue2k"
+        ],
+        "bracketSpellings": [
+          "sixohtwo"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": true,
+        "classification": "same canonical identity"
+      },
+      {
+        "playerId": "cmt1x9h79007l6r0cg7sxv82z",
+        "entrantId": 42679,
+        "cueverseId": "expect.defeat",
+        "manifestSpellings": [
+          "expect.defeat"
+        ],
+        "bracketSpellings": [
+          "expect.defeat"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      }
+    ]
+  },
+  {
+    "seasonId": 5467,
+    "label": "2009 S2A",
+    "sourceFile": "archive/wayback-seasons/2009/2009 s2.txt",
+    "category": "full",
+    "bracketComplete": true,
+    "completenessFailures": [],
+    "manifestPeople": 27,
+    "bracketPeople": 27,
+    "intersection": 27,
+    "manifestOnly": [],
+    "bracketOnly": [],
+    "sameCanonicalIdentity": [],
+    "currentlySelected": 27,
+    "proposedSelected": 27,
+    "toSelect": [],
+    "toDeselect": [],
+    "unchanged": 27,
+    "unresolved": [],
+    "ambiguous": [],
+    "safeToReconcile": true,
+    "reason": "the page proves the whole entry field and every entrant is entered here",
+    "people": [
+      {
+        "playerId": "cmt4varmy00cw6riktyh8t55c",
+        "entrantId": 43830,
+        "cueverseId": "lewissss",
+        "manifestSpellings": [
+          "lewissss"
+        ],
+        "bracketSpellings": [
+          "Lewissss"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0q3lfa00216rpog7p5fp65",
+        "entrantId": 42702,
+        "cueverseId": "tino_nica",
+        "manifestSpellings": [
+          "tlno_nica"
+        ],
+        "bracketSpellings": [
+          "TlNO_NICA"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt5a4syo00066rkwtpv7vdpb",
+        "entrantId": 49036,
+        "cueverseId": "i.am_the_zodiac",
+        "manifestSpellings": [
+          "i.am_the_zodiac"
+        ],
+        "bracketSpellings": [
+          "i.am_the_zodiac"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vacfn006c6rikffvrxrgw",
+        "entrantId": 43799,
+        "cueverseId": "txa_skittz",
+        "manifestSpellings": [
+          "txa_skittz"
+        ],
+        "bracketSpellings": [
+          "txa_skittz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0jztuj000y6rpoeqqf7t58",
+        "entrantId": 42703,
+        "cueverseId": "aaaaaaaaaanil",
+        "manifestSpellings": [
+          "aaaaaaaaanil"
+        ],
+        "bracketSpellings": [
+          "AaaaaaaaaNIL"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4var9800cq6rik6lilaxy6",
+        "entrantId": 43834,
+        "cueverseId": "xxx_thepower_xxx",
+        "manifestSpellings": [
+          "xxx_thepower_xxx"
+        ],
+        "bracketSpellings": [
+          "xxx_thepower_xxx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt3gf1u7001q6rh8gpvx61w2",
+        "entrantId": 42696,
+        "cueverseId": "real_fkin_deal",
+        "manifestSpellings": [
+          "real_fkin_deal"
+        ],
+        "bracketSpellings": [
+          "real_fkin_deal"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt5a4t1e00076rkwdhfi0508",
+        "entrantId": 49037,
+        "cueverseId": "x_therage",
+        "manifestSpellings": [
+          "x_therage"
+        ],
+        "bracketSpellings": [
+          "x_therage"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4igqjq001r6r8gl65t25f8",
+        "entrantId": 42692,
+        "cueverseId": "optimus.price_xl",
+        "manifestSpellings": [
+          "optimus.price_xl"
+        ],
+        "bracketSpellings": [
+          "Optimus.price_xl"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavup00es6rik29y8wfgi",
+        "entrantId": 43818,
+        "cueverseId": "jfy",
+        "manifestSpellings": [
+          "jfy"
+        ],
+        "bracketSpellings": [
+          "jfy"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaw6m00ex6rik86rhitsv",
+        "entrantId": 43825,
+        "cueverseId": "newfiepoolking",
+        "manifestSpellings": [
+          "newfiepoolking"
+        ],
+        "bracketSpellings": [
+          "newfiepoolking"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavzw00eu6rikui3xtstp",
+        "entrantId": 43820,
+        "cueverseId": "xx_apocalypsys_xx",
+        "manifestSpellings": [
+          "xx_apocalypsys_xx"
+        ],
+        "bracketSpellings": [
+          "XX_APOCALYPSYS_XX"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaw4f00ew6rikaqdl3dgh",
+        "entrantId": 43823,
+        "cueverseId": "n00b.ski11z",
+        "manifestSpellings": [
+          "n00b.ski11z"
+        ],
+        "bracketSpellings": [
+          "n00b.ski11z"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavis00en6rik1hw311x0",
+        "entrantId": 43810,
+        "cueverseId": "ultrabeats_scooter",
+        "manifestSpellings": [
+          "ultrabeats_scooter"
+        ],
+        "bracketSpellings": [
+          "ultrabeats_scooter"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavpk00eq6rikdci4sv6a",
+        "entrantId": 43815,
+        "cueverseId": "kingvaughan",
+        "manifestSpellings": [
+          "kingvaughan"
+        ],
+        "bracketSpellings": [
+          "kingvaughan"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0q2a94001x6rpoat4wd2ig",
+        "entrantId": 42694,
+        "cueverseId": "superstaaaar",
+        "manifestSpellings": [
+          "superstaaaar"
+        ],
+        "bracketSpellings": [
+          "superstaaaar"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vawhp00f26riko2qwtuqc",
+        "entrantId": 43835,
+        "cueverseId": "will_you_pls_stop_it",
+        "manifestSpellings": [
+          "will_you_pls_stop_it"
+        ],
+        "bracketSpellings": [
+          "will_you_pls_stop_it"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4v9y3a000b6rikk5p0l0yj",
+        "entrantId": 43811,
+        "cueverseId": "ta.lent",
+        "manifestSpellings": [
+          "ta.lent"
+        ],
+        "bracketSpellings": [
+          "ta.lent"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsxiu3lh00076rzkponfizqq",
+        "entrantId": 42695,
+        "cueverseId": "xchriskarenx",
+        "manifestSpellings": [
+          "xchriskarenx"
+        ],
+        "bracketSpellings": [
+          "xchriskarenx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1x9h79007l6r0cg7sxv82z",
+        "entrantId": 42700,
+        "cueverseId": "expect.defeat",
+        "manifestSpellings": [
+          "expect.defeat"
+        ],
+        "bracketSpellings": [
+          "expect.defeat"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4j30bd00316r8g2mt1ol3s",
+        "entrantId": 42691,
+        "cueverseId": "p00l_charlie",
+        "manifestSpellings": [
+          "p00l_charlie"
+        ],
+        "bracketSpellings": [
+          "p00l_charlie"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1orhtr002d6r0c03zki5zk",
+        "entrantId": 42699,
+        "cueverseId": "xl_gameover_lx",
+        "manifestSpellings": [
+          "xl_gameover_lx"
+        ],
+        "bracketSpellings": [
+          "xl_gameover_lx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4rswbi00016rhk16587sup",
+        "entrantId": 43813,
+        "cueverseId": "zach_23_",
+        "manifestSpellings": [
+          "zach_23_"
+        ],
+        "bracketSpellings": [
+          "Zach_23_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavna00ep6rikqulseslw",
+        "entrantId": 43814,
+        "cueverseId": "runmatic",
+        "manifestSpellings": [
+          "runmatic"
+        ],
+        "bracketSpellings": [
+          "runmatic"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vatj500dr6rikqg5tqhoo",
+        "entrantId": 43828,
+        "cueverseId": "i31",
+        "manifestSpellings": [
+          "i31"
+        ],
+        "bracketSpellings": [
+          "I31"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0qbzvj002m6rpowasgcx15",
+        "entrantId": 42697,
+        "cueverseId": "pool_warrior2002",
+        "manifestSpellings": [
+          "pool_warrior2002"
+        ],
+        "bracketSpellings": [
+          "Pool_Warrior2002"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0q3eyc00206rpo0313fhcm",
+        "entrantId": 42701,
+        "cueverseId": "pool.instinct",
+        "manifestSpellings": [
+          "pool.instinct"
+        ],
+        "bracketSpellings": [
+          "pool.instinct"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      }
+    ]
+  },
+  {
+    "seasonId": 5469,
+    "label": "2009 S3A",
+    "sourceFile": "archive/wayback-seasons/2009/2009 s3.txt",
+    "category": "full",
+    "bracketComplete": true,
+    "completenessFailures": [],
+    "manifestPeople": 26,
+    "bracketPeople": 26,
+    "intersection": 26,
+    "manifestOnly": [],
+    "bracketOnly": [],
+    "sameCanonicalIdentity": [
+      {
+        "manifest": "bigblue2k",
+        "bracket": "SixohTwo",
+        "playerId": "cmsyrx31g00006riggac6o23n"
+      }
+    ],
+    "currentlySelected": 26,
+    "proposedSelected": 26,
+    "toSelect": [],
+    "toDeselect": [],
+    "unchanged": 26,
+    "unresolved": [],
+    "ambiguous": [],
+    "safeToReconcile": true,
+    "reason": "the page proves the whole entry field and every entrant is entered here",
+    "people": [
+      {
+        "playerId": "cmt4var9800cq6rik6lilaxy6",
+        "entrantId": 43886,
+        "cueverseId": "xxx_thepower_xxx",
+        "manifestSpellings": [
+          "xxx_thepower_xxx"
+        ],
+        "bracketSpellings": [
+          "xxx_thepower_xxx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4valwi00ag6rik0s2t1sr4",
+        "entrantId": 43908,
+        "cueverseId": "lvlj_the_king",
+        "manifestSpellings": [
+          "lvlj_the_king"
+        ],
+        "bracketSpellings": [
+          "lvlj_the_king"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vacfn006c6rikffvrxrgw",
+        "entrantId": 43879,
+        "cueverseId": "txa_skittz",
+        "manifestSpellings": [
+          "txa_skittz"
+        ],
+        "bracketSpellings": [
+          "txa_skittz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0jmap5000d6rpocx4hlovs",
+        "entrantId": 42716,
+        "cueverseId": "xlx_britishpoolking_xlx",
+        "manifestSpellings": [
+          "xlx_britishpoolking_xlx"
+        ],
+        "bracketSpellings": [
+          "xlx_britishpoolking_xlx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4v9ydk000f6rikgzm9psvn",
+        "entrantId": 43911,
+        "cueverseId": "tubaccy_spittin_rebel",
+        "manifestSpellings": [
+          "tubaccy_spittin_rebel"
+        ],
+        "bracketSpellings": [
+          "tubaccy_spittin_rebel"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaszc00di6rik9wmij7wx",
+        "entrantId": 43884,
+        "cueverseId": "mile99ium",
+        "manifestSpellings": [
+          "mile99ium"
+        ],
+        "bracketSpellings": [
+          "MILE99IUM"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsxivyyz000k6rzkwi4ddihp",
+        "entrantId": 42728,
+        "cueverseId": "xlx_propooler_xlx",
+        "manifestSpellings": [
+          "xlx_propooler_xlx"
+        ],
+        "bracketSpellings": [
+          "xlx_propooler_xlx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavna00ep6rikqulseslw",
+        "entrantId": 43883,
+        "cueverseId": "runmatic",
+        "manifestSpellings": [
+          "runmatic"
+        ],
+        "bracketSpellings": [
+          "runmatic"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt24edpv003g6rnsqmeaus7w",
+        "entrantId": 42734,
+        "cueverseId": "c_l2_a_i_g",
+        "manifestSpellings": [
+          "cl2alg"
+        ],
+        "bracketSpellings": [
+          "cl2alg"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaxvo00fo6rik1h291d9h",
+        "entrantId": 43894,
+        "cueverseId": "maintain.composure",
+        "manifestSpellings": [
+          "maintain.composure"
+        ],
+        "bracketSpellings": [
+          "maintain.composure"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaor700bp6rikfthxvxvr",
+        "entrantId": 43909,
+        "cueverseId": "xlx_skill_xlx",
+        "manifestSpellings": [
+          "xlx_skill_xlx"
+        ],
+        "bracketSpellings": [
+          "xlx_skill_xlx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0qd455002q6rpo8ff2w31b",
+        "entrantId": 42720,
+        "cueverseId": "jabronni16",
+        "manifestSpellings": [
+          "jabronni16"
+        ],
+        "bracketSpellings": [
+          "jabronni16"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vay0800fq6rikx29ryl0k",
+        "entrantId": 43899,
+        "cueverseId": "o1d_school",
+        "manifestSpellings": [
+          "o1d_school"
+        ],
+        "bracketSpellings": [
+          "o1d_school"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt2gwxb4000s6rokdb9pkk21",
+        "entrantId": 42733,
+        "cueverseId": "good-faith",
+        "manifestSpellings": [
+          "mvpsicc"
+        ],
+        "bracketSpellings": [
+          "mvpsicc"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vals400ae6rik0b7hcqnh",
+        "entrantId": 43878,
+        "cueverseId": "ll_ewis",
+        "manifestSpellings": [
+          "ll_ewis"
+        ],
+        "bracketSpellings": [
+          "ll_ewis"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0jztuj000y6rpoeqqf7t58",
+        "entrantId": 42731,
+        "cueverseId": "aaaaaaaaaanil",
+        "manifestSpellings": [
+          "aaaaaaaaanil"
+        ],
+        "bracketSpellings": [
+          "AaaaaaaaaNIL"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4rsx3z000d6rhkw9m9hpli",
+        "entrantId": 43896,
+        "cueverseId": "unreal_control",
+        "manifestSpellings": [
+          "unreal_control"
+        ],
+        "bracketSpellings": [
+          "unreal_control"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4rsxbp000g6rhkxk031nye",
+        "entrantId": 43902,
+        "cueverseId": "adambuddy",
+        "manifestSpellings": [
+          "adambuddy"
+        ],
+        "bracketSpellings": [
+          "adambuddy"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4igqjq001r6r8gl65t25f8",
+        "entrantId": 42727,
+        "cueverseId": "optimus.price_xl",
+        "manifestSpellings": [
+          "optimus.price_xl"
+        ],
+        "bracketSpellings": [
+          "optimus.price_xl"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt1ss63g004h6r0cfdoyhxap",
+        "entrantId": 42724,
+        "cueverseId": "get_drewed",
+        "manifestSpellings": [
+          "get_drewed"
+        ],
+        "bracketSpellings": [
+          "get_drewed"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsxhh93k00016rf44sin01br",
+        "entrantId": 42725,
+        "cueverseId": "zl_stu_lz",
+        "manifestSpellings": [
+          "zl_stu_lz"
+        ],
+        "bracketSpellings": [
+          "zl_stu_lz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt5a4t1e00076rkwdhfi0508",
+        "entrantId": 49038,
+        "cueverseId": "x_therage",
+        "manifestSpellings": [
+          "x_therage"
+        ],
+        "bracketSpellings": [
+          "x_therage"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt24ci13003b6rnscz2q1ige",
+        "entrantId": 42719,
+        "cueverseId": "enjoy.pool",
+        "manifestSpellings": [
+          "enjoy.pool"
+        ],
+        "bracketSpellings": [
+          "enjoy.pool"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsyrx31g00006riggac6o23n",
+        "entrantId": 43891,
+        "cueverseId": "sixohtwo",
+        "manifestSpellings": [
+          "bigblue2k"
+        ],
+        "bracketSpellings": [
+          "SixohTwo"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": true,
+        "classification": "same canonical identity"
+      },
+      {
+        "playerId": "cmsxiu3lh00076rzkponfizqq",
+        "entrantId": 42721,
+        "cueverseId": "xchriskarenx",
+        "manifestSpellings": [
+          "xchriskarenx"
+        ],
+        "bracketSpellings": [
+          "xchriskarenx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vay7500ft6rikuh23k1ie",
+        "entrantId": 43904,
+        "cueverseId": "stoned_on_420",
+        "manifestSpellings": [
+          "stoned_on_420"
+        ],
+        "bracketSpellings": [
+          "stoned_on_420"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      }
+    ]
+  },
+  {
+    "seasonId": 5489,
+    "label": "2011 S3A",
+    "sourceFile": "archive/wayback-seasons/2011/2011 s3.txt",
+    "category": "full",
+    "bracketComplete": true,
+    "completenessFailures": [],
+    "manifestPeople": 25,
+    "bracketPeople": 25,
+    "intersection": 24,
+    "manifestOnly": [
+      "catsslover"
+    ],
+    "bracketOnly": [
+      "Cocky_Guy"
+    ],
+    "sameCanonicalIdentity": [],
+    "currentlySelected": 25,
+    "proposedSelected": 25,
+    "toSelect": [],
+    "toDeselect": [],
+    "unchanged": 25,
+    "unresolved": [],
+    "ambiguous": [],
+    "safeToReconcile": true,
+    "reason": "the page proves the whole entry field and every entrant is entered here",
+    "people": [
+      {
+        "playerId": "cmt5a4t3l00086rkwyf1kod2x",
+        "entrantId": 49070,
+        "cueverseId": "MJ_The_King",
+        "manifestSpellings": [
+          "mj_the_king"
+        ],
+        "bracketSpellings": [
+          "MJ_The_King"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbc4l00lz6riku2flms18",
+        "entrantId": 44595,
+        "cueverseId": "thebezisback",
+        "manifestSpellings": [
+          "thebezisback"
+        ],
+        "bracketSpellings": [
+          "thebezisback"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vatwc00dx6rikoigvcbo2",
+        "entrantId": 44590,
+        "cueverseId": "leeds_united14",
+        "manifestSpellings": [
+          "leeds_united14"
+        ],
+        "bracketSpellings": [
+          "leeds_united14"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbhdh00oa6rikgsj73bec",
+        "entrantId": 44592,
+        "cueverseId": "n00bsquad_knight",
+        "manifestSpellings": [
+          "n00bsquad_knight"
+        ],
+        "bracketSpellings": [
+          "n00bsquad_knight"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbf8c00nc6rik11vipn8b",
+        "entrantId": 44605,
+        "cueverseId": "nxs_skillz",
+        "manifestSpellings": [
+          "nxs_skillz"
+        ],
+        "bracketSpellings": [
+          "nxs_skillz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vapt900c66rikwj0pjls3",
+        "entrantId": 44580,
+        "cueverseId": "l1_stephen_1",
+        "manifestSpellings": [
+          "l1_stephen_1"
+        ],
+        "bracketSpellings": [
+          "l1_stephen_1"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbd1l00md6rikkkbsr0mq",
+        "entrantId": 44604,
+        "cueverseId": "weekenderweekender",
+        "manifestSpellings": [
+          "weekenderweekender"
+        ],
+        "bracketSpellings": [
+          "weekenderweekender"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbcky00m66rik33bfsrlb",
+        "entrantId": 44572,
+        "cueverseId": "underdogg_",
+        "manifestSpellings": [
+          "underdogg_"
+        ],
+        "bracketSpellings": [
+          "underdogg_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vavzw00eu6rikui3xtstp",
+        "entrantId": 49071,
+        "cueverseId": "xx_apocalypsys_xx",
+        "manifestSpellings": [
+          "xx_apocalipsys_xx"
+        ],
+        "bracketSpellings": [
+          "XX_APOCALIPSYS_XX"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbfoi00nj6rikcw469qaj",
+        "entrantId": 44574,
+        "cueverseId": "catsslover",
+        "manifestSpellings": [
+          "catsslover"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt0qbzvj002m6rpowasgcx15",
+        "entrantId": 42875,
+        "cueverseId": "pool_warrior2002",
+        "manifestSpellings": [
+          "hawkeyestriker"
+        ],
+        "bracketSpellings": [
+          "HawkeyeStriker"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vb0y500h16rikmpm37t9o",
+        "entrantId": 44600,
+        "cueverseId": "jaded_karma",
+        "manifestSpellings": [
+          "jaded_karma"
+        ],
+        "bracketSpellings": [
+          "jaded_karma"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4va50w00356rikwzm3s12s",
+        "entrantId": 44589,
+        "cueverseId": "so_wolf_cub4",
+        "manifestSpellings": [
+          "so_wolf_cub4"
+        ],
+        "bracketSpellings": [
+          "so_wolf_cub4"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0pjln4001d6rpo1xqf35is",
+        "entrantId": 42874,
+        "cueverseId": "hp_king22",
+        "manifestSpellings": [
+          "hp_king22"
+        ],
+        "bracketSpellings": [
+          "hp_king22"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vayy000g56rikzxt96s6s",
+        "entrantId": 44612,
+        "cueverseId": "b0rn.gr3at",
+        "manifestSpellings": [
+          "b0rn.gr3at"
+        ],
+        "bracketSpellings": [
+          "b0rn.gr3at"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbhmb00oe6rikgm5i1pcn",
+        "entrantId": 44609,
+        "cueverseId": "lixll_god_lixll",
+        "manifestSpellings": [
+          "lixll_god_lixll"
+        ],
+        "bracketSpellings": [
+          "lIXll_GoD_lIXll"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vb5bg00iz6rika963cmr5",
+        "entrantId": 44598,
+        "cueverseId": "sin-e",
+        "manifestSpellings": [
+          "sin-e"
+        ],
+        "bracketSpellings": [
+          "sin-e"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbfr800nk6rikjez7npsi",
+        "entrantId": 44579,
+        "cueverseId": "shitty_attitude",
+        "manifestSpellings": [
+          "shitty_attitude"
+        ],
+        "bracketSpellings": [
+          "shitty_attitude"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbh0500o46rikkufkfsqs",
+        "entrantId": 44593,
+        "cueverseId": "cyberinferno1",
+        "manifestSpellings": [
+          "cyberinferno1"
+        ],
+        "bracketSpellings": [
+          "cyberinferno1"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaw4f00ew6rikaqdl3dgh",
+        "entrantId": 44615,
+        "cueverseId": "n00b.ski11z",
+        "manifestSpellings": [
+          "n00b.ski11z"
+        ],
+        "bracketSpellings": [
+          "n00b.ski11z"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vb6ux00jo6rikd2ix2hm0",
+        "entrantId": 44608,
+        "cueverseId": "black_stallion009",
+        "manifestSpellings": [
+          "black_stallion009"
+        ],
+        "bracketSpellings": [
+          "black_stallion009"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbh2c00o56rikib3y0so7",
+        "entrantId": 44576,
+        "cueverseId": "combo5_",
+        "manifestSpellings": [
+          "combo5_"
+        ],
+        "bracketSpellings": [
+          "combo5_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbhk500od6rikznxdwrh4",
+        "entrantId": 44603,
+        "cueverseId": "siccster",
+        "manifestSpellings": [
+          "siccster"
+        ],
+        "bracketSpellings": [
+          "siccster"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbc8z00m16rikrillilo5",
+        "entrantId": 44602,
+        "cueverseId": "aka_hero",
+        "manifestSpellings": [
+          "aka_hero"
+        ],
+        "bracketSpellings": [
+          "aka_hero"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vafj9007n6rikag06lcgx",
+        "entrantId": 44584,
+        "cueverseId": "mvp_croz",
+        "manifestSpellings": [
+          "mvp_croz"
+        ],
+        "bracketSpellings": [
+          "mvp_croz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt5a4tcb000c6rkw74adgb1o",
+        "entrantId": 49072,
+        "cueverseId": "Cocky_Guy",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "Cocky_Guy"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      }
+    ]
+  },
+  {
+    "seasonId": 5491,
+    "label": "2011 S4A",
+    "sourceFile": "archive/wayback-seasons/2011/2011 s4.txt",
+    "category": "full",
+    "bracketComplete": true,
+    "completenessFailures": [],
+    "manifestPeople": 25,
+    "bracketPeople": 25,
+    "intersection": 24,
+    "manifestOnly": [
+      "jesse_j"
+    ],
+    "bracketOnly": [
+      "jmunoz3rd"
+    ],
+    "sameCanonicalIdentity": [
+      {
+        "manifest": "bigblue2k",
+        "bracket": "sixohtwo",
+        "playerId": "cmsyrx31g00006riggac6o23n"
+      }
+    ],
+    "currentlySelected": 25,
+    "proposedSelected": 25,
+    "toSelect": [],
+    "toDeselect": [],
+    "unchanged": 25,
+    "unresolved": [],
+    "ambiguous": [],
+    "safeToReconcile": true,
+    "reason": "the page proves the whole entry field and every entrant is entered here",
+    "people": [
+      {
+        "playerId": "cmt4vbl7g00py6rik5w9uc0ui",
+        "entrantId": 44698,
+        "cueverseId": "iiviijj",
+        "manifestSpellings": [
+          "iiviijj"
+        ],
+        "bracketSpellings": [
+          "iiviijj"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vb7u400k46rikh7nqls3j",
+        "entrantId": 44672,
+        "cueverseId": "c.marcoo",
+        "manifestSpellings": [
+          "c.marcoo"
+        ],
+        "bracketSpellings": [
+          "c.marcoo"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbkya00pu6rik68x03gxr",
+        "entrantId": 44682,
+        "cueverseId": "x_ant_x",
+        "manifestSpellings": [
+          "x_ant_x"
+        ],
+        "bracketSpellings": [
+          "x_ant_x"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vayy000g56rikzxt96s6s",
+        "entrantId": 44674,
+        "cueverseId": "b0rn.gr3at",
+        "manifestSpellings": [
+          "b0rn.gr3at"
+        ],
+        "bracketSpellings": [
+          "b0rn.gr3at"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaor700bp6rikfthxvxvr",
+        "entrantId": 44679,
+        "cueverseId": "xlx_skill_xlx",
+        "manifestSpellings": [
+          "xlx_skill_xlx"
+        ],
+        "bracketSpellings": [
+          "xlx_skill_xlx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbktv00ps6rik00b4xrvh",
+        "entrantId": 44675,
+        "cueverseId": "joosed_up",
+        "manifestSpellings": [
+          "joosed_up"
+        ],
+        "bracketSpellings": [
+          "joosed_up"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbkpd00pq6rikrsen6jln",
+        "entrantId": 44670,
+        "cueverseId": "ruffer_man",
+        "manifestSpellings": [
+          "ruffer_man"
+        ],
+        "bracketSpellings": [
+          "ruffer_man"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbl5500px6rik9pcy7cj6",
+        "entrantId": 44694,
+        "cueverseId": "azn_pride_luva",
+        "manifestSpellings": [
+          "azn_pride_luva"
+        ],
+        "bracketSpellings": [
+          "AzN_PrIdE_LuVa"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4j30bd00316r8g2mt1ol3s",
+        "entrantId": 42885,
+        "cueverseId": "p00l_charlie",
+        "manifestSpellings": [
+          "p00l_charlie"
+        ],
+        "bracketSpellings": [
+          "p00l_charlie"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbkn300pp6rikgabwmgqs",
+        "entrantId": 44667,
+        "cueverseId": "x_i_am_me_x",
+        "manifestSpellings": [
+          "x_i_am_me_x"
+        ],
+        "bracketSpellings": [
+          "x_i_am_me_x"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vanun00bb6rikeytvru86",
+        "entrantId": 44684,
+        "cueverseId": "mr_camtasia",
+        "manifestSpellings": [
+          "mr_camtasia"
+        ],
+        "bracketSpellings": [
+          "mr_camtasia"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbcnw00m76rikzxq545pk",
+        "entrantId": 44665,
+        "cueverseId": "jesse_j",
+        "manifestSpellings": [
+          "jesse_j"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vb4rn00iq6riknn7g137k",
+        "entrantId": 44691,
+        "cueverseId": "xlx_chex_xlx",
+        "manifestSpellings": [
+          "xlx_chex_xlx"
+        ],
+        "bracketSpellings": [
+          "xlx_chex_xlx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vb3mx00i86rik76xz9gmu",
+        "entrantId": 44689,
+        "cueverseId": "sykology",
+        "manifestSpellings": [
+          "sykology"
+        ],
+        "bracketSpellings": [
+          "sykology"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0qbzvj002m6rpowasgcx15",
+        "entrantId": 42887,
+        "cueverseId": "pool_warrior2002",
+        "manifestSpellings": [
+          "hawkeyestriker"
+        ],
+        "bracketSpellings": [
+          "HawkeyeStriker"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbc8z00m16rikrillilo5",
+        "entrantId": 44669,
+        "cueverseId": "aka_hero",
+        "manifestSpellings": [
+          "aka_hero"
+        ],
+        "bracketSpellings": [
+          "aka_hero"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt5a4syo00066rkwtpv7vdpb",
+        "entrantId": 49073,
+        "cueverseId": "i.am_the_zodiac",
+        "manifestSpellings": [
+          "i.am_the_zodiac"
+        ],
+        "bracketSpellings": [
+          "i.am_the_zodiac"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbl2u00pw6rikkew8blxi",
+        "entrantId": 44690,
+        "cueverseId": "pro_boy",
+        "manifestSpellings": [
+          "pro_boy"
+        ],
+        "bracketSpellings": [
+          "PRO_BOY"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaess007c6rikjnb80g6s",
+        "entrantId": 44696,
+        "cueverseId": "precise.runner",
+        "manifestSpellings": [
+          "precise.runner"
+        ],
+        "bracketSpellings": [
+          "precise.runner"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmsyrx31g00006riggac6o23n",
+        "entrantId": 44676,
+        "cueverseId": "sixohtwo",
+        "manifestSpellings": [
+          "bigblue2k"
+        ],
+        "bracketSpellings": [
+          "sixohtwo"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": true,
+        "classification": "same canonical identity"
+      },
+      {
+        "playerId": "cmt4vatwc00dx6rikoigvcbo2",
+        "entrantId": 44692,
+        "cueverseId": "leeds_united14",
+        "manifestSpellings": [
+          "leeds_united14"
+        ],
+        "bracketSpellings": [
+          "leeds_united14"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4valj900aa6rikjv6a40mf",
+        "entrantId": 44700,
+        "cueverseId": "the_pool_professor",
+        "manifestSpellings": [
+          "the_pool_professor"
+        ],
+        "bracketSpellings": [
+          "the_pool_professor"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbg0700no6rikt8fcu32g",
+        "entrantId": 44664,
+        "cueverseId": "scotpool",
+        "manifestSpellings": [
+          "scotpool"
+        ],
+        "bracketSpellings": [
+          "scotpool"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vb16y00h56rik22etvlra",
+        "entrantId": 44683,
+        "cueverseId": "easyrun",
+        "manifestSpellings": [
+          "easyrun"
+        ],
+        "bracketSpellings": [
+          "Easyrun"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbfr800nk6rikjez7npsi",
+        "entrantId": 44693,
+        "cueverseId": "shitty_attitude",
+        "manifestSpellings": [
+          "shitty_attitude"
+        ],
+        "bracketSpellings": [
+          "shitty_attitude"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt0jqore000o6rpo67cxegnp",
+        "entrantId": 49035,
+        "cueverseId": "jmunoz3rd",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "jmunoz3rd"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      }
+    ]
+  },
+  {
+    "seasonId": 5511,
+    "label": "2013 S4A",
+    "sourceFile": "archive/wayback-seasons/2013/2013 s4.txt",
+    "category": "full",
+    "bracketComplete": true,
+    "completenessFailures": [],
+    "manifestPeople": 24,
+    "bracketPeople": 24,
+    "intersection": 9,
+    "manifestOnly": [
+      "p0olz",
+      "disaster",
+      "xlx_sid_xlx",
+      "bigblue2k",
+      "llvll925",
+      "shad0w_0f_decepti0n",
+      "jt.jester",
+      "catsslover",
+      "run_it_down",
+      "el_drunken",
+      "redrose_and_a_glassofwine",
+      "black_stallion009",
+      "l_hero_23_l",
+      "grey_gooose",
+      "pf_masta_pf"
+    ],
+    "bracketOnly": [
+      "PRO_BOY",
+      "dramatic",
+      "Easyrun",
+      "havok",
+      "MJ_The_King",
+      "xlx_britishpoolking_xlx",
+      "SpinBreak",
+      "100%good",
+      "Reps",
+      "shadow_man_",
+      "Asskicking_101",
+      "master",
+      "aka_hero",
+      "grey_goose",
+      "c-b"
+    ],
+    "sameCanonicalIdentity": [],
+    "currentlySelected": 24,
+    "proposedSelected": 24,
+    "toSelect": [],
+    "toDeselect": [],
+    "unchanged": 24,
+    "unresolved": [],
+    "ambiguous": [],
+    "safeToReconcile": true,
+    "reason": "the page proves the whole entry field and every entrant is entered here",
+    "people": [
+      {
+        "playerId": "cmt4vbnve00r36rikxc977kj7",
+        "entrantId": 45487,
+        "cueverseId": "p0olz",
+        "manifestSpellings": [
+          "p0olz"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbu3f00ts6rikq2b88a4k",
+        "entrantId": 45475,
+        "cueverseId": "disaster",
+        "manifestSpellings": [
+          "disaster"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbxon00vd6rik5o9c2ib4",
+        "entrantId": 45456,
+        "cueverseId": "xlx_sid_xlx",
+        "manifestSpellings": [
+          "xlx_sid_xlx"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmsyrx31g00006riggac6o23n",
+        "entrantId": 45470,
+        "cueverseId": "sixohtwo",
+        "manifestSpellings": [
+          "bigblue2k"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbuew00tx6rik84l9iotj",
+        "entrantId": 45458,
+        "cueverseId": "tanmay_keshav",
+        "manifestSpellings": [
+          "tanmay_keshav"
+        ],
+        "bracketSpellings": [
+          "tanmay_keshav"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbl5500px6rik9pcy7cj6",
+        "entrantId": 45457,
+        "cueverseId": "azn_pride_luva",
+        "manifestSpellings": [
+          "azn_pride_luva"
+        ],
+        "bracketSpellings": [
+          "AzN_PrIdE_LuVa"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vboby00ra6rik2amsl765",
+        "entrantId": 45469,
+        "cueverseId": "llvll925",
+        "manifestSpellings": [
+          "llvll925"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbsh700t36riks7esyogr",
+        "entrantId": 45495,
+        "cueverseId": "shad0w_0f_decepti0n",
+        "manifestSpellings": [
+          "shad0w_0f_decepti0n"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vb8oj00ki6riket5o7xgo",
+        "entrantId": 45496,
+        "cueverseId": "jt.jester",
+        "manifestSpellings": [
+          "jt.jester"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbfoi00nj6rikcw469qaj",
+        "entrantId": 45492,
+        "cueverseId": "catsslover",
+        "manifestSpellings": [
+          "catsslover"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbh4k00o66rikbhsu1osl",
+        "entrantId": 45464,
+        "cueverseId": "run_it_down",
+        "manifestSpellings": [
+          "run_it_down"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vay9b00fu6rik1r0y10d2",
+        "entrantId": 45483,
+        "cueverseId": "el_drunken",
+        "manifestSpellings": [
+          "el_drunken"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbm4l00qc6rikvjlwskav",
+        "entrantId": 45455,
+        "cueverseId": "redrose_and_a_glassofwine",
+        "manifestSpellings": [
+          "redrose_and_a_glassofwine"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vb6ux00jo6rikd2ix2hm0",
+        "entrantId": 45481,
+        "cueverseId": "black_stallion009",
+        "manifestSpellings": [
+          "black_stallion009"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt0jpogt000l6rporykpvitn",
+        "entrantId": 42971,
+        "cueverseId": "handkrash",
+        "manifestSpellings": [
+          "handkrash"
+        ],
+        "bracketSpellings": [
+          "handkrash"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbdcy00mi6rik8ox1k9p4",
+        "entrantId": 45480,
+        "cueverseId": "zz_lazyass_zz",
+        "manifestSpellings": [
+          "zz_lazyass_zz"
+        ],
+        "bracketSpellings": [
+          "zZ_LaZyAsS_Zz"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbn7t00qt6rikmw26ayfq",
+        "entrantId": 45486,
+        "cueverseId": "l_hero_23_l",
+        "manifestSpellings": [
+          "l_hero_23_l"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vbtmr00tl6rik41mq6145",
+        "entrantId": 45501,
+        "cueverseId": "grey_gooose",
+        "manifestSpellings": [
+          "grey_gooose"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vggia00166rywbwi38m1q",
+        "entrantId": 45502,
+        "cueverseId": "underrated",
+        "manifestSpellings": [
+          "underrated"
+        ],
+        "bracketSpellings": [
+          "underrated"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbnok00r06rikg4bfp86v",
+        "entrantId": 45462,
+        "cueverseId": "_dante",
+        "manifestSpellings": [
+          "_dante"
+        ],
+        "bracketSpellings": [
+          "_dante"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vaydq00fw6rikrtbsqyij",
+        "entrantId": 45476,
+        "cueverseId": "pf_masta_pf",
+        "manifestSpellings": [
+          "pf_masta_pf"
+        ],
+        "bracketSpellings": [],
+        "selectedNow": false,
+        "sameCanonicalIdentity": false,
+        "classification": "manifest only"
+      },
+      {
+        "playerId": "cmt4vavzw00eu6rikui3xtstp",
+        "entrantId": 49234,
+        "cueverseId": "xx_apocalypsys_xx",
+        "manifestSpellings": [
+          "xx_apocalipsys_xx"
+        ],
+        "bracketSpellings": [
+          "XX_APOCALIPSYS_XX"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbw3200un6rikb1fynp0k",
+        "entrantId": 45490,
+        "cueverseId": "buddybong",
+        "manifestSpellings": [
+          "buddybong"
+        ],
+        "bracketSpellings": [
+          "Buddybong"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbuqw00u26rikyi9ab7nt",
+        "entrantId": 45497,
+        "cueverseId": "shagger1_",
+        "manifestSpellings": [
+          "shagger1_"
+        ],
+        "bracketSpellings": [
+          "shagger1_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "in both sources"
+      },
+      {
+        "playerId": "cmt4vbl2u00pw6rikkew8blxi",
+        "entrantId": 49220,
+        "cueverseId": "pro_boy",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "PRO_BOY"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4w06001m6rkwiveyrbaq",
+        "entrantId": 49221,
+        "cueverseId": "dramatic",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "dramatic"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt4vb16y00h56rik22etvlra",
+        "entrantId": 49222,
+        "cueverseId": "easyrun",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "Easyrun"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4w25001n6rkwft9gq3xo",
+        "entrantId": 49223,
+        "cueverseId": "havok",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "havok"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4t3l00086rkwyf1kod2x",
+        "entrantId": 49224,
+        "cueverseId": "MJ_The_King",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "MJ_The_King"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt0jmap5000d6rpocx4hlovs",
+        "entrantId": 49225,
+        "cueverseId": "xlx_britishpoolking_xlx",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "xlx_britishpoolking_xlx"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4ve9001b6rkw671gzdy6",
+        "entrantId": 49226,
+        "cueverseId": "SpinBreak",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "SpinBreak"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4v4700166rkwjhohyzam",
+        "entrantId": 49227,
+        "cueverseId": "100%good",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "100%good"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4va900196rkwm06vdwkf",
+        "entrantId": 49228,
+        "cueverseId": "Reps",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "Reps"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmsys8lj000016rigqrgtm4qb",
+        "entrantId": 49229,
+        "cueverseId": "Starkiller",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "shadow_man_"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt5a4v2700156rkwdx579zlv",
+        "entrantId": 49230,
+        "cueverseId": "Asskicking_101",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "Asskicking_101"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt4vbmmn00qk6rikieoe4r53",
+        "entrantId": 49231,
+        "cueverseId": "master",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "master"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt4vbc8z00m16rikrillilo5",
+        "entrantId": 49232,
+        "cueverseId": "aka_hero",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "aka_hero"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt4vbxqu00ve6rikbrfl0cp5",
+        "entrantId": 45493,
+        "cueverseId": "grey_goose",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "grey_goose"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      },
+      {
+        "playerId": "cmt4vb5vf00j86rikrhquuvca",
+        "entrantId": 49233,
+        "cueverseId": "c-b",
+        "manifestSpellings": [],
+        "bracketSpellings": [
+          "c-b"
+        ],
+        "selectedNow": true,
+        "sameCanonicalIdentity": false,
+        "classification": "bracket only"
+      }
+    ]
+  }
+]

@@ -13,7 +13,7 @@
 import type { TemplateSource } from '../src/lib/archive/auto-playoffs.ts'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
-import { loadManifest } from '../src/lib/archive/manifest.ts'
+import { loadManifest, manifestEntry } from '../src/lib/archive/manifest.ts'
 import {
   previewAutoEntrants, applyAutoEntrants, autoEntrantsAvailability,
 } from '../src/lib/archive/auto-entrants.ts'
@@ -71,7 +71,7 @@ const ACTOR = { userId: 0, username: TAG }
  * The lender is never read or written by the services under test — one nullable field moves and
  * returns.
  */
-let borrowedFrom: { seasonId: number; templateKey: string } | null = null
+let borrowedFrom: { seasonId: number; templateKey: string; lifecycleState: string; entrants: number; playoffMatches: number } | null = null
 
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
@@ -107,6 +107,11 @@ async function cleanup() {
       where: { id: borrowedFrom.seasonId },
       data: { archiveTemplateKey: borrowedFrom.templateKey },
     })
+    // Borrowing from a real Season is only acceptable if it is provably given back.
+    const restored = await prisma.season.count({
+      where: { id: borrowedFrom.seasonId, archiveTemplateKey: borrowedFrom.templateKey },
+    })
+    check('the borrowed template key was returned to its Season', restored === 1)
   }
 }
 
@@ -141,22 +146,49 @@ async function main() {
   let entry: (typeof candidates)[number] | null = null
   let lender: number | null = null
   for (const c of candidates) {
+    /*
+     * What the lender must be, and what it need not be.
+     *
+     * `archiveTemplateKey` is unique, so a fixture Season can only carry a real key while the shell
+     * that owns it does not — the key is handed back in cleanup. This once demanded a completely
+     * untouched shell, which stopped being true the moment the reconstruction filled every one of
+     * them, and the suite failed by construction rather than by finding anything.
+     *
+     * The lender's contents are irrelevant: every service call below names the FIXTURE Season, and
+     * only the borrowed key ever moves. What does matter is never borrowing from a Season whose
+     * record is final, so a completed Season or one carrying a rating contribution is left alone.
+     */
     const shell = await prisma.season.findFirst({
       where: {
         archiveTemplateKey: c.templateKey,
-        lifecycleState: 'REGISTRATION_OPEN',
-        entrants: { none: {} }, groups: { none: {} }, matches: { none: {} },
-        playoffMatches: { none: {} }, standings: { none: {} }, ratingLedger: { none: {} },
+        lifecycleState: { notIn: ['COMPLETED'] },
+        ratingLedger: { none: {} },
       },
       select: { id: true },
     })
     if (shell) { entry = c; lender = shell.id; break }
   }
   if (!entry || lender == null) {
-    check('a pristine exact-placement shell exists to borrow a template key from', false)
+    check('an exact-placement shell exists to borrow a template key from', false)
     return
   }
-  borrowedFrom = { seasonId: lender, templateKey: entry.templateKey }
+  /*
+   * What the lender looked like before anything was borrowed.
+   *
+   * The point of the check at the end is that this suite leaves the Season exactly as it found it.
+   * Asserting it is EMPTY was a different claim, true only while the shells were unreconstructed,
+   * and it started failing because the reconstruction filled them — not because anything leaked.
+   */
+  const lenderBefore = await prisma.season.findUniqueOrThrow({
+    where: { id: lender },
+    select: { lifecycleState: true, _count: { select: { entrants: true, playoffMatches: true } } },
+  })
+  borrowedFrom = {
+    seasonId: lender, templateKey: entry.templateKey,
+    lifecycleState: String(lenderBefore.lifecycleState),
+    entrants: lenderBefore._count.entrants,
+    playoffMatches: lenderBefore._count.playoffMatches,
+  }
   await prisma.season.update({ where: { id: lender }, data: { archiveTemplateKey: null } })
   console.log(`  (borrowing ${entry.templateKey} from the untouched shell #${lender}: ${entry.playoff.participants.length} playoff players, bracket ${entry.playoff.bracketSize})`)
 
@@ -172,6 +204,38 @@ async function main() {
     select: { id: true },
   })
 
+  /*
+   * The archive entry this fixture runs on, with invented handles.
+   *
+   * The suite needs handles that match no account, so that it can invent exactly one account for
+   * each and assert the matcher finds it. It used to take those from whatever the archive happened
+   * to have no account for — which was fine while the reconstruction was unfinished and impossible
+   * once every recorded handle had one. Recreating the gap on real data would mean breaking a real
+   * identity, so the handles are invented here instead and injected through the same door the
+   * playoff services already offer.
+   */
+  const fixtureEntry: typeof entry = {
+    ...entry,
+    playoff: {
+      ...entry.playoff,
+      participants: entry.playoff.participants.map((pp, i) => ({
+        ...pp,
+        // A distinct source id as well as a distinct handle: the people list is keyed on source id,
+        // so a playoff row sharing one with a group row is folded into it and never seen.
+        sourceId: `${TAG}-P${i}`,
+        rawHandle: `${TAG}.p${i}`,
+        normalizedHandle: `${TAG}.p${i}`,
+      })),
+    },
+    participants: entry.participants.map((pp, i) => ({
+      ...pp,
+      sourceId: `${TAG}-G${i}`,
+      rawHandle: `${TAG}.g${i}`,
+      normalizedHandle: `${TAG}.g${i}`,
+    })),
+  }
+  const SRC = (k: string) => (k === entry!.templateKey ? fixtureEntry : manifestEntry(k))
+
   // ───────────────────────────────────────────────────────────── the accounts to match
   section('Auto Add Entrants finds accounts the database already has')
 
@@ -182,10 +246,10 @@ async function main() {
    * this database: a handle nobody matches today will match exactly the account invented for it, and
    * one candidate means one match rather than an ambiguity nobody intended.
    */
-  const first = await previewAutoEntrants(season.id)
+  const first = await previewAutoEntrants(season.id, SRC)
   if (isBlocked(first)) { check('the fixture Season previews', false, first.reason); return }
   const spare = first.missing.map((m) => m.rawHandle)
-  const playoffHandles = new Set(entry.playoff.participants.map((p) => p.rawHandle))
+  const playoffHandles = new Set(fixtureEntry.playoff.participants.map((p) => p.rawHandle))
   const missingPlayoff = spare.filter((h) => playoffHandles.has(h))
   if (missingPlayoff.length < 5) {
     check('enough unmatched archived playoff handles to build fixtures from', false, String(missingPlayoff.length))
@@ -204,7 +268,7 @@ async function main() {
   // Somebody who is in the archived field but gets NO account until later in this run.
   void hLater
 
-  const plan = await previewAutoEntrants(season.id)
+  const plan = await previewAutoEntrants(season.id, SRC)
   if (isBlocked(plan)) { check('the preview runs with fixtures in place', false, plan.reason); return }
 
   const added = (h: string) => plan.toAdd.find((a) => a.rawHandle === h)
@@ -232,7 +296,7 @@ async function main() {
   const usersBefore = await prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*)::bigint AS n FROM payload.users`
   const expected = plan.toAdd.length
 
-  const r1 = await applyAutoEntrants(ACTOR, season.id)
+  const r1 = await applyAutoEntrants(ACTOR, season.id, SRC)
   check('the apply succeeds', r1.ok, r1.error)
   check('it adds exactly what the preview promised', r1.added === expected, `${r1.added} vs ${expected}`)
   check('it reports the ambiguities it skipped', r1.ambiguous === plan.ambiguous.length)
@@ -260,7 +324,7 @@ async function main() {
     (await prisma.auditLog.count({ where: { actorUsername: TAG, action: 'season.archive.autoentrants' } })) === 1)
 
   section('Rerunning adds only what is genuinely new')
-  const r2 = await applyAutoEntrants(ACTOR, season.id)
+  const r2 = await applyAutoEntrants(ACTOR, season.id, SRC)
   check('a second run adds nobody', r2.ok && r2.added === 0, String(r2.added))
   check('...and reports them as already entered', r2.alreadyEntered === expected, `${r2.alreadyEntered} vs ${expected}`)
   check('...leaving the entrant list exactly as it was',
@@ -268,7 +332,7 @@ async function main() {
 
   // The owner creates the missing account, then runs it again — the whole point of the report.
   const laterPlayer = await makePlayer('created-later', hLater)
-  const r3 = await applyAutoEntrants(ACTOR, season.id)
+  const r3 = await applyAutoEntrants(ACTOR, season.id, SRC)
   check('once the missing account exists, a rerun adds just that one', r3.ok && r3.added === 1, String(r3.added))
   check('...and it is the right person',
     (await prisma.seasonEntrant.count({ where: { seasonId: season.id, playerId: laterPlayer } })) === 1)
@@ -306,7 +370,7 @@ async function main() {
    */
   section('An incomplete field selects the right people and refuses to guess their seats')
   await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFF_SETUP' } })
-  const partial = await previewPlayoffBracket(season.id)
+  const partial = await previewPlayoffBracket(season.id, SRC)
   if (isBlocked(partial)) {
     check('the half-populated Season still previews', false, partial.reason)
   } else {
@@ -326,11 +390,11 @@ async function main() {
   await prisma.player.delete({ where: { id: ambigB } })
 
   const stillMissing = (await (async () => {
-    const pv = await previewAutoEntrants(season.id)
+    const pv = await previewAutoEntrants(season.id, SRC)
     return isBlocked(pv) ? [] : pv.missing.map((m) => m.rawHandle)
   })()).filter((h) => playoffHandles.has(h))
   for (const [i, h] of stillMissing.entries()) await makePlayer(`field-${i}`, h)
-  const filled = await applyAutoEntrants(ACTOR, season.id)
+  const filled = await applyAutoEntrants(ACTOR, season.id, SRC)
   const expectedFill = stillMissing.length + 1 // the missing accounts, plus the settled ambiguity
   check('the rest of the archived field is added on a rerun', filled.ok && filled.added === expectedFill,
     `${filled.added} vs ${expectedFill}`)
@@ -360,7 +424,7 @@ async function main() {
   check('in playoff setup the bracket button appears', (await playoffBracketAvailability(season.id)).show === true)
   check('...and the entrant button is gone', (await autoEntrantsAvailability(season.id)).show === false)
 
-  const po = await previewPlayoffBracket(season.id)
+  const po = await previewPlayoffBracket(season.id, SRC)
   if (isBlocked(po)) { check('the bracket previews in playoff setup', false, po.reason); return }
   check('it carries the archive placement through', po.placement === 'exact')
   check('...with the archived bracket size', po.bracketSize === entry.playoff.bracketSize)
@@ -377,7 +441,7 @@ async function main() {
   check('nothing is refused yet', po.refusal === null, po.refusal ?? '')
   check('there is no draft to replace', po.existingDraft === false || po.draftPlacements === 0)
 
-  const applied = await applySelectionThenPlacement(ACTOR, season.id)
+  const applied = await applySelectionThenPlacement(ACTOR, season.id, {}, SRC)
   check('the bracket applies', applied.ok, applied.error)
   check('it selects the archived field', applied.selected === po.include.length)
   check('it unchecks everyone else', applied.excluded === po.exclude.length)
@@ -447,17 +511,17 @@ async function main() {
     (await prisma.auditLog.count({ where: { actorUsername: TAG, action: 'season.archive.placement' } })) >= 1)
 
   section('A second build will not quietly replace a draft')
-  const po2 = await previewPlayoffBracket(season.id)
+  const po2 = await previewPlayoffBracket(season.id, SRC)
   if (!isBlocked(po2)) {
     check('the preview now sees a draft', po2.existingDraft && po2.draftPlacements > 0, String(po2.draftPlacements))
   }
-  const refused = await applySelectionThenPlacement(ACTOR, season.id)
+  const refused = await applySelectionThenPlacement(ACTOR, season.id, {}, SRC)
   check('rebuilding without confirmation is refused', refused.ok === false)
   check('...and says why', /confirm replacement/i.test(refused.error ?? ''), refused.error ?? '')
   check('...changing nothing',
     (await prisma.seasonEntrant.count({ where: { seasonId: season.id, playoffIncluded: true } })) === includedNow)
 
-  const confirmed = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true })
+  const confirmed = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true }, SRC)
   check('with confirmation it rebuilds', confirmed.ok, confirmed.error)
   check('...to the same bracket, being the same archive', confirmed.selected === applied.selected && confirmed.placed === applied.placed)
   check('...still in PLAYOFF_SETUP',
@@ -473,10 +537,10 @@ async function main() {
       where: { id: anyMatch.id },
       data: { homeGames: 7, awayGames: 3, winnerEntrantId: anyMatch.homeEntrantId, status: 'COMPLETED' },
     })
-    const withResult = await previewPlayoffBracket(season.id)
+    const withResult = await previewPlayoffBracket(season.id, SRC)
     check('the preview refuses once a result exists', !isBlocked(withResult) && withResult.refusal != null,
       isBlocked(withResult) ? withResult.reason : (withResult.refusal ?? 'no refusal'))
-    const blockedApply = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true })
+    const blockedApply = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true }, SRC)
     check('...and so does the apply', blockedApply.ok === false)
     check('...leaving the played match alone',
       (await prisma.seasonPlayoffMatch.findUnique({ where: { id: anyMatch.id }, select: { homeGames: true } }))?.homeGames === 7)
@@ -490,21 +554,21 @@ async function main() {
 
   section('Once the playoffs are live, the archive can no longer rearrange them')
   await prisma.season.update({ where: { id: season.id }, data: { lifecycleState: 'PLAYOFFS_LIVE' } })
-  const live = await previewPlayoffBracket(season.id)
+  const live = await previewPlayoffBracket(season.id, SRC)
   check('a live Season is refused', isBlocked(live))
   check('...saying the playoffs already started',
     isBlocked(live) && /already started/i.test(live.reason), isBlocked(live) ? live.reason : '')
   check('...and the button is hidden', (await playoffBracketAvailability(season.id)).show === false)
-  const liveApply = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true })
+  const liveApply = await applySelectionThenPlacement(ACTOR, season.id, { replaceDraft: true }, SRC)
   check('...and the apply refuses too', liveApply.ok === false)
-  check('adding entrants is refused too', isBlocked(await previewAutoEntrants(season.id)))
-  const liveAdd = await applyAutoEntrants(ACTOR, season.id)
+  check('adding entrants is refused too', isBlocked(await previewAutoEntrants(season.id, SRC)))
+  const liveAdd = await applyAutoEntrants(ACTOR, season.id, SRC)
   check('...including the apply', liveAdd.ok === false)
 
   // A Season whose template was cleared mid-flight: the guard, not a crash.
   await prisma.season.update({ where: { id: season.id }, data: { archiveTemplateKey: null, lifecycleState: 'PLAYOFF_SETUP' } })
-  check('a Season with no template is refused', isBlocked(await previewPlayoffBracket(season.id)))
-  check('...for entrants too', isBlocked(await previewAutoEntrants(season.id)))
+  check('a Season with no template is refused', isBlocked(await previewPlayoffBracket(season.id, SRC)))
+  check('...for entrants too', isBlocked(await previewAutoEntrants(season.id, SRC)))
 }
 
 main()
@@ -520,8 +584,11 @@ main()
         select: { archiveTemplateKey: true, lifecycleState: true, _count: { select: { entrants: true, playoffMatches: true } } },
       })
       check('the borrowed template key went back', back?.archiveTemplateKey === borrowedFrom.templateKey, String(back?.archiveTemplateKey))
-      check('...to a shell still untouched',
-        back?.lifecycleState === 'REGISTRATION_OPEN' && back?._count.entrants === 0 && back?._count.playoffMatches === 0)
+      check('...to a shell in exactly the state it was borrowed from',
+        String(back?.lifecycleState) === borrowedFrom.lifecycleState &&
+        back?._count.entrants === borrowedFrom.entrants &&
+        back?._count.playoffMatches === borrowedFrom.playoffMatches,
+        `${back?.lifecycleState}/${back?._count.entrants}/${back?._count.playoffMatches} vs ${borrowedFrom.lifecycleState}/${borrowedFrom.entrants}/${borrowedFrom.playoffMatches}`)
     }
     console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
     await prisma.$disconnect()

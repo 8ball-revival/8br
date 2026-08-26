@@ -1,0 +1,773 @@
+ACCOUNTS SHARING A YAHOO MESSENGER ID
+8 Ball Registry - 8BRCAM archive, 2005-2014
+==============================================================================
+
+A YIM was the one identifier the old site captured that a person could not
+casually change, so two player records carrying the same one are almost always
+ONE person entered twice.
+
+IMPORTANT: the archive extraction already resolved identity BY YIM - each
+distinct YIM string became one player record. An exact duplicate therefore
+cannot exist in this data by construction, and section 1 below confirms that.
+
+What the extraction could NOT catch is a YIM differing only by punctuation.
+king_2068 and king2068 are one Yahoo account typed two ways, but two different
+strings, so they became two player records. Section 2 lists those, and they are
+the real duplicate accounts in this archive.
+
+------------------------------------------------------------------------------
+SOURCE DATA
+------------------------------------------------------------------------------
+  players.csv                  1948 rows
+  player_aliases.csv           5572 rows, of which 1934 are ym_id
+  player_season_stats.csv      4662 rows
+
+  accounts holding >=1 YIM     1848
+  distinct YIM strings         1934
+  YIMs present only as players.csv primary_ym: 0
+
+  accounts with appearances, by division:
+      A          978 accounts
+      B         1103 accounts
+      single     285 accounts
+      ('single' is the pre-split era, before A and B existed)
+
+==============================================================================
+1. EXACT SHARED YIMs
+==============================================================================
+
+  None - 0 YIM strings are held by more than one account.
+
+  This is the expected result: the extraction keyed identity on the YIM, so
+  two accounts could never end up with an identical one. It is reported
+  rather than omitted because it is the check that proves the keying held.
+
+==============================================================================
+2. NEAR-DUPLICATE YIMs  -  same address, different punctuation
+==============================================================================
+
+  Each cluster is one Yahoo ID apparently written two ways, so the extraction
+  created a separate player for each. These are CANDIDATES for merging, not
+  proven duplicates - the strength of the evidence is stated per cluster:
+
+     STRONG    the accounts also share a handle, or the key is distinctive
+               (7+ characters) - very unlikely to be two people
+     REVIEW    the normalised key is short or a common name, so two different
+               people could plausibly have arrived at it. Check before merging.
+
+1. [STRONG] king.vaughan / king_vaughan / kingvaughan  -  3 accounts   [SPANS DIVISIONS: A, B, single]
+      also share the handle: ross
+      P0450   Ross V                  years 2006        seasons 2    division(s): A, B, single
+              handles: Ross, Ross V, king_vaughan
+              YIM(s): king_vaughan
+      P0571   Ross                    years 2006        seasons 1    division(s): single
+              handles: Ross
+              YIM(s): king.vaughan
+      P1093   Ross                    years 2008-2010   seasons 3    division(s): A
+              handles: Ross, kingvaughan
+              YIM(s): kingvaughan
+
+2. [REVIEW] t.ravis / t_r_a_v_i_s / t_r_a_v_i_s_  -  3 accounts   [SPANS DIVISIONS: A, B, single]
+      also share the handle: travis
+      P0629   Travis                  years 2006        seasons 1    division(s): single
+              handles: Travis
+              YIM(s): t.ravis
+      P1384   Travis                  years 2009        seasons 1    division(s): A
+              handles: Travis
+              YIM(s): t_r_a_v_i_s_
+      P1385   Travis                  years 2009        seasons 1    division(s): B
+              handles: Travis
+              YIM(s): t_r_a_v_i_s
+
+3. [STRONG] artic.wraith / artic_wraith  -  2 accounts   [SPANS DIVISIONS: B, single]
+      P0208   Artic                   years 2006        seasons 1    division(s): single
+              handles: Artic
+              YIM(s): artic_wraith
+      P0373   Hinz                    years 2006        seasons 1    division(s): B
+              handles: Hinz
+              YIM(s): artic.wraith
+
+4. [STRONG] chill.l3abe / chill_l3abe  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: sugarba8y
+      P1733   Jenni                   years 2012-2014   seasons 11   division(s): A, B
+              handles: Jenni, Jennifer, SuGaRbA8y, Supersweet13, _sexy_honey, jenni, lx_bittersweet_xl, sugarba8y, supersweet13
+              YIM(s): chil.l3babe, chill.l3abe
+      P1929   SuGaRbA8y               years 2013        seasons 1    division(s): B
+              handles: SuGaRbA8y
+              YIM(s): chill_l3abe
+
+5. [STRONG] chokshi.krunal / chokshi_krunal  -  2 accounts   [SPANS DIVISIONS: A, B, single]
+      also share the handle: krunal
+      P0030   Krunal                  years 2005-2006   seasons 4    division(s): A, single
+              handles: Krunal, chokshi_krunal, krunal
+              YIM(s): chokshi_krunal
+      P0255   Krunal                  years 2006-2009   seasons 4    division(s): A, B, single
+              handles: Chokshi.Krunal, Krunal
+              YIM(s): chokshi.krunal
+
+6. [REVIEW] c_l2_a_l_g / cl2alg  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: craig
+      P0239   Craig W                 years 2006-2007   seasons 6    division(s): A, B
+              handles: C_l2_a_l_g, Craig, Craig W, c_l2_a_l_g
+              YIM(s): c_l2_a_l_g
+      P1227   Craig                   years 2009        seasons 1    division(s): A
+              handles: Craig, cl2alg
+              YIM(s): cl2alg
+
+7. [STRONG] cool.combos / cool_combos  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: josh
+      P0281   Josh                    years 2006        seasons 3    division(s): A, B
+              handles: Josh, cool.combos
+              YIM(s): cool.combos
+      P0282   Josh                    years 2006-2011   seasons 7    division(s): A, B
+              handles: Josh, Joshua, cool_combos
+              YIM(s): cool_combos
+
+8. [STRONG] fire_wolf87 / firewolf_87  -  2 accounts   [SPANS DIVISIONS: A, single]
+      also share the handle: nick
+      P0114   nick                    years 2005        seasons 1    division(s): single
+              handles: nick
+              YIM(s): firewolf_87
+      P0349   Nick                    years 2006        seasons 3    division(s): A, single
+              handles: Nick, fire_wolf87
+              YIM(s): fire_wolf87
+
+9. [STRONG] gb_warrior1 / gbwarrior1  -  2 accounts
+      also share the handle: andy
+      P1407   Andy                    years 2010-2011   seasons 2    division(s): B
+              handles: Andy
+              YIM(s): gbwarrior1
+      P1746   Andy                    years 2012        seasons 2    division(s): B
+              handles: Andy, gb_warrior1
+              YIM(s): gb_warrior1
+
+10. [REVIEW] irish.gary / irish_gary  -  2 accounts
+      also share the handle: gary
+      P1039   Gary                    years 2008        seasons 1    division(s): B
+              handles: Gary
+              YIM(s): irish_gary
+      P1892   Gary                    years 2013        seasons 1    division(s): B
+              handles: Gary, irish.gary
+              YIM(s): irish.gary
+
+11. [REVIEW] _james15_ / james15_  -  2 accounts
+      also share the handle: james
+      P0070   james                   years 2005        seasons 1    division(s): single
+              handles: james
+              YIM(s): _james15_
+      P0071   james                   years 2005        seasons 1    division(s): single
+              handles: james, james15_
+              YIM(s): james15_
+
+12. [REVIEW] king.2068 / king2068  -  2 accounts   [SPANS DIVISIONS: A, B, single]
+      also share the handle: pete
+      P0089   king                    years 2005-2006   seasons 4    division(s): single
+              handles: Pete, king, king2068
+              YIM(s): king2068
+      P0447   Peter                   years 2006-2009   seasons 11   division(s): A, B
+              handles: Pete, Peter, king.2068
+              YIM(s): king.2068
+
+13. [REVIEW] king_james / king_james_  -  2 accounts   [SPANS DIVISIONS: A, single]
+      also share the handle: james
+      P0382   James                   years 2006        seasons 1    division(s): single
+              handles: James
+              YIM(s): king_james
+      P0385   James D                 years 2006-2007   seasons 3    division(s): A
+              handles: James, James D, King_James_
+              YIM(s): king_james_
+
+14. [REVIEW] _korn_69 / _korn_69_  -  2 accounts   [SPANS DIVISIONS: A, B, single]
+      also share the handle: korn
+      P0160   Korn                    years 2006        seasons 2    division(s): B, single
+              handles: Anto, Korn, _Korn_69
+              YIM(s): _korn_69
+      P0454   Korn                    years 2006        seasons 1    division(s): A, B
+              handles: Korn
+              YIM(s): _korn_69_
+
+15. [STRONG] mr.camtasia / mr_camtasia  -  2 accounts   [SPANS DIVISIONS: A, single]
+      P0168   AcE                     years 2006        seasons 1    division(s): single
+              handles: AcE
+              YIM(s): mr.camtasia
+      P0988   Chris                   years 2008-2011   seasons 5    division(s): A
+              handles: Chris, mr_camtasia
+              YIM(s): mr_camtasia
+
+16. [REVIEW] mvp_sicc / mvpsicc  -  2 accounts
+      also share the handle: ant
+      P0672   Ant                     years 2007-2011   seasons 8    division(s): A
+              handles: Ant, mvp_sicc
+              YIM(s): mvp_sicc
+      P1193   Ant                     years 2009        seasons 2    division(s): A
+              handles: Ant, mvpsicc
+              YIM(s): mvpsicc
+
+17. [STRONG] nakash.qamar / nakash_qamar  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: nakash
+      P0524   Nakash                  years 2006        seasons 3    division(s): A, B
+              handles: Nakash, nakash_qamar
+              YIM(s): nakash_qamar
+      P0525   Nakash                  years 2006        seasons 1    division(s): B
+              handles: Nakash
+              YIM(s): nakash.qamar
+
+18. [STRONG] outlaw.joker / outlaw_joker  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: ryan
+      P0541   Ryan                    years 2006-2007   seasons 4    division(s): A
+              handles: Ryan, outlaw.joker
+              YIM(s): outlaw.joker
+      P0542   Ryan                    years 2006        seasons 2    division(s): A, B
+              handles: Outlaw_Joker, Ryan
+              YIM(s): outlaw_joker
+
+19. [STRONG] stogie___ / stogie___*  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: stogie___*
+      P1862   Adam                    years 2013-2014   seasons 5    division(s): A, B
+              handles: Adam, ImThatGood, Mr_Wonderful__, Stogie___*, _Spoonie_
+              YIM(s): _spoonie_, stogie___
+      P1928   Stogie___*              years 2013        seasons 1    division(s): B
+              handles: Stogie___*
+              YIM(s): stogie___*
+
+20. [STRONG] stud+muffin+69 / stud+muffin_69  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: kevin+the+one
+      P1808   Kevin                   years 2012-2013   seasons 7    division(s): A, B
+              handles: Kev, Kevin, Kevins_Yahoo, kevin+the+one, mr_slickt0n
+              YIM(s): stud+muffin+69
+      P1909   kevin+the+one           years 2013        seasons 1    division(s): A
+              handles: kevin+the+one
+              YIM(s): stud+muffin_69
+
+21. [STRONG] the_bez_is_back / thebezisback  -  2 accounts
+      also share the handle: conor
+      P0996   Conor                   years 2008        seasons 1    division(s): A
+              handles: Conor, the_bez_is_back
+              YIM(s): the_bez_is_back
+      P1446   Conor                   years 2010-2011   seasons 3    division(s): A
+              handles: Conor, thebezisback
+              YIM(s): thebezisback
+
+22. [REVIEW] tino.nica / tino_nica  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: tino
+      P0616   Tino                    years 2006-2012   seasons 18   division(s): A, B
+              handles: TINO_NICA, Tino, tino, tino_nica
+              YIM(s): tino_nica
+      P0929   Tino                    years 2007        seasons 1    division(s): B
+              handles: Tino
+              YIM(s): tino.nica
+
+23. [REVIEW] top__dawg__ / top__dawg___  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: sterlo
+      P1717   Sterlo                  years 2011-2014   seasons 14   division(s): A, B
+              handles: Sterlo, Sterlomiester, Top_Dawg_, Top__Dawg__, Trojan__Man__, Trojan__Man__*
+              YIM(s): fuckker, top__dawg__
+      P1718   Sterlo                  years 2011        seasons 1    division(s): B
+              handles: Sterlo
+              YIM(s): top__dawg___
+
+24. [STRONG] u.nderrated / underrated  -  2 accounts
+      also share the handle: underrated
+      P1802   Jordy                   years 2012-2013   seasons 9    division(s): A
+              handles: Jordan, Jordy, u.nderrated, underrated, xlx_skill_xlx
+              YIM(s): u.nderrated
+      P1933   underrated              years 2013        seasons 1    division(s): A
+              handles: underrated
+              YIM(s): underrated
+
+25. [STRONG] xlx_k_e_t_a_n_xlx / xlx_ketan_xlx  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: ketan
+      P0819   Ketan                   years 2007        seasons 3    division(s): A, B
+              handles: Ketan, xlx_ketan_xlx
+              YIM(s): xlx_ketan_xlx
+      P0820   Ketan                   years 2007-2009   seasons 8    division(s): A, B
+              handles: Ketan, l_ketan_l, xlx_k_e_t_a_n_xlx
+              YIM(s): l_ketan_l, xlx_k_e_t_a_n_xlx
+
+26. [STRONG] xlx_mooney_xlx / xlxmooneyxlx  -  2 accounts
+      also share the handle: lxl_mooney_lxl
+      P1911   lxl_mooney_lxl          years 2013        seasons 1    division(s): B
+              handles: lxl_mooney_lxl
+              YIM(s): xlx_mooney_xlx
+      P1914   Mooney                  years 2013-2014   seasons 5    division(s): B
+              handles: Mooney, Warren, art_of_pool, lxl_mooney_lxl, lxl_skill_lxl, the_mooney_man
+              YIM(s): xlxmooneyxlx
+
+27. [REVIEW] xlx_s_p_g_xlx / xlx_spg_xlx  -  2 accounts   [SPANS DIVISIONS: A, single]
+      also share the handle: scotty
+      P0584   Scotty                  years 2006-2011   seasons 7    division(s): A, single
+              handles: Scotty, xlx_s_p_g_xlx
+              YIM(s): xlx_s_p_g_xlx
+      P0588   Scotty                  years 2006-2007   seasons 2    division(s): A
+              handles: Scotty
+              YIM(s): xlx_spg_xlx
+
+28. [STRONG] x_majik.shots_x / x_majik_shots_x  -  2 accounts   [SPANS DIVISIONS: A, B]
+      also share the handle: cal
+      P0240   Cal                     years 2006-2007   seasons 4    division(s): A, B
+              handles: Cal, x_majik_shots_x
+              YIM(s): x_majik_shots_x
+      P1436   Cal                     years 2010        seasons 1    division(s): A
+              handles: Cal, x_majik.shots_x
+              YIM(s): x_majik.shots_x
+
+
+==============================================================================
+3. ACCOUNTS HOLDING MORE THAN ONE YIM
+==============================================================================
+
+  Already merged by the extraction - one person, several Yahoo IDs. Listed so
+  the merges that were already made are visible and checkable.
+
+1. P1586   DJ                      6 YIMs  years 2011-2014  division(s): A, B
+        asshole_1, little.eskimo, pxyxrxo, xl_d_lx, xrancidx, zl_taken_lz
+2. P1316   Luis                    5 YIMs  years 2009-2014  division(s): A
+        el_drunken, herald_of_titans, herald_of_titant, rufferman24, stepatdis
+3. P1096   Stephen                 4 YIMs  years 2008-2013  division(s): A, B
+        l1_stephen_1, l1_stephen_1@yahoo.com, stephenb_, stephenb_@yahoo.com
+4. P1736   Adam                    4 YIMs  years 2012-2014  division(s): B
+        sir.seal, sir.seal@hotmail.com, sir.seal@yahoo.co.uk, sir.seal@yahoo.com
+5. P1798   Joe                     4 YIMs  years 2012-2013  division(s): B
+        x_lone.wolf_x, xllx_ace_of_spades_xllx, xllx_ultimate.opportunist_xllx, xlx_cerebral.assassin_xlx
+6. P1800   John                    4 YIMs  years 2012-2014  division(s): B
+        __johnny____, _johnnny, iwintomuch, l31tchez@yahoo.com
+7. P1805   Josh                    4 YIMs  years 2012-2014  division(s): A, B
+        pool.pr0d1gy, pool.pr0d1gy@yahoo.com, so-great, xpro.digyx
+8. P1183   JD                      3 YIMs  years 2009-2013  division(s): A, B
+        -loveofgod-, _2hardcore_, dirty_pro
+9. P1743   Missy                   3 YIMs  years 2012-2014  division(s): A, B
+        _outer_space_, _stoney15_, l.m_kenney
+10. P1860   Serena                  3 YIMs  years 2013-2014  division(s): A
+        sexeh_serena, sexy_heels, thrills_in_heels
+11. P0024   Jason                   2 YIMs  years 2005-2012  division(s): A, B, single
+        british_pool_wizard, british_pool_wizard@yahoo.co.uk
+12. P0076   Jesse                   2 YIMs  years 2005-2013  division(s): A, single
+        jesse_j, jmunoz3rd
+13. P0364   Tyler                   2 YIMs  years 2006-2013  division(s): A, B
+        goober.returns, goober.returns@yahoo.com
+14. P0464   Omar                    2 YIMs  years 2006-2013  division(s): A, B
+        l3igg.daddy69, l3igg.daddy69@yahoo.com
+15. P0709   Coma                    2 YIMs  years 2007-2013  division(s): A
+        con.tagion, world.roots
+16. P0820   Ketan                   2 YIMs  years 2007-2009  division(s): A, B
+        l_ketan_l, xlx_k_e_t_a_n_xlx
+17. P0969   Kevin                   2 YIMs  years 2008-2014  division(s): A
+        bigblue2k, sixohtwo
+18. P1204   Brad                    2 YIMs  years 2009-2013  division(s): B
+        l0st_c0zz, spc_brad
+19. P1278   Ian                     2 YIMs  years 2009-2012  division(s): A, B
+        instant_legend, toadkats
+20. P1395   Jake                    2 YIMs  years 2010-2013  division(s): A, B
+        controversial, zyzxzyz
+21. P1401   Ahmad                   2 YIMs  years 2010-2013  division(s): A, B
+        ii.7amada, xi.7amada
+22. P1425   Brent                   2 YIMs  years 2010-2014  division(s): A
+        sykology, trueboston
+23. P1430   Tyler                   2 YIMs  years 2010-2012  division(s): B
+        brom884704, brom884704@yahoo.com
+24. P1551   Thomas                  2 YIMs  years 2010-2012  division(s): B
+        gb.trickkyy, trickyftw
+25. P1567   Craig                   2 YIMs  years 2011-2014  division(s): A
+        catsslover, cocky_guy
+26. P1578   Alex                    2 YIMs  years 2011-2013  division(s): A
+        x_i_am_me_x, x_i_am_me_x@yahoo.com
+27. P1593   Bren                    2 YIMs  years 2011-2014  division(s): A, B
+        weekenderweekender, weekenderweekender@yahoo.com
+28. P1646   Eric                    2 YIMs  years 2011-2012  division(s): B
+        pr0.5tatu5, pr0.5tatu5@yahoo.com
+29. P1666   Joe                     2 YIMs  years 2011-2013  division(s): A, B
+        relentless.wolf, relentless.wolf@yahoo.com
+30. P1717   Sterlo                  2 YIMs  years 2011-2014  division(s): A, B
+        fuckker, top__dawg__
+31. P1731   Thomas                  2 YIMs  years 2012-2013  division(s): A, B
+        rhinolova, xl_sicc.skillz_lx
+32. P1732   Dante                   2 YIMs  years 2012-2013  division(s): A
+        _dante, dantes_yim
+33. P1733   Jenni                   2 YIMs  years 2012-2014  division(s): A, B
+        chil.l3babe, chill.l3abe
+34. P1734   Tyler                   2 YIMs  years 2012-2014  division(s): A, B
+        grey_gooose, grey_gooose@yahoo.com
+35. P1735   Brice                   2 YIMs  years 2012-2013  division(s): B
+        hell233, x_im_making_pancakes_x
+36. P1737   Adam                    2 YIMs  years 2012-2013  division(s): A, B
+        window.stalker, xllx_killakoala_xllx
+37. P1744   Amy                     2 YIMs  years 2012  division(s): B
+        baby_merta, baby_merta@yahoo.com
+38. P1747   Ashley                  2 YIMs  years 2012  division(s): B
+        pumpkin_sauce, roflcopter.flyingthroughtheair
+39. P1753   Dejan                   2 YIMs  years 2012-2014  division(s): A, B
+        blinki0x, blinki0x@yahoo.com
+40. P1755   Bren                    2 YIMs  years 2012  division(s): A
+        brenden_999@yahoo.com, brendenmartin@msn.com
+41. P1757   Brian                   2 YIMs  years 2012-2014  division(s): A
+        664415, masta_jooseman
+42. P1761   Cameron                 2 YIMs  years 2012-2014  division(s): A, B
+        cameron_the_alter_ego, ylegend
+43. P1764   Chris                   2 YIMs  years 2012  division(s): B
+        keepsmokin, keepsmokin@yahoo.com
+44. P1771   Croz                    2 YIMs  years 2012-2014  division(s): A, B
+        crozzzy, steven.crosby
+45. P1775   David                   2 YIMs  years 2012  division(s): A
+        fitb1kes, fitb1kes@yahoo.com
+46. P1781   Dylan                   2 YIMs  years 2012  division(s): B
+        dylan_the_god, mr_pool_star
+47. P1786   Faisal                  2 YIMs  years 2012-2014  division(s): B
+        xman_7862003, xman_7862003@yahoo.com
+48. P1791   MJ                      2 YIMs  years 2012-2014  division(s): A, B
+        llvll925, llvllj925
+49. P1794   Jan                     2 YIMs  years 2012-2013  division(s): B
+        x_zanik_x, x_zanik_x@yahoo.co.uk
+50. P1797   Jefferson               2 YIMs  years 2012-2013  division(s): B
+        brazilianguy_33, jeffe_br012
+51. P1807   Kerry                   2 YIMs  years 2012-2013  division(s): B
+        amath204, sweetcaroline2222
+52. P1809   Mina                    2 YIMs  years 2012-2013  division(s): A
+        aireagle22003, aireagle22003@yahoo.com
+53. P1810   Leigh                   2 YIMs  years 2012  division(s): A, B
+        str0kee, str0kee@yahoo,com
+54. P1813   Naveen                  2 YIMs  years 2012-2014  division(s): A, B
+        air-devil, handsomeofkerala
+55. P1818   Matt                    2 YIMs  years 2012-2014  division(s): A, B
+        niqqasinparis, niqqasinparis@yahoo.com
+56. P1824   Niks                    2 YIMs  years 2012-2013  division(s): A, B
+        gangtokgangster, gangtokgangster@yahoo.com
+57. P1830   Uriel                   2 YIMs  years 2012-2014  division(s): A
+        p0olz, p0olz@yahoo.com.mx
+58. P1839   Scotty                  2 YIMs  years 2012-2013  division(s): A
+        aimerize_me_captain, aimerize_me_captain@yahoo.com
+59. P1841   Shaun                   2 YIMs  years 2012-2014  division(s): A
+        shagger1_, shagz_rulez
+60. P1861   Abhi                    2 YIMs  years 2013-2014  division(s): B
+        lover_1432000, lover_1432000@yahoo.com
+61. P1862   Adam                    2 YIMs  years 2013-2014  division(s): A, B
+        _spoonie_, stogie___
+62. P1872   Candi                   2 YIMs  years 2013  division(s): B
+        legend_girl, queen.ofpool
+63. P1890   Eric                    2 YIMs  years 2013-2014  division(s): B
+        fl_raver_2005, i.suck_at_ypool
+64. P1891   Eric                    2 YIMs  years 2013  division(s): B
+        sigguyone, sigguyone@yahoo.com
+65. P1893   Joe Martin              2 YIMs  years 2013  division(s): B
+        forsaken.poolplayer, godforsakenreh
+66. P1904   Joe                     2 YIMs  years 2013-2014  division(s): B
+        x_pocket.change_x, xllx_voice_of_reason_xllx
+
+==============================================================================
+4. ONE YIM, BOTH DIVISIONS
+==============================================================================
+
+  Accounts that appear in Division A and Division B under the same identity.
+  Not duplicates - the same person moved between divisions across seasons -
+  but included because both divisions were asked for and this is where they meet.
+
+  297 accounts appear in both divisions.
+
+     1. P1729   -                       years 2012        seasons 1    YIM: yim
+     2. P0166   Aaron                   years 2006-2007   seasons 7    YIM: sir.mighty
+     3. P1398   Aaron                   years 2010-2012   seasons 6    YIM: acemacer10987
+     4. P0169   Ace                     years 2006        seasons 1    YIM: kolombian.prince
+     5. P0174   Adam                    years 2006        seasons 1    YIM: w3ak
+     6. P1182   adam                    years 2009-2010   seasons 2    YIM: mvp.cubs
+     7. P1400   Adam                    years 2010        seasons 2    YIM: cnd_095
+     8. P1737   Adam                    years 2012-2013   seasons 2    YIM: window.stalker, xllx_killakoala_xllx
+     9. P1862   Adam                    years 2013-2014   seasons 5    YIM: _spoonie_, stogie___
+    10. P0953   Admin                   years 2008        seasons 3    YIM: incognit0.player
+    11. P1401   Ahmad                   years 2010-2013   seasons 5    YIM: ii.7amada, xi.7amada
+    12. P1392   AJ                      years 2010        seasons 3    YIM: ___imaj___
+    13. P1576   AJ                      years 2011        seasons 4    YIM: itsaj
+    14. P1739   AJ                      years 2012-2013   seasons 6    YIM: aj_2005_69_elitemaster
+    15. P0186   Aldo                    years 2006-2007   seasons 4    YIM: al_d_0
+    16. P0956   Alex                    years 2008        seasons 2    YIM: sex_ified
+    17. P1189   Alex                    years 2009-2011   seasons 2    YIM: experrt
+    18. P0194   Amir                    years 2006        seasons 1    YIM: xx_nikez_xx
+    19. P1867   Andrew                  years 2013-2014   seasons 3    YIM: sl_blue
+    20. P0196   Andy                    years 2006-2010   seasons 10   YIM: pool_warrior2002
+    21. P0011   Anil                    years 2005-2006   seasons 4    YIM: l2ude_l3oyy
+    22. P0206   Arjun                   years 2006        seasons 6    YIM: dp_simba_arjun
+    23. P0965   Ashley                  years 2008        seasons 3    YIM: pro.ashley
+    24. P1179   Ashley                  years 2009-2013   seasons 5    YIM: exquisite.ashie
+    25. P1197   Ashton                  years 2009        seasons 3    YIM: cuebank
+    26. P1750   Austin                  years 2012        seasons 2    YIM: the.slowplay@yahoo.com
+    27. P0220   Bedo                    years 2006        seasons 2    YIM: z3r0_pr0digy
+    28. P0223   Ben                     years 2006-2012   seasons 10   YIM: motown.champion
+    29. P1199   Ben                     years 2009-2011   seasons 7    YIM: the_lvlag1cian
+    30. P1417   Bill                    years 2010-2011   seasons 4    YIM: xl3ill
+    31. P1870   Brandon                 years 2013-2014   seasons 3    YIM: l3randon_753
+    32. P1593   Bren                    years 2011-2014   seasons 4    YIM: weekenderweekender, weekenderweekender@yahoo.com
+    33. P1429   Brock                   years 2010        seasons 3    YIM: lvlusic_ls_lvly_l7rug
+    34. P0240   Cal                     years 2006-2007   seasons 4    YIM: x_majik_shots_x
+    35. P1213   Cal                     years 2009-2014   seasons 3    YIM: emocal_v2
+    36. P1603   Cameron                 years 2011        seasons 3    YIM: nxs_skillz
+    37. P1761   Cameron                 years 2012-2014   seasons 5    YIM: cameron_the_alter_ego, ylegend
+    38. P1437   Candi                   years 2010-2012   seasons 3    YIM: freak.ofpool
+    39. P0244   Carlos                  years 2006        seasons 1    YIM: x_latinkiing_x
+    40. P1604   Carlos                  years 2011-2014   seasons 8    YIM: lvlr_l7ry
+    41. P1439   Chad                    years 2010-2012   seasons 6    YIM: hustle
+    42. P1607   Chad                    years 2011-2012   seasons 6    YIM: cyberinferno1
+    43. P1763   Chad                    years 2012-2014   seasons 8    YIM: disaster
+    44. P0250   Chendo                  years 2006-2010   seasons 7    YIM: ll_chex_ll
+    45. P0205   Chip                    years 2006-2010   seasons 12   YIM: arctic_cat_limited
+    46. P1440   Chip                    years 2010-2011   seasons 3    YIM: fv_arctic
+    47. P0029   Chirag                  years 2005-2013   seasons 23   YIM: jabronni16
+    48. P0258   Chris                   years 2006-2007   seasons 7    YIM: chris.dogg
+    49. P0259   Chris                   years 2006-2007   seasons 2    YIM: cubs_fan_21_07_04
+    50. P0261   Chris                   years 2006-2007   seasons 4    YIM: new.zealand
+    51. P0262   Chris                   years 2006-2010   seasons 2    YIM: mr.pommy
+    52. P0247   Chris                   years 2006-2008   seasons 8    YIM: ch1cubs_1908
+    53. P0266   Chris                   years 2006-2007   seasons 4    YIM: t0_ez
+    54. P1224   Chris                   years 2009        seasons 3    YIM: xchrisx
+    55. P0275   Coma                    years 2006        seasons 1    YIM: onehundredmilesperhour
+    56. P0995   conners                 years 2008        seasons 2    YIM: sicc.destroyer
+    57. P0276   Conor                   years 2006        seasons 1    YIM: sir.nubby
+    58. P0279   Conrad                  years 2006        seasons 1    YIM: nofeardude
+    59. P1234   Corey                   years 2009        seasons 2    YIM: maintain.composure
+    60. P1769   Corey                   years 2012-2013   seasons 3    YIM: jkanonymous
+    61. P0288   Craig                   years 2006        seasons 3    YIM: craig.2006
+    62. P0289   Craig                   years 2006        seasons 3    YIM: sicc.hustler
+    63. P0718   Craig                   years 2007-2009   seasons 4    YIM: n_o_w_e_a_k_l_i_n_k_s
+    64. P0239   Craig W                 years 2006-2007   seasons 6    YIM: c_l2_a_l_g
+    65. P1771   Croz                    years 2012-2014   seasons 6    YIM: crozzzy, steven.crosby
+    66. P0296   Cubby                   years 2006-2011   seasons 7    YIM: so_wolf_cub4
+    67. P0729   Dale                    years 2007        seasons 2    YIM: absoiute_god
+    68. P1010   Dan                     years 2008-2011   seasons 3    YIM: tw.ista
+    69. P1627   Dan                     years 2011-2013   seasons 8    YIM: dwaechte
+    70. P1632   Dave                    years 2011        seasons 2    YIM: l3_lvl_x
+    71. P0309   David                   years 2006        seasons 2    YIM: slappy_1523
+    72. P0314   Daz                     years 2006        seasons 1    YIM: unlimited.skills
+    73. P0748   daz                     years 2007-2009   seasons 5    YIM: txa_skittz
+    74. P1249   Daz                     years 2009-2012   seasons 7    YIM: sourwood
+    75. P0318   Dec                     years 2006        seasons 1    YIM: xll_irish_god_llx
+    76. P0750   Deepankar               years 2007        seasons 2    YIM: demo.lish
+    77. P1753   Dejan                   years 2012-2014   seasons 3    YIM: blinki0x, blinki0x@yahoo.com
+    78. P0328   Dios                    years 2006        seasons 1    YIM: maradona.the_man
+    79. P1586   DJ                      years 2011-2014   seasons 10   YIM: asshole_1, little.eskimo, pxyxrxo, xl_d_lx, xrancidx, zl_taken_lz
+    80. P0331   Don                     years 2006        seasons 3    YIM: poker_hustler21
+    81. P0335   Drew                    years 2006-2011   seasons 5    YIM: georgiapoolking
+    82. P0333   Drew                    years 2006-2008   seasons 10   YIM: dr.dreww
+    83. P1258   Duran                   years 2009        seasons 2    YIM: dul2an
+    84. P0337   Dwight                  years 2006        seasons 3    YIM: xxx_dwight_xxx
+    85. P0340   Eddie                   years 2006-2007   seasons 4    YIM: fasteddie1722
+    86. P1032   Emmitt                  years 2008-2010   seasons 5    YIM: emmitt22_da_man
+    87. P0344   Eric                    years 2006-2010   seasons 12   YIM: real_fkin_deal
+    88. P1268   Fabian                  years 2009        seasons 2    YIM: i_shotz_i
+    89. P0324   Garett                  years 2006        seasons 3    YIM: def.t0nes
+    90. P0353   Gary                    years 2006        seasons 1    YIM: im.sicc
+    91. P0371   Hartley                 years 2006-2008   seasons 3    YIM: wizard22_
+    92. P1278   Ian                     years 2009-2012   seasons 3    YIM: instant_legend, toadkats
+    93. P1419   Irfan                   years 2010-2014   seasons 14   YIM: black_stallion009
+    94. P1642   Jack                    years 2011        seasons 3    YIM: dx.fanatic
+    95. P0068   Jada                    years 2005-2007   seasons 4    YIM: jadakiss_711
+    96. P0380   Jake                    years 2006-2013   seasons 2    YIM: ps.i_missyou
+    97. P1395   Jake                    years 2010-2013   seasons 5    YIM: controversial, zyzxzyz
+    98. P1480   Jake                    years 2010        seasons 2    YIM: _supa__star_
+    99. P0297   James                   years 2006-2009   seasons 14   YIM: cue.ball
+   100. P0383   James                   years 2006-2010   seasons 7    YIM: pain_purifies
+   101. P1053   James                   years 2008-2009   seasons 5    YIM: l_lost_my_marblez
+   102. P1287   James                   years 2009        seasons 3    YIM: sicc.status
+   103. P1483   James                   years 2010        seasons 3    YIM: l3reak_it_out
+   104. P1896   JaMes                   years 2013        seasons 2    YIM: yay
+   105. P0389   Jamie                   years 2006        seasons 1    YIM: safety.technique
+   106. P0390   Jamie                   years 2006        seasons 1    YIM: mr.blunts
+   107. P0024   Jason                   years 2005-2012   seasons 19   YIM: british_pool_wizard, british_pool_wizard@yahoo.co.uk
+   108. P0378   Jason                   years 2006-2007   seasons 7    YIM: its.jason
+   109. P0393   Jason                   years 2006        seasons 1    YIM: uk.legend
+   110. P0394   Jason                   years 2006        seasons 2    YIM: god.smack_rules
+   111. P0728   Jason                   years 2007-2011   seasons 4    YIM: d_r_i_z_o
+   112. P1057   Jason                   years 2008-2010   seasons 5    YIM: jasonlippi01
+   113. P1274   Jason                   years 2009-2012   seasons 4    YIM: goodoldmrcheeseman
+   114. P1270   Jason                   years 2009-2014   seasons 12   YIM: run_it_down
+   115. P1289   JAVIER                  years 2009-2010   seasons 5    YIM: mile99ium
+   116. P1183   JD                      years 2009-2013   seasons 7    YIM: -loveofgod-, _2hardcore_, dirty_pro
+   117. P1901   JD                      years 2013-2014   seasons 5    YIM: sicc.shot
+   118. P0949   Jeff                    years 2008        seasons 2    YIM: aa_for_life
+   119. P1293   Jeff                    years 2009-2011   seasons 2    YIM: jfy
+   120. P1733   Jenni                   years 2012-2014   seasons 11   YIM: chil.l3babe, chill.l3abe
+   121. P0400   Jeremy                  years 2006        seasons 1    YIM: oreo_man_jeremy
+   122. P0404   Jeremy                  years 2006-2007   seasons 7    YIM: xjerelvlyx
+   123. P0075   Jerm                    years 2005-2006   seasons 6    YIM: lxl_jerm_is_evil_lxl
+   124. P0077   Jim                     years 2005-2010   seasons 5    YIM: unclejimjim69
+   125. P0217   Jim                     years 2006-2010   seasons 20   YIM: bang.king
+   126. P1664   JJ                      years 2011-2014   seasons 12   YIM: jj.pwnz
+   127. P1666   Joe                     years 2011-2013   seasons 4    YIM: relentless.wolf, relentless.wolf@yahoo.com
+   128. P1051   Joey                    years 2008-2012   seasons 6    YIM: nevvf
+   129. P1300   Jon                     years 2009-2011   seasons 13   YIM: leeds_united14
+   130. P0281   Josh                    years 2006        seasons 3    YIM: cool.combos
+   131. P0282   Josh                    years 2006-2011   seasons 7    YIM: cool_combos
+   132. P0273   Josh                    years 2006-2013   seasons 7    YIM: midwestern_pool_champ
+   133. P1805   Josh                    years 2012-2014   seasons 10   YIM: pool.pr0d1gy, pool.pr0d1gy@yahoo.com, so-great, xpro.digyx
+   134. P1768   Joshua                  years 2012-2013   seasons 6    YIM: boogyman_2
+   135. P1080   JT                      years 2008        seasons 2    YIM: pro.feshinal
+   136. P1396   JT                      years 2010-2014   seasons 14   YIM: jt.jester
+   137. P1675   JT                      years 2011        seasons 3    YIM: r_ook
+   138. P0423   Juan                    years 2006        seasons 1    YIM: mld_juan_adm
+   139. P0427   Justin                  years 2006-2007   seasons 6    YIM: xlx_siccness_xlx
+   140. P0428   Justin                  years 2006        seasons 2    YIM: mr.hustla
+   141. P1083   Justin                  years 2008-2010   seasons 4    YIM: themvp66
+   142. P1310   kate                    years 2009        seasons 2    YIM: g_u_n_z_n_r_o_s_e_z
+   143. P1311   Kate                    years 2009        seasons 3    YIM: way2good4u001
+   144. P0361   Keith                   years 2006        seasons 2    YIM: godly_keithtottingham
+   145. P0430   Kenny                   years 2006-2008   seasons 7    YIM: the_pool_apprentice
+   146. P0431   Kerry                   years 2006-2009   seasons 19   YIM: kerryanne_24
+   147. P0434   Ketan                   years 2006        seasons 5    YIM: ket.an
+   148. P0819   Ketan                   years 2007        seasons 3    YIM: xlx_ketan_xlx
+   149. P0820   Ketan                   years 2007-2009   seasons 8    YIM: l_ketan_l, xlx_k_e_t_a_n_xlx
+   150. P1314   Ketan                   years 2009        seasons 3    YIM: ll_ketan_ll
+   151. P0437   Kevin                   years 2006        seasons 3    YIM: krazy_kevy
+   152. P1808   Kevin                   years 2012-2013   seasons 7    YIM: stud+muffin+69
+   153. P0445   King                    years 2006        seasons 2    YIM: xxkingxxx
+   154. P0454   Korn                    years 2006        seasons 1    YIM: _korn_69_
+   155. P0774   Koty                    years 2007        seasons 2    YIM: gothicami
+   156. P1094   Koty                    years 2008        seasons 2    YIM: xlx_extreme.perfection_xlx
+   157. P1095   Koty                    years 2008-2009   seasons 3    YIM: nwb
+   158. P0255   Krunal                  years 2006-2009   seasons 4    YIM: chokshi.krunal
+   159. P0459   Kyle                    years 2006        seasons 1    YIM: vikingsrule1234
+   160. P0214   Leanne                  years 2006        seasons 1    YIM: babe.racer
+   161. P1810   Leigh                   years 2012        seasons 2    YIM: str0kee, str0kee@yahoo,com
+   162. P0478   Luis                    years 2006-2008   seasons 9    YIM: real_creampuff
+   163. P0479   Luis                    years 2006        seasons 1    YIM: kri3l
+   164. P0484   Lynsey                  years 2006-2007   seasons 6    YIM: playhard_
+   165. P1435   Marco                   years 2010-2013   seasons 8    YIM: c.marcoo
+   166. P0487   Mario                   years 2006        seasons 3    YIM: miz
+   167. P0488   Mark                    years 2006        seasons 2    YIM: the_deathbat
+   168. P0091   Matt                    years 2005-2006   seasons 5    YIM: kingmatt_87
+   169. P0491   Matt                    years 2006-2009   seasons 11   YIM: ta.lent
+   170. P0492   Matt                    years 2006        seasons 1    YIM: xlx_aka_maniac_xlx
+   171. P1286   Matt                    years 2009-2011   seasons 4    YIM: jaded_karma
+   172. P1818   Matt                    years 2012-2014   seasons 10   YIM: niqqasinparis, niqqasinparis@yahoo.com
+   173. P1772   Matt                    years 2012-2013   seasons 6    YIM: matterized
+   174. P0359   Mickey                  years 2006-2009   seasons 10   YIM: ggs.ty4p
+   175. P1127   mickey                  years 2008-2009   seasons 6    YIM: totally_pro_noob
+   176. P0055   Mike                    years 2005-2006   seasons 3    YIM: drummer_dude
+   177. P0502   Mike                    years 2006        seasons 3    YIM: my_key
+   178. P0252   Mike                    years 2006        seasons 4    YIM: chinkish
+   179. P0508   Mike                    years 2006-2007   seasons 2    YIM: top.shooter
+   180. P0865   Mike                    years 2007        seasons 2    YIM: scorpionzone1
+   181. P0737   Mike                    years 2007-2008   seasons 5    YIM: daquiet.storm
+   182. P0866   Mike                    years 2007-2008   seasons 2    YIM: lvlike_8br
+   183. P0867   Mike                    years 2007-2008   seasons 3    YIM: mike_scop
+   184. P1686   Mike                    years 2011-2012   seasons 5    YIM: lx_mike_xl
+   185. P0511   Miros                   years 2006        seasons 1    YIM: miros_master
+   186. P1743   Missy                   years 2012-2014   seasons 6    YIM: _outer_space_, _stoney15_, l.m_kenney
+   187. P1791   MJ                      years 2012-2014   seasons 11   YIM: llvll925, llvllj925
+   188. P0514   Moni                    years 2006-2007   seasons 6    YIM: ownified
+   189. P1113   Musti                   years 2008-2011   seasons 8    YIM: lvlusti
+   190. P0524   Nakash                  years 2006        seasons 3    YIM: nakash_qamar
+   191. P0764   Nakash                  years 2007-2009   seasons 10   YIM: expect.defeat
+   192. P1813   Naveen                  years 2012-2014   seasons 10   YIM: air-devil, handsomeofkerala
+   193. P0529   Navin                   years 2006        seasons 1    YIM: pimp_machine
+   194. P0532   Nay                     years 2006-2007   seasons 2    YIM: naydude
+   195. P0531   Nayeem                  years 2006-2008   seasons 3    YIM: sonof.agun
+   196. P0051   Nelson                  years 2005-2012   seasons 16   YIM: diosmaradonaforever
+   197. P0880   Neo                     years 2007-2008   seasons 4    YIM: trustneo
+   198. P1138   Nick                    years 2008-2013   seasons 10   YIM: nick_ownzz
+   199. P1824   Niks                    years 2012-2013   seasons 6    YIM: gangtokgangster, gangtokgangster@yahoo.com
+   200. P1523   Nish                    years 2010-2014   seasons 10   YIM: xlx_nish_xlx
+   201. P0464   Omar                    years 2006-2013   seasons 11   YIM: l3igg.daddy69, l3igg.daddy69@yahoo.com
+   202. P0157   Oscar                   years 2006        seasons 2    YIM: 0.z@sbcglobal.net
+   203. P0485   Oscar                   years 2006-2007   seasons 6    YIM: maldito_0z
+   204. P1102   Oscar                   years 2008        seasons 2    YIM: legend_0z
+   205. P1699   Oscar                   years 2011        seasons 2    YIM: m_a_l_d_i_t_o
+   206. P1335   PAKiZ                   years 2009-2011   seasons 2    YIM: mr.pakiz_rules
+   207. P0545   Pascal                  years 2006        seasons 3    YIM: skill_1st
+   208. P0161   Paul                    years 2006        seasons 2    YIM: _purechaos_
+   209. P0329   Paul                    years 2006        seasons 1    YIM: djblaster
+   210. P1282   Perry                   years 2009        seasons 3    YIM: ihatejustin
+   211. P0548   Pete                    years 2006        seasons 1    YIM: mz_corey_ez8
+   212. P0982   Pete                    years 2008-2009   seasons 5    YIM: cerebral.aftermath
+   213. P0447   Peter                   years 2006-2009   seasons 11   YIM: king.2068
+   214. P0895   Phil                    years 2007        seasons 3    YIM: tw.inkie
+   215. P1147   Phil                    years 2008-2009   seasons 3    YIM: xphilramseyx
+   216. P0535   Pita                    years 2006        seasons 3    YIM: new.bies
+   217. P0551   PJ                      years 2006        seasons 1    YIM: po0lfied
+   218. P1730   Praveen                 years 2012-2014   seasons 9    YIM: praveen_cs04
+   219. P0555   Prince                  years 2006        seasons 1    YIM: gl_445
+   220. P0901   Rahul                   years 2007-2008   seasons 2    YIM: thepitzaboy
+   221. P0557   Raj                     years 2006        seasons 1    YIM: raj894
+   222. P0118   Ralphy                  years 2005-2006   seasons 2    YIM: oxford_69
+   223. P0902   Ralphy                  years 2007-2008   seasons 3    YIM: ralphy_beaulieu
+   224. P0558   Raymie                  years 2006-2009   seasons 16   YIM: the.bawbag
+   225. P0560   Red.                    years 2006        seasons 1    YIM: redraidertexas66
+   226. P1531   Rich                    years 2010-2014   seasons 17   YIM: rich5148
+   227. P1353   Rob                     years 2009-2012   seasons 4    YIM: t.wolves
+   228. P1587   Rocky                   years 2011-2014   seasons 12   YIM: redrose_and_a_glassofwine
+   229. P1151   Rod                     years 2008-2009   seasons 2    YIM: rod_play_pool
+   230. P1321   Rod                     years 2009-2010   seasons 4    YIM: ll_pothead_x_sniper_ll
+   231. P1420   Rod                     years 2010        seasons 3    YIM: blow_my_rod
+   232. P0327   Roger                   years 2006-2012   seasons 14   YIM: devilstature
+   233. P0126   Ross                    years 2005-2007   seasons 7    YIM: xlx_rivaldo_xlx
+   234. P0572   Ross                    years 2006        seasons 1    YIM: farside30
+   235. P0450   Ross V                  years 2006        seasons 2    YIM: king_vaughan
+   236. P0873   Roy                     years 2007-2013   seasons 4    YIM: precise.runner
+   237. P0577   Ryan                    years 2006-2008   seasons 6    YIM: uslander@sbcglobal.net
+   238. P0542   Ryan                    years 2006        seasons 2    YIM: outlaw_joker
+   239. P0519   Ryan                    years 2006        seasons 2    YIM: mr.8pac
+   240. P0475   Ryan                    years 2006        seasons 2    YIM: lm_chuck_norris
+   241. P1155   Ryan                    years 2008        seasons 2    YIM: xxx_pool_magician_xxx
+   242. P0315   RyRy                    years 2006-2008   seasons 9    YIM: death.bringers
+   243. P0907   RyRy                    years 2007-2011   seasons 7    YIM: the_pink_fuzzy_bear
+   244. P1536   Safdar                  years 2010-2012   seasons 8    YIM: safdarbandali
+   245. P0999   Sakic                   years 2008-2009   seasons 2    YIM: sakic.returns
+   246. P0131   Scott                   years 2005-2008   seasons 10   YIM: scott22883
+   247. P0583   Scott                   years 2006        seasons 2    YIM: sc0t_
+   248. P0209   Scott                   years 2006        seasons 2    YIM: astro.wins
+   249. P1413   Scott                   years 2010-2011   seasons 4    YIM: astro61200
+   250. P1714   Scott                   years 2011        seasons 2    YIM: the_mean_mean_weed_machine
+   251. P0586   Scotty                  years 2006        seasons 1    YIM: zlz_s_p_g_zlz
+   252. P0248   Sean                    years 2006-2012   seasons 4    YIM: cha0tic_01
+   253. P1104   Sean                    years 2008-2013   seasons 10   YIM: lilsparky67
+   254. P0772   Sergio                  years 2007-2014   seasons 26   YIM: sergio_zarate_7
+   255. P1539   Sergio                  years 2010-2011   seasons 8    YIM: sergi_boca
+   256. P0592   Shane                   years 2006        seasons 1    YIM: crash_and_explode
+   257. P0593   Shane                   years 2006        seasons 2    YIM: meucci.master
+   258. P0917   Shane                   years 2007        seasons 3    YIM: xlx_pimp_xlx
+   259. P1262   Sid                     years 2009-2011   seasons 6    YIM: easyrun
+   260. P1589   Stanley                 years 2011        seasons 2    YIM: baracka.flocka
+   261. P0218   Stephen                 years 2006        seasons 1    YIM: bang.time
+   262. P0601   Stephen                 years 2006        seasons 4    YIM: ste.1981
+   263. P1096   Stephen                 years 2008-2013   seasons 23   YIM: l1_stephen_1, l1_stephen_1@yahoo.com, stephenb_, stephenb_@yahoo.com
+   264. P1717   Sterlo                  years 2011-2014   seasons 14   YIM: fuckker, top__dawg__
+   265. P0094   Steve                   years 2005-2007   seasons 6    YIM: ll_ivey_ll
+   266. P0472   Steve                   years 2006-2008   seasons 2    YIM: ll_e_f_c_ll
+   267. P1340   Steve                   years 2009-2011   seasons 6    YIM: n00b.ski11z
+   268. P0726   Steven                  years 2007-2011   seasons 10   YIM: mvp_croz
+   269. P1164   Steven                  years 2008        seasons 2    YIM: l_croz_l
+   270. P1373   Stevie                  years 2009        seasons 2    YIM: st3v13_m4c
+   271. P1167   Tam                     years 2008-2009   seasons 5    YIM: tam_s0
+   272. P0607   Tanmay                  years 2006-2009   seasons 10   YIM: t_an_may
+   273. P1168   TBD                     years 2008-2011   seasons 13   YIM: tbd
+   274. P0885   Theo                    years 2007        seasons 2    YIM: old_school_phenom
+   275. P1731   Thomas                  years 2012-2013   seasons 5    YIM: rhinolova, xl_sicc.skillz_lx
+   276. P0064   Tim                     years 2005-2013   seasons 12   YIM: handkrash
+   277. P0614   Tim                     years 2006        seasons 2    YIM: xlx_shotz_xlx
+   278. P1097   Timm                    years 2008-2011   seasons 8    YIM: l3lack_jesus
+   279. P0616   Tino                    years 2006-2012   seasons 18   YIM: tino_nica
+   280. P1381   Tino                    years 2009-2014   seasons 23   YIM: tlno_nica
+   281. P0617   TJ                      years 2006-2011   seasons 16   YIM: tubaccy_spittin_rebel
+   282. P1466   TJ                      years 2010-2013   seasons 4    YIM: xxl_stud_lxx
+   283. P0622   Tom                     years 2006        seasons 6    YIM: tomdapom
+   284. P1111   Travis                  years 2008        seasons 2    YIM: lvlasse
+   285. P1554   Trey                    years 2010-2011   seasons 8    YIM: un_natural
+   286. P0631   Trini                   years 2006        seasons 1    YIM: jinx.this
+   287. P0633   Troy                    years 2006-2008   seasons 4    YIM: wlw_z0ml3ie_wlw
+   288. P1725   Troy                    years 2011        seasons 2    YIM: troy_badman
+   289. P0018   Tyler                   years 2005-2007   seasons 6    YIM: bongman420_
+   290. P0637   Tyler                   years 2006        seasons 1    YIM: goobers.return
+   291. P0364   Tyler                   years 2006-2013   seasons 5    YIM: goober.returns, goober.returns@yahoo.com
+   292. P1734   Tyler                   years 2012-2014   seasons 8    YIM: grey_gooose, grey_gooose@yahoo.com
+   293. P1495   Tyson                   years 2010        seasons 2    YIM: kansas_pool_k1ng
+   294. P0149   Ugur                    years 2005-2006   seasons 2    YIM: bigbadpanther_tvhs
+   295. P0440   Walter                  years 2006-2007   seasons 10   YIM: kidfromperu
+   296. P0650   Willie                  years 2006        seasons 1    YIM: onesexybrotha
+   297. P1391   Zack                    years 2009-2010   seasons 2    YIM: stonedpilot88
+
+==============================================================================
+SUMMARY
+==============================================================================
+  1. exact shared YIMs                        0
+  2. near-duplicate YIM clusters             28  (58 accounts)
+  3. accounts holding >1 YIM                 66
+  4. accounts in both Division A and B      297
+
+  Section 2 is the actionable list. Clusters marked STRONG are near-certain
+  duplicates; those marked REVIEW share a short or common normalised key and
+  should be confirmed against their season history before merging.

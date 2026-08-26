@@ -1,0 +1,120 @@
+{
+  "mode": "dry-run",
+  "reviewed": true,
+  "databaseConnection": "none",
+  "rowsWritten": 0,
+  "scope": {
+    "entity": null,
+    "competition": null
+  },
+  "appliedDecisions": 1,
+  "remainingUnresolvedBlockers": 532,
+  "advisoryIssues": 388,
+  "recordsEligibleForImport": 36899,
+  "wouldHalt": false,
+  "plan": [
+    {
+      "entity": "sources",
+      "file": "sources.json",
+      "records": 13,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "players",
+      "file": "players.json",
+      "records": 1948,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "competitors",
+      "file": "competitors.json",
+      "records": 1948,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "aliases",
+      "file": "aliases.json",
+      "records": 5572,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "competitions",
+      "file": "competitions.json",
+      "records": 48,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "divisions",
+      "file": "divisions.json",
+      "records": 94,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "stages",
+      "file": "stages.json",
+      "records": 181,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "groups",
+      "file": "groups.json",
+      "records": 634,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "entries",
+      "file": "entries.json",
+      "records": 4347,
+      "reviewedRecords": 4347
+    },
+    {
+      "entity": "seeds",
+      "file": "seeds.json",
+      "records": 2824,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "standings",
+      "file": "standings.json",
+      "records": 4443,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "matches",
+      "file": "matches.json",
+      "records": 12486,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "championships",
+      "file": "championships.json",
+      "records": 92,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "achievements",
+      "file": "achievements.json",
+      "records": 656,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "identityRelationships",
+      "file": "identity-relationships.json",
+      "records": 9,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "sourceReferences",
+      "file": "source-references.json",
+      "records": 2134,
+      "reviewedRecords": 0
+    },
+    {
+      "entity": "historicalNotes",
+      "file": "historical-notes.json",
+      "records": 2,
+      "reviewedRecords": 0
+    }
+  ],
+  "totalPlanned": 37431
+}

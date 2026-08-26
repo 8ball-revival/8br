@@ -39,8 +39,45 @@ const winPctOf = (gw: number, gl: number) => (gw + gl === 0 ? 0 : gw / (gw + gl)
  *  manually reordered — this order is derived, not editable. */
 export async function loadSeasonSeeding(seasonId: number): Promise<SeasonSeedRow[]> {
   const standings = await prisma.seasonStanding.findMany({ where: { seasonId }, include: { group: { select: { code: true, name: true } } } })
-  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, displayName: true, username: true, cueverseId: true, ratingSnapshot: true, kickedOut: true, playoffIncluded: true, qualification: true } })
+  const entrants = await prisma.seasonEntrant.findMany({ where: { seasonId }, select: { id: true, displayName: true, username: true, cueverseId: true, ratingSnapshot: true, kickedOut: true, playoffIncluded: true, qualification: true, playoffSeed: true } })
   const entById = new Map(entrants.map((e) => [e.id, e]))
+
+  /*
+   * A reconstructed Season whose group stage the archive never recorded.
+   *
+   * Seeding is normally dictated by the group results and by nothing else, and that stays true: this
+   * is the case where there are no group results to be dictated by. 2009 S5 has a complete playoff
+   * page — thirty-two positions, real seed numbers, a champion — and no groups, no group matches and
+   * no standings at all, so the seeding came back empty and the bracket could not be drawn for a
+   * playoff that plainly happened.
+   *
+   * The page's own seed numbers are used instead, and only here. The guard is deliberately narrow:
+   * a reconstruction, with zero standings rows, whose entrants carry a seed recorded from the page.
+   * A live Season cannot reach playoff setup without closing its groups, so it can never take this
+   * path, and a reconstruction that merely failed to import its standings has no seeds to use.
+   */
+  if (standings.length === 0) {
+    const season = await prisma.season.findUnique({ where: { id: seasonId }, select: { reconstruction: true } })
+    const seeded = entrants.filter((e) => e.playoffSeed != null && !e.kickedOut)
+    if (!season?.reconstruction || seeded.length < 2) return []
+
+    return seeded
+      .sort((a, b) => a.playoffSeed! - b.playoffSeed! || a.id - b.id)
+      .map((e, i) => ({
+        entrantId: e.id,
+        name: e.displayName?.trim() || e.username,
+        cueverseId: e.cueverseId,
+        // No group stage was recorded, so nothing is claimed about one.
+        group: '—',
+        groupPosition: i + 1,
+        points: 0,
+        record: '—',
+        winPct: 0,
+        included: e.playoffIncluded,
+        qualification: e.qualification,
+        overallSeed: i + 1,
+      }))
+  }
 
   const rows = standings
     .map((s) => {

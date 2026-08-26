@@ -1,0 +1,131 @@
+2012 SEASON 1 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	good-faith	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	Lewissss	 	 	 	 	 	 	 	 	 	 
+DQ	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	xGodNeox	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	x_i_am_me_x	 	 	 	 	 	 	 	 	 	 
+7-4	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	dwaechte	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	AzN_PrIdE_LuVa	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	thebezisback	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	sin-e	 	 	 	 	 	 	 	 	 	 
+1-7	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_canuck_xlx	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	spc_shogun	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	master	 	 	 	 	 	 	 	 	 	 
+8-6	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	trios.return	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	sixohtwo	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	l1_stephen_1	 	 	 	 	 	 	 	 	 	 
+2-7	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_s_p_g_xlx	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	iiviijj	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_rivaldo_xlx	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	leeds_united14	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	shaggymaniac	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	srsmode	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	_dante	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	Travis	 	 	 	 	 	 	 	 	 	 
+DQ	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	aka_pomking	 	 	 	 	 	 	 	 	 	 
+ 	 	good-faith	 	 	 	 	 	 	 	 	 
+ 	 	7-2	 	 	 	 	 	 	 	 	 
+ 	 	xGodNeox	 	 	 	 	 	 	 	 	 
+ 	 	x_i_am_me_x	 	 	 	 	 	 	 	 	 
+ 	 	7-0	 	 	 	 	 	 	 	 	 
+ 	 	AzN_PrIdE_LuVa	 	 	 	 	 	 	 	 	 
+ 	 	thebezisback	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	xlx_canuck_xlx	 	 	 	 	 	 	 	 	 
+ 	 	spc_shogun	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	master	 	 	 	 	 	 	 	 	 
+ 	 	sixohtwo	 	 	 	 	 	 	 	 	 
+ 	 	7-2	 	 	 	 	 	 	 	 	 
+ 	 	xlx_s_p_g_xlx	 	 	 	 	 	 	 	 	 
+ 	 	iiviijj	 	 	 	 	 	 	 	 	 
+ 	 	7-1	 	 	 	 	 	 	 	 	 
+ 	 	PRO_BOY	 	 	 	 	 	 	 	 	 
+ 	 	leeds_united14	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	srsmode	 	 	 	 	 	 	 	 	 
+ 	 	_dante	 	 	 	 	 	 	 	 	 
+ 	 	7-4	 	 	 	 	 	 	 	 	 
+ 	 	Travis	 	 	 	 	 	 	 	 	 
+ 	 	 	 	good-faith	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	x_i_am_me_x	 	 	 	 	 	 	 
+ 	 	 	 	thebezisback	 	 	 	 	 	 	 
+ 	 	 	 	7-2	 	 	 	 	 	 	 
+ 	 	 	 	master	 	 	 	 	 	 	 
+ 	 	 	 	sixohtwo	 	 	 	 	 	 	 
+ 	 	 	 	3-7	 	 	 	 	 	 	 
+ 	 	 	 	iiviijj	 	 	 	 	 	 	 
+ 	 	 	 	srsmode	 	 	 	 	 	 	 
+ 	 	 	 	6-8	 	 	 	 	 	 	 
+ 	 	 	 	_dante	 	 	 	 	 	 	 
+ 	 	 	 	 	 	good-faith	 	 	 	 	 
+ 	 	 	 	 	 	9-4	 	 	 	 	 
+ 	 	 	 	 	 	thebezisback	 	 	 	 	 
+ 	 	 	 	 	 	iiviijj	 	 	 	 	 
+ 	 	 	 	 	 	5-9	 	 	 	 	 
+ 	 	 	 	 	 	_dante	 	 	 	 	 
+ 	 	 	 	 	 	 	 	good-faith	 	 	 
+ 	 	 	 	 	 	 	 	9-3	 	 	 
+ 	 	 	 	 	 	 	 	_dante	 	 	 
+ 	 	 	 	 	 	 	 	 	 	good-faith	 

@@ -1,0 +1,131 @@
+2012 SEASON 2 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	deep.cerebro	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	mvp_croz	 	 	 	 	 	 	 	 	 	 
+1-7	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	x_mirotic_x	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+2-7	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	MJ_The_King	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	shaggymaniac	 	 	 	 	 	 	 	 	 	 
+5-7	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	fhm_champion	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	good-faith	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	xGodNeox	 	 	 	 	 	 	 	 	 	 
+7-0	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	Sourwood	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	GOKU	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	Kevins_Yahoo	 	 	 	 	 	 	 	 	 	 
+7-2	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	sinf.onia	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	l2_o_c_k_y	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	Pool_Warrior2002	 	 	 	 	 	 	 	 	 	 
+7-3	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	handkrash	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	lvlr_.l3utal_king	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	sixohtwo	 	 	 	 	 	 	 	 	 	 
+7-1	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	deftvision	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	XX_APOCALIPSYS_XX	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	stephenb_	 	 	 	 	 	 	 	 	 	 
+7-2	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	adam_buddy	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	_Sugarhigh_	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	leeds_united	 	 	 	 	 	 	 	 	 	 
+2-7	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	master	 	 	 	 	 	 	 	 	 	 
+ 	 	deep.cerebro	 	 	 	 	 	 	 	 	 
+ 	 	9-7	 	 	 	 	 	 	 	 	 
+ 	 	x_mirotic_x	 	 	 	 	 	 	 	 	 
+ 	 	MJ_The_King	 	 	 	 	 	 	 	 	 
+ 	 	7-5	 	 	 	 	 	 	 	 	 
+ 	 	fhm_champion	 	 	 	 	 	 	 	 	 
+ 	 	good-faith	 	 	 	 	 	 	 	 	 
+ 	 	7-9	 	 	 	 	 	 	 	 	 
+ 	 	xGodNeox	 	 	 	 	 	 	 	 	 
+ 	 	GOKU	 	 	 	 	 	 	 	 	 
+ 	 	5-7	 	 	 	 	 	 	 	 	 
+ 	 	Kevins_Yahoo	 	 	 	 	 	 	 	 	 
+ 	 	l2_o_c_k_y	 	 	 	 	 	 	 	 	 
+ 	 	DQ	 	 	 	 	 	 	 	 	 
+ 	 	Pool_Warrior2002	 	 	 	 	 	 	 	 	 
+ 	 	lvlr_.l3utal_king	 	 	 	 	 	 	 	 	 
+ 	 	8-6	 	 	 	 	 	 	 	 	 
+ 	 	sixohtwo	 	 	 	 	 	 	 	 	 
+ 	 	XX_APOCALIPSYS_XX	 	 	 	 	 	 	 	 	 
+ 	 	7-4	 	 	 	 	 	 	 	 	 
+ 	 	stephenb_	 	 	 	 	 	 	 	 	 
+ 	 	_Sugarhigh_	 	 	 	 	 	 	 	 	 
+ 	 	0-7	 	 	 	 	 	 	 	 	 
+ 	 	master	 	 	 	 	 	 	 	 	 
+ 	 	 	 	deep.cerebro	 	 	 	 	 	 	 
+ 	 	 	 	8-6	 	 	 	 	 	 	 
+ 	 	 	 	MJ_The_King	 	 	 	 	 	 	 
+ 	 	 	 	xGodNeox	 	 	 	 	 	 	 
+ 	 	 	 	7-2	 	 	 	 	 	 	 
+ 	 	 	 	Kevins_Yahoo	 	 	 	 	 	 	 
+ 	 	 	 	Pool_Warrior2002	 	 	 	 	 	 	 
+ 	 	 	 	7-4	 	 	 	 	 	 	 
+ 	 	 	 	lvlr_.l3utal_king	 	 	 	 	 	 	 
+ 	 	 	 	XX_APOCALIPSYS_XX	 	 	 	 	 	 	 
+ 	 	 	 	3-7	 	 	 	 	 	 	 
+ 	 	 	 	master	 	 	 	 	 	 	 
+ 	 	 	 	 	 	deep.cerebro	 	 	 	 	 
+ 	 	 	 	 	 	10-12	 	 	 	 	 
+ 	 	 	 	 	 	xGodNeox	 	 	 	 	 
+ 	 	 	 	 	 	Pool_Warrior2002	 	 	 	 	 
+ 	 	 	 	 	 	9-5	 	 	 	 	 
+ 	 	 	 	 	 	master	 	 	 	 	 
+ 	 	 	 	 	 	 	 	xGodNeox	 	 	 
+ 	 	 	 	 	 	 	 	9-2	 	 	 
+ 	 	 	 	 	 	 	 	Pool_Warrior2002	 	 	 
+ 	 	 	 	 	 	 	 	 	 	xGodNeox	 

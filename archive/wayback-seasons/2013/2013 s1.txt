@@ -1,0 +1,131 @@
+2013 SEASON 1 - DIVISION A Playoff
+Built from the owner transcription in paste-*.txt. Each winner is the player the next round
+contains; the score is oriented so the winner holds the higher number. Seed numbers are the
+standard draw layout, not transcribed.
+Round1		Round2		Quarter Finals		Semi Finals		Final		Winner	
+1	 	 	 	 	 	 	 	 	 	 	 
+ 	iiviijj	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+32	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+16	 	 	 	 	 	 	 	 	 	 	 
+ 	PRO_BOY	 	 	 	 	 	 	 	 	 	 
+DQ	 	 	 	 	 	 	 	 	 	 	 
+17	 	 	 	 	 	 	 	 	 	 	 
+ 	spc_shogun	 	 	 	 	 	 	 	 	 	 
+8	 	 	 	 	 	 	 	 	 	 	 
+ 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+25	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+9	 	 	 	 	 	 	 	 	 	 	 
+ 	x_i_am_me_x	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+24	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+4	 	 	 	 	 	 	 	 	 	 	 
+ 	SupaSolid	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+29	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+13	 	 	 	 	 	 	 	 	 	 	 
+ 	choke_squad	 	 	 	 	 	 	 	 	 	 
+7-2	 	 	 	 	 	 	 	 	 	 	 
+20	 	 	 	 	 	 	 	 	 	 	 
+ 	sykology	 	 	 	 	 	 	 	 	 	 
+5	 	 	 	 	 	 	 	 	 	 	 
+ 	murkedddd	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+28	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+12	 	 	 	 	 	 	 	 	 	 	 
+ 	Asskicking_101	 	 	 	 	 	 	 	 	 	 
+3-7	 	 	 	 	 	 	 	 	 	 	 
+21	 	 	 	 	 	 	 	 	 	 	 
+ 	100%good	 	 	 	 	 	 	 	 	 	 
+2	 	 	 	 	 	 	 	 	 	 	 
+ 	au.stralian	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+31	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+15	 	 	 	 	 	 	 	 	 	 	 
+ 	xz_legendary_zx	 	 	 	 	 	 	 	 	 	 
+2-7	 	 	 	 	 	 	 	 	 	 	 
+18	 	 	 	 	 	 	 	 	 	 	 
+ 	c-b	 	 	 	 	 	 	 	 	 	 
+7	 	 	 	 	 	 	 	 	 	 	 
+ 	stephenb_	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+26	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+10	 	 	 	 	 	 	 	 	 	 	 
+ 	_dante	 	 	 	 	 	 	 	 	 	 
+2-7	 	 	 	 	 	 	 	 	 	 	 
+23	 	 	 	 	 	 	 	 	 	 	 
+ 	o0_GoKu_0o	 	 	 	 	 	 	 	 	 	 
+3	 	 	 	 	 	 	 	 	 	 	 
+ 	AzN_PrIdE_Luva	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+30	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+14	 	 	 	 	 	 	 	 	 	 	 
+ 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 	 
+7-4	 	 	 	 	 	 	 	 	 	 	 
+19	 	 	 	 	 	 	 	 	 	 	 
+ 	ogger	 	 	 	 	 	 	 	 	 	 
+6	 	 	 	 	 	 	 	 	 	 	 
+ 	Reps	 	 	 	 	 	 	 	 	 	 
+bye	 	 	 	 	 	 	 	 	 	 	 
+27	 	 	 	 	 	 	 	 	 	 	 
+ 	bye	 	 	 	 	 	 	 	 	 	 
+11	 	 	 	 	 	 	 	 	 	 	 
+ 	con.tagion	 	 	 	 	 	 	 	 	 	 
+7-4	 	 	 	 	 	 	 	 	 	 	 
+22	 	 	 	 	 	 	 	 	 	 	 
+ 	Im_Not_That_Bad	 	 	 	 	 	 	 	 	 	 
+ 	 	iiviijj	 	 	 	 	 	 	 	 	 
+ 	 	4-7	 	 	 	 	 	 	 	 	 
+ 	 	spc_shogun	 	 	 	 	 	 	 	 	 
+ 	 	Xx_APOCALIPSYS_xX	 	 	 	 	 	 	 	 	 
+ 	 	3-7	 	 	 	 	 	 	 	 	 
+ 	 	x_i_am_me_x	 	 	 	 	 	 	 	 	 
+ 	 	SupaSolid	 	 	 	 	 	 	 	 	 
+ 	 	8-10	 	 	 	 	 	 	 	 	 
+ 	 	choke_squad	 	 	 	 	 	 	 	 	 
+ 	 	murkedddd	 	 	 	 	 	 	 	 	 
+ 	 	1-7	 	 	 	 	 	 	 	 	 
+ 	 	100%good	 	 	 	 	 	 	 	 	 
+ 	 	au.stralian	 	 	 	 	 	 	 	 	 
+ 	 	8-6	 	 	 	 	 	 	 	 	 
+ 	 	c-b	 	 	 	 	 	 	 	 	 
+ 	 	stephenb_	 	 	 	 	 	 	 	 	 
+ 	 	7-1	 	 	 	 	 	 	 	 	 
+ 	 	o0_GoKu_0o	 	 	 	 	 	 	 	 	 
+ 	 	AzN_PrIdE_Luva	 	 	 	 	 	 	 	 	 
+ 	 	9-7	 	 	 	 	 	 	 	 	 
+ 	 	xlx_skill_xlx	 	 	 	 	 	 	 	 	 
+ 	 	Reps	 	 	 	 	 	 	 	 	 
+ 	 	6-8	 	 	 	 	 	 	 	 	 
+ 	 	con.tagion	 	 	 	 	 	 	 	 	 
+ 	 	 	 	spc_shogun	 	 	 	 	 	 	 
+ 	 	 	 	4-7	 	 	 	 	 	 	 
+ 	 	 	 	x_i_am_me_x	 	 	 	 	 	 	 
+ 	 	 	 	choke_squad	 	 	 	 	 	 	 
+ 	 	 	 	3-7	 	 	 	 	 	 	 
+ 	 	 	 	100%good	 	 	 	 	 	 	 
+ 	 	 	 	au.stralian	 	 	 	 	 	 	 
+ 	 	 	 	8-6	 	 	 	 	 	 	 
+ 	 	 	 	stephenb_	 	 	 	 	 	 	 
+ 	 	 	 	AzN_PrIdE_Luva	 	 	 	 	 	 	 
+ 	 	 	 	15-13	 	 	 	 	 	 	 
+ 	 	 	 	con.tagion	 	 	 	 	 	 	 
+ 	 	 	 	 	 	x_i_am_me_x	 	 	 	 	 
+ 	 	 	 	 	 	7-9	 	 	 	 	 
+ 	 	 	 	 	 	100%good	 	 	 	 	 
+ 	 	 	 	 	 	au.stralian	 	 	 	 	 
+ 	 	 	 	 	 	9-6	 	 	 	 	 
+ 	 	 	 	 	 	AzN_PrIdE_Luva	 	 	 	 	 
+ 	 	 	 	 	 	 	 	100%good	 	 	 
+ 	 	 	 	 	 	 	 	6-9	 	 	 
+ 	 	 	 	 	 	 	 	au.stralian	 	 	 
+ 	 	 	 	 	 	 	 	 	 	au.stralian	 
