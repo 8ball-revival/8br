@@ -11,11 +11,18 @@ function isActive(pathname: string, href: string) {
 }
 
 /**
- * Primary navigation.
+ * Primary navigation, on the acid surface.
  *
- * Every entry is a destination. This used to carry a dropdown for Live and Archives — triggers that
- * opened a Seasons/Tournaments pair rather than navigating — and that machinery is gone with them: Seasons
- * and Tournaments are top-level tabs now, so there is nothing left to open.
+ * ── Why the colours are inverted from everywhere else ────────────────────────────────────────────
+ * This bar used to be dark, so its items were muted grey and lit yellow when active. The bar is
+ * acid now, and both of those are wrong on it: grey on yellow is mud and yellow on yellow is
+ * nothing. Black is the only text colour permitted on acid, so an inactive item is black held back
+ * with opacity, and the ACTIVE item is red — the one other colour that survives on this surface and
+ * the same red used for every piece of technical linework in the interface.
+ *
+ * ── The marker is not colour alone ───────────────────────────────────────────────────────────────
+ * The active item also gains a solid underline and `aria-current`, so the current page is
+ * identifiable without seeing the difference between black and red.
  */
 export function MainNav({
   className, entries, extraItems = [],
@@ -37,17 +44,17 @@ export function MainNav({
             href={entry.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'relative rounded-none px-3 py-2 text-sm font-medium uppercase tracking-wide transition-all duration-200',
+              'relative px-3 py-2 text-sm font-semibold tracking-wide transition-colors duration-150',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]',
               active
-                ? 'text-[var(--neon-yellow)] [text-shadow:var(--glow-yellow)]'
-                : 'text-muted-foreground hover:text-[var(--neon-cyan)] hover:[text-shadow:var(--glow-cyan)]',
+                ? 'text-[var(--hot-red)]'
+                : 'text-[var(--acid-ink)]/75 hover:text-[var(--acid-ink)]',
             )}
           >
             {entry.label}
-            {/* The active marker is a lit bar rather than a rounded pill — the same edge the panels use. */}
             {active && (
               <span
-                className="absolute inset-x-2 -bottom-px h-[2px] bg-[var(--neon-yellow)] [box-shadow:var(--glow-yellow)]"
+                className="absolute inset-x-2 -bottom-[2px] h-[3px] bg-[var(--hot-red)]"
                 aria-hidden
               />
             )}

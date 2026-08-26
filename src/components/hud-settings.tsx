@@ -157,7 +157,7 @@ export function HudSettingsPanel() {
         <div
           role="dialog"
           aria-label="Display settings"
-          className="cyber-clip fixed bottom-20 right-4 z-[9998] max-h-[78vh] w-[19rem] overflow-y-auto border border-[var(--neon-line)] bg-[var(--surface)] p-4 [box-shadow:0_0_40px_oklch(0.84_0.14_200/0.16),0_20px_60px_oklch(0_0_0/0.7)]"
+          className="cyber-clip fixed bottom-20 right-4 z-[9998] max-h-[78vh] w-[19rem] overflow-y-auto border border-[var(--neon-line)] bg-[var(--surface)] p-4 [box-shadow:0_0_40px_color-mix(in_oklab,var(--cyan)_16%,transparent),0_20px_60px_oklch(0_0_0/0.7)]"
         >
           <div className="mb-3 flex items-center justify-between">
             <p className="eyebrow neon-text-cyan">Display</p>

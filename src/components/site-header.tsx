@@ -4,6 +4,7 @@ import { ChevronDown, LogOut } from 'lucide-react'
 
 import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
+import { LiveClock } from '@/components/cyber/live-clock'
 import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser } from '@/lib/account/auth'
@@ -43,9 +44,12 @@ export async function SiteHeader() {
     <header
       data-site-header
       /*
-       * The bar the whole site hangs from: a translucent void with a lit lower edge. The gradient
-       * border is a background rather than a border-image so it survives the backdrop blur, and it
-       * runs cyan → yellow → cyan so the header reads as a single light source across its width.
+       * The bar the whole site hangs from, and the largest single piece of acid in the interface.
+       *
+       * Solid, never translucent: it used to be painted at 85% alpha over the page, and a warm
+       * colour at partial alpha over a dark ground reads olive rather than yellow. It is a surface
+       * now, so it is opaque, it carries black ink, and its lower edge is the red rule that marks
+       * every structural boundary on the site.
        */
       className="sticky top-0 z-50 w-full border-b-2 border-nav-border bg-nav-bg text-nav-foreground"
     >
@@ -62,20 +66,25 @@ export async function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1">
+          <LiveClock className="mr-3 hidden items-center lg:flex" />
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
           {user ? (
             <details className="group relative ml-1">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md py-1 pl-1 pr-2 transition-colors hover:bg-accent [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center gap-2 py-1 pl-1 pr-2 transition-colors hover:bg-[var(--acid-hover)] [&::-webkit-details-marker]:hidden">
+                {/*
+                  Initials on void, not the old gold-gradient disc: a warm gradient on an acid bar is
+                  a yellow smudge on yellow. A dark chip is the one thing that reads on this surface.
+                */}
                 <span
                   aria-hidden
-                  className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-soft/40 to-brand-dim/40 text-xs font-bold text-foreground ring-1 ring-border"
+                  className="cyber-clip-sm flex size-8 items-center justify-center bg-[var(--void)] text-xs font-bold text-[var(--acid)]"
                 >
                   {displayName.slice(0, 2).toUpperCase()}
                 </span>
-                <span className="hidden text-sm font-medium sm:block">{displayName}</span>
-                <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                <span className="hidden text-sm font-semibold text-[var(--acid-ink)] sm:block">{displayName}</span>
+                <ChevronDown className="size-4 text-[var(--acid-ink)]/70 transition-transform group-open:rotate-180" aria-hidden />
               </summary>
-              <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-none border border-border bg-popover p-1 shadow-lg">
+              <div className="cyber-clip absolute right-0 z-50 mt-2 w-52 overflow-hidden border border-[var(--line-strong)] bg-popover p-1 text-foreground shadow-lg">
                 <p className="truncate px-3 py-2 text-xs text-muted-foreground">
                   Signed in as <span className="font-semibold text-foreground">@{cueverse}</span>
                 </p>
@@ -95,9 +104,12 @@ export async function SiteHeader() {
               </div>
             </details>
           ) : (
-            <Button asChild variant="outline" size="sm" className="ml-1 hidden sm:inline-flex">
-              <Link href="/login">Sign In</Link>
-            </Button>
+            <Link
+              href="/login"
+              className="cyber-clip-sm ml-1 hidden items-center bg-[var(--void)] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)] sm:inline-flex"
+            >
+              Sign In
+            </Link>
           )}
 
           <MobileNav entries={navEntries} className="xl:hidden" isSignedIn={Boolean(user)} extraItems={staffItems} />

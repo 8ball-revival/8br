@@ -45,7 +45,7 @@ body { min-height: 100vh !important; min-height: 100svh !important; }
 // Button styling lifted verbatim from the reference hero so the two calls to action keep their
 // exact size, weight, radius and focus treatment.
 const primaryBtn =
-  'cyber-sweep cyber-clip inline-flex items-center rounded-none bg-primary px-7 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition-all duration-200 [box-shadow:var(--glow-yellow)] hover:brightness-110 hover:[box-shadow:0_0_8px_oklch(0.9_0.19_100/0.75),0_0_30px_oklch(0.9_0.19_100/0.45)]'
+  'cyber-sweep cyber-clip inline-flex items-center rounded-none bg-primary px-7 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition-all duration-200 [box-shadow:var(--glow-yellow)] hover:brightness-110 hover:[box-shadow:0_0_8px_color-mix(in_oklab,var(--acid)_75%,transparent),0_0_30px_color-mix(in_oklab,var(--acid)_45%,transparent)]'
 const secondaryBtn =
   'cyber-sweep cyber-clip inline-flex items-center rounded-none border border-[var(--neon-line)] px-7 py-3 text-sm font-bold uppercase tracking-widest text-foreground transition-all duration-200 hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)] hover:[box-shadow:var(--glow-cyan)]'
 
@@ -108,7 +108,7 @@ export default async function HomePage() {
         <div aria-hidden className="cyber-grid absolute inset-0 opacity-30 mix-blend-screen" />
         <div
           aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(70%_60%_at_10%_0%,oklch(0.84_0.14_200/0.1),transparent_60%),radial-gradient(60%_60%_at_95%_100%,oklch(0.66_0.27_350/0.09),transparent_60%)]"
+          className="absolute inset-0 bg-[radial-gradient(70%_60%_at_10%_0%,color-mix(in_oklab,var(--cyan)_10%,transparent),transparent_60%),radial-gradient(60%_60%_at_95%_100%,color-mix(in_oklab,var(--hot-red)_9%,transparent),transparent_60%)]"
         />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
         {/* The lit edge that separates the hero from the page, matching the header's. */}
@@ -127,7 +127,7 @@ export default async function HomePage() {
               as a signal breaking up.
             */}
             <h1 className="boot-in mt-3 max-w-2xl text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-7xl">
-              <span className="block text-foreground [text-shadow:0_0_24px_oklch(0.84_0.14_200/0.25)]">{hero.headlineLine1}</span>
+              <span className="block text-foreground [text-shadow:0_0_24px_color-mix(in_oklab,var(--cyan)_25%,transparent)]">{hero.headlineLine1}</span>
               <span className="glitch block text-gold neon-text" data-text={hero.headlineLine2}>
                 {hero.headlineLine2}
               </span>

@@ -47,13 +47,18 @@ export function Logo({
           height={logoHeight ?? 1024}
           priority
           sizes="60px"
-          className="h-10 w-auto shrink-0 object-contain [filter:drop-shadow(0_0_8px_oklch(0.9_0.19_100/0.35))]"
+          /*
+        The glow is gone rather than retuned. It was a yellow drop-shadow, which existed to lift the
+        mark off a dark bar; the bar is acid now, so the same shadow only softens the logo's edge
+        against a background of its own colour. A dark ring gives it the separation instead.
+      */
+          className="h-10 w-auto shrink-0 object-contain"
         />
       ) : null}
       <span className="flex flex-col leading-none">
-        <span className="font-display text-lg font-bold tracking-tight [text-shadow:0_0_14px_oklch(0.84_0.14_200/0.35)] sm:text-xl">{siteName}</span>
+        <span className="font-display text-lg font-bold tracking-tight text-[var(--acid-ink)] sm:text-xl">{siteName}</span>
         {showTagline && (
-          <span className="eyebrow mt-1 text-[0.6rem] text-muted-foreground">{brandTagline}</span>
+          <span className="eyebrow mt-1 text-[0.6rem] text-[var(--acid-ink)]/65">{brandTagline}</span>
         )}
       </span>
     </span>

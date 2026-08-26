@@ -70,7 +70,7 @@ export async function SiteFooter() {
               <Link
                 key={l.label}
                 href={safeHref(l.href)}
-                className="text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-[var(--cyan)]"
               >
                 {l.label}
               </Link>
@@ -87,7 +87,7 @@ export async function SiteFooter() {
                   key={s.label}
                   href={safeHref(s.href)}
                   aria-label={s.label}
-                  className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  className="cyber-clip-sm flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-[var(--cyan)]"
                 >
                   <Icon className="size-4" aria-hidden />
                 </Link>

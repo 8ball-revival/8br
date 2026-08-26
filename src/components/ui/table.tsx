@@ -22,8 +22,16 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
       className={cn(
-        'border-b border-[var(--neon-line)]/60 transition-all duration-150',
-        'hover:bg-muted/50 hover:[box-shadow:inset_2px_0_0_0_var(--neon-cyan)]',
+        /*
+         * Restraint, because this is the component the site is mostly made of.
+         *
+         * A row used to animate every property and grow an inset cyan rail on hover. Multiplied by
+         * sixty rows of standings it was noise, and `transition-all` meant the browser watched
+         * properties nothing was changing. A background step is enough to track a row across twelve
+         * columns, which is the only thing the hover state is for.
+         */
+        'border-b border-[var(--line)] transition-colors duration-100',
+        'hover:bg-[var(--accent)]',
         className,
       )}
       {...props}

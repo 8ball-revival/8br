@@ -23,7 +23,7 @@ export function PageHeader({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-3xl font-bold uppercase tracking-tight [text-shadow:0_0_22px_oklch(0.84_0.14_200/0.22)] sm:text-4xl">{title}</h1>
+              <h1 className="font-display text-3xl font-bold uppercase tracking-tight [text-shadow:0_0_22px_color-mix(in_oklab,var(--cyan)_22%,transparent)] sm:text-4xl">{title}</h1>
               {sample && <Badge variant="muted">Sample data</Badge>}
             </div>
             {description && (
