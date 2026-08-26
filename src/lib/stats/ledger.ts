@@ -1,7 +1,7 @@
 import 'server-only'
 import { RANKING_ELIGIBLE_SEASON, RANKING_ELIGIBLE_TOURNAMENT } from './eligibility'
 import type { Prisma, CompetitionPlatform } from '@prisma/client'
-import { ELO_START, matchDeltas } from './elo'
+import { ELO_START, expectedScore, matchDeltas } from './elo'
 
 /**
  * RATING LEDGER PROCESSING — turns completed tournament matches into per-match Elo events (the
@@ -158,6 +158,21 @@ async function collectSeasonMatchups(tx: Tx, seasonId: number, fallbackDate: Dat
   return out
 }
 
+/**
+ * A Yahoo Tournament is recorded, but it does not move a rating.
+ *
+ * The Yahoo ladder is a Season ladder. Its Tournaments were one-off side events run under their own
+ * conditions, and letting a handful of them move a rating built from ninety-odd Seasons lets a single
+ * afternoon outweigh a career. The result is still written — the row, the win, the loss and the
+ * trophy all survive, and the Tournament columns keep reading them — but the rating change is zero,
+ * exactly as it is for a forfeit.
+ *
+ * Scoped to Yahoo on purpose: CueVerse Tournaments are part of that ladder and keep counting.
+ */
+function isRatingNeutral(platform: CompetitionPlatform, tournamentId?: number): boolean {
+  return platform === 'YAHOO' && tournamentId != null
+}
+
 /** Full deterministic rebuild of the entire rating ledger from every COMPLETED Tournament AND Season,
  *  interleaved in close order. Idempotent: safe to call on every close, retry, or correction. */
 export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; seasons: number; entries: number }> {
@@ -174,20 +189,36 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
   const tournaments = await tx.tournament.findMany({
     where: RANKING_ELIGIBLE_TOURNAMENT,
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
-    select: { id: true, participantFormat: true, ladderAppliedAt: true, createdAt: true, platform: true },
+    select: { id: true, participantFormat: true, ladderAppliedAt: true, createdAt: true, platform: true, competitionYear: true, number: true },
   })
   const seasons = await tx.season.findMany({
     where: RANKING_ELIGIBLE_SEASON,
     orderBy: [{ ladderAppliedAt: 'asc' }, { number: 'asc' }, { id: 'asc' }],
-    select: { id: true, ladderAppliedAt: true, createdAt: true, platform: true },
+    select: { id: true, ladderAppliedAt: true, createdAt: true, platform: true, competitionYear: true, number: true },
   })
 
-  // One combined, close-ordered timeline so Season and Tournament ratings interleave correctly.
-  type Source = { tournamentId?: number; seasonId?: number; isTeam: boolean; at: Date; platform: CompetitionPlatform }
+  /*
+   * ── The timeline is WHEN IT WAS PLAYED, not when it was entered here ─────────────────────────────
+   *
+   * This used to order by `ladderAppliedAt ?? createdAt` — the moment a record was closed in this
+   * application. For a live registry those coincide; for an archive typed up a decade later they
+   * have nothing to do with each other. A 2005 Season entered last week replayed after 2014, and a
+   * Season re-closed after a correction jumped to the very end: 2010 Season 3 was replayed 48th of
+   * 48 simply because it had been reopened and recompleted.
+   *
+   * Elo is path-dependent, so this is arithmetic rather than presentation. Beating a 2013 field is
+   * not the same as beating the same people in 2006 when they were still near 1500, and rating the
+   * matches out of order gives every player the wrong opponent strength. Correcting it moved 438 of
+   * 497 players.
+   *
+   * `competitionYear` then `number` is the real chronology, with the id last so two records from the
+   * same year and number (the two Divisions) stay in a fixed order rather than a random one.
+   */
+  type Source = { tournamentId?: number; seasonId?: number; isTeam: boolean; at: Date; platform: CompetitionPlatform; year: number; num: number; id: number }
   const sources: Source[] = [
-    ...tournaments.map((t) => ({ tournamentId: t.id, isTeam: t.participantFormat === 'TEAM', at: t.ladderAppliedAt ?? t.createdAt, platform: t.platform })),
-    ...seasons.map((s) => ({ seasonId: s.id, isTeam: false, at: s.ladderAppliedAt ?? s.createdAt, platform: s.platform })),
-  ].sort((a, b) => a.at.getTime() - b.at.getTime())
+    ...tournaments.map((t) => ({ tournamentId: t.id, isTeam: t.participantFormat === 'TEAM', at: t.ladderAppliedAt ?? t.createdAt, platform: t.platform, year: t.competitionYear, num: t.number ?? 0, id: t.id })),
+    ...seasons.map((s) => ({ seasonId: s.id, isTeam: false, at: s.ladderAppliedAt ?? s.createdAt, platform: s.platform, year: s.competitionYear, num: s.number, id: s.id })),
+  ].sort((a, b) => a.year - b.year || a.num - b.num || a.id - b.id)
 
   await tx.ratingLedger.deleteMany({})
 
@@ -234,7 +265,12 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
        * +2 to each member of the winning roster, −2 to each of the losing one. A forfeit moves
        * nobody, exactly as it does for an individual match.
        */
-      const d = mu.isTeam
+      const d = isRatingNeutral(c.platform, c.tournamentId)
+        ? {
+            home: { delta: 0, expected: expectedScore(homeRating, awayRating) },
+            away: { delta: 0, expected: expectedScore(awayRating, homeRating) },
+          }
+        : mu.isTeam
         ? {
             home: { delta: mu.forfeit ? 0 : homeActual === 1 ? TEAM_DELTA : -TEAM_DELTA, expected: 0.5 },
             away: { delta: mu.forfeit ? 0 : homeActual === 1 ? -TEAM_DELTA : TEAM_DELTA, expected: 0.5 },

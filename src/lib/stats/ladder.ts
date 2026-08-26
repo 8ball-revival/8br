@@ -1,7 +1,7 @@
 import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import { ELO_START, ELO_K, expectedScore } from './elo'
+import { ELO_START, ELO_K, expectedScore, withChampionStep } from './elo'
 import { TEAM_DELTA } from './rating-history'
 import type { SeasonTrophyEntry } from '@/lib/seasons/trophies'
 
@@ -50,6 +50,7 @@ export interface LadderRow {
 // ---------------------------------------------------------------- raw ledger row (subset we read)
 interface Row {
   tournamentId: number
+  seasonId: number | null
   matchKey: string
   stage: string
   roundLabel: string | null
@@ -116,6 +117,20 @@ function rankSnapshot(entries: { playerId: string; rating: number }[]): Map<stri
   return m
 }
 
+/**
+ * Which competition a ledger row belongs to — the boundary a peak-rank snapshot is taken at.
+ *
+ * The replays used to track `tournamentId` alone, which is null on every Season row. So `lastTid`
+ * was null for almost the whole archive, the "has the competition changed" test never fired, and the
+ * closing snapshot was skipped too. With 48 Seasons against 3 Tournaments that meant 194 of 498
+ * players never appeared in a single snapshot and ended up with a highest rank of zero — a player
+ * who once stood 13th read as never having been ranked at all.
+ *
+ * Keying on the Season as well makes every competition a boundary, which is what was meant.
+ */
+const competitionKey = (r: { tournamentId: number | null; seasonId: number | null }): string =>
+  r.tournamentId != null ? `t${r.tournamentId}` : `s${r.seasonId ?? 0}`
+
 // ---------------------------------------------------------------- All-Time (aggregate stored ledger)
 function computeAllTime(rows: Row[]): Map<string, PlayerStats> {
   const byPlayer = new Map<string, Row[]>()
@@ -159,18 +174,20 @@ function computeAllTime(rows: Row[]): Map<string, PlayerStats> {
 
   // Highest rank: walk the stored ledger in order, snapshot the ladder at each tournament boundary.
   const rating = new Map<string, number>()
-  let lastTid: number | null = null
+  let lastKey: string | null = null
   const ordered = [...rows].sort((a, b) => a.sequence - b.sequence)
   const snapshot = () => {
     const ranks = rankSnapshot([...rating].map(([playerId, r]) => ({ playerId, rating: r })))
     for (const [pid, rk] of ranks) { const s = stats.get(pid); if (s) s.highestRank = Math.min(s.highestRank, rk) }
   }
   for (const r of ordered) {
-    if (lastTid != null && r.tournamentId !== lastTid) snapshot()
+    const key = competitionKey(r)
+    if (lastKey != null && key !== lastKey) snapshot()
     rating.set(r.playerId, r.postRating)
-    lastTid = r.tournamentId
+    lastKey = key
   }
-  if (lastTid != null) snapshot()
+  // The closing snapshot is what records a peak reached in the final competition.
+  if (lastKey != null) snapshot()
   for (const s of stats.values()) if (!Number.isFinite(s.highestRank)) s.highestRank = 0
   return stats
 }
@@ -192,15 +209,16 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
   const latest = new Map<string, Date>()
 
   const push = (pid: string, res: string) => (perPlayerResults.get(pid) ?? perPlayerResults.set(pid, []).get(pid)!).push(res)
-  let lastTid: number | null = null
+  let lastKey: string | null = null
   const snapshot = () => {
     const ranks = rankSnapshot([...rating].map(([playerId, r]) => ({ playerId, rating: r })))
     for (const [pid, rk] of ranks) highestRank.set(pid, Math.min(highestRank.get(pid) ?? Infinity, rk))
   }
 
   for (const m of matches) {
-    if (lastTid != null && m[0].tournamentId !== lastTid) snapshot()
-    lastTid = m[0].tournamentId
+    const key = competitionKey(m[0])
+    if (lastKey != null && key !== lastKey) snapshot()
+    lastKey = key
     // Sides: team matches group by team name; individual matches are one row per side.
     const isTeam = m[0].isTeamMatch
     const sides = isTeam
@@ -238,7 +256,7 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
     apply(A, dA)
     apply(B, forfeit ? 0 : -dA)
   }
-  if (lastTid != null) snapshot()
+  if (lastKey != null) snapshot()
 
   const stats = new Map<string, PlayerStats>()
   for (const [pid, results] of perPlayerResults) {
@@ -371,7 +389,8 @@ export async function getLadder(
   // Titles follow the same rule as the results: a primary inherits what its secondaries won.
   const trophies = await canonicalizeByPlayer(await computeTrophies())
   const { computeSeasonTrophies } = await import('@/lib/seasons/trophies')
-  const seasonTrophies = await canonicalizeByPlayer(await computeSeasonTrophies())
+  // Scoped to this ladder's platform: a title won on the other one is a different competition.
+  const seasonTrophies = await canonicalizeByPlayer(await computeSeasonTrophies(platform))
 
   const list: LadderRow[] = [...stats.values()].map((s) => {
     const idn = identities.get(s.playerId)
@@ -386,7 +405,8 @@ export async function getLadder(
       cueverseId: idn?.cueverseId ?? null,
       slug: idn?.slug ?? null,
       rank: 0,
-      rating: Math.round(s.rating),
+      // The ledger's rating is pure Elo; the championship step is added on top of it here.
+      rating: withChampionStep(Math.round(s.rating), viewSeasons.length),
       wins: s.wins,
       losses: s.losses,
       draws: s.draws,
@@ -395,15 +415,25 @@ export async function getLadder(
       trophies: viewTrophies.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
       seasonTitles: viewSeasons.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
       highestRank: s.highestRank,
-      highestRating: Math.round(s.highestRating),
+      // Stepped as well, so a champion's peak can never read below their current rating.
+      highestRating: withChampionStep(Math.round(s.highestRating), viewSeasons.length),
       longestWinStreak: s.longestWinStreak,
       idleDays: latest ? Math.floor((now.getTime() - latest.getTime()) / DAY_MS) : null,
     }
   })
 
+  /*
+   * Tournament wins break a tie everywhere except Yahoo.
+   *
+   * On the Yahoo ladder a Tournament is recorded but decides nothing: its matches move no rating,
+   * and letting its trophies separate two players level on rating would put the same side events
+   * back into the ranking through the tie-break. Win rate and match wins carry the tie there
+   * instead, and the trophy stays what it is — something won, shown in its own column.
+   */
+  const trophiesCount = platform !== 'YAHOO'
   list.sort((a, b) =>
     b.rating - a.rating ||
-    b.trophies.length - a.trophies.length ||
+    (trophiesCount ? b.trophies.length - a.trophies.length : 0) ||
     b.winPct - a.winPct ||
     b.wins - a.wins ||
     a.name.toLowerCase().localeCompare(b.name.toLowerCase()),

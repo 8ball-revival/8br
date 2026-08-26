@@ -42,3 +42,39 @@ export function matchDeltas(
   const homeDelta = Math.round(ELO_K * (homeActual - eHome))
   return { home: { expected: eHome, delta: homeDelta }, away: { expected: eAway, delta: -homeDelta } }
 }
+
+/**
+ * The championship step: a title lifts a rating by a fixed amount, once.
+ *
+ * ── Why a step and not a per-title bonus ─────────────────────────────────────────────────────────
+ * A per-title bonus multiplies, so six titles became +600 and opened a 584-point chasm between first
+ * and tenth while tenth to fiftieth was only 274 — the ladder stretched hardest exactly where it
+ * should be tightest. A single step shifts all champions together, so the shape of the field below
+ * them is untouched: first to tenth is 116 points, and the spread widens down the table the way a
+ * rating curve should.
+ *
+ * It also fixes what a per-title bonus could not. The requirement is that no champion sits below
+ * anyone who never won: a multiplier has to clear that gap for the WEAKEST champion, which means
+ * over-rewarding the strongest. One step clears it for everybody at once.
+ *
+ * ── Why it is applied after the replay, not during it ────────────────────────────────────────────
+ * An in-timeline bonus made the winner a stronger favourite immediately, so they earned less for
+ * every win that followed and the bonus partly ate itself — unevenly, by player. At 100 it demoted
+ * the archive's only four-time champion BELOW where he sat with no bonus at all. Applied after the
+ * ratings are settled it is arithmetic, and it cannot punish anyone for winning too often.
+ *
+ * ── Why 200 ──────────────────────────────────────────────────────────────────────────────────────
+ * 157 is the smallest step that clears today's gap between the lowest-rated champion and the highest
+ * non-champion. 200 costs nothing extra — every champion moves together, so the spread is identical
+ * at any size — and leaves 44 points of headroom, so one ordinary Season cannot silently break the
+ * rule. `verify-championship-step` asserts it still holds.
+ *
+ * The Elo itself is untouched and stays zero-sum: the step lives here, on top of the rating the
+ * ledger computed, and never enters the replay.
+ */
+export const CHAMPION_STEP = 200
+
+/** A rating with the championship step applied, for a player holding `titles` Season titles. */
+export function withChampionStep(rating: number, titles: number): number {
+  return titles > 0 ? rating + CHAMPION_STEP : rating
+}

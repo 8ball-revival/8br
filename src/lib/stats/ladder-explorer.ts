@@ -3,7 +3,7 @@ import 'server-only'
 import { ratingsForScope, windowCutoff } from '@/lib/stats/rating-history'
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { ELO_START } from '@/lib/stats/elo'
+import { ELO_START, withChampionStep } from '@/lib/stats/elo'
 import { resolvePublicIdentity, slugifyIdentity } from '@/lib/identity/public-identity'
 import { UNASSIGNED_DIVISION, completenessOf, type Completeness } from './rankings-facts'
 
@@ -130,7 +130,30 @@ async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear
   const yearOf = (r: { seasonId: number | null; tournamentId: number | null }) =>
     (r.seasonId != null ? seasonYear.get(r.seasonId) : r.tournamentId != null ? tournamentYear.get(r.tournamentId) : null) ?? null
 
-  return ratingsForScope(rows, scope, windowCutoff(now), { toYear, yearOf })
+  const ratings = ratingsForScope(rows, scope, windowCutoff(now), { toYear, yearOf })
+
+  /*
+   * The championship step, applied to the one canonical rating rather than in the SQL.
+   *
+   * The aggregate query also selects a rating, but it is only a fallback for a player the replay
+   * never saw; stepping it there as well would have produced two answers again — the exact fault the
+   * comment above this function warns about. Titles are counted per platform for the same reason the
+   * ladder counts them that way.
+   */
+  const champs = await prisma.season.groupBy({
+    by: ['championPlayerId'],
+    where: { lifecycleState: 'COMPLETED', championPlayerId: { not: null }, platform },
+    _count: { _all: true },
+  })
+  const titlesOf = new Map(champs.map((c) => [c.championPlayerId!, c._count._all]))
+  for (const [playerId, v] of ratings) {
+    const titles = titlesOf.get(playerId) ?? 0
+    if (titles > 0) {
+      v.rating = withChampionStep(v.rating, titles)
+      v.highestRating = withChampionStep(v.highestRating, titles)
+    }
+  }
+  return ratings
 }
 
 export interface ExplorerRow {
@@ -520,9 +543,12 @@ export async function computeExplorer(
       GROUP BY r."playerId"
     ),
     champs AS (
+      -- Scoped to this platform: a title won on the other one belongs to a different ladder, and
+      -- counting it here would both inflate the column and hand out the championship step for it.
       SELECT se."championPlayerId" AS "playerId", count(*)::int AS season_titles
         FROM "public"."season" se
        WHERE se."lifecycleState" = 'COMPLETED' AND se."championPlayerId" IS NOT NULL
+         AND se."platform" = '${filters.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'}'
        GROUP BY 1
     ),
     runners AS (

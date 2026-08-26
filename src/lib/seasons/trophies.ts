@@ -1,4 +1,5 @@
 import 'server-only'
+import type { CompetitionPlatform } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 /** A Season Championship — the glowing-diamond achievement, kept SEPARATE from ordinary tournament
@@ -11,9 +12,17 @@ export interface SeasonTrophyEntry {
 }
 
 /** playerId → the Seasons they have won. */
-export async function computeSeasonTrophies(): Promise<Map<string, SeasonTrophyEntry[]>> {
+/**
+ * Season Championships per player.
+ *
+ * Scoped to one platform when asked, because the ladder is per platform and a title won on the
+ * other one is not part of this standing: counting them would place a Yahoo champion above a
+ * CueVerse player on a CueVerse ladder for something that happened in a different competition.
+ * Unscoped still means every platform, which is what a profile wants.
+ */
+export async function computeSeasonTrophies(platform?: CompetitionPlatform): Promise<Map<string, SeasonTrophyEntry[]>> {
   const seasons = await prisma.season.findMany({
-    where: { lifecycleState: 'COMPLETED', championPlayerId: { not: null } },
+    where: { lifecycleState: 'COMPLETED', championPlayerId: { not: null }, ...(platform ? { platform } : {}) },
     select: { id: true, number: true, competitionYear: true, championPlayerId: true, completedAt: true, competitionSeries: { select: { name: true } } },
   })
   const map = new Map<string, SeasonTrophyEntry[]>()
