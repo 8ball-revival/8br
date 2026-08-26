@@ -45,12 +45,17 @@ export type { Completeness }
 export type LadderScope = 'current' | 'all-time'
 export type RecordView = 'overall' | 'group' | 'playoff' | 'tournament'
 
-export const RECORD_VIEWS: { id: RecordView; label: string; hint: string }[] = [
-  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
-  { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
-  { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
-  { id: 'tournament', label: 'Tournaments', hint: 'Standalone Tournaments only' },
-]
+/*
+ * The list itself lives in `rankings-columns`, which carries no server-only import.
+ *
+ * It is a description of the four views - ids, labels and hints - not a query, so nothing about it
+ * needs the database. While it was declared here, a client component that wanted the labels had to
+ * import from a `server-only` module to get them, which pulls Prisma, Payload and `pg` into the
+ * browser bundle and fails the build with a wall of unresolved node builtins. Re-exported so every
+ * existing server-side importer is unaffected.
+ */
+export { RECORD_VIEWS } from './rankings-columns'
+
 
 /** The rolling window the Current scope uses, matching the official ladder exactly. */
 const WINDOW_DAYS = 365

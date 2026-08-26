@@ -4,16 +4,25 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from 'next/navigation'
 import { Download, Search, SlidersHorizontal, X } from 'lucide-react'
 
-import type { ExplorerRow, ExplorerFacets } from '@/lib/stats/ladder-explorer'
+/*
+ * TYPE-ONLY from the server module, on purpose.
+ *
+ * `ladder-explorer` is `server-only`. A type import is erased at compile time and costs nothing; a
+ * VALUE import from it puts Prisma, Payload and `pg` in the browser bundle, which is what happened
+ * when RECORD_VIEWS was briefly imported from here.
+ */
+import type { ExplorerRow, ExplorerFacets, RecordView } from '@/lib/stats/ladder-explorer'
 import type { PlayerDetail } from '@/lib/stats/rankings-detail'
 import {
-  COLUMN_BY_KEY, filterRows, sortRows, visibleColumnKeys, encodeRankingsState,
+  RECORD_VIEWS, columnsForView, filterRows, sortRows, visibleColumnKeys, encodeRankingsState,
   activeChips, removeChip, hasAnyFilter, activeFilterGroups, defaultState,
   type RankingsState, type SortSpec,
 } from '@/lib/stats/rankings-columns'
 import { loadPlayerDetail } from '@/app/(frontend)/rankings/actions'
 import { cn } from '@/lib/utils'
 import { CommandDeck } from '@/components/command-deck'
+import { FilterCommandBar, FilterField, SegmentedSwitch, filterControl } from '@/components/cyber/filter-bar'
+import { RankingsRail } from './rankings-rail'
 
 import { FilterDrawer } from './filter-drawer'
 import { RankingsTable } from './rankings-table'
@@ -77,6 +86,34 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
   const [drawerOpen, setDrawerOpen] = useState(false)
   const moreFiltersRef = useRef<HTMLButtonElement | null>(null)
 
+  /*
+   * Which record the table's Record and Win% columns describe.
+   *
+   * Local rather than in the URL because it changes what is DISPLAYED, not which players are
+   * ranked: the ladder, the order and the ratings are identical whichever is selected. Putting it
+   * in the URL would make two links that return the same standing look like different queries.
+   *
+   * The splits it switches between are already on every row - the aggregate carries group, playoff
+   * and tournament wins and losses separately - so nothing is recomputed or re-fetched.
+   */
+  const [recordScope, setRecordScope] = useState<RecordView>('overall')
+
+  /*
+   * The time-range preset, derived from the applied bounds rather than stored beside them.
+   *
+   * A second copy would drift the moment somebody set exact years in More Filters: the select would
+   * still read "Last 5 years" over a range that was no longer five years. Deriving it means the bar
+   * always describes what is actually applied, and falls back to showing the span when the bounds
+   * match no preset.
+   */
+  const yearPreset = useMemo(() => {
+    const max = facets.years.length ? Math.max(...facets.years) : applied.toYear
+    const min = facets.years.length ? Math.min(...facets.years) : applied.fromYear
+    if (applied.fromYear <= min && applied.toYear >= max) return 'all'
+    const span = applied.toYear - applied.fromYear + 1
+    return applied.toYear === max && [1, 3, 5, 10].includes(span) ? String(span) : 'custom'
+  }, [applied.fromYear, applied.toYear, facets.years])
+
   /** Push a new applied state into the URL. The server recomputes and sends new rows back. */
   const navigate = useCallback((next: RankingsState) => {
     const qs = encodeRankingsState(next, now)
@@ -93,10 +130,17 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
     return () => clearTimeout(t)
   }, [search, applied, navigate])
 
-  const columns = useMemo(
-    () => visibleColumnKeys({ ...applied, sort }).map((k) => COLUMN_BY_KEY[k]).filter(Boolean),
-    [applied, sort],
-  )
+  /*
+   * The columns for the chosen record view.
+   *
+   * `columnsForView` already existed and already knew which columns belong to which stage; the
+   * segmented switch simply drives it. Intersecting with the reader's chosen visible columns keeps
+   * both preferences: switching to Playoffs does not silently re-enable a column they hid.
+   */
+  const columns = useMemo(() => {
+    const chosen = new Set(visibleColumnKeys({ ...applied, sort }))
+    return columnsForView(recordScope).filter((c) => chosen.has(c.key))
+  }, [applied, sort, recordScope])
 
   const visible = useMemo(() => {
     const filtered = filterRows(rows, { ...applied.rowFilters, search })
@@ -152,82 +196,147 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
         meta={heading}
         stats={[{ label: 'Ranked players', value: visible.length.toLocaleString() }]}
       >
-        {/*
-          The universe being read, not a filter over a shared one. It changes every number on the
-          page, so it sits directly under the title as a segmented switch rather than in the filter
-          bar with things that merely narrow what is already there.
-        */}
-        <div role="group" aria-label="Ranking platform" className="cyber-clip-sm inline-flex overflow-hidden border border-[var(--neon-line)]">
-          {(['CUEVERSE', 'YAHOO'] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              aria-pressed={applied.platform === p}
-              onClick={() => { if (applied.platform !== p) navigate({ ...applied, platform: p }) }}
-              className={cn(
-                'px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all duration-150',
-                applied.platform === p
-                  ? 'bg-[var(--gold)] text-black [box-shadow:var(--glow-yellow)]'
-                  : 'text-muted-foreground hover:text-[var(--neon-cyan)] hover:[text-shadow:var(--glow-cyan)]',
-              )}
-            >
-              {p === 'CUEVERSE' ? 'CueVerse Rankings' : 'Yahoo Archive'}
-            </button>
-          ))}
-        </div>
         <p className="sr-only" aria-live="polite">
           {visible.length.toLocaleString()} {visible.length === 1 ? 'player' : 'players'}
         </p>
       </CommandDeck>
 
-      {/* ── Toolbar: search, what the colours mean, and the filters. */}
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="relative min-w-[12rem] flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Find a player"
-            aria-label="Find a player"
-            className="w-full rounded-none border border-border bg-background py-2 pl-9 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-          />
-          {search && (
+      {/*
+        ── The filter command bar ────────────────────────────────────────────────────────────────
+        Every control that narrows the ladder, in one acid strip, each with a visible label.
+
+        These map onto state that already exists rather than onto new concepts: Platform is the
+        ranking universe, Competition is the series, Time range is the inclusive year bounds, and
+        Record type is the event kind. The segmented switch on the right chooses WHICH record the
+        table shows, which the row data already carries split by stage.
+      */}
+      <FilterCommandBar
+        actions={
+          <>
+            <SegmentedSwitch
+              label="Record shown"
+              value={recordScope}
+              onChange={setRecordScope}
+              options={RECORD_VIEWS.map((v) => ({ value: v.id, label: v.label }))}
+            />
             <button
+              ref={moreFiltersRef}
               type="button"
-              onClick={() => setSearch('')}
-              aria-label="Clear search"
-              className="absolute right-2 top-2.5 rounded text-muted-foreground hover:text-foreground"
+              onClick={() => setDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={drawerOpen}
+              className="cyber-clip-sm inline-flex items-center gap-2 border border-[var(--acid-ink)]/30 bg-[var(--void)] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)]"
             >
-              <X className="size-4" aria-hidden />
+              <SlidersHorizontal className="size-3.5" aria-hidden />
+              More
+              {groupCount > 0 && (
+                <span
+                  className="grid min-w-4 place-items-center bg-[var(--acid)] px-1 text-[0.62rem] font-bold text-[var(--acid-ink)]"
+                  aria-label={`${groupCount} filter ${groupCount === 1 ? 'group' : 'groups'} applied`}
+                >
+                  {groupCount}
+                </span>
+              )}
             </button>
-          )}
-        </div>
+          </>
+        }
+      >
+        <FilterField label="Platform" htmlFor="rk-platform" className="w-[10.5rem]">
+          <select
+            id="rk-platform"
+            className={filterControl}
+            value={applied.platform}
+            onChange={(e) => navigate({ ...applied, platform: e.target.value as typeof applied.platform })}
+          >
+            <option value="CUEVERSE">CueVerse Rankings</option>
+            <option value="YAHOO">Yahoo Archive</option>
+          </select>
+        </FilterField>
 
-        <RatingLegend className="min-w-0" />
+        <FilterField label="Competition" htmlFor="rk-competition" className="w-[11rem]">
+          <select
+            id="rk-competition"
+            className={filterControl}
+            value={applied.competitionSeriesId ?? ''}
+            onChange={(e) => navigate({
+              ...applied,
+              competitionSeriesId: e.target.value === '' ? null : Number(e.target.value),
+              // A season chosen inside another competition cannot survive the competition changing.
+              seasonId: null,
+            })}
+          >
+            <option value="">All competitions</option>
+            {facets.competitions.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </FilterField>
 
-        <button
-          ref={moreFiltersRef}
-          // Pushed to the trailing edge so the toolbar reads left-to-right as search, meaning,
-          // then action.
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          aria-haspopup="dialog"
-          aria-expanded={drawerOpen}
-          className="ml-auto inline-flex items-center gap-2 rounded-none border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-        >
-          <SlidersHorizontal className="size-4" aria-hidden />
-          More Filters
-          {groupCount > 0 && (
-            <span
-              className="grid min-w-5 place-items-center rounded-full bg-[var(--gold)] px-1 text-[0.68rem] font-bold text-black"
-              aria-label={`${groupCount} filter ${groupCount === 1 ? 'group' : 'groups'} applied`}
-            >
-              {groupCount}
-            </span>
-          )}
-        </button>
+        <FilterField label="Time range" htmlFor="rk-years" className="w-[9.5rem]">
+          {/*
+            Presets rather than two year pickers. The bar has room for one control, and "since 2020"
+            is what somebody actually wants; the exact bounds stay available in More Filters.
+          */}
+          <select
+            id="rk-years"
+            className={filterControl}
+            value={yearPreset}
+            onChange={(e) => {
+              const v = e.target.value
+              const max = facets.years.length ? Math.max(...facets.years) : applied.toYear
+              const min = facets.years.length ? Math.min(...facets.years) : applied.fromYear
+              const from = v === 'all' ? min : max - Number(v) + 1
+              navigate({ ...applied, fromYear: from, toYear: max })
+            }}
+          >
+            {/* Present only while it applies, so the control never displays a preset that is not in force. */}
+            {yearPreset === 'custom' && (
+              <option value="custom">{applied.fromYear}-{applied.toYear}</option>
+            )}
+            <option value="all">All time</option>
+            <option value="1">This year</option>
+            <option value="3">Last 3 years</option>
+            <option value="5">Last 5 years</option>
+            <option value="10">Last 10 years</option>
+          </select>
+        </FilterField>
 
-      </div>
+        <FilterField label="Record type" htmlFor="rk-event" className="w-[9.5rem]">
+          <select
+            id="rk-event"
+            className={filterControl}
+            value={applied.eventType}
+            onChange={(e) => navigate({ ...applied, eventType: e.target.value as typeof applied.eventType })}
+          >
+            <option value="all">All events</option>
+            <option value="seasons">Seasons only</option>
+            <option value="cups">Tournaments only</option>
+          </select>
+        </FilterField>
+
+        <FilterField label="Player search" htmlFor="rk-search" className="min-w-[11rem] flex-1 sm:max-w-xs">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted-foreground" aria-hidden />
+            <input
+              id="rk-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="CueVerse ID or name"
+              className={cn(filterControl, 'pl-8 pr-7')}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="absolute right-2 top-2 text-muted-foreground hover:text-[var(--cyan)]"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            )}
+          </div>
+        </FilterField>
+      </FilterCommandBar>
 
       {/* ── Applied filters, as chips that remove themselves. */}
       {(chips.length > 0 || hasAnyFilter(applied, now)) && (
@@ -254,26 +363,41 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
         </div>
       )}
 
-      <div className={cn('transition-opacity', pending && 'opacity-60')}>
-        <RankingsTable
-          rows={visible}
-          columns={columns}
-          sort={sort}
-          onSort={onSort}
-          expanded={expanded}
-          onToggleExpand={onToggleExpand}
-          details={details}
-          minMatches={applied.rowFilters.minMatches}
-          topOffset={topOffset}
-          emptyMessage={
-            hasAnyFilter(applied, now) || search
-              ? 'No players match these filters.'
-              : 'No ranked players yet.'
-          }
-        />
+      {/*
+        ── The leaderboard and its analysis ──────────────────────────────────────────────────────
+        The rail is a SECOND COLUMN on a wide screen and a block BENEATH the table on a narrow one,
+        which is the whole reason it is a grid rather than a float: on a phone the leaderboard is
+        what somebody came for, and analysis of it belongs after it rather than above it.
+
+        The rail is handed the rows the table is rendering. It cannot disagree with the table
+        because it is looking at the same array.
+      */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <div className={cn('min-w-0 transition-opacity', pending && 'opacity-60')}>
+          <RankingsTable
+            rows={visible}
+            columns={columns}
+            sort={sort}
+            onSort={onSort}
+            expanded={expanded}
+            onToggleExpand={onToggleExpand}
+            details={details}
+            minMatches={applied.rowFilters.minMatches}
+            topOffset={topOffset}
+            emptyMessage={
+              hasAnyFilter(applied, now) || search
+                ? 'No players match these filters.'
+                : 'No ranked players yet.'
+            }
+          />
+        </div>
+
+        <RankingsRail rows={visible} />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
+        {/* The colour key sits with the table it explains, not up in the filter bar. */}
+        <RatingLegend className="min-w-0" />
         <Methodology />
         <a
           href={exportHref}

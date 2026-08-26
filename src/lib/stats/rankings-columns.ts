@@ -1,5 +1,19 @@
 import type { CompetitionPlatform } from '@prisma/client'
 import type { ExplorerRow, RecordView } from './ladder-explorer'
+
+/**
+ * The four record views.
+ *
+ * Declared here rather than beside the query that uses them, because this module is client-safe and
+ * that one is `server-only`: the filter bar needs these labels in the browser, and reaching into the
+ * server module for them drags the whole database stack along.
+ */
+export const RECORD_VIEWS: { id: RecordView; label: string; hint: string }[] = [
+  { id: 'overall', label: 'Overall', hint: 'Every recorded match, Seasons and Tournaments together' },
+  { id: 'group', label: 'Group Play', hint: 'Season group stages only' },
+  { id: 'playoff', label: 'Playoffs', hint: 'Season playoff brackets only' },
+  { id: 'tournament', label: 'Tournaments', hint: 'Standalone Tournaments only' },
+]
 import { UNASSIGNED_DIVISION } from './rankings-facts'
 
 /**

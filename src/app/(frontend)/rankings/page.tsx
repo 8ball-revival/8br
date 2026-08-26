@@ -5,6 +5,8 @@ import { RankingsExplorer } from '@/components/rankings/rankings-explorer'
 import { decodeRankingsState, aggregateFilters } from '@/lib/stats/rankings-columns'
 import { Wide } from '@/components/primitives'
 import { pageMetadata } from '@/lib/site'
+import { getRegistryStats } from '@/lib/stats/registry-stats'
+import { StatusRail } from '@/components/cyber/status-rail'
 
 export const dynamic = 'force-dynamic' // rankings reflect the latest completed competitions
 
@@ -39,11 +41,12 @@ export default async function RankingsPage({
 
   const state = decodeRankingsState(params)
 
-  const [rows, facets, freshness] = await Promise.all([
+  const [rows, facets, freshness, stats] = await Promise.all([
     // Permanently the official all-time overall table — see the note in RankingsExplorer.
     getExplorer('all-time', 'overall', aggregateFilters(state)),
     getFacets(),
     getFreshness(),
+    getRegistryStats(),
   ])
 
   return (
@@ -66,6 +69,12 @@ export default async function RankingsPage({
           </p>
         ) : null}
       />
+
+      {/*
+        The same closing rail the homepage carries, from the same registry service, so the two pages
+        cannot print different totals for the same archive.
+      */}
+      <StatusRail players={stats.players} matches={stats.matchesPlayed} seasons={stats.seasons} />
     </Wide>
   )
 }
