@@ -76,9 +76,24 @@ section('The section is called Tournaments, and the old URLs still work')
   check('...and no longer says Cups', !/label: 'Cups'/.test(nav))
 
   const list = read('src/app/(frontend)/tournaments/page.tsx') ?? ''
-  check('the list page offers Create Tournament', list.includes('Create Tournament'))
-  check('...only to the competition-management capability', list.includes("can('manage_competitions')"))
-  check('...and links into the Tournaments section', list.includes('/tournaments/new'))
+  /*
+   * Inverted on purpose: the public list offers no Create control at all.
+   *
+   * These three required it to be present, gated and correctly linked. A public Tournament page has
+   * to look identical to an administrator and an ordinary member, so the control is gone rather than
+   * conditional. Creation lives at /creator/tournaments/new, and /tournaments/new is a redirect stub
+   * into Creator, so nothing that pointed at it is broken.
+   */
+  /*
+   * Read with comments stripped, because the file explains the removal and must name the control to
+   * do so. This is the third audit in this codebase to report its own documentation; they all scan
+   * raw source, and prose about a rule reads exactly like a breach of it.
+   */
+  const listCode = list.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  check('the public list offers no Create Tournament control', !listCode.includes('Create Tournament'))
+  check('...and resolves no management capability to decide that', !listCode.includes("can('manage_competitions')"))
+  check('...and creation still exists in Creator',
+    (read('src/app/(frontend)/creator/tournaments/new/page.tsx') ?? read('src/app/(frontend)/creator/page.tsx') ?? '').length > 0)
 
 /*
  * The gate moved with the work.

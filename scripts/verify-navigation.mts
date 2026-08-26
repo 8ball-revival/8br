@@ -177,10 +177,22 @@ section('Tournaments is a public listing with a single administrative entry')
    * action — not on "is staff", which an editor also satisfies — and that the route behind it
    * re-checks rather than trusting a hidden button.
    */
-  check('the Create control is drawn from the competition-management capability',
-    code.includes("can('manage_competitions')"))
+  /*
+   * The public listing offers NO Create control, and these checks are inverted from what they
+   * asserted.
+   *
+   * They required the control to be present and gated on `manage_competitions`. Gating was never
+   * the weak part: the problem is that a public route rendering a management control has two
+   * layouts to keep in step, with a capability check as the only thing between them, and the brief
+   * for this redesign is that a public Tournament page looks identical to everybody.
+   *
+   * Creation still exists and is reachable — /creator/tournaments/new — and /tournaments/new is now
+   * a redirect stub into Creator, so no link anywhere is broken by this. What changed is that the
+   * public list no longer advertises it.
+   */
+  check('the public listing draws no Create control', !code.includes("can('manage_competitions')"))
   check('...and not from a broad staff test', !/isStaff\(/.test(code))
-  check('...pointing into the Tournaments section', code.includes('/tournaments/new'))
+  check('...and does not link to a creation route', !code.includes('/tournaments/new'))
 
 /*
  * The gate moved with the work.
