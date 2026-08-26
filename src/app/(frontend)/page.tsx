@@ -7,7 +7,8 @@ import { getRegistryStats } from '@/lib/stats/registry-stats'
 import { getHomeNews } from '@/lib/home/news'
 import { getSeasonResults } from '@/lib/home/season-results'
 import { getHomeLeaderboard } from '@/lib/home/leaderboard'
-import { getAchievements } from '@/lib/achievements'
+import { getPublicAchievements } from '@/lib/achievements/service'
+import { shuffleAchievements } from '@/lib/achievements/shuffle'
 
 import { CompetitionHistory } from '@/components/home/competition-history'
 import { LiveRankings } from '@/components/home/live-rankings'
@@ -84,7 +85,7 @@ export default async function HomePage() {
   const [news, seasonResults, achievements, stats] = await Promise.all([
     getHomeNews(),
     getSeasonResults(platform),
-    getAchievements(platform),
+    getPublicAchievements(),
     getRegistryStats(),
   ])
 
@@ -120,7 +121,7 @@ export default async function HomePage() {
         putting them above the standings pushed the competition data below the fold.
       */}
       <Wide className="mt-4">
-        <AchievementsCarousel achievements={achievements} />
+        <AchievementsCarousel achievements={shuffleAchievements(achievements)} />
       </Wide>
 
       {/* ── 5. The status rail ────────────────────────────────────────────────────────────────── */}

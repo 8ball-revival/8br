@@ -28,7 +28,7 @@ const KEY = '8br-hud'
 
 export interface HudSettings {
   intensity: 'off' | 'subtle' | 'standard' | 'overdrive'
-  accent: 'yellow' | 'cyan' | 'magenta' | 'green'
+  accent: 'yellow' | 'red' | 'white' | 'blue'
   scan: boolean
   grid: boolean
   glow: number // 0–200, a percentage of the declared glow strength
@@ -107,10 +107,39 @@ function write(next: HudSettings | null) {
   listeners.forEach((cb) => cb())
 }
 
+/** The values each choice may legally hold. Anything else in storage is stale or tampered with. */
+const ALLOWED = {
+  intensity: ['off', 'subtle', 'standard', 'overdrive'],
+  accent: ['yellow', 'red', 'white', 'blue'],
+  motion: ['off', 'calm', 'normal', 'fast'],
+  corners: ['chamfer', 'square', 'round'],
+} as const
+
+/**
+ * Read the stored settings, discarding any value that is no longer offered.
+ *
+ * ── Why this is not paranoia ─────────────────────────────────────────────────────────────────────
+ * The accent palette changed: Cyan, Magenta and Green were replaced by Red, White and Blue. Anybody
+ * whose browser still holds `accent: "magenta"` would otherwise get `data-hud-accent="magenta"` on
+ * the document, no stylesheet rule to match it, and a control panel showing nothing selected —
+ * a setting that is neither the old one nor a new one.
+ *
+ * Falling back per FIELD rather than discarding the whole object means a stale accent does not also
+ * reset somebody's glow, motion and corner preferences.
+ */
 function parse(raw: string): HudSettings {
   if (!raw) return HUD_DEFAULTS
   try {
-    return { ...HUD_DEFAULTS, ...(JSON.parse(raw) as Partial<HudSettings>) }
+    const stored = { ...HUD_DEFAULTS, ...(JSON.parse(raw) as Partial<HudSettings>) }
+    for (const [field, allowed] of Object.entries(ALLOWED) as [keyof typeof ALLOWED, readonly string[]][]) {
+      if (!allowed.includes(stored[field] as string)) {
+        (stored as Record<string, unknown>)[field] = HUD_DEFAULTS[field]
+      }
+    }
+    // The slider is a number with a range, so it is clamped rather than matched against a list.
+    if (typeof stored.glow !== 'number' || !Number.isFinite(stored.glow)) stored.glow = HUD_DEFAULTS.glow
+    stored.glow = Math.min(200, Math.max(0, stored.glow))
+    return stored
   } catch {
     return HUD_DEFAULTS
   }
@@ -178,7 +207,7 @@ export function HudSettingsPanel() {
           />
           <Choice
             label="Accent" value={s.accent} onChange={(v) => set('accent', v)}
-            options={[['yellow', 'Yellow'], ['cyan', 'Cyan'], ['magenta', 'Magenta'], ['green', 'Green']]}
+            options={[['yellow', 'Yellow'], ['red', 'Red'], ['white', 'White'], ['blue', 'Blue']]}
             hint="Repoints the signature colour across the whole site."
           />
           <Choice

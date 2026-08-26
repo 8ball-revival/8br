@@ -33,7 +33,7 @@ const WIDE = [
   ['the Season bracket panel', 'src/components/seasons/season-bracket-panel.tsx'],
   ['the Rankings table', 'src/components/rankings/rankings-table.tsx'],
   ['the Tournament bracket', 'src/components/tournaments/bracket.tsx'],
-  ['the Achievements strip', 'src/components/home/achievements-carousel.tsx'],
+
 ] as const
 
 section('Every wide surface carries its own scroll container')
@@ -61,9 +61,21 @@ section('The scroll containers are reachable without a pointer')
   check('the shared table frame is focusable', /tabIndex=\{0\}/.test(frame))
   check('...and names its region', /role="region"/.test(frame) && /aria-label=\{label\}/.test(frame))
 
+  /*
+   * The Achievements strip is no longer a scroll container, so it is no longer checked as one.
+   *
+   * It was a scroll-snap track; it is a PAGED GRID now, which is a better answer to the same
+   * problem: `auto-fit` fits only whole cards, so the count falls 5 → 4 → 3 → 2 → 1 and nothing
+   * ever overflows to be scrolled. The rule that mattered — wide content must not push the document
+   * sideways — is now satisfied by construction rather than by a wrapper, and the checks below
+   * assert exactly that.
+   */
   const strip = read('src/components/home/achievements-carousel.tsx')
-  check('the Achievements strip is focusable', /tabIndex=\{0\}/.test(strip))
-  check('...and names its region', /aria-label="Achievements, scrollable"/.test(strip))
+  check('the Achievements strip fits whole cards rather than scrolling',
+    strip.includes('auto-fit') && strip.includes('MIN_CARD_PX'))
+  check('...capped at five on the widest screens', /MAX_VISIBLE = 5/.test(strip))
+  // The label is built from a ternary, so the literal is matched rather than a whole attribute.
+  check('...and pages instead of overflowing', strip.includes("'Previous achievements'"))
 }
 
 section('Nothing forces the document wider than the viewport')

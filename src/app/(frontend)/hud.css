@@ -46,22 +46,42 @@
  * Championship gold is deliberately NOT repointed. It means a title, and a title does not change
  * colour because somebody preferred a cyan interface.
  */
-:root[data-hud-accent='cyan'] {
+:root[data-hud-accent='red'] {
+  /*
+   * Vivid, not pink and not orange.
+   *
+   * The same hue as the interface's technical red, so an accent-red site reads as one colour rather
+   * than two reds arguing. Black ink on it measures 5.4:1 — the tightest of the four palettes, and
+   * still clear of the 4.5 AA threshold, which is why it is not pushed any darker or any brighter.
+   */
+  --acid: #ff2a2a;
+  --acid-hover: #ff5555;
+  --acid-dim: #c21f1f;
+}
+
+:root[data-hud-accent='white'] {
+  /*
+   * Crystal White Pearl, not flat white.
+   *
+   * The base is a fractionally warm white and the dim shade is a warm silver, so the surface has
+   * some depth where the accent system uses more than one shade — borders and hovers pick up the
+   * pearl rather than every element being the same slab of #fff. Deliberately warm-neutral: a cool
+   * white against charcoal reads as pale blue, which is the one thing this must not look like.
+   */
+  --acid: #f5f4f1;
+  --acid-hover: #ffffff;
+  --acid-dim: #c8c6c0;
+}
+
+:root[data-hud-accent='blue'] {
+  /*
+   * Bright electric cyan-blue, matching the interactive cyan the interface already uses for links
+   * and data state — so choosing Blue makes the whole site agree with itself rather than
+   * introducing a second blue beside the existing one.
+   */
   --acid: #13d8e8;
-  --acid-hover: #58e8f4;
+  --acid-hover: #5ae7f5;
   --acid-dim: #0e9fab;
-}
-
-:root[data-hud-accent='magenta'] {
-  --acid: #ff4fd8;
-  --acid-hover: #ff7ae2;
-  --acid-dim: #c22ca3;
-}
-
-:root[data-hud-accent='green'] {
-  --acid: #4ade80;
-  --acid-hover: #7cf0a5;
-  --acid-dim: #2f9c58;
 }
 
 /* ── Corner geometry ───────────────────────────────────────────────────────────────────────────────

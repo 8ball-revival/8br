@@ -58,6 +58,49 @@ section('Text on the acid surface is black, and readable')
   check('a primary button clears AA', prim != null && prim >= AA, prim ? `${prim.toFixed(1)}:1` : 'unmeasurable')
 }
 
+section('Every accent stays readable, not just the default')
+{
+  /*
+   * The accent selector repoints --acid, and --acid is a SURFACE carrying black ink. So each palette
+   * has to clear AA on its own, not just the yellow the tokens are authored with — an accent that
+   * fails is a whole site nobody can read, chosen from a dropdown.
+   *
+   * Read out of hud.css rather than listed here, so adding a palette without checking its contrast
+   * is not possible: a new accent block is picked up automatically and has to pass.
+   */
+  const HUD = readFileSync('src/app/(frontend)/hud.css', 'utf8')
+  const ink = tok('--acid-ink')
+
+  const accents = [...HUD.matchAll(/\[data-hud-accent='([a-z]+)'\]\s*\{([\s\S]*?)\}/g)]
+    .map((m) => ({ name: m[1], acid: /--acid:\s*(#[0-9a-f]{3,8})/i.exec(m[2])?.[1] ?? null }))
+
+  check('the accent palettes are declared and readable', accents.length >= 3,
+    accents.map((a) => a.name).join(', '))
+  check('the default yellow is unchanged', tok('--acid').toLowerCase() === '#d8dc2f', tok('--acid'))
+
+  for (const a of accents) {
+    check(`${a.name} declares a colour`, a.acid != null)
+    if (!a.acid) continue
+    const r = contrastRatio(ink, a.acid)
+    check(`...and black ink on ${a.name} clears AA`, r != null && r >= AA,
+      r ? `${r.toFixed(1)}:1` : 'unmeasurable')
+  }
+
+  /*
+   * The retired palettes must be gone, not merely unlisted. A leftover rule would still apply to
+   * anybody whose browser held the old value.
+   */
+  for (const old of ['magenta', 'green', 'cyan']) {
+    check(`no leftover ${old} accent rule`, !HUD.includes(`data-hud-accent='${old}'`))
+  }
+
+  const panel = readFileSync('src/components/hud-settings.tsx', 'utf8')
+  check('the selector offers exactly the four palettes',
+    /\['yellow', 'Yellow'\], \['red', 'Red'\], \['white', 'White'\], \['blue', 'Blue'\]/.test(panel))
+  check('...and a stale stored accent falls back rather than applying',
+    panel.includes('ALLOWED') && panel.includes("accent: ['yellow', 'red', 'white', 'blue']"))
+}
+
 section('Text on the dark grounds is readable')
 {
   for (const [fg, bg, label] of [

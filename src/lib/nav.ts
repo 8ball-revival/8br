@@ -30,6 +30,8 @@ export function buildNav(opts: {
 
   if (canCreate) entries.push({ label: 'Creator', href: '/creator' })
   entries.push({ label: 'Rankings', href: '/rankings' })
+  // Achievements is a destination in its own right, not only a link from the homepage strip.
+  entries.push({ label: 'Achievements', href: '/achievements' })
   // The Break — the community. It is named on the tab rather than labelled "News", because it is no
   // longer only news: predictions, history, memes and discussion all live there.
   entries.push({ label: 'The Break', href: '/the-break' })
@@ -44,6 +46,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Seasons', href: '/seasons' },
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Rankings', href: '/rankings' },
+  { label: 'Achievements', href: '/achievements' },
   { label: 'The Break', href: '/the-break' },
 ]
 /** Slim footer links. */

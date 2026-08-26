@@ -191,10 +191,20 @@ section('Creator, Tournaments, profiles and the homepage read the same classific
   check('the homepage champions list is scoped to a platform',
     /platform,/.test(seasonResults) && seasonResults.includes("CompetitionPlatform = 'CUEVERSE'"))
   const homepage = readFileSync('src/app/(frontend)/page.tsx', 'utf8')
-  check('...and the whole homepage follows one resolved era',
+  check('...and the homepage results follow one resolved era',
     homepage.includes('const platform = leaderboard.platform')
-    && homepage.includes('getSeasonResults(platform)')
-    && homepage.includes('getAchievements(platform)'))
+    && homepage.includes('getSeasonResults(platform)'))
+
+  /*
+   * Achievements moved to their own platform field, so the homepage no longer passes one.
+   *
+   * Each definition now stores the platform its rule reads, which is stricter than the old
+   * arrangement rather than looser: an award is pinned to the archive it was written for instead of
+   * silently re-pointing at whichever ladder the homepage happened to resolve that request.
+   */
+  const achievementSchema = readFileSync('prisma/schema.prisma', 'utf8')
+  check('an achievement definition carries its own platform',
+    /model AchievementDefinition[\s\S]*?platform\s+CompetitionPlatform/.test(achievementSchema))
 }
 
 section('Unranked history comes from the records, not the ledger')

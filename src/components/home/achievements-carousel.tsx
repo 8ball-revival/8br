@@ -10,61 +10,88 @@ import type { Achievement } from '@/lib/achievements/types'
 /**
  * The Achievements strip.
  *
- * ── Native scrolling, not a transform carousel ───────────────────────────────────────────────────
- * The track is an ordinary overflow-x container with scroll snapping. That single decision hands
- * over, for free, everything a hand-rolled carousel has to reimplement badly: touch dragging with
- * real momentum, trackpad swiping, keyboard scrolling, the scrollbar, and correct behaviour when
- * text is zoomed or the container is any width nobody anticipated.
+ * ── A window over a shuffled list, not a scrolling track ─────────────────────────────────────────
+ * The previous version laid every card in a scroll-snap row. That was fine for eighteen and wrong
+ * for a set meant to grow: the arrows nudged a scrollbar, cards half-appeared at the edges, and
+ * there was no notion of having seen one already.
  *
- * The buttons then only have to nudge `scrollLeft`. They are progressive enhancement: with no
- * JavaScript the strip still scrolls, and every card is still reachable.
+ * This shows a WINDOW of N whole cards and pages through the list. Nothing is ever half-visible, the
+ * arrows move by a full page, and because the page index is bounded the strip can hold hundreds of
+ * achievements without changing shape.
  *
- * ── No layout shift ──────────────────────────────────────────────────────────────────────────────
- * Cards are a fixed flex-basis rather than a share of the container, so the strip occupies the same
- * height and the same rhythm before and after the facts land. The server renders the real cards
- * anyway — this is a client component only because the arrows need to know the scroll position.
+ * ── Why N is measured rather than assumed ────────────────────────────────────────────────────────
+ * The card has a minimum readable width. Rather than forcing five into whatever space exists and
+ * letting them crush, the component measures its own width and shows as many whole cards as fit,
+ * capped at five. That is what makes the count fall 5 → 4 → 3 → 2 → 1 naturally, including at zoom
+ * levels and font sizes nobody thought to test.
  *
- * ── Five at a time ───────────────────────────────────────────────────────────────────────────────
- * On a desktop the basis is set so five cards fill the width. Below that they simply stop fitting
- * and the strip scrolls, which is the same interaction at every size rather than a separate mobile
- * mode with its own bugs.
+ * ── The order comes from the server ──────────────────────────────────────────────────────────────
+ * Shuffled per request by the page, so a refresh brings a different five. The client never
+ * re-shuffles: doing so on mount would mean the cards visibly change a moment after they appear,
+ * and doing so on resize would move somebody's place in the list while they were reading it.
  */
-export function AchievementsCarousel({ achievements }: { achievements: Achievement[] }) {
-  const trackRef = useRef<HTMLUListElement>(null)
-  const [atStart, setAtStart] = useState(true)
-  const [atEnd, setAtEnd] = useState(false)
 
-  const sync = useCallback(() => {
+/** Below this a card stops being readable, so a sixth is never squeezed in. */
+const MIN_CARD_PX = 210
+const MAX_VISIBLE = 5
+const GAP_PX = 12
+
+export function AchievementsCarousel({ achievements }: { achievements: Achievement[] }) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  /*
+   * Null until measured, and CSS handles the layout in the meantime.
+   *
+   * Seeding this with a number means the first paint is wrong for everybody it does not match: at 1
+   * a desktop shows a single card and jumps to five when JavaScript arrives; at 5 a phone shows five
+   * crushed columns first. `auto-fit` below fits whole cards with no script at all, so the server
+   * render is already correct at every width and the measurement only refines the PAGING.
+   */
+  const [visible, setVisible] = useState<number | null>(null)
+  const [page, setPage] = useState(0)
+
+  /* How many whole cards fit right now. */
+  const measure = useCallback(() => {
     const el = trackRef.current
     if (!el) return
-    setAtStart(el.scrollLeft <= 2)
-    // A pixel of slack: sub-pixel layout means scrollLeft rarely reaches the exact maximum.
-    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2)
+    const width = el.clientWidth
+    if (width <= 0) return
+    const fit = Math.floor((width + GAP_PX) / (MIN_CARD_PX + GAP_PX))
+    setVisible(Math.max(1, Math.min(MAX_VISIBLE, fit)))
   }, [])
 
   useEffect(() => {
-    sync()
+    measure()
     const el = trackRef.current
     if (!el) return
-    el.addEventListener('scroll', sync, { passive: true })
-    const ro = new ResizeObserver(sync)
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
-    return () => { el.removeEventListener('scroll', sync); ro.disconnect() }
-  }, [sync])
+    return () => ro.disconnect()
+  }, [measure])
 
-  const page = (dir: -1 | 1) => {
-    const el = trackRef.current
-    if (!el) return
-    /*
-     * Scroll by a card, not by a viewport. Paging the full width skips past cards on a narrow
-     * screen, where the arrows are most likely to be the only thing being used.
-     */
-    const card = el.querySelector('li')
-    const step = card ? card.getBoundingClientRect().width + 12 : el.clientWidth * 0.8
-    el.scrollBy({ left: dir * step, behavior: 'smooth' })
-  }
+  const total = achievements.length
+  /* Before measurement, assume the desktop maximum: CSS is showing whatever actually fits. */
+  const windowSize = visible ?? MAX_VISIBLE
+  const pages = Math.max(1, Math.ceil(total / windowSize))
 
-  if (achievements.length === 0) return null
+  /*
+   * The position is clamped during render, not corrected in an effect.
+   *
+   * Resizing changes how many pages exist, so a stored index can fall off the end. Fixing that with
+   * `useEffect(() => setPage(...))` is a synchronous setState inside an effect — a cascading render,
+   * and the browser paints the invalid page for one frame first. Deriving the safe value costs
+   * nothing and there is no intermediate state to see.
+   *
+   * Clamping rather than resetting also means widening the window does not throw somebody back to
+   * the first card.
+   */
+  const safePage = Math.min(page, pages - 1)
+
+  if (total === 0) return null
+
+  const start = safePage * windowSize
+  const shown = achievements.slice(start, start + windowSize)
+  const atStart = safePage === 0
+  const atEnd = safePage >= pages - 1
 
   return (
     <section
@@ -90,41 +117,47 @@ export function AchievementsCarousel({ achievements }: { achievements: Achieveme
           >
             View all achievements
           </Link>
-          <div className="flex items-center gap-1">
-            <ArrowButton dir="left" onClick={() => page(-1)} disabled={atStart} />
-            <ArrowButton dir="right" onClick={() => page(1)} disabled={atEnd} />
-          </div>
+          {pages > 1 && (
+            <div className="flex items-center gap-1">
+              <Arrow dir="left" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={atStart} />
+              {/* Position, so somebody paging a long list knows where they are. */}
+              <span className="tabular px-1 text-[0.65rem] font-bold text-[var(--acid-ink)]/70" aria-hidden>
+                {safePage + 1}/{pages}
+              </span>
+              <Arrow dir="right" onClick={() => setPage(Math.min(pages - 1, safePage + 1))} disabled={atEnd} />
+            </div>
+          )}
         </div>
       </div>
 
-      {/*
-        `tabIndex` and a label on the track, because a scrollable region that cannot be focused
-        cannot be scrolled by anybody without a pointer.
-      */}
-      <ul
-        ref={trackRef}
-        tabIndex={0}
-        aria-label="Achievements, scrollable"
-        className={cn(
-          'flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1',
-          'scrollbar-themed motion-safe:scroll-smooth',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]',
-        )}
-      >
-        {achievements.map((a) => (
-          <li
-            key={a.id}
-            className="w-[15rem] shrink-0 snap-start sm:w-[16rem] xl:w-[calc((100%-3rem)/5)]"
-          >
-            <AchievementCard achievement={a} />
-          </li>
-        ))}
-      </ul>
+      <div ref={trackRef}>
+        {/*
+          `auto-fit` with a minimum card width is what makes the count fall 5 → 4 → 3 → 2 → 1.
+          The browser fits as many whole 210px-or-wider cards as the space allows and no more, so a
+          card is never crushed to make a fifth fit, and it works at any zoom or font size without
+          anybody choosing breakpoints.
+        */}
+        <ul
+          className="grid gap-3"
+          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${MIN_CARD_PX}px, 1fr))` }}
+          aria-live="polite"
+        >
+          {shown.map((a) => (
+            <li key={a.id}>
+              <AchievementCard achievement={a} />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <p className="sr-only" aria-live="polite">
+        Showing {start + 1} to {Math.min(start + windowSize, total)} of {total} achievements.
+      </p>
     </section>
   )
 }
 
-function ArrowButton({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClick: () => void; disabled: boolean }) {
+function Arrow({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClick: () => void; disabled: boolean }) {
   const Icon = dir === 'left' ? ChevronLeft : ChevronRight
   return (
     <button
@@ -148,9 +181,9 @@ function ArrowButton({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClic
 /**
  * One card.
  *
- * The identity follows the site rule: the CueVerse ID is the line that leads, the Preferred Name
- * sits under it. A site-wide award has no player, so it renders the fact where the name would be
- * rather than leaving a gap the eye reads as a missing value.
+ * The identity follows the site rule: the CueVerse ID leads, the Preferred Name sits under it. A
+ * site-wide award has no player, so it renders the fact where the name would be rather than leaving
+ * a gap the eye reads as a missing value.
  */
 export function AchievementCard({ achievement: a }: { achievement: Achievement }) {
   return (
@@ -188,7 +221,7 @@ export function AchievementCard({ achievement: a }: { achievement: Achievement }
             )}
           </ul>
         ) : (
-          <p className="text-sm font-bold text-[var(--acid-ink)]">{a.stat}</p>
+          <p className="text-sm font-bold text-[var(--acid-ink)]">{a.stat || 'No qualifying player yet'}</p>
         )}
       </div>
 
@@ -198,13 +231,13 @@ export function AchievementCard({ achievement: a }: { achievement: Achievement }
         </p>
       )}
 
-      <p className="mt-2 text-[0.72rem] leading-snug text-[var(--acid-ink)]/75">{a.caption}</p>
+      {a.caption && <p className="mt-2 text-[0.72rem] leading-snug text-[var(--acid-ink)]/75">{a.caption}</p>}
 
       {/*
         The arithmetic, kept on the card rather than hidden behind a tooltip. The joke is only funny
         if the number behind it is checkable.
       */}
-      <p className="mt-auto pt-2 text-[0.66rem] leading-snug text-[var(--acid-ink)]/60">{a.detail}</p>
+      {a.detail && <p className="mt-auto pt-2 text-[0.66rem] leading-snug text-[var(--acid-ink)]/60">{a.detail}</p>}
     </article>
   )
 }

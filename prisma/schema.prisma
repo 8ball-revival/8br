@@ -317,17 +317,19 @@ model Player {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
-  competitor        Competitor?
-  aliases           PlayerAlias[]
-  achievements      Achievement[]
-  careerStat        PlayerCareerStat?
-  seasonStats       PlayerSeasonStat[]
-  hallOfFameEntries HallOfFameEntry[]
-  teamMemberships   TeamMembership[]
-  mergesAsCanonical PlayerMerge[]      @relation("MergeCanonical")
-  mergesAsMerged    PlayerMerge[]      @relation("MergeMerged")
-  splitsAsSource    PlayerSplit[]      @relation("SplitSource")
-  splitsAsNew       PlayerSplit[]      @relation("SplitNew")
+  competitor             Competitor?
+  aliases                PlayerAlias[]
+  achievements           Achievement[]
+  careerStat             PlayerCareerStat?
+  seasonStats            PlayerSeasonStat[]
+  hallOfFameEntries      HallOfFameEntry[]
+  teamMemberships        TeamMembership[]
+  /// Achievement DEFINITIONS manually awarded to this player. Automatic ones store no holder.
+  achievementDefinitions AchievementDefinition[]
+  mergesAsCanonical      PlayerMerge[]           @relation("MergeCanonical")
+  mergesAsMerged         PlayerMerge[]           @relation("MergeMerged")
+  splitsAsSource         PlayerSplit[]           @relation("SplitSource")
+  splitsAsNew            PlayerSplit[]           @relation("SplitNew")
 
   @@index([primaryName])
   @@index([provenance])
@@ -1230,9 +1232,9 @@ model Tournament {
   publiclyVisible      Boolean                   @default(true)
   /// Whether this record contributes to Rankings at all. Default yes; an exhibition or a
   /// reconstruction whose results should not count can be excluded without deleting it.
-  countsTowardRankings Boolean @default(true)
+  countsTowardRankings Boolean                   @default(true)
   /// The platform this Tournament was played on. See Season.platform.
-  platform             CompetitionPlatform @default(CUEVERSE)
+  platform             CompetitionPlatform       @default(CUEVERSE)
   reconstruction       Boolean                   @default(false)
   reopenedAt           DateTime?
   dataCompleteness     String                    @default("full")
@@ -1277,7 +1279,7 @@ model Tournament {
   /// The Final was won because the opponent forfeited.
   /// A championship is still awarded, but no competitive result is: see lib/competition/forfeit.
   /// Cleared automatically if the Final is later corrected to a played result.
-  finalsForfeit        Boolean   @default(false)
+  finalsForfeit        Boolean                   @default(false)
   championName         String?
   championHandle       String?
   runnerUpName         String?
@@ -1319,13 +1321,13 @@ model Tournament {
 ///  - Byes are never written (no win/loss/streak/rating effect).
 ///  - Team match: opponentId is null; each roster member gets one row with the team's shared change.
 model RatingLedger {
-  id               Int         @id @default(autoincrement())
+  id               Int                 @id @default(autoincrement())
   // A ledger row belongs to EITHER a Tournament or a Season (exactly one is set). Both feed the same
   // all-time Ladder; the Season matchKey namespace ("season-group:" / "season-playoff:") keeps them distinct.
   tournamentId     Int?
-  tournament       Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament       Tournament?         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   seasonId         Int?
-  season           Season?     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  season           Season?             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   matchKey         String // stable per-match id: "group:<id>" | "playoff:<id>" | "swiss:<id>" | "season-*:<id>"
   stage            String // 'GROUP' | 'PLAYOFF' | 'SWISS'
   roundLabel       String? // display label, e.g. "Final", "Round 1", "Group A"
@@ -1333,11 +1335,11 @@ model RatingLedger {
   playerName       String // display fallback (identity at time of play)
   opponentId       String? // null for a team match (opponent is a team, not one player)
   opponentName     String
-  isTeamMatch      Boolean     @default(false)
+  isTeamMatch      Boolean             @default(false)
   teamName         String? // this player's team name (team matches)
   opponentTeamName String? // opposing team name (team matches)
   result           String // 'WIN' | 'LOSS' | 'DRAW'
-  isForfeit        Boolean     @default(false) // official result but Elo-neutral (no competitive game played)
+  isForfeit        Boolean             @default(false) // official result but Elo-neutral (no competitive game played)
   actual           Float // 1 / 0 / 0.5
   preRating        Int
   expected         Float
@@ -1348,7 +1350,7 @@ model RatingLedger {
   platform         CompetitionPlatform @default(CUEVERSE)
   sequence         Int // global deterministic order across the whole all-time timeline
   completedAt      DateTime
-  createdAt        DateTime    @default(now())
+  createdAt        DateTime            @default(now())
 
   @@unique([matchKey, playerId])
   @@index([playerId, sequence])
@@ -1995,38 +1997,38 @@ model Season {
   ///
   /// NEVER inferred. Every existing Season predates the distinction and stays null, which the
   /// Rankings filter reports as "Unassigned" rather than guessing a division from a name or a year.
-  division           String?
+  division             String?
   /// ── Lifecycle presentation state (Live / Archives / Creator) ──────────────────────────────────
   /// Publicly visible. Separate from lifecycle on purpose: a Season can be running and still be
   /// private, and a published Season can be finished. Live requires BOTH.
   /// Defaults true so every existing Season keeps behaving exactly as it does today.
-  publiclyVisible    Boolean   @default(true)
+  publiclyVisible      Boolean   @default(true)
   /// Whether this record contributes to Rankings at all. Default yes; an exhibition or a
   /// reconstruction whose results should not count can be excluded without deleting it.
-  countsTowardRankings Boolean @default(true)
+  countsTowardRankings Boolean   @default(true)
   /// Built in Creator by hand from an archive rather than played on the site. Never appears under
   /// Live while it is being entered; moves to Archives only once completed and finalised.
-  reconstruction     Boolean   @default(false)
+  reconstruction       Boolean   @default(false)
   /// Links a reconstruction shell to its entry in the 8BRCAM archive manifest.
   ///
   /// Nullable and additive: every existing Season has none, which is correct — they were not built
   /// from the archive. It holds a manifest key, never archive DATA, so the source of truth for what
   /// the archive said stays the manifest file and this is only the pointer to it.
-  archiveTemplateKey String?   @unique
+  archiveTemplateKey   String?   @unique
   /// Set while an authorised administrator has reopened a completed Season for correction. While
   /// this is set the Season leaves Archives and stops contributing to the rankings.
-  reopenedAt         DateTime?
-  cancelledAt        DateTime?
-  deletedAt          DateTime?
+  reopenedAt           DateTime?
+  cancelledAt          DateTime?
+  deletedAt            DateTime?
   /// 'full' | 'partial'. A claim about the SOURCE archive, not about the entry: 'partial' means
   /// some matches, scores or dates were never preserved and have been left missing rather than
   /// invented. Shown on the archive card.
-  dataCompleteness   String    @default("full")
-  playoffDoubleElim  Boolean   @default(false) // decided at playoff setup, not creation
+  dataCompleteness     String    @default("full")
+  playoffDoubleElim    Boolean   @default(false) // decided at playoff setup, not creation
   /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
   /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
   /// that the pairings are archived but the scores are not, and have been approximated.
-  playoffDisclaimer  String?
+  playoffDisclaimer    String?
 
   ratingSnapshotAt DateTime? // set when registration closes (locks seeding ratings)
   ladderAppliedAt  DateTime? // idempotency guard for close -> Ladder
@@ -3319,4 +3321,128 @@ model BreakActionLog {
   @@index([clientHash, action, createdAt])
   @@index([createdAt])
   @@map("break_action_log")
+}
+
+// ─────────────────────────────────────────────────────────────────────── achievements ───────────
+//
+// Achievements are DEFINITIONS, not results.
+//
+// An automatic achievement stores the RULE that decides its holder and never the holder itself, so
+// when a season is imported, a score corrected or two players merged, the card follows the data
+// without anybody editing it. The holder is computed on read from the same statistics service the
+// Rankings page uses, which is what stops the two from ever disagreeing.
+//
+// A manual achievement stores the player and the value directly, for the things the database cannot
+// know — a community award, a one-off, a joke with no query behind it.
+
+enum AchievementAwardType {
+  /// Holder is computed from the configured rule against live statistics.
+  AUTOMATIC
+  /// Holder is chosen by an administrator and stored.
+  MANUAL
+}
+
+enum AchievementStatus {
+  ACTIVE
+  /// Hidden everywhere public; still listed and editable in Admin. Removal is archival by default.
+  ARCHIVED
+}
+
+/// Which pool of competitions the rule reads.
+enum AchievementScope {
+  ALL_COMPETITIONS
+  SEASONS
+  TOURNAMENTS
+  SPECIFIC_COMPETITION
+  SPECIFIC_SEASON
+  SPECIFIC_TOURNAMENT
+}
+
+/// Which matches within that pool count. Maps onto the existing RecordView plus finals.
+enum AchievementStage {
+  ALL_MATCHES
+  GROUP_STAGE
+  PLAYOFFS
+  FINALS
+}
+
+enum AchievementWinner {
+  HIGHEST
+  LOWEST
+}
+
+/// What to do when more than one player is level at the top.
+enum AchievementTiePolicy {
+  /// Every tied holder is listed. The default: a tie is a fact, not a problem to resolve.
+  SHOW_ALL
+  /// One holder, chosen by the largest value of the configured secondary statistic.
+  SECONDARY_STAT
+}
+
+/// What the public site does when a rule currently matches nobody.
+enum AchievementEmptyBehavior {
+  /// Drop the card entirely until somebody qualifies.
+  HIDE
+  /// Keep the card and say plainly that nobody qualifies yet.
+  SHOW_PLACEHOLDER
+}
+
+model AchievementDefinition {
+  id  Int    @id @default(autoincrement())
+  /// Stable identifier used by React keys, deep links and the seeded set. Never shown.
+  key String @unique
+
+  title       String
+  /// The joke. Short, and never a factual claim - every assertion lives in the computed value.
+  flavorText  String?
+  /// One line of supporting arithmetic, so the number can be checked rather than believed.
+  description String?
+
+  awardType AchievementAwardType @default(AUTOMATIC)
+  status    AchievementStatus    @default(ACTIVE)
+  /// Manual ordering for the Achievements page. Lower sorts first.
+  sortOrder Int                  @default(0)
+
+  /// Token format for the figure, e.g. "{value} LOSSES". Validated before save.
+  displayFormat String @default("{value}")
+
+  // ── Automatic rule ────────────────────────────────────────────────────────────────────────────
+  /// Statistic key from the registry in lib/achievements/statistics.ts. A string rather than an
+  /// enum so a new statistic can be added in code without a migration.
+  statistic     String?
+  scope         AchievementScope    @default(ALL_COMPETITIONS)
+  /// The referenced record for the SPECIFIC_* scopes.
+  competitionId Int?
+  seasonId      Int?
+  tournamentId  Int?
+  stage         AchievementStage    @default(ALL_MATCHES)
+  winner        AchievementWinner   @default(HIGHEST)
+  platform      CompetitionPlatform @default(YAHOO)
+
+  // Minimum qualification. Null means the threshold does not apply to this achievement.
+  minMatches        Int?
+  minSeasons        Int?
+  minFinals         Int?
+  minPlayoffMatches Int?
+
+  tiePolicy     AchievementTiePolicy     @default(SHOW_ALL)
+  /// Statistic key used to break a tie when tiePolicy is SECONDARY_STAT.
+  tieBreakStat  String?
+  emptyBehavior AchievementEmptyBehavior @default(HIDE)
+
+  // ── Manual award ──────────────────────────────────────────────────────────────────────────────
+  manualPlayerId String?
+  manualPlayer   Player?   @relation(fields: [manualPlayerId], references: [id], onDelete: SetNull)
+  /// Shown in place of a computed figure. Free text so "6-0" or "2014" are both expressible.
+  manualValue    String?
+  manualNote     String?
+  manualDate     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  @@index([status, sortOrder])
+  @@map("achievement_definition")
 }
