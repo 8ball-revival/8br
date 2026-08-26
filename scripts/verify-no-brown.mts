@@ -15,6 +15,7 @@
  * meaning: danger, forfeits, destructive confirmation, and nothing decorative.
  */
 import { readFileSync, readdirSync } from 'node:fs'
+import { readDeclarations, resolveToken, parseColor, isNeutral } from './support/color.mts'
 
 let pass = 0
 let fail = 0
@@ -81,14 +82,23 @@ try {
   check('no brown, bronze, sepia, tan or copper by name', named.length === 0, named.join(', '))
 
   section('The semantic surfaces exist, and they are neutral')
+  /*
+   * Read through the notation, not around it.
+   *
+   * This used to regex `oklch(L C H)` straight out of the text. When the palette moved to exact hex
+   * brand values that pattern stopped matching and the chroma assertion had nothing to measure —
+   * the check reported `(?)` and failed, which was lucky: written slightly differently it would
+   * have passed on an empty match and protected nothing. Parsing the literal, and following
+   * `var()` chains to reach it, keeps the same rule and makes it independent of how a colour is
+   * spelled.
+   */
+  const DECLS = readDeclarations(CSS)
   for (const token of ['--selected-surface', '--drop-surface', '--attention-surface']) {
     check(`${token} is defined`, CSS.includes(`${token}:`))
-    /*
-     * Neutral means almost no chroma. A surface token with real chroma is a tint by another name,
-     * which is exactly the mistake this pass undid — so the number is checked, not just the name.
-     */
-    const m = new RegExp(`${token}:\\s*oklch\\([\\d.]+\\s+([\\d.]+)`).exec(CSS)
-    check(`...and carries no meaningful chroma (${m?.[1] ?? '?'})`, m != null && Number(m[1]) <= 0.01)
+    const literal = resolveToken(token, DECLS)
+    const polar = literal ? parseColor(literal) : null
+    check(`...and carries no meaningful chroma (${polar ? polar.c.toFixed(3) : literal ?? '?'})`,
+      polar != null && isNeutral(polar))
   }
   /* One theme now. The light variant was removed, so each surface token is declared exactly once. */
   check('each is declared exactly once', (CSS.match(/--selected-surface:/g) ?? []).length === 1)

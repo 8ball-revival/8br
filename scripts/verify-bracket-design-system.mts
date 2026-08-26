@@ -11,6 +11,7 @@
  * to olive-brown rather than to a pale gold wash.
  */
 import { readFileSync } from 'node:fs'
+import { readDeclarations, resolveToken, parseColor, isCoolOrNeutral } from './support/color.mts'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
@@ -118,15 +119,45 @@ section('No muddy surfaces')
    * the blue-grey band these surfaces live in. Gold is deliberately warm, and is referenced through
    * --gold rather than written as a literal, so it never appears in this sweep.
    */
-  const bracketTokens = [...declarations.matchAll(/--bracket-[a-z-]+: (oklch\([^)]*\))/g)].map((m) => m[1])
-  const warm = bracketTokens.filter((v) => {
-    const m = /oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)/.exec(v)
-    if (!m) return false
-    const chroma = Number(m[2]), hue = Number(m[3])
-    return chroma > 0.02 && (hue < 200 || hue > 300)
-  })
-  check('every declared bracket colour is cool or neutral', warm.length === 0, warm.join(', '))
-  check('and there are real bracket tokens to check', bracketTokens.length >= 8, `${bracketTokens.length}`)
+  /*
+   * Every bracket token, resolved to the literal it actually names.
+   *
+   * The previous version matched `--bracket-x: oklch(...)` textually. Once the tokens were rewritten
+   * as hex and as `var(--line)` references it matched nothing at all, and reported "0 tokens to
+   * check" — a neutrality test with no colours in it passes without meaning anything. Resolving the
+   * chain finds them however they are written, and the count assertion below is what makes the
+   * blindness itself a failure rather than a silent pass.
+   */
+  const DECLS = readDeclarations(CSS)
+  const bracketNames = [...DECLS.keys()].filter((k) => k.startsWith('--bracket-'))
+  /*
+   * Three tokens are warm ON PURPOSE, and are named here rather than skipped by accident.
+   *
+   * The winner, the path that carries the winner forward, and the needs-review marker are the only
+   * places colour is allowed to mean something in a bracket. Every other token is structure and must
+   * stay cool or neutral, which is what keeps gold legible as "this side won" instead of becoming
+   * decoration. The old regex missed all three because it only read literals and these are `var()`
+   * references — so the exemption was accidental. Listing them makes it a decision, and the second
+   * assertion below proves each one really is pointing at the accent it claims.
+   */
+  const DELIBERATELY_WARM = new Map([
+    ['--bracket-winner', '--gold'],
+    ['--bracket-connector-winner', '--gold'],
+    ['--bracket-review', '--warning'],
+  ])
+  const bracketColours = bracketNames
+    .map((name) => ({ name, polar: (() => { const lit = resolveToken(name, DECLS); return lit ? parseColor(lit) : null })() }))
+    .filter((x): x is { name: string; polar: NonNullable<ReturnType<typeof parseColor>> } => x.polar != null)
+  const structural = bracketColours.filter((x) => !DELIBERATELY_WARM.has(x.name))
+  const warm = structural.filter((x) => !isCoolOrNeutral(x.polar))
+  check('every structural bracket colour is cool or neutral',
+    warm.length === 0, warm.map((x) => `${x.name} h=${x.polar.h.toFixed(0)} c=${x.polar.c.toFixed(3)}`).join(', '))
+  check('and there are real bracket tokens to check', structural.length >= 8,
+    `${structural.length} structural resolved of ${bracketNames.length} declared`)
+  for (const [token, expected] of DELIBERATELY_WARM) {
+    check(`${token} is still the ${expected} accent and not a colour of its own`,
+      DECLS.get(token)?.trim() === `var(${expected})`, DECLS.get(token) ?? 'undeclared')
+  }
 }
 
 // ── 8-9. Byes and forfeits ───────────────────────────────────────────────────────────────────────

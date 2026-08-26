@@ -118,7 +118,7 @@ export function SeasonControls({
   return (
     <div
       style={{ top: 'var(--site-header-h)' }}
-      className="sticky z-40 border-b border-nav-border bg-nav-bg/85 backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70"
+      className="sticky z-40 border-b-2 border-nav-border bg-nav-bg text-nav-foreground"
     >
       <div className="w-full max-w-none px-3 sm:px-5">
         {/* Wraps on narrow screens rather than overflowing, so the bar never detaches from the

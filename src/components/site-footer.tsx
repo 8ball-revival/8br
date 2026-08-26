@@ -58,7 +58,7 @@ export async function SiteFooter() {
   const socials = SOCIAL.filter(publishable)
 
   return (
-    <footer className="mt-16 border-t border-nav-border bg-nav-bg/40">
+    <footer className="mt-16 border-t-2 border-nav-border bg-[var(--graphite)] text-foreground">
       <Wide name="footer" className="flex flex-col items-center gap-4 py-6 text-sm lg:flex-row lg:justify-between lg:gap-6">
         <p className="text-xs text-muted-foreground">
           © {year} {brandName}. All rights reserved.

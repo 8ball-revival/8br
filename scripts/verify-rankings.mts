@@ -9,6 +9,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-rankings.mts
  */
 import { readdirSync, readFileSync } from 'node:fs'
+import { readDeclarations, resolveToken, parseColor, contrastRatio } from './support/color.mts'
 import {
   COLUMNS, COLUMN_BY_KEY, columnsForView, visibleKeys, keysForDensity,
   cycleSort, sortRows, filterRows, matchesQuery, isQualified, activeChips, hasAnyFilter,
@@ -53,15 +54,29 @@ function row(over: Partial<ExplorerRow> = {}): ExplorerRow {
 }
 
 // ─────────────────────────────────────────────── canonical identity presentation
-section('Identity: preferred name over CueVerse ID, no brackets')
+/*
+ * The ordering is inverted from what this section used to assert, on purpose.
+ *
+ * Rankings led with the Preferred Name in gold; every other surface on the site led with the
+ * CueVerse ID. The same player therefore read as "James / cue.ball" in the ladder and
+ * "cue.ball / James" in a group table, and the two components had no code in common to keep them
+ * honest. The ID leads now — there are six players called Chris and six called Craig, so a
+ * Preferred Name is something a competitor also has rather than the thing that identifies them —
+ * and `identityLines` is the single place that decides it.
+ *
+ * `identityShape` still describes the DATA, not the layout: "name-only" means no handle exists.
+ * Where the two values are the same text, the surviving line is the handle, so the shape is
+ * "id-only" rather than "name-only" as it was when the name was the one that led.
+ */
+section('Identity: CueVerse ID leads, preferred name beneath')
 {
   check('both present and different renders as two lines',
     identityShape({ preferredName: 'Tyler', cueverseId: 'bongman420_' }) === 'both')
 
-  check('identical values collapse to one line',
-    identityShape({ preferredName: 'Starkiller', cueverseId: 'Starkiller' }) === 'name-only')
+  check('identical values collapse to one line, and it is the handle that survives',
+    identityShape({ preferredName: 'Starkiller', cueverseId: 'Starkiller' }) === 'id-only')
   check('...and the comparison ignores case and surrounding space',
-    identityShape({ preferredName: '  starkiller ', cueverseId: 'Starkiller' }) === 'name-only')
+    identityShape({ preferredName: '  starkiller ', cueverseId: 'Starkiller' }) === 'id-only')
 
   check('no preferred name falls back to the CueVerse ID alone',
     identityShape({ preferredName: '', cueverseId: 'indianhacker' }) === 'id-only')
@@ -425,17 +440,33 @@ section('No glow, and none creeping back')
       .every((t) => css.includes(`.rating-primary--${t}`)))
   check('every band has a colour',
     (css.match(/--tier-gold:/g) ?? []).length === 1 && (css.match(/--tier-grey:/g) ?? []).length === 1)
-  // Gold deliberately does NOT reuse the site token: the chrome gold is tuned to sit quietly, and
-  // the top band has to lead the eye. Same hue, turned up — so the assertion is that it is defined
-  // per theme and is brighter than the chrome gold, not that it is identical to it.
-  check('gold is its own brighter value',
-    (css.match(/--tier-gold: oklch\(/g) ?? []).length === 1)
-  check('...and it is brighter than the chrome gold it derives from', (() => {
-    const num = (re: RegExp) => [...css.matchAll(re)].map((m) => Number(m[1]))
-    const tierL = num(/--tier-gold: oklch\(([0-9.]+)/g)
-    const chromeL = num(/^  --gold: oklch\(([0-9.]+)/gm)
-    return tierL.length === 1 && chromeL.length === 1 && tierL.every((v, i) => v > chromeL[i])
-  })())
+  /*
+   * The top band leads the eye. That is the rule; "brighter than --gold" was only ever a way of
+   * saying it.
+   *
+   * The old assertion compared --tier-gold against the chrome gold, because the two used to be the
+   * same hue and the chrome one was deliberately damped so it could sit behind text. Under the
+   * current palette that relationship no longer exists: the top band is the structural acid, and
+   * --gold has been narrowed to mean a championship. Comparing them now would be comparing two
+   * colours that answer different questions.
+   *
+   * So the rule is asserted directly instead — the top band must be the lightest of the five, which
+   * is what makes it the number your eye finds first in a column of sixty, and it must clear the
+   * page ground by a real margin so that being brightest never costs legibility.
+   */
+  const BAND_DECLS = readDeclarations(css)
+  const bands = (['gold', 'purple', 'blue', 'green', 'grey'] as const)
+    .map((t) => { const lit = resolveToken(`--tier-${t}`, BAND_DECLS); return { t, p: lit ? parseColor(lit) : null } })
+  check('every band resolves to a real colour',
+    bands.every((b) => b.p != null), bands.filter((b) => !b.p).map((b) => b.t).join(', '))
+  const top = bands.find((b) => b.t === 'gold')!.p
+  check('the top band is the lightest of the five, so it leads the eye',
+    top != null && bands.every((b) => b.p == null || b.t === 'gold' || b.p.l <= top.l),
+    bands.map((b) => `${b.t}=${b.p ? b.p.l.toFixed(2) : '?'}`).join(' '))
+  const ground = resolveToken('--background', BAND_DECLS)
+  const ratio = ground ? contrastRatio(resolveToken('--tier-gold', BAND_DECLS) ?? '', ground) : null
+  check('...and it stays legible on the page ground',
+    ratio != null && ratio >= 4.5, ratio ? `${ratio.toFixed(1)}:1` : 'unmeasurable')
   check('first place has its own colour ',
     (css.match(/--rating-top:/g) ?? []).length === 1)
   check('first place is declared after the bands, so it wins the cascade',

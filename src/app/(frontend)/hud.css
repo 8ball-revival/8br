@@ -24,61 +24,44 @@
   --hud-glow-user: 1;
   --hud-glow-scale: calc(var(--hud-glow-preset) * var(--hud-glow-user));
   --glow-yellow:
-    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.9 0.19 100 / calc(0.55 * var(--hud-glow-scale))),
-    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.9 0.19 100 / calc(0.28 * var(--hud-glow-scale)));
+    0 0 calc(4px * var(--hud-glow-scale)) color-mix(in oklab, var(--acid) calc(55% * var(--hud-glow-scale)), transparent),
+    0 0 calc(18px * var(--hud-glow-scale)) color-mix(in oklab, var(--acid) calc(28% * var(--hud-glow-scale)), transparent);
   --glow-cyan:
-    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.84 0.14 200 / calc(0.6 * var(--hud-glow-scale))),
-    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.84 0.14 200 / calc(0.3 * var(--hud-glow-scale)));
+    0 0 calc(4px * var(--hud-glow-scale)) color-mix(in oklab, var(--cyan) calc(60% * var(--hud-glow-scale)), transparent),
+    0 0 calc(18px * var(--hud-glow-scale)) color-mix(in oklab, var(--cyan) calc(30% * var(--hud-glow-scale)), transparent);
   --glow-magenta:
-    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.66 0.27 350 / calc(0.6 * var(--hud-glow-scale))),
-    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.66 0.27 350 / calc(0.3 * var(--hud-glow-scale)));
+    0 0 calc(4px * var(--hud-glow-scale)) color-mix(in oklab, var(--hot-red) calc(60% * var(--hud-glow-scale)), transparent),
+    0 0 calc(18px * var(--hud-glow-scale)) color-mix(in oklab, var(--hot-red) calc(30% * var(--hud-glow-scale)), transparent);
 }
 
-/* ── Accent ────────────────────────────────────────────────────────────────────────────────────────
- * Repoints the signature colour. Yellow is the default and needs no rule; the others move --gold and
- * its family, which every surface already references — so one override recolours buttons, active
- * tabs, champion marks, winner rails and the wordmark together, without touching a component.
+/*
+ * -- Accent ---------------------------------------------------------------------------------------
+ * Repoints the STRUCTURAL colour, which is one variable now rather than a family.
+ *
+ * Everything carrying the signature - the navigation surface, the filter bars, buttons, active tabs,
+ * the feature panel - derives from --acid, so moving that one token moves all of them together and
+ * no component needs to know. This previously had to restate eight variables per accent, because the
+ * surfaces referenced --gold, --brand and --primary independently.
+ *
+ * Championship gold is deliberately NOT repointed. It means a title, and a title does not change
+ * colour because somebody preferred a cyan interface.
  */
 :root[data-hud-accent='cyan'] {
-  --gold: oklch(0.84 0.14 200);
-  --gold-soft: oklch(0.9 0.12 200);
-  --gold-dim: oklch(0.68 0.13 205);
-  --primary: oklch(0.84 0.14 200);
-  --brand: oklch(0.84 0.14 200);
-  --win: oklch(0.84 0.14 200);
-  --neon-yellow: oklch(0.84 0.14 200);
-  --player-name: oklch(0.84 0.14 200);
-  --tier-gold: oklch(0.9 0.12 200);
-  --glow-yellow: var(--glow-cyan);
+  --acid: #13d8e8;
+  --acid-hover: #58e8f4;
+  --acid-dim: #0e9fab;
 }
 
 :root[data-hud-accent='magenta'] {
-  --gold: oklch(0.66 0.27 350);
-  --gold-soft: oklch(0.74 0.24 350);
-  --gold-dim: oklch(0.56 0.24 350);
-  --primary: oklch(0.66 0.27 350);
-  --primary-foreground: oklch(0.98 0.01 350);
-  --brand: oklch(0.66 0.27 350);
-  --win: oklch(0.66 0.27 350);
-  --neon-yellow: oklch(0.66 0.27 350);
-  --player-name: oklch(0.66 0.27 350);
-  --tier-gold: oklch(0.74 0.24 350);
-  --glow-yellow: var(--glow-magenta);
+  --acid: #ff4fd8;
+  --acid-hover: #ff7ae2;
+  --acid-dim: #c22ca3;
 }
 
 :root[data-hud-accent='green'] {
-  --gold: oklch(0.86 0.22 145);
-  --gold-soft: oklch(0.92 0.2 145);
-  --gold-dim: oklch(0.7 0.19 145);
-  --primary: oklch(0.86 0.22 145);
-  --brand: oklch(0.86 0.22 145);
-  --win: oklch(0.86 0.22 145);
-  --neon-yellow: oklch(0.86 0.22 145);
-  --player-name: oklch(0.86 0.22 145);
-  --tier-gold: oklch(0.92 0.2 145);
-  --glow-yellow:
-    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.86 0.22 145 / calc(0.55 * var(--hud-glow-scale))),
-    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.86 0.22 145 / calc(0.3 * var(--hud-glow-scale)));
+  --acid: #4ade80;
+  --acid-hover: #7cf0a5;
+  --acid-dim: #2f9c58;
 }
 
 /* ── Corner geometry ───────────────────────────────────────────────────────────────────────────────
@@ -104,8 +87,8 @@
 
 :root[data-hud-grid='off'] body {
   background-image:
-    radial-gradient(1100px 620px at 8% -8%, oklch(0.84 0.14 200 / 0.07), transparent 62%),
-    radial-gradient(900px 560px at 96% 104%, oklch(0.66 0.27 350 / 0.055), transparent 60%);
+    radial-gradient(1100px 620px at 8% -8%, color-mix(in oklab, var(--cyan) 7%, transparent), transparent 62%),
+    radial-gradient(900px 560px at 96% 104%, color-mix(in oklab, var(--hot-red) 5.5%, transparent), transparent 60%);
 }
 
 :root[data-hud-grid='off'] .cyber-grid {
@@ -132,7 +115,7 @@
  */
 :root[data-hud-aberration='on'] h1,
 :root[data-hud-aberration='on'] h2 {
-  text-shadow: -1px 0 0 oklch(0.66 0.27 350 / 0.5), 1px 0 0 oklch(0.84 0.14 200 / 0.5);
+  text-shadow: -1px 0 0 color-mix(in oklab, var(--hot-red) 50%, transparent), 1px 0 0 color-mix(in oklab, var(--cyan) 50%, transparent);
 }
 
 /* ── CRT flicker ───────────────────────────────────────────────────────────────────────────────────
@@ -233,14 +216,14 @@
 
 :root[data-hud-intensity='overdrive'] h1 {
   text-shadow:
-    -1px 0 0 oklch(0.66 0.27 350 / 0.35),
-    1px 0 0 oklch(0.84 0.14 200 / 0.35),
-    0 0 30px oklch(0.84 0.14 200 / 0.3);
+    -1px 0 0 color-mix(in oklab, var(--hot-red) 35%, transparent),
+    1px 0 0 color-mix(in oklab, var(--cyan) 35%, transparent),
+    0 0 30px color-mix(in oklab, var(--cyan) 30%, transparent);
 }
 
 @keyframes panel-breathe {
   0%, 100% { box-shadow: var(--glow-soft); }
-  50% { box-shadow: var(--glow-soft), 0 0 26px oklch(0.84 0.14 200 / 0.16); }
+  50% { box-shadow: var(--glow-soft), 0 0 26px color-mix(in oklab, var(--cyan) 16%, transparent); }
 }
 
 /*

@@ -61,7 +61,7 @@ export function NewsShell({
             {chrome.canWrite && (
               <Link
                 href="/news/new"
-                className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:bg-[var(--selected-surface)]"
+                className="cyber-clip-sm inline-flex items-center gap-1.5 bg-brand px-3 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--acid-ink)] transition-colors hover:bg-[var(--acid-hover)]"
               >
                 <PenLine className="size-4" aria-hidden />
                 Write an article

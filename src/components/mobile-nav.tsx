@@ -56,10 +56,15 @@ export function MobileNav({ entries, className, isSignedIn = false, extraItems =
                   href={entry.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    'rounded-md px-3 py-3 text-base font-medium transition-colors',
+                    'px-3 py-3 text-base font-semibold uppercase tracking-wide transition-colors',
+                    /*
+                     * A rail, not a wash. The active item used to be acid at 10% alpha, which over
+                     * the drawer's dark ground reads olive rather than yellow. The border carries
+                     * the colour at full strength and the row stays neutral behind it.
+                     */
                     active
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      ? 'border-l-2 border-[var(--acid)] bg-[var(--selected-surface)] text-[var(--acid)]'
+                      : 'border-l-2 border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >
                   {entry.label}

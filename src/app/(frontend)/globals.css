@@ -15,50 +15,102 @@
 :root {
   --radius: 0.5rem;
 
-  /* ---- Dark theme (default) — the 8br.gg palette, recovered verbatim from the deployed
-     commit 7529a31. Charcoal-black grounds, dark elevated surfaces, gold accent, white
-     primary text, muted-gray secondary text, subtle neutral borders. Values stay in oklch
-     so hue/chroma/lightness relationships hold when a colour is mixed or tinted. ---- */
-  --background: oklch(0.105 0.016 274); /* page ground — near-black charcoal */
-  --foreground: oklch(0.97 0.01 210); /* primary text — white */
+  /*
+   * -- The palette --------------------------------------------------------------------------------
+   *
+   * Nine colours, each with ONE job. The whole interface is built from them, and a surface that
+   * needs a tenth colour is a surface that has not been thought about yet.
+   *
+   *   acid      structural yellow. Navigation, filter bars, the feature panel. Not an accent and
+   *             not a glow: it is a SURFACE, carrying black text, and it is meant to occupy roughly
+   *             a quarter of a desktop viewport. This is the biggest change from the old theme,
+   *             where yellow was a thin gold line drawn on top of charcoal.
+   *   void      the page ground.
+   *   graphite  first elevation. Panels sit on it.
+   *   raised    second elevation. Rows, cells and controls inside a panel.
+   *   red       technical linework: clipped corners, the active nav item, live dots, arrows,
+   *             warnings and destructive intent. Never a fill behind text.
+   *   cyan      interaction: links, scores you can open, positive movement, data/online state.
+   *   white     primary text on dark.
+   *   muted     secondary text on dark.
+   *   gold      championships ONLY. Trophies, champions, titles, and the numbers that record them.
+   *             It is deliberately scarce; if gold appears somewhere ordinary it stops meaning
+   *             anything where it matters.
+   *
+   * Written as hex because these are exact brand values rather than a relationship being tuned.
+   * Everything derived from them stays in oklch/oklab, which is where mixing behaves.
+   *
+   * The rule that outranks all of the above: a warm colour is never laid over a dark surface at
+   * partial alpha. Acid or gold at 8% over graphite does not render as a pale wash, it renders as
+   * mud - see verify-no-brown, which exists because that is how this interface used to look.
+   */
+  --acid: #d8dc2f;
+  --acid-hover: #e6ea4a;
+  --acid-dim: #b4b826;
+  --acid-ink: #050607; /* the ONLY text colour permitted on an acid surface */
+  --void: #050607;
+  --graphite: #0b0f12;
+  --graphite-raised: #14191d;
+  --hot-red: #ff2a2a;
+  --hot-red-dim: #c21f1f;
+  --cyan: #13d8e8;
+  --cyan-dim: #0e9fab;
+  --clean-white: #f5f7f8;
+  --muted-text: #9ca6ad;
+  --champ-gold: #e9b949;
 
-  --surface: oklch(0.135 0.018 274); /* first elevation above the page */
-  --card: oklch(0.155 0.02 272); /* elevated cards / panels */
-  --card-foreground: oklch(0.97 0.01 210);
+  --background: var(--void);
+  --foreground: var(--clean-white);
 
-  --popover: oklch(0.135 0.018 274);
-  --popover-foreground: oklch(0.97 0.01 210);
+  --surface: var(--graphite); /* first elevation above the page */
+  --card: var(--graphite-raised); /* elevated cards / panels */
+  --card-foreground: var(--clean-white);
 
-  /* Gold accent — the single brand colour. */
-  --primary: oklch(0.9 0.19 100);
-  --primary-foreground: oklch(0.13 0.02 274); /* dark ink on gold */
-  --primary-hover: oklch(0.95 0.17 100);
+  --popover: var(--graphite);
+  --popover-foreground: var(--clean-white);
 
-  --secondary: oklch(0.2 0.022 272);
-  --secondary-foreground: oklch(0.97 0.01 210);
+  /* The structural yellow. Black ink on it, always. */
+  --primary: var(--acid);
+  --primary-foreground: var(--acid-ink);
+  --primary-hover: var(--acid-hover);
 
-  --muted: oklch(0.2 0.022 272);
+  --secondary: var(--graphite-raised);
+  --secondary-foreground: var(--clean-white);
+
+  --muted: var(--graphite-raised);
 
   /* Group-stage Discord contact row: neutral dark surface + border; the icon active state
      keeps Discord's own blurple, which is their brand, not ours. */
-  --discord-row-bg: oklch(0.155 0.02 272);
-  --discord-row-border: oklch(0.3 0.035 268);
-  --discord-icon: oklch(0.7 0.02 250);
+  --discord-row-bg: var(--graphite-raised);
+  --discord-row-border: var(--line);
+  --discord-icon: var(--muted-text);
   --discord-icon-active: #5865f2;
-  --muted-foreground: oklch(0.7 0.025 240); /* secondary text — muted gray */
+  --muted-foreground: var(--muted-text); /* secondary text */
 
-  --accent: oklch(0.24 0.03 270); /* hover surface */
-  --accent-foreground: oklch(0.97 0.01 210);
+  --accent: #1c2023; /* hover surface - a neutral step up, never a tinted one */
+  --accent-foreground: var(--clean-white);
 
-  /* Semantic status. Red is reserved for destructive/error meaning only — never brand. */
-  --destructive: oklch(0.63 0.26 18);
-  --destructive-foreground: oklch(0.98 0.004 260);
-  --success: oklch(0.84 0.21 152);
-  --warning: oklch(0.88 0.18 95);
+  /* Semantic status. Red carries danger AND the technical linework; never a fill behind text. */
+  --destructive: var(--hot-red);
+  --destructive-foreground: var(--clean-white);
+  --success: #35d07f;
+  --warning: #ffb02e;
 
-  --border: oklch(0.3 0.035 268);
-  --input: oklch(0.3 0.035 268);
-  --ring: oklch(0.84 0.14 200); /* gold focus ring */
+  /*
+   * Two line weights, because the system draws two different kinds of line.
+   *
+   * `--line` is structure: panel edges, table rules, input borders. It is neutral and quiet, and it
+   * is what keeps a dense table readable. `--line-tech` is the visible technical detail - the
+   * clipped corner brackets and the rails that mark a panel as part of this system - and it is red.
+   * Using red for both would turn every table into a warning.
+   */
+  --line: #232b31;
+  --line-strong: #33404a;
+  --line-tech: var(--hot-red);
+
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--cyan); /* focus is cyan everywhere, on dark and on acid alike */
 
   /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
      so only the advancing side is emphasised. */
@@ -75,15 +127,15 @@
    * connector that carries that winner forward. Nothing is filled with gold, because gold over
    * charcoal mixes to olive-brown rather than to a pale gold wash.
    */
-  --bracket-canvas: oklch(0.085 0.014 274);          /* flat void-black behind the tree */
-  --bracket-surface: oklch(0.145 0.02 272);         /* cool-charcoal matchup card */
-  --bracket-surface-raised: oklch(0.185 0.024 270);  /* hover / drop target */
-  --bracket-outline: oklch(0.3 0.035 268);          /* card border and row divider */
-  --bracket-divider: oklch(0.2 0.022 272);          /* thin round-column divider */
-  --bracket-text: oklch(0.96 0.01 210);             /* resolved identity, undecided */
-  --bracket-text-neutral: oklch(0.7 0.02 240);     /* losers, seeds, preferred names, scores */
-  --bracket-text-muted: oklch(0.54 0.02 250);       /* TBD, bye, unplayed */
-  --bracket-connector: oklch(0.42 0.04 245);        /* unresolved and losing paths */
+  --bracket-canvas: var(--void);                     /* flat void-black behind the tree */
+  --bracket-surface: var(--graphite-raised);         /* matchup card */
+  --bracket-surface-raised: #1b2228;                 /* hover / drop target */
+  --bracket-outline: var(--line);                    /* card border and row divider */
+  --bracket-divider: var(--line);                    /* thin round-column divider */
+  --bracket-text: var(--clean-white);                /* resolved identity, undecided */
+  --bracket-text-neutral: var(--muted-text);         /* losers, seeds, preferred names, scores */
+  --bracket-text-muted: #6b767d;                     /* TBD, bye, unplayed */
+  --bracket-connector: var(--line-strong);           /* unresolved and losing paths */
   --bracket-winner: var(--gold);                     /* winning ID, winning score, winning rail */
   --bracket-connector-winner: var(--gold);           /* the advancing path only */
   --bracket-focus: var(--ring);
@@ -91,19 +143,34 @@
 
   /* Navigation surface (header/footer). Own tokens so a personal theme can retint the nav
      without disturbing the page; the 8br.gg default keeps it level with the page ground. */
-  --nav-bg: oklch(0.105 0.016 274);
-  --nav-foreground: oklch(0.97 0.01 210);
-  --nav-border: oklch(0.3 0.035 268);
+  /*
+   * The navigation is an ACID SURFACE, not a dark bar with a yellow accent.
+   *
+   * This is what makes the yellow reach its share of the viewport, and it is why --nav-foreground is
+   * black: white on acid fails contrast badly, and verify-acid-contrast forbids it outright.
+   */
+  --nav-bg: var(--acid);
+  --nav-foreground: var(--acid-ink);
+  --nav-border: var(--hot-red);
 
-  /* Brand accents (emphasis, headings, active states) — gold, matching --primary. */
-  --brand: oklch(0.9 0.19 100);
-  --brand-hover: oklch(0.95 0.17 100);
-  --brand-soft: oklch(0.95 0.17 100);
-  --brand-dim: oklch(0.72 0.15 100);
+  /* Brand emphasis, headings, active states - the structural yellow. */
+  --brand: var(--acid);
+  /*
+   * The ink for anything wearing --brand.
+   *
+   * This was missing, which meant `text-brand-foreground` compiled to nothing and every brand
+   * button fell back to inheriting white. That was survivable while the brand was a dark-friendly
+   * gold; on acid it is 1.7:1 and unreadable, so the token is declared here and verify-acid-contrast
+   * fails the build if a brand surface ever goes without it again.
+   */
+  --brand-foreground: var(--acid-ink);
+  --brand-hover: var(--acid-hover);
+  --brand-soft: var(--acid-hover);
+  --brand-dim: var(--acid-dim);
 
   /* Competitive-result semantics: the winner reads gold, the loser recedes to muted. */
-  --win: oklch(0.9 0.19 100);
-  --loss: oklch(0.62 0.03 250);
+  --win: var(--champ-gold);
+  --loss: var(--muted-text);
 
   /*
     Streak semantics — a SEPARATE pair from --win/--loss on purpose.
@@ -113,10 +180,10 @@
     Reusing the gold win colour made a losing streak and a winning streak look like the same thing.
     Short streaks (-2 to +2) use neither and stay plain, because two results is not a run.
   */
-  --streak-hot: oklch(0.84 0.21 152);   /* a run of wins */
-  --streak-cold: oklch(0.66 0.26 18);    /* a run of losses */
-  --streak-fire: oklch(0.75 0.22 45);    /* the flame icon — orange-red */
-  --streak-ice: oklch(0.86 0.13 205);   /* the snowflake icon — pale blue */
+  --streak-hot: #35d07f;   /* a run of wins */
+  --streak-cold: var(--hot-red);    /* a run of losses */
+  --streak-fire: #ff7a3d;    /* the flame icon - orange-red */
+  --streak-ice: var(--cyan);   /* the snowflake icon - pale blue */
 
   /* ── Rating tiers (the primary Rating value in the Rankings table only).
      Bands, high to low: 1600+ gold · 1500–1599 purple · 1400–1499 blue ·
@@ -135,28 +202,35 @@
      band has to be the thing your eye lands on first in a table of sixty numbers.
      So it is the same hue, pushed brighter and more saturated — recognisably the
      site's gold, turned up. */
-  --tier-gold: oklch(0.95 0.17 100);
-  --tier-purple: oklch(0.7 0.24 320);
-  --tier-blue: oklch(0.82 0.15 220);
-  --tier-green: oklch(0.82 0.2 150);
-  /* Grey is a readable neutral, not a disabled state — a low rating is still a rating. */
-  --tier-grey: oklch(0.72 0.02 250);
+  --tier-gold: var(--acid);
+  --tier-purple: #c07af0;
+  --tier-blue: #6fb6e8;
+  --tier-green: #6fd39a;
+  /* Grey is a readable neutral, not a disabled state - a low rating is still a rating. */
+  --tier-grey: #9ca6ad;
 
   /* First place. Bright red, applied over whatever band the leader is actually in. */
-  --rating-top: oklch(0.68 0.28 12);
+  --rating-top: var(--hot-red);
 
 
-  /* Clickable player names (e.g. the group crosstable). */
-  --player-name: oklch(0.9 0.19 100);
+  /* Clickable player names. Cyan, because they are links and cyan is what a link is here. */
+  --player-name: var(--cyan);
 
-  /* Themed scrollbars (see .scrollbar-themed): dark track, neutral thumb, gold on hover. */
-  --scrollbar-track: oklch(0.105 0.016 274);
-  --scrollbar-thumb: oklch(0.3 0.035 268);
-  --scrollbar-thumb-hover: var(--gold);
+  /* Themed scrollbars (see .scrollbar-themed): void track, neutral thumb, acid on hover. */
+  --scrollbar-track: var(--void);
+  --scrollbar-thumb: var(--line-strong);
+  --scrollbar-thumb-hover: var(--acid);
 
-  --gold: oklch(0.9 0.19 100);
-  --gold-soft: oklch(0.95 0.17 100);
-  --gold-dim: oklch(0.72 0.15 100);
+  /*
+   * Championship gold. Trophies, champions, titles, and the numbers that record them - nothing else.
+   *
+   * It keeps the --gold name because the bracket, the champion strip and the trophy list already
+   * reference it, and those are exactly the surfaces it is still for. What changed is that it is no
+   * longer the brand: the brand is acid, and gold has been narrowed back to meaning a title.
+   */
+  --gold: var(--champ-gold);
+  --gold-soft: #f3ce74;
+  --gold-dim: #b98f33;
 
   /*
    * Semantic surfaces — the reason nothing here is a tinted gold.
@@ -168,11 +242,11 @@
    *
    * Red keeps its meaning: danger, forfeits and destructive confirmations, nothing else.
    */
-  --selected-surface: oklch(0.24 0.01 270);   /* chosen / active row */
-  --selected-border: var(--gold);
-  --drop-surface: oklch(0.22 0.008 270);       /* a legal drag target */
-  --attention-surface: oklch(0.21 0.008 270);  /* needs review, unsaved, pending */
-  --attention-accent: var(--gold);             /* its border and icon */
+  --selected-surface: #1c2023;   /* chosen / active row */
+  --selected-border: var(--acid);
+  --drop-surface: #1a1e20;       /* a legal drag target */
+  --attention-surface: #1a1e20;  /* needs review, unsaved, pending */
+  --attention-accent: var(--warning);          /* its border and icon */
 
 
   /*
@@ -185,26 +259,26 @@
    * fault `verify-no-brown` exists to catch — while a shadow sits above the surface and leaves the
    * colour underneath alone. Every glow here is therefore a box-shadow or a text-shadow.
    */
-  --neon-yellow: oklch(0.9 0.19 100);
-  --neon-cyan: oklch(0.84 0.14 200);
-  --neon-magenta: oklch(0.66 0.27 350);
-  --neon-line: oklch(0.3 0.035 268);
+  --neon-yellow: var(--acid);
+  --neon-cyan: var(--cyan);
+  --neon-magenta: var(--hot-red);
+  --neon-line: var(--line);
 
-  --glow-yellow: 0 0 4px oklch(0.9 0.19 100 / 0.55), 0 0 18px oklch(0.9 0.19 100 / 0.28);
-  --glow-cyan: 0 0 4px oklch(0.84 0.14 200 / 0.6), 0 0 18px oklch(0.84 0.14 200 / 0.3);
-  --glow-magenta: 0 0 4px oklch(0.66 0.27 350 / 0.6), 0 0 18px oklch(0.66 0.27 350 / 0.3);
-  --glow-soft: 0 0 12px oklch(0.84 0.14 200 / 0.16);
+  --glow-yellow: 0 0 4px color-mix(in oklab, var(--acid) 55%, transparent), 0 0 18px color-mix(in oklab, var(--acid) 28%, transparent);
+  --glow-cyan: 0 0 4px color-mix(in oklab, var(--cyan) 60%, transparent), 0 0 18px color-mix(in oklab, var(--cyan) 30%, transparent);
+  --glow-magenta: 0 0 4px color-mix(in oklab, var(--hot-red) 60%, transparent), 0 0 18px color-mix(in oklab, var(--hot-red) 30%, transparent);
+  --glow-soft: 0 0 12px color-mix(in oklab, var(--cyan) 16%, transparent);
 
   /* The scanline and grid overlays read against the ground, so they travel with the theme. */
-  --scan-line: oklch(0.84 0.14 200 / 0.05);
-  --grid-line: oklch(0.84 0.14 200 / 0.07);
-  --chrome-edge: oklch(0.97 0.01 210 / 0.09);
+  --scan-line: color-mix(in oklab, var(--cyan) 5%, transparent);
+  --grid-line: color-mix(in oklab, var(--cyan) 6%, transparent);
+  --chrome-edge: color-mix(in oklab, var(--clean-white) 9%, transparent);
 
-  --chart-1: oklch(0.9 0.19 100);
-  --chart-2: oklch(0.84 0.14 200);
-  --chart-3: oklch(0.7 0.24 320);
-  --chart-4: oklch(0.82 0.2 150);
-  --chart-5: oklch(0.66 0.26 18);
+  --chart-1: var(--acid);
+  --chart-2: var(--cyan);
+  --chart-3: var(--hot-red);
+  --chart-4: #6fd39a;
+  --chart-5: var(--champ-gold);
 }
 
 @theme inline {
@@ -241,6 +315,7 @@
   --color-nav-foreground: var(--nav-foreground);
   --color-nav-border: var(--nav-border);
   --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
   --color-brand-dim: var(--brand-dim);
   --color-win: var(--win);
@@ -291,8 +366,8 @@
      * assertive makes tabular figures shimmer.
      */
     background-image:
-      radial-gradient(1100px 620px at 8% -8%, oklch(0.84 0.14 200 / 0.07), transparent 62%),
-      radial-gradient(900px 560px at 96% 104%, oklch(0.66 0.27 350 / 0.055), transparent 60%),
+      radial-gradient(1100px 620px at 8% -8%, color-mix(in oklab, var(--cyan) 7%, transparent), transparent 62%),
+      radial-gradient(900px 560px at 96% 104%, color-mix(in oklab, var(--hot-red) 5.5%, transparent), transparent 60%),
       linear-gradient(var(--grid-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 52px 52px, 52px 52px;
@@ -337,7 +412,7 @@
   }
 
   ::selection {
-    background: oklch(0.84 0.14 200 / 0.28);
+    background: color-mix(in oklab, var(--cyan) 28%, transparent);
     color: var(--foreground);
   }
 

@@ -47,7 +47,7 @@ export async function SiteHeader() {
        * border is a background rather than a border-image so it survives the backdrop blur, and it
        * runs cyan → yellow → cyan so the header reads as a single light source across its width.
        */
-      className="sticky top-0 z-50 w-full border-b border-[var(--neon-line)] bg-nav-bg/85 text-nav-foreground backdrop-blur-md supports-[backdrop-filter]:bg-nav-bg/70 after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-[linear-gradient(90deg,transparent,var(--neon-cyan)_18%,var(--neon-yellow)_50%,var(--neon-cyan)_82%,transparent)] after:opacity-70"
+      className="sticky top-0 z-50 w-full border-b-2 border-nav-border bg-nav-bg text-nav-foreground"
     >
       <Wide name="header" className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
