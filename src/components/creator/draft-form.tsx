@@ -47,7 +47,7 @@ export interface DraftFormProps {
 type Values = DraftFormProps['initial']
 
 const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'w-full rounded-none border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 
 /** Map the form's string fields onto the settings patch the service accepts. */
 function toPatch(patch: Partial<Values>) {
@@ -165,7 +165,7 @@ export function DraftForm({ seasonId, competitions, initial, continueHref, conti
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+    <div className="rounded-none border border-border bg-card p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-sm font-bold uppercase tracking-wide text-[var(--gold)]">
           Setup
@@ -204,7 +204,7 @@ export function DraftForm({ seasonId, competitions, initial, continueHref, conti
         </Field>
       </div>
 
-      <fieldset className="mt-4 rounded-md border border-border p-3">
+      <fieldset className="mt-4 rounded-none border border-border p-3">
         <legend className="px-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Match format
         </legend>
@@ -244,7 +244,7 @@ export function DraftForm({ seasonId, competitions, initial, continueHref, conti
           type="button"
           onClick={() => void saveThen('exit')}
           disabled={leaving !== null}
-          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-none border border-border px-4 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 disabled:opacity-60"
         >
           {leaving === 'exit' && <Loader2 className="size-4 animate-spin" aria-hidden />}
           Save and Exit

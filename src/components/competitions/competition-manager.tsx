@@ -14,7 +14,7 @@ import {
 import { CompetitionBadge } from './competition-badge'
 
 const input =
-  'rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+  'rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /**
  * Staff management for Competitions: list, create, edit, activate/deactivate, icon, delete.
@@ -80,7 +80,7 @@ export function CompetitionManager({ initial }: { initial: CompetitionAdminRow[]
       )}
 
       {/* Create */}
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-none border border-border bg-card p-4">
         <p className="eyebrow text-brand">New Competition</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="text-[0.7rem] text-muted-foreground">
@@ -99,7 +99,7 @@ export function CompetitionManager({ initial }: { initial: CompetitionAdminRow[]
       </section>
 
       {/* List */}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-none border border-border">
         <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -139,7 +139,7 @@ export function CompetitionManager({ initial }: { initial: CompetitionAdminRow[]
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => save(row)} disabled={busy === row.id} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+                    <button type="button" onClick={() => save(row)} disabled={busy === row.id} className="rounded-none border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
                       {busy === row.id ? 'Saving…' : 'Save'}
                     </button>
                     <button
@@ -227,13 +227,13 @@ function IconCell({
         onClick={() => fileRef.current?.click()}
         disabled={busy}
         title={row.iconMediaId ? 'Replace icon' : 'Upload icon'}
-        className="inline-flex items-center rounded-md border border-border p-1.5 disabled:opacity-50"
+        className="inline-flex items-center rounded-none border border-border p-1.5 disabled:opacity-50"
       >
         {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Upload className="size-3.5" aria-hidden />}
         <span className="sr-only">{row.iconMediaId ? 'Replace icon' : 'Upload icon'}</span>
       </button>
       {row.iconMediaId && (
-        <button type="button" onClick={clear} disabled={busy} title="Remove icon (falls back to initials)" className="inline-flex items-center rounded-md border border-border p-1.5 disabled:opacity-50">
+        <button type="button" onClick={clear} disabled={busy} title="Remove icon (falls back to initials)" className="inline-flex items-center rounded-none border border-border p-1.5 disabled:opacity-50">
           <X className="size-3.5" aria-hidden />
           <span className="sr-only">Remove icon</span>
         </button>

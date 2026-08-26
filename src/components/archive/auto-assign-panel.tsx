@@ -173,7 +173,7 @@ export function AutoAssignPanel({
         type="button"
         onClick={openPreview}
         title={helper}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <Wand2 className="size-4" aria-hidden />
         {label}
@@ -236,7 +236,7 @@ export function AutoAssignPanel({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="cyber-clip-sm px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
               >
                 {result ? 'Close' : 'Cancel'}
               </button>
@@ -253,7 +253,7 @@ export function AutoAssignPanel({
                         && !confirmReplace)
                     || (mode === 'placement' && !!(plan as PlacementPlan).refusal)
                   }
-                  className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                  className="cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
                 >
                   {pending ? 'Applying…'
                     : mode === 'entrants' ? 'Add Matched Entrants'

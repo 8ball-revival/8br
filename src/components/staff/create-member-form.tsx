@@ -10,7 +10,7 @@ import type { PossibleDuplicate } from '@/lib/staff/possible-duplicates'
 import { TEMPORARY_PASSWORD } from '@/lib/account/validation'
 
 const input =
-  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+  'w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /**
  * The new-member form on the Member Management page, built for entering a roster in one sitting
@@ -90,7 +90,7 @@ export function CreateMemberForm() {
 
   return (
     <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-none border border-border bg-card p-4">
           <div className="flex items-baseline justify-between gap-3">
             <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <UserPlus className="size-4 text-muted-foreground" aria-hidden />
@@ -165,7 +165,7 @@ export function CreateMemberForm() {
                 type="button"
                 onClick={clearForm}
                 disabled={pending || (!cueverseId && !preferredName)}
-                className="rounded-md border border-border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                className="rounded-none border border-border px-4 py-2 text-sm font-semibold disabled:opacity-50"
               >
                 Clear
               </button>
@@ -179,7 +179,7 @@ export function CreateMemberForm() {
                 {added.map((id) => (
                   <li
                     key={id}
-                    className="rounded-full border border-success/40 bg-success/10 px-2.5 py-0.5 text-[0.7rem] text-success"
+                    className="cyber-clip-sm border border-success/40 bg-success/10 px-2.5 py-0.5 text-[0.7rem] text-success"
                   >
                     @{id}
                   </li>
@@ -235,7 +235,7 @@ function DuplicatePanel({ cueverseId, preferredName }: { cueverseId: string; pre
   const idle = cueverseId.trim().length < 2 && preferredName.trim().length < 2
 
   return (
-    <aside className="rounded-lg border border-border bg-card p-4" aria-live="polite">
+    <aside className="rounded-none border border-border bg-card p-4" aria-live="polite">
       <p className="text-sm font-semibold text-foreground">Possible duplicates</p>
       <p className="mt-1 text-[0.7rem] text-muted-foreground">
         Existing profiles that look like the person you are entering. Checked as you type.

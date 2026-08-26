@@ -47,11 +47,11 @@ export function Logo({
           height={logoHeight ?? 1024}
           priority
           sizes="60px"
-          className="h-10 w-auto shrink-0 object-contain"
+          className="h-10 w-auto shrink-0 object-contain [filter:drop-shadow(0_0_8px_oklch(0.9_0.19_100/0.35))]"
         />
       ) : null}
       <span className="flex flex-col leading-none">
-        <span className="font-display text-lg font-bold tracking-tight sm:text-xl">{siteName}</span>
+        <span className="font-display text-lg font-bold tracking-tight [text-shadow:0_0_14px_oklch(0.84_0.14_200/0.35)] sm:text-xl">{siteName}</span>
         {showTagline && (
           <span className="eyebrow mt-1 text-[0.6rem] text-muted-foreground">{brandTagline}</span>
         )}

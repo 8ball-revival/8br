@@ -7,9 +7,10 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
     <input
       type={type}
       className={cn(
-        'flex h-9 w-full rounded-md border border-input bg-background/60 px-3 py-1 text-sm shadow-sm transition-colors',
-        'placeholder:text-muted-foreground',
-        'focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+        'cyber-clip-sm flex h-9 w-full rounded-none border border-[var(--neon-line)] bg-[var(--surface)] px-3 py-1 text-sm transition-all duration-200',
+        'placeholder:text-muted-foreground/70',
+        'hover:border-[var(--neon-cyan)]/60',
+        'focus-visible:border-[var(--neon-cyan)] focus-visible:outline-none focus-visible:[box-shadow:var(--glow-cyan)]',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}

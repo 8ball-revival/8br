@@ -62,7 +62,7 @@ export function ReconstructionList({
       </h2>
 
       {/* The controls wrap rather than scroll: on a phone they stack into rows of two. */}
-      <div className="mb-2 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card/40 p-2">
+      <div className="mb-2 flex flex-wrap items-end gap-2 rounded-none border border-border bg-card/40 p-2">
         <Field label="Year">
           <select
             value={query.year ?? ''}
@@ -142,11 +142,11 @@ export function ReconstructionList({
       </div>
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-none border border-border bg-card p-6 text-center text-sm text-muted-foreground">
           No reconstructions match these filters.
         </p>
       ) : (
-        <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card/40">
+        <ol className="divide-y divide-border overflow-hidden rounded-none border border-border bg-card/40">
           {rows.map((r) => (
             <li key={r.id}>
               <Link

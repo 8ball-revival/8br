@@ -18,7 +18,7 @@ export function CompetitionCardView({ card, live = false }: { card: Card; live?:
     <Link
       href={card.href}
       className={cn(
-        'group flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors',
+        'group flex flex-col gap-2 rounded-none border border-border bg-card p-4 transition-colors',
         'hover:border-[var(--gold)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
       )}
     >
@@ -35,7 +35,7 @@ export function CompetitionCardView({ card, live = false }: { card: Card; live?:
           </p>
         </div>
         {live ? (
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--gold)]/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">
+          <span className="flex shrink-0 items-center gap-1.5 cyber-clip-sm border border-[var(--gold)]/40 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">
             <span className="relative flex size-1.5" aria-hidden>
               <span className="absolute inline-flex size-full rounded-full bg-[var(--gold)] opacity-60 motion-safe:animate-ping" />
               <span className="relative inline-flex size-1.5 rounded-full bg-[var(--gold)]" />
@@ -81,7 +81,7 @@ export function CompetitionCardView({ card, live = false }: { card: Card; live?:
         // seasons needs to know which of them are missing pieces before they compare the figures.
         <p
           title={COMPLETENESS_NOTE.partial}
-          className="mt-1 inline-flex w-fit items-center rounded-full border border-border px-2 py-0.5 text-[0.65rem] text-muted-foreground"
+          className="mt-1 inline-flex w-fit items-center cyber-clip-sm border border-border px-2 py-0.5 text-[0.65rem] text-muted-foreground"
         >
           {COMPLETENESS_LABEL.partial}
         </p>

@@ -58,7 +58,7 @@ export function OpenRecordList({
   return (
     <ListFrame title={title} blurb={blurb} count={rows.length}>
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card/40 p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-none border border-border bg-card/40 p-8 text-center text-sm text-muted-foreground">
           Nothing open.{' '}
           <Link href={emptyHref} className="text-[var(--gold)] hover:underline">{emptyLabel}</Link>
         </p>
@@ -68,11 +68,11 @@ export function OpenRecordList({
             <li key={`${r.kind}-${r.id}`}>
               <Link
                 href={r.href}
-                className="flex h-full flex-col gap-1 rounded-lg border border-border bg-card/40 px-4 py-3 transition-colors hover:border-[var(--gold)]/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="flex h-full flex-col gap-1 rounded-none border border-border bg-card/40 px-4 py-3 transition-colors hover:border-[var(--gold)]/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
               >
                 <span className="truncate text-sm font-semibold text-foreground">{r.title}</span>
                 <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                  <span className="rounded-full border border-brand/30 bg-[var(--selected-surface)] px-2 py-0.5 text-brand">{r.status}</span>
+                  <span className="cyber-clip-sm border border-brand/30 bg-[var(--selected-surface)] px-2 py-0.5 text-brand">{r.status}</span>
                   {r.entrants > 0 && <span className="tabular">{r.entrants} entrants</span>}
                 </span>
               </Link>
@@ -103,11 +103,11 @@ export function CompletedRecordList({
   return (
     <ListFrame title={title} blurb={blurb} count={rows.length}>
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card/40 p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-none border border-border bg-card/40 p-8 text-center text-sm text-muted-foreground">
           Nothing completed yet.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-none border border-border">
           <table className="w-full min-w-[34rem] text-sm">
             <thead>
               <tr className="border-b border-border bg-card/40 text-left text-xs uppercase tracking-wide text-muted-foreground">

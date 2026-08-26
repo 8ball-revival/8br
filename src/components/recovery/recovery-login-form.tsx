@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { loginRecovery } from '@/lib/recovery/actions'
 import { Button } from '@/components/ui/button'
 
-const FIELD = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm'
+const FIELD = 'w-full rounded-none border border-border bg-background px-3 py-2 text-sm'
 const LABEL = 'eyebrow text-muted-foreground'
 
 /** Minimal, utilitarian break-glass login. No links, no branding beyond app tokens. */

@@ -51,7 +51,7 @@ export function ManagePostsTable({ posts }: { posts: ManagedPost[] }) {
     })
   }, [posts, q, state])
 
-  const field = 'rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground outline-none focus-visible:border-[var(--gold)]'
+  const field = 'rounded-none border border-input bg-background px-3 py-1.5 text-sm text-foreground outline-none focus-visible:border-[var(--gold)]'
 
   return (
     <div>
@@ -68,7 +68,7 @@ export function ManagePostsTable({ posts }: { posts: ManagedPost[] }) {
         </select>
       </div>
 
-      <div className="scrollbar-themed overflow-x-auto rounded-xl border border-border">
+      <div className="scrollbar-themed overflow-x-auto rounded-none border border-border">
         <table className="w-full min-w-[52rem] text-left text-sm">
           <thead className="border-b border-border bg-card/60 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -98,7 +98,7 @@ export function ManagePostsTable({ posts }: { posts: ManagedPost[] }) {
                 <td className="px-3 py-2 text-muted-foreground">{p.type}</td>
                 <td className="px-3 py-2">
                   <span className={cn(
-                    'rounded-full border px-2 py-0.5 text-xs',
+                    'cyber-clip-sm border px-2 py-0.5 text-xs',
                     p.state === 'PUBLISHED' ? 'border-[var(--gold)]/45 text-[var(--gold)]'
                     : p.state === 'DELETED' ? 'border-destructive/45 text-destructive'
                     : 'border-border text-muted-foreground',

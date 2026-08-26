@@ -126,7 +126,7 @@ export function PageManager({ pages, loadDraft }: {
         {pages.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No pages yet.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border rounded-none border border-border">
             {pages.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
@@ -169,7 +169,7 @@ export function PageManager({ pages, loadDraft }: {
       </section>
 
       {draft && (
-        <section className="rounded-lg border border-border p-5">
+        <section className="rounded-none border border-border p-5">
           <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {draft.id ? 'Edit page' : 'New page'}
           </h2>
@@ -180,7 +180,7 @@ export function PageManager({ pages, loadDraft }: {
               <input
                 id="page-title" value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm"
               />
             </div>
 
@@ -192,7 +192,7 @@ export function PageManager({ pages, loadDraft }: {
                   id="page-slug" value={draft.slug}
                   onChange={(e) => setDraft({ ...draft, slug: slugify(e.target.value) })}
                   placeholder={slugify(draft.title) || 'about'}
-                  className="min-w-0 flex-1 rounded-md border border-input bg-card px-3 py-2 text-sm"
+                  className="min-w-0 flex-1 rounded-none border border-input bg-card px-3 py-2 text-sm"
                 />
               </div>
             </div>
@@ -202,7 +202,7 @@ export function PageManager({ pages, loadDraft }: {
               <textarea
                 id="page-body" value={draft.bodySource} rows={16}
                 onChange={(e) => setDraft({ ...draft, bodySource: e.target.value })}
-                className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 font-mono text-sm"
+                className="w-full resize-y rounded-none border border-input bg-card px-3 py-2 font-mono text-sm"
               />
             </div>
 
@@ -221,14 +221,14 @@ export function PageManager({ pages, loadDraft }: {
                   <input
                     id="page-order" type="number" min={0} value={draft.navOrder}
                     onChange={(e) => setDraft({ ...draft, navOrder: Number(e.target.value) || 0 })}
-                    className="w-20 rounded-md border border-input bg-card px-2 py-1 text-sm"
+                    className="w-20 rounded-none border border-input bg-card px-2 py-1 text-sm"
                   />
                 </label>
               )}
             </div>
 
             {draft.bodySource.trim() && (
-              <details className="rounded-lg border border-border p-4">
+              <details className="rounded-none border border-border p-4">
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</summary>
                 <div className="mt-4">
                   <h3 className="font-display text-2xl font-bold tracking-tight">{draft.title || 'Untitled'}</h3>

@@ -404,7 +404,18 @@ section('The rating legend states every band, and the #1 override')
   check('a missing rating still has no tier', ratingTier(null) === null)
 
   const cssRule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))
-  check('the flat treatment is preserved — no glow', !cssRule.includes('text-shadow'))
+  /*
+   * Stated against offset rather than against light, to match verify-rankings.
+   *
+   * The original ban was on any shadow, written after the first neon pass smeared the digits. The
+   * cause was the OFFSET: an x/y shadow paints a displaced second copy of the glyph. A zero-offset
+   * halo lights the space around the number and leaves its edges where they were, so the same
+   * legibility guarantee survives while the value reads as lit. Two scripts assert this rule; they
+   * are kept in the same words on purpose.
+   */
+  const shadows = [...cssRule.matchAll(/text-shadow:\s*([^;]+);/g)].map((m) => m[1])
+  check('the rating is lit by a zero-offset halo, never a displaced copy',
+    shadows.every((v) => v.trim() === 'none' || /(^|,)\s*0 0 /.test(v)), shadows.join(' | '))
   check('...and no animation', !cssRule.includes('animation'))
 }
 

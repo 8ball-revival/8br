@@ -7,6 +7,15 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  /*
+   * Where the build is written, overridable for local verification only.
+   *
+   * A production build and `next dev` both own `.next`, so building to check a change meant first
+   * stopping the dev server — which on this machine also stops the contained Postgres it was
+   * launched with. Unset (every deploy, and every ordinary `npm run build`) this is exactly the
+   * default, so nothing about a real build changes.
+   */
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
     /*
       Media is served from /api/media/file/** and normally referenced with a relative path, which is

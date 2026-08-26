@@ -16,7 +16,7 @@ import {
 } from '@/lib/players/merge-actions'
 
 const input =
-  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+  'w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /**
  * Account Actions — merge and delete, at the bottom of the member Overview.
@@ -44,7 +44,7 @@ export function AccountActions({
 }) {
   if (!canMerge && !canDelete) return null
   return (
-    <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
+    <section className="mt-8 rounded-none border border-border bg-card/40 p-5">
       <p className="eyebrow text-brand">Account Actions</p>
       <div className="mt-4 space-y-6">
         {canMerge && <MergePanel userId={userId} playerId={playerId} displayName={displayName} merged={merged} />}
@@ -141,7 +141,7 @@ function MergePanel({
           />
 
           {results.length > 0 && !picked && (
-            <ul className="mt-2 max-w-sm divide-y divide-border rounded-md border border-border">
+            <ul className="mt-2 max-w-sm divide-y divide-border rounded-none border border-border">
               {results.map((r) => (
                 <li key={r.playerId}>
                   <button
@@ -178,7 +178,7 @@ function MergePanel({
                 <button type="button" onClick={confirmMerge} disabled={busy} className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50">
                   {busy ? 'Merging…' : 'Merge accounts'}
                 </button>
-                <button type="button" onClick={() => setPicked(null)} disabled={busy} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold">
+                <button type="button" onClick={() => setPicked(null)} disabled={busy} className="rounded-none border border-border px-3 py-1.5 text-xs font-semibold">
                   Cancel
                 </button>
               </div>
@@ -190,7 +190,7 @@ function MergePanel({
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Merged accounts ({merged.length})
               </p>
-              <ul className="mt-2 max-w-xl divide-y divide-border rounded-md border border-border">
+              <ul className="mt-2 max-w-xl divide-y divide-border rounded-none border border-border">
                 {merged.map((m) => (
                   <li key={m.mergeId} className="flex items-center justify-between gap-3 px-3 py-2">
                     <span className="text-sm text-foreground">
@@ -203,7 +203,7 @@ function MergePanel({
                       type="button"
                       onClick={() => void undo(m.mergeId)}
                       disabled={busy}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-none border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent disabled:opacity-50"
                     >
                       <Undo2 className="size-3.5" aria-hidden /> Undo Merge
                     </button>
@@ -216,7 +216,7 @@ function MergePanel({
       )}
 
       {warning && (
-        <p role="status" className="mt-3 max-w-xl rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p role="status" className="mt-3 max-w-xl rounded-none border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           {warning}
         </p>
       )}
@@ -258,7 +258,7 @@ function DeletePanel({ userId, plan }: { userId: number; plan: DeletionPlan }) {
       </h3>
 
       {plan.blockedReason ? (
-        <p className="mt-2 max-w-xl rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="mt-2 max-w-xl rounded-none border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           {plan.blockedReason}
         </p>
       ) : (
@@ -314,7 +314,7 @@ function DeletePanel({ userId, plan }: { userId: number; plan: DeletionPlan }) {
                 >
                   {busy ? 'Working…' : permanent ? 'Permanently delete' : 'Archive account'}
                 </button>
-                <button type="button" onClick={() => { setOpen(false); setTyped('') }} disabled={busy} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold">
+                <button type="button" onClick={() => { setOpen(false); setTyped('') }} disabled={busy} className="rounded-none border border-border px-3 py-1.5 text-xs font-semibold">
                   Cancel
                 </button>
               </div>

@@ -53,7 +53,7 @@ export function SeasonStandingsMatrix({
   const [pinned, setPinned] = useState<number | null>(null)
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
+    <section className="overflow-hidden rounded-none border border-border bg-card">
       <header className="flex flex-wrap items-center gap-2.5 border-b border-border bg-card/60 px-4 py-3">
         <h3 className="font-display text-[0.95rem] font-bold text-foreground">
           {group.name || <>Group <span className="text-[var(--gold)]">{group.code}</span></>}
@@ -304,7 +304,7 @@ function GroupRename({ seasonId, groupId, code }: { seasonId: number; groupId: n
 function Chip({ children, gold = false }: { children: React.ReactNode; gold?: boolean }) {
   return (
     <span className={cn(
-      'whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[0.7rem]',
+      'whitespace-nowrap cyber-clip-sm border px-2.5 py-0.5 text-[0.7rem]',
       gold ? 'border-[var(--gold-dim)] text-[var(--gold-soft)]' : 'border-border text-muted-foreground',
     )}>
       {children}

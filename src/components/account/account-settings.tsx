@@ -48,7 +48,7 @@ function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNo
 function ProfileForm({ profile }: { profile: { preferredName: string; discord: string | null; timeZone: string | null } }) {
   const [state, action, pending] = useActionState(updateMyProfileAction, initial)
   return (
-    <form action={action} className="space-y-3 rounded-lg border border-border bg-card/40 p-4">
+    <form action={action} className="space-y-3 rounded-none border border-border bg-card/40 p-4">
       <div>
         <h3 className="eyebrow text-brand">Optional Profile Information</h3>
         <p className="mt-1 text-xs text-muted-foreground">All optional — leave any field blank. None are required to sign up or to enter a competition.</p>
@@ -82,7 +82,7 @@ function ProfileForm({ profile }: { profile: { preferredName: string; discord: s
 function EmailForm({ email }: { email: string }) {
   const [state, action, pending] = useActionState(changeMyEmailAction, initial)
   return (
-    <form action={action} className="space-y-3 rounded-lg border border-border bg-card/40 p-4">
+    <form action={action} className="space-y-3 rounded-none border border-border bg-card/40 p-4">
       <h3 className="eyebrow text-brand">Email <span className="text-muted-foreground">· private</span></h3>
       <div className="space-y-1.5">
         <Label htmlFor="em">Email</Label>
@@ -101,7 +101,7 @@ function EmailForm({ email }: { email: string }) {
 function PasswordForm() {
   const [state, action, pending] = useActionState(changeMyPasswordAction, initial)
   return (
-    <form action={action} className="space-y-3 rounded-lg border border-border bg-card/40 p-4">
+    <form action={action} className="space-y-3 rounded-none border border-border bg-card/40 p-4">
       <h3 className="eyebrow text-brand">Password</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">

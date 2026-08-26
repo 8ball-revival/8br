@@ -21,7 +21,7 @@ import { RATING_BANDS } from '@/lib/stats/rating-tier'
 export function RatingLegend({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border bg-card/60 px-3 py-2 ${className}`}
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-none border border-border bg-card/60 px-3 py-2 ${className}`}
       role="group"
       aria-label="What the rating colours mean"
     >

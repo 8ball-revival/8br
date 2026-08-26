@@ -7,7 +7,9 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        'rounded-lg border border-border bg-card text-card-foreground shadow-sm transition-colors',
+        /* The recurring panel: chamfered, hairline-lit, with the corner bracket from cyber-panel. */
+        'cyber-panel cyber-clip rounded-none text-card-foreground transition-[box-shadow,border-color] duration-200',
+        'hover:border-[var(--neon-cyan)] hover:[box-shadow:var(--glow-soft),0_0_22px_oklch(0.84_0.14_200/0.12)]',
         className,
       )}
       {...props}

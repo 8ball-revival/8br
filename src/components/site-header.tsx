@@ -6,7 +6,6 @@ import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
 import { MobileNav } from '@/components/mobile-nav'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { getCurrentUser } from '@/lib/account/auth'
 import { SessionKeepalive } from '@/components/account/session-keepalive'
 import { getSiteBranding } from '@/lib/site-content/service'
@@ -43,7 +42,12 @@ export async function SiteHeader() {
     {user && <SessionKeepalive />}
     <header
       data-site-header
-      className="sticky top-0 z-50 w-full border-b border-nav-border bg-nav-bg/85 text-nav-foreground backdrop-blur supports-[backdrop-filter]:bg-nav-bg/70"
+      /*
+       * The bar the whole site hangs from: a translucent void with a lit lower edge. The gradient
+       * border is a background rather than a border-image so it survives the backdrop blur, and it
+       * runs cyan → yellow → cyan so the header reads as a single light source across its width.
+       */
+      className="sticky top-0 z-50 w-full border-b border-[var(--neon-line)] bg-nav-bg/85 text-nav-foreground backdrop-blur-md supports-[backdrop-filter]:bg-nav-bg/70 after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-[linear-gradient(90deg,transparent,var(--neon-cyan)_18%,var(--neon-yellow)_50%,var(--neon-cyan)_82%,transparent)] after:opacity-70"
     >
       <Wide name="header" className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
@@ -59,7 +63,6 @@ export async function SiteHeader() {
 
         <div className="flex items-center gap-1">
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
-          <ThemeToggle />
           {user ? (
             <details className="group relative ml-1">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md py-1 pl-1 pr-2 transition-colors hover:bg-accent [&::-webkit-details-marker]:hidden">
@@ -72,7 +75,7 @@ export async function SiteHeader() {
                 <span className="hidden text-sm font-medium sm:block">{displayName}</span>
                 <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
-              <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-md border border-border bg-popover p-1 shadow-lg">
+              <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-none border border-border bg-popover p-1 shadow-lg">
                 <p className="truncate px-3 py-2 text-xs text-muted-foreground">
                   Signed in as <span className="font-semibold text-foreground">@{cueverse}</span>
                 </p>

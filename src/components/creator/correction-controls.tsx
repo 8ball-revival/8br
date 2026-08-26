@@ -207,7 +207,7 @@ function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={headingId}
-        className="w-full max-w-lg rounded-lg border border-border bg-card p-5 shadow-2xl"
+        className="w-full max-w-lg rounded-none border border-border bg-card p-5 shadow-2xl"
       >
         <h2 id={headingId} className="flex items-start gap-2 font-display text-lg font-bold">
           {tone === 'warning' && <AlertTriangle className="mt-0.5 size-5 shrink-0 text-[var(--streak-cold)]" aria-hidden />}
@@ -247,7 +247,7 @@ function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="rounded-none border border-border px-3 py-2 text-sm font-medium hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Cancel
           </button>

@@ -106,7 +106,7 @@ export function SeasonEntrantsBoard({
             type="button"
             disabled={pending}
             onClick={() => start(async () => setClosing(await closeRegistrationPreflightAction(seasonId)))}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="ml-auto inline-flex items-center gap-1.5 cyber-clip-sm border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             <Lock className="size-4" aria-hidden /> Close Registration
           </button>
@@ -122,7 +122,7 @@ export function SeasonEntrantsBoard({
         />
       )}
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="overflow-hidden rounded-none border border-border">
         <div className="flex items-center gap-3 border-b border-border bg-card/50 px-3 py-1.5 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
           <span className="w-8 shrink-0 text-right">#</span>
           <span className="min-w-0 flex-1">Entrant</span>
@@ -206,14 +206,14 @@ function EntrantRow({
             onChange={(e) => setHandle(e.target.value)}
             placeholder="CueVerse ID"
             aria-label="CueVerse ID"
-            className="w-40 rounded-md border border-input bg-background px-2 py-1 text-sm font-semibold text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="w-40 rounded-none border border-input bg-background px-2 py-1 text-sm font-semibold text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Preferred name"
             aria-label="Preferred name"
-            className="w-48 rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="w-48 rounded-none border border-input bg-background px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           />
         </span>
       ) : (
@@ -325,11 +325,11 @@ function AddEntrant({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder="Add entrant by name or CueVerse ID…"
           aria-label="Add entrant"
-          className="w-80 rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="w-80 rounded-none border border-border bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         />
       </div>
       {open && (
-        <ul className="absolute z-10 mt-1 max-h-64 w-80 space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1 shadow-lg">
+        <ul className="absolute z-10 mt-1 max-h-64 w-80 space-y-1 overflow-y-auto rounded-none border border-border bg-background p-1 shadow-lg">
           {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
           {!searching && candidates.map((c) => (
             <li key={c.playerId}>
@@ -411,7 +411,7 @@ function CloseDialog({
       aria-labelledby="close-reg-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-none border border-border bg-card p-5 shadow-xl">
         <h2 id="close-reg-title" className="font-display text-lg font-bold text-foreground">
           Close Registration?
         </h2>
@@ -452,7 +452,7 @@ function CloseDialog({
             ref={closeRef}
             type="button"
             onClick={onCancel}
-            className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="cyber-clip-sm border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Keep Registration Open
           </button>
@@ -460,7 +460,7 @@ function CloseDialog({
             type="button"
             onClick={confirm}
             disabled={pending}
-            className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             {pending ? 'Closing…' : 'Close and Set Up Groups'}
           </button>

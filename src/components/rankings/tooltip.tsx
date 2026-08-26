@@ -56,7 +56,7 @@ export function Tip({
           role="tooltip"
           id={id}
           className={cn(
-            'pointer-events-none absolute left-1/2 z-50 w-64 -translate-x-1/2 rounded-md border border-border',
+            'pointer-events-none absolute left-1/2 z-50 w-64 -translate-x-1/2 rounded-none border border-border',
             'bg-popover px-2.5 py-1.5 text-left text-xs font-normal normal-case leading-snug text-popover-foreground shadow-xl',
             side === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5',
           )}

@@ -69,7 +69,7 @@ export function OnThisDayCard({ almanac }: { almanac: Almanac }) {
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
-      className="relative flex h-full min-h-[9.5rem] min-w-[17rem] flex-col rounded-lg border border-border bg-card/40 p-4"
+      className="relative flex h-full min-h-[9.5rem] min-w-[17rem] flex-col rounded-none border border-border bg-card/40 p-4"
     >
       <div className="flex items-center justify-between gap-2">
         <h3

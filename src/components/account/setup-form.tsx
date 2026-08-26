@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { createFirstOwner } from '@/lib/account/actions'
 import { Button } from '@/components/ui/button'
 
-const FIELD = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm'
+const FIELD = 'w-full rounded-none border border-border bg-background px-3 py-2 text-sm'
 const LABEL = 'eyebrow text-muted-foreground'
 
 /** First-run owner setup form. Only ever rendered when no account exists. */

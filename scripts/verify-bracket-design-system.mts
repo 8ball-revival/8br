@@ -126,7 +126,7 @@ section('No muddy surfaces')
     return chroma > 0.02 && (hue < 200 || hue > 300)
   })
   check('every declared bracket colour is cool or neutral', warm.length === 0, warm.join(', '))
-  check('and there are real bracket tokens to check', bracketTokens.length >= 12, `${bracketTokens.length}`)
+  check('and there are real bracket tokens to check', bracketTokens.length >= 8, `${bracketTokens.length}`)
 }
 
 // ── 8-9. Byes and forfeits ───────────────────────────────────────────────────────────────────────
@@ -186,11 +186,15 @@ section('One system, not two')
   check('the primitives own the result language', /export function BracketScore/.test(PRIMITIVES))
 }
 
-section('Semantic tokens, in both themes')
+section('Semantic tokens')
 {
+  /*
+   * One declaration each, not two. The light theme was removed, so a token defined twice would now
+   * mean a duplicate rather than a pair — the opposite of what this used to be checking for.
+   */
   for (const t of ['canvas', 'surface', 'outline', 'text-neutral', 'connector', 'winner', 'connector-winner', 'focus', 'review']) {
     const uses = (CSS.match(new RegExp(`--bracket-${t}:`, 'g')) ?? []).length
-    check(`--bracket-${t} is defined in dark and light`, uses >= 2, `${uses} definition(s)`)
+    check(`--bracket-${t} is defined exactly once`, uses === 1, `${uses} definition(s)`)
   }
 }
 

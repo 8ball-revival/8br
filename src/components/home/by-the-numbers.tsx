@@ -37,7 +37,7 @@ function StatCard({
   label, value, sub, Icon,
 }: { label: string; value: number; sub: string | null; Icon: typeof Crown }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-4 text-center">
+    <div className="flex flex-col items-center justify-center gap-2 rounded-none border border-border bg-card/40 px-3 py-4 text-center">
       <span
         aria-hidden
         className="inline-flex size-9 items-center justify-center rounded-full bg-[var(--selected-surface)] text-brand"

@@ -68,7 +68,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
   const hl = (id: number) => hoverId != null && id === hoverId
 
   return (
-    <div className="rounded-lg border border-border bg-card/40">
+    <div className="rounded-none border border-border bg-card/40">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <h3 className="font-display text-lg font-semibold">{group.name}</h3>
         <span className="flex items-center gap-2 text-[0.65rem] text-muted-foreground">
@@ -188,7 +188,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
       {/* Match details */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelected(null)} role="presentation">
-          <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-none border border-border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h4 className="font-display text-lg font-semibold">Match details</h4>
               <button className="text-muted-foreground hover:text-foreground" onClick={() => setSelected(null)} aria-label="Close">✕</button>

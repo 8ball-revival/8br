@@ -13,7 +13,7 @@ function commitHash(): string {
   try { return execSync('git rev-parse --short HEAD', { cwd: process.cwd() }).toString().trim() } catch { return 'unknown' }
 }
 function Stat({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
-  return <div className="rounded-lg border border-border bg-card/40 p-4"><p className="eyebrow text-muted-foreground">{label}</p><p className={`mt-1 font-semibold ${ok === false ? 'text-destructive' : ok ? 'text-success' : 'text-foreground'}`}>{value}</p></div>
+  return <div className="rounded-none border border-border bg-card/40 p-4"><p className="eyebrow text-muted-foreground">{label}</p><p className={`mt-1 font-semibold ${ok === false ? 'text-destructive' : ok ? 'text-success' : 'text-foreground'}`}>{value}</p></div>
 }
 
 export default async function HealthPage() {
@@ -36,7 +36,7 @@ export default async function HealthPage() {
         <Stat label="Seasons / Tournaments" value={`${h.counts.seasons} / ${h.counts.tournaments}`} />
         <Stat label="Audit rows / Players" value={`${h.counts.auditRows} / ${h.counts.players}`} />
       </div>
-      <div className="mt-4 space-y-1 rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground">
+      <div className="mt-4 space-y-1 rounded-none border border-border bg-card/40 p-4 text-sm text-muted-foreground">
         <p><span className="font-semibold text-foreground">Migration:</span> {h.migrationStatus}</p>
         <p><span className="font-semibold text-foreground">Backups:</span> {h.backupNote}</p>
       </div>

@@ -211,7 +211,7 @@ export function TournamentWorkspace({
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-background/40 p-3">
+    <div className="rounded-none border border-border bg-background/40 p-3">
       <p className="eyebrow text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -306,11 +306,11 @@ function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
           onClick={openList}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder="Search registered players by name, CueVerse ID, or User ID…"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm"
           aria-label="Search registered players"
         />
         {open && (
-          <ul className="absolute z-10 mt-1 max-h-64 w-full space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1 shadow-lg">
+          <ul className="absolute z-10 mt-1 max-h-64 w-full space-y-1 overflow-y-auto rounded-none border border-border bg-background p-1 shadow-lg">
             {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
             {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players found. Create the account first, then add them here.</li>}
             {candidates.map((c) => (
@@ -342,7 +342,7 @@ function EntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceData; r
     <div className="space-y-5">
       {!disabled && canAdd && <AddPlayer tournamentId={tournamentId} run={run} />}
       {!disabled && !canAdd && (
-        <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-none border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
           {data.tournament.lifecycleState === 'DRAFT'
             ? 'Open registration to add players.'
             : 'Entrants are locked once the bracket is generated. Re-open registration to change the field.'}
@@ -351,7 +351,7 @@ function EntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceData; r
 
       <div>
         <p className="eyebrow mb-2 text-muted-foreground">{data.entrants.length} entrants</p>
-        <ul className="divide-y divide-border rounded-md border border-border">
+        <ul className="divide-y divide-border rounded-none border border-border">
           {data.entrants.map((e, i) => (
             <li key={e.registrationId} className={cn('flex items-center gap-3 px-3 py-2 text-sm', e.withdrawn && 'opacity-50')}>
               <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
@@ -396,7 +396,7 @@ function RandomEntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceD
     <div className="space-y-5">
       {canEdit && <AddPlayer tournamentId={tournamentId} run={run} />}
       {!canEdit && !generated && (
-        <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-none border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
           {state === 'DRAFT'
             ? 'Open registration to add players.'
             : 'Registration is closed — the entrant list is locked. Generate Teams to draw the rosters.'}
@@ -420,7 +420,7 @@ function RandomEntrantsTab({ data, run, disabled }: { data: TournamentWorkspaceD
 
       <div>
         <p className="eyebrow mb-2 text-muted-foreground">{data.entrants.length} {generated ? 'players' : 'entrants'}</p>
-        <ul className="divide-y divide-border rounded-md border border-border">
+        <ul className="divide-y divide-border rounded-none border border-border">
           {data.entrants.map((e, i) => (
             <li key={e.registrationId} className={cn('flex items-center gap-3 px-3 py-2 text-sm', e.withdrawn && 'opacity-50')}>
               <span className="tabular w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
@@ -456,7 +456,7 @@ function TeamsTab({ data, run, disabled }: { data: TournamentWorkspaceData; run:
     <div className="space-y-5">
       {!disabled && (
         <div className="flex gap-2">
-          <input value={newTeam} onChange={(e) => setNewTeam(e.target.value)} placeholder="New team name" className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <input value={newTeam} onChange={(e) => setNewTeam(e.target.value)} placeholder="New team name" className="w-full max-w-xs rounded-none border border-border bg-background px-3 py-2 text-sm" />
           <Button onClick={() => run(async () => { const r = await A.createTeamAction(data.tournament.id, newTeam); setNewTeam(''); return r })} disabled={!newTeam.trim()}>
             <Plus className="size-4" /> Create team
           </Button>
@@ -481,9 +481,9 @@ function TeamCard({ team, teamSize, run, disabled }: { team: TournamentWorkspace
       return { name: nm, handle: handle || null, captain: i === 0 }
     })
   return (
-    <div className={cn('rounded-lg border border-border bg-background/40 p-3', team.withdrawn && 'opacity-60')}>
+    <div className={cn('rounded-none border border-border bg-background/40 p-3', team.withdrawn && 'opacity-60')}>
       <div className="flex items-center gap-2">
-        <input value={name} onChange={(e) => setName(e.target.value)} disabled={disabled} className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm font-semibold" />
+        <input value={name} onChange={(e) => setName(e.target.value)} disabled={disabled} className="flex-1 rounded-none border border-border bg-background px-2 py-1 text-sm font-semibold" />
         {team.seed != null && <Badge variant="muted">Seed {team.seed}</Badge>}
       </div>
       {!disabled && name.trim() && name !== team.name && (
@@ -495,7 +495,7 @@ function TeamCard({ team, teamSize, run, disabled }: { team: TournamentWorkspace
         disabled={disabled}
         rows={teamSize}
         placeholder={`One member per line (max ${teamSize})\nName | handle`}
-        className="mt-2 w-full rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs"
+        className="mt-2 w-full rounded-none border border-border bg-background px-2 py-1.5 font-mono text-xs"
       />
       {!disabled && (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -594,7 +594,7 @@ function BracketTab({ data, run, disabled }: { data: TournamentWorkspaceData; ru
         <>
           {seedList}
           {!disabled && !canBuild && (
-            <p className="rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+            <p className="rounded-none border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
               {data.tournament.lifecycleState === 'IN_PROGRESS'
                 ? 'The Tournament is in progress — the bracket is fixed. Enter results in the Results tab.'
                 : data.tournament.lifecycleState === 'COMPLETED'
@@ -790,7 +790,7 @@ function SeedBuilder({ data, pool, seededOrder, seedById, run }: { data: Tournam
               max={order.length}
               value={fieldSize}
               onChange={(e) => setFieldSize(Math.max(2, Math.min(order.length, Number(e.target.value) || order.length)))}
-              className="w-16 rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground tabular focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-16 rounded-none border border-input bg-background px-2 py-1 text-sm text-foreground tabular focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <span className="text-muted-foreground/70">of {order.length}</span>
           </label>
@@ -803,7 +803,7 @@ function SeedBuilder({ data, pool, seededOrder, seedById, run }: { data: Tournam
         </p>
       )}
       {published && (
-        <p className="mt-2 rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="mt-2 rounded-none border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
           This bracket is published. Reorder the seeds below, then press{' '}
           <span className="font-medium text-foreground">Apply seed order</span> — that returns it to a
           private draft until you publish it again.
@@ -1010,7 +1010,7 @@ function ResultRow({ m, raceLength, identityById, run, disabled }: {
   }
 
   return (
-    <div className="rounded-md border border-border bg-background/40 p-3">
+    <div className="rounded-none border border-border bg-background/40 p-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="w-16 text-xs text-muted-foreground">{m.label ?? `R${m.round}·${m.slot + 1}`}</span>
         <span className="w-16 shrink-0 text-[0.65rem] text-muted-foreground/70">race to {raceLength}</span>
@@ -1109,7 +1109,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
                 min={1}
                 value={race}
                 onChange={(e) => setRace(Math.max(1, Number(e.target.value) || 1))}
-                className="w-20 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                className="w-20 rounded-none border border-border bg-background px-2 py-1.5 text-sm"
               />
               <Button size="sm" variant="secondary" onClick={() => run(() => A.setTournamentRaceLengthAction(data.tournament.id, race))} disabled={race === data.tournament.raceLength}>
                 Save race length
@@ -1173,7 +1173,7 @@ function SettingsTab({ data, run, canManage }: { data: TournamentWorkspaceData; 
               value={delCode}
               onChange={(e) => setDelCode(e.target.value)}
               placeholder={`Type ${data.tournament.code} to confirm`}
-              className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm"
+              className="w-full max-w-xs rounded-none border border-border bg-background px-3 py-2 text-sm"
             />
             <Button variant="destructive" onClick={deleteTournament} disabled={deleting || delCode.trim() !== (data.tournament.code ?? '')}>
               {deleting ? 'Deleting…' : 'Delete Tournament permanently'}
@@ -1218,7 +1218,7 @@ function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentW
         rows are the current qualifying positions. Once every match is decided, confirm qualifiers from the Overview.
       </p>
       {data.groups.map((g) => (
-        <div key={g.id} className="overflow-hidden rounded-lg border border-border">
+        <div key={g.id} className="overflow-hidden rounded-none border border-border">
           <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">{g.name}</div>
 
           {/* Standings */}
@@ -1344,7 +1344,7 @@ function GroupMatchRow({
 
   const homeWon = m.winnerRegistrationId === m.homeRegistrationId
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+    <div className="flex flex-wrap items-center gap-2 rounded-none border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
       <span className={cn('min-w-0 flex-1 truncate text-right', decided && homeWon && 'font-semibold text-brand')}>{m.homeUsername}</span>
       {decided && !editing ? (
         <span className="tabular px-2 font-medium">{m.homeGames}–{m.awayGames}</span>
@@ -1412,7 +1412,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
       </div>
 
       {/* Standings */}
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="overflow-hidden rounded-none border border-border">
         <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">Standings</div>
         <div className="overflow-x-auto p-4">
           <table className="w-full text-sm">
@@ -1448,7 +1448,7 @@ function SwissTab({ data, run, canEditResults, canManage }: { data: TournamentWo
 
       {/* Rounds */}
       {[...s.rounds].reverse().map((rd) => (
-        <div key={rd.round} className="overflow-hidden rounded-lg border border-border">
+        <div key={rd.round} className="overflow-hidden rounded-none border border-border">
           <div className="border-b border-border bg-card/40 px-4 py-2 text-sm font-semibold">Round {rd.round}</div>
           <div className="space-y-1.5 p-4">
             {canEditResults && rd.round === s.currentRound && <p className="mb-1 text-xs text-muted-foreground/80">Enter the final score actually played. The higher score will be recorded as the winner.</p>}
@@ -1470,7 +1470,7 @@ function SwissMatchRow({ m, raceLength, run, disabled }: { m: NonNullable<Tourna
 
   if (m.isBye) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+      <div className="flex items-center gap-2 rounded-none border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
         <span className="min-w-0 flex-1 truncate font-medium text-brand">{m.homeName}</span>
         <span className="rounded bg-[var(--selected-surface)] px-2 py-0.5 text-xs font-semibold text-brand">Bye</span>
         <span className="min-w-0 flex-1" />
@@ -1490,7 +1490,7 @@ function SwissMatchRow({ m, raceLength, run, disabled }: { m: NonNullable<Tourna
   }
   const homeWon = m.winnerRegistrationId === m.homeRegistrationId
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+    <div className="flex flex-wrap items-center gap-2 rounded-none border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
       <span className={cn('min-w-0 flex-1 truncate text-right', (decided && homeWon) || preview?.status === 'home' ? 'font-semibold text-brand' : '')}>{m.homeName}</span>
       {decided && !editing ? (
         <span className="tabular px-2 font-medium">{m.homeGames}–{m.awayGames}</span>

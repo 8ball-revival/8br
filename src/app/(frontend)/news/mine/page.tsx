@@ -39,7 +39,7 @@ export default async function MyArticlesPage() {
           <NewsEmpty message="You have not written anything yet." />
         </div>
       ) : (
-        <ul className="mt-8 divide-y divide-border rounded-lg border border-border">
+        <ul className="mt-8 divide-y divide-border rounded-none border border-border">
           {articles.map((a) => (
             <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">

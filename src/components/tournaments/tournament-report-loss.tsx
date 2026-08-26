@@ -57,7 +57,7 @@ export function TournamentReportLoss({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card/40 p-4">
+    <div className="rounded-none border border-border bg-card/40 p-4">
       <p className="text-sm font-semibold text-foreground">Your match: {matchLabel}</p>
       <p className="mt-0.5 text-xs text-muted-foreground">vs {opponentName} · race to {raceLength}</p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -69,7 +69,7 @@ export function TournamentReportLoss({
             max={raceLength - 1}
             value={myGames}
             onChange={(e) => setMyGames(Math.max(0, Math.min(raceLength - 1, Number(e.target.value) || 0)))}
-            className="mt-1 block w-20 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            className="mt-1 block w-20 rounded-none border border-border bg-background px-2 py-1 text-sm text-foreground"
           />
         </label>
         <Button size="sm" variant="destructive" disabled={pending} onClick={submit}>

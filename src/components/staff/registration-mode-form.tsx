@@ -25,7 +25,7 @@ export function RegistrationModeForm({ initial }: { initial: { mode: Registratio
   const blocked = mode === 'PRIVATE' && code.trim().length === 0
 
   return (
-    <form action={action} className="rounded-lg border border-border bg-card/40 p-4">
+    <form action={action} className="rounded-none border border-border bg-card/40 p-4">
       <div className="flex items-center gap-2">
         <KeyRound className="size-4 text-[var(--gold)]" aria-hidden />
         <h2 className="font-medium">{REGISTRATION_SETTING_LABEL}</h2>
@@ -80,7 +80,7 @@ export function RegistrationModeForm({ initial }: { initial: { mode: Registratio
           onChange={(e) => setCode(e.target.value)}
           autoComplete="off"
           spellCheck={false}
-          className="w-full max-w-xs rounded-md border border-input bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+          className="w-full max-w-xs rounded-none border border-input bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
         />
         <p className="text-xs text-muted-foreground">
           Matched ignoring capitalisation and surrounding spaces. Kept when you switch back to Public,
@@ -99,7 +99,7 @@ export function RegistrationModeForm({ initial }: { initial: { mode: Registratio
       <button
         type="submit"
         disabled={pending || blocked}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:border-brand/50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-4 inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-1.5 text-sm font-medium hover:border-brand/50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending && <Loader2 className="size-3.5 motion-safe:animate-spin" aria-hidden />}
         Save

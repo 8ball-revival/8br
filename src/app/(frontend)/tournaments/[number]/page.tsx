@@ -157,7 +157,7 @@ function GroupStagePublic({ data, heading = true }: { data: TournamentWorkspaceD
     return (
       <div className={heading ? 'mt-8' : ''}>
         {heading && <h2 className="eyebrow mb-4 text-foreground">Group Stage</h2>}
-        <div className="rounded-lg border border-border bg-card/40 p-6 text-center">
+        <div className="rounded-none border border-border bg-card/40 p-6 text-center">
           <p className="text-sm font-medium text-foreground">Registration is closed — the groups are being prepared.</p>
           <p className="mt-1 text-sm text-muted-foreground">Group assignments will appear here once they&apos;re published.</p>
         </div>
@@ -278,7 +278,7 @@ function PublicLiveTournament({ data, member, history, view, playoffsPublished }
               <h2 className="eyebrow mb-4 text-foreground">Teams</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {data.teams.filter((t) => !t.withdrawn).map((t) => (
-                  <div key={t.id} className="rounded-lg border border-border bg-card/40 p-3">
+                  <div key={t.id} className="rounded-none border border-border bg-card/40 p-3">
                     <p className="text-sm font-semibold text-foreground">{t.name}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{t.members.map((m) => m.name).join(' + ') || 'Roster TBD'}</p>
                   </div>

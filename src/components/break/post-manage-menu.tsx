@@ -88,7 +88,7 @@ export function PostManageMenu({
         <div
           role="menu"
           aria-label="Post management"
-          className="absolute right-0 z-30 mt-1 w-40 overflow-hidden rounded-md border border-border bg-card py-1 shadow-lg"
+          className="absolute right-0 z-30 mt-1 w-40 overflow-hidden rounded-none border border-border bg-card py-1 shadow-lg"
         >
           <button
             type="button"
@@ -122,11 +122,11 @@ export function PostManageMenu({
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="delete-post-title"
-            className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl"
+            className="w-full max-w-md rounded-none border border-border bg-card p-5 shadow-xl"
           >
             <h2 id="delete-post-title" className="text-base font-semibold text-foreground">Delete this post?</h2>
 
-            <dl className="mt-3 space-y-1 rounded-md border border-border bg-background/50 p-3 text-sm">
+            <dl className="mt-3 space-y-1 rounded-none border border-border bg-background/50 p-3 text-sm">
               <div className="flex gap-2">
                 <dt className="w-20 shrink-0 text-xs uppercase tracking-wide text-muted-foreground">Title</dt>
                 <dd className="min-w-0 flex-1 font-medium text-foreground">{title}</dd>
@@ -154,7 +154,7 @@ export function PostManageMenu({
                 type="button"
                 onClick={() => { setConfirming(false); setError(null) }}
                 disabled={pending}
-                className="rounded-md border border-input px-3 py-1.5 text-sm text-foreground hover:bg-white/[0.06] disabled:opacity-50"
+                className="rounded-none border border-input px-3 py-1.5 text-sm text-foreground hover:bg-white/[0.06] disabled:opacity-50"
               >
                 Cancel
               </button>

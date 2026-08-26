@@ -94,7 +94,7 @@ export function CompetitionSelect({
       </div>
 
       {creating && (
-        <div className="mt-3 rounded-md border border-border bg-card p-3">
+        <div className="mt-3 rounded-none border border-border bg-card p-3">
           <p className="text-xs font-semibold text-foreground">New Competition</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <label className="text-[0.7rem] text-muted-foreground">
@@ -140,7 +140,7 @@ export function CompetitionSelect({
                 setError(null)
               }}
               disabled={pending}
-              className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold"
+              className="rounded-none border border-border px-3 py-1.5 text-xs font-semibold"
             >
               Cancel
             </button>

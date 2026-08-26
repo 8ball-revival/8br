@@ -37,7 +37,7 @@ export default async function AuthorsPage() {
               <li key={a.playerId}>
                 <Link
                   href={`/news/author/${encodeURIComponent(label)}`}
-                  className="flex flex-col rounded-lg border border-border bg-card/40 p-4 transition-colors hover:border-brand/40"
+                  className="flex flex-col rounded-none border border-border bg-card/40 p-4 transition-colors hover:border-brand/40"
                 >
                   <span className="flex flex-wrap items-center gap-2 font-medium">
                     {label}

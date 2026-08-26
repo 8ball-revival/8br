@@ -80,11 +80,11 @@ export function EntrantQuickAdd({
           placeholder={placeholder}
           aria-label="Add entrant"
           autoComplete="off"
-          className="w-72 rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm disabled:opacity-60"
+          className="w-72 rounded-none border border-border bg-background py-2 pl-9 pr-3 text-sm disabled:opacity-60"
         />
       </div>
       {open && (
-        <ul className="absolute z-20 mt-1 max-h-64 w-72 space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1 shadow-lg">
+        <ul className="absolute z-20 mt-1 max-h-64 w-72 space-y-1 overflow-y-auto rounded-none border border-border bg-background p-1 shadow-lg">
           {(searching || adding) && <li className="px-2 py-1.5 text-xs text-muted-foreground">{adding ? 'Adding…' : 'Searching…'}</li>}
           {!searching && !adding && candidates.length === 0 && (
             <li className="px-2 py-1.5 text-xs text-muted-foreground">{emptyHint}</li>

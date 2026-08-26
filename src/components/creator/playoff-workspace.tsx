@@ -156,9 +156,9 @@ export function PlayoffWorkspace({
       </div>
 
       {/* ── Controls ─────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card/40 p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-none border border-border bg-card/40 p-3">
         <span className="text-sm font-semibold text-foreground">Bracket:</span>
-        <div className="inline-flex gap-1 rounded-md border border-input bg-card p-1">
+        <div className="inline-flex gap-1 rounded-none border border-input bg-card p-1">
           {[{ v: false, l: 'Single Elimination' }, { v: true, l: 'Double Elimination' }].map((o) => (
             <button
               key={String(o.v)}
@@ -178,7 +178,7 @@ export function PlayoffWorkspace({
           <select
             value={size}
             onChange={(e) => setSize(e.target.value === '' ? '' : Number(e.target.value))}
-            className="rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground"
+            className="rounded-none border border-input bg-background px-2 py-1 text-sm text-foreground"
           >
             <option value="">Smallest that fits</option>
             {SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
@@ -207,7 +207,7 @@ export function PlayoffWorkspace({
             onClick={() => (hasDraft
               ? setConfirmRegen(true)
               : run(() => generateSeasonBracketAction(seasonId, size === '' ? {} : { size })))}
-            className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="cyber-clip-sm border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             {hasDraft ? 'Regenerate Bracket' : 'Generate Bracket'}
           </button>
@@ -216,7 +216,7 @@ export function PlayoffWorkspace({
             disabled={pending || !readiness.ok}
             title={readiness.ok ? undefined : readiness.problems.join(' ')}
             onClick={() => start(async () => setConfirmStart(await previewStartReadinessAction(seasonId)))}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="inline-flex items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             <Trophy className="size-4" aria-hidden /> Start Playoffs
           </button>
@@ -299,7 +299,7 @@ function ParticipantTable({
   onToggleAll: (included: boolean) => void
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden rounded-none border border-border">
       <div className="flex items-center gap-2 border-b border-[var(--bracket-outline)] bg-[var(--bracket-surface)] px-3 py-1.5">
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input
@@ -442,7 +442,7 @@ function DraftBracket({
   )
 
   return (
-    <div className="rounded-lg border border-border p-3">
+    <div className="rounded-none border border-border p-3">
       <p id="draft-help" className="mb-2 text-xs text-muted-foreground">
         Drag a player onto another position to swap them, or click one and then the other — both do
         the same thing, so the board works without a mouse. Positions decided by an earlier match are
@@ -480,7 +480,7 @@ function DraftBracket({
             {/* Short thin connector into the match pill. */}
             <span aria-hidden className="h-px w-3 shrink-0 bg-[var(--selected-surface)]" />
             <span
-              className="shrink-0 rounded-full border border-[var(--gold)]/50 px-1.5 py-0.5 text-[0.65rem] font-semibold text-[var(--gold)]/80"
+              className="shrink-0 cyber-clip-sm border border-[var(--gold)]/50 px-1.5 py-0.5 text-[0.65rem] font-semibold text-[var(--gold)]/80"
               title={`Round ${t.ref.round} · Match ${i + 1}`}
             >
               <span className="sr-only">Round {t.ref.round} · Match {i + 1}</span>
@@ -676,7 +676,7 @@ function Dialog({ labelledBy, onCancel, children }: { labelledBy: string; onCanc
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
     >
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-none border border-border bg-card p-5 shadow-xl">
         {children}
       </div>
     </div>
@@ -684,6 +684,6 @@ function Dialog({ labelledBy, onCancel, children }: { labelledBy: string; onCanc
 }
 
 const btnGhost =
-  'rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'cyber-clip-sm border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 const btnGold =
-  'rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'

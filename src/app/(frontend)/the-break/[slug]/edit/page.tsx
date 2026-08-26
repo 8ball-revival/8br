@@ -55,7 +55,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
         . Attribution does not change when you save.
       </p>
 
-      <div className="mt-5 rounded-xl border border-border bg-card p-4">
+      <div className="mt-5 rounded-none border border-border bg-card p-4">
         <PostEditor
           postId={post.id}
           slug={post.slug}

@@ -19,11 +19,11 @@ export function AdminSubnav({ items, active }: { items: AdminNavItem[]; active: 
     <div className="mt-3">
       {/* Mobile: dropdown */}
       <div className="relative sm:hidden">
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center justify-between rounded-md border border-border bg-card/50 px-3 py-2 text-sm font-semibold">
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center justify-between rounded-none border border-border bg-card/50 px-3 py-2 text-sm font-semibold">
           {current?.label ?? 'Admin sections'} <ChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} />
         </button>
         {open && (
-          <ul className="absolute z-30 mt-1 w-full space-y-0.5 rounded-md border border-border bg-popover p-1 shadow-lg">
+          <ul className="absolute z-30 mt-1 w-full space-y-0.5 rounded-none border border-border bg-popover p-1 shadow-lg">
             {items.map((i) => (
               <li key={i.key}>
                 <Link href={i.href} onClick={() => setOpen(false)} className={cn('block rounded px-3 py-2 text-sm', i.key === active ? 'bg-[var(--selected-surface)] font-semibold text-brand' : 'hover:bg-muted')}>{i.label}</Link>
@@ -34,7 +34,7 @@ export function AdminSubnav({ items, active }: { items: AdminNavItem[]; active: 
       </div>
 
       {/* Desktop / tablet: horizontal scroll strip */}
-      <nav aria-label="Admin sections" className="hidden flex-wrap gap-1 rounded-lg border border-border bg-card/40 p-1 sm:flex">
+      <nav aria-label="Admin sections" className="hidden flex-wrap gap-1 rounded-none border border-border bg-card/40 p-1 sm:flex">
         {items.map((i) => (
           <Link
             key={i.key}

@@ -59,13 +59,13 @@ export function CreatorShell({
             {publicHref && (
               <Link
                 href={publicHref}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                className="inline-flex items-center gap-1.5 cyber-clip-sm border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
               >
                 <ExternalLink className="size-3.5" aria-hidden /> View Public Page
               </Link>
             )}
             {settings ?? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground/50">
+              <span className="inline-flex items-center gap-1.5 cyber-clip-sm border border-border px-3 py-1.5 text-xs text-muted-foreground/50">
                 <Settings2 className="size-3.5" aria-hidden /> Settings
               </span>
             )}
@@ -76,7 +76,7 @@ export function CreatorShell({
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>
           <p className="text-sm text-muted-foreground">{summary}</p>
-          <span className="rounded-full border border-brand/30 bg-[var(--selected-surface)] px-2.5 py-0.5 text-xs font-medium text-brand">
+          <span className="cyber-clip-sm border border-brand/30 bg-[var(--selected-surface)] px-2.5 py-0.5 text-xs font-medium text-brand">
             {status}
           </span>
         </div>
@@ -107,7 +107,7 @@ function WorkflowBar({ workflow, kind }: { workflow: StageView[]; kind: 'season'
               <span
                 aria-disabled="true"
                 title="Available once the previous stage is finished"
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground/40"
+                className="inline-flex items-center gap-1.5 cyber-clip-sm px-3 py-1.5 text-sm text-muted-foreground/40"
               >
                 {s.label}
               </span>
@@ -116,7 +116,7 @@ function WorkflowBar({ workflow, kind }: { workflow: StageView[]; kind: 'season'
                 href={s.href}
                 aria-current={s.status === 'current' ? 'step' : undefined}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
+                  'inline-flex items-center gap-1.5 cyber-clip-sm px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                   s.status === 'current'
                     ? 'bg-[var(--selected-surface)] font-semibold text-[var(--gold)]'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',

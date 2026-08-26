@@ -38,7 +38,7 @@ export interface SetupFormProps {
 const YEAR_MIN = 1900
 
 const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'w-full rounded-none border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 
 const CHOICE_ON = 'border-[var(--gold)] bg-[var(--selected-surface)] text-foreground'
 const CHOICE_OFF = 'border-border text-muted-foreground hover:border-[var(--gold)]/40 hover:text-foreground'
@@ -236,7 +236,7 @@ export function SetupForm({ competitions, structures, initialType, currentYear }
         <textarea value={v.description} onChange={set('description')} rows={3} maxLength={2000} className={INPUT} />
       </Field>
 
-      <fieldset className="rounded-md border border-border p-4">
+      <fieldset className="rounded-none border border-border p-4">
         <legend className="px-1.5 font-display text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
           Match format
         </legend>
@@ -267,7 +267,7 @@ export function SetupForm({ competitions, structures, initialType, currentYear }
       </fieldset>
 
       {!reconstruction ? (
-        <fieldset className="rounded-md border border-border p-4">
+        <fieldset className="rounded-none border border-border p-4">
           <legend className="px-1.5 font-display text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
             Registration
           </legend>

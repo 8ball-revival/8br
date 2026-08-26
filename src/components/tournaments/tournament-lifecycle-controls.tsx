@@ -98,7 +98,7 @@ export function TournamentLifecycleControls({
   const badgeVariant = state === 'COMPLETED' ? 'default' : state === 'CANCELLED' ? 'muted' : state === 'IN_PROGRESS' ? 'destructive' : 'success'
 
   return (
-    <div className="mb-6 rounded-lg border border-border bg-card/40 p-4">
+    <div className="mb-6 rounded-none border border-border bg-card/40 p-4">
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm text-muted-foreground">Lifecycle:</span>
         <Badge variant={badgeVariant}>{LABEL[state]}</Badge>

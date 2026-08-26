@@ -64,7 +64,7 @@ export function CreatorColumn({
                 <span className="block truncate text-xs text-muted-foreground">{a.hint}</span>
               </span>
               {a.count != null && (
-                <span className="tabular shrink-0 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                <span className="tabular shrink-0 cyber-clip-sm border border-border px-2 py-0.5 text-xs text-muted-foreground">
                   {a.count}
                 </span>
               )}

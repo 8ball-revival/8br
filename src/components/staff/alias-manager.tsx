@@ -56,7 +56,7 @@ export function AliasManager({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-none border border-border bg-card p-4">
       <h2 className="text-sm font-semibold text-foreground">Aliases</h2>
       <p className="mt-1 text-[0.7rem] text-muted-foreground">
         Other handles this player has been known by. Search, entrant matching and the archive all
@@ -71,7 +71,7 @@ export function AliasManager({
           {aliases.map((a) => (
             <li
               key={a.id}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs"
+              className="inline-flex items-center gap-1 cyber-clip-sm border border-border bg-background px-2.5 py-1 text-xs"
             >
               <span className="font-mono">{a.alias}</span>
               <button
@@ -96,13 +96,13 @@ export function AliasManager({
           aria-label="Add an alias"
           autoComplete="off"
           spellCheck={false}
-          className="w-48 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+          className="w-48 rounded-none border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
         />
         <button
           type="submit"
           disabled={busy || !value.trim()}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-semibold',
+            'inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-1.5 text-xs font-semibold',
             'disabled:opacity-50',
           )}
         >

@@ -136,7 +136,7 @@ export function MemberRowEditor({
               type="button"
               onClick={revert}
               disabled={saving}
-              className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold"
+              className="rounded-none border border-border px-2.5 py-1 text-xs font-semibold"
             >
               Cancel
             </button>
@@ -220,7 +220,7 @@ function QuickAlias({
           {aliases.map((a) => (
             <li
               key={a}
-              className="rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[0.68rem] text-muted-foreground"
+              className="cyber-clip-sm border border-border bg-muted/40 px-1.5 py-0.5 text-[0.68rem] text-muted-foreground"
               title={`Also known as ${a}`}
             >
               @{a}

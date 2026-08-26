@@ -51,7 +51,7 @@ export function ExpandableArticleImage({
         // The alt text alone would read as "image of X" with no hint that this does anything.
         aria-label={alt ? `Enlarge image: ${alt}` : 'Enlarge image'}
         className={cn(
-          'group relative block w-full overflow-hidden rounded-lg border border-border',
+          'group relative block w-full overflow-hidden rounded-none border border-border',
           'bg-[color-mix(in_srgb,var(--card)_82%,black)]',
           'transition-colors hover:border-brand/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60',
         )}

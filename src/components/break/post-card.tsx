@@ -28,7 +28,7 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
   return (
     <article
       className={cn(
-        'grid grid-cols-[auto_1fr] gap-3 rounded-lg border border-border bg-card/40 p-3 transition-colors',
+        'grid grid-cols-[auto_1fr] gap-3 rounded-none border border-border bg-card/40 p-3 transition-colors',
         'hover:border-[var(--gold)]/30 sm:gap-4 sm:p-4',
         card.pinned && 'border-[var(--gold)]/40',
       )}
@@ -49,19 +49,19 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
         {/* Flags first: a reader should know a post is pinned or locked before reading the title. */}
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem]">
           {card.pinned && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
+            <span className="inline-flex items-center gap-1 cyber-clip-sm border border-[var(--gold)]/40 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
               <Pin className="size-3" aria-hidden />Pinned
             </span>
           )}
           {card.official && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
+            <span className="inline-flex items-center gap-1 cyber-clip-sm border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
               <BadgeCheck className="size-3" aria-hidden />Official
             </span>
           )}
           {card.category && (
             <Link
               href={`/the-break?category=${card.category.slug}`}
-              className="rounded-full border border-border px-1.5 py-0.5 font-medium text-muted-foreground hover:text-foreground"
+              className="cyber-clip-sm border border-border px-1.5 py-0.5 font-medium text-muted-foreground hover:text-foreground"
             >
               {card.category.name}
             </Link>
@@ -72,7 +72,7 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
             </span>
           )}
           {card.spoiler && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="inline-flex items-center gap-1 cyber-clip-sm border border-border px-1.5 py-0.5 font-semibold uppercase tracking-wide text-muted-foreground">
               <EyeOff className="size-3" aria-hidden />Spoiler
             </span>
           )}

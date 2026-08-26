@@ -152,16 +152,16 @@ export function ExpandedRow({
                 </span>
                 {c.matchesWithGameData === 0 && (
                   <Tip text="This competition records who won each match but not the individual game scores, so no GW–GL is shown for it.">
-                    <span className="rounded-full border border-border px-1.5 text-[0.6rem] text-muted-foreground">
+                    <span className="cyber-clip-sm border border-border px-1.5 text-[0.6rem] text-muted-foreground">
                       no game scores
                     </span>
                   </Tip>
                 )}
                 {c.runnerUp && !c.won && (
-                  <span className="rounded-full border border-border px-1.5 text-[0.6rem] text-muted-foreground">runner-up</span>
+                  <span className="cyber-clip-sm border border-border px-1.5 text-[0.6rem] text-muted-foreground">runner-up</span>
                 )}
                 {c.deepestRound && !c.won && !c.runnerUp && (
-                  <span className="rounded-full border border-border px-1.5 text-[0.6rem] text-muted-foreground">
+                  <span className="cyber-clip-sm border border-border px-1.5 text-[0.6rem] text-muted-foreground">
                     reached {c.deepestRound}
                   </span>
                 )}

@@ -40,7 +40,7 @@ export default async function PenaltiesPage({ searchParams }: SP) {
       <div className="mt-5 space-y-2">
         {penalties.map((p) => {
           return (
-            <div key={p.id} className="rounded-lg border border-border bg-card/40 p-4 text-sm">
+            <div key={p.id} className="rounded-none border border-border bg-card/40 p-4 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Link href={`/staff/members/${p.userId}`} className="font-medium hover:text-brand">
                   {p.preferredName ? <PublicPlayerIdentity preferredName={p.preferredName} cueverseId={p.cueverseId} muted /> : `@${p.username}`}

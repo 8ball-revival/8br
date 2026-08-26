@@ -131,7 +131,7 @@ export function Top10Panel({
           value={mode}
           disabled={pending}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-2.5 w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/40"
+          className="mt-2.5 w-full rounded-none border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/40"
         >
           {groups.map((group) => {
             const items = options.filter((o) => o.group === group)

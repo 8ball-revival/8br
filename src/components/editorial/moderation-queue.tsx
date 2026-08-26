@@ -75,7 +75,7 @@ export function ModerationQueue({
     <div className="space-y-8">
       {submissions.length > 0 && (
         <Section title="Awaiting review" count={submissions.length}>
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border rounded-none border border-border">
             {submissions.map((s) => <li key={s.id} className="p-4"><Submission item={s} /></li>)}
           </ul>
         </Section>
@@ -83,7 +83,7 @@ export function ModerationQueue({
 
       {proposals.length > 0 && (
         <Section title="Proposed edits to published articles" count={proposals.length}>
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border rounded-none border border-border">
             {proposals.map((p) => <li key={p.id} className="p-4"><Proposal item={p} /></li>)}
           </ul>
         </Section>
@@ -91,7 +91,7 @@ export function ModerationQueue({
 
       {reports.length > 0 && (
         <Section title="Reported comments" count={reports.length}>
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border rounded-none border border-border">
             {reports.map((r) => <li key={r.id} className="p-4"><Report item={r} /></li>)}
           </ul>
         </Section>

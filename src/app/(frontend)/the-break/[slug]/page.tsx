@@ -77,7 +77,7 @@ export default async function PostPage({
         <ArrowLeft className="size-4" aria-hidden />The Break
       </Link>
 
-      <article className="rounded-lg border border-border bg-card/40 p-4 sm:p-5">
+      <article className="rounded-none border border-border bg-card/40 p-4 sm:p-5">
         <div className="grid grid-cols-[auto_1fr] gap-3 sm:gap-4">
           <div className="pt-0.5">
             <VoteControl
@@ -89,19 +89,19 @@ export default async function PostPage({
           <div className="min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem]">
               {post.pinned && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
+                <span className="inline-flex items-center gap-1 cyber-clip-sm border border-[var(--gold)]/40 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
                   <Pin className="size-3" aria-hidden />Pinned
                 </span>
               )}
               {post.official && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
+                <span className="inline-flex items-center gap-1 cyber-clip-sm border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[var(--gold)]">
                   <BadgeCheck className="size-3" aria-hidden />Official
                 </span>
               )}
               {post.category && (
                 <Link
                   href={`/the-break?category=${post.category.slug}`}
-                  className="rounded-full border border-border px-1.5 py-0.5 font-medium text-muted-foreground hover:text-foreground"
+                  className="cyber-clip-sm border border-border px-1.5 py-0.5 font-medium text-muted-foreground hover:text-foreground"
                 >
                   {post.category.name}
                 </Link>
@@ -227,7 +227,7 @@ export default async function PostPage({
                 href={s === 'best' ? href : `${href}?sort=${s}`}
                 aria-current={sort === s ? 'page' : undefined}
                 className={cn(
-                  'rounded-full px-2 py-1 font-medium capitalize transition-colors',
+                  'cyber-clip-sm px-2 py-1 font-medium capitalize transition-colors',
                   sort === s ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : 'text-muted-foreground hover:text-foreground',
                 )}
               >

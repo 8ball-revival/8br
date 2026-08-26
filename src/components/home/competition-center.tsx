@@ -48,7 +48,7 @@ function CueVersePromo() {
       href={CUEVERSE_HOME_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card/40 p-5 transition-colors hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+      className="group relative flex flex-col overflow-hidden rounded-none border border-border bg-card/40 p-5 transition-colors hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
     >
       {/*
         The official CueVerse assets, stored locally rather than hotlinked, and left exactly as
@@ -106,7 +106,7 @@ function CueVerseTop5({ snapshot }: { snapshot: CueVerseSnapshotView | null }) {
   return (
     <section
       aria-labelledby="cueverse-top5-heading"
-      className="flex flex-col overflow-hidden rounded-lg border border-border bg-card/40"
+      className="flex flex-col overflow-hidden rounded-none border border-border bg-card/40"
     >
       <div className="border-b border-border px-4 py-3">
         <h3

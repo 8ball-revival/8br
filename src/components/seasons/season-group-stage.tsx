@@ -13,6 +13,7 @@ import { saveSeasonGroupAction, closeSeasonGroupsAction, reopenSeasonGroupsActio
 import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 import { useReportUnsaved } from './unsaved-groups'
+import { CommandDeck, DeckAction } from '@/components/command-deck'
 
 type Draft = Record<number, { home: string; away: string }>
 
@@ -33,8 +34,52 @@ export function SeasonGroupStage({
   const router = useRouter()
   const confirm = useConfirm()
 
+  /*
+   * Close/Reopen moved to the deck, from the foot of the page.
+   *
+   * They used to sit below the last group table — eight tables and a full screen of scrolling away
+   * from the point at which somebody decides the stage is finished. They are the two decisions this
+   * screen exists to make, so they belong in the action position the bracket and the ladder also
+   * use, reachable without leaving the top of the page.
+   */
+  const allMatches = groups.flatMap((g) => g.matches)
+  const unresolved = allMatches.filter((m) => m.status === 'SCHEDULED')
+
+  const closeGroups = async () => {
+    const res = await confirm({
+      title: 'Close Groups?',
+      message: unresolved.length
+        ? `${unresolved.length} match(es) are still unresolved. Continuing marks them No Contest (no points, no Rankings effect); final standings then lock.`
+        : 'The final group standings will be locked.',
+      confirmLabel: 'Close Groups', tone: 'warning', action: async () => closeSeasonGroupsAction(seasonId),
+    })
+    if (res.confirmed) router.refresh()
+  }
+
+  const reopenGroups = async () => {
+    const res = await confirm({ title: 'Reopen Groups?', message: 'Any private draft playoff bracket will be discarded because standings may change.', confirmLabel: 'Reopen Groups', tone: 'warning', action: async () => reopenSeasonGroupsAction(seasonId) })
+    if (res.confirmed) router.refresh()
+  }
+
   return (
     <div className="mt-8 space-y-6">
+      <CommandDeck
+        eyebrow="Group Stage"
+        title="Score Entry"
+        stats={[
+          { label: 'Groups', value: groups.length },
+          { label: 'Entered', value: `${allMatches.length - unresolved.length}/${allMatches.length}` },
+        ]}
+        actions={
+          canManage && (canClose || canReopen) ? (
+            <>
+              {canReopen && <DeckAction onClick={reopenGroups}>Reopen Groups</DeckAction>}
+              {/* Primary last: closing the stage is what this screen builds towards. */}
+              {canClose && <DeckAction primary onClick={closeGroups}>Close Groups</DeckAction>}
+            </>
+          ) : null
+        }
+      />
       {/*
         Auto Assign for scores sits above the tables it fills, where the person entering results is
         already looking. It is drawn only while the group stage can still be edited.
@@ -54,29 +99,6 @@ export function SeasonGroupStage({
       {groups.map((g) => <GroupTable key={`${g.id}:${g.matches.map((m) => m.version).join(',')}`} seasonId={seasonId} group={g} groupStageGames={groupStageGames} canManage={canManage} />)}
       {!canManage && <MemberLegend />}
 
-      {canManage && (canClose || canReopen) && (
-        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-          {canClose && (
-            <Button size="sm" onClick={async () => {
-              const unresolved = groups.flatMap((g) => g.matches).filter((m) => m.status === 'SCHEDULED')
-              const res = await confirm({
-                title: 'Close Groups?',
-                message: unresolved.length
-                  ? `${unresolved.length} match(es) are still unresolved. Continuing marks them No Contest (no points, no Rankings effect); final standings then lock.`
-                  : 'The final group standings will be locked.',
-                confirmLabel: 'Close Groups', tone: 'warning', action: async () => closeSeasonGroupsAction(seasonId),
-              })
-              if (res.confirmed) router.refresh()
-            }}>Close Groups</Button>
-          )}
-          {canReopen && (
-            <Button size="sm" variant="outline" onClick={async () => {
-              const res = await confirm({ title: 'Reopen Groups?', message: 'Any private draft playoff bracket will be discarded because standings may change.', confirmLabel: 'Reopen Groups', tone: 'warning', action: async () => reopenSeasonGroupsAction(seasonId) })
-              if (res.confirmed) router.refresh()
-            }}>Reopen Groups</Button>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -90,7 +112,7 @@ export function SeasonGroupStage({
  */
 function Legend() {
   return (
-    <div className="sticky top-2 z-20 rounded-md border border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur">
+    <div className="sticky top-2 z-20 rounded-none border border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur">
       <span className="font-semibold text-foreground">Score Entry:</span> Enter each player&apos;s game total (e.g. <code className="text-foreground">7</code> / <code className="text-foreground">3</code>).{' '}
       <b className="text-foreground">FF</b> = forfeit (FF in the forfeiting player&apos;s cell, opponent blank).{' '}
       Blank / 0–0 = unplayed.
@@ -233,7 +255,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
                 <span className="inline-flex items-center gap-1">Pts
                   <span className="group/tip relative inline-flex">
                     <button type="button" aria-describedby={tipId} className="inline-flex text-muted-foreground hover:text-foreground"><Info className="size-3" aria-hidden /><span className="sr-only">How standings are sorted</span></button>
-                    <span id={tipId} role="tooltip" className="pointer-events-none absolute right-0 top-5 z-40 hidden w-56 rounded-md border border-border bg-popover p-2 text-left text-[0.7rem] normal-case tracking-normal text-muted-foreground shadow-lg group-hover/tip:block group-focus-within/tip:block">
+                    <span id={tipId} role="tooltip" className="pointer-events-none absolute right-0 top-5 z-40 hidden w-56 rounded-none border border-border bg-popover p-2 text-left text-[0.7rem] normal-case tracking-normal text-muted-foreground shadow-lg group-hover/tip:block group-focus-within/tip:block">
                       Points: Win = 2, Draw = 1, plus 1 for completing all your sets. Ties are broken by head-to-head result, then win percentage.
                     </span>
                   </span>

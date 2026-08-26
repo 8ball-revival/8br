@@ -55,7 +55,7 @@ export function Methodology() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 rounded-none border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <Info className="size-3.5" aria-hidden />
         How these rankings work
@@ -70,7 +70,7 @@ export function Methodology() {
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
           onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
         >
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-2xl">
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-none border border-border bg-card p-5 shadow-2xl">
             <div className="mb-3 flex items-start justify-between gap-4">
               <h2 className="font-display text-lg font-bold">How these rankings work</h2>
               <button

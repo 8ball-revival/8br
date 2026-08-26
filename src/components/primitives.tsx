@@ -54,12 +54,12 @@ export function Panel({
   children: React.ReactNode
 }) {
   return (
-    <section className={cn('flex flex-col rounded-lg border border-border bg-card', className)}>
+    <section className={cn('flex flex-col rounded-none border border-border bg-card', className)}>
       <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <h2 className="eyebrow text-foreground">{title}</h2>
           {live && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-destructive">
+            <span className="inline-flex items-center gap-1 cyber-clip-sm bg-destructive/15 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-destructive">
               <span className="relative flex size-1.5">
                 <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-destructive/70" aria-hidden />
                 <span className="relative inline-flex size-1.5 rounded-full bg-destructive" aria-hidden />

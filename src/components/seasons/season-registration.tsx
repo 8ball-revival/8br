@@ -139,7 +139,7 @@ export function SeasonRegistration({
       </div>
 
       {/* Numbered entrant list: # · Preferred Name + CueVerse ID · Rating */}
-      <div className="overflow-hidden rounded-md border border-border">
+      <div className="overflow-hidden rounded-none border border-border">
         <div className="flex items-center gap-3 border-b border-border bg-card/50 px-3 py-1.5 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
           <span className="w-8 shrink-0 text-right">#</span>
           <span className="min-w-0 flex-1">Entrant</span>
@@ -204,10 +204,10 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
     <div className="relative max-w-md">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
-        <input value={q} onChange={(e) => load(e.target.value)} onFocus={openList} onClick={openList} onBlur={() => setTimeout(() => setOpen(false), 150)} placeholder="Add player by name or CueVerse ID…" className="w-72 rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm" aria-label="Add player" />
+        <input value={q} onChange={(e) => load(e.target.value)} onFocus={openList} onClick={openList} onBlur={() => setTimeout(() => setOpen(false), 150)} placeholder="Add player by name or CueVerse ID…" className="w-72 rounded-none border border-border bg-background py-2 pl-9 pr-3 text-sm" aria-label="Add player" />
       </div>
       {open && (
-        <ul className="absolute z-10 mt-1 max-h-64 w-72 space-y-1 overflow-y-auto rounded-md border border-border bg-background p-1 shadow-lg">
+        <ul className="absolute z-10 mt-1 max-h-64 w-72 space-y-1 overflow-y-auto rounded-none border border-border bg-background p-1 shadow-lg">
           {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
           {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players — create one below.</li>}
           {candidates.map((c) => (
@@ -282,10 +282,10 @@ function CreatePlayerInline({
   }
 
   return (
-    <form onSubmit={submit} className="w-72 rounded-md border border-border bg-background p-3">
+    <form onSubmit={submit} className="w-72 rounded-none border border-border bg-background p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">New player</p>
-      <input value={cueverseId} onChange={(e) => setCueverseId(e.target.value)} placeholder="CueVerse ID" aria-label="CueVerse ID" autoFocus className="mb-2 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm" />
-      <input value={preferredName} onChange={(e) => setPreferredName(e.target.value)} placeholder="Preferred name (optional)" aria-label="Preferred name" className="mb-2 w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm" />
+      <input value={cueverseId} onChange={(e) => setCueverseId(e.target.value)} placeholder="CueVerse ID" aria-label="CueVerse ID" autoFocus className="mb-2 w-full rounded-none border border-border bg-background px-2.5 py-1.5 text-sm" />
+      <input value={preferredName} onChange={(e) => setPreferredName(e.target.value)} placeholder="Preferred name (optional)" aria-label="Preferred name" className="mb-2 w-full rounded-none border border-border bg-background px-2.5 py-1.5 text-sm" />
       {error && <p role="alert" className="mb-2 text-xs text-red-400">{error}</p>}
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={busy}>{busy ? 'Creating…' : 'Create and add'}</Button>

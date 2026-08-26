@@ -20,7 +20,7 @@ import {
 
 type Status = 'ACTIVE' | 'TIMED_OUT' | 'BANNED' | 'DELETED'
 
-const FIELD = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm'
+const FIELD = 'w-full rounded-none border border-input bg-background px-3 py-2 text-sm'
 
 export function MemberModeration({
   userId,

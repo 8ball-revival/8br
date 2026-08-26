@@ -61,7 +61,7 @@ export function ResetPasswordPanel() {
   return (
     <div className="max-w-2xl space-y-6">
       {/* Search + select */}
-      <div className="rounded-lg border border-border bg-card/40 p-4">
+      <div className="rounded-none border border-border bg-card/40 p-4">
         <label className="mb-1.5 block text-sm font-semibold text-foreground">Find a player</label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
@@ -71,11 +71,11 @@ export function ResetPasswordPanel() {
             onFocus={() => { setOpen(true); if (!candidates.length) load('') }}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
             placeholder="Search by preferred name, CueVerse ID, email, or user ID…"
-            className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus-visible:border-brand"
+            className="w-full rounded-none border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus-visible:border-brand"
             aria-label="Search players"
           />
           {open && (
-            <ul className="absolute z-20 mt-1 max-h-72 w-full space-y-1 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-lg">
+            <ul className="absolute z-20 mt-1 max-h-72 w-full space-y-1 overflow-y-auto rounded-none border border-border bg-popover p-1 shadow-lg">
               {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
               {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No matching accounts.</li>}
               {candidates.map((a) => (
@@ -85,7 +85,7 @@ export function ResetPasswordPanel() {
                       <span className="font-medium text-foreground">{a.preferredName || a.cueverseId || `User ${a.userId}`}</span>
                       <span className="ml-1.5 text-xs text-muted-foreground">{a.cueverseId ? `@${a.cueverseId}` : '—'}{a.email ? ` · ${a.email}` : ''} · #{a.userId}</span>
                     </span>
-                    <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-semibold', a.tier === 'headAdmin' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : a.tier === 'admin' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[a.tier]}</span>
+                    <span className={cn('shrink-0 cyber-clip-sm px-1.5 py-0.5 text-[0.6rem] font-semibold', a.tier === 'headAdmin' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : a.tier === 'admin' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[a.tier]}</span>
                   </button>
                 </li>
               ))}
@@ -96,11 +96,11 @@ export function ResetPasswordPanel() {
 
       {/* Selected identity + action */}
       {selected && (
-        <div className="rounded-lg border border-border bg-card/40 p-4">
+        <div className="rounded-none border border-border bg-card/40 p-4">
           <p className="eyebrow text-muted-foreground">Selected player</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <p className="font-display text-lg font-bold">{selected.preferredName || selected.cueverseId || `User ${selected.userId}`}</p>
-            <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', selected.tier === 'headAdmin' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : selected.tier === 'admin' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[selected.tier]}</span>
+            <span className={cn('cyber-clip-sm px-2 py-0.5 text-[0.65rem] font-semibold', selected.tier === 'headAdmin' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : selected.tier === 'admin' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[selected.tier]}</span>
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">{selected.cueverseId ? `@${selected.cueverseId}` : '—'}{selected.email ? ` · ${selected.email}` : ''} · account #{selected.userId}</p>
           {selected.tier === 'headAdmin' && (

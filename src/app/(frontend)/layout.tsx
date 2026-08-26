@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import React from 'react'
 
+import { HudSettingsPanel } from '@/components/hud-settings'
 import { SiteHeader } from '@/components/site-header'
 import { DialogProvider } from '@/components/ui/confirm-dialog'
 import { SiteFooter } from '@/components/site-footer'
@@ -53,9 +54,24 @@ export const viewport: Viewport = {
   ],
 }
 
-// Set the theme class before paint to avoid a flash. Dark is the default (no class); only an explicit
-// "light" preference adds the `.light` class to <html>.
-const themeScript = `try{if(localStorage.getItem('8br-theme')==='light')document.documentElement.classList.add('light');}catch(e){}`
+/*
+ * The display settings, applied before the first paint.
+ *
+ * These live on <html> as data-* attributes and one CSS variable, and the stylesheet reads them. It
+ * has to run synchronously in <head>: applied from an effect instead, a reader who had turned the
+ * glow down or the scanlines off would get one lit frame on every navigation, which is precisely
+ * the flash the setting was chosen to avoid.
+ *
+ * Written defensively — a private-mode browser throws on localStorage, and a display preference
+ * failing to load must never take the page down with it.
+ */
+const hudScript = `try{var d=document.documentElement,s=JSON.parse(localStorage.getItem('8br-hud')||'{}');
+d.dataset.hudIntensity=s.intensity||'standard';d.dataset.hudAccent=s.accent||'yellow';
+d.dataset.hudScan=s.scan===false?'off':'on';d.dataset.hudGrid=s.grid===false?'off':'on';
+d.dataset.hudMotion=s.motion||'normal';d.dataset.hudAberration=s.aberration?'on':'off';
+d.dataset.hudNoise=s.noise===false?'off':'on';d.dataset.hudFlicker=s.flicker?'on':'off';
+d.dataset.hudCorners=s.corners||'chamfer';
+d.style.setProperty('--hud-glow-user',String((s.glow==null?100:s.glow)/100));}catch(e){}`
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -65,13 +81,14 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: hudScript }} />
       </head>
       <body className="flex min-h-screen flex-col bg-transparent text-foreground antialiased">
         <DialogProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
+          <HudSettingsPanel />
         </DialogProvider>
       </body>
     </html>

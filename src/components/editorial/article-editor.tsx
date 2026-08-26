@@ -387,7 +387,7 @@ export function ArticleEditor({
       )}
 
       {proposalMode && (
-        <p className="mt-4 rounded-md border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
+        <p className="mt-4 rounded-none border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
           This article is already published. Your changes will be held for review — readers keep seeing
           the approved version until an administrator accepts them.
         </p>
@@ -419,7 +419,7 @@ export function ArticleEditor({
               onChange={(e) => set('title', e.target.value)}
               placeholder="What is this about?"
               maxLength={180}
-              className="w-full rounded-md border border-input bg-card px-3 py-2 font-display text-lg outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+              className="w-full rounded-none border border-input bg-card px-3 py-2 font-display text-lg outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
             />
           </Field>
 
@@ -443,7 +443,7 @@ export function ArticleEditor({
               onChange={(e) => set('excerpt', e.target.value)}
               rows={2}
               maxLength={400}
-              className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+              className="w-full resize-y rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
             />
           </Field>
         </div>
@@ -451,7 +451,7 @@ export function ArticleEditor({
 
       {tab === 'preview' && (
         <div className="mt-5">
-          <article className="rounded-lg border border-border bg-card/30 p-6">
+          <article className="rounded-none border border-border bg-card/30 p-6">
             <h2 className="font-display text-3xl font-bold leading-tight tracking-tight">
               {form.title || 'Untitled'}
             </h2>
@@ -490,7 +490,7 @@ export function ArticleEditor({
                 value={form.slug}
                 onChange={(e) => set('slug', slugify(e.target.value))}
                 placeholder={slugify(form.title) || 'article'}
-                className="min-w-0 flex-1 rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+                className="min-w-0 flex-1 rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
               />
               {slugState.checking
                 ? <span className="text-xs text-muted-foreground">checking…</span>
@@ -505,7 +505,7 @@ export function ArticleEditor({
               id="category"
               value={form.categoryId ?? ''}
               onChange={(e) => set('categoryId', e.target.value ? Number(e.target.value) : null)}
-              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+              className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm"
             >
               <option value="">No category</option>
               {categories.map((c) => (
@@ -522,7 +522,7 @@ export function ArticleEditor({
               value={form.tags.join(', ')}
               onChange={(e) => set('tags', e.target.value.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 12))}
               placeholder="season 12, predictions, break-and-run"
-              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+              className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
             />
           </Field>
 
@@ -533,25 +533,25 @@ export function ArticleEditor({
             onChange={(mediaId, alt) => setForm((f) => ({ ...f, coverMediaId: mediaId, coverAlt: alt }))}
           />
 
-          <fieldset className="rounded-lg border border-border p-4">
+          <fieldset className="rounded-none border border-border p-4">
             <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Search &amp; sharing</legend>
             <div className="space-y-3">
               <Field label="Title override" htmlFor="seoTitle" hint="Used in search results and link previews. Left blank, the article title is used.">
                 <input
                   id="seoTitle" value={form.seoTitle} onChange={(e) => set('seoTitle', e.target.value)} maxLength={180}
-                  className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                  className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm"
                 />
               </Field>
               <Field label="Description override" htmlFor="seoDescription">
                 <textarea
                   id="seoDescription" value={form.seoDescription} onChange={(e) => set('seoDescription', e.target.value)} rows={2} maxLength={320}
-                  className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm"
+                  className="w-full resize-y rounded-none border border-input bg-card px-3 py-2 text-sm"
                 />
               </Field>
             </div>
           </fieldset>
 
-          <fieldset className="rounded-lg border border-border p-4">
+          <fieldset className="rounded-none border border-border p-4">
             <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Options</legend>
             <div className="space-y-2.5">
               <Check
@@ -578,7 +578,7 @@ export function ArticleEditor({
 
       {tab === 'history' && (
         <div className="mt-5">
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border rounded-none border border-border">
             {revisions.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
@@ -646,7 +646,7 @@ export function ArticleEditor({
           <>
             <Link
               href={`/news/${form.slug}`}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:border-brand/40"
+              className="inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-2 text-sm hover:border-brand/40"
             >
               <Eye className="size-4" aria-hidden />View
             </Link>
@@ -740,7 +740,7 @@ function PublicationDate({
   const backdated = valid && parsed.getTime() < mountedAt
 
   return (
-    <fieldset className="rounded-lg border border-border p-4">
+    <fieldset className="rounded-none border border-border p-4">
       <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Publication date
       </legend>
@@ -757,7 +757,7 @@ function PublicationDate({
           type="datetime-local"
           value={toLocalInput(value)}
           onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
-          className="rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+          className="rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
         />
         {value && (
           <Button size="sm" variant="ghost" onClick={() => onChange(null)}>Clear</Button>
@@ -816,7 +816,7 @@ function AuthorPicker({
   const isSelf = value === selfPlayerId
 
   return (
-    <fieldset className="rounded-lg border border-border p-4">
+    <fieldset className="rounded-none border border-border p-4">
       <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Author</legend>
 
       <p className="mb-3 text-xs text-muted-foreground">
@@ -832,7 +832,7 @@ function AuthorPicker({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter by CueVerse ID or name…"
-          className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+          className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
         />
 
         <label htmlFor="author" className="sr-only">Author</label>
@@ -844,7 +844,7 @@ function AuthorPicker({
             if (m) onChange(m.playerId, labelFor(m))
           }}
           size={Math.min(8, Math.max(3, shown.length))}
-          className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm"
+          className="w-full rounded-none border border-input bg-card px-2 py-1.5 text-sm"
         >
           {shown.map((m) => (
             <option key={m.playerId} value={m.playerId}>
@@ -907,13 +907,13 @@ function CoverPicker({
   }
 
   return (
-    <fieldset className="rounded-lg border border-border p-4">
+    <fieldset className="rounded-none border border-border p-4">
       <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover image</legend>
 
       {mediaId && (
         <div className="mb-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- Payload media, not a static asset */}
-          <img src={`/api/media/file/${mediaId}`} alt={alt} className="max-h-48 rounded-md border border-border" />
+          <img src={`/api/media/file/${mediaId}`} alt={alt} className="max-h-48 rounded-none border border-border" />
         </div>
       )}
 
@@ -960,7 +960,7 @@ function CoverPicker({
         <input
           id="coverAlt" value={alt} onChange={(e) => onChange(mediaId, e.target.value)}
           placeholder="What a reader who cannot see it needs to know"
-          className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+          className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm"
         />
       </div>
 

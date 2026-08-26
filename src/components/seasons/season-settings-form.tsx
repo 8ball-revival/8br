@@ -13,7 +13,7 @@ import { CompetitionSelect } from '@/components/competitions/competition-select'
 import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN } from '@/lib/competition/competition-year'
 import { updateSeasonSettingsAction, exportSeasonDataAction, deleteSeasonAction } from '@/lib/seasons/actions'
 
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /** Season Settings — lifecycle-aware. Registration access/schedule edit only before close; match
  *  format until playoffs begin (warned once live); after Close only identity/description/export. */
@@ -164,7 +164,7 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
       {regEditable && (
         <Section title="Registration access & schedule">
           <Field label="Access">
-            <div className="inline-flex gap-1 rounded-md border border-input bg-card p-1">
+            <div className="inline-flex gap-1 rounded-none border border-input bg-card p-1">
               {['OPEN', 'PASSWORD'].map((v) => <button key={v} type="button" onClick={() => setAccess(v)} className={cn('rounded px-3 py-1.5 text-sm font-semibold', access === v ? 'bg-brand text-white' : 'text-muted-foreground')}>{v === 'OPEN' ? 'Open' : 'Password'}</button>)}
             </div>
           </Field>
@@ -237,7 +237,7 @@ function DangerZone({ seasonId, completed, isHeadAdmin }: { seasonId: number; co
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="space-y-3 rounded-lg border border-border bg-card/40 p-4"><h3 className="text-sm font-semibold text-foreground">{title}</h3>{children}</section>
+  return <section className="space-y-3 rounded-none border border-border bg-card/40 p-4"><h3 className="text-sm font-semibold text-foreground">{title}</h3>{children}</section>
 }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><label className="mb-1.5 block text-[0.8rem] font-semibold text-foreground">{label}</label>{children}</div>

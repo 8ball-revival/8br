@@ -46,7 +46,7 @@ export function RecoveryConsole({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-md border border-border bg-background px-4 py-3 text-sm">
+      <div className="rounded-none border border-border bg-background px-4 py-3 text-sm">
         <span className="eyebrow text-muted-foreground">Current Owner</span>
         <p className="mt-1 font-medium">
           {currentOwner ? `${currentOwner.username} (#${currentOwner.id})` : 'None found'}
@@ -57,7 +57,7 @@ export function RecoveryConsole({
         <label className="eyebrow text-muted-foreground" htmlFor="target">Transfer ownership to</label>
         <select
           id="target"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm"
           value={targetId}
           onChange={(e) => setTargetId(e.target.value ? Number(e.target.value) : '')}
         >

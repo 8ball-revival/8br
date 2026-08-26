@@ -44,7 +44,7 @@ export function GroupStageControls({ seasonId, canClose }: { seasonId: number; c
         type="button"
         disabled={pending}
         onClick={() => start(async () => setPreflight(await previewCloseGroupsAction(seasonId)))}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <Lock className="size-4" aria-hidden /> Close Groups
       </button>
@@ -149,7 +149,7 @@ function CloseDialog({
                   type="button"
                   disabled={pending}
                   onClick={() => clearOne(m.matchId)}
-                  className="ml-auto rounded-full border border-border px-2 py-0.5 text-[0.7rem] text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
+                  className="ml-auto cyber-clip-sm border border-border px-2 py-0.5 text-[0.7rem] text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
                 >
                   Clear to unplayed
                 </button>
@@ -160,7 +160,7 @@ function CloseDialog({
       )}
 
       {preflight.unresolved > 0 ? (
-        <div className="mt-3 rounded-md border border-border bg-card/50 px-3 py-2">
+        <div className="mt-3 rounded-none border border-border bg-card/50 px-3 py-2">
           <p className="text-sm text-foreground">
             {preflight.unresolved} match{preflight.unresolved === 1 ? '' : 'es'} {preflight.unresolved === 1 ? 'was' : 'were'} never
             played. Closing records {preflight.unresolved === 1 ? 'it' : 'them'} as <b>No Contest</b>:
@@ -219,7 +219,7 @@ export function GroupsClosedControls({ seasonId, playoffsHref }: { seasonId: num
         type="button"
         disabled={pending}
         onClick={() => start(async () => setImpact(await previewReopenGroupsAction(seasonId)))}
-        className="inline-flex items-center gap-1.5 rounded-full border border-destructive/60 px-4 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
+        className="inline-flex items-center gap-1.5 cyber-clip-sm border border-destructive/60 px-4 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
       >
         <RotateCcw className="size-4" aria-hidden /> Reopen Groups
       </button>
@@ -276,7 +276,7 @@ function ReopenDialog({ seasonId, impact, onClose }: { seasonId: number; impact:
       )}
 
       {impact.draftPlayoffMatches > 0 && (
-        <label className="mt-3 flex items-start gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-sm">
+        <label className="mt-3 flex items-start gap-2 rounded-none border border-border bg-card/40 px-3 py-2 text-sm">
           <input
             type="checkbox"
             checked={discard}
@@ -315,7 +315,7 @@ function Dialog({ labelledBy, onClose, children }: { labelledBy: string; onClose
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-none border border-border bg-card p-5 shadow-xl">
         {children}
       </div>
     </div>
@@ -323,8 +323,8 @@ function Dialog({ labelledBy, onClose, children }: { labelledBy: string; onClose
 }
 
 const btnGhost =
-  'rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'cyber-clip-sm border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 const btnGold =
-  'rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 const btnDanger =
-  'rounded-full bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50'
+  'cyber-clip-sm bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50'

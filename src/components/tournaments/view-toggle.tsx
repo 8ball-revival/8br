@@ -33,7 +33,7 @@ export function ViewToggle({ number, active }: { number: number; active: View })
   }
 
   return (
-    <div role="tablist" aria-label="Tournament view" className="inline-flex rounded-lg border border-border bg-card/40 p-1">
+    <div role="tablist" aria-label="Tournament view" className="inline-flex rounded-none border border-border bg-card/40 p-1">
       {tabs.map((v, i) => {
         const selected = active === v
         return (

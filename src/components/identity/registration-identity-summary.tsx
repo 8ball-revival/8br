@@ -21,7 +21,7 @@ export function RegistrationIdentitySummary({
   timeZone?: string | null
 }) {
   return (
-    <div className="rounded-md border border-border bg-card/50 px-4 py-3">
+    <div className="rounded-none border border-border bg-card/50 px-4 py-3">
       <p className="eyebrow text-muted-foreground">Registering as</p>
       <p className="mt-1 text-base font-semibold text-foreground">{formatIdentityLabel(preferredName, cueverseId)}</p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

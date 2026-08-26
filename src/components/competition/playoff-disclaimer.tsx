@@ -59,7 +59,7 @@ export function PlayoffDisclaimer({
   return (
     <div className="mt-6">
       {saved && showValue && (
-        <p className="flex max-w-3xl items-start gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="flex max-w-3xl items-start gap-2 rounded-none border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span className="whitespace-pre-wrap">{saved}</span>
         </p>
@@ -76,7 +76,7 @@ export function PlayoffDisclaimer({
       )}
 
       {canManage && open && (
-        <div className="mt-2 max-w-3xl rounded-md border border-border bg-card/40 p-3">
+        <div className="mt-2 max-w-3xl rounded-none border border-border bg-card/40 p-3">
           <label className="text-[0.7rem] font-semibold text-foreground" htmlFor="playoff-note">
             Bracket note <span className="font-normal text-muted-foreground">(shown to everyone)</span>
           </label>
@@ -88,7 +88,7 @@ export function PlayoffDisclaimer({
             maxLength={500}
             disabled={pending}
             placeholder="e.g. The pairings are taken from the archive; the individual scores were never recorded and are approximate."
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+            className="mt-1 w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
           />
           <div className="mt-2 flex items-center gap-2">
             <button
@@ -103,7 +103,7 @@ export function PlayoffDisclaimer({
               type="button"
               onClick={() => { setText(value ?? ''); setOpen(false); setError(null) }}
               disabled={pending}
-              className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold"
+              className="rounded-none border border-border px-3 py-1.5 text-xs font-semibold"
             >
               Cancel
             </button>

@@ -279,7 +279,7 @@ function MatchCard({
       <p className="mb-0.5 flex items-center gap-1 text-[0.6em] uppercase tracking-wide text-muted-foreground">
         {match.label ?? `R${match.round}`}
         {match.needsReview && (
-          <span className="rounded-full border border-[var(--bracket-review)] px-1 text-[var(--bracket-review)]">Needs Review</span>
+          <span className="cyber-clip-sm border border-[var(--bracket-review)] px-1 text-[var(--bracket-review)]">Needs Review</span>
         )}
       </p>
 
@@ -381,7 +381,7 @@ function EditScoreDialog({ from, to, onCancel, onConfirm }: { from: string; to: 
     <div role="dialog" aria-modal="true" aria-labelledby="edit-score-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}>
-      <div className="w-full max-w-xs rounded-xl border border-border bg-card p-4 shadow-xl">
+      <div className="w-full max-w-xs rounded-none border border-border bg-card p-4 shadow-xl">
         <h2 id="edit-score-title" className="font-display text-base font-bold text-foreground">Change this score?</h2>
         <p className="mt-1.5 text-sm text-muted-foreground">
           This tie is already recorded as{' '}
@@ -415,7 +415,7 @@ function RebuildDialog({ labels, onCancel, onConfirm }: { labels: string[]; onCa
     <div role="dialog" aria-modal="true" aria-labelledby="rebuild-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}>
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-none border border-border bg-card p-5 shadow-xl">
         <h2 id="rebuild-title" className="font-display text-lg font-bold text-foreground">This changes the winner</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The bracket after this tie was built on the old result. These matches are affected:
@@ -425,11 +425,11 @@ function RebuildDialog({ labels, onCancel, onConfirm }: { labels: string[]; onCa
         </ul>
         <div className="mt-5 flex justify-end gap-2">
           <button ref={cancelRef} type="button" onClick={onCancel}
-            className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+            className="cyber-clip-sm border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
             Cancel
           </button>
           <button type="button" onClick={onConfirm}
-            className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black hover:opacity-90">
+            className="cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black hover:opacity-90">
             Apply the correction
           </button>
         </div>

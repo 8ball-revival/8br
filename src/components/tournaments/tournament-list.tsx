@@ -137,7 +137,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
   return (
     <label className="inline-flex items-center gap-1.5">
       <span className="sr-only">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-9 rounded-md border border-input bg-background/60 px-2 text-sm" aria-label={label}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-9 rounded-none border border-input bg-background/60 px-2 text-sm" aria-label={label}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
     </label>
@@ -148,7 +148,7 @@ function Row({ c, rel }: { c: TournamentListItem; rel: { display: string; relati
   const completed = !isActive(c.status)
   return (
     <li>
-      <Link href={`/tournaments/${c.number}`} className="block rounded-lg border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
+      <Link href={`/tournaments/${c.number}`} className="block rounded-none border border-border bg-card/40 p-3 transition-colors hover:border-brand/40 hover:bg-card/70">
         {/*
           One heading: position, title, Competition, year.
 

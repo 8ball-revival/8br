@@ -13,7 +13,7 @@ import type { TemplateStatus } from '@/lib/archive/manifest'
 export function ArchiveTemplateStatus({ status }: { status: TemplateStatus }) {
   if (!status.exists) {
     return (
-      <div className="rounded-lg border border-border bg-card/40 p-3">
+      <div className="rounded-none border border-border bg-card/40 p-3">
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <CircleSlash className="size-4 shrink-0" aria-hidden />
           No verified archive data for this Season.
@@ -26,7 +26,7 @@ export function ArchiveTemplateStatus({ status }: { status: TemplateStatus }) {
   const resultsReady = status.exactResults === 'complete'
 
   return (
-    <div className="rounded-lg border border-border bg-card/40 p-3">
+    <div className="rounded-none border border-border bg-card/40 p-3">
       <h3 className="mb-2 inline-flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[var(--gold)]">
         <Archive className="size-3.5" aria-hidden />
         Archive template
@@ -98,7 +98,7 @@ function Stat({ label, value, warn }: { label: string; value: number; warn?: boo
 function Chip({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium',
+      'inline-flex items-center gap-1 cyber-clip-sm border px-2 py-0.5 font-medium',
       ok ? 'border-[var(--gold)]/40 text-[var(--gold)]' : 'border-border text-muted-foreground',
     )}>
       {ok

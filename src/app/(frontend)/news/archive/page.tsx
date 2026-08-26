@@ -49,7 +49,7 @@ export default async function ArchiveIndexPage() {
                   <li key={m.month}>
                     <Link
                       href={`/news/archive/${year}/${String(m.month).padStart(2, '0')}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-brand/40 hover:text-foreground"
+                      className="inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-brand/40 hover:text-foreground"
                     >
                       {MONTHS[m.month - 1]}
                       <span className="text-xs opacity-60">{m.count}</span>

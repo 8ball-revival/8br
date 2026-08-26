@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { SETTINGS_FIELDS, type SiteSettings } from '@/lib/staff/site-settings-shared'
 import { updateSiteSettingsAction } from '@/lib/staff/settings-actions'
 
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand'
 
 export function SiteSettingsForm({ initial }: { initial: SiteSettings }) {
   const [values, setValues] = useState<SiteSettings>(initial)
@@ -38,7 +38,7 @@ export function SiteSettingsForm({ initial }: { initial: SiteSettings }) {
       {/* Live preview */}
       <div className="lg:sticky lg:top-6 lg:self-start">
         <p className="eyebrow text-brand">Preview</p>
-        <div className="mt-2 rounded-xl border border-border bg-card/50 p-5">
+        <div className="mt-2 rounded-none border border-border bg-card/50 p-5">
           <p className="font-display text-2xl font-bold">{values.siteName || 'Site name'}</p>
           <p className="text-sm text-[var(--gold)]">{values.shortName || '8BR'}</p>
           {values.homepageBanner && <p className="mt-3 rounded-md bg-[var(--selected-surface)] px-3 py-2 text-sm text-foreground">{values.homepageBanner}</p>}

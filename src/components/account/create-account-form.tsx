@@ -44,7 +44,7 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
             autoComplete="off"
             spellCheck={false}
             aria-describedby="registrationCode-hint"
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+            className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
           />
           <p id="registrationCode-hint" className="text-xs text-muted-foreground">
             Sign-ups are currently invite-only. Enter the code you were given.

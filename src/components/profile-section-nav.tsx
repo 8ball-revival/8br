@@ -141,7 +141,7 @@ export function ProfileSectionNav({ sections }: { sections: ProfileNavSection[] 
         role="status"
         aria-live="polite"
         className={cn(
-          'pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md border border-border bg-card px-4 py-2 text-sm shadow-lg transition-opacity duration-200 motion-reduce:transition-none',
+          'pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-none border border-border bg-card px-4 py-2 text-sm shadow-lg transition-opacity duration-200 motion-reduce:transition-none',
           copied ? 'opacity-100' : 'opacity-0',
         )}
       >

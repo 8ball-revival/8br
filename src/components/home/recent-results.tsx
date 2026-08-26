@@ -15,7 +15,7 @@ export function RecentResultsCard({ results }: { results: RecentResult[] }) {
   return (
     <section
       aria-labelledby="home-results-heading"
-      className="flex flex-col overflow-hidden rounded-lg border border-border bg-card/40"
+      className="flex flex-col overflow-hidden rounded-none border border-border bg-card/40"
     >
       <div className="border-b border-border p-4">
         <h3 id="home-results-heading" className="font-display text-sm font-bold uppercase tracking-[0.14em]">

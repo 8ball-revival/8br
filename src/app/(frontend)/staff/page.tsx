@@ -24,7 +24,7 @@ function StatCard({ label, value, href, tone }: { label: string; value: number; 
 
 function QuickAction({ href, icon: Icon, label }: { href: string; icon: typeof KeyRound; label: string }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-sm font-medium hover:border-brand/50 hover:text-brand">
+    <Link href={href} className="inline-flex items-center gap-2 rounded-none border border-border bg-card/40 px-3 py-2 text-sm font-medium hover:border-brand/50 hover:text-brand">
       <Icon className="size-4" /> {label}
     </Link>
   )
@@ -32,7 +32,7 @@ function QuickAction({ href, icon: Icon, label }: { href: string; icon: typeof K
 
 function SectionCard({ href, icon: Icon, title, desc, gold }: { href: string; icon: typeof KeyRound; title: string; desc: string; gold?: boolean }) {
   return (
-    <Link href={href} className="block rounded-lg border border-border bg-card/40 p-4 transition-colors hover:border-brand/50">
+    <Link href={href} className="block rounded-none border border-border bg-card/40 p-4 transition-colors hover:border-brand/50">
       <div className="flex items-center gap-2">
         <Icon className={`size-4 ${gold ? 'text-[var(--gold)]' : 'text-brand'}`} />
         <p className="font-semibold text-foreground">{title}</p>
@@ -97,7 +97,7 @@ export default async function StaffDashboardPage() {
 
       {/* Recent activity */}
       <h2 className="mt-8 font-display text-lg font-bold">Recent admin actions</h2>
-      <div className="mt-3 rounded-lg border border-border bg-card/40 p-4">
+      <div className="mt-3 rounded-none border border-border bg-card/40 p-4">
         {audit.length === 0 ? (
           <p className="text-sm text-muted-foreground">No activity yet.</p>
         ) : (

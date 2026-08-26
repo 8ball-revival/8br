@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { getSeasonView } from '@/lib/seasons/service'
 import { getSeasonGroupStage } from '@/lib/seasons/views'
+import { CommandDeck } from '@/components/command-deck'
 import { seasonPlayoffRounds } from '@/lib/seasons/playoffs'
 import {
   getSeasonBrowseData, seasonNeighbours, seasonPlayoffParticipants, hasPublicPlayoffBracket,
@@ -287,8 +288,28 @@ async function PlayoffsView({
    * server actions behind it require the Creator capability, so removing the controls is the
    * presentation half of a rule the services already enforce.
    */
+  /*
+   * The bracket's own readout, in the same deck the group stage and the ladder use.
+   *
+   * A bracket already shows its shape, but not its state — how much of it has actually been played
+   * is something a reader currently has to infer from which cards have scores. Counting it once,
+   * here, states it.
+   */
+  const matches = rounds.flatMap((r) => r.matches)
+  const decided = matches.filter((m) => m.winner != null).length
+
   return (
     <div>
+      <CommandDeck
+        eyebrow="Playoff Bracket"
+        title="Playoffs"
+        meta={rounds.map((r) => r.name).join(' → ')}
+        stats={[
+          { label: 'Rounds', value: rounds.length },
+          { label: 'Matches', value: `${decided}/${matches.length}` },
+          ...(champion?.finalScore ? [{ label: 'Final', value: champion.finalScore }] : []),
+        ]}
+      />
       <SeasonBracketPanel rounds={rounds} note={note} champion={champion} />
       {/* The note itself lives in the panel footer; this is only the way in to edit it. */}
       <PlayoffDisclaimer kind="season" id={seasonId} value={note} canManage={canManageComp} showValue={false} />
@@ -406,5 +427,5 @@ async function playoffDisclaimerOf(seasonId: number): Promise<string | null> {
 
 
 function Info({ children }: { children: React.ReactNode }) {
-  return <div className="mt-8 rounded-lg border border-border bg-card/40 p-6 text-sm text-muted-foreground">{children}</div>
+  return <div className="mt-8 rounded-none border border-border bg-card/40 p-6 text-sm text-muted-foreground">{children}</div>
 }

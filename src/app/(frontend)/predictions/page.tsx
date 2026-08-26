@@ -50,7 +50,7 @@ export default function PredictionsPage() {
         <h2 className="eyebrow mb-5 text-center text-muted-foreground">Planned features</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PLANNED.map((f) => (
-            <div key={f.title} className="rounded-lg border border-border bg-card/40 p-5">
+            <div key={f.title} className="rounded-none border border-border bg-card/40 p-5">
               <span className="flex size-10 items-center justify-center rounded-lg border border-brand/20 bg-[var(--selected-surface)] text-brand">
                 <f.icon className="size-5" aria-hidden />
               </span>

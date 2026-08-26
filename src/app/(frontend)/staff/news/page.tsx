@@ -74,13 +74,13 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/staff/news/pages"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:border-brand/40"
+            className="inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-2 text-sm hover:border-brand/40"
           >
             <FileText className="size-4" aria-hidden />Pages
           </Link>
           <Link
             href="/api/news/export"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:border-brand/40"
+            className="inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-2 text-sm hover:border-brand/40"
           >
             <Download className="size-4" aria-hidden />Export JSON
           </Link>
@@ -171,17 +171,17 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
             name="q"
             defaultValue={search}
             placeholder="Search title or author…"
-            className="w-56 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="w-56 rounded-none border border-border bg-background px-3 py-2 text-sm"
           />
-          <select name="state" defaultValue={state} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+          <select name="state" defaultValue={state} className="rounded-none border border-border bg-background px-3 py-2 text-sm">
             {STATES.map((s) => (
               <option key={s} value={s}>{s === 'ALL' ? 'Every state' : stateLabel(s)}</option>
             ))}
           </select>
-          <button type="submit" className="rounded-md border border-border px-3 py-2 text-sm hover:border-brand/40">Filter</button>
+          <button type="submit" className="rounded-none border border-border px-3 py-2 text-sm hover:border-brand/40">Filter</button>
         </form>
 
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-none border border-border">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-card/60 text-left text-xs uppercase text-muted-foreground">
               <tr>
@@ -224,7 +224,7 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
             {listing.page > 1 && (
               <Link
                 href={`/staff/news?${new URLSearchParams({ state, q: search, page: String(listing.page - 1) })}`}
-                className="rounded-md border border-border px-3 py-1.5 hover:border-brand/40"
+                className="rounded-none border border-border px-3 py-1.5 hover:border-brand/40"
               >
                 Previous
               </Link>
@@ -233,7 +233,7 @@ export default async function EditorialAdminPage({ searchParams }: SP) {
             {listing.page < listing.pageCount && (
               <Link
                 href={`/staff/news?${new URLSearchParams({ state, q: search, page: String(listing.page + 1) })}`}
-                className="rounded-md border border-border px-3 py-1.5 hover:border-brand/40"
+                className="rounded-none border border-border px-3 py-1.5 hover:border-brand/40"
               >
                 Next
               </Link>

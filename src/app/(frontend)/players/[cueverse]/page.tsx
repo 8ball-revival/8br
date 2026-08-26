@@ -59,7 +59,7 @@ export default async function PlayerProfilePage({
         <ArrowLeft className="size-4" /> Rankings
       </Link>
       {/* The career being read. Two tabs, not a merge: a combined rating would be neither. */}
-      <div role="group" aria-label="Career" className="mb-4 inline-flex overflow-hidden rounded-md border border-border">
+      <div role="group" aria-label="Career" className="mb-4 inline-flex overflow-hidden rounded-none border border-border">
         {(['CUEVERSE', 'YAHOO'] as const).map((pf) => (
           <Link
             key={pf}
@@ -91,7 +91,7 @@ export default async function PlayerProfilePage({
               Recorded in full. Contributes to no rating, rank, streak or ranked appearance.
             </p>
           </div>
-          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+          <ul className="divide-y divide-border overflow-hidden rounded-none border border-border">
             {unranked.map((u) => (
               <li key={u.seasonId} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
                 <Link href={`/seasons/${u.seasonId}`} className="font-medium text-foreground hover:text-[var(--gold)]">

@@ -62,11 +62,11 @@ export function CommentThread({
       </h2>
 
       {locked ? (
-        <p className="mt-4 rounded-md border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
+        <p className="mt-4 rounded-none border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
           This discussion has been closed.
         </p>
       ) : !canComment ? (
-        <p className="mt-4 rounded-md border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
+        <p className="mt-4 rounded-none border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
           {signedIn
             ? 'Your account cannot post comments at the moment.'
             : <>You need an account to join the discussion. <Link href="/login" className="text-brand hover:underline">Sign in</Link>.</>}
@@ -303,7 +303,7 @@ function Composer({
         onChange={(e) => setValue(e.target.value.slice(0, MAX_COMMENT_LENGTH))}
         placeholder={placeholder}
         rows={4}
-        className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+        className="w-full resize-y rounded-none border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Button size="sm" disabled={pending || value.trim().length < 2} onClick={submit}>{submitLabel}</Button>

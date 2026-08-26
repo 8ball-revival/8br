@@ -82,7 +82,7 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
         onDragStart={() => setDragId(regId)}
         onDragEnd={() => { setDragId(null); setOverCol(null) }}
         className={cn(
-          'group flex items-center gap-2 rounded-md border border-border bg-background/70 px-2 py-1.5 text-sm',
+          'group flex items-center gap-2 rounded-none border border-border bg-background/70 px-2 py-1.5 text-sm',
           dragId === regId && 'opacity-50',
           !pending && 'cursor-grab active:cursor-grabbing',
         )}
@@ -129,7 +129,7 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
   return (
     <div className="space-y-4">
       {/* Distribution summary */}
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/40 p-3 text-sm sm:grid-cols-4 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 rounded-none border border-border bg-card/40 p-3 text-sm sm:grid-cols-4 lg:grid-cols-7">
         <Stat label="Entrants" value={setup.totalEntrants} />
         <Stat label="Groups" value={setup.numGroups} />
         <Stat label="Target / group" value={`~${setup.targetPerGroup}`} />
@@ -158,7 +158,7 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
             defaultValue={setup.targetPerGroup}
             disabled={pending}
             onBlur={(ev) => { const v = Number(ev.target.value); if (Number.isInteger(v) && v >= setup.minGroupSize && v !== setup.targetPerGroup) act(() => A.setGroupTargetAction(tournamentId, v)) }}
-            className="w-16 rounded-md border border-input bg-card px-2 py-1 text-sm text-foreground tabular focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-16 rounded-none border border-input bg-card px-2 py-1 text-sm text-foreground tabular focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
         <div className="ml-auto flex items-center gap-2">
@@ -231,12 +231,12 @@ export function GroupSetupBoard({ tournamentId, setup, groups }: { tournamentId:
       {/* Publish confirmation */}
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="publish-title" onClick={() => setConfirming(false)}>
-          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-5 scrollbar-brand" onClick={(ev) => ev.stopPropagation()}>
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-none border border-border bg-card p-5 scrollbar-brand" onClick={(ev) => ev.stopPropagation()}>
             <h2 id="publish-title" className="font-display text-lg font-bold">Publish groups &amp; start the Group Stage?</h2>
             <p className="mt-1 text-sm text-muted-foreground">The assignments below become <span className="font-medium text-foreground">public</span>, {setup.totalMatches} round-robin match{setup.totalMatches === 1 ? '' : 'es'} are generated, and the Group Stage begins. This can only be undone before any result is recorded.</p>
             <ul className="mt-3 space-y-2">
               {groups.map((g) => (
-                <li key={g.id} className="rounded-md border border-border bg-background/50 p-2 text-sm">
+                <li key={g.id} className="rounded-none border border-border bg-background/50 p-2 text-sm">
                   <p className="font-semibold">{g.name} <span className="font-normal text-muted-foreground">· {g.playerIds.length} entrant{g.playerIds.length === 1 ? '' : 's'}</span></p>
                   <p className="text-xs text-muted-foreground">{g.playerIds.map((id) => entrantById.get(id)?.name).filter(Boolean).join(', ') || '—'}</p>
                 </li>

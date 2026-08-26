@@ -99,7 +99,7 @@ function Block({ node }: { node: BlockNode }) {
 
     case 'code':
       return (
-        <pre className="mb-5 overflow-x-auto rounded-lg border border-border bg-card/60 p-4 text-sm">
+        <pre className="mb-5 overflow-x-auto rounded-none border border-border bg-card/60 p-4 text-sm">
           <code>{node.v}</code>
         </pre>
       )

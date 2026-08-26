@@ -45,9 +45,9 @@ body { min-height: 100vh !important; min-height: 100svh !important; }
 // Button styling lifted verbatim from the reference hero so the two calls to action keep their
 // exact size, weight, radius and focus treatment.
 const primaryBtn =
-  'inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'cyber-sweep cyber-clip inline-flex items-center rounded-none bg-primary px-7 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition-all duration-200 [box-shadow:var(--glow-yellow)] hover:brightness-110 hover:[box-shadow:0_0_8px_oklch(0.9_0.19_100/0.75),0_0_30px_oklch(0.9_0.19_100/0.45)]'
 const secondaryBtn =
-  'inline-flex items-center rounded-md border border-border px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'cyber-sweep cyber-clip inline-flex items-center rounded-none border border-[var(--neon-line)] px-7 py-3 text-sm font-bold uppercase tracking-widest text-foreground transition-all duration-200 hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)] hover:[box-shadow:var(--glow-cyan)]'
 
 /**
  * `/` — the admin-managed hero, and nothing else yet.
@@ -99,17 +99,42 @@ export default async function HomePage() {
         ) : null}
         {/* Subtle darkening only — settles the artwork against the black canvas below and lifts the
             copy off it, without losing the centrepiece or the brass detail. */}
-        <div aria-hidden className="absolute inset-0 bg-black/25" />
+        <div aria-hidden className="absolute inset-0 bg-black/30" />
+        {/*
+          Three layers of atmosphere over the artwork, in order: a drifting grid, a cyan-to-magenta
+          wash from the corners, and a vignette that pulls the whole thing down into the page ground
+          so the hero ends rather than stops. All aria-hidden and none of them catch a pointer.
+        */}
+        <div aria-hidden className="cyber-grid absolute inset-0 opacity-30 mix-blend-screen" />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(70%_60%_at_10%_0%,oklch(0.84_0.14_200/0.1),transparent_60%),radial-gradient(60%_60%_at_95%_100%,oklch(0.66_0.27_350/0.09),transparent_60%)]"
+        />
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
+        {/* The lit edge that separates the hero from the page, matching the header's. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,var(--neon-cyan)_20%,var(--neon-yellow)_50%,var(--neon-cyan)_80%,transparent)] opacity-80"
+        />
 
         <Wide className="relative flex min-h-[440px] flex-col justify-end py-12 sm:min-h-[480px] sm:py-14 lg:min-h-[560px] lg:py-20">
           <div className="relative">
-            <p className="eyebrow text-gold">{hero.welcomeLine}</p>
-            <h1 className="mt-3 max-w-2xl text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
-              <span className="block">{hero.headlineLine1}</span>
-              <span className="block text-gold">{hero.headlineLine2}</span>
+            <p className="eyebrow neon-text-cyan boot-in">{hero.welcomeLine}</p>
+            {/*
+              The second line carries the glitch. `data-text` is what the two colour ghosts render,
+              so it has to repeat the string — and it is the reason only this line takes the effect:
+              a ghost of a long paragraph is unreadable noise, while a ghost of one short word reads
+              as a signal breaking up.
+            */}
+            <h1 className="boot-in mt-3 max-w-2xl text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-7xl">
+              <span className="block text-foreground [text-shadow:0_0_24px_oklch(0.84_0.14_200/0.25)]">{hero.headlineLine1}</span>
+              <span className="glitch block text-gold neon-text" data-text={hero.headlineLine2}>
+                {hero.headlineLine2}
+              </span>
             </h1>
-            <p className="mt-4 max-w-xl text-lg text-foreground">{hero.description}</p>
-            <p className="mt-3 max-w-xl text-muted-foreground">{hero.supportingSentence}</p>
+            <div aria-hidden className="cyber-rule mt-5 max-w-xs" />
+            <p className="boot-in-slow mt-4 max-w-xl text-lg text-foreground">{hero.description}</p>
+            <p className="boot-in-slow mt-3 max-w-xl text-muted-foreground">{hero.supportingSentence}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href={hero.primaryButtonHref} className={primaryBtn}>
                 {hero.primaryButtonLabel}

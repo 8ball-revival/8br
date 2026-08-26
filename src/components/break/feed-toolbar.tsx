@@ -63,7 +63,7 @@ export function FeedToolbar({
                 href={withParams({ sort: key === 'hot' ? null : key, window: key === 'top' ? topWindow : null })}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                  'inline-flex items-center gap-1.5 cyber-clip-sm px-3 py-1.5 text-sm font-medium transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                   active
                     ? 'bg-[var(--selected-surface)] text-[var(--gold)]'
@@ -108,14 +108,14 @@ export function FeedToolbar({
               defaultValue={q ?? ''}
               placeholder="Search The Break"
               aria-label="Search The Break"
-              className="w-full rounded-full border border-border bg-card py-1.5 pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+              className="w-full cyber-clip-sm border border-border bg-card py-1.5 pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
             />
           </div>
         </form>
 
         <Link
           href={canPost ? '/the-break/submit' : '/login?next=%2Fthe-break%2Fsubmit'}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="inline-flex shrink-0 items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <PenSquare className="size-4" aria-hidden />
           <span className="hidden sm:inline">Create Post</span>

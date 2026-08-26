@@ -42,7 +42,7 @@ export function CommentThread({
 }) {
   if (nodes.length === 0) {
     return (
-      <p className="rounded-lg border border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+      <p className="rounded-none border border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
         No comments yet.
       </p>
     )
@@ -114,7 +114,7 @@ function Comment({
             {node.authorHandle && <span className="text-foreground">{node.authorHandle}</span>}
 
             {node.distinguished && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">
+              <span className="inline-flex items-center gap-1 cyber-clip-sm border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">
                 <BadgeCheck className="size-3" aria-hidden />Staff
               </span>
             )}

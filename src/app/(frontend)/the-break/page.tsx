@@ -66,7 +66,7 @@ export default async function TheBreakPage({
         {canManageTheBreak(actor) && (
           <Link
             href="/the-break/manage"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-[var(--gold)]/50 hover:text-[var(--gold)]"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-none border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-[var(--gold)]/50 hover:text-[var(--gold)]"
           >
             <Settings2 className="size-3.5" aria-hidden /> Manage Posts
           </Link>
@@ -92,7 +92,7 @@ export default async function TheBreakPage({
       )}
 
       {page.cards.length === 0 && page.pinned.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-none border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           {q
             ? 'No posts match that search.'
             : category
@@ -117,7 +117,7 @@ export default async function TheBreakPage({
         <div className="mt-4 flex justify-center">
           <Link
             href={{ pathname: '/the-break', query: cleanQuery({ sort, window: topWindow, category, q, cursor: page.nextCursor }) }}
-            className="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="cyber-clip-sm border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           >
             Load More
           </Link>

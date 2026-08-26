@@ -42,7 +42,7 @@ export function StaffManagementPanel({ roster, canManage }: { roster: StaffRoste
       </section>
 
       {/* Admins */}
-      <section className="rounded-lg border border-border bg-card/40 p-4">
+      <section className="rounded-none border border-border bg-card/40 p-4">
         <p className="eyebrow text-brand">Administrators ({roster.admins.length})</p>
         {roster.admins.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">No Admins yet.</p>
@@ -84,13 +84,13 @@ function PromoteMember({ run, confirm, pending }: { run: (fn: () => Promise<{ ok
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card/40 p-4">
+    <section className="rounded-none border border-border bg-card/40 p-4">
       <p className="eyebrow text-brand">Promote a Member</p>
       <div className="relative mt-2 max-w-md">
         <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
-        <input value={q} onChange={(e) => load(e.target.value)} onFocus={() => { setOpen(true); if (!candidates.length) load('') }} onBlur={() => setTimeout(() => setOpen(false), 150)} placeholder="Search members by name or email…" className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus-visible:border-brand" aria-label="Search members" />
+        <input value={q} onChange={(e) => load(e.target.value)} onFocus={() => { setOpen(true); if (!candidates.length) load('') }} onBlur={() => setTimeout(() => setOpen(false), 150)} placeholder="Search members by name or email…" className="w-full rounded-none border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus-visible:border-brand" aria-label="Search members" />
         {open && (
-          <ul className="absolute z-20 mt-1 max-h-64 w-full space-y-1 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-lg">
+          <ul className="absolute z-20 mt-1 max-h-64 w-full space-y-1 overflow-y-auto rounded-none border border-border bg-popover p-1 shadow-lg">
             {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
             {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible members.</li>}
             {candidates.map((m) => (

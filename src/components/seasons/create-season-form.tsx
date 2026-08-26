@@ -13,7 +13,7 @@ import { createSeasonAction, suggestSeasonNumberAction } from '@/lib/seasons/act
 import type { CreateSeasonConfig } from '@/lib/seasons/service'
 
 const LOUNGES = ['Social', "Beginner's Lounge", 'Intermediate Lounge', 'Advanced Lounge']
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[var(--gold)]'
 
 /** Create Season — the standalone Season creation form (individual 1v1 only, no format selector, no
@@ -175,7 +175,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
             {/* Compact, and before Competition because it decides which one is the sensible default.
                 Secondary by design: the Season's identity is its Competition, number and year. */}
             <Labeled label="Platform" hint="required">
-              <div role="group" aria-label="Platform" className="inline-flex overflow-hidden rounded-md border border-input">
+              <div role="group" aria-label="Platform" className="inline-flex overflow-hidden rounded-none border border-input">
                 {(['CUEVERSE', 'YAHOO'] as const).map((pf) => (
                   <button
                     key={pf}
@@ -330,7 +330,7 @@ export function CreateSeasonForm({ nextNumber, year, competitions }: { nextNumbe
 function RaceField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
     <Labeled label={label}>
-      <div className="inline-flex items-center overflow-hidden rounded-md border border-input bg-card">
+      <div className="inline-flex items-center overflow-hidden rounded-none border border-input bg-card">
         <button type="button" onClick={() => onChange(Math.max(1, value - 1))} className="h-10 w-10 text-lg hover:bg-card-2">–</button>
         <input value={value} onChange={(e) => onChange(Math.max(1, Math.min(99, Number(e.target.value) || 1)))} inputMode="numeric" className="h-10 w-14 border-x border-input bg-transparent text-center font-bold tabular-nums outline-none" aria-label={label} />
         <button type="button" onClick={() => onChange(Math.min(99, value + 1))} className="h-10 w-10 text-lg hover:bg-card-2">+</button>
@@ -352,7 +352,7 @@ function Labeled({ label, hint, children, className }: { label: string; hint?: s
 
 function Segmented({ options, value, onChange }: { options: { v: string; l: string }[]; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-md border border-input bg-card p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-none border border-input bg-card p-1">
       {options.map((o) => (
         <button key={o.v} type="button" onClick={() => onChange(o.v)} className={cn('rounded px-4 py-1.5 text-sm font-semibold transition-colors', value === o.v ? 'bg-brand text-white' : 'text-muted-foreground hover:text-foreground')}>{o.l}</button>
       ))}

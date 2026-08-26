@@ -47,10 +47,10 @@ export function SeasonGroupSetup({
     <div className="mt-8 space-y-5">
       {msg && <div className={cn('rounded-md border px-3 py-2 text-sm', msg.ok ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/40 bg-destructive/10 text-destructive')}>{msg.text}</div>}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card/40 p-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-none border border-border bg-card/40 p-4">
         <div>
           <label className="mb-1 block text-xs font-semibold text-foreground">Number of Groups</label>
-          <input type="number" min={1} max={26} value={numGroups} onChange={(e) => setNumGroups(Math.max(1, Math.min(26, Number(e.target.value) || 1)))} className="w-24 rounded-md border border-input bg-card px-3 py-2 text-sm" />
+          <input type="number" min={1} max={26} value={numGroups} onChange={(e) => setNumGroups(Math.max(1, Math.min(26, Number(e.target.value) || 1)))} className="w-24 rounded-none border border-input bg-card px-3 py-2 text-sm" />
         </div>
         <Button size="sm" disabled={pending} onClick={() => run(() => generateSeasonGroupsAction(seasonId, numGroups))}>
           <Shuffle className="size-4" /> {hasGroups ? 'Regenerate Groups' : 'Generate Groups'}
@@ -76,7 +76,7 @@ export function SeasonGroupSetup({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card/40 p-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-none border border-border bg-card/40 p-4">
         {hasGroups && (
           <>
             <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => addSeasonGroupAction(seasonId))}><Plus className="size-4" /> Add Group</Button>
@@ -147,7 +147,7 @@ function Panel({ title, count, tone, children, onRename, onDelete }: { title: st
 
 function PlayerRow({ p, groups, currentGroup, onMove, onRemove, removeTitle }: { p: SetupPlayer; groups: { id: number; label: string }[]; currentGroup: number | null; onMove: (gid: number | null) => void; onRemove: (() => void) | null; removeTitle?: string }) {
   return (
-    <li className="flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5 text-sm">
+    <li className="flex items-center gap-2 rounded-none border border-border/60 bg-background/60 px-2.5 py-1.5 text-sm">
       <PlayerName identity={{ cueverseId: p.cueverseId, preferredName: p.name }} size="sm" className="min-w-0 flex-1" />
       <span className="tabular shrink-0 text-xs font-semibold text-muted-foreground">{p.rating ?? '—'}</span>
       <select

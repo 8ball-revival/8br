@@ -37,12 +37,20 @@ export function MainNav({
             href={entry.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'relative rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+              'relative rounded-none px-3 py-2 text-sm font-medium uppercase tracking-wide transition-all duration-200',
+              active
+                ? 'text-[var(--neon-yellow)] [text-shadow:var(--glow-yellow)]'
+                : 'text-muted-foreground hover:text-[var(--neon-cyan)] hover:[text-shadow:var(--glow-cyan)]',
             )}
           >
             {entry.label}
-            {active && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-brand" aria-hidden />}
+            {/* The active marker is a lit bar rather than a rounded pill — the same edge the panels use. */}
+            {active && (
+              <span
+                className="absolute inset-x-2 -bottom-px h-[2px] bg-[var(--neon-yellow)] [box-shadow:var(--glow-yellow)]"
+                aria-hidden
+              />
+            )}
           </Link>
         )
       })}

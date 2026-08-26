@@ -46,7 +46,7 @@ export function EntrantList({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search entrants…"
-          className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+          className="w-full max-w-xs rounded-none border border-border bg-background px-3 py-1.5 text-sm"
         />
         <span className="text-xs text-muted-foreground">
           {filtered.length === entrants.length ? `${entrants.length} entrants` : `${filtered.length} of ${entrants.length}`}
@@ -56,7 +56,7 @@ export function EntrantList({
         <p className="text-sm text-muted-foreground">No entrants match “{q}”.</p>
       ) : (
         // One long single-column list: Entrant # | Preferred Name + CueVerse ID | Rankings Rating.
-        <div className="overflow-hidden rounded-md border border-border">
+        <div className="overflow-hidden rounded-none border border-border">
           <div className="flex items-center gap-3 border-b border-border bg-card/50 px-3 py-1.5 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
             <span className="w-8 shrink-0 text-right">#</span>
             <span className="min-w-0 flex-1">Entrant</span>
@@ -82,7 +82,7 @@ export function EntrantList({
 
   if (collapsible) {
     return (
-      <details className="mb-8 rounded-lg border border-border bg-card/30 p-4">
+      <details className="mb-8 rounded-none border border-border bg-card/30 p-4">
         <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
           <Users className="size-4 text-muted-foreground" /> {label} ({entrants.length})
         </summary>
@@ -92,7 +92,7 @@ export function EntrantList({
   }
 
   return (
-    <section className="mb-8 rounded-lg border border-border bg-card/30 p-4">
+    <section className="mb-8 rounded-none border border-border bg-card/30 p-4">
       <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
         <Users className="size-5 text-brand" /> {label}
       </h2>

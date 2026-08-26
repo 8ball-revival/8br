@@ -138,7 +138,7 @@ export function TeamName({
           onMouseEnter={() => { if (closeTimer.current) clearTimeout(closeTimer.current) }}
           onMouseLeave={scheduleClose}
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: 268 }}
-          className="z-[60] rounded-lg border border-border bg-popover p-3 text-sm shadow-2xl"
+          className="z-[60] rounded-none border border-border bg-popover p-3 text-sm shadow-2xl"
         >
           <div className="mb-2 flex items-start justify-between gap-2 border-b border-border/60 pb-2">
             <div className="min-w-0">

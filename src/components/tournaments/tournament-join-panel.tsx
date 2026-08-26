@@ -39,7 +39,7 @@ export function TournamentJoinPanel({
   const entered = myStatus === 'APPROVED' || myStatus === 'PENDING'
 
   return (
-    <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
+    <section className="mt-8 rounded-none border border-border bg-card/40 p-5">
       <h2 className="eyebrow mb-3 text-brand">Join this Tournament</h2>
       {!isLoggedIn ? (
         <div className="flex flex-wrap items-center gap-3">

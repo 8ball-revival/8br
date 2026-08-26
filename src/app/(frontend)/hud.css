@@ -1,0 +1,259 @@
+/*
+  The HUD controls — everything the display panel can change.
+
+  The panel writes `data-*` attributes and one variable onto <html>; every decision about what those
+  MEAN is made here. So a new effect never requires a change to the panel, and the panel never
+  encodes a colour or a duration. It is a preferences UI, not a second copy of the theme.
+*/
+
+/* ── Glow strength ─────────────────────────────────────────────────────────────────────────────────
+ * One multiplier feeding every glow, so the slider scales the whole system at once rather than
+ * needing a rule per effect. At 0 the shadows collapse and the lit edges remain, which is why
+ * "no glow" still looks deliberate rather than broken.
+ */
+:root {
+  /*
+   * Two multipliers, not one.
+   *
+   * The slider writes an INLINE style, and an inline style beats a stylesheet rule — so when both
+   * the slider and the intensity preset wrote `--hud-glow-scale`, choosing Overdrive changed the
+   * attribute and nothing else, because the slider's inline value kept winning. Splitting them lets
+   * the preset live in the sheet, the slider live inline, and the product be what the glows read.
+   */
+  --hud-glow-preset: 1;
+  --hud-glow-user: 1;
+  --hud-glow-scale: calc(var(--hud-glow-preset) * var(--hud-glow-user));
+  --glow-yellow:
+    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.9 0.19 100 / calc(0.55 * var(--hud-glow-scale))),
+    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.9 0.19 100 / calc(0.28 * var(--hud-glow-scale)));
+  --glow-cyan:
+    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.84 0.14 200 / calc(0.6 * var(--hud-glow-scale))),
+    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.84 0.14 200 / calc(0.3 * var(--hud-glow-scale)));
+  --glow-magenta:
+    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.66 0.27 350 / calc(0.6 * var(--hud-glow-scale))),
+    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.66 0.27 350 / calc(0.3 * var(--hud-glow-scale)));
+}
+
+/* ── Accent ────────────────────────────────────────────────────────────────────────────────────────
+ * Repoints the signature colour. Yellow is the default and needs no rule; the others move --gold and
+ * its family, which every surface already references — so one override recolours buttons, active
+ * tabs, champion marks, winner rails and the wordmark together, without touching a component.
+ */
+:root[data-hud-accent='cyan'] {
+  --gold: oklch(0.84 0.14 200);
+  --gold-soft: oklch(0.9 0.12 200);
+  --gold-dim: oklch(0.68 0.13 205);
+  --primary: oklch(0.84 0.14 200);
+  --brand: oklch(0.84 0.14 200);
+  --win: oklch(0.84 0.14 200);
+  --neon-yellow: oklch(0.84 0.14 200);
+  --player-name: oklch(0.84 0.14 200);
+  --tier-gold: oklch(0.9 0.12 200);
+  --glow-yellow: var(--glow-cyan);
+}
+
+:root[data-hud-accent='magenta'] {
+  --gold: oklch(0.66 0.27 350);
+  --gold-soft: oklch(0.74 0.24 350);
+  --gold-dim: oklch(0.56 0.24 350);
+  --primary: oklch(0.66 0.27 350);
+  --primary-foreground: oklch(0.98 0.01 350);
+  --brand: oklch(0.66 0.27 350);
+  --win: oklch(0.66 0.27 350);
+  --neon-yellow: oklch(0.66 0.27 350);
+  --player-name: oklch(0.66 0.27 350);
+  --tier-gold: oklch(0.74 0.24 350);
+  --glow-yellow: var(--glow-magenta);
+}
+
+:root[data-hud-accent='green'] {
+  --gold: oklch(0.86 0.22 145);
+  --gold-soft: oklch(0.92 0.2 145);
+  --gold-dim: oklch(0.7 0.19 145);
+  --primary: oklch(0.86 0.22 145);
+  --brand: oklch(0.86 0.22 145);
+  --win: oklch(0.86 0.22 145);
+  --neon-yellow: oklch(0.86 0.22 145);
+  --player-name: oklch(0.86 0.22 145);
+  --tier-gold: oklch(0.92 0.2 145);
+  --glow-yellow:
+    0 0 calc(4px * var(--hud-glow-scale)) oklch(0.86 0.22 145 / calc(0.55 * var(--hud-glow-scale))),
+    0 0 calc(18px * var(--hud-glow-scale)) oklch(0.86 0.22 145 / calc(0.3 * var(--hud-glow-scale)));
+}
+
+/* ── Corner geometry ───────────────────────────────────────────────────────────────────────────────
+ * Chamfer is the default. Square drops the clip entirely; round restores conventional radii for
+ * anyone who finds the notches noisy on a dense table.
+ */
+:root[data-hud-corners='square'] .cyber-clip,
+:root[data-hud-corners='square'] .cyber-clip-sm {
+  clip-path: none;
+}
+
+:root[data-hud-corners='round'] .cyber-clip,
+:root[data-hud-corners='round'] .cyber-clip-sm {
+  clip-path: none;
+  border-radius: 0.5rem;
+}
+
+/* ── Overlays ────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-hud-scan='off'] body::before,
+:root[data-hud-scan='off'] .scanlines::after {
+  display: none;
+}
+
+:root[data-hud-grid='off'] body {
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%, oklch(0.84 0.14 200 / 0.07), transparent 62%),
+    radial-gradient(900px 560px at 96% 104%, oklch(0.66 0.27 350 / 0.055), transparent 60%);
+}
+
+:root[data-hud-grid='off'] .cyber-grid {
+  background-image: none;
+}
+
+/* ── Film grain ────────────────────────────────────────────────────────────────────────────────────
+ * An feTurbulence field as a data URI: no network request, and it is what stops large flat blacks
+ * from banding on cheap panels. Kept at 3.5% — visible as texture, never as dirt.
+ */
+:root[data-hud-noise='on'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Chromatic aberration ──────────────────────────────────────────────────────────────────────────
+ * Off by default, deliberately: it is a lens defect, and on body text it is a legibility defect too.
+ * Limited to display headings, where it reads as a bad signal rather than bad eyesight.
+ */
+:root[data-hud-aberration='on'] h1,
+:root[data-hud-aberration='on'] h2 {
+  text-shadow: -1px 0 0 oklch(0.66 0.27 350 / 0.5), 1px 0 0 oklch(0.84 0.14 200 / 0.5);
+}
+
+/* ── CRT flicker ───────────────────────────────────────────────────────────────────────────────────
+ * The most authentic effect here and the most tiring, so it is opt-in, and its amplitude is small
+ * enough to read as a tube warming up rather than a strobe.
+ */
+:root[data-hud-flicker='on'] body {
+  animation: crt-flicker 5s steps(1, end) infinite;
+}
+
+@keyframes crt-flicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.97; }
+  98% { opacity: 1; }
+  99% { opacity: 0.985; }
+}
+
+/* ── Motion speed ──────────────────────────────────────────────────────────────────────────────────
+ * `off` pauses rather than removes, so an animation resumes from where it stopped when switched back
+ * on instead of jumping. The rest scale the durations the layer declared.
+ */
+:root[data-hud-motion='off'] *,
+:root[data-hud-motion='off'] *::before,
+:root[data-hud-motion='off'] *::after {
+  animation-play-state: paused !important;
+}
+
+/*
+ * Entrances are CANCELLED, not paused — and this is not a refinement.
+ *
+ * Pausing holds an animation at the frame it has reached, and an entrance that has not started yet
+ * is at frame zero: `opacity: 0`, with `fill-mode: both` making that stick. Turning motion off
+ * therefore made the homepage headline, its eyebrow and its description invisible — not dimmed,
+ * gone — and every later navigation re-created them in that state.
+ *
+ * `animation: none` drops the animation entirely, so the element renders at its own natural styles,
+ * which is what the reduced-motion block already does for the same reason. Pausing remains right for
+ * the looping ambience above: a paused loop is a still frame of something already visible.
+ */
+:root[data-hud-motion='off'] .boot-in,
+:root[data-hud-motion='off'] .boot-in-slow {
+  animation: none !important;
+}
+
+:root[data-hud-motion='calm'] .cyber-grid { animation-duration: 44s; }
+:root[data-hud-motion='calm'] body::before { animation-duration: 16s; }
+:root[data-hud-motion='calm'] .neon-pulse { animation-duration: 4s; }
+:root[data-hud-motion='calm'] .neon-crown { animation-duration: 7s; }
+
+:root[data-hud-motion='fast'] .cyber-grid { animation-duration: 9s; }
+:root[data-hud-motion='fast'] body::before { animation-duration: 3s; }
+:root[data-hud-motion='fast'] .neon-pulse { animation-duration: 1.1s; }
+:root[data-hud-motion='fast'] .neon-crown { animation-duration: 1.6s; }
+
+/* ── Intensity ─────────────────────────────────────────────────────────────────────────────────────
+ * The master control. `off` keeps the palette and the layout and removes the atmosphere entirely —
+ * the site still looks like itself, just unlit. `overdrive` is the one setting allowed to be too
+ * much: it is opt-in, and somebody who chooses it has said what they want.
+ */
+:root[data-hud-intensity='off'] {
+  --hud-glow-preset: 0;
+}
+
+:root[data-hud-intensity='off'] body {
+  background-image: none;
+}
+
+:root[data-hud-intensity='off'] body::before,
+:root[data-hud-intensity='off'] body::after,
+:root[data-hud-intensity='off'] .cyber-panel::before,
+:root[data-hud-intensity='off'] .cyber-sweep::after {
+  display: none;
+}
+
+:root[data-hud-intensity='subtle'] {
+  --hud-glow-preset: 0.5;
+}
+
+:root[data-hud-intensity='subtle'] .cyber-panel::before {
+  opacity: 0.3;
+}
+
+:root[data-hud-intensity='overdrive'] {
+  --hud-glow-preset: 1.7;
+}
+
+:root[data-hud-intensity='overdrive'] .cyber-panel {
+  border-color: color-mix(in oklab, var(--neon-cyan) 45%, var(--neon-line));
+}
+
+:root[data-hud-intensity='overdrive'] .cyber-panel::before {
+  opacity: 1;
+}
+
+:root[data-hud-intensity='overdrive'] [data-slot='card'] {
+  animation: panel-breathe 6s ease-in-out infinite;
+}
+
+:root[data-hud-intensity='overdrive'] h1 {
+  text-shadow:
+    -1px 0 0 oklch(0.66 0.27 350 / 0.35),
+    1px 0 0 oklch(0.84 0.14 200 / 0.35),
+    0 0 30px oklch(0.84 0.14 200 / 0.3);
+}
+
+@keyframes panel-breathe {
+  0%, 100% { box-shadow: var(--glow-soft); }
+  50% { box-shadow: var(--glow-soft), 0 0 26px oklch(0.84 0.14 200 / 0.16); }
+}
+
+/*
+ * The system preference is the ceiling, not the floor.
+ *
+ * The panel can turn motion OFF for somebody whose system says nothing. It can never turn motion ON
+ * for somebody whose system asked for less — so this is declared last and wins over every speed
+ * above it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-hud-motion] *,
+  :root[data-hud-motion] *::before,
+  :root[data-hud-motion] *::after {
+    animation: none !important;
+  }
+}

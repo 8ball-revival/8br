@@ -149,7 +149,7 @@ export function GroupCrosstable({ group, qualifiersPerGroup }: { group: XGroup; 
                     <button type="button" aria-describedby={tipId} className="inline-flex text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                       <Info className="size-3" aria-hidden /><span className="sr-only">How standings are sorted</span>
                     </button>
-                    <span id={tipId} role="tooltip" className="pointer-events-none absolute right-0 top-5 z-40 hidden w-56 rounded-md border border-border bg-popover p-2 text-left text-[0.7rem] normal-case tracking-normal text-muted-foreground shadow-lg group-hover/tip:block group-focus-within/tip:block">
+                    <span id={tipId} role="tooltip" className="pointer-events-none absolute right-0 top-5 z-40 hidden w-56 rounded-none border border-border bg-popover p-2 text-left text-[0.7rem] normal-case tracking-normal text-muted-foreground shadow-lg group-hover/tip:block group-focus-within/tip:block">
                       Points: Win = 2, Draw = 1, plus 1 for completing all your sets. Ties are broken by head-to-head result, then win percentage.
                     </span>
                   </span>
@@ -248,7 +248,7 @@ function MatchDetails({ cell, anchor, onClose }: { cell: Cell; anchor: DOMRect; 
   return (
     <div ref={ref} role="dialog" aria-modal="false" aria-labelledby={titleId} tabIndex={-1}
       style={{ position: 'fixed', top: pos.top, left: pos.left, width: 260 }}
-      className="z-[70] rounded-lg border border-border bg-popover p-3 text-sm shadow-2xl outline-none">
+      className="z-[70] rounded-none border border-border bg-popover p-3 text-sm shadow-2xl outline-none">
       <p id={titleId} className="mb-2 break-words border-b border-border/60 pb-2 font-semibold text-foreground">{cell.rowName} <span className="text-muted-foreground">vs</span> {cell.colName}</p>
       <dl className="space-y-1.5 text-xs">
         <div className="flex items-center justify-between gap-2"><dt className="text-muted-foreground">Score</dt>

@@ -32,7 +32,7 @@ export function SeasonCompletion({ seasonId, readiness }: { seasonId: number; re
   if (!readiness.ok) {
     // Say what is outstanding, without offering a control that would refuse.
     return (
-      <ul className="space-y-1 rounded-md border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+      <ul className="space-y-1 rounded-none border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
         {readiness.problems.map((p, i) => (
           <li key={i} className="flex items-start gap-1.5">
             <AlertTriangle className="mt-0.5 size-3 shrink-0 text-muted-foreground/60" aria-hidden />{p}
@@ -48,7 +48,7 @@ export function SeasonCompletion({ seasonId, readiness }: { seasonId: number; re
         type="button"
         disabled={pending}
         onClick={() => start(async () => setConfirm(await previewCompletionAction(seasonId)))}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="inline-flex items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
       >
         <Crown className="size-4" aria-hidden /> Close Season &amp; Crown Champion
       </button>
@@ -91,7 +91,7 @@ function CompletionDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
     >
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-xl">
+      <div className="w-full max-w-lg rounded-none border border-border bg-card p-5 shadow-xl">
         <h2 id="close-season-title" className="font-display text-lg font-bold text-foreground">
           Close Season &amp; Crown Champion?
         </h2>
@@ -130,7 +130,7 @@ function CompletionDialog({
 
         <div className="mt-5 flex justify-end gap-2">
           <button ref={cancelRef} type="button" onClick={onCancel}
-            className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            className="cyber-clip-sm border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
             Cancel
           </button>
           <button
@@ -144,7 +144,7 @@ function CompletionDialog({
               router.push(`/seasons/${seasonId}`)
               router.refresh()
             })}
-            className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {pending ? 'Closing…' : 'Close Season'}
           </button>

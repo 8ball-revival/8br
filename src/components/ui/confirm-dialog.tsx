@@ -144,9 +144,9 @@ function Dialog({ opts, onClose }: { opts: Active; onClose: () => void }) {
           <div className="mt-4">
             {input.label && <label htmlFor={`${titleId}-input`} className="mb-1.5 block text-xs font-semibold text-foreground">{input.label}</label>}
             {input.multiline ? (
-              <textarea id={`${titleId}-input`} data-autofocus value={value} onChange={(e) => setValue(e.target.value)} rows={3} placeholder={input.placeholder} disabled={loading} className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25" />
+              <textarea id={`${titleId}-input`} data-autofocus value={value} onChange={(e) => setValue(e.target.value)} rows={3} placeholder={input.placeholder} disabled={loading} className="w-full resize-y rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25" />
             ) : (
-              <input id={`${titleId}-input`} data-autofocus type={input.password ? 'password' : 'text'} value={value} onChange={(e) => setValue(e.target.value)} placeholder={input.placeholder} disabled={loading} onKeyDown={(e) => { if (e.key === 'Enter' && !input.multiline) { e.preventDefault(); if (tone !== 'danger') submit() } }} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25" autoComplete={input.password ? 'current-password' : 'off'} />
+              <input id={`${titleId}-input`} data-autofocus type={input.password ? 'password' : 'text'} value={value} onChange={(e) => setValue(e.target.value)} placeholder={input.placeholder} disabled={loading} onKeyDown={(e) => { if (e.key === 'Enter' && !input.multiline) { e.preventDefault(); if (tone !== 'danger') submit() } }} className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25" autoComplete={input.password ? 'current-password' : 'off'} />
             )}
           </div>
         )}
@@ -158,7 +158,7 @@ function Dialog({ opts, onClose }: { opts: Active; onClose: () => void }) {
             type="button"
             onClick={cancel}
             disabled={loading}
-            className="rounded-md border border-input bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="rounded-none border border-input bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             {cancelLabel}
           </button>

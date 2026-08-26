@@ -13,6 +13,7 @@ import {
 } from '@/lib/stats/rankings-columns'
 import { loadPlayerDetail } from '@/app/(frontend)/rankings/actions'
 import { cn } from '@/lib/utils'
+import { CommandDeck } from '@/components/command-deck'
 
 import { FilterDrawer } from './filter-drawer'
 import { RankingsTable } from './rankings-table'
@@ -145,39 +146,39 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Rankings</h1>
-          {/*
-            The universe being read, not a filter over a shared one.
-            Compact and beside the heading: it changes every number on the page, so it has to be
-            visible — but it is a statement of which ladder this is, not the subject of the page.
-          */}
-          <div role="group" aria-label="Ranking platform" className="inline-flex overflow-hidden rounded-md border border-border">
-            {(['CUEVERSE', 'YAHOO'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                aria-pressed={applied.platform === p}
-                onClick={() => { if (applied.platform !== p) navigate({ ...applied, platform: p }) }}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-medium transition-colors',
-                  applied.platform === p
-                    ? 'bg-[var(--gold)] text-black'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {p === 'CUEVERSE' ? 'CueVerse Rankings' : 'Yahoo Archive'}
-              </button>
-            ))}
-          </div>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            <span className="tabular-nums">{visible.length.toLocaleString()}</span>{' '}
-            {visible.length === 1 ? 'player' : 'players'}
-          </p>
+      <CommandDeck
+        eyebrow="Ranking Ladder"
+        title="Rankings"
+        meta={heading}
+        stats={[{ label: 'Ranked players', value: visible.length.toLocaleString() }]}
+      >
+        {/*
+          The universe being read, not a filter over a shared one. It changes every number on the
+          page, so it sits directly under the title as a segmented switch rather than in the filter
+          bar with things that merely narrow what is already there.
+        */}
+        <div role="group" aria-label="Ranking platform" className="cyber-clip-sm inline-flex overflow-hidden border border-[var(--neon-line)]">
+          {(['CUEVERSE', 'YAHOO'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={applied.platform === p}
+              onClick={() => { if (applied.platform !== p) navigate({ ...applied, platform: p }) }}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all duration-150',
+                applied.platform === p
+                  ? 'bg-[var(--gold)] text-black [box-shadow:var(--glow-yellow)]'
+                  : 'text-muted-foreground hover:text-[var(--neon-cyan)] hover:[text-shadow:var(--glow-cyan)]',
+              )}
+            >
+              {p === 'CUEVERSE' ? 'CueVerse Rankings' : 'Yahoo Archive'}
+            </button>
+          ))}
         </div>
-        {heading}
-      </div>
+        <p className="sr-only" aria-live="polite">
+          {visible.length.toLocaleString()} {visible.length === 1 ? 'player' : 'players'}
+        </p>
+      </CommandDeck>
 
       {/* ── Toolbar: search, what the colours mean, and the filters. */}
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -188,7 +189,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Find a player"
             aria-label="Find a player"
-            className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            className="w-full rounded-none border border-border bg-background py-2 pl-9 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
           />
           {search && (
             <button
@@ -212,7 +213,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
           onClick={() => setDrawerOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
-          className="ml-auto inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="ml-auto inline-flex items-center gap-2 rounded-none border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--gold)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <SlidersHorizontal className="size-4" aria-hidden />
           More Filters
@@ -237,7 +238,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
               type="button"
               onClick={() => navigate(removeChip(applied, c.key, now))}
               aria-label={`Remove filter: ${c.label}`}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs transition-colors hover:border-[var(--gold)]/50"
+              className="inline-flex items-center gap-1 cyber-clip-sm border border-border bg-card px-2.5 py-1 text-xs transition-colors hover:border-[var(--gold)]/50"
             >
               {c.label}
               <X className="size-3 text-muted-foreground" aria-hidden />
@@ -276,7 +277,7 @@ export function RankingsExplorer({ rows, facets, state, heading }: RankingsExplo
         <Methodology />
         <a
           href={exportHref}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="inline-flex items-center gap-1.5 rounded-none border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[var(--gold)]/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           <Download className="size-3.5" aria-hidden />
           Export CSV

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { adminUpdateMemberProfileAction, type ProfilePatch } from '@/lib/staff/member-profile-actions'
 
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand'
 
 export interface ProfileInitial {
   userId: number

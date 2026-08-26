@@ -31,7 +31,7 @@ const FMT_LABEL: Record<Format, string> = {
 /** The bracket a field of N needs: the next power of two, at least 2. Mirrors recommendedBracketSize. */
 const nextPow2 = (n: number) => (n <= 2 ? 2 : 2 ** Math.ceil(Math.log2(n)))
 
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 const eyebrow = 'flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-brand'
 
 export interface CompetitionChoice {
@@ -142,7 +142,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       {/* ---- form ---- */}
-      <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="divide-y divide-border/60 overflow-hidden rounded-none border border-border bg-surface">
         {/* Format — only the four main format choices (format-specific settings live in Configuration). */}
         <section className="p-6">
           <p className={eyebrow}><span className="text-muted-foreground/50">01</span> Format</p>
@@ -200,7 +200,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
                   </Labeled>
                 </div>
 
-                <div className="rounded-md border border-border bg-card/60 px-3 py-2.5">
+                <div className="rounded-none border border-border bg-card/60 px-3 py-2.5">
                   <p className="text-xs text-muted-foreground">
                     <b className="text-foreground">Recommended bracket: {nextPow2(groupCount * qualifiersPerGroup)} places</b>
                     {' '}for {groupCount * qualifiersPerGroup} qualifiers ({groupCount} × {qualifiersPerGroup}).
@@ -209,7 +209,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
                   </p>
                 </div>
 
-                <div className="rounded-md border border-border bg-card/60 px-3 py-2.5">
+                <div className="rounded-none border border-border bg-card/60 px-3 py-2.5">
                   <p className="mb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">Match format</p>
                   <dl className="space-y-0.5">
                     {GROUPS_PLAYOFFS_FORMAT_SUMMARY.map((r) => (
@@ -244,7 +244,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
             {/* Before Competition, because it decides which one is the sensible default. Secondary
                 by design: a Tournament is identified by its name and its Competition. */}
             <Labeled label="Platform" hint="required">
-              <div role="group" aria-label="Platform" className="inline-flex overflow-hidden rounded-md border border-input">
+              <div role="group" aria-label="Platform" className="inline-flex overflow-hidden rounded-none border border-input">
                 {(['CUEVERSE', 'YAHOO'] as const).map((pf) => (
                   <button
                     key={pf}
@@ -310,7 +310,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
             </Labeled>
             <div className="grid gap-4 sm:grid-cols-2">
               <Labeled label="Match format">
-                <div className="inline-flex items-center overflow-hidden rounded-md border border-input bg-card">
+                <div className="inline-flex items-center overflow-hidden rounded-none border border-input bg-card">
                   <button type="button" onClick={() => setRace((v) => Math.max(1, v - 1))} className="h-10 w-10 text-lg hover:bg-card-2">–</button>
                   <input value={race} onChange={(e) => setRace(Math.max(1, Math.min(99, Number(e.target.value) || 1)))} inputMode="numeric" className="h-10 w-14 border-x border-input bg-transparent text-center font-bold tabular-nums outline-none" aria-label="Race to" />
                   <button type="button" onClick={() => setRace((v) => Math.min(99, v + 1))} className="h-10 w-10 text-lg hover:bg-card-2">+</button>
@@ -410,7 +410,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
 
       {/* ---- review rail ---- */}
       <div>
-        <div className="sticky top-4 overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="sticky top-4 overflow-hidden rounded-none border border-border bg-surface">
           <div className="border-b border-border/60 p-5">
             <h3 className="mb-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Live preview</h3>
             <FlairPreview value={flair} name={name} />
@@ -418,7 +418,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
           <div className="border-b border-border/60 p-5">
             <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Review</h3>
             <p className={cn('mt-2 text-lg font-bold', name.trim() ? 'text-foreground' : 'text-muted-foreground/60')}>{name.trim() || 'Untitled Tournament'}</p>
-            <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-success/25 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+            <span className="mt-2.5 inline-flex items-center gap-1.5 cyber-clip-sm border border-success/25 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
               <span className="size-1.5 rounded-full bg-success" /> Reports to Rankings
             </span>
           </div>
@@ -439,7 +439,7 @@ export function CreateTournamentForm({ competitions }: { competitions: Competiti
             <button
               type="button"
               onClick={() => { setSavedDefault(false); saveFlairDefaultAction(flair).then((r) => { if (!r.error) setSavedDefault(true) }) }}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex items-center justify-center gap-1.5 rounded-none border border-input py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
             >
               {savedDefault ? (<><Check className="size-3.5 text-success" /> Saved as your default</>) : (<><Sparkles className="size-3.5" /> Save flair as my default</>)}
             </button>
@@ -486,7 +486,7 @@ function Choice({ active, onClick, title, body }: { active: boolean; onClick: ()
 
 function Segmented({ options, value, onChange }: { options: { v: string; l: string }[]; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-md border border-input bg-card p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-none border border-input bg-card p-1">
       {options.map((o) => (
         <button
           key={o.v}

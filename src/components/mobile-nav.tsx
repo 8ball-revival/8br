@@ -69,7 +69,7 @@ export function MobileNav({ entries, className, isSignedIn = false, extraItems =
             <Link
               href={isSignedIn ? '/account' : '/login'}
               onClick={() => setOpen(false)}
-              className="mt-2 rounded-md border border-border px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+              className="mt-2 rounded-none border border-border px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
             >
               {isSignedIn ? 'Account Settings' : 'Sign In'}
             </Link>
@@ -78,7 +78,7 @@ export function MobileNav({ entries, className, isSignedIn = false, extraItems =
                 <button
                   type="submit"
                   onClick={() => setOpen(false)}
-                  className="mt-1 flex w-full items-center gap-2 rounded-md border border-border px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
+                  className="mt-1 flex w-full items-center gap-2 rounded-none border border-border px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
                 >
                   <LogOut className="size-5" aria-hidden /> Sign Out
                 </button>

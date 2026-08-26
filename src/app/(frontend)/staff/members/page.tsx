@@ -92,7 +92,7 @@ export default async function MembersPage({ searchParams }: SP) {
 
       <form method="get" className="mt-5 flex flex-wrap items-center gap-2">
         <Input name="q" defaultValue={q} placeholder="Search members…" className="w-64" />
-        <select name="status" defaultValue={statusFilter} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+        <select name="status" defaultValue={statusFilter} className="rounded-none border border-border bg-background px-3 py-2 text-sm">
           {STATUSES.map((s) => <option key={s} value={s}>{s === 'ALL' ? 'All statuses' : label(s)}</option>)}
         </select>
         <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
@@ -109,7 +109,7 @@ export default async function MembersPage({ searchParams }: SP) {
         <Button type="submit" size="sm">Filter</Button>
       </form>
 
-      <div className="mt-5 overflow-x-auto rounded-lg border border-border">
+      <div className="mt-5 overflow-x-auto rounded-none border border-border">
         <table className="w-full min-w-[620px] text-sm">
           <thead className="bg-card/60 text-left text-xs text-muted-foreground uppercase">
             <tr>

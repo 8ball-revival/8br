@@ -123,7 +123,7 @@ export function PostEditor({
     })
   }
 
-  const field = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)]'
+  const field = 'w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-[var(--gold)]'
 
   return (
     <div className="space-y-4">
@@ -192,7 +192,7 @@ export function PostEditor({
             router.push(returnTo)
           }}
           disabled={pending}
-          className="rounded-md border border-input px-3 py-1.5 text-sm text-foreground hover:bg-white/[0.06] disabled:opacity-50"
+          className="rounded-none border border-input px-3 py-1.5 text-sm text-foreground hover:bg-white/[0.06] disabled:opacity-50"
         >
           Cancel
         </button>

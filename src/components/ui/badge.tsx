@@ -4,17 +4,22 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors',
+  /*
+   * Chips are chamfered rather than pill-shaped, and their colour lives on the border and the text.
+   * A filled chip in this palette is a small block of pure neon, which at this size reads as an
+   * error state whatever it says.
+   */
+  'cyber-clip-sm inline-flex items-center gap-1 rounded-none border px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-wider whitespace-nowrap transition-all duration-200',
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-secondary text-secondary-foreground',
-        gold: 'border-brand/30 bg-[var(--selected-surface)] text-brand',
-        solid: 'border-transparent bg-primary text-primary-foreground',
-        outline: 'border-border text-foreground',
+        default: 'border-[var(--neon-line)] bg-secondary text-secondary-foreground',
+        gold: 'border-[var(--neon-yellow)] bg-transparent text-[var(--neon-yellow)] [text-shadow:var(--glow-yellow)]',
+        solid: 'border-transparent bg-primary text-primary-foreground [box-shadow:var(--glow-yellow)]',
+        outline: 'border-[var(--neon-line)] text-foreground',
         muted: 'border-transparent bg-muted text-muted-foreground',
-        success: 'border-success/30 bg-success/10 text-success',
-        destructive: 'border-destructive/30 bg-destructive/10 text-destructive',
+        success: 'border-success/50 bg-transparent text-success [text-shadow:0_0_10px_oklch(0.84_0.21_152/0.5)]',
+        destructive: 'border-destructive/60 bg-transparent text-destructive [text-shadow:0_0_10px_oklch(0.63_0.26_18/0.5)]',
       },
     },
     defaultVariants: { variant: 'default' },

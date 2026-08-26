@@ -68,7 +68,7 @@ export default async function PreviewPage({ searchParams }: SP) {
         <img
           src={`/api/media/file/${article.coverMediaId}`}
           alt={article.coverAlt ?? ''}
-          className="mt-6 w-full rounded-lg border border-border"
+          className="mt-6 w-full rounded-none border border-border"
         />
       )}
 

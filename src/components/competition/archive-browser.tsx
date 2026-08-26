@@ -45,7 +45,7 @@ export function ArchiveBrowser({
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-card/30 px-2.5 py-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-none border border-border bg-card/30 px-2.5 py-2">
         <label className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <input
@@ -111,7 +111,7 @@ export function ArchiveBrowser({
       </div>
 
       {page.cards.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-none border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           {anyFilter
             ? 'No archived records match these filters.'
             : `No ${kind} have been completed yet.`}

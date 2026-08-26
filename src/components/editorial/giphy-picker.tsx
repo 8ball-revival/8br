@@ -91,7 +91,7 @@ export function GiphyPicker({
 
   if (!configured) {
     return (
-      <div className="rounded-md border border-border bg-card/40 p-4">
+      <div className="rounded-none border border-border bg-card/40 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium">GIF search is not configured</p>
@@ -114,7 +114,7 @@ export function GiphyPicker({
   }
 
   return (
-    <div className="rounded-md border border-border bg-card/40 p-3">
+    <div className="rounded-none border border-border bg-card/40 p-3">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -127,7 +127,7 @@ export function GiphyPicker({
             onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
             placeholder="Search GIFs…"
             autoFocus
-            className="w-full rounded-md border border-input bg-card py-1.5 pl-8 pr-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
+            className="w-full rounded-none border border-input bg-card py-1.5 pl-8 pr-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25"
           />
         </div>
         <button
@@ -197,7 +197,7 @@ export function GiphyPicker({
               type="button"
               disabled={loading}
               onClick={() => void load(query, offset, true)}
-              className="rounded-md border border-border px-3 py-1 text-xs hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+              className="rounded-none border border-border px-3 py-1 text-xs hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
             >
               {loading ? 'Loading…' : 'Load more'}
             </button>

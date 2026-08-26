@@ -40,7 +40,7 @@ function StreakInline({ streak }: { streak: number }) {
 
 function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-card/40 p-3">
+    <div className="rounded-none border border-border bg-card/40 p-3">
       <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-lg font-semibold text-foreground">{value}</p>
       {sub != null && <p className="text-xs text-muted-foreground">{sub}</p>}
@@ -70,7 +70,7 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
         )}
       </div>
 
-      <div role="tablist" aria-label="Profile sections" className="mb-4 inline-flex rounded-lg border border-border bg-card/40 p-1">
+      <div role="tablist" aria-label="Profile sections" className="mb-4 inline-flex rounded-none border border-border bg-card/40 p-1">
         {TABS.map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
             className={cn('rounded-md px-3 py-1.5 text-sm font-medium transition-colors', tab === t ? 'bg-brand text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
@@ -102,7 +102,7 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
       )}
 
       {tab === 'Tournaments' && (
-        <div className="overflow-x-auto scrollbar-brand rounded-lg border border-border">
+        <div className="overflow-x-auto scrollbar-brand rounded-none border border-border">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b border-border bg-card/50 text-left text-[0.7rem] uppercase tracking-wide text-muted-foreground">
               <tr><th className="px-2.5 py-2">Tournament</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2">Format</th><th className="px-2.5 py-2">Team</th><th className="px-2.5 py-2 text-center">Record</th><th className="px-2.5 py-2 text-center">Rating</th><th className="px-2.5 py-2 text-center">Result</th></tr>
@@ -126,7 +126,7 @@ export function PlayerProfile({ profile }: { profile: PlayerProfileView }) {
       )}
 
       {tab === 'Match History' && (
-        <div className="overflow-x-auto scrollbar-brand rounded-lg border border-border">
+        <div className="overflow-x-auto scrollbar-brand rounded-none border border-border">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-border bg-card/50 text-left text-[0.7rem] uppercase tracking-wide text-muted-foreground">
               <tr><th className="px-2.5 py-2">Tournament</th><th className="px-2.5 py-2">Date</th><th className="px-2.5 py-2">Stage</th><th className="px-2.5 py-2">Opponent</th><th className="px-2.5 py-2 text-center">Score</th><th className="px-2.5 py-2 text-center">Result</th><th className="px-2.5 py-2 text-center">Rating</th></tr>

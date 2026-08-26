@@ -243,7 +243,7 @@ export function RankingsTable(props: RankingsTableProps) {
   const paneHeight = usePaneHeight(frameRef)
 
   return (
-    <div ref={frameRef} className="overflow-hidden rounded-md border border-border">
+    <div ref={frameRef} className="overflow-hidden rounded-none border border-border">
       <div
         data-rankings-scroller
         className="scrollbar-themed overflow-auto rounded-md"
@@ -295,7 +295,7 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
       data-col={col.key}
       aria-sort={s ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={cn(
-        'sticky top-0 z-30 border-b border-border bg-card px-2.5 py-2 align-bottom font-medium',
+        'sticky top-0 z-30 border-b border-[var(--neon-line)] bg-[var(--surface)] px-2.5 py-2 align-bottom text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground',
         // Most headers are short and read best on one line. The honours headers are not: forcing
         // "Season Championships 👑" onto one line drags the whole column to its width and pushes
         // everything else off screen. Those wrap instead, and the row aligns on its baseline so a
@@ -305,7 +305,7 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
         sticky && 'z-40',
         // The active sort is marked with a neutral lift and gold TEXT. A translucent gold wash over
         // charcoal renders brown, which is not a colour this site uses.
-        s && 'bg-white/[0.06]',
+        s && 'bg-white/[0.06] text-[var(--neon-cyan)] [text-shadow:var(--glow-cyan)]',
       )}
       style={{
         ...(sticky ?? {}),
@@ -354,8 +354,13 @@ function Row({
       <tr
         data-player-row={row.playerId}
         className={cn(
-          'transition-colors hover:bg-white/[0.04]',
-          isOpen && 'bg-white/[0.06]',
+          /*
+            * The rail is an inset box-shadow rather than a border: a real border on hover would
+            * change the row's box and nudge every column, which on a table this wide is a visible
+            * jolt. The shadow paints inside the existing box and moves nothing.
+            */
+          'transition-all duration-150 hover:bg-white/[0.04] hover:[box-shadow:inset_2px_0_0_0_var(--neon-cyan)]',
+          isOpen && 'bg-white/[0.06] [box-shadow:inset_2px_0_0_0_var(--neon-yellow)]',
           !qualified && 'opacity-70',
         )}
       >

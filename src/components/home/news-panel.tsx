@@ -80,7 +80,7 @@ function ArticleCard({
     <Link
       href={`/news/${article.slug}`}
       className={[
-        'group relative flex overflow-hidden rounded-lg border border-border bg-card/40 transition-colors',
+        'group relative flex overflow-hidden rounded-none border border-border bg-card/40 transition-colors',
         'hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60',
         feature ? 'flex-col' : 'flex-col sm:flex-row',
       ].join(' ')}

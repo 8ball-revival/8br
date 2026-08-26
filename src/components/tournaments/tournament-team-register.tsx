@@ -33,7 +33,7 @@ export interface JoinableTeamView {
 }
 
 const initial: FormResult = {}
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 export function TournamentTeamRegister({
   number,
@@ -59,7 +59,7 @@ export function TournamentTeamRegister({
   requiresPassword?: boolean
 }) {
   return (
-    <section className="mt-8 rounded-lg border border-border bg-card/40 p-5">
+    <section className="mt-8 rounded-none border border-border bg-card/40 p-5">
       <h2 className="mb-3 flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-brand">
         <Users className="size-4" aria-hidden /> Team registration
       </h2>
@@ -100,7 +100,7 @@ function FreeAgentCard({ number, identity, joinableTeams, registrationOpen, requ
       )}
       {state.ok && <p className="text-sm text-muted-foreground">You have withdrawn from free agency.</p>}
       {registrationOpen && !state.ok && (
-        <div className="rounded-md border border-border bg-background/40 p-4">
+        <div className="rounded-none border border-border bg-background/40 p-4">
           <p className="mb-3 text-xs text-muted-foreground">Changed your mind? Start or join a team instead — it replaces your free-agent registration.</p>
           <StartOrJoin number={number} identity={identity} joinableTeams={joinableTeams} allowFree={false} requiresPassword={requiresPassword} />
         </div>
@@ -148,12 +148,12 @@ function StartOrJoin({ number, identity, joinableTeams, allowFree, requiresPassw
   ]
   return (
     <div>
-      <div className="mb-4 inline-flex flex-wrap rounded-md border border-input bg-card p-1">
+      <div className="mb-4 inline-flex flex-wrap rounded-none border border-input bg-card p-1">
         {tabs.map((t) => (
           <button key={t.id} type="button" onClick={() => setMode(t.id)} className={cn('rounded px-4 py-1.5 text-sm font-semibold transition-colors', mode === t.id ? 'bg-brand text-white' : 'text-muted-foreground hover:text-foreground')}>{t.label}</button>
         ))}
       </div>
-      <div className="mb-4 rounded-md border border-border bg-background/50 px-3 py-2 text-sm">
+      <div className="mb-4 rounded-none border border-border bg-background/50 px-3 py-2 text-sm">
         <span className="text-muted-foreground">You&apos;ll register as </span>
         <span className="font-semibold text-foreground">{captainLabel}</span>
         <span className="text-muted-foreground"> — from your account (read-only).</span>
@@ -225,7 +225,7 @@ function JoinTeamForm({ number, joinableTeams, requiresPassword }: { number: num
           <input value={selected ? selected.name : query} onChange={(e) => { setSelected(null); setQuery(e.target.value) }} placeholder="Search teams…" className={cn(input, 'pl-9')} autoComplete="off" />
         </div>
         {!selected && (
-          <ul className="mt-1.5 max-h-52 overflow-y-auto rounded-md border border-border bg-card">
+          <ul className="mt-1.5 max-h-52 overflow-y-auto rounded-none border border-border bg-card">
             {filtered.length === 0 ? (
               <li className="px-3 py-2 text-sm text-muted-foreground">No matching teams.</li>
             ) : filtered.map((t) => (
@@ -267,7 +267,7 @@ function MyTeamCard({ number, team, currentUserId, registrationOpen }: { number:
         {team.complete ? <Badge tone="ok" text="Complete" /> : <Badge tone="warn" text={`Needs ${team.spaces} more`} />}
       </div>
 
-      <ul className="divide-y divide-border/50 rounded-md border border-border">
+      <ul className="divide-y divide-border/50 rounded-none border border-border">
         {team.members.map((m, i) => (
           <li key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
             <span className="flex items-center gap-2">
@@ -367,5 +367,5 @@ function Success({ text }: { text: string }) {
 }
 function Badge({ text, icon, tone }: { text: string; icon?: React.ReactNode; tone?: 'ok' | 'warn' }) {
   const cls = tone === 'ok' ? 'border-success/30 bg-success/10 text-success' : tone === 'warn' ? 'border-[var(--gold)]/45 bg-[var(--attention-surface)] text-[var(--gold)]' : 'border-border bg-card text-muted-foreground'
-  return <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold', cls)}>{icon}{text}</span>
+  return <span className={cn('inline-flex items-center gap-1 cyber-clip-sm border px-2 py-0.5 text-[0.65rem] font-semibold', cls)}>{icon}{text}</span>
 }

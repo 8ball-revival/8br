@@ -46,7 +46,7 @@ export function ArticleCardView({
   return (
     <article
       className={[
-        'group flex flex-col overflow-hidden rounded-lg border border-border bg-card/40 transition-colors hover:border-brand/40',
+        'group flex flex-col overflow-hidden rounded-none border border-border bg-card/40 transition-colors hover:border-brand/40',
         lead ? 'sm:flex-row' : '',
       ].join(' ')}
     >

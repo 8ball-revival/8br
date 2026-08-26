@@ -58,7 +58,7 @@ export function EditorialSettingsForm({
           id="featured"
           value={value.featuredArticleId ?? ''}
           onChange={(e) => setValue((v) => ({ ...v, featuredArticleId: e.target.value ? Number(e.target.value) : null }))}
-          className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+          className="w-full rounded-none border border-input bg-card px-3 py-2 text-sm"
         >
           <option value="">Newest article flagged as featured</option>
           {candidates.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -69,7 +69,7 @@ export function EditorialSettingsForm({
         </p>
       </div>
 
-      <fieldset className="rounded-lg border border-border p-4">
+      <fieldset className="rounded-none border border-border p-4">
         <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sections</legend>
         <div className="space-y-2.5">
           <Row id="showFeatured" checked={value.showFeatured} onChange={toggle('showFeatured')} label="Featured story" />

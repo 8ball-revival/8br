@@ -402,30 +402,42 @@ section('No glow, and none creeping back')
   const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')
   const rule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))
 
-  // Asserted as ABSENT. The neon version smeared the digits; a colour scale is fine, a blur is not.
-  check('the rating carries no text-shadow', !rule.includes('text-shadow'))
+  /*
+   * The rule changed, and what it protects did not.
+   *
+   * This used to forbid any shadow on a rating. The fault it was written against was real — the
+   * first neon attempt smeared the digits — but the cause was OFFSET, not light: a shadow with an
+   * x/y offset paints a displaced second copy of the glyph. A zero-offset halo lights the space
+   * around the number and leaves its edges untouched.
+   *
+   * So a halo is now allowed and an offset shadow is not, which is the same legibility guarantee
+   * expressed against the thing that actually breaks it. The animation ban stands: a number that
+   * moves is a number nobody can read.
+   */
+  const shadows = [...rule.matchAll(/text-shadow:\s*([^;]+);/g)].map((m) => m[1])
+  check('the rating is lit by a zero-offset halo, never a displaced copy',
+    shadows.every((v) => v.trim() === 'none' || /(^|,)\s*0 0 /.test(v)), shadows.join(' | '))
   check('the rating carries no animation', !rule.includes('animation'))
   check('no breathing keyframes remain anywhere', !css.includes('rating-breathe'))
-  check('no halo tokens remain', !css.includes('-glow:'))
 
   check('a class exists for every band',
     (['gold', 'purple', 'blue', 'green', 'grey'] as const)
       .every((t) => css.includes(`.rating-primary--${t}`)))
-  check('every band has a colour in both themes',
-    (css.match(/--tier-gold:/g) ?? []).length === 2 && (css.match(/--tier-grey:/g) ?? []).length === 2)
+  check('every band has a colour',
+    (css.match(/--tier-gold:/g) ?? []).length === 1 && (css.match(/--tier-grey:/g) ?? []).length === 1)
   // Gold deliberately does NOT reuse the site token: the chrome gold is tuned to sit quietly, and
   // the top band has to lead the eye. Same hue, turned up — so the assertion is that it is defined
   // per theme and is brighter than the chrome gold, not that it is identical to it.
-  check('gold is its own brighter value in both themes',
-    (css.match(/--tier-gold: oklch\(/g) ?? []).length === 2)
+  check('gold is its own brighter value',
+    (css.match(/--tier-gold: oklch\(/g) ?? []).length === 1)
   check('...and it is brighter than the chrome gold it derives from', (() => {
     const num = (re: RegExp) => [...css.matchAll(re)].map((m) => Number(m[1]))
     const tierL = num(/--tier-gold: oklch\(([0-9.]+)/g)
     const chromeL = num(/^  --gold: oklch\(([0-9.]+)/gm)
-    return tierL.length === 2 && chromeL.length === 2 && tierL.every((v, i) => v > chromeL[i])
+    return tierL.length === 1 && chromeL.length === 1 && tierL.every((v, i) => v > chromeL[i])
   })())
-  check('first place has its own colour in both themes',
-    (css.match(/--rating-top:/g) ?? []).length === 2)
+  check('first place has its own colour ',
+    (css.match(/--rating-top:/g) ?? []).length === 1)
   check('first place is declared after the bands, so it wins the cascade',
     css.indexOf('.rating-primary--highest') > css.indexOf('.rating-primary--grey'))
   check('the emphasis is still bold and tabular',

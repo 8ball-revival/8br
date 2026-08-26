@@ -15,7 +15,7 @@ const sevClass: Record<string, string> = {
   info: 'bg-muted text-muted-foreground', notice: 'bg-sky-500/15 text-sky-400',
   warning: 'bg-[var(--selected-surface)] text-[var(--gold)]', critical: 'bg-destructive/15 text-destructive',
 }
-const input = 'rounded-md border border-input bg-card px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand'
+const input = 'rounded-none border border-input bg-card px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand'
 
 export function ActivityLogView({ rows, total, page, pageSize, filters, canExportFull }: {
   rows: ActivityRow[]; total: number; page: number; pageSize: number; filters: ActivityFilters; canExportFull: boolean
@@ -45,7 +45,7 @@ export function ActivityLogView({ rows, total, page, pageSize, filters, canExpor
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="grid gap-2 rounded-lg border border-border bg-card/40 p-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 rounded-none border border-border bg-card/40 p-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative sm:col-span-2 lg:col-span-2">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" aria-hidden />
           <input defaultValue={filters.search ?? ''} onBlur={(e) => setParam({ search: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') setParam({ search: (e.target as HTMLInputElement).value }) }} placeholder="Search action, actor, reason…" className={cn(input, 'w-full pl-8')} aria-label="Search activity" />
@@ -76,7 +76,7 @@ export function ActivityLogView({ rows, total, page, pageSize, filters, canExpor
       </div>
 
       {/* Table */}
-      <div className="scrollbar-themed overflow-x-auto rounded-lg border border-border">
+      <div className="scrollbar-themed overflow-x-auto rounded-none border border-border">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-card/60 text-left text-[0.7rem] uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -97,8 +97,8 @@ export function ActivityLogView({ rows, total, page, pageSize, filters, canExpor
                   <td className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">{formatDateTime(r.createdAt)}</td>
                   <td className="px-3 py-2 font-medium">{r.actorUsername}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.action}</td>
-                  <td className="px-3 py-2"><span className="rounded-full bg-muted px-2 py-0.5 text-[0.65rem]">{r.category}</span></td>
-                  <td className="px-3 py-2"><span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', sevClass[r.severity])}>{r.severity}</span></td>
+                  <td className="px-3 py-2"><span className="cyber-clip-sm bg-muted px-2 py-0.5 text-[0.65rem]">{r.category}</span></td>
+                  <td className="px-3 py-2"><span className={cn('cyber-clip-sm px-2 py-0.5 text-[0.65rem] font-semibold', sevClass[r.severity])}>{r.severity}</span></td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{r.entity}{r.entityId ? ` #${r.entityId}` : ''}</td>
                   <td className="px-3 py-2 text-right">
                     {(r.reason || r.oldValue != null || r.newValue != null) && (

@@ -166,7 +166,7 @@ export function TournamentCreateForm({
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-foreground">Participants</legend>
           <div className="flex flex-wrap items-end gap-4">
-            <div className="inline-flex gap-1 rounded-md border border-input bg-card p-1">
+            <div className="inline-flex gap-1 rounded-none border border-input bg-card p-1">
               {[{ v: false, l: 'Individual 1v1' }, { v: true, l: 'Teams' }].map((o) => (
                 <button key={String(o.v)} type="button" onClick={() => setIsTeam(o.v)}
                   className={cn('rounded px-3 py-1.5 text-sm font-semibold transition-colors',
@@ -219,7 +219,7 @@ export function TournamentCreateForm({
         </Field>
 
         <button type="submit" disabled={pending || !competitionSeriesId || !name.trim()}
-          className="rounded-full bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60">
+          className="cyber-clip-sm bg-[var(--gold)] px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60">
           {pending ? 'Creating…' : 'Create Tournament'}
         </button>
       </div>
@@ -240,7 +240,7 @@ export function TournamentCreateForm({
 }
 
 const inputCls =
-  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
+  'w-full rounded-none border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60'
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

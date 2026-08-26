@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import './cyberpunk.css';
+@import './hud.css';
 
 /*
   8 Ball Registry (8BR) — public (frontend) design system.
@@ -9,7 +11,6 @@
   design tokens — retune the whole site by editing these values in one place.
 */
 
-@custom-variant light (&:is(.light *));
 
 :root {
   --radius: 0.5rem;
@@ -18,46 +19,46 @@
      commit 7529a31. Charcoal-black grounds, dark elevated surfaces, gold accent, white
      primary text, muted-gray secondary text, subtle neutral borders. Values stay in oklch
      so hue/chroma/lightness relationships hold when a colour is mixed or tinted. ---- */
-  --background: oklch(0.165 0.006 265); /* page ground — near-black charcoal */
-  --foreground: oklch(0.96 0.004 260); /* primary text — white */
+  --background: oklch(0.105 0.016 274); /* page ground — near-black charcoal */
+  --foreground: oklch(0.97 0.01 210); /* primary text — white */
 
-  --surface: oklch(0.185 0.007 265); /* first elevation above the page */
-  --card: oklch(0.205 0.007 265); /* elevated cards / panels */
-  --card-foreground: oklch(0.96 0.004 260);
+  --surface: oklch(0.135 0.018 274); /* first elevation above the page */
+  --card: oklch(0.155 0.02 272); /* elevated cards / panels */
+  --card-foreground: oklch(0.97 0.01 210);
 
-  --popover: oklch(0.185 0.007 265);
-  --popover-foreground: oklch(0.96 0.004 260);
+  --popover: oklch(0.135 0.018 274);
+  --popover-foreground: oklch(0.97 0.01 210);
 
   /* Gold accent — the single brand colour. */
-  --primary: oklch(0.8 0.125 84);
-  --primary-foreground: oklch(0.18 0.02 80); /* dark ink on gold */
-  --primary-hover: oklch(0.87 0.1 88);
+  --primary: oklch(0.9 0.19 100);
+  --primary-foreground: oklch(0.13 0.02 274); /* dark ink on gold */
+  --primary-hover: oklch(0.95 0.17 100);
 
-  --secondary: oklch(0.245 0.007 265);
-  --secondary-foreground: oklch(0.96 0.004 260);
+  --secondary: oklch(0.2 0.022 272);
+  --secondary-foreground: oklch(0.97 0.01 210);
 
-  --muted: oklch(0.245 0.007 265);
+  --muted: oklch(0.2 0.022 272);
 
   /* Group-stage Discord contact row: neutral dark surface + border; the icon active state
      keeps Discord's own blurple, which is their brand, not ours. */
-  --discord-row-bg: oklch(0.205 0.007 265);
-  --discord-row-border: oklch(0.28 0.007 265);
-  --discord-icon: oklch(0.7 0.01 265);
+  --discord-row-bg: oklch(0.155 0.02 272);
+  --discord-row-border: oklch(0.3 0.035 268);
+  --discord-icon: oklch(0.7 0.02 250);
   --discord-icon-active: #5865f2;
-  --muted-foreground: oklch(0.7 0.01 265); /* secondary text — muted gray */
+  --muted-foreground: oklch(0.7 0.025 240); /* secondary text — muted gray */
 
-  --accent: oklch(0.27 0.008 265); /* hover surface */
-  --accent-foreground: oklch(0.96 0.004 260);
+  --accent: oklch(0.24 0.03 270); /* hover surface */
+  --accent-foreground: oklch(0.97 0.01 210);
 
   /* Semantic status. Red is reserved for destructive/error meaning only — never brand. */
-  --destructive: oklch(0.62 0.2 25);
+  --destructive: oklch(0.63 0.26 18);
   --destructive-foreground: oklch(0.98 0.004 260);
-  --success: oklch(0.7 0.14 155);
-  --warning: oklch(0.8 0.13 84);
+  --success: oklch(0.84 0.21 152);
+  --warning: oklch(0.88 0.18 95);
 
-  --border: oklch(0.28 0.007 265);
-  --input: oklch(0.28 0.007 265);
-  --ring: oklch(0.8 0.125 84); /* gold focus ring */
+  --border: oklch(0.3 0.035 268);
+  --input: oklch(0.3 0.035 268);
+  --ring: oklch(0.84 0.14 200); /* gold focus ring */
 
   /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
      so only the advancing side is emphasised. */
@@ -74,15 +75,15 @@
    * connector that carries that winner forward. Nothing is filled with gold, because gold over
    * charcoal mixes to olive-brown rather than to a pale gold wash.
    */
-  --bracket-canvas: oklch(0.115 0.004 265);          /* flat void-black behind the tree */
-  --bracket-surface: oklch(0.192 0.006 265);         /* cool-charcoal matchup card */
-  --bracket-surface-raised: oklch(0.225 0.006 265);  /* hover / drop target */
-  --bracket-outline: oklch(0.27 0.007 265);          /* card border and row divider */
-  --bracket-divider: oklch(0.22 0.006 265);          /* thin round-column divider */
-  --bracket-text: oklch(0.95 0.004 260);             /* resolved identity, undecided */
-  --bracket-text-neutral: oklch(0.68 0.005 265);     /* losers, seeds, preferred names, scores */
-  --bracket-text-muted: oklch(0.52 0.006 265);       /* TBD, bye, unplayed */
-  --bracket-connector: oklch(0.38 0.006 265);        /* unresolved and losing paths */
+  --bracket-canvas: oklch(0.085 0.014 274);          /* flat void-black behind the tree */
+  --bracket-surface: oklch(0.145 0.02 272);         /* cool-charcoal matchup card */
+  --bracket-surface-raised: oklch(0.185 0.024 270);  /* hover / drop target */
+  --bracket-outline: oklch(0.3 0.035 268);          /* card border and row divider */
+  --bracket-divider: oklch(0.2 0.022 272);          /* thin round-column divider */
+  --bracket-text: oklch(0.96 0.01 210);             /* resolved identity, undecided */
+  --bracket-text-neutral: oklch(0.7 0.02 240);     /* losers, seeds, preferred names, scores */
+  --bracket-text-muted: oklch(0.54 0.02 250);       /* TBD, bye, unplayed */
+  --bracket-connector: oklch(0.42 0.04 245);        /* unresolved and losing paths */
   --bracket-winner: var(--gold);                     /* winning ID, winning score, winning rail */
   --bracket-connector-winner: var(--gold);           /* the advancing path only */
   --bracket-focus: var(--ring);
@@ -90,19 +91,19 @@
 
   /* Navigation surface (header/footer). Own tokens so a personal theme can retint the nav
      without disturbing the page; the 8br.gg default keeps it level with the page ground. */
-  --nav-bg: oklch(0.165 0.006 265);
-  --nav-foreground: oklch(0.96 0.004 260);
-  --nav-border: oklch(0.28 0.007 265);
+  --nav-bg: oklch(0.105 0.016 274);
+  --nav-foreground: oklch(0.97 0.01 210);
+  --nav-border: oklch(0.3 0.035 268);
 
   /* Brand accents (emphasis, headings, active states) — gold, matching --primary. */
-  --brand: oklch(0.8 0.125 84);
-  --brand-hover: oklch(0.87 0.1 88);
-  --brand-soft: oklch(0.87 0.1 88);
-  --brand-dim: oklch(0.62 0.1 80);
+  --brand: oklch(0.9 0.19 100);
+  --brand-hover: oklch(0.95 0.17 100);
+  --brand-soft: oklch(0.95 0.17 100);
+  --brand-dim: oklch(0.72 0.15 100);
 
   /* Competitive-result semantics: the winner reads gold, the loser recedes to muted. */
-  --win: oklch(0.8 0.125 84);
-  --loss: oklch(0.7 0.01 265);
+  --win: oklch(0.9 0.19 100);
+  --loss: oklch(0.62 0.03 250);
 
   /*
     Streak semantics — a SEPARATE pair from --win/--loss on purpose.
@@ -112,10 +113,10 @@
     Reusing the gold win colour made a losing streak and a winning streak look like the same thing.
     Short streaks (-2 to +2) use neither and stay plain, because two results is not a run.
   */
-  --streak-hot: oklch(0.74 0.17 148);   /* a run of wins */
-  --streak-cold: oklch(0.64 0.2 25);    /* a run of losses */
-  --streak-fire: oklch(0.68 0.2 42);    /* the flame icon — orange-red */
-  --streak-ice: oklch(0.85 0.08 230);   /* the snowflake icon — pale blue */
+  --streak-hot: oklch(0.84 0.21 152);   /* a run of wins */
+  --streak-cold: oklch(0.66 0.26 18);    /* a run of losses */
+  --streak-fire: oklch(0.75 0.22 45);    /* the flame icon — orange-red */
+  --streak-ice: oklch(0.86 0.13 205);   /* the snowflake icon — pale blue */
 
   /* ── Rating tiers (the primary Rating value in the Rankings table only).
      Bands, high to low: 1600+ gold · 1500–1599 purple · 1400–1499 blue ·
@@ -134,28 +135,28 @@
      band has to be the thing your eye lands on first in a table of sixty numbers.
      So it is the same hue, pushed brighter and more saturated — recognisably the
      site's gold, turned up. */
-  --tier-gold: oklch(0.89 0.175 90);
-  --tier-purple: oklch(0.68 0.17 315);
-  --tier-blue: oklch(0.68 0.13 250);
-  --tier-green: oklch(0.7 0.15 145);
+  --tier-gold: oklch(0.95 0.17 100);
+  --tier-purple: oklch(0.7 0.24 320);
+  --tier-blue: oklch(0.82 0.15 220);
+  --tier-green: oklch(0.82 0.2 150);
   /* Grey is a readable neutral, not a disabled state — a low rating is still a rating. */
-  --tier-grey: oklch(0.73 0.008 250);
+  --tier-grey: oklch(0.72 0.02 250);
 
   /* First place. Bright red, applied over whatever band the leader is actually in. */
-  --rating-top: oklch(0.66 0.24 25);
+  --rating-top: oklch(0.68 0.28 12);
 
 
   /* Clickable player names (e.g. the group crosstable). */
-  --player-name: oklch(0.8 0.125 84);
+  --player-name: oklch(0.9 0.19 100);
 
   /* Themed scrollbars (see .scrollbar-themed): dark track, neutral thumb, gold on hover. */
-  --scrollbar-track: oklch(0.165 0.006 265);
-  --scrollbar-thumb: oklch(0.28 0.007 265);
+  --scrollbar-track: oklch(0.105 0.016 274);
+  --scrollbar-thumb: oklch(0.3 0.035 268);
   --scrollbar-thumb-hover: var(--gold);
 
-  --gold: oklch(0.8 0.125 84);
-  --gold-soft: oklch(0.87 0.1 88);
-  --gold-dim: oklch(0.62 0.1 80);
+  --gold: oklch(0.9 0.19 100);
+  --gold-soft: oklch(0.95 0.17 100);
+  --gold-dim: oklch(0.72 0.15 100);
 
   /*
    * Semantic surfaces — the reason nothing here is a tinted gold.
@@ -167,128 +168,43 @@
    *
    * Red keeps its meaning: danger, forfeits and destructive confirmations, nothing else.
    */
-  --selected-surface: oklch(0.26 0.008 265);   /* chosen / active row */
+  --selected-surface: oklch(0.24 0.01 270);   /* chosen / active row */
   --selected-border: var(--gold);
-  --drop-surface: oklch(0.24 0.007 265);       /* a legal drag target */
-  --attention-surface: oklch(0.23 0.007 265);  /* needs review, unsaved, pending */
+  --drop-surface: oklch(0.22 0.008 270);       /* a legal drag target */
+  --attention-surface: oklch(0.21 0.008 270);  /* needs review, unsaved, pending */
   --attention-accent: var(--gold);             /* its border and icon */
 
-  --chart-1: oklch(0.8 0.125 84);
-  --chart-2: oklch(0.7 0.13 200);
-  --chart-3: oklch(0.68 0.15 300);
-  --chart-4: oklch(0.72 0.15 150);
-  --chart-5: oklch(0.7 0.16 25);
-}
-
-/* ---- Light theme (opt-in via the header toggle) — the 8br.gg light palette from 7529a31:
-   near-white page, white cards, a deeper gold that holds contrast on light grounds. ---- */
-.light {
-  --background: oklch(0.99 0.003 260);
-  --foreground: oklch(0.2 0.006 265);
-
-  --surface: oklch(0.96 0.004 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.006 265);
-
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.006 265);
-
-  --primary: oklch(0.62 0.12 74);
-  --primary-foreground: oklch(0.99 0.004 90);
-  --primary-hover: oklch(0.55 0.1 74);
-
-  --secondary: oklch(0.96 0.004 260);
-  --secondary-foreground: oklch(0.22 0.006 265);
-
-  --muted: oklch(0.96 0.004 260);
-
-  --discord-row-bg: oklch(0.96 0.004 260);
-  --discord-row-border: oklch(0.9 0.004 260);
-  --discord-icon: oklch(0.48 0.008 265);
-  --discord-icon-active: #5865f2;
-  --muted-foreground: oklch(0.48 0.008 265);
-
-  --accent: oklch(0.95 0.006 260);
-  --accent-foreground: oklch(0.22 0.006 265);
-
-  --destructive: oklch(0.58 0.21 27);
-  --destructive-foreground: oklch(0.99 0.004 260);
-  --success: oklch(0.55 0.14 155);
-  --warning: oklch(0.62 0.13 74);
-
-  --border: oklch(0.9 0.004 260);
-  --input: oklch(0.9 0.004 260);
-  --ring: oklch(0.62 0.12 74);
-
-  --bkt-winner-bg: transparent;
-  --bkt-loser-bg: transparent;
 
   /*
-   * The same vocabulary in light. Cool white and cool gray throughout — no beige, cream, tan or
-   * bronze, which is what a "warm" light translation of a gold accent drifts into. Only the gold
-   * itself changes, to the darker light-theme gold that holds contrast on a white card.
+   * ── Neon ─────────────────────────────────────────────────────────────────────────────────────
+   * Three lights and the glows they throw. Yellow is the signature and keeps the --gold name every
+   * surface already references; cyan is the interactive light (focus, links, live state); magenta is
+   * the rare one, reserved for genuine emphasis so it never becomes wallpaper.
+   *
+   * A glow is a SHADOW, never a fill. A translucent warm fill over a dark panel mixes to mud — the
+   * fault `verify-no-brown` exists to catch — while a shadow sits above the surface and leaves the
+   * colour underneath alone. Every glow here is therefore a box-shadow or a text-shadow.
    */
-  --bracket-canvas: oklch(0.975 0.003 260);
-  --bracket-surface: oklch(1 0 0);
-  --bracket-surface-raised: oklch(0.965 0.004 260);
-  --bracket-outline: oklch(0.895 0.004 260);
-  --bracket-divider: oklch(0.93 0.004 260);
-  --bracket-text: oklch(0.2 0.006 265);
-  --bracket-text-neutral: oklch(0.44 0.006 265);
-  --bracket-text-muted: oklch(0.58 0.005 265);
-  --bracket-connector: oklch(0.78 0.005 265);
-  --bracket-winner: var(--gold);
-  --bracket-connector-winner: var(--gold);
-  --bracket-focus: var(--ring);
-  --bracket-review: var(--warning);
+  --neon-yellow: oklch(0.9 0.19 100);
+  --neon-cyan: oklch(0.84 0.14 200);
+  --neon-magenta: oklch(0.66 0.27 350);
+  --neon-line: oklch(0.3 0.035 268);
 
-  --nav-bg: oklch(0.99 0.003 260);
-  --nav-foreground: oklch(0.2 0.006 265);
-  --nav-border: oklch(0.9 0.004 260);
+  --glow-yellow: 0 0 4px oklch(0.9 0.19 100 / 0.55), 0 0 18px oklch(0.9 0.19 100 / 0.28);
+  --glow-cyan: 0 0 4px oklch(0.84 0.14 200 / 0.6), 0 0 18px oklch(0.84 0.14 200 / 0.3);
+  --glow-magenta: 0 0 4px oklch(0.66 0.27 350 / 0.6), 0 0 18px oklch(0.66 0.27 350 / 0.3);
+  --glow-soft: 0 0 12px oklch(0.84 0.14 200 / 0.16);
 
-  --brand: oklch(0.62 0.12 74);
-  --brand-hover: oklch(0.55 0.1 74);
-  --brand-soft: oklch(0.7 0.12 78);
-  --brand-dim: oklch(0.55 0.1 74);
+  /* The scanline and grid overlays read against the ground, so they travel with the theme. */
+  --scan-line: oklch(0.84 0.14 200 / 0.05);
+  --grid-line: oklch(0.84 0.14 200 / 0.07);
+  --chrome-edge: oklch(0.97 0.01 210 / 0.09);
 
-  --win: oklch(0.62 0.12 74);
-  --loss: oklch(0.48 0.008 265);
-
-  /* Darkened so they hold contrast on a near-white ground. */
-  --streak-hot: oklch(0.52 0.16 148);
-  --streak-cold: oklch(0.52 0.19 25);
-  --streak-fire: oklch(0.58 0.19 42);
-  --streak-ice: oklch(0.6 0.1 230);
-
-  /* Darkened to hold contrast on a near-white ground. The band identities do not move;
-     only their lightness does. Gold goes the other way here: on a near-white ground
-     "brighter" means deeper and more saturated, because a lighter gold would simply
-     disappear into the page. */
-  --tier-gold: oklch(0.66 0.165 82);
-  --tier-purple: oklch(0.5 0.2 310);
-  --tier-blue: oklch(0.5 0.16 253);
-  --tier-green: oklch(0.5 0.15 145);
-  --tier-grey: oklch(0.52 0.008 250);
-
-  --rating-top: oklch(0.55 0.22 25);
-
-
-  --player-name: oklch(0.55 0.1 74);
-
-  --scrollbar-track: oklch(0.96 0.004 260);
-  --scrollbar-thumb: oklch(0.9 0.004 260);
-  --scrollbar-thumb-hover: var(--gold);
-
-  --gold: oklch(0.62 0.12 74);
-  --gold-soft: oklch(0.7 0.12 78);
-  --gold-dim: oklch(0.55 0.1 74);
-
-  /* The same roles on a light ground: a neutral step DOWN in lightness rather than a gold wash. */
-  --selected-surface: oklch(0.93 0.004 260);
-  --selected-border: var(--gold);
-  --drop-surface: oklch(0.95 0.004 260);
-  --attention-surface: oklch(0.96 0.004 260);
-  --attention-accent: var(--gold);
+  --chart-1: oklch(0.9 0.19 100);
+  --chart-2: oklch(0.84 0.14 200);
+  --chart-3: oklch(0.7 0.24 320);
+  --chart-4: oklch(0.82 0.2 150);
+  --chart-5: oklch(0.66 0.26 18);
 }
 
 @theme inline {
@@ -365,6 +281,64 @@
     font-family: var(--font-sans);
     font-feature-settings: 'cv11', 'ss01';
     text-rendering: optimizeLegibility;
+    /*
+     * The atmosphere, applied once to the page rather than to each surface.
+     *
+     * Two fixed washes of light — cyan from the upper left, magenta from the lower right — over a
+     * faint grid. `fixed` means they belong to the viewport, so scrolling a long table moves the
+     * content across the light instead of dragging the light along with it. Both are radial and
+     * stop well short of full strength: this sits behind dense numeric tables, and anything more
+     * assertive makes tabular figures shimmer.
+     */
+    background-image:
+      radial-gradient(1100px 620px at 8% -8%, oklch(0.84 0.14 200 / 0.07), transparent 62%),
+      radial-gradient(900px 560px at 96% 104%, oklch(0.66 0.27 350 / 0.055), transparent 60%),
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 52px 52px, 52px 52px;
+    background-attachment: fixed;
+  }
+
+  /*
+   * The scanline film, over everything and catching nothing.
+   *
+   * A single fixed pseudo-element on <body> rather than a wrapper div: it needs to cover the whole
+   * viewport including anything portalled outside the React tree, and `pointer-events: none` keeps
+   * it out of every click. The animation is three pixels of travel, which reads as a slow crawl
+   * rather than a scroll.
+   */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background: repeating-linear-gradient(180deg, var(--scan-line) 0 1px, transparent 1px 3px);
+    animation: scan-drift 8s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body,
+    body::before {
+      animation: none !important;
+    }
+  }
+
+  /*
+   * One focus treatment for the whole application: a cyan ring with its own light.
+   *
+   * Focus was a flat ring that vanished against a lit panel. Giving it a glow makes it the brightest
+   * thing on the page whatever it lands on, which is what a keyboard user needs from it.
+   */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--neon-cyan);
+    outline-offset: 2px;
+    box-shadow: var(--glow-cyan);
+  }
+
+  ::selection {
+    background: oklch(0.84 0.14 200 / 0.28);
+    color: var(--foreground);
   }
 
   h1,
@@ -375,6 +349,16 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
     font-weight: 600;
+  }
+
+  /*
+   * Section headings carry a hairline of light on their left edge — the recurring motif that ties
+   * the panels, the tables and the brackets together without repeating the glow on every element.
+   */
+  h2 > .eyebrow,
+  .eyebrow {
+    color: var(--neon-cyan);
+    text-shadow: var(--glow-cyan);
   }
 
   /* Tabular figures for stats and tables */
@@ -949,6 +933,16 @@
   /* Keeps the taller glyphs on the row's own baseline rather than nudging it. */
   vertical-align: baseline;
   color: var(--tier-color);
+  /*
+   * A halo, not a blur.
+   *
+   * The earlier rule here forbade any shadow, because the neon version smeared the digits. The
+   * distinction that matters is offset: a shadow with an x/y offset paints a second, displaced copy
+   * of the glyph and that is what made it illegible. A zero-offset halo lights the space AROUND the
+   * number and leaves its edges exactly where they were, which is why the digits stay sharp at the
+   * same time as the value reads as lit.
+   */
+  text-shadow: 0 0 10px color-mix(in oklab, var(--tier-color) 45%, transparent);
 }
 
 .rating-primary--gold   { --tier-color: var(--tier-gold); }
@@ -958,4 +952,13 @@
 .rating-primary--grey   { --tier-color: var(--tier-grey); }
 
 /* First place, last in the cascade so it wins over the band it sits on. */
-.rating-primary--highest { --tier-color: var(--rating-top); }
+.rating-primary--highest {
+  --tier-color: var(--rating-top);
+  /* A wider halo for the one genuinely singular number on the page. Still zero-offset. */
+  text-shadow:
+    0 0 8px color-mix(in oklab, var(--tier-color) 65%, transparent),
+    0 0 22px color-mix(in oklab, var(--tier-color) 35%, transparent);
+}
+
+/* Neon is a light source; on a white ground it is a smudge, so the light theme keeps the colour
+   scale and drops the halo entirely. */

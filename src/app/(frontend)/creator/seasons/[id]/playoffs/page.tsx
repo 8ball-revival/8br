@@ -57,7 +57,7 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
       actions={
         <Link
           href="/creator"
-          className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          className="inline-flex items-center cyber-clip-sm border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
         >
           Save and Exit
         </Link>
@@ -70,7 +70,7 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
   // ── Groups closed: one step into setup ────────────────────────────────────────────────────────
   if (state === 'GROUPS_CLOSED') {
     return shell(
-      <div className="rounded-lg border border-border bg-card/40 p-5">
+      <div className="rounded-none border border-border bg-card/40 p-5">
         <h2 className="font-display text-lg font-bold text-foreground">Ready for the playoffs</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           The group stage is closed and the standings are locked. Entering playoff setup selects every
@@ -120,7 +120,7 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
         )}
         {needsReview > 0 && <ReviewWarning count={needsReview} />}
         {completed && (
-          <p className="rounded-md border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+          <p className="rounded-none border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
             This Season is completed. Results are shown as recorded; correcting them happens through
             the correction workflow.
           </p>

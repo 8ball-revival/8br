@@ -87,7 +87,7 @@ function ForgotPasswordPanel({ onClose }: { onClose: () => void }) {
   const [state, action, pending] = useActionState(requestPasswordReset, initial)
 
   return (
-    <form action={action} className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
+    <form action={action} className="space-y-3 rounded-none border border-border bg-muted/30 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Reset your password</h2>
         <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">

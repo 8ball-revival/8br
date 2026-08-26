@@ -51,7 +51,7 @@ export function NewsShell({
             {chrome.isAdmin && (
               <Link
                 href="/staff/news"
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:border-brand/40 hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-2 text-sm text-muted-foreground hover:border-brand/40 hover:text-foreground"
               >
                 <ShieldCheck className="size-4" aria-hidden />
                 Editorial
@@ -92,7 +92,7 @@ export function NewsShell({
                 name="q"
                 defaultValue={chrome.search ?? ''}
                 placeholder="Search articles…"
-                className="w-44 rounded-md border border-border bg-background py-1.5 pl-8 pr-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25 sm:w-56"
+                className="w-44 rounded-none border border-border bg-background py-1.5 pl-8 pr-2 text-sm outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25 sm:w-56"
               />
             </div>
           </form>
@@ -112,7 +112,7 @@ function CategoryLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={[
-        'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+        'cyber-clip-sm border px-3 py-1 text-xs font-medium transition-colors',
         active
           ? 'border-brand/50 bg-[var(--selected-surface)] text-brand'
           : 'border-border text-muted-foreground hover:border-brand/30 hover:text-foreground',
@@ -143,7 +143,7 @@ export function Pagination({
   return (
     <nav aria-label="Pagination" className="mt-8 flex flex-wrap items-center justify-center gap-1.5">
       {page > 1 && (
-        <Link href={hrefFor(page - 1)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:border-brand/40">
+        <Link href={hrefFor(page - 1)} className="rounded-none border border-border px-3 py-1.5 text-sm hover:border-brand/40">
           Previous
         </Link>
       )}
@@ -165,7 +165,7 @@ export function Pagination({
         ),
       )}
       {page < pageCount && (
-        <Link href={hrefFor(page + 1)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:border-brand/40">
+        <Link href={hrefFor(page + 1)} className="rounded-none border border-border px-3 py-1.5 text-sm hover:border-brand/40">
           Next
         </Link>
       )}

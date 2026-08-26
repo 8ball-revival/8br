@@ -174,7 +174,7 @@ export function BodyEditor({
         <button
           type="button"
           onClick={() => document.getElementById(`${id}-file`)?.click()}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+          className="inline-flex items-center gap-1.5 rounded-none border border-border px-2.5 py-1.5 text-xs hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
         >
           <ImagePlus className="size-3.5" aria-hidden />Image
         </button>
@@ -195,7 +195,7 @@ export function BodyEditor({
           type="button"
           onClick={() => setPickerOpen((o) => !o)}
           aria-expanded={pickerOpen}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+          className="inline-flex items-center gap-1.5 rounded-none border border-border px-2.5 py-1.5 text-xs hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
         >
           <Sparkles className="size-3.5" aria-hidden />GIF
         </button>

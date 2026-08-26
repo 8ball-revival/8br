@@ -52,7 +52,7 @@ export function CompletedList({ page }: { page: CompletedPage }) {
     <>
       {/* ── Type ─────────────────────────────────────────────────────────── */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-md border border-border bg-card/40 p-0.5 text-xs" role="group" aria-label="Record type">
+        <div className="inline-flex rounded-none border border-border bg-card/40 p-0.5 text-xs" role="group" aria-label="Record type">
           {([
             ['all', 'All', page.facets.counts.all],
             ['seasons', 'Seasons', page.facets.counts.seasons],
@@ -125,11 +125,11 @@ export function CompletedList({ page }: { page: CompletedPage }) {
 
       {/* ── The table ────────────────────────────────────────────────────── */}
       {page.rows.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+        <p className="rounded-none border border-border bg-card p-10 text-center text-sm text-muted-foreground">
           {anyFilter ? 'No completed records match these filters.' : 'Nothing has been completed yet.'}
         </p>
       ) : (
-        <div className="scrollbar-themed overflow-x-auto rounded-md border border-border">
+        <div className="scrollbar-themed overflow-x-auto rounded-none border border-border">
           <table className="w-full min-w-max border-separate border-spacing-0 text-sm">
             <caption className="sr-only">
               Completed Seasons and Tournaments. Selecting a row opens it in Creator; the archive

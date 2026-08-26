@@ -18,7 +18,7 @@ import {
   previewCloseAllocationAction, confirmCloseAllocationAction,
 } from '@/lib/competition/tournament-actions'
 
-const sel = 'rounded-md border border-input bg-card px-2 py-1.5 text-sm text-foreground outline-none focus-visible:border-brand'
+const sel = 'rounded-none border border-input bg-card px-2 py-1.5 text-sm text-foreground outline-none focus-visible:border-brand'
 
 export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationOpen }: { tournamentId: number; teamSize: number; teams: TeamView[]; registrationOpen: boolean }) {
   const router = useRouter()
@@ -69,10 +69,10 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
           const filled = team.members.length
           const emptySlots = Math.max(0, teamSize - filled)
           return (
-            <div key={team.id} className="overflow-hidden rounded-lg border border-border">
+            <div key={team.id} className="overflow-hidden rounded-none border border-border">
               <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/40 px-4 py-2">
                 <span className="text-sm font-semibold text-foreground">{team.name}</span>
-                <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', filled >= teamSize ? 'bg-success/10 text-success' : 'bg-[var(--attention-surface)] text-[var(--gold)]')}>{filled} of {teamSize}</span>
+                <span className={cn('cyber-clip-sm px-2 py-0.5 text-[0.65rem] font-semibold', filled >= teamSize ? 'bg-success/10 text-success' : 'bg-[var(--attention-surface)] text-[var(--gold)]')}>{filled} of {teamSize}</span>
                 <div className="ml-auto flex gap-1">
                   <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Rename team', confirmLabel: 'Rename', input: { label: 'Team name', defaultValue: team.name, required: true } }); if (res.confirmed && res.value.trim()) run(() => renameTeamAction(team.id, res.value.trim())) }} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Rename</button>
                   <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Delete this team?', message: `"${team.name}" is deleted and its players return to the eligible pool.`, confirmLabel: 'Delete team', tone: 'danger' }); if (res.confirmed) run(() => deleteTeamAction(team.id)) }} className="rounded px-2 py-1 text-xs text-destructive hover:underline">Delete</button>
@@ -80,7 +80,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
               </div>
               <div className="space-y-1.5 p-3">
                 {team.members.map((m) => (
-                  <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
+                  <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-none border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
                     {m.captain && <Crown className="size-3.5 text-brand" aria-label="Captain" />}
                     <PlayerName identity={fromNameHandle(m)} size="sm" className="text-foreground" />
                     {m.captain && <span className="text-[0.6rem] uppercase tracking-wide text-brand">Captain</span>}
@@ -115,7 +115,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
       <CreateTeam tournamentId={tournamentId} teamSize={teamSize} eligible={eligible} pending={pending} run={run} />
 
       {/* Free agents */}
-      <div className="rounded-lg border border-border">
+      <div className="rounded-none border border-border">
         <div className="flex items-center gap-2 border-b border-border bg-card/40 px-4 py-2">
           <UserRound className="size-4 text-brand" />
           <span className="text-sm font-semibold">Free Agents</span>
@@ -126,7 +126,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
             <p className="text-sm text-muted-foreground">No free agents waiting.</p>
           ) : (
             <ul className="flex flex-wrap gap-2">
-              {freeAgents.map((f) => <li key={f.id} className="rounded-md border border-border bg-card px-2.5 py-1 text-xs">{identityText(fromNameHandle(f))}</li>)}
+              {freeAgents.map((f) => <li key={f.id} className="rounded-none border border-border bg-card px-2.5 py-1 text-xs">{identityText(fromNameHandle(f))}</li>)}
             </ul>
           )}
           <p className="mt-2 text-xs text-muted-foreground">Free agents are placed automatically when you close registration (preview below).</p>
@@ -144,7 +144,7 @@ function CreateTeam({ tournamentId, teamSize, eligible, pending, run }: { tourna
   const set = (i: number, v: number) => setPicks((p) => { const c = [...p]; c[i] = v; return c })
   const chosen = picks.filter(Boolean)
   return (
-    <div className="rounded-lg border border-border p-4">
+    <div className="rounded-none border border-border p-4">
       <p className="mb-3 text-[0.7rem] font-bold uppercase tracking-wider text-brand">Create a team</p>
       <div className="flex flex-wrap items-end gap-2">
         <div>
@@ -199,13 +199,13 @@ function CloseRegistration({ tournamentId, onDone }: { tournamentId: number; onD
 
       {open && plan && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-surface shadow-2xl">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-none border border-border bg-surface shadow-2xl">
             <div className="border-b border-border px-5 py-3">
               <h3 className="text-base font-bold">Close registration — preview</h3>
               <p className="text-xs text-muted-foreground">Nothing changes until you confirm.</p>
             </div>
             <div className="space-y-4 px-5 py-4 text-sm">
-              <div className="flex gap-4 rounded-md border border-border bg-card/40 p-3">
+              <div className="flex gap-4 rounded-none border border-border bg-card/40 p-3">
                 <Stat label="Teams entering" value={plan.finalTeams} />
                 <Stat label="Players entering" value={plan.finalPlayers} />
                 <Stat label="Not placed" value={plan.unplaced.length} tone={plan.unplaced.length ? 'warn' : undefined} />
@@ -250,7 +250,7 @@ function Section({ title, tone, children }: { title: string; tone?: 'warn'; chil
   return (
     <div>
       <p className={cn('mb-1 text-xs font-semibold', tone === 'warn' ? 'text-[var(--gold)]' : 'text-foreground')}>{title}</p>
-      <ul className="space-y-1 rounded-md border border-border/60 bg-background/40 p-2.5 text-[0.8rem]">{children}</ul>
+      <ul className="space-y-1 rounded-none border border-border/60 bg-background/40 p-2.5 text-[0.8rem]">{children}</ul>
     </div>
   )
 }

@@ -80,7 +80,7 @@ export function StageComingSoon({
       {/* Process */}
       <ol className="mt-10 grid gap-4 sm:grid-cols-3">
         {steps.map((s, i) => (
-          <li key={s.title} className="rounded-lg border border-border bg-card/40 p-5">
+          <li key={s.title} className="rounded-none border border-border bg-card/40 p-5">
             <span className="eyebrow text-brand">Step {i + 1}</span>
             <h3 className="mt-2 font-display text-base font-semibold tracking-tight">{s.title}</h3>
             <p className="mt-1.5 text-sm text-muted-foreground">{s.body}</p>

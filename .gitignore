@@ -105,3 +105,4 @@ verification/redesign-compare/
 # Rankings verification captures — large PNG sets, regenerated on demand
 verification/ladder/before/*.png
 verification/ladder/after/*.png
+.next-verify

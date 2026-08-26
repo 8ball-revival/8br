@@ -90,7 +90,8 @@ try {
     const m = new RegExp(`${token}:\\s*oklch\\([\\d.]+\\s+([\\d.]+)`).exec(CSS)
     check(`...and carries no meaningful chroma (${m?.[1] ?? '?'})`, m != null && Number(m[1]) <= 0.01)
   }
-  check('both themes define them', (CSS.match(/--selected-surface:/g) ?? []).length === 2)
+  /* One theme now. The light variant was removed, so each surface token is declared exactly once. */
+  check('each is declared exactly once', (CSS.match(/--selected-surface:/g) ?? []).length === 1)
 
   section('Gold still works where it cannot muddy anything')
   const goldBorders = hits(/border-\[var\(--gold\)\]/)

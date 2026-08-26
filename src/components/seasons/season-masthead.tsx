@@ -147,7 +147,7 @@ function Identity({
 function Pill({ children, tone }: { children: React.ReactNode; tone?: 'gold' | 'live' }) {
   return (
     <span className={cn(
-      'whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[0.72rem]',
+      'whitespace-nowrap cyber-clip-sm border px-2.5 py-0.5 text-[0.72rem]',
       tone === 'gold' ? 'border-[var(--gold-dim)] text-[var(--gold-soft)]'
         : tone === 'live' ? 'border-[var(--gold-dim)]/60 text-[var(--gold-soft)]'
           : 'border-border text-muted-foreground',
@@ -291,7 +291,7 @@ function Glance({ glance }: { glance: SeasonGlance }) {
         {cards.map(({ label, value, Icon }) => (
           <div
             key={label}
-            className="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-surface px-2.5 py-2"
+            className="flex min-w-0 flex-col gap-1 rounded-none border border-border bg-surface px-2.5 py-2"
           >
             <span className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
               <Icon className="size-3.5 shrink-0 text-[var(--gold-dim)]" aria-hidden />

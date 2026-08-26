@@ -72,7 +72,7 @@ export async function HomepageEditorial() {
 
 function Feature({ article }: { article: ArticleCard }) {
   return (
-    <article className="group overflow-hidden rounded-lg border border-border bg-card/40">
+    <article className="group overflow-hidden rounded-none border border-border bg-card/40">
       {article.coverMediaId && (
         <Link href={`/news/${article.slug}`} tabIndex={-1} aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element -- Payload media, not a static asset */}
@@ -105,7 +105,7 @@ function Feature({ article }: { article: ArticleCard }) {
 
 function Tile({ article }: { article: ArticleCard }) {
   return (
-    <article className="h-full rounded-lg border border-border bg-card/30 p-4 transition-colors hover:border-brand/40">
+    <article className="h-full rounded-none border border-border bg-card/30 p-4 transition-colors hover:border-brand/40">
       {article.category && (
         <p className="mb-1.5 text-[0.7rem] uppercase tracking-wide text-muted-foreground">{article.category.name}</p>
       )}

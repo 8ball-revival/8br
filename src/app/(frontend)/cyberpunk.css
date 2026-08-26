@@ -1,0 +1,428 @@
+/*
+  8 Ball Registry — the neon layer.
+
+  ── What this file is ──────────────────────────────────────────────────────────────────────────────
+  The palette lives in globals.css; this is what the palette DOES. Every glow, edge, scan and
+  animation in the interface is defined once here and referenced by name, so the treatment cannot
+  drift between a button in the header and a button inside the Creator.
+
+  ── The three rules it keeps ───────────────────────────────────────────────────────────────────────
+  1. A glow is a shadow, never a fill. Translucent yellow over a dark panel mixes to olive — the
+     exact fault `verify-no-brown` exists to catch. Shadows sit above the surface and leave the
+     colour underneath untouched, so the grounds stay the neutral near-black they are declared to be.
+
+  2. Motion is decoration and must be refusable. Everything below is switched off wholesale under
+     `prefers-reduced-motion`, and nothing conveys meaning through movement alone — a live badge
+     pulses AND says "live", a winner glows AND is named.
+
+  3. Colour still means something. Yellow is the signature, cyan is interaction, magenta is rare
+     emphasis, red stays danger. A palette where everything glows is a palette where nothing reads.
+*/
+
+@layer components {
+  /* ───────────────────────────────────────────────────────────── text and edges ───────────────── */
+
+  /* A lit letterform. The shadow does the work; the colour is inherited so any token can wear it. */
+  .neon-text {
+    text-shadow: var(--glow-yellow);
+  }
+  .neon-text-cyan {
+    color: var(--neon-cyan);
+    text-shadow: var(--glow-cyan);
+  }
+  .neon-text-magenta {
+    color: var(--neon-magenta);
+    text-shadow: var(--glow-magenta);
+  }
+
+  /* A lit edge. `inset` keeps the light inside the element so neighbouring rows stay crisp. */
+  .neon-edge {
+    box-shadow: inset 0 0 0 1px var(--neon-line), var(--glow-soft);
+  }
+  .neon-edge-cyan {
+    border-color: var(--neon-cyan);
+    box-shadow: var(--glow-cyan);
+  }
+  .neon-edge-yellow {
+    border-color: var(--neon-yellow);
+    box-shadow: var(--glow-yellow);
+  }
+
+  /*
+   * The angular cut. Chamfered corners are the single most recognisable shape in this idiom, and a
+   * clip-path gives them without an extra element or a border image. The 10px notch is deliberately
+   * small: at larger sizes it eats content on narrow screens.
+   */
+  .cyber-clip {
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  .cyber-clip-sm {
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+
+  /*
+   * A panel: dark ground, lit hairline, and a bracket mark in the top-left corner. The corner is
+   * drawn with a gradient rather than a pseudo-element so it survives inside tables and grids where
+   * an ::before would be laid out unpredictably.
+   */
+  .cyber-panel {
+    position: relative;
+    background-color: var(--card);
+    border: 1px solid var(--neon-line);
+    box-shadow: var(--glow-soft);
+  }
+  .cyber-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(to right, var(--neon-cyan) 0 14px, transparent 14px) top left / 100% 1px no-repeat,
+      linear-gradient(to bottom, var(--neon-cyan) 0 14px, transparent 14px) top left / 1px 100% no-repeat;
+    opacity: 0.55;
+  }
+
+  /* A divider that reads as a circuit trace rather than a rule. */
+  .cyber-rule {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(90deg, transparent, var(--neon-line) 12%, var(--neon-cyan) 50%, var(--neon-line) 88%, transparent);
+    opacity: 0.65;
+  }
+
+  /* ───────────────────────────────────────────────────────────── overlays ─────────────────────── */
+
+  /*
+   * Scanlines. Two pixels on, two off, drifting slowly downward. Kept under 5% opacity because the
+   * tables underneath are dense numeric data and a heavier overlay makes digits shimmer.
+   */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(180deg, var(--scan-line) 0 1px, transparent 1px 3px);
+    animation: scan-drift 8s linear infinite;
+  }
+
+  /* The perspective grid behind the hero. Fades out upward so it never fights the text. */
+  .cyber-grid {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 44px 44px;
+    animation: grid-drift 22s linear infinite;
+  }
+
+  /* ───────────────────────────────────────────────────────────── interaction ──────────────────── */
+
+  /*
+   * The sweep. A band of light crosses a control once on hover. It is a ::after on a positioned,
+   * clipped parent, so it cannot escape the button's own bounds.
+   */
+  .cyber-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .cyber-sweep::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transform: translateX(-120%);
+    background: linear-gradient(100deg, transparent 20%, var(--chrome-edge) 45%, transparent 70%);
+  }
+  .cyber-sweep:hover::after,
+  .cyber-sweep:focus-visible::after {
+    animation: sweep 0.7s ease-out;
+  }
+
+  /* A live or in-progress marker. Pulses, and is always paired with a word. */
+  .neon-pulse {
+    animation: neon-pulse 2.2s ease-in-out infinite;
+  }
+
+  /* Rank 1, a champion, a decided final — something that has genuinely been won. */
+  .neon-crown {
+    animation: crown-glow 3.4s ease-in-out infinite;
+  }
+
+  /*
+   * The glitch. Two offset colour ghosts, clipped to alternating bands. Reserved for the wordmark
+   * and 404 — it is illegible by design and must never sit on anything a reader needs.
+   */
+  .glitch {
+    position: relative;
+  }
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .glitch::before {
+    color: var(--neon-cyan);
+    animation: glitch-a 3.6s steps(2, end) infinite;
+  }
+  .glitch::after {
+    color: var(--neon-magenta);
+    animation: glitch-b 3.6s steps(2, end) infinite;
+  }
+
+  /* Content arriving: a short rise with the lit edge resolving out of the dark. */
+  /*
+   * No fill mode, deliberately.
+   *
+   * These carried `both`, which pins the element to the animation's FIRST frame — `opacity: 0` —
+   * whenever the animation is not actively running. A background tab is exactly that case: a page
+   * loaded while hidden never registers its animations, so the homepage headline, its eyebrow and
+   * its description rendered at zero opacity and stayed there. Opening the site in a new tab and
+   * switching to it is an ordinary thing to do.
+   *
+   * Without a fill the resting state is the element's own — visible — and the animation is only the
+   * movement between arriving and resting, which is all it was ever meant to be. The keyframes end
+   * at `opacity: 1; transform: none`, i.e. the natural state, so nothing is lost by not holding
+   * them. Decoration must never be the only thing making content visible.
+   */
+  .boot-in {
+    animation: boot-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+  .boot-in-slow {
+    animation: boot-in 0.7s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────── keyframes ──────────────────── */
+
+@keyframes scan-drift {
+  from { background-position-y: 0; }
+  to { background-position-y: 3px; }
+}
+
+@keyframes grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 44px 44px, 44px 44px; }
+}
+
+@keyframes sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; box-shadow: var(--glow-cyan); }
+  50% { opacity: 0.72; box-shadow: 0 0 2px oklch(0.84 0.14 200 / 0.4); }
+}
+
+@keyframes crown-glow {
+  0%, 100% { text-shadow: var(--glow-yellow); }
+  50% { text-shadow: 0 0 6px oklch(0.9 0.19 100 / 0.75), 0 0 26px oklch(0.9 0.19 100 / 0.4); }
+}
+
+@keyframes glitch-a {
+  0%, 92%, 100% { transform: none; clip-path: inset(0 0 100% 0); opacity: 0; }
+  93% { transform: translate(-2px, -1px); clip-path: inset(10% 0 60% 0); opacity: 0.85; }
+  96% { transform: translate(2px, 1px); clip-path: inset(55% 0 20% 0); opacity: 0.85; }
+}
+
+@keyframes glitch-b {
+  0%, 90%, 100% { transform: none; clip-path: inset(0 0 100% 0); opacity: 0; }
+  94% { transform: translate(2px, 1px); clip-path: inset(30% 0 45% 0); opacity: 0.8; }
+  97% { transform: translate(-2px, 0); clip-path: inset(70% 0 8% 0); opacity: 0.8; }
+}
+
+/*
+ * The entrance starts DIM, never invisible.
+ *
+ * `from { opacity: 0 }` has one failure mode that no fill-mode setting fixes: while an animation is
+ * in its active phase its first frame applies, and a tab that is hidden never advances its
+ * timeline — so a page loaded in a background tab held the headline at zero opacity until somebody
+ * looked at it. The same is true of any throttled or paused timeline.
+ *
+ * Starting at 0.4 keeps the fade legible as a fade while making every frame of it readable, so the
+ * worst case is text that arrives slightly dim instead of text that is not there. The movement,
+ * which is what the effect is actually for, is unchanged.
+ */
+@keyframes boot-in {
+  from { opacity: 0.4; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/*
+ * ── Motion is optional ────────────────────────────────────────────────────────────────────────────
+ * Everything above is decoration. Under a reduced-motion preference it all stops: the animations are
+ * cancelled rather than shortened, and the glitch ghosts are removed outright because a stopped
+ * glitch is two mis-registered copies of the same word sitting on top of each other.
+ *
+ * The colour, the glow and the lit edges stay — they carry meaning and cost nothing to hold still.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .scanlines::after,
+  .cyber-grid,
+  .cyber-sweep::after,
+  .neon-pulse,
+  .neon-crown,
+  .boot-in,
+  .boot-in-slow {
+    animation: none !important;
+  }
+  .glitch::before,
+  .glitch::after {
+    content: none;
+  }
+}
+
+/* ───────────────────────────────────────────────────────── data surfaces ──────────────────────── */
+
+/* ───────────────────────────────────────────────────────── the light theme ────────────────────── */
+
+/*
+ * Neon is a light source, and a light source on white is a smudge. Everything above is a shadow, so
+ * in the light theme the shadows are simply removed rather than re-tuned — the colour, the chamfers,
+ * the lit edges and the sweep all remain, and the page reads as the same design in daylight.
+ */
+
+
+
+/* ───────────────────────────────────────────────────────── the bracket ────────────────────────── */
+
+/*
+ * The bracket keeps its contract exactly: gold means a decided winner and nothing else, the winning
+ * row is a rail rather than a fill, the Final gets no ornament, and nothing here introduces a
+ * translucent warm surface. What changes is that the light is now real light.
+ *
+ * The rail already existed as `inset 2px 0 0 0 var(--bracket-winner)`. Adding an outer glow beside
+ * that inset keeps the same 2px edge and lets it throw — so an advancing player is visible from
+ * across the bracket without the row growing by a pixel.
+ */
+@layer components {
+  [data-won='true'] {
+    box-shadow:
+      inset 2px 0 0 0 var(--bracket-winner),
+      -1px 0 10px -2px color-mix(in oklab, var(--bracket-winner) 55%, transparent);
+  }
+
+  /* The advancing path lights up; every unresolved path stays the neutral trace it was. */
+  [data-advanced='true'],
+  [data-fed='true'] {
+    filter: drop-shadow(0 0 4px color-mix(in oklab, var(--bracket-connector-winner) 45%, transparent));
+  }
+
+  /* Bracket panels take the same chamfer and hairline as every other panel on the site. */
+  .bp-match,
+  .bkt-match {
+    border-radius: 0;
+  }
+}
+
+
+/* ───────────────────────────────────────────────────────── panels and chrome ──────────────────── */
+
+@layer components {
+  /*
+   * Anything already built as a bordered card picks up the chamfer and the lit hairline without
+   * needing a class added to it. Scoped to the two attributes the design system actually uses, so
+   * it cannot leak onto arbitrary bordered elements inside third-party markup.
+   */
+  [data-slot='card'],
+  [data-panel='cyber'] {
+    border-radius: 0;
+  }
+
+  /* Dialogs and popovers: the same lit panel, lifted further off the page. */
+  [role='dialog'],
+  [data-slot='popover-content'],
+  [data-radix-popper-content-wrapper] > * {
+    border-radius: 0 !important;
+  }
+  [role='dialog'] {
+    box-shadow: 0 0 0 1px var(--neon-line), 0 0 40px oklch(0.84 0.14 200 / 0.12), 0 24px 60px oklch(0 0 0 / 0.6);
+  }
+
+  /* A skeleton reads as a signal still resolving rather than a grey box. */
+  [data-slot='skeleton'] {
+    background: linear-gradient(90deg, var(--muted) 25%, oklch(0.3 0.035 268) 50%, var(--muted) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-scan 1.4s ease-in-out infinite;
+    border-radius: 0;
+  }
+}
+
+@keyframes skeleton-scan {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='skeleton'] { animation: none; }
+}
+
+/* ───────────────────────────────────────────────────── the group-stage grid ───────────────────── */
+
+/*
+ * The standings matrix keeps its own rule — scores are neutral at rest, and gold appears only on the
+ * row you are reading, answering one question at a time. That restraint is the reason the grid is
+ * legible at 56 players, so it is preserved exactly; the highlighted row simply now lights up
+ * instead of merely changing colour.
+ */
+@layer components {
+  .season-matrix tbody tr:hover td,
+  .season-matrix tbody tr:focus-within td,
+  .season-matrix tbody tr.season-selected td {
+    box-shadow: inset 0 1px 0 0 oklch(0.84 0.14 200 / 0.22), inset 0 -1px 0 0 oklch(0.84 0.14 200 / 0.22);
+  }
+  .season-matrix tbody tr:hover .season-who,
+  .season-matrix tbody tr:focus-within .season-who,
+  .season-matrix tbody tr.season-selected .season-who {
+    box-shadow: inset 2px 0 0 0 var(--neon-cyan);
+  }
+  /* The lit wins on the active row — the grid's one moment of gold, now with a halo. */
+  .season-matrix tbody tr:hover .season-score.season-w,
+  .season-matrix tbody tr:focus-within .season-score.season-w,
+  .season-matrix tbody tr.season-selected .season-score.season-w {
+    text-shadow: 0 0 10px oklch(0.9 0.19 100 / 0.55);
+  }
+  /* Column and stat headers read as console labels across every table on the site. */
+  .season-stat-head,
+  .season-head {
+    color: var(--muted-foreground);
+    letter-spacing: 0.08em;
+  }
+  /* The diagonal 'no match with yourself' hatch, in the new grounds. */
+  .season-diag {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--surface), var(--surface) 5px,
+      oklch(0.19 0.022 272) 5px, oklch(0.19 0.022 272) 10px
+    );
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────── editorial ────────────────────────── */
+
+@layer components {
+  /*
+   * The Break. An article is long-form reading, so it gets the least of everything: a lit rule under
+   * the headline, a cyan link, and nothing that moves while somebody is trying to read a paragraph.
+   */
+  .prose a,
+  article a:not([class*='button']) {
+    color: var(--neon-cyan);
+    text-decoration-color: color-mix(in oklab, var(--neon-cyan) 45%, transparent);
+  }
+  .prose a:hover,
+  article a:not([class*='button']):hover {
+    text-shadow: var(--glow-cyan);
+  }
+  .prose blockquote,
+  article blockquote {
+    border-left: 2px solid var(--neon-cyan);
+    box-shadow: -6px 0 18px -12px var(--neon-cyan);
+  }
+  .prose code,
+  article code {
+    color: var(--neon-magenta);
+  }
+}

@@ -3,6 +3,7 @@ import { Trophy } from 'lucide-react'
 import { type SeasonState } from '@/lib/seasons/shared'
 import { SeasonStandingsMatrix } from '@/components/seasons/season-standings-matrix'
 import type { StageGroup } from '@/lib/seasons/views'
+import { CommandDeck } from '@/components/command-deck'
 
 /**
  * The body of a Season: the group matrices, or the playoff bracket's stand-in when there is not one
@@ -57,19 +58,43 @@ export function SeasonGroupsView({
       />
     )
   }
+  /*
+   * The readout above the tables.
+   *
+   * Every one of these numbers was already on the page, spread across eight tables — how far the
+   * stage has got could only be worked out by scrolling and counting. Hoisting them into the deck
+   * answers "where is this up to" before any table is read, and it is the same readout the bracket
+   * and the ladder use, so the answer is always in the same place.
+   */
+  const matches = groups.flatMap((g) => g.matches)
+  const played = matches.filter((m) => m.status !== 'SCHEDULED').length
+  const players = groups.reduce((n, g) => n + g.standings.length, 0)
+
   return (
-    <div className="flex flex-col gap-7">
-      {groups.map((g) => (
-        <SeasonStandingsMatrix
-          key={g.id}
-          group={g}
-          groupStageGames={groupStageGames}
-          qualified={qualified}
-          seasonId={seasonId}
-          canManage={canManage}
-        />
-      ))}
-    </div>
+    <>
+      <CommandDeck
+        eyebrow="Group Stage"
+        title="Groups"
+        stats={[
+          { label: 'Groups', value: groups.length },
+          { label: 'Players', value: players },
+          { label: 'Matches', value: `${played}/${matches.length}` },
+          { label: 'Qualified', value: qualified.size },
+        ]}
+      />
+      <div className="flex flex-col gap-7">
+        {groups.map((g) => (
+          <SeasonStandingsMatrix
+            key={g.id}
+            group={g}
+            groupStageGames={groupStageGames}
+            qualified={qualified}
+            seasonId={seasonId}
+            canManage={canManage}
+          />
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -81,7 +106,7 @@ export function SeasonGroupsView({
  */
 export function GroupsStillInProgress() {
   return (
-    <div className="flex min-h-[16rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border px-6 py-14 text-center">
+    <div className="flex min-h-[16rem] flex-col items-center justify-center gap-2 cyber-clip border border-dashed border-[var(--neon-line)] px-6 py-14 text-center">
       <Trophy className="size-6 text-[var(--gold-dim)]" aria-hidden />
       <p className="font-display text-xl font-bold text-foreground">Groups Still In Progress</p>
       <p className="max-w-md text-sm text-muted-foreground">
@@ -93,7 +118,7 @@ export function GroupsStillInProgress() {
 
 function EmptyPanel({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex min-h-[14rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border px-6 py-12 text-center">
+    <div className="flex min-h-[14rem] flex-col items-center justify-center gap-2 cyber-clip border border-dashed border-[var(--neon-line)] px-6 py-12 text-center">
       <p className="font-display text-lg font-bold text-foreground">{title}</p>
       <p className="max-w-md text-sm text-muted-foreground">{body}</p>
     </div>

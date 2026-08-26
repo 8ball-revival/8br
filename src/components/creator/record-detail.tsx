@@ -76,7 +76,7 @@ export function RecordDetail({
       </div>
 
       {/* ── The record ───────────────────────────────────────────────────── */}
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-none border border-border bg-card p-4">
         <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-bold">
           <Icon className="size-4 text-[var(--gold)]" aria-hidden />
           {review.title}
@@ -107,7 +107,7 @@ export function RecordDetail({
       </section>
 
       {/* ── Ranking contribution ─────────────────────────────────────────── */}
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-none border border-border bg-card p-4">
         <h2 className="mb-2 text-sm font-semibold">Ranking contribution</h2>
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
           <Field label="Eligible matches" value={review.eligibleMatches} />
@@ -125,7 +125,7 @@ export function RecordDetail({
 
       {/* ── Warnings and blockers ────────────────────────────────────────── */}
       {(review.errors.length > 0 || review.warnings.length > 0) && (
-        <section className="rounded-lg border border-border bg-card p-4">
+        <section className="rounded-none border border-border bg-card p-4">
           <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="size-4 text-[var(--streak-cold)]" aria-hidden />
             Review
@@ -144,7 +144,7 @@ export function RecordDetail({
       )}
 
       {/* ── Where corrections are made ───────────────────────────────────── */}
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-none border border-border bg-card p-4">
         <h2 className="mb-1 text-sm font-semibold">
           {reopened ? 'Make corrections' : 'Record sections'}
         </h2>
@@ -159,7 +159,7 @@ export function RecordDetail({
               key={s.href}
               href={s.href}
               className={cn(
-                'rounded-md border border-border p-3 transition-colors',
+                'rounded-none border border-border p-3 transition-colors',
                 'hover:border-[var(--gold)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60',
                 !reopened && 'opacity-70',
               )}

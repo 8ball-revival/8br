@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Security · Admin', robots: { index:
 
 function List({ title, rows, tone }: { title: string; rows: SecurityRow[]; tone?: 'danger' | 'warn' }) {
   return (
-    <section className="rounded-lg border border-border bg-card/40 p-4">
+    <section className="rounded-none border border-border bg-card/40 p-4">
       <p className={`eyebrow ${tone === 'danger' ? 'text-destructive' : tone === 'warn' ? 'text-[var(--gold)]' : 'text-brand'}`}>{title} ({rows.length})</p>
       {rows.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">None.</p> : (
         <ul className="mt-2 divide-y divide-border text-sm">
@@ -47,7 +47,7 @@ export default async function SecurityPage() {
         <List title="Active staff accounts" rows={s.activeStaff} />
       </div>
       {isHead && (
-        <section className="mt-4 rounded-lg border border-border bg-card/40 p-4">
+        <section className="mt-4 rounded-none border border-border bg-card/40 p-4">
           <p className="eyebrow text-brand">Recent password resets</p>
           {s.recentResets.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">None.</p> : (
             <ul className="mt-2 divide-y divide-border text-sm">

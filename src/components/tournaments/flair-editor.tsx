@@ -12,7 +12,7 @@ export interface FlairValue {
 
 export const EMPTY_FLAIR: FlairValue = { description: null, badge: null }
 
-const input = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
+const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
 /** Controlled editor for a tournament's curated flair (badge + description). Shared by the create
  *  form and the manage page. Per-tournament colors were removed — theming is a personal account
@@ -54,7 +54,7 @@ export function FlairEditor({ value, onChange }: { value: FlairValue; onChange: 
 export function FlairPreview({ value, name }: { value: FlairValue; name: string }) {
   const badge = badgeByKey(value.badge)
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-background">
+    <div className="overflow-hidden rounded-none border border-border bg-background">
       <div className="h-2 bg-brand" />
       <div className="p-4">
         <div className="flex items-center gap-2">
@@ -64,7 +64,7 @@ export function FlairPreview({ value, name }: { value: FlairValue; name: string 
         <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground">{name.trim() || 'Untitled Tournament'}</h4>
         {value.description && <p className="mt-1.5 whitespace-pre-wrap text-xs text-muted-foreground">{value.description}</p>}
         <div className="mt-3 flex items-center gap-2">
-          <span className="rounded-full bg-brand px-2.5 py-1 text-[0.65rem] font-semibold text-primary-foreground">Registration Open</span>
+          <span className="cyber-clip-sm bg-brand px-2.5 py-1 text-[0.65rem] font-semibold text-primary-foreground">Registration Open</span>
           <span className="rounded-md border border-brand px-2.5 py-1 text-[0.65rem] font-semibold text-brand">Register</span>
         </div>
       </div>
