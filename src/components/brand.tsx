@@ -25,7 +25,6 @@ export function Logo({
   logoWidth = BRANDING_FALLBACK.logoWidth,
   logoHeight = BRANDING_FALLBACK.logoHeight,
   logoAlt = BRANDING_FALLBACK.logoAlt,
-  onDark = false,
 }: {
   className?: string
   showTagline?: boolean
@@ -35,13 +34,6 @@ export function Logo({
   logoWidth?: number | null
   logoHeight?: number | null
   logoAlt?: string
-  /**
-   * True when the lockup sits on the header's dark plate rather than on a light surface.
-   *
-   * The wordmark is black ink by default, which is correct on acid and invisible on void. This
-   * flips it to acid rather than the component guessing from context.
-   */
-  onDark?: boolean
 }) {
   const mark = (
     <span className="flex items-center gap-2.5">
@@ -60,35 +52,13 @@ export function Logo({
         mark off a dark bar; the bar is acid now, so the same shadow only softens the logo's edge
         against a background of its own colour. A dark ring gives it the separation instead.
       */
-          /*
-        A fixed square box, not `w-auto`.
-
-        The mark is a roundel on a square canvas. Sizing by height alone left its width at the mercy
-        of whatever dimensions the media record happens to hold, and that record is stale on any
-        deployment where the file was replaced without re-uploading it. A square box with
-        object-contain renders the artwork correctly whatever the metadata claims.
-      */
-          className="size-10 shrink-0 object-contain"
+          className="h-10 w-auto shrink-0 object-contain"
         />
       ) : null}
       <span className="flex flex-col leading-none">
-        <span
-          className={cn(
-            'font-display text-lg font-bold tracking-tight sm:text-xl',
-            onDark ? 'text-[var(--clean-white)]' : 'text-[var(--acid-ink)]',
-          )}
-        >
-          {siteName}
-        </span>
+        <span className="font-display text-lg font-bold tracking-tight text-[var(--acid-ink)] sm:text-xl">{siteName}</span>
         {showTagline && (
-          <span
-            className={cn(
-              'eyebrow mt-1 text-[0.6rem]',
-              onDark ? 'text-[var(--clean-white)]/60' : 'text-[var(--acid-ink)]/65',
-            )}
-          >
-            {brandTagline}
-          </span>
+          <span className="eyebrow mt-1 text-[0.6rem] text-[var(--acid-ink)]/65">{brandTagline}</span>
         )}
       </span>
     </span>

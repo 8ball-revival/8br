@@ -50,60 +50,39 @@ export async function SiteHeader() {
        * now, so it is opaque, it carries black ink, and its lower edge is the red rule that marks
        * every structural boundary on the site.
        */
-      className="sticky top-0 z-50 w-full overflow-hidden border-b-2 border-nav-border bg-nav-bg text-nav-foreground"
+      className="sticky top-0 z-50 w-full border-b-2 border-nav-border bg-nav-bg text-nav-foreground"
     >
-      {/*
-        The technical linework.
-
-        Everything in this block is decoration and is marked aria-hidden. It is drawn with borders
-        and a repeating-linear-gradient rather than an image, so it costs nothing, scales to any
-        width, and recolours with the accent instead of needing a new asset.
-
-        The texture is the ink colour at 4%, which on acid reads as a faint machined grain. It is
-        deliberately not red: a red hatch behind black type makes the whole bar vibrate.
-      */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.055]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(90deg, var(--acid-ink) 0 1px, transparent 1px 6px)',
-        }}
-      />
-      {/* Corner brackets, top left and top right, the same marks every panel on the site carries. */}
-      <span aria-hidden className="pointer-events-none absolute left-1 top-1 size-3 border-l-2 border-t-2 border-[var(--acid-ink)]" />
-      <span aria-hidden className="pointer-events-none absolute right-1 top-1 size-3 border-r-2 border-t-2 border-[var(--acid-ink)]" />
-
-      <Wide name="header" className="relative flex h-16 items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <Wide name="header" className="flex h-16 items-center justify-between gap-4">
+        <div className="flex items-center gap-8">
+          <Logo
+            siteName={branding.siteName}
+            logoUrl={branding.logoUrl}
+            logoWidth={branding.logoWidth}
+            logoHeight={branding.logoHeight}
+            logoAlt={branding.logoAlt}
+          />
           {/*
-            The mark sits on a dark plate.
+            The red bars from the design: two short angled strokes flanking the navigation.
 
-            The logo is black linework on a transparent ground, so on the acid bar it was black on
-            yellow with nothing separating it from the wordmark beside it. A void-black chamfered
-            plate gives it its own field and turns the brand lockup into an object rather than two
-            things that happen to be adjacent.
+            Decorative, so aria-hidden. Drawn as skewed divs rather than an image so they stay crisp
+            at any zoom and take the accent colour with the rest of the interface. Hidden below xl
+            because that is where the navigation itself collapses into the mobile menu and there is
+            nothing left for them to flank.
           */}
-          <span className="cyber-clip-sm flex items-center gap-2.5 bg-[var(--void)] py-1.5 pl-2 pr-3.5">
-            <Logo
-              siteName={branding.siteName}
-              logoUrl={branding.logoUrl}
-              logoWidth={branding.logoWidth}
-              logoHeight={branding.logoHeight}
-              logoAlt={branding.logoAlt}
-              onDark
-            />
+          <span aria-hidden className="hidden items-center gap-1 xl:flex">
+            <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)]" />
+            <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)] opacity-60" />
           </span>
-
-          {/* A red slash between the brand and the navigation, matching the design's linework. */}
-          <span aria-hidden className="hidden h-7 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)] xl:block" />
 
           <MainNav className="hidden xl:flex" entries={navEntries} extraItems={staffItems} />
         </div>
 
         <div className="flex items-center gap-1">
-          {/* And a matching slash before the status cluster on the right. */}
-          <span aria-hidden className="mr-3 hidden h-7 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)] lg:block" />
+          <span aria-hidden className="mr-3 hidden items-center gap-1 lg:flex">
+            <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)] opacity-60" />
+            <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)]" />
+          </span>
+
           <LiveClock className="mr-3 hidden items-center lg:flex" />
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
           {user ? (
