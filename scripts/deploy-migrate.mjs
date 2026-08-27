@@ -57,6 +57,36 @@ function run(label, cmd, { closeStdin = false } = {}) {
  * `require()` them without ERR_REQUIRE_ESM. So we flip `type` to `module` for ONLY the payload
  * migrate command, then restore the file verbatim. `next build` runs afterwards under CommonJS.
  */
+/**
+ * Is the Payload schema already provisioned?
+ *
+ * `payload migrate` refuses to run unattended against a database that was pushed in dev mode. It
+ * prints "It looks like you've run Payload in dev mode" and waits for an answer -- and this database
+ * carries exactly that marker: one row in payload_migrations called `dev`, standing in for the four
+ * real migration files. Closing stdin was supposed to make that fail fast; in practice it is a
+ * coin toss, and one production build sat on the prompt for thirty-five minutes before it was killed.
+ *
+ * So the question is asked here instead, where the answer is unambiguous. A database that already
+ * has the Payload schema does not need migrating -- it is the live schema the site is running on --
+ * and one that does not is a fresh deployment, which is the case `payload migrate` exists for.
+ */
+async function payloadSchemaExists() {
+  const { Client } = await import('pg')
+  const client = new Client({ connectionString: migrateUrl })
+  try {
+    await client.connect()
+    const { rows } = await client.query(
+      "select count(*)::int n from information_schema.tables where table_schema = 'payload'",
+    )
+    return rows[0].n > 0
+  } catch {
+    // Unreachable or unreadable: fall through to running the migration, which reports its own error.
+    return false
+  } finally {
+    await client.end().catch(() => {})
+  }
+}
+
 const pkgUrl = new URL('../package.json', import.meta.url)
 function withEsmPackage(fn) {
   const original = readFileSync(pkgUrl, 'utf8')
@@ -76,7 +106,11 @@ try {
   run('Prisma: syncing schema to schema.prisma (public schema)', 'npx prisma db push --accept-data-loss --skip-generate')
   run('Prisma: restoring what the schema language cannot express',
       'npx prisma db execute --schema prisma/schema.prisma --file prisma/sql/post-push.sql')
-  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
+  if (await payloadSchemaExists()) {
+    console.log(String.fromCharCode(10) + 'Payload: schema already provisioned - migrations skipped')
+  } else {
+    withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
+  }
   console.log('\n✓ Database ready: Prisma public schema synced + Payload migrations applied.')
 } catch (err) {
   console.error('\n✗ Database preparation failed. Aborting build.')
