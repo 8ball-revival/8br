@@ -12,12 +12,16 @@
 // ============================================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // Declared because the trigram indexes below are built on it. `db push` reconciles the database
+  // to THIS file, so an extension the database has and the schema does not is drift it will remove.
+  extensions = [pg_trgm]
 }
 
 // ============================================================================
@@ -1317,6 +1321,7 @@ model Tournament {
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
   @@index([competitionSeriesId])
+  @@index([platform], map: "comp_tournament_platform_idx")
   @@map("comp_tournament")
 }
 
@@ -1366,6 +1371,7 @@ model RatingLedger {
   @@index([tournamentId])
   @@index([seasonId])
   @@index([completedAt])
+  @@index([platform], map: "rating_ledger_platform_idx")
   @@map("rating_ledger")
 }
 
@@ -2073,7 +2079,15 @@ model Season {
   /// pair has to be able to coexist. The DATABASE index also folds a NULL division to '' so two
   /// undivided Seasons still cannot share a number — Prisma cannot express that, which is why the
   /// real constraint lives in 20260820_030000_season_number_per_division.
-  @@unique([competitionSeriesId, competitionYear, number, division], name: "season_competition_year_number")
+  /*
+    Season numbering is unique per series, year and division — but the real index is
+    `season_competition_year_number_division_key`, built on COALESCE(division, ''), so that a second
+    Season with NO division collides with the first instead of slipping past on SQL's rule that
+    NULLs are all distinct. Prisma has no syntax for an expression index, and declaring the plain
+    four-column version here does not describe it: `db push` would add a SECOND, weaker unique index
+    beside it. It cannot see the real one, so leaving this undeclared is what keeps the database as
+    it is. isSeasonNumberCollision still recognises the violation by name.
+  */
   @@index([lifecycleState])
   @@index([competitionYear])
   @@index([competitionSeriesId])
@@ -2081,6 +2095,7 @@ model Season {
   /// Live and Archives both filter on lifecycle first, then on these two flags.
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
+  @@index([platform], map: "season_platform_idx")
   @@map("season")
 }
 
@@ -2858,6 +2873,9 @@ model BreakPost {
   body     Json?
   /// Flattened plain text, maintained alongside `body` purely so search has something indexable.
   bodyText String?
+  /// Weighted tsvector over title (A), author name and handle (B) and bodyText (C). GENERATED
+  /// ALWAYS in the database, so nothing writes it; declared only so `db push` does not drop it.
+  searchVector Unsupported("tsvector")? @default(dbgenerated())
 
   categoryId Int?
   category   BreakCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -2937,6 +2955,17 @@ model BreakPost {
   @@index([authorPlayerId, state, publishedAt]) // a member's own posts and drafts
   @@index([categoryId, state, publishedAt]) // category filter
   @@index([state, removedAt, deletedAt]) // public-visibility predicate
+  /*
+    Search. These exist in the database and must be DECLARED here, or `db push` reads them as drift
+    and drops them — which is exactly what happened: the deploy step runs
+    `prisma db push --accept-data-loss`, and an index this file does not mention is one it removes.
+    `searchVector` is a STORED generated column; Prisma has no syntax for the generation expression,
+    so it is carried as Unsupported with a database-generated default, which is enough for Prisma to
+    leave the column alone.
+  */
+  @@index([searchVector], type: Gin, map: "break_post_search_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "break_post_title_trgm_idx")
+  @@index([authorHandleSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "break_post_author_trgm_idx")
   @@map("break_post")
 }
 
@@ -3020,8 +3049,11 @@ model BreakPollOption {
   text      String
   voteCount Int       @default(0)
 
-  votes BreakPollVote[]
+  votes       BreakPollVote[]
+  /// Referenced by the composite foreign key below; see BreakPollVote.optionInPoll.
+  votesInPoll BreakPollVote[] @relation("BreakPollVoteOptionInPoll")
 
+  @@unique([id, pollId], map: "break_poll_option_poll_unique")
   @@index([pollId, position])
   @@map("break_poll_option")
 }
@@ -3036,6 +3068,13 @@ model BreakPollVote {
   playerId  String
   player    Player          @relation("BreakPollVoter", fields: [playerId], references: [id], onDelete: Cascade)
   createdAt DateTime        @default(now())
+
+  /*
+    A vote's option must belong to the vote's poll, enforced by the database rather than trusted. It
+    is a second, composite foreign key alongside the plain optionId one, which is why it needs a
+    named relation: without it the constraint is not in this file, and `db push` drops it.
+  */
+  optionInPoll BreakPollOption @relation("BreakPollVoteOptionInPoll", fields: [optionId, pollId], references: [id, pollId], onDelete: Cascade, onUpdate: NoAction, map: "break_poll_vote_option_matches_poll")
 
   @@unique([pollId, playerId])
   @@index([optionId])
