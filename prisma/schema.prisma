@@ -1308,6 +1308,9 @@ model Tournament {
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
   @@index([competitionSeriesId])
+  /// Declared so the deploy's schema reconciliation keeps it rather than dropping it as
+  /// an object the schema does not know about. It backs the per-platform ladder split.
+  @@index([platform])
   @@map("comp_tournament")
 }
 
@@ -1357,6 +1360,9 @@ model RatingLedger {
   @@index([tournamentId])
   @@index([seasonId])
   @@index([completedAt])
+  /// Declared so the deploy's schema reconciliation keeps it rather than dropping it as
+  /// an object the schema does not know about. It backs the per-platform ladder split.
+  @@index([platform])
   @@map("rating_ledger")
 }
 
@@ -2072,6 +2078,9 @@ model Season {
   /// Live and Archives both filter on lifecycle first, then on these two flags.
   @@index([lifecycleState, publiclyVisible])
   @@index([reconstruction])
+  /// Declared so the deploy's schema reconciliation keeps it rather than dropping it as
+  /// an object the schema does not know about. It backs the per-platform ladder split.
+  @@index([platform])
   @@map("season")
 }
 
@@ -2850,6 +2859,17 @@ model BreakPost {
   /// Flattened plain text, maintained alongside `body` purely so search has something indexable.
   bodyText String?
 
+  /*
+   * A STORED GENERATED column, and Prisma has no syntax for that -- so it is declared Unsupported
+   * and its generated-ness is asserted by the deploy instead. Declaring it here is what stops
+   * `db push` dropping the column (and the index below) as something the schema never heard of;
+   * `scripts/deploy-migrate.mjs` is what guarantees it is still GENERATED afterwards.
+   *
+   * Unsupported keeps it out of the generated client, which is correct: nothing reads it directly.
+   * Search queries it through raw SQL by way of the GIN index.
+   */
+  searchVector Unsupported("tsvector")? @default(dbgenerated())
+
   categoryId Int?
   category   BreakCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
@@ -2928,6 +2948,11 @@ model BreakPost {
   @@index([authorPlayerId, state, publishedAt]) // a member's own posts and drafts
   @@index([categoryId, state, publishedAt]) // category filter
   @@index([state, removedAt, deletedAt]) // public-visibility predicate
+  /// Full-text search. Weighted title > author > body; see the 20260819_210000_the_break migration.
+  @@index([searchVector], type: Gin)
+  /// Partial-word and handle matching, which a tsvector alone does not do: "adnan" finds "x0_adnan_0x".
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([authorHandleSnapshot(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("break_post")
 }
 
@@ -3014,6 +3039,9 @@ model BreakPollOption {
   votes BreakPollVote[]
 
   @@index([pollId, position])
+  /// Target of break_poll_vote's composite foreign key, which is what stops a vote naming an
+  /// option that belongs to a different poll. The constraint itself is re-asserted by the deploy.
+  @@unique([id, pollId])
   @@map("break_poll_option")
 }
 
@@ -3023,7 +3051,13 @@ model BreakPollVote {
   pollId    Int
   poll      BreakPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   optionId  Int
-  option    BreakPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  /*
+   * A COMPOSITE foreign key, deliberately: (optionId, pollId) -> (id, pollId). A single-column key
+   * would let a vote name an option belonging to a different poll, which is the one corruption this
+   * table has to be incapable of. It is declared here rather than left to raw SQL so the deploy's
+   * schema reconciliation cannot drop it as an object the schema does not know about.
+   */
+  option    BreakPollOption @relation(fields: [optionId, pollId], references: [id, pollId], onDelete: Cascade)
   playerId  String
   player    Player          @relation("BreakPollVoter", fields: [playerId], references: [id], onDelete: Cascade)
   createdAt DateTime        @default(now())

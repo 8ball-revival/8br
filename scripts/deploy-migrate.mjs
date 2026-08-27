@@ -71,7 +71,11 @@ function withEsmPackage(fn) {
 }
 
 try {
+  run('Prisma: extensions the schema depends on',
+      'npx prisma db execute --schema prisma/schema.prisma --file prisma/sql/pre-push.sql')
   run('Prisma: syncing schema to schema.prisma (public schema)', 'npx prisma db push --accept-data-loss --skip-generate')
+  run('Prisma: restoring what the schema language cannot express',
+      'npx prisma db execute --schema prisma/schema.prisma --file prisma/sql/post-push.sql')
   withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
   console.log('\n✓ Database ready: Prisma public schema synced + Payload migrations applied.')
 } catch (err) {
