@@ -93,6 +93,30 @@ async function readSeasonResults(platform: CompetitionPlatform): Promise<SeasonR
     },
   })
 
+  /*
+   * ── The runner-up's CueVerse ID, derived rather than stored ──────────────────────────────────
+   * `runnerUpHandle` is null on every Season -- only `runnerUpName` was ever written -- so the panel
+   * fell back to the Preferred Name and printed "Adnan" beside a winner shown as `expired.expert`.
+   * Two different kinds of name in adjacent columns, and the wrong one: a Preferred Name is not an
+   * identity here, which is why nothing else on the site resolves anybody by it.
+   *
+   * The identity is recoverable without inventing anything: the runner-up is the player who lost the
+   * Final, and the Final is a record we hold. Read once for every Season rather than per row.
+   */
+  const runnerUpIds = await prisma.$queryRawUnsafe<Array<{ seasonId: number; cueverseId: string | null; primaryName: string | null }>>(`
+    with finals as (
+      select distinct on (p."seasonId") p."seasonId", p."homeEntrantId", p."awayEntrantId", p."winnerEntrantId"
+      from season_playoff_match p
+      where p."feedsMatchId" is null and p."winnerEntrantId" is not null
+      order by p."seasonId", p.round desc
+    )
+    select f."seasonId", pl."cueverseId", pl."primaryName"
+    from finals f
+    join season_entrant e
+      on e.id = case when f."winnerEntrantId" = f."homeEntrantId" then f."awayEntrantId" else f."homeEntrantId" end
+    join "Player" pl on pl.id = e."playerId"`)
+  const runnerUpById = new Map(runnerUpIds.map((r) => [r.seasonId, r]))
+
   return rows.map((s) => ({
     seasonId: s.id,
     label: `${s.competitionYear} · Season ${s.number}`,
@@ -102,8 +126,9 @@ async function readSeasonResults(platform: CompetitionPlatform): Promise<SeasonR
     event: s.competitionSeries?.name ?? s.competitionSeries?.shortName ?? 'Season',
     winnerHandle: s.championHandle,
     winnerName: s.championName,
-    runnerUpHandle: s.runnerUpHandle,
-    runnerUpName: s.runnerUpName,
+    // The stored handle first when there is one; otherwise the loser of the Final.
+    runnerUpHandle: s.runnerUpHandle ?? runnerUpById.get(s.id)?.cueverseId ?? null,
+    runnerUpName: s.runnerUpName ?? runnerUpById.get(s.id)?.primaryName ?? null,
     /*
      * A forfeited final carries no score, and the stored value is suppressed rather than printed.
      * Showing "9-0" for a match nobody played is the specific fabrication the whole result system
@@ -129,6 +154,6 @@ export const getSeasonResults = unstable_cache(
    * it expires, which is exactly what happened and looked like the fix not working. A key is part of
    * the query's identity, so it changes when the query changes.
    */
-  ['home-season-results-v6'],
+  ['home-season-results-v7'],
   { revalidate: 300, tags: [LADDER_EXPLORER_TAG] },
 )
