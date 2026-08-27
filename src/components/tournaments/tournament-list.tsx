@@ -9,6 +9,7 @@ import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import type { TournamentListItem } from '@/lib/tournaments/list'
+import { defaultPlatformScope, type PlatformScope } from '@/lib/tournaments/platform-scope'
 
 const nk = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
@@ -29,10 +30,11 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
    *
    * A Yahoo Tournament and a CueVerse one are different eras; listing them together would put them
    * in one ordering as though they ran consecutively, and the counts above the list would describe
-   * a history nobody had. CueVerse unless the URL says otherwise.
+   * a history nobody had. The URL wins; otherwise the scope opens on an era that has something in
+   * it — see `defaultPlatformScope`, which is where the "otherwise" is explained.
    */
-  const [platform, setPlatform] = useState<'CUEVERSE' | 'YAHOO'>(
-    sp.get('platform')?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE',
+  const [platform, setPlatform] = useState<PlatformScope>(() =>
+    defaultPlatformScope(cups, sp.get('platform')),
   )
   const [q, setQ] = useState(sp.get('q') ?? '')
   const [status, setStatus] = useState(sp.get('status') ?? 'all')
@@ -96,7 +98,7 @@ export function TournamentList({ cups }: { cups: TournamentListItem[] }) {
           <Select
             label="Platform"
             value={platform}
-            onChange={(v) => setPlatform(v as 'CUEVERSE' | 'YAHOO')}
+            onChange={(v) => setPlatform(v as PlatformScope)}
             options={[['CUEVERSE', 'CueVerse'], ['YAHOO', 'Yahoo']]}
           />
           <Select label="Status" value={status} onChange={setStatus} options={[['all', 'All statuses'], ['active', 'Active & Upcoming'], ['completed', 'Completed']]} />
