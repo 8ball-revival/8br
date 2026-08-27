@@ -23,6 +23,7 @@ export type MatchReason =
   | 'exact-archive-handle'
   | 'case-and-space'
   | 'punctuation'
+  | 'second-spelling'
   | 'suggestion-only'
 
 export type MatchConfidence = 'exact' | 'high' | 'suggestion'
@@ -34,6 +35,7 @@ export const RULE_CONFIDENCE: Record<MatchReason, { confidence: MatchConfidence;
   'exact-archive-handle':{ confidence: 'exact',      autoApply: true,  label: 'this Player already carries that archive handle' },
   'case-and-space':      { confidence: 'high',       autoApply: true,  label: 'matches apart from capitals or spacing' },
   'punctuation':         { confidence: 'high',       autoApply: true,  label: 'matches once punctuation is ignored, and only one entrant does' },
+  'second-spelling':     { confidence: 'high',       autoApply: true,  label: 'the same person the source already named under another spelling' },
   'suggestion-only':     { confidence: 'suggestion', autoApply: false, label: 'looks similar — needs a person to confirm' },
 }
 
@@ -139,8 +141,12 @@ export function matchHandles(
   const matched: HandleMatch[] = []
   const unresolved: UnresolvedHandle[] = []
 
+  /** Entrants that have been claimed, kept so a second spelling of the same person can find them. */
+  const claimed = new Map<number, EntrantIdentity>()
+
   const claim = (entrant: EntrantIdentity, a: ArchiveIdentity, reason: MatchReason) => {
     available.delete(entrant.entrantId)
+    claimed.set(entrant.entrantId, entrant)
     matched.push({
       sourceId: a.sourceId,
       rawHandle: a.rawHandle,
@@ -226,6 +232,52 @@ export function matchHandles(
         remaining.delete(a.sourceId)
       }
     }
+  }
+
+  /*
+   * ── One person, two spellings, one entrant ────────────────────────────────────────────────────
+   * A player who changed their CueVerse ID mid-Season appears in the source twice: the group table
+   * under the old handle, the bracket under the new one. The owner's identity decisions make both
+   * spellings resolve to the same Player -- and that is when this became visible, because the first
+   * spelling claims the entrant and the second then finds nobody left.
+   *
+   * Reporting that second spelling as a participant with no entrant is wrong twice over: it invents
+   * a missing person the source never had, and it stalls the import of a Season whose field is
+   * actually complete. So a leftover handle that names an ALREADY-CLAIMED entrant is recorded as
+   * what it is -- another spelling of somebody already matched.
+   *
+   * The guard is the group. If the source puts the two spellings in different groups they cannot be
+   * one person in one competition, and that is a contradiction to report rather than fold away.
+   */
+  for (const a of pending) {
+    if (!remaining.has(a.sourceId)) continue
+    const want = punctuationKey(a.rawHandle)
+    if (!want) continue
+
+    const sameEntrant = [...claimed.values()].filter((e) =>
+      [punctuationKey(e.cueverseId), ...e.aliases.map(punctuationKey), ...e.archiveHandles.map(punctuationKey)]
+        .filter(Boolean)
+        .includes(want))
+    if (sameEntrant.length !== 1) continue
+
+    const entrant = sameEntrant[0]
+    const firstSpelling = matched.find((m) => m.entrantId === entrant.entrantId)
+    if (a.groupName && firstSpelling?.groupName && a.groupName !== firstSpelling.groupName) continue
+
+    matched.push({
+      sourceId: a.sourceId,
+      rawHandle: a.rawHandle,
+      groupName: a.groupName,
+      slot: a.slot,
+      entrantId: entrant.entrantId,
+      playerId: entrant.playerId,
+      displayName: entrant.displayName,
+      cueverseId: entrant.cueverseId,
+      reason: 'second-spelling',
+      confidence: RULE_CONFIDENCE['second-spelling'].confidence,
+      reasonLabel: RULE_CONFIDENCE['second-spelling'].label,
+    })
+    remaining.delete(a.sourceId)
   }
 
   // Whatever is left has no entrant. Offer a suggestion where one is obvious, and apply none of it.

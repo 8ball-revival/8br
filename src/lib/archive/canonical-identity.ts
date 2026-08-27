@@ -36,8 +36,24 @@ async function allPlayersStripped(): Promise<{ id: string; stripped: string }[]>
   return strippedCache
 }
 
-/** Forget the cached list — for a process that creates accounts and then resolves against them. */
-export function resetCanonicalCache(): void { strippedCache = null }
+/*
+ * The alias table, stripped the same way.
+ *
+ * Aliases are NOT stored consistently: `addAlias` removes separators, but aliases that arrived with
+ * the archive imports kept theirs, so the table holds both `goobersreturn` and `goober.returns`.
+ * Comparing one normalised form against a column holding both can only ever match half of them, so
+ * both sides are stripped and compared in memory.
+ */
+let aliasStrippedCache: { playerId: string; stripped: string }[] | null = null
+async function allAliasesStripped(): Promise<{ playerId: string; stripped: string }[]> {
+  if (aliasStrippedCache) return aliasStrippedCache
+  const rows = await prisma.playerAlias.findMany({ select: { playerId: true, alias: true } })
+  aliasStrippedCache = rows.map((r) => ({ playerId: r.playerId, stripped: aliasKey(r.alias) }))
+  return aliasStrippedCache
+}
+
+/** Forget the cached lists — for a process that creates accounts and then resolves against them. */
+export function resetCanonicalCache(): void { strippedCache = null; aliasStrippedCache = null }
 
 export interface CanonicalIdentity {
   /** The handle as the source printed it. */
@@ -88,7 +104,18 @@ export async function resolveCanonical(seasonId: number | null, rawHandle: strin
    * expressed as a column match and the alternative is a pattern query per handle.
    */
   const stripped = aliasKey(handle)
-  if (stripped && stripped !== key) {
+  /*
+   * Tried whenever the direct lookup found nobody, including when the handle has no separators of
+   * its own.
+   *
+   * This used to skip the comparison when stripping changed nothing, on the reasoning that the
+   * direct lookup must already have covered it. It does not: the direct lookup matches against
+   * `cueverseIdNormalized`, which KEEPS its separators, so a handle written without them can never
+   * reach an account written with them -- `kingvaughan` never found `king_vaughan`. The asymmetry
+   * only shows up in that direction, which is why it survived: `king_vaughan` finds `kingvaughan`
+   * perfectly well.
+   */
+  if (stripped) {
     const byStripped = (await allPlayersStripped()).filter((p) => p.stripped === stripped)
     const distinct = [...new Set(byStripped.map((p) => p.id))]
     if (distinct.length === 1) return withEntrant(distinct[0], 'cueverse-id')
@@ -106,7 +133,11 @@ export async function resolveCanonical(seasonId: number | null, rawHandle: strin
     where: { alias: { equals: aliasKey(handle), mode: 'insensitive' } },
     select: { playerId: true },
   })
-  const aliasIds = [...new Set(byAlias.map((a) => a.playerId))]
+  let aliasIds = [...new Set(byAlias.map((a) => a.playerId))]
+  if (aliasIds.length === 0 && stripped) {
+    // Nothing matched the stored form, so try every alias stripped the same way as the handle.
+    aliasIds = [...new Set((await allAliasesStripped()).filter((a) => a.stripped === stripped).map((a) => a.playerId))]
+  }
   if (aliasIds.length === 1) return withEntrant(aliasIds[0], 'alias')
   if (aliasIds.length > 1) {
     /*

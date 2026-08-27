@@ -1,0 +1,617 @@
+{
+  "instructions": "Set \"decision\" to a CueVerse ID (merge into that Player), \"NEW\" (create a historical Player), or \"BLOCKED\" (leave source-blocked). Leave \"\" to defer. Numbers match reports/archive-identity-review.md.",
+  "decisions": [
+    {
+      "n": 1,
+      "handle": "TlNO_NICA",
+      "key": "tlnonica",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2009 S2A",
+        "2009 S3A",
+        "2009 S4A",
+        "2009 S6A",
+        "2010 S1A",
+        "2010 S2A",
+        "2010 S3A",
+        "2010 S4A",
+        "2011 S1A",
+        "2011 S2A",
+        "2011 S3A",
+        "2012 S2A"
+      ],
+      "recommendation": "tino_nica",
+      "decision": "tino_nica"
+    },
+    {
+      "n": 2,
+      "handle": "kingvaughan",
+      "key": "kingvaughan",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2008 S2A",
+        "2009 S2A",
+        "2010 S2A"
+      ],
+      "recommendation": "king_vaughan",
+      "decision": "king_vaughan"
+    },
+    {
+      "n": 3,
+      "handle": "goober.returns",
+      "key": "gooberreturns",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2006 S3A",
+        "2006 S4A",
+        "2013 S3A"
+      ],
+      "recommendation": "goober_tyler",
+      "decision": "goober_tyler"
+    },
+    {
+      "n": 4,
+      "handle": "o.wn4age",
+      "key": "own4age",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2006 S5A"
+      ],
+      "recommendation": "superstaaaar",
+      "decision": "superstaaaar"
+    },
+    {
+      "n": 5,
+      "handle": "cubs_fan_21_07_04",
+      "key": "cubsfan210704",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2007 S1A"
+      ],
+      "recommendation": "ch1cubs_1908",
+      "decision": "ch1cubs_1908"
+    },
+    {
+      "n": 6,
+      "handle": "xl_ketan_lx",
+      "key": "xlketanlx",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2008 S1A"
+      ],
+      "recommendation": "ll_ketan_ll",
+      "decision": "ll_ketan_ll"
+    },
+    {
+      "n": 7,
+      "handle": "m_a_l_d_i_t_o",
+      "key": "maldito",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2011 S1A"
+      ],
+      "recommendation": "o1d_school",
+      "decision": "o1d_school"
+    },
+    {
+      "n": 8,
+      "handle": "xlx_rivaldo_xlx",
+      "key": "xlxrivaldoxlx",
+      "category": "DETERMINISTIC_NORMALIZATION",
+      "seasons": [
+        "2012 S1A"
+      ],
+      "recommendation": "l_inland_taipan_l",
+      "decision": "l_inland_taipan_l"
+    },
+    {
+      "n": 9,
+      "handle": "Asskicking_101",
+      "key": "asskicking101",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S1A",
+        "2013 S2A",
+        "2013 S3A",
+        "2013 S4A",
+        "2013 S5A",
+        "2014 S1A"
+      ],
+      "recommendation": "l2_o_c_k_y",
+      "decision": "l2_o_c_k_y"
+    },
+    {
+      "n": 10,
+      "handle": "bluffing",
+      "key": "bluffing",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S2A",
+        "2013 S3A"
+      ],
+      "recommendation": "c-b",
+      "decision": "c-b"
+    },
+    {
+      "n": 11,
+      "handle": "get.tanned",
+      "key": "gettanned",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S5A",
+        "2014 S1A"
+      ],
+      "recommendation": "tanmay_keshav",
+      "decision": "tanmay_keshav"
+    },
+    {
+      "n": 12,
+      "handle": "au.stralian",
+      "key": "australian",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S1A"
+      ],
+      "recommendation": "o_r_a_",
+      "decision": "o_r_a_"
+    },
+    {
+      "n": 13,
+      "handle": "Show me the $",
+      "key": "showmethe",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S5A"
+      ],
+      "recommendation": "c-b",
+      "decision": "c-b"
+    },
+    {
+      "n": 14,
+      "handle": "x_hero_x",
+      "key": "xherox",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S2A"
+      ],
+      "recommendation": "aka_hero",
+      "decision": "aka_hero"
+    },
+    {
+      "n": 15,
+      "handle": "safeties",
+      "key": "safeties",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S3A"
+      ],
+      "recommendation": "Travis",
+      "decision": "Travis"
+    },
+    {
+      "n": 16,
+      "handle": "srsmode",
+      "key": "srsmode",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S1A"
+      ],
+      "recommendation": "aka_hero",
+      "decision": "aka_hero"
+    },
+    {
+      "n": 17,
+      "handle": "lvlr_.l3utal_king",
+      "key": "lvlrl3utalking",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S2A"
+      ],
+      "recommendation": "lvlr.l3rutal_king",
+      "decision": "lvlr.l3rutal_king"
+    },
+    {
+      "n": 18,
+      "handle": "l_chiddy_l",
+      "key": "lchiddyl",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S5A"
+      ],
+      "recommendation": "100%good",
+      "decision": "100%good"
+    },
+    {
+      "n": 19,
+      "handle": "kevin+the+one",
+      "key": "kevintheone",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S2A"
+      ],
+      "recommendation": "Kevins_Yahoo",
+      "decision": "Kevins_Yahoo"
+    },
+    {
+      "n": 20,
+      "handle": "xlx_canuck_xlx",
+      "key": "xlxcanuckxlx",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S1A"
+      ],
+      "recommendation": "Xx_CK_xX",
+      "decision": "Xx_CK_xX"
+    },
+    {
+      "n": 21,
+      "handle": "x_mirotic_x",
+      "key": "xmiroticx",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S2A"
+      ],
+      "recommendation": "aka_hero",
+      "decision": "aka_hero"
+    },
+    {
+      "n": 22,
+      "handle": "GOKU",
+      "key": "goku",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S2A"
+      ],
+      "recommendation": "hab_keine_angst",
+      "decision": "hab_keine_angst"
+    },
+    {
+      "n": 23,
+      "handle": "Mr.Marvel",
+      "key": "mrmarvel",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S4A"
+      ],
+      "recommendation": "Starkiller",
+      "decision": "Starkiller"
+    },
+    {
+      "n": 24,
+      "handle": "ll_brian_ll",
+      "key": "llbrianll",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S5A"
+      ],
+      "recommendation": "white_sox",
+      "decision": "white_sox"
+    },
+    {
+      "n": 25,
+      "handle": "SupaSolid",
+      "key": "supasolid",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S1A"
+      ],
+      "recommendation": "flacc0",
+      "decision": "flacc0"
+    },
+    {
+      "n": 26,
+      "handle": "o0_GoKu_0o",
+      "key": "o0goku0o",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S1A"
+      ],
+      "recommendation": "hab_keine_angst",
+      "decision": "hab_keine_angst"
+    },
+    {
+      "n": 27,
+      "handle": "shadow_man_",
+      "key": "shadowman",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S4A"
+      ],
+      "recommendation": "Starkiller",
+      "decision": "Starkiller"
+    },
+    {
+      "n": 28,
+      "handle": "al_d_o",
+      "key": "aldo",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2006 S4A"
+      ],
+      "recommendation": "al_D_0",
+      "decision": "al_D_0"
+    },
+    {
+      "n": 29,
+      "handle": "trios.return",
+      "key": "triosreturn",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S1A"
+      ],
+      "recommendation": "mr.kapaw",
+      "decision": "mr.kapaw"
+    },
+    {
+      "n": 30,
+      "handle": "sinf.onia",
+      "key": "sinfonia",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S2A"
+      ],
+      "recommendation": "pro.jeremy",
+      "decision": "pro.jeremy"
+    },
+    {
+      "n": 31,
+      "handle": "leeds_united",
+      "key": "leedsunited",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S2A"
+      ],
+      "recommendation": "leeds_united14",
+      "decision": "leeds_united14"
+    },
+    {
+      "n": 32,
+      "handle": "i_am_the_hulk24",
+      "key": "iamthehulk24",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S3A"
+      ],
+      "recommendation": "azn_pride_luva",
+      "decision": "azn_pride_luva"
+    },
+    {
+      "n": 33,
+      "handle": "ooo_franchise_ooo",
+      "key": "ooofranchiseooo",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2012 S3A"
+      ],
+      "recommendation": "Starkiller",
+      "decision": "Starkiller"
+    },
+    {
+      "n": 34,
+      "handle": "ogger",
+      "key": "ogger",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S1A"
+      ],
+      "recommendation": "xlx_ogges_xlx",
+      "decision": "xlx_ogges_xlx"
+    },
+    {
+      "n": 35,
+      "handle": "u.derrated",
+      "key": "uderrated",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S1A"
+      ],
+      "recommendation": "xlx_skill_xlx",
+      "decision": "xlx_skill_xlx"
+    },
+    {
+      "n": 36,
+      "handle": "Bashful_*",
+      "key": "bashful",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S3A"
+      ],
+      "recommendation": "OoXJoEXoO",
+      "decision": "OoXJoEXoO"
+    },
+    {
+      "n": 37,
+      "handle": "legendary.pooler",
+      "key": "legendarypooler",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S3A"
+      ],
+      "recommendation": "s.chooled",
+      "decision": "s.chooled"
+    },
+    {
+      "n": 38,
+      "handle": "texas.tech",
+      "key": "texastech",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S3A"
+      ],
+      "recommendation": "s.hoota*",
+      "decision": "s.hoota*"
+    },
+    {
+      "n": 39,
+      "handle": "i_own_you_so_quit_plz",
+      "key": "iownyousoquitplz",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2013 S5A"
+      ],
+      "recommendation": "murkedddd",
+      "decision": "murkedddd"
+    },
+    {
+      "n": 40,
+      "handle": "camtagious",
+      "key": "camtagious",
+      "category": "STRONG_CANDIDATE",
+      "seasons": [
+        "2014 S1A"
+      ],
+      "recommendation": "nxs_skillz",
+      "decision": "nxs_skillz"
+    },
+    {
+      "n": 41,
+      "handle": "Intensify",
+      "key": "intensify",
+      "category": "AMBIGUOUS",
+      "seasons": [
+        "2009 S1A"
+      ],
+      "recommendation": "no recommendation — the evidence does not separate them",
+      "decision": "Travis"
+    },
+    {
+      "n": 42,
+      "handle": "empire_l3mx",
+      "key": "empirel3mx",
+      "category": "AMBIGUOUS",
+      "seasons": [
+        "2012 S3A",
+        "2012 S4A"
+      ],
+      "recommendation": "no recommendation — the evidence does not separate them",
+      "decision": "ypool_pro"
+    },
+    {
+      "n": 43,
+      "handle": "grey_goose",
+      "key": "greygoose",
+      "category": "AMBIGUOUS",
+      "seasons": [
+        "2013 S4A"
+      ],
+      "recommendation": "no recommendation — the evidence does not separate them",
+      "decision": "grey_gooose"
+    },
+    {
+      "n": 44,
+      "handle": "t_r_a_v_i_s_",
+      "key": "travis",
+      "category": "AMBIGUOUS",
+      "seasons": [
+        "2009 S2A"
+      ],
+      "recommendation": "no recommendation — more than one account normalises to this same handle",
+      "decision": "Travis"
+    },
+    {
+      "n": 45,
+      "handle": "king_hustler2006",
+      "key": "kinghustler2006",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2006 S1A",
+        "2006 S4A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "NEW"
+    },
+    {
+      "n": 46,
+      "handle": "Ace7887",
+      "key": "ace7887",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2006 S3A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "NEW"
+    },
+    {
+      "n": 47,
+      "handle": "xlx_latinKiing_xlx",
+      "key": "xlxlatinkiingxlx",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2006 S3A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "NEW"
+    },
+    {
+      "n": 48,
+      "handle": "mopadmot",
+      "key": "mopadmot",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2006 S3A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "NEW"
+    },
+    {
+      "n": 49,
+      "handle": "Silent_Fox",
+      "key": "silentfox",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2006 S4A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "Starkiller"
+    },
+    {
+      "n": 50,
+      "handle": "chr_lst",
+      "key": "chrlst",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2006 S4A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "owned_ggs"
+    },
+    {
+      "n": 51,
+      "handle": "f1tbikes",
+      "key": "f1tbikes",
+      "category": "LIKELY_NEW_PLAYER",
+      "seasons": [
+        "2012 S4A"
+      ],
+      "recommendation": "create a new historical Player",
+      "decision": "ypool_pro"
+    },
+    {
+      "n": 52,
+      "handle": "apaffiliate",
+      "key": "orphan:48455",
+      "category": "ORPHANED_REFERENCE",
+      "seasons": [
+        "2012 S1A"
+      ],
+      "recommendation": "delete the orphaned row",
+      "decision": "RESTORE"
+    }
+  ],
+  "answeredBy": "owner",
+  "answeredOn": "2026-08-26",
+  "notes": [
+    "aka_hero, Kevins_Yahoo and sixohtwo are three separate people and three separate canonical Players. Q14/Q16/Q21 stay on aka_hero; Q19 stays on Kevins_Yahoo; neither is merged into sixohtwo.",
+    "Travis and t_r_a_v_i_s are one person: merge through the canonical workflow with Travis surviving, then assign Intensify (Q41) and t_r_a_v_i_s_ (Q44) to the consolidated identity.",
+    "Q50 chr_lst is Adam, whose handle im_god_x is already held as the alias imgodx on owned_ggs.",
+    "Q51 f1tbikes is the same historical person as fitb1kes, both assigned to ypool_pro (David) alongside Q42 empire_l3mx.",
+    "Q52 apaffiliate is preserved, not deleted: a minimal historical Player is restored and the WITHDRAWN entrant relinked. No User account, no invented name, no rating contribution."
+  ],
+  "merges": [
+    {
+      "primary": "Travis",
+      "secondary": "t_r_a_v_i_s",
+      "reason": "owner-confirmed: the same person under two spellings"
+    }
+  ]
+}

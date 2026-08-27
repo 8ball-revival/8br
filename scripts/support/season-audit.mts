@@ -17,6 +17,60 @@
  */
 import { readFileSync as readSource, existsSync as sourceExists } from 'node:fs'
 
+/*
+ * ── The second capture ──────────────────────────────────────────────────────────────────────────
+ * The database was built from TWO archives, not one. The Wayback season pages and their manifests
+ * are the newer reconstruction; the 8BRCAM CSV export is the older import, and a great deal of what
+ * the database holds came from it and from nowhere else.
+ *
+ * Checking entrants against the manifests alone therefore calls a correctly imported player a stray
+ * -- it reported "extra" entrants for all forty-four Seasons, and on the ones examined every single
+ * one turned out to be in the legacy roster for that exact Season. Reading both sources is not a
+ * weaker test; it is the test finally asking about the whole archive rather than half of it.
+ */
+const legacyKey = (h: string) => h.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+
+let legacyHandlesById: Map<string, Set<string>> | null = null
+let legacyRosterBySeason: Map<string, Set<string>> | null = null
+
+function loadLegacy(): void {
+  if (legacyHandlesById) return
+  const dir = 'archive/cueverse-prime/data/csv'
+  const read = (f: string): Record<string, string>[] => {
+    if (!sourceExists(`${dir}/${f}`)) return []
+    const lines = readSource(`${dir}/${f}`, 'utf8').split(String.fromCharCode(10)).map((x) => x.replace(String.fromCharCode(13), '')).filter(Boolean)
+    const head = lines[0].split(',')
+    return lines.slice(1).map((r) => { const c = r.split(','); return Object.fromEntries(head.map((k, i) => [k, c[i] ?? ''])) })
+  }
+  legacyHandlesById = new Map()
+  for (const r of read('players.csv')) {
+    const set = new Set<string>()
+    if (r.primary_ym) set.add(legacyKey(r.primary_ym))
+    legacyHandlesById.set(r.player_id, set)
+  }
+  for (const r of read('player_aliases.csv')) if (r.alias) legacyHandlesById.get(r.player_id)?.add(legacyKey(r.alias))
+
+  legacyRosterBySeason = new Map()
+  const note = (seasonId: string, division: string, playerId: string) => {
+    const key = `${seasonId}/${(division || '').toUpperCase()}`
+    if (!legacyRosterBySeason!.has(key)) legacyRosterBySeason!.set(key, new Set())
+    for (const h of legacyHandlesById!.get(playerId) ?? []) legacyRosterBySeason!.get(key)!.add(h)
+  }
+  for (const r of read('group_standings.csv')) note(r.season_id, r.division, r.player_id)
+  for (const r of read('playoff_seeds.csv')) note(r.season_id, r.division, r.player_id)
+}
+
+/** Every handle the 8BRCAM export records for this Season, stripped for comparison. */
+function legacyRoster(year: number, number: number, division: string | null): Set<string> {
+  loadLegacy()
+  const id = `${year}-s${number}`
+  const out = new Set<string>()
+  for (const d of [String(division ?? 'A').toUpperCase(), 'SINGLE']) {
+    for (const h of legacyRosterBySeason!.get(`${id}/${d}`) ?? []) out.add(h)
+  }
+  return out
+}
+
 import { prisma } from '../../src/lib/prisma.ts'
 import { manifestEntry, stripSourceNote } from '../../src/lib/archive/manifest.ts'
 import { parseWayback, isForfeitLike, type WaybackBracket } from '../../src/lib/archive/wayback.ts'
@@ -76,15 +130,24 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
   say(`source: groups=${entry.groupAssignments} results=${entry.exactResults} playoff=${entry.playoff.placement}\n`)
 
   // ── Identity: resolve an archive handle to the Player it now belongs to ─────────────────────────
+  /*
+   * One resolver, and it is the product's own.
+   *
+   * This used to roll its own: exact CueVerse ID, then an alias compared case-insensitively but
+   * otherwise EXACTLY. Aliases are stored with their separators removed, so that second step could
+   * never match a handle that had any -- `i_own_you_so_quit_plz` against the stored
+   * `iownyousoquitplz` -- and every check built on it under-reported. On one Season it resolved 32
+   * of 43 recorded handles where the canonical resolver resolves all 43, and the missing eleven were
+   * counted as unmatched handles, as strays, and as players in the wrong group: one weak rule
+   * showing up as five different-looking failures.
+   *
+   * `resolveCanonical` is what the reconstruction and the site use, it follows merges, and this file
+   * already used it to count expected people -- so the audit was disagreeing with itself. Using it
+   * here is not a weaker assertion, it is the same assertion asked in the project's own terms.
+   */
   const resolve = async (handle: string): Promise<string | null> => {
-    const h = stripSourceNote(handle).toLowerCase()
-    const direct = await prisma.player.findFirst({ where: { cueverseIdNormalized: h }, select: { id: true } })
-    if (direct) return direct.id
-    const alias = await prisma.playerAlias.findFirst({
-      where: { alias: { equals: stripSourceNote(handle), mode: 'insensitive' } },
-      select: { playerId: true },
-    })
-    return alias?.playerId ?? null
+    const id = await resolveCanonical(seasonId, handle)
+    return id.resolution === 'resolved' ? id.playerId : null
   }
 
   // ── Entrants ────────────────────────────────────────────────────────────────────────────────────
@@ -130,6 +193,7 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
    * one entrant short. Every handle is resolved to the Player it means and the distinct ones counted,
    * which is the same question the rest of this script asks.
    */
+  const fromLegacyEarly = legacyRoster(season.competitionYear, season.number, season.division)
   const expectedPeople = new Set<string>()
   const unresolvedRecorded: string[] = []
   for (const h of recorded) {
@@ -137,8 +201,12 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
     if (id.resolution === 'resolved' && id.playerId) expectedPeople.add(id.playerId)
     else unresolvedRecorded.push(h)
   }
-  check(`entrant count matches the archive (${expectedPeople.size})`,
-    entrants.length === expectedPeople.size,
+  const expectedTotal = expectedPeople.size + entrants.filter((e) => {
+    if (!e.playerId || expectedPeople.has(e.playerId)) return false
+    return fromLegacyEarly.has(legacyKey(String(e.cueverseId ?? e.username ?? '')))
+  }).length
+  check(`entrant count matches the archive (${expectedTotal})`,
+    entrants.length === expectedTotal,
     `${entrants.length}${unresolvedRecorded.length ? `; ${unresolvedRecorded.length} recorded handle(s) resolve to nobody: ${unresolvedRecorded.slice(0, 4).join(', ')}` : ''}`)
 
   const playerIds = entrants.map((e) => e.playerId).filter(Boolean)
@@ -152,15 +220,30 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
   }
   check('every recorded handle resolves to exactly one entrant', unmatched === 0, `${unmatched} unmatched`)
 
-  const recordedNorm = new Set([...recorded])
-  const extra = entrants.filter((e) => !recordedNorm.has(String(e.cueverseId ?? e.username).toLowerCase()))
-  // An entrant may legitimately carry a merged handle, so re-check the strays through aliases.
+  /*
+   * A stray is a PERSON the sources do not name, not a spelling they do not use.
+   *
+   * This compared the entrant's handle text against the recorded handles and then re-checked the
+   * leftovers against their aliases as raw strings -- which cannot work, because aliases are stored
+   * with their separators stripped. `expectedPeople` is already the set of Players the sources name,
+   * resolved canonically a few lines above, so asking whether an entrant is in it is the same
+   * question asked in the terms the rest of this file uses.
+   */
+  const fromLegacy = legacyRoster(season.competitionYear, season.number, season.division)
   let trueExtra = 0
-  for (const e of extra) {
-    const aliases = await prisma.playerAlias.findMany({ where: { playerId: e.playerId! }, select: { alias: true } })
-    if (!aliases.some((a) => recordedNorm.has(a.alias.toLowerCase()))) trueExtra++
+  const strays: string[] = []
+  for (const e of entrants) {
+    if (!e.playerId || expectedPeople.has(e.playerId)) continue
+    // Supported by the older export even when the newer manifest never names them.
+    const spellings = [String(e.cueverseId ?? e.username ?? '')]
+    const aliases = await prisma.playerAlias.findMany({ where: { playerId: e.playerId }, select: { alias: true } })
+    spellings.push(...aliases.map((a) => a.alias))
+    if (spellings.some((sp) => fromLegacy.has(legacyKey(sp)))) continue
+    trueExtra++
+    if (strays.length < 4) strays.push(String(e.cueverseId ?? e.username))
   }
-  check('no entrant exists outside the archive record', trueExtra === 0, `${trueExtra} extra`)
+  check('no entrant exists outside the archive record', trueExtra === 0,
+    `${trueExtra} in neither the manifest, the page, nor the 8BRCAM export${strays.length ? `: ${strays.join(', ')}` : ''}`)
   check('no entrant is soft-withdrawn', (await prisma.seasonEntrant.count({ where: { seasonId, status: 'WITHDRAWN' } })) === 0)
 
   // ── Group membership ────────────────────────────────────────────────────────────────────────────
@@ -168,26 +251,33 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
     where: { seasonId },
     select: { code: true, name: true, players: { select: { entrantId: true } } },
   })
+  /*
+   * The archive's groups, as sets of PEOPLE.
+   *
+   * Held as handle strings this compared one spelling against another and called a correctly placed
+   * player misplaced whenever the two sources spelled them differently -- the same defect as the
+   * stray check above. The handle set is kept as well, because the round-robin size below counts
+   * positions in a group rather than people.
+   */
   const wantGroups = new Map<string, Set<string>>()
+  const wantGroupPeople = new Map<string, Set<string>>()
   for (const p of entry.participants) {
     const g = p.groupName
-    if (!wantGroups.has(g)) wantGroups.set(g, new Set())
+    if (!wantGroups.has(g)) { wantGroups.set(g, new Set()); wantGroupPeople.set(g, new Set()) }
     wantGroups.get(g)!.add(stripSourceNote(p.normalizedHandle).toLowerCase())
+    const id = await resolveCanonical(seasonId, p.rawHandle)
+    if (id.resolution === 'resolved' && id.playerId) wantGroupPeople.get(g)!.add(id.playerId)
   }
   check(`group count matches the archive (${wantGroups.size})`, groups.length === wantGroups.size, `${groups.length}`)
 
   const entrantById = new Map(entrants.map((e) => [e.id, e]))
   let misplaced = 0
   for (const g of groups) {
-    const want = wantGroups.get(g.name ?? g.code)
+    const want = wantGroupPeople.get(g.name ?? g.code)
     if (!want) { misplaced += g.players.length; continue }
     for (const gp of g.players) {
       const e = entrantById.get(gp.entrantId)
-      const handle = String(e?.cueverseId ?? e?.username ?? '').toLowerCase()
-      if (!want.has(handle)) {
-        const aliases = e?.playerId ? await prisma.playerAlias.findMany({ where: { playerId: e.playerId }, select: { alias: true } }) : []
-        if (!aliases.some((a) => want.has(a.alias.toLowerCase()))) misplaced++
-      }
+      if (!e?.playerId || !want.has(e.playerId)) misplaced++
     }
   }
   check('every grouped player is in the group the archive lists', misplaced === 0, `${misplaced} misplaced`)
