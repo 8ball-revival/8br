@@ -1,5 +1,6 @@
 import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
+import { visibleSeasonFilter } from '@/lib/seasons/visibility'
 import { prisma } from '@/lib/prisma'
 
 /**
@@ -96,8 +97,10 @@ export async function getSeasonBrowseData(
   const known = new Set(comps.map((c) => c.slug))
   const filter = competitionSlug && known.has(competitionSlug) ? competitionSlug : null
 
+  const visible = await visibleSeasonFilter()
   const rows = await prisma.season.findMany({
     where: {
+      ...visible,
       platform,
       ...(filter ? { competitionSeries: { slug: filter } } : {}),
       ...(division ? { division } : {}),
@@ -153,6 +156,7 @@ export async function newestSeasonId(
 ): Promise<number | null> {
   const s = await prisma.season.findFirst({
     where: {
+      ...(await visibleSeasonFilter()),
       platform,
       ...(competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {}),
       ...(division ? { division } : {}),
@@ -181,7 +185,8 @@ export async function seasonNeighbours(id: number, competitionSlug?: string | nu
   })
   if (!current) return { prev: null, next: null }
 
-  const scope = competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {}
+  // The arrows may only land somewhere the reader can actually open.
+  const scope = { ...(await visibleSeasonFilter()), ...(competitionSlug ? { competitionSeries: { slug: competitionSlug } } : {}) }
   // "Older" = an earlier year, or the same year with a lower number. Expressed as an OR because a
   // Season's position is a (year, number) pair, not a single sortable column.
   // A Season's position is a (year, number, id) triple, not one sortable column, so "older" and

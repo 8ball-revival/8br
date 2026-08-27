@@ -57,14 +57,23 @@ async function readSeasonResults(platform: CompetitionPlatform): Promise<SeasonR
       platform,
       lifecycleState: 'COMPLETED',
       /*
-       * No `publiclyVisible` filter, deliberately.
+       * Only Seasons a reader can actually open.
        *
-       * The first version had one, and it cut the list from forty-eight seasons to two: the flag is
-       * true on almost no archive Season, yet every one of them renders publicly at /seasons/<id>.
-       * It is not the gate it looks like. The canonical Seasons browser filters on platform,
-       * competition and division and nothing else, so this matches that rather than inventing a
-       * stricter rule that silently hides the archive.
+       * This filter was removed once, on the evidence that it cut the list from forty-eight to two
+       * while "every one of them renders publicly at /seasons/<id>". That second half was not true:
+       * those Seasons answered 404 to anybody without management access, so the panel was listing
+       * forty-six links that all led to a dead end -- the filter had been right and the page it was
+       * measured against was the thing that was broken.
+       *
+       * The archive is public now (`publiclyVisible` is true on all 88 archive-linked Seasons, and
+       * the column defaults to true), so this both agrees with the Seasons browser and keeps the
+       * homepage honest: a champion listed here has a page behind it.
+       *
+       * Left as a plain flag rather than the viewer-aware `visibleSeasonFilter`, because this result
+       * is cached and shared between readers -- a staff-only Season must never be baked into the
+       * cache that anonymous visitors are served.
        */
+      publiclyVisible: true,
       // A Season with no recorded champion has no result to report yet.
       OR: [{ championHandle: { not: null } }, { championName: { not: null } }],
     },
@@ -113,13 +122,13 @@ async function readSeasonResults(platform: CompetitionPlatform): Promise<SeasonR
 export const getSeasonResults = unstable_cache(
   async (platform: CompetitionPlatform = 'CUEVERSE') => readSeasonResults(platform),
   /*
-   * v2: the key moved when the query did.
+   * v3: the key moved when the query did (publiclyVisible filter restored).
    *
    * The first version filtered on `publiclyVisible` and returned two rows. Correcting the query is
    * not enough on its own — a cache entry keyed on the old name keeps serving the old answer until
    * it expires, which is exactly what happened and looked like the fix not working. A key is part of
    * the query's identity, so it changes when the query changes.
    */
-  ['home-season-results-v5'],
+  ['home-season-results-v6'],
   { revalidate: 300, tags: [LADDER_EXPLORER_TAG] },
 )

@@ -51,6 +51,24 @@ export async function seasonAccess(seasonId: number): Promise<SeasonAccess> {
   return { allowed: canManage, hidden: !canManage }
 }
 
+/**
+ * The same rule, as a Prisma filter — so a listing shows exactly what its links can open.
+ *
+ * The detail route asks `seasonAccess` about one Season; the listings ask this about all of them.
+ * They were two rules before, and they disagreed: the browse queries filtered on platform,
+ * competition and division but not on visibility, so every listing offered Seasons whose own page
+ * answered 404. Ninety of ninety-three Seasons were private, which made almost every link on the
+ * site a dead end.
+ *
+ * Staff who can manage competitions keep seeing private Seasons in the lists, because they can open
+ * them — the contract is "you are shown what you may read", not "everyone is shown the same thing".
+ */
+export async function visibleSeasonFilter(): Promise<{ publiclyVisible?: true }> {
+  const access = await resolveStaffAccess()
+  const canManage = access.status === 'ok' && access.actor.can('manage_competitions')
+  return canManage ? {} : { publiclyVisible: true }
+}
+
 /** Convenience for the common case: may this viewer see it at all? */
 export async function canViewSeason(seasonId: number): Promise<boolean> {
   return (await seasonAccess(seasonId)).allowed
