@@ -99,63 +99,74 @@ section('Every public Season surface consults it')
     (read('src/app/(frontend)/seasons/[seasonId]/settings/page.tsx') ?? '').includes('/creator/seasons/'))
 }
 
-section('The public listings still exclude private Seasons')
+section('Completed Seasons are public; unfinished ones are not')
 {
   const surface = stripComments(read('src/lib/competition/surface.ts'))
   check('live Seasons filter on visibility', /publiclyVisible/.test(surface))
 
-  const live = await prisma.season.count({ where: { publiclyVisible: false } })
-  const shells = await prisma.season.count({ where: { archiveTemplateKey: { not: null } } })
-  console.log(`  (${live} private Seasons, of which ${shells} are generated shells)`)
-  check('every generated shell is private',
-    (await prisma.season.count({ where: { archiveTemplateKey: { not: null }, publiclyVisible: true } })) === 0)
-
-  // The owner's own private reconstructions are covered by the same rule now.
-  const owner = await prisma.season.findMany({
-    where: { publiclyVisible: false, archiveTemplateKey: null },
-    select: { id: true },
+  /*
+   * The rule, restated once the archive was published.
+   *
+   * This used to assert that every generated shell was private, and that the owner's own
+   * reconstructions -- 3732 and 4106 among them -- were private too. That described a moment, not a
+   * rule: an archive nobody outside the owner could read. A COMPLETED Season is a finished
+   * competition with a champion and a full record, and hiding it serves nobody, so all of them are
+   * public.
+   *
+   * What privacy still protects, and what these checks defend, is the UNFINISHED work: a
+   * registration-open Season stays private unless somebody deliberately publishes it. The
+   * discriminator is `lifecycleState` -- not an id list, and not `archiveTemplateKey` -- so the
+   * assertion keeps applying as Seasons are added rather than quietly describing a smaller and
+   * smaller subset.
+   */
+  const privateTotal = await prisma.season.count({ where: { publiclyVisible: false } })
+  const completedPrivate = await prisma.season.count({
+    where: { lifecycleState: 'COMPLETED' as never, publiclyVisible: false },
   })
-  check('the owner\'s private Seasons exist and are covered', owner.length >= 2, String(owner.length))
-  check('...including Season 3732', owner.some((s) => s.id === 3732))
-  check('...and Season 4106', owner.some((s) => s.id === 4106))
+  const openPrivate = await prisma.season.count({
+    where: { lifecycleState: 'REGISTRATION_OPEN' as never, publiclyVisible: false },
+  })
+  console.log(`  (${privateTotal} private Seasons: ${openPrivate} registration-open, ${completedPrivate} completed)`)
+
+  check('no completed Season is private', completedPrivate === 0, `${completedPrivate} still private`)
+  check('unfinished Seasons are still private', openPrivate > 0, String(openPrivate))
+  check('...and unfinished work is the ONLY thing privacy is hiding', privateTotal === openPrivate,
+    `${privateTotal} private, ${openPrivate} of them unfinished`)
 }
 
-section('Public Seasons are untouched')
+section('Public Seasons are the finished ones, and nothing drifted public')
 {
   const publicSeasons = await prisma.season.findMany({
-    where: { publiclyVisible: true }, select: { id: true },
+    where: { publiclyVisible: true }, select: { id: true, lifecycleState: true },
   })
-  check('there are still public Seasons to serve', publicSeasons.length >= 2, String(publicSeasons.length))
+  check('there are public Seasons to serve', publicSeasons.length >= 2, String(publicSeasons.length))
   check('...including Season 443', publicSeasons.some((s) => s.id === 443))
   check('...and Season 2187', publicSeasons.some((s) => s.id === 2187))
+
   /*
-   * Scoped to the ARCHIVE, which is what this is actually protecting.
+   * The guard that had to survive the change.
    *
-   * The count was pinned at two, so a Season the owner creates and publishes -- an ordinary thing to
-   * do on a live registry -- failed a privacy check it has nothing to do with. What must never
-   * happen is a TEST flipping an archived Season public, and that is a statement about the archive,
-   * not about how many public Seasons exist in total.
+   * What must never happen is a TEST making a Season public as a side effect of running. That was
+   * written as "exactly 443 and 2187 among the pre-existing Seasons", which cannot outlive the
+   * archive being published on purpose. It is written here as a statement about which UNFINISHED
+   * Seasons are public, because that is the set a fixture would pollute: finished Seasons are all
+   * public by rule now, so they can no longer tell you anything.
+   *
+   * Pinned to the one Season the owner published deliberately. If another is published on purpose,
+   * this line is the place to say so -- deliberately, in a commit, rather than by a test quietly
+   * flipping a column.
    */
-  /*
-   * Pinned to the Seasons that already existed, which is what this is actually protecting.
-   *
-   * The count used to be pinned at two, so a Season the owner creates and publishes -- an ordinary
-   * thing to do on a live registry -- failed a privacy check it has nothing to do with. What must
-   * never happen is a TEST making an existing Season public, so the assertion is about the Seasons
-   * that were here before, and says nothing about ones added since.
-   *
-   * `archiveTemplateKey` is not the discriminator: 443 and 2187 predate it and carry none.
-   */
-  const { readFileSync } = await import('node:fs')
-  const preexisting = new Set(
-    (JSON.parse(readFileSync('reports/platform-cutover.json', 'utf8')) as { seasonIds: number[] }).seasonIds,
-  )
-  const publicOld = publicSeasons.filter((s) => preexisting.has(s.id)).map((s) => s.id).sort((a, b) => a - b)
-  check('no pre-existing Season had its visibility changed to satisfy a test',
-    publicOld.length === 2 && publicOld[0] === 443 && publicOld[1] === 2187,
-    `public among pre-existing: ${publicOld.join(', ') || 'none'}`)
-  const added = publicSeasons.length - publicOld.length
-  if (added > 0) console.log(`    (${added} Season(s) created since are also public — the owner's own records)`)
+  const OWNER_PUBLISHED_OPEN_SEASON = 13152
+  const openPublic = publicSeasons
+    .filter((s) => s.lifecycleState === ('REGISTRATION_OPEN' as never))
+    .map((s) => s.id)
+    .sort((a, b) => a - b)
+  check('the only unfinished Season that is public is the one the owner published',
+    openPublic.length === 1 && openPublic[0] === OWNER_PUBLISHED_OPEN_SEASON,
+    `registration-open and public: ${openPublic.join(', ') || 'none'}`)
+
+  const completedPublic = publicSeasons.filter((s) => s.lifecycleState === ('COMPLETED' as never)).length
+  console.log(`    (${completedPublic} completed Seasons public, ${openPublic.length} unfinished)`)
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)

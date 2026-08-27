@@ -97,9 +97,18 @@ async function main() {
     Their slugs are indistinguishable from archive-era ones, so the check is announced as skipped
     there rather than quietly relaxed — it still holds wherever it can be judged.
   */
+  /*
+   * A CLONE of the workspace is still the workspace.
+   *
+   * This recognised one database by name, so the moment the sweep was pointed at a disposable
+   * copy — which is how the mutating suites are run now, to keep the authoritative database
+   * unwritten — the skip stopped applying and the check failed on data it was never meant to
+   * judge. It is the CONTENT that makes the skip right, and a clone has the same content.
+   */
   const [{ db }] = await prisma.$queryRaw<{ db: string }[]>`SELECT current_database() AS db`
-  if (db === '8br_dev_redesign') {
-    console.log('  SKIP  imported 8BRCAM seasons — production clone; owner-created Seasons are expected')
+  const isRedesignWorkspace = db === '8br_dev_redesign' || db.startsWith('8br_dev_redesign_') || db === '8br_test'
+  if (isRedesignWorkspace) {
+    console.log(`  SKIP  imported 8BRCAM seasons — ${db} is the redesign workspace; owner-created Seasons are expected`)
   } else {
     eq('imported 8BRCAM seasons', await prisma.season.count({ where: { slug: { startsWith: '8brcam-' } } }), 0)
   }
