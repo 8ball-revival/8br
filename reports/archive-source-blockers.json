@@ -1,0 +1,2638 @@
+{
+  "seasons": [
+    {
+      "seasonId": 5428,
+      "season": "2006 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s1.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s1aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 0,
+        "groups": 0,
+        "matches": 0,
+        "playoffField": 32,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 98,
+        "groups": 14,
+        "standings": 98,
+        "groupMatches": 294,
+        "playoffMatches": 31,
+        "champion": "Luis"
+      },
+      "supportedTarget": "playoff only — the manifest names nobody, the page carries a 0-player bracket",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (31)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "group count matches the archive (0)",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (0 fixtures)",
+        "every archived result was imported (0)",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 5,
+        "identity": 3,
+        "genuine": 0
+      },
+      "status": "SOURCE_BLOCKED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision"
+      ]
+    },
+    {
+      "seasonId": 5431,
+      "season": "2006 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s2.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s2aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 0,
+        "groups": 0,
+        "matches": 0,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 100,
+        "groups": 14,
+        "standings": 100,
+        "groupMatches": 309,
+        "playoffMatches": 31,
+        "champion": "Chris"
+      },
+      "supportedTarget": "playoff only — the manifest names nobody, the page carries a 0-player bracket",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (30)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "group count matches the archive (0)",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (0 fixtures)",
+        "every archived result was imported (0)",
+        "the recorded playoff field is selected (30)",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 6,
+        "identity": 0,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists"
+      ]
+    },
+    {
+      "seasonId": 5433,
+      "season": "2006 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s3.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s3aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 98,
+        "groups": 14,
+        "matches": 254,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 98,
+        "groups": 14,
+        "standings": 98,
+        "groupMatches": 294,
+        "playoffMatches": 31,
+        "champion": "Luis"
+      },
+      "supportedTarget": "98 entrants in 14 group(s); playoff field 30 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (99)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "no entrant is soft-withdrawn",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (254)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the recorded playoff field is selected (30)",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 4,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "4 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (99)",
+        "contradicts existing evidence: no entrant is soft-withdrawn",
+        "contradicts existing evidence: every archived result was imported (254)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the recorded playoff field is selected (30)"
+      ]
+    },
+    {
+      "seasonId": 5435,
+      "season": "2006 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s4.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s4aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 63,
+        "groups": 9,
+        "matches": 179,
+        "playoffField": 32,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 63,
+        "groups": 9,
+        "standings": 63,
+        "groupMatches": 189,
+        "playoffMatches": 31,
+        "champion": "Luis"
+      },
+      "supportedTarget": "63 entrants in 9 group(s); playoff field 32 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (62)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (179)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "5 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (62)",
+        "contradicts existing evidence: every archived result was imported (179)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5437,
+      "season": "2006 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s5.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s5aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 77,
+        "groups": 11,
+        "matches": 212,
+        "playoffField": 38,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 77,
+        "groups": 11,
+        "standings": 77,
+        "groupMatches": 231,
+        "playoffMatches": 63,
+        "champion": "Brian"
+      },
+      "supportedTarget": "77 entrants in 11 group(s); playoff field 38 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (76)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (212)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (2 player(s))",
+        "the recorded playoff field is selected (38)",
+        "every decided match is one the page records (63)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 4,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (76)",
+        "contradicts existing evidence: every archived result was imported (212)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (2 player(s))",
+        "contradicts existing evidence: the recorded playoff field is selected (38)"
+      ]
+    },
+    {
+      "seasonId": 5439,
+      "season": "2006 S6A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s6.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s6aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 70,
+        "groups": 10,
+        "matches": 200,
+        "playoffField": 32,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 70,
+        "groups": 10,
+        "standings": 70,
+        "groupMatches": 210,
+        "playoffMatches": 31,
+        "champion": "James"
+      },
+      "supportedTarget": "70 entrants in 10 group(s); playoff field 32 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (200)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (1 player(s))",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 0,
+        "genuine": 7
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived result was imported (200)",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (1 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5441,
+      "season": "2006 S7A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2006/2006 s7.txt",
+        "sourceUrl": "http://8brcam.com/archive/2006s7aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 84,
+        "groups": 12,
+        "matches": 229,
+        "playoffField": 42,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 84,
+        "groups": 12,
+        "standings": 84,
+        "groupMatches": 252,
+        "playoffMatches": 63,
+        "champion": "Zack"
+      },
+      "supportedTarget": "84 entrants in 12 group(s); playoff field 42 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (2 player(s))",
+        "every decided match is one the page records (63)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 0,
+        "genuine": 6
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (2 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5443,
+      "season": "2007 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2007/2007 s1.txt",
+        "sourceUrl": "http://8brcam.com/archive/2007s1aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 63,
+        "groups": 9,
+        "matches": 181,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 63,
+        "groups": 9,
+        "standings": 63,
+        "groupMatches": 189,
+        "playoffMatches": 31,
+        "champion": "Chris"
+      },
+      "supportedTarget": "63 entrants in 9 group(s); playoff field 30 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (62)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (62)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5445,
+      "season": "2007 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2007/2007 s2.txt",
+        "sourceUrl": "http://8brcam.com/archive/2007s2aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "placement-only"
+      },
+      "manifest": {
+        "participants": 63,
+        "groups": 9,
+        "matches": 173,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 63,
+        "groups": 9,
+        "standings": 63,
+        "groupMatches": 189,
+        "playoffMatches": 31,
+        "champion": "Chris"
+      },
+      "supportedTarget": "63 entrants in 9 group(s); playoff field 30 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (173)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (2 player(s))",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 0,
+        "genuine": 7
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived result was imported (173)",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (2 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5447,
+      "season": "2007 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2007/2007 s3.txt",
+        "sourceUrl": "http://8brcam.com/archive/2007s3aP.htm",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "unusable"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 157,
+        "playoffField": 26,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Chris"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 26 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (1 player(s))",
+        "an unrecorded topology is only seated where the archived page records it",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 2,
+        "identity": 0,
+        "genuine": 6
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (1 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5449,
+      "season": "2007 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2007/2007 s4.txt",
+        "sourceUrl": "http://8brcam.com/archive/2007s4aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "unusable"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 148,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "James"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 30 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (148)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (7 player(s))",
+        "an unrecorded topology is only seated where the archived page records it",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 2,
+        "identity": 0,
+        "genuine": 7
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived result was imported (148)",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (7 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5451,
+      "season": "2007 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2007/2007 s5.txt",
+        "sourceUrl": "http://8brcam.com/archive/2007s5aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "unusable"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 128,
+        "playoffField": 24,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "James"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 24 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "an unrecorded topology is only seated where the archived page records it",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 2,
+        "identity": 0,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5453,
+      "season": "2007 S6A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2007/2007 s6.txt",
+        "sourceUrl": "http://8brcam.com/archive/2007s6aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "unusable"
+      },
+      "manifest": {
+        "participants": 42,
+        "groups": 6,
+        "matches": 96,
+        "playoffField": 22,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Ant"
+      },
+      "supportedTarget": "42 entrants in 6 group(s); playoff field 22 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (44)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (5 player(s))",
+        "an unrecorded topology is only seated where the archived page records it",
+        "every decided match is one the page records (31)"
+      ],
+      "attribution": {
+        "source": 2,
+        "identity": 0,
+        "genuine": 7
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: entrant count matches the archive (44)",
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (5 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5455,
+      "season": "2008 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2008/2008 s1.txt",
+        "sourceUrl": "http://8brcam.com/archive/2008s1aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 63,
+        "groups": 9,
+        "matches": 172,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 62,
+        "groups": 9,
+        "standings": 62,
+        "groupMatches": 183,
+        "playoffMatches": 31,
+        "champion": "Luis"
+      },
+      "supportedTarget": "63 entrants in 9 group(s); playoff field 30 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (60)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (189 fixtures)",
+        "every archived result was imported (172)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (7 player(s))",
+        "every forfeit is one the page records (1)"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 6
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (60)",
+        "contradicts existing evidence: the schedule is a full round robin (189 fixtures)",
+        "contradicts existing evidence: every archived result was imported (172)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (7 player(s))",
+        "contradicts existing evidence: every forfeit is one the page records (1)"
+      ]
+    },
+    {
+      "seasonId": 5457,
+      "season": "2008 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2008/2008 s2.txt",
+        "sourceUrl": "http://8brcam.com/archive/2008s2aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 134,
+        "playoffField": 24,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "PC"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 24 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (48)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (1 player(s))"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (48)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (1 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5459,
+      "season": "2008 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2008/2008 s3.txt",
+        "sourceUrl": "http://8brcam.com/archive/2008s3aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 143,
+        "playoffField": 26,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "PC"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 26 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 0,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5461,
+      "season": "2008 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2008/2008 s4.txt",
+        "sourceUrl": "http://8brcam.com/archive/2008s4aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 117,
+        "playoffField": 24,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Craig"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 24 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 0,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5463,
+      "season": "2008 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2008/2008 s5.txt",
+        "sourceUrl": "http://8brcam.com/archive/2008s5aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 128,
+        "playoffField": 24,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Kevin"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 24 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 0,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5465,
+      "season": "2009 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2009/2009 s1.txt",
+        "sourceUrl": "http://8brcam.com/archive/2009s1aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 149,
+        "playoffField": 27,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 55,
+        "groups": 8,
+        "standings": 55,
+        "groupMatches": 162,
+        "playoffMatches": 31,
+        "champion": "Si"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 27 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (168 fixtures)",
+        "every archived result was imported (149)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (3 player(s))"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 4
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: the schedule is a full round robin (168 fixtures)",
+        "contradicts existing evidence: every archived result was imported (149)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (3 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5467,
+      "season": "2009 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2009/2009 s2.txt",
+        "sourceUrl": "http://8brcam.com/archive/2009s2aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 146,
+        "playoffField": 27,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 54,
+        "groups": 8,
+        "standings": 54,
+        "groupMatches": 156,
+        "playoffMatches": 31,
+        "champion": "Si"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 27 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (53)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (168 fixtures)",
+        "every archived result was imported (146)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (1 player(s))"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (53)",
+        "contradicts existing evidence: the schedule is a full round robin (168 fixtures)",
+        "contradicts existing evidence: every archived result was imported (146)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (1 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5469,
+      "season": "2009 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2009/2009 s3.txt",
+        "sourceUrl": "http://8brcam.com/archive/2009s3aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 147,
+        "playoffField": 26,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Ant"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 26 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (55)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (147)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (55)",
+        "contradicts existing evidence: every archived result was imported (147)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5471,
+      "season": "2009 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2009/2009 s4.txt",
+        "sourceUrl": "http://8brcam.com/archive/2009s4aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "contradictory"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 138,
+        "playoffField": 26,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "MJ"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 26 (participants-only)",
+      "placeholderSlots": 4,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 1
+      },
+      "status": "FAILED",
+      "blockers": [
+        "4 placeholder slot(s) on the page",
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5473,
+      "season": "2009 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2009/2009 s5.txt",
+        "sourceUrl": "http://8brcam.com/archive/2009s5aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 0,
+        "groups": 0,
+        "matches": 0,
+        "playoffField": 28,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "MJ"
+      },
+      "supportedTarget": "playoff only — the manifest names nobody, the page carries a 32-player bracket",
+      "placeholderSlots": 1,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (29)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "no entrant is soft-withdrawn",
+        "group count matches the archive (0)",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (0 fixtures)",
+        "every archived result was imported (0)"
+      ],
+      "attribution": {
+        "source": 4,
+        "identity": 0,
+        "genuine": 4
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 placeholder slot(s) on the page",
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: no entrant is soft-withdrawn",
+        "contradicts existing evidence: every grouped player is in the group the archive lists"
+      ]
+    },
+    {
+      "seasonId": 5475,
+      "season": "2009 S6A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2009/2009 s6.txt",
+        "sourceUrl": "http://8brcam.com/archive/2009s6aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "contradictory"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 124,
+        "playoffField": 26,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Stuart"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 26 (participants-only)",
+      "placeholderSlots": 4,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (52)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "group count matches the archive (7)",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (147 fixtures)",
+        "every archived result was imported (124)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "4 placeholder slot(s) on the page",
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (52)",
+        "contradicts existing evidence: group count matches the archive (7)",
+        "contradicts existing evidence: the schedule is a full round robin (147 fixtures)",
+        "contradicts existing evidence: every archived result was imported (124)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5477,
+      "season": "2010 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2010/2010 s1.txt",
+        "sourceUrl": "http://8brcam.com/archive/2010s1aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 107,
+        "playoffField": 30,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Ant"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 30 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (55)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (55)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5479,
+      "season": "2010 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2010/2010 s2.txt",
+        "sourceUrl": "http://8brcam.com/archive/2010s2aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "contradictory"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 145,
+        "playoffField": 28,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "CK"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 28 (participants-only)",
+      "placeholderSlots": 2,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (55)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "2 placeholder slot(s) on the page",
+        "2 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (55)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5481,
+      "season": "2010 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2010/2010 s3.txt",
+        "sourceUrl": "http://8brcam.com/archive/2010s3aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 153,
+        "playoffField": 28,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Sid"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 28 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (55)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (55)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5483,
+      "season": "2010 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2010/2010 s4.txt",
+        "sourceUrl": "http://8brcam.com/archive/2010s4aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 135,
+        "playoffField": 28,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Kevin"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 28 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (55)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (55)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5485,
+      "season": "2011 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2011/2011 s1.txt",
+        "sourceUrl": "http://8brcam.com/archive/2011s1aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "contradictory"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 120,
+        "playoffField": 24,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Jamie"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 24 (participants-only)",
+      "placeholderSlots": 6,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (48)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every forfeit is one the page records (4)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "6 placeholder slot(s) on the page",
+        "2 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (48)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5487,
+      "season": "2011 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2011/2011 s2.txt",
+        "sourceUrl": "http://8brcam.com/archive/2011s2aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 105,
+        "playoffField": 25,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Ant"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 25 (participants-only)",
+      "placeholderSlots": 7,
+      "manifestPlaceholders": 7,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "group count matches the archive (7)",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every forfeit is one the page records (4)"
+      ],
+      "attribution": {
+        "source": 1,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "7 placeholder slot(s) (7 in the manifest's playoff field)",
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: group count matches the archive (7)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5489,
+      "season": "2011 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2011/2011 s3.txt",
+        "sourceUrl": "http://8brcam.com/archive/2011s3aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 132,
+        "playoffField": 25,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "CK"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 25 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "no entrant is soft-withdrawn",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 2
+      },
+      "status": "FAILED",
+      "blockers": [
+        "1 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: no entrant is soft-withdrawn",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5491,
+      "season": "2011 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2011/2011 s4.txt",
+        "sourceUrl": "http://8brcam.com/archive/2011s4aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 115,
+        "playoffField": 25,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Stuart"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 25 (participants-only)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (48)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 0,
+        "genuine": 6
+      },
+      "status": "FAILED",
+      "blockers": [
+        "contradicts existing evidence: entrant count matches the archive (48)",
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5493,
+      "season": "2011 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2011/2011 s5.txt",
+        "sourceUrl": "http://8brcam.com/archive/2011s5aP.html",
+        "captureCount": 3,
+        "range": "9 Sep 2016 — 10 May 2019",
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 113,
+        "playoffField": 23,
+        "placement": "participants-only"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Ant"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 23 (participants-only)",
+      "placeholderSlots": 7,
+      "manifestPlaceholders": 7,
+      "failingChecks": [
+        "entrant count matches the archive (43)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "group count matches the archive (7)",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (113)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 0,
+        "genuine": 8
+      },
+      "status": "FAILED",
+      "blockers": [
+        "7 placeholder slot(s) (7 in the manifest's playoff field)",
+        "contradicts existing evidence: entrant count matches the archive (43)",
+        "contradicts existing evidence: every recorded handle resolves to exactly one entrant",
+        "contradicts existing evidence: no entrant exists outside the archive record",
+        "contradicts existing evidence: group count matches the archive (7)",
+        "contradicts existing evidence: every grouped player is in the group the archive lists",
+        "contradicts existing evidence: every archived result was imported (113)",
+        "contradicts existing evidence: every archived score sits on the fixture between the right two players",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5495,
+      "season": "2012 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2012/2012 s1.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 48,
+        "groups": 7,
+        "matches": 90,
+        "playoffField": 25,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Ant"
+      },
+      "supportedTarget": "48 entrants in 7 group(s); playoff field 25 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (51)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "no entrant is soft-withdrawn",
+        "every grouped player is in the group the archive lists",
+        "the schedule is a full round robin (141 fixtures)",
+        "every archived result was imported (90)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every forfeit is one the page records (0)",
+        "no disqualification was given a score (2 on the page)",
+        "and each is recorded as an awarded match, not a played one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 8
+      },
+      "status": "FAILED",
+      "blockers": [
+        "4 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (51)",
+        "contradicts existing evidence: no entrant is soft-withdrawn",
+        "contradicts existing evidence: the schedule is a full round robin (141 fixtures)",
+        "contradicts existing evidence: every archived result was imported (90)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: every forfeit is one the page records (0)",
+        "contradicts existing evidence: no disqualification was given a score (2 on the page)",
+        "contradicts existing evidence: and each is recorded as an awarded match, not a played one"
+      ]
+    },
+    {
+      "seasonId": 5497,
+      "season": "2012 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2012/2012 s2.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 106,
+        "playoffField": 26,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Neo"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 26 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (57)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the recorded playoff field is selected (26)",
+        "every recorded Round 1 position is seated (26)",
+        "no disqualification was given a score (1 on the page)",
+        "and each is recorded as an awarded match, not a played one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 6
+      },
+      "status": "FAILED",
+      "blockers": [
+        "6 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (57)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the recorded playoff field is selected (26)",
+        "contradicts existing evidence: every recorded Round 1 position is seated (26)",
+        "contradicts existing evidence: no disqualification was given a score (1 on the page)",
+        "contradicts existing evidence: and each is recorded as an awarded match, not a played one"
+      ]
+    },
+    {
+      "seasonId": 5499,
+      "season": "2012 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2012/2012 s3.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 106,
+        "playoffField": 25,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Luis"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 25 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (53)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (106)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (4 player(s))",
+        "every forfeit is one the page records (1)"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 5
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (53)",
+        "contradicts existing evidence: every archived result was imported (106)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (4 player(s))",
+        "contradicts existing evidence: every forfeit is one the page records (1)"
+      ]
+    },
+    {
+      "seasonId": 5501,
+      "season": "2012 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2012/2012 s4.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 107,
+        "playoffField": 25,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Gus"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 25 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (54)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (107)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every forfeit is one the page records (0)"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 4
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (54)",
+        "contradicts existing evidence: every archived result was imported (107)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: every forfeit is one the page records (0)"
+      ]
+    },
+    {
+      "seasonId": 5503,
+      "season": "2012 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2012/2012 s5.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 42,
+        "groups": 6,
+        "matches": 79,
+        "playoffField": 22,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Jordy"
+      },
+      "supportedTarget": "42 entrants in 6 group(s); playoff field 22 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (47)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (79)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (47)",
+        "contradicts existing evidence: every archived result was imported (79)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5505,
+      "season": "2013 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2013/2013 s1.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 42,
+        "groups": 6,
+        "matches": 86,
+        "playoffField": 23,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Joey"
+      },
+      "supportedTarget": "42 entrants in 6 group(s); playoff field 23 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (46)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (86)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "6 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (46)",
+        "contradicts existing evidence: every archived result was imported (86)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5507,
+      "season": "2013 S2A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2013/2013 s2.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 42,
+        "groups": 6,
+        "matches": 79,
+        "playoffField": 22,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Conor"
+      },
+      "supportedTarget": "42 entrants in 6 group(s); playoff field 22 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (46)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (79)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (5 player(s))"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 4
+      },
+      "status": "FAILED",
+      "blockers": [
+        "4 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (46)",
+        "contradicts existing evidence: every archived result was imported (79)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (5 player(s))"
+      ]
+    },
+    {
+      "seasonId": 5509,
+      "season": "2013 S3A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2013/2013 s3.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 56,
+        "groups": 8,
+        "matches": 128,
+        "playoffField": 27,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 56,
+        "groups": 8,
+        "standings": 56,
+        "groupMatches": 168,
+        "playoffMatches": 31,
+        "champion": "Dante"
+      },
+      "supportedTarget": "56 entrants in 8 group(s); playoff field 27 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (59)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (128)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "7 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (59)",
+        "contradicts existing evidence: every archived result was imported (128)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5511,
+      "season": "2013 S4A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2013/2013 s4.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 49,
+        "groups": 7,
+        "matches": 97,
+        "playoffField": 24,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 49,
+        "groups": 7,
+        "standings": 49,
+        "groupMatches": 147,
+        "playoffMatches": 31,
+        "champion": "Rocky"
+      },
+      "supportedTarget": "49 entrants in 7 group(s); playoff field 24 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (52)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "no entrant is soft-withdrawn",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (97)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "the standings disagreement is a recorded anomaly (14 player(s))",
+        "every forfeit is one the page records (0)"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 6
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (52)",
+        "contradicts existing evidence: no entrant is soft-withdrawn",
+        "contradicts existing evidence: every archived result was imported (97)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: the standings disagreement is a recorded anomaly (14 player(s))",
+        "contradicts existing evidence: every forfeit is one the page records (0)"
+      ]
+    },
+    {
+      "seasonId": 5513,
+      "season": "2013 S5A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2013/2013 s5.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 42,
+        "groups": 6,
+        "matches": 90,
+        "playoffField": 21,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "MJ"
+      },
+      "supportedTarget": "42 entrants in 6 group(s); playoff field 21 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (46)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (90)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 3
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (46)",
+        "contradicts existing evidence: every archived result was imported (90)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one"
+      ]
+    },
+    {
+      "seasonId": 5515,
+      "season": "2014 S1A",
+      "lifecycleState": "COMPLETED",
+      "capture": {
+        "file": "archive/wayback-seasons/2014/2014 s1.txt",
+        "sourceUrl": null,
+        "captureCount": null,
+        "range": null,
+        "category": "full"
+      },
+      "manifest": {
+        "participants": 42,
+        "groups": 6,
+        "matches": 96,
+        "playoffField": 22,
+        "placement": "exact"
+      },
+      "database": {
+        "entrants": 42,
+        "groups": 6,
+        "standings": 42,
+        "groupMatches": 126,
+        "playoffMatches": 31,
+        "champion": "Kevin"
+      },
+      "supportedTarget": "42 entrants in 6 group(s); playoff field 22 (exact)",
+      "placeholderSlots": 0,
+      "manifestPlaceholders": 0,
+      "failingChecks": [
+        "entrant count matches the archive (47)",
+        "every recorded handle resolves to exactly one entrant",
+        "no entrant exists outside the archive record",
+        "no entrant is soft-withdrawn",
+        "every grouped player is in the group the archive lists",
+        "every archived result was imported (96)",
+        "every archived score sits on the fixture between the right two players",
+        "every archived standing row matches a recomputed one",
+        "every forfeit is one the page records (0)",
+        "no disqualification was given a score (1 on the page)",
+        "and each is recorded as an awarded match, not a played one"
+      ],
+      "attribution": {
+        "source": 0,
+        "identity": 4,
+        "genuine": 7
+      },
+      "status": "FAILED",
+      "blockers": [
+        "3 handle(s) awaiting an identity decision",
+        "contradicts existing evidence: entrant count matches the archive (47)",
+        "contradicts existing evidence: no entrant is soft-withdrawn",
+        "contradicts existing evidence: every archived result was imported (96)",
+        "contradicts existing evidence: every archived standing row matches a recomputed one",
+        "contradicts existing evidence: every forfeit is one the page records (0)",
+        "contradicts existing evidence: no disqualification was given a score (1 on the page)",
+        "contradicts existing evidence: and each is recorded as an awarded match, not a played one"
+      ]
+    }
+  ],
+  "placeholderSlots": [
+    {
+      "season": "2009 S4A",
+      "seasonId": 5471,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 4,
+      "side": "away",
+      "opponent": "AaaaaaaaaNiL",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 2,
+        "side": "home"
+      },
+      "downstreamNames": "AaaaaaaaNIL",
+      "verdict": "PROVEN_BY_STRUCTURE",
+      "reasoning": "this slot feeds exactly one position (R2.2 home), and that position names AaaaaaaaNIL, who is not this match's other player — so the placeholder was AaaaaaaaNIL"
+    },
+    {
+      "season": "2009 S4A",
+      "seasonId": 5471,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 6,
+      "side": "away",
+      "opponent": "i_shotz_i",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 3,
+        "side": "home"
+      },
+      "downstreamNames": "i_shotz_i",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is i_shotz_i, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S4A",
+      "seasonId": 5471,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 12,
+      "side": "away",
+      "opponent": "xxl_machine_lxx",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 6,
+        "side": "home"
+      },
+      "downstreamNames": "xxl_machine_lxx",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is xxl_machine_lxx, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S4A",
+      "seasonId": 5471,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 14,
+      "side": "away",
+      "opponent": "b0rn.gr3at",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 7,
+        "side": "home"
+      },
+      "downstreamNames": "b0rn.gr3at",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is b0rn.gr3at, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S5A",
+      "seasonId": 5473,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 12,
+      "side": "away",
+      "opponent": "xchriskarenx",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 6,
+        "side": "home"
+      },
+      "downstreamNames": "xchriskarenx",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is xchriskarenx, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S6A",
+      "seasonId": 5475,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 4,
+      "side": "away",
+      "opponent": "p00l_charlie",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 2,
+        "side": "home"
+      },
+      "downstreamNames": "p00l_charlie",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is p00l_charlie, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S6A",
+      "seasonId": 5475,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 6,
+      "side": "away",
+      "opponent": "luisj_barreto",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 3,
+        "side": "home"
+      },
+      "downstreamNames": "luisj_barreto",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is luisj_barreto, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S6A",
+      "seasonId": 5475,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 12,
+      "side": "away",
+      "opponent": "xl_gameover_lx",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 6,
+        "side": "home"
+      },
+      "downstreamNames": "xl_gameover_lx",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is xl_gameover_lx, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2009 S6A",
+      "seasonId": 5475,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 14,
+      "side": "away",
+      "opponent": "zl_stu_lz",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 7,
+        "side": "home"
+      },
+      "downstreamNames": "zl_stu_lz",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is zl_stu_lz, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2010 S2A",
+      "seasonId": 5479,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 4,
+      "side": "away",
+      "opponent": "c-b",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 2,
+        "side": "home"
+      },
+      "downstreamNames": "c-b",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is c-b, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2010 S2A",
+      "seasonId": 5479,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 12,
+      "side": "away",
+      "opponent": "Xx_CK_xX",
+      "score": "7-0",
+      "advancesTo": {
+        "round": 2,
+        "position": 6,
+        "side": "home"
+      },
+      "downstreamNames": "Xx_CK_xX",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is Xx_CK_xX, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2011 S1A",
+      "seasonId": 5485,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 2,
+      "side": "away",
+      "opponent": "l1_stephen_1",
+      "score": "RT7 Win By 2",
+      "advancesTo": {
+        "round": 2,
+        "position": 1,
+        "side": "home"
+      },
+      "downstreamNames": "l1_stephen_1",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is l1_stephen_1, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2011 S1A",
+      "seasonId": 5485,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 4,
+      "side": "away",
+      "opponent": "sykology",
+      "score": "RT7 Win By 2",
+      "advancesTo": {
+        "round": 2,
+        "position": 2,
+        "side": "home"
+      },
+      "downstreamNames": "sykology",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is sykology, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2011 S1A",
+      "seasonId": 5485,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 6,
+      "side": "away",
+      "opponent": "weekenderweekender",
+      "score": "RT7 Win By 2",
+      "advancesTo": {
+        "round": 2,
+        "position": 3,
+        "side": "home"
+      },
+      "downstreamNames": "weekenderweekender",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is weekenderweekender, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2011 S1A",
+      "seasonId": 5485,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 10,
+      "side": "away",
+      "opponent": "zZ_LaZyAsS_Zz",
+      "score": "RT7 Win By 2",
+      "advancesTo": {
+        "round": 2,
+        "position": 5,
+        "side": "home"
+      },
+      "downstreamNames": "zZ_LaZyAsS_Zz",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is zZ_LaZyAsS_Zz, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2011 S1A",
+      "seasonId": 5485,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 12,
+      "side": "away",
+      "opponent": "wyte.folks",
+      "score": "RT7 Win By 2",
+      "advancesTo": {
+        "round": 2,
+        "position": 6,
+        "side": "home"
+      },
+      "downstreamNames": "wyte.folks",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is wyte.folks, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    },
+    {
+      "season": "2011 S1A",
+      "seasonId": 5485,
+      "round": 1,
+      "roundLabel": "Round1",
+      "position": 14,
+      "side": "away",
+      "opponent": "leeds_united14",
+      "score": "RT7 Win By 2",
+      "advancesTo": {
+        "round": 2,
+        "position": 7,
+        "side": "home"
+      },
+      "downstreamNames": "leeds_united14",
+      "verdict": "UNKNOWABLE_LOST",
+      "reasoning": "the winner carried forward is leeds_united14, this slot's opponent — so the placeholder lost and the page never names them anywhere"
+    }
+  ]
+}
