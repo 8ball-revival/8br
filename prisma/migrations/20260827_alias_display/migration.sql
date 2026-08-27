@@ -1,0 +1,13 @@
+-- Give an alias a spelling as well as a key.
+--
+-- `PlayerAlias.alias` was doing two jobs: the key every lookup matches on, and the label the site
+-- shows. Matching needs it lower-cased with punctuation removed, so writing an alias destroyed the
+-- spelling -- `fsm_brian` was stored as `fsmbrian`, and "Previously known as" listed match keys.
+--
+-- The key keeps its name and its indexes, so nothing about matching changes. The spelling gets its
+-- own column, populated from now on by every path that records an alias.
+--
+-- Nullable, and deliberately not backfilled: for rows written before this column there is no
+-- original spelling anywhere in the database to recover. They fall back to the key on display, which
+-- is exactly what they showed before. Correcting one is a manual edit.
+ALTER TABLE "PlayerAlias" ADD COLUMN IF NOT EXISTS "aliasDisplay" TEXT;

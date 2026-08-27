@@ -634,7 +634,11 @@ export async function computeExplorer(
        GROUP BY e."playerId"
     ),
     aliases AS (
-      SELECT pa."playerId", array_agg(DISTINCT pa."alias") AS alias_list
+      -- The spelling, not the match key. The alias column is normalised for lookups, so showing it
+      -- prints fsmbrian where the person wrote fsm_brian. Rows recorded before the spelling column
+      -- existed have nothing to fall back to but the key, which is what they already showed.
+      SELECT pa."playerId",
+             array_agg(DISTINCT coalesce(nullif(btrim(pa."aliasDisplay"), ''), pa."alias")) AS alias_list
         FROM "public"."PlayerAlias" pa
        GROUP BY pa."playerId"
     ),
@@ -854,7 +858,7 @@ export const LADDER_EXPLORER_TAG = 'ladder-explorer'
 export const getExplorer = unstable_cache(
   async (scope: LadderScope, view: RecordView, filters: ExplorerFilters = {}) =>
     computeExplorer(scope, view, filters),
-  ['ladder-explorer'],
+  ['ladder-explorer-v2-alias-display'],
   { tags: [LADDER_EXPLORER_TAG], revalidate: 300 },
 )
 

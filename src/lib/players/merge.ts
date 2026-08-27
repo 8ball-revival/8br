@@ -1,4 +1,5 @@
 import 'server-only'
+import { aliasKey } from '@/lib/players/aliases'
 import { prisma } from '@/lib/prisma'
 
 import { recordAudit, type Actor } from '@/lib/competition/audit'
@@ -393,13 +394,22 @@ export async function mergeAccounts(
     const released = secondary.cueverseId?.trim() || null
     let aliasAdded = false
     if (released && isPubliclyShowableHandle(released)) {
+      /*
+       * The released handle is stored as a KEY plus a spelling, like every other alias.
+       *
+       * It used to be written raw into `alias`, which is the match column -- so a merge produced a
+       * key nothing else could match (`goober.returns` where the rest of the table holds
+       * `gooberreturns`), and the same handle recorded two different ways depending on which code
+       * path got there first.
+       */
+      const releasedKey = aliasKey(released)
       const existing = await tx.playerAlias.findFirst({
-        where: { playerId: primaryPlayerId, alias: { equals: released, mode: 'insensitive' }, aliasType: 'HANDLE' },
+        where: { playerId: primaryPlayerId, alias: releasedKey, aliasType: 'HANDLE' },
         select: { id: true },
       })
       if (!existing) {
         await tx.playerAlias.create({
-          data: { playerId: primaryPlayerId, alias: released, aliasType: 'HANDLE' },
+          data: { playerId: primaryPlayerId, alias: releasedKey, aliasDisplay: released, aliasType: 'HANDLE' },
         })
         aliasAdded = true
       }
@@ -641,8 +651,10 @@ export async function undoMerge(
      * guess which of the two it is.
      */
     if (snapshot?.aliasAddedToCanonical && releasedId) {
+      // Deleted by the KEY the merge wrote, not the raw handle. The merge normalises before
+      // storing, so matching on the released spelling here would leave the alias behind.
       await tx.playerAlias.deleteMany({
-        where: { playerId: merge.canonicalPlayerId, alias: releasedId, aliasType: 'HANDLE' },
+        where: { playerId: merge.canonicalPlayerId, alias: aliasKey(releasedId), aliasType: 'HANDLE' },
       })
     }
 

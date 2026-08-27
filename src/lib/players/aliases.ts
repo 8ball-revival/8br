@@ -10,11 +10,17 @@ import { recordAudit, type Actor } from '@/lib/competition/audit'
  * path, for the far more common case where an old handle was never captured because the rename
  * happened before the site did.
  *
- * ── Stored normalised ────────────────────────────────────────────────────────────────────────────
- * The alias column holds a punctuation-free lowercase key, matching what `renameCueverseId` writes
- * and what the lookup paths compare against. Storing what somebody typed instead would mean
- * `Big_Nav` and `bignav` were two aliases and neither reliably matched — the whole point is that
- * they are one.
+ * ── A key and a spelling, not one doing both ─────────────────────────────────────────────────────
+ * `alias` is the MATCH key: lower-cased, punctuation removed, the form every lookup compares. That
+ * normalisation is the point — `Big_Nav` and `bignav` have to be one alias, not two that each match
+ * half the time.
+ *
+ * It was also the label, and that was the bug. Recording `fsm_brian` stored `fsmbrian` and the
+ * spelling was gone for good, so "Previously known as" listed match keys instead of handles.
+ * `aliasDisplay` now carries what the person actually typed, and nothing ever matches on it.
+ *
+ * Rows written before that column existed have no spelling to recover, so they fall back to the key
+ * — which is what they already displayed. Correcting one is a manual edit, not a migration.
  */
 
 /** The stored form of an alias: lowercase, letters and digits only. */
@@ -24,17 +30,24 @@ export function aliasKey(raw: string): string {
 
 export interface AliasRow {
   id: string
-  /** As stored — normalised. There is no original spelling to show. */
+  /** The match key: lower-cased, letters and digits only. */
   alias: string
+  /** What to show a reader: the spelling as recorded, or the key when there is no spelling. */
+  display: string
+}
+
+/** The spelling to show for an alias row, falling back to the key for rows written before it. */
+export function aliasDisplayOf(row: { alias: string; aliasDisplay?: string | null }): string {
+  return row.aliasDisplay?.trim() || row.alias
 }
 
 export async function listAliases(playerId: string): Promise<AliasRow[]> {
   const rows = await prisma.playerAlias.findMany({
     where: { playerId },
-    select: { id: true, alias: true },
+    select: { id: true, alias: true, aliasDisplay: true },
     orderBy: { alias: 'asc' },
   })
-  return rows
+  return rows.map((r) => ({ id: r.id, alias: r.alias, display: aliasDisplayOf(r) }))
 }
 
 /**
@@ -52,6 +65,8 @@ export async function addAlias(
   raw: string,
 ): Promise<{ ok: boolean; error?: string; alias?: string }> {
   const alias = aliasKey(raw)
+  // Kept exactly as typed apart from surrounding space, and never used to match anything.
+  const aliasDisplay = raw.trim()
   if (!alias) return { ok: false, error: 'Enter a handle to record as an alias.' }
   if (alias.length > 64) return { ok: false, error: 'That handle is too long to record.' }
 
@@ -76,12 +91,12 @@ export async function addAlias(
   }
   if (claimed) return { ok: true, alias }
 
-  await prisma.playerAlias.create({ data: { playerId, alias } })
+  await prisma.playerAlias.create({ data: { playerId, alias, aliasDisplay } })
   await recordAudit(actor, {
     action: 'player.alias.add',
     entity: 'Player',
     entityId: playerId,
-    newValue: { alias },
+    newValue: { alias, aliasDisplay },
   }).catch(() => {})
 
   return { ok: true, alias }

@@ -44,9 +44,17 @@
    * partial alpha. Acid or gold at 8% over graphite does not render as a pale wash, it renders as
    * mud - see verify-no-brown, which exists because that is how this interface used to look.
    */
-  --acid: #d8dc2f;
-  --acid-hover: #e6ea4a;
-  --acid-dim: #b4b826;
+  /*
+   * The structural accent, and its default is WHITE.
+   *
+   * Every accent the display panel offers is an override in hud.css keyed on data-hud-accent;
+   * whichever one sits here unattributed is what a reader gets before choosing, and what a
+   * reader without JavaScript gets always. Yellow used to sit here and is now an override like
+   * the rest — the values are Crystal White Pearl, kept identical to the 'white' block.
+   */
+  --acid: #f5f4f1;
+  --acid-hover: #ffffff;
+  --acid-dim: #c8c6c0;
   --acid-ink: #050607; /* the ONLY text colour permitted on an acid surface */
   --void: #050607;
   --graphite: #0b0f12;
@@ -197,12 +205,13 @@
      animated glow; the glow smeared the digits and was removed. A rating is a
      number people read, and a number that is hard to read is a worse number.
 
-     Gold is the one band that does NOT simply take the site gold. The site token is
-     tuned for links and chrome, where it has to sit quietly behind text; the top
-     band has to be the thing your eye lands on first in a table of sixty numbers.
-     So it is the same hue, pushed brighter and more saturated — recognisably the
-     site's gold, turned up. */
-  --tier-gold: var(--acid);
+     Gold is a LITERAL, and must stay one. It used to read var(--acid), which meant
+     the top band silently became whatever accent the reader had chosen — white on
+     the default, red on the red accent — so the band the legend calls Gold was not
+     gold, and on the red accent it collided with the colour reserved for first
+     place. A band name is a promise about a colour; the accent does not get to
+     change it. This is the value it has always rendered as. */
+  --tier-gold: #d8dc2f;
   --tier-purple: #c07af0;
   --tier-blue: #6fb6e8;
   --tier-green: #6fd39a;

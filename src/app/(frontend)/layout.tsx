@@ -66,7 +66,7 @@ export const viewport: Viewport = {
  * failing to load must never take the page down with it.
  */
 const hudScript = `try{var d=document.documentElement,s=JSON.parse(localStorage.getItem('8br-hud')||'{}');
-d.dataset.hudIntensity=s.intensity||'standard';d.dataset.hudAccent=s.accent||'yellow';
+d.dataset.hudIntensity=s.intensity||'standard';d.dataset.hudAccent=s.accent||'white';
 d.dataset.hudScan=s.scan===false?'off':'on';d.dataset.hudGrid=s.grid===false?'off':'on';
 d.dataset.hudMotion=s.motion||'normal';d.dataset.hudAberration=s.aberration?'on':'off';
 d.dataset.hudNoise=s.noise===false?'off':'on';d.dataset.hudFlicker=s.flicker?'on':'off';

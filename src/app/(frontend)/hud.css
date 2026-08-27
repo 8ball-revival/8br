@@ -46,6 +46,19 @@
  * Championship gold is deliberately NOT repointed. It means a title, and a title does not change
  * colour because somebody preferred a cyan interface.
  */
+/*
+ * The four accents. White is the default and therefore lives on the bare `:root` in globals.css;
+ * these three are the overrides, including yellow, which was the default until it was not.
+ */
+:root[data-hud-accent='yellow'] {
+  /*
+   * The original acid yellow. Still exact brand values, still black ink only.
+   */
+  --acid: #d8dc2f;
+  --acid-hover: #e6ea4a;
+  --acid-dim: #b4b826;
+}
+
 :root[data-hud-accent='red'] {
   /*
    * Vivid, not pink and not orange.

@@ -56,9 +56,12 @@ section('Every rename path goes through one function')
   // Only `changeCueverseId` writes the column. If a second writer appeared, a rename made through
   // it would leave no alias behind and nobody would notice until a search stopped working.
   const service = readFileSync('src/lib/players/service.ts', 'utf8')
-  check('the rename records the previous handle as an alias',
-    /playerAlias\s*\n?\s*\.create\(\{ data: \{ playerId: profileId, alias: aliasKey \} \}\)/.test(service)
-    || service.includes('.create({ data: { playerId: profileId, alias: aliasKey } })'))
+  check('the rename records the previous handle as an alias', /alias: aliasKey/.test(service))
+  /*
+   * And records the SPELLING beside the key. A rename that stored only the key threw away the very
+   * thing the alias exists to show -- the handle as it was actually written.
+   */
+  check('...with the spelling it was written in', service.includes('aliasDisplay: oldId || oldKey'))
   check('...only once the login sync has succeeded',
     service.indexOf('Compensating rollback') < service.indexOf('playerAlias'))
   check('...and not for a case-only recasing', service.includes('if (!caseOnly && oldKey)'))
@@ -79,7 +82,10 @@ section('The list offers quick-add; the profile offers full management')
   const manager = readFileSync('src/components/staff/alias-manager.tsx', 'utf8')
   check('the member page can add', manager.includes('addAliasAction'))
   check('...and remove', manager.includes('removeAliasAction'))
-  check('...with a labelled remove control per alias', manager.includes('Remove the alias ${a.alias}'))
+  check('...with a labelled remove control per alias', manager.includes('Remove the alias ${a.display}'))
+  // The panel shows the spelling, and names the key beside it so staff can see what is matched.
+  check('...showing the spelling rather than the match key', manager.includes('{a.display}'))
+  check('...and naming the key when the two differ', manager.includes('matches as {a.alias}'))
 
   const detail = readFileSync('src/app/(frontend)/staff/members/[userId]/page.tsx', 'utf8')
   check('the manager is mounted on the member page', detail.includes('<AliasManager'))

@@ -20,7 +20,7 @@ import { addAlias, removeAlias, listAliases } from './aliases'
 export interface AliasActionResult {
   ok: boolean
   error?: string
-  aliases?: { id: string; alias: string }[]
+  aliases?: { id: string; alias: string; display: string }[]
 }
 
 /** Record another handle for a player, and return the resulting list. */

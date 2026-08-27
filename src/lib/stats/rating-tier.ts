@@ -3,7 +3,7 @@
  *
  * Pure and dependency-free, so the boundaries can be tested directly rather than inferred from a
  * rendered page. That matters here more than the code size suggests: the whole feature IS its
- * boundaries, and an off-by-one at 1200 or 1600 is invisible in a screenshot but wrong on every row
+ * boundaries, and an off-by-one at 1200 or 1700 is invisible in a screenshot but wrong on every row
  * that sits on the line.
  *
  * The bands are closed at the bottom and open at the top: 1200 is Green, 1199 is Grey. A rating is
@@ -27,10 +27,10 @@ export type RatingTier = 'gold' | 'purple' | 'blue' | 'green' | 'grey'
  * 1300. Red is deliberately ABSENT from the bands — it belongs to first place alone, and a band
  * sharing that colour would make the one row the colour exists to point at indistinguishable from
  * the bottom of the table. An earlier revision had red at 1500–1599 and then at 1200–1299; both are
- * gone.
+ * gone. Purple runs 1500-1699: gold starts at 1700, not 1600.
  */
 const BANDS: { tier: RatingTier; floor: number; label: string }[] = [
-  { tier: 'gold', floor: 1600, label: 'Gold' },
+  { tier: 'gold', floor: 1700, label: 'Gold' },
   { tier: 'purple', floor: 1500, label: 'Purple' },
   { tier: 'blue', floor: 1400, label: 'Blue' },
   { tier: 'green', floor: 1300, label: 'Green' },
@@ -126,7 +126,7 @@ export const RATING_BANDS: {
   token: string
 }[] = [
   { id: 'top', label: '#1 Ranked', colourName: 'Red', token: '--rating-top' },
-  { id: 'gold', label: '1600+', colourName: 'Gold', token: '--tier-gold' },
+  { id: 'gold', label: '1700+', colourName: 'Gold', token: '--tier-gold' },
   { id: 'purple', label: '1500+', colourName: 'Purple', token: '--tier-purple' },
   { id: 'blue', label: '1400+', colourName: 'Blue', token: '--tier-blue' },
   { id: 'green', label: '1300+', colourName: 'Green', token: '--tier-green' },

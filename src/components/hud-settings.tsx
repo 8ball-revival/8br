@@ -41,7 +41,7 @@ export interface HudSettings {
 
 export const HUD_DEFAULTS: HudSettings = {
   intensity: 'standard',
-  accent: 'yellow',
+  accent: 'white',
   scan: true,
   grid: true,
   glow: 100,

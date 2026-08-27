@@ -76,7 +76,9 @@ section('Every accent stays readable, not just the default')
 
   check('the accent palettes are declared and readable', accents.length >= 3,
     accents.map((a) => a.name).join(', '))
-  check('the default yellow is unchanged', tok('--acid').toLowerCase() === '#d8dc2f', tok('--acid'))
+  // Yellow is no longer the default, but its brand value is still exact — it moved, it did not change.
+  const yellowAcid = accents.find((a) => a.name === 'yellow')?.acid?.toLowerCase() ?? null
+  check('the yellow palette is unchanged', yellowAcid === '#d8dc2f', String(yellowAcid))
 
   for (const a of accents) {
     check(`${a.name} declares a colour`, a.acid != null)
@@ -99,6 +101,29 @@ section('Every accent stays readable, not just the default')
     /\['yellow', 'Yellow'\], \['red', 'Red'\], \['white', 'White'\], \['blue', 'Blue'\]/.test(panel))
   check('...and a stale stored accent falls back rather than applying',
     panel.includes('ALLOWED') && panel.includes("accent: ['yellow', 'red', 'white', 'blue']"))
+
+  /*
+   * White is the default, and three separate places have to agree on that or a reader gets one
+   * accent before the inline script runs and another after — the exact flash the script exists to
+   * prevent. The bare `:root` is also what a reader with JavaScript off keeps for good.
+   */
+  const layout = readFileSync('src/app/(frontend)/layout.tsx', 'utf8')
+  const base = CSS.slice(CSS.indexOf(':root'), CSS.indexOf(':root') + 4000)
+  check('the unattributed :root accent is white', /--acid:\s*#f5f4f1/i.test(base))
+  check('...so yellow is an override like the other three', HUD.includes("data-hud-accent='yellow'"))
+  check('...the pre-paint script defaults to white', layout.includes("s.accent||'white'"))
+  check('...and the stored default agrees', /accent: 'white',/.test(panel))
+
+  /*
+   * The rating bands are NAMES, and the accent does not get to rename them. `--tier-gold` read
+   * var(--acid) once, which made the Gold band white on this default and red on the red accent —
+   * where it also collided with the red reserved for first place. Every band colour is a literal.
+   */
+  for (const band of ['gold', 'purple', 'blue', 'green', 'grey']) {
+    const value = tok(`--tier-${band}`)
+    check(`the ${band} band is a literal, not the accent`, /^#[0-9a-f]{3,8}$/i.test(value), value)
+  }
+  check('...and gold is still the colour it has always rendered as', tok('--tier-gold').toLowerCase() === '#d8dc2f')
 }
 
 section('Text on the dark grounds is readable')

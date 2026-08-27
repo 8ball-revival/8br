@@ -18,16 +18,20 @@ import { cn } from '@/lib/utils'
  * match that currently works and that is not a decision to make from a list of a hundred rows. The
  * roster gets a quick-add field only.
  *
- * Aliases are stored normalised — lowercase, letters and digits — so `Big_Nav` and `bignav` are one
- * alias rather than two that each half-work. The panel shows the stored form, because that is what
- * actually gets matched.
+ * An alias is a spelling and a key. `Big_Nav` and `bignav` must be ONE alias, so the key is
+ * normalised and everything matches on that; the spelling is kept beside it and is what the panel
+ * shows. The key is shown underneath when the two differ, because this is the screen where somebody
+ * needs to see what will actually be matched.
+ *
+ * Aliases recorded before the spelling column existed have only a key, so that is what they show —
+ * they are corrected by removing and re-adding them, not by a migration inventing a spelling.
  */
 export function AliasManager({
   playerId,
   initial,
 }: {
   playerId: string
-  initial: { id: string; alias: string }[]
+  initial: { id: string; alias: string; display: string }[]
 }) {
   const [aliases, setAliases] = useState(initial)
   const [value, setValue] = useState('')
@@ -73,12 +77,17 @@ export function AliasManager({
               key={a.id}
               className="inline-flex items-center gap-1 cyber-clip-sm border border-border bg-background px-2.5 py-1 text-xs"
             >
-              <span className="font-mono">{a.alias}</span>
+              <span className="font-mono">
+                {a.display}
+                {a.display !== a.alias && (
+                  <span className="ml-2 text-xs text-muted-foreground">matches as {a.alias}</span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => void remove(a.id)}
                 disabled={busy}
-                aria-label={`Remove the alias ${a.alias}`}
+                aria-label={`Remove the alias ${a.display}`}
                 className="rounded text-muted-foreground hover:text-destructive disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/25"
               >
                 <X className="size-3" aria-hidden />

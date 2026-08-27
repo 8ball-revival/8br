@@ -54,7 +54,7 @@ const idOf = (id: string) =>
   prisma.player.findUniqueOrThrow({ where: { id }, select: { cueverseId: true, cueverseIdNormalized: true, active: true } })
 
 const aliases = (id: string) =>
-  prisma.playerAlias.findMany({ where: { playerId: id }, select: { alias: true } }).then((a) => a.map((x) => x.alias))
+  prisma.playerAlias.findMany({ where: { playerId: id }, select: { alias: true, aliasDisplay: true } })
 
 await cleanup()
 
@@ -71,8 +71,20 @@ const afterDrop = await idOf(drop.id)
 check('the retired profile is deactivated', afterDrop.active === false)
 check('...and no longer holds the handle', afterDrop.cueverseId == null && afterDrop.cueverseIdNormalized == null,
   String(afterDrop.cueverseId))
+/*
+ * The released handle arrives as a key AND a spelling. It used to be written raw into the match
+ * column, so a merge produced a key nothing else could match -- tag_drop where every other path
+ * stores tagdrop.
+ */
+const keepAliases = await aliases(keep.id)
+const releasedKey = `${TAG}_drop`.replace(/[^a-z0-9]/g, '')
 check('the handle is now an alias on the surviving profile',
-  (await aliases(keep.id)).some((a) => a.toLowerCase() === `${TAG}_drop`))
+  keepAliases.some((a) => a.alias === releasedKey), keepAliases.map((a) => a.alias).join(', '))
+check('...stored as a normalised key so every lookup matches it',
+  keepAliases.every((a) => a.alias === a.alias.toLowerCase().replace(/[^a-z0-9]/g, '')))
+check('...and keeping the spelling it was released under',
+  keepAliases.some((a) => a.aliasDisplay?.toLowerCase() === `${TAG}_drop`),
+  keepAliases.map((a) => a.aliasDisplay ?? '-').join(', '))
 
 section('The freed handle can actually be claimed')
 let claimed = false
@@ -116,7 +128,7 @@ check('the undo succeeds', undone2.ok, undone2.error)
 check('...with no warning, because nothing was in the way', !undone2.warning, undone2.warning)
 check('the handle is back on the restored profile', (await idOf(drop.id)).cueverseId === `${TAG}_drop`)
 check('...and the alias the merge added is gone again',
-  !(await aliases(keep.id)).some((a) => a.toLowerCase() === `${TAG}_drop`))
+  !(await aliases(keep.id)).some((a) => a.alias === `${TAG}_drop`.replace(/[^a-z0-9]/g, '')))
 
 section("An alias the survivor already had is left alone")
 await prisma.playerAlias.create({
@@ -126,7 +138,7 @@ const third = await mergeAccounts(ACTOR, keep.id, drop.id, 'verify')
 check('the merge succeeds with the alias already present', third.ok, third.error)
 await undoMerge(ACTOR, third.mergeId!, 'verify')
 check('the pre-existing alias survives the undo',
-  (await aliases(keep.id)).some((a) => a.toLowerCase() === `${TAG}_drop`))
+  (await aliases(keep.id)).some((a) => a.alias.toLowerCase() === `${TAG}_drop`))
 
 section('An email-shaped handle is released but never made public')
 {

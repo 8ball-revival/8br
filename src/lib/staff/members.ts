@@ -36,6 +36,8 @@ export interface MemberRow {
   /// Every handle this member also answers to. Shown in full on the roster so a search that failed
   /// on the current ID can be understood at a glance — the old handle is usually the reason.
   aliases: string[]
+  /** Every spelling AND every key, for matching a search box. Never displayed. */
+  aliasSearch: string[]
 }
 
 export interface MemberDetail extends MemberRow {
@@ -99,7 +101,8 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
         id: true, linkedUserId: true, primaryName: true, cueverseId: true, blogTrustedAuthor: true,
         // Included with the profile rather than fetched per row: a hundred members would otherwise
         // be a hundred extra queries to draw one table.
-        aliases: { select: { alias: true }, orderBy: { alias: 'asc' } },
+        // The spelling for display; search below still matches on whatever is shown plus the key.
+        aliases: { select: { alias: true, aliasDisplay: true }, orderBy: { alias: 'asc' } },
       },
     }),
     prisma.memberModeration.findMany({ where: { userId: { in: userIds } } }),
@@ -141,7 +144,16 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
       activePenalty: penByUser.get(uid) ?? null,
       registrationCount: countByUser.get(uid) ?? 0,
       trustedAuthor: prof?.blogTrustedAuthor ?? false,
-      aliases: (prof?.aliases ?? []).map((a) => a.alias),
+      aliases: (prof?.aliases ?? []).map((a) => a.aliasDisplay?.trim() || a.alias),
+      /*
+       * Both forms, for search only.
+       *
+       * `aliases` above is what a reader sees, and it is now the SPELLING. Searching that alone
+       * would have quietly broken the case this feature exists for: somebody typing `fsmbrian`
+       * would stop finding the member recorded as `fsm_brian`. The key is what survives however
+       * either side punctuates it, so both go in the haystack and neither is displayed from here.
+       */
+      aliasSearch: (prof?.aliases ?? []).flatMap((a) => [a.alias, a.aliasDisplay ?? '']).filter(Boolean),
     }
   })
 
@@ -163,7 +175,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
     // Aliases are searchable too: somebody looking for a member by the handle they remember should
     // find them, and the handle they remember is usually the one that was replaced.
     .filter((r) => (q
-      ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} ${r.aliases.join(' ')} #${r.userId}`.toLowerCase().includes(q)
+      ? `${r.preferredName ?? ''} ${r.cueverseId ?? ''} ${r.aliasSearch.join(' ')} #${r.userId}`.toLowerCase().includes(q)
       : true))
     .sort((a, b) => (a.cueverseId ?? '').localeCompare(b.cueverseId ?? '') || a.userId - b.userId)
 }
@@ -180,7 +192,8 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
       select: {
         id: true, primaryName: true, cueverseId: true, discord: true, timeZone: true,
         blogTrustedAuthor: true,
-        aliases: { select: { alias: true }, orderBy: { alias: 'asc' } },
+        // The spelling for display; search below still matches on whatever is shown plus the key.
+        aliases: { select: { alias: true, aliasDisplay: true }, orderBy: { alias: 'asc' } },
       },
     }),
     prisma.memberModeration.findUnique({ where: { userId } }),
@@ -214,7 +227,8 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
     })(),
     registrationCount: regs.length,
     trustedAuthor: profile?.blogTrustedAuthor ?? false,
-    aliases: (profile?.aliases ?? []).map((a) => a.alias),
+    aliases: (profile?.aliases ?? []).map((a) => a.aliasDisplay?.trim() || a.alias),
+    aliasSearch: (profile?.aliases ?? []).flatMap((a) => [a.alias, a.aliasDisplay ?? '']).filter(Boolean),
     warnings: warnings.map((w) => ({ id: w.id, reason: w.reason, internalNotes: w.internalNotes, staffUsername: w.staffUsername, createdAt: w.createdAt.toISOString() })),
     penalties: penalties.map((pen) => ({
       id: pen.id,

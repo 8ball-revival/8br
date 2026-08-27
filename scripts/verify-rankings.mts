@@ -318,8 +318,9 @@ section('Rating tiers: every boundary, from both sides')
     [1499, 'blue'],
     [1500, 'purple'],
     [1599, 'purple'],
-    [1600, 'gold'],
-    [1601, 'gold'],
+    [1699, 'purple'],
+    [1700, 'gold'],
+    [1701, 'gold'],
     [2400, 'gold'],
   ]
   for (const [rating, tier] of cases) {
@@ -328,8 +329,8 @@ section('Rating tiers: every boundary, from both sides')
 
   check('exactly 1300 is Green, not Grey', ratingTier(1300) === 'green')
   check('exactly 1299 is Grey, not Green', ratingTier(1299) === 'grey')
-  check('exactly 1600 is Gold', ratingTier(1600) === 'gold')
-  check('exactly 1599 is Purple, not Gold', ratingTier(1599) === 'purple')
+  check('exactly 1700 is Gold', ratingTier(1700) === 'gold')
+  check('exactly 1699 is Purple, not Gold', ratingTier(1699) === 'purple')
   check('exactly 1500 is Purple', ratingTier(1500) === 'purple')
   check('exactly 1499 is Blue, not Purple', ratingTier(1499) === 'blue')
   check('exactly 1400 is Blue', ratingTier(1400) === 'blue')
@@ -342,7 +343,7 @@ section('Rating tiers: every boundary, from both sides')
   check('the old Red 1500-1599 mapping is gone', ratingTier(1500) !== 'red' && ratingTier(1599) !== 'red')
   // Red is no longer a band at all — it belongs to first place alone.
   check('no rating is banded red',
-    [0, 1199, 1250, 1299, 1300, 1400, 1500, 1600, 1900].every((r) => ratingTier(r) !== 'red'))
+    [0, 1199, 1250, 1299, 1300, 1400, 1500, 1700, 1900].every((r) => ratingTier(r) !== 'red'))
   check('everything below 1300 is grey',
     [0, 1, 1199, 1200, 1299].every((r) => ratingTier(r) === 'grey'))
   check('a negative rating is still Grey rather than untiered', ratingTier(-50) === 'grey')
@@ -367,7 +368,7 @@ section('Rating tiers: every boundary, from both sides')
 
 section('Rating tiers: the accessible label carries what the colour says')
 {
-  check('a Gold rating is described', ratingAriaLabel(1651) === '1651 rating, Gold tier')
+  check('a Gold rating is described', ratingAriaLabel(1751) === '1751 rating, Gold tier')
   check('a Purple rating is described', ratingAriaLabel(1540) === '1540 rating, Purple tier')
   check('a Blue rating is described', ratingAriaLabel(1450) === '1450 rating, Blue tier')
   check('a Green rating is described', ratingAriaLabel(1350) === '1350 rating, Green tier')
@@ -402,7 +403,7 @@ section('First place: the highest rating renders red, over its band')
 
   // The leader keeps their BAND — the red is laid over it in CSS, not substituted for it — so the
   // band function must be untouched by who happens to be leading.
-  check('the leader still belongs to their own band', ratingTier(1667) === 'gold')
+  check('the leader still belongs to their own band', ratingTier(1667) === 'purple')
   check('a low-rated leader is still low-banded', ratingTier(1250) === 'grey')
 
   check('the leader is announced as the leader, not by band',

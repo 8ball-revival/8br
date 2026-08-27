@@ -204,7 +204,9 @@ export async function changeCueverseId(
     const aliasKey = oldKey.replace(/[^a-z0-9]/g, '')
     if (aliasKey) {
       await prisma.playerAlias
-        .create({ data: { playerId: profileId, alias: aliasKey } })
+        // The key is what search matches; the spelling is what the old handle actually looked like,
+        // which is the whole reason to record it rather than a flattened version of it.
+        .create({ data: { playerId: profileId, alias: aliasKey, aliasDisplay: oldId || oldKey } })
         .catch(() => null) // already recorded, or claimed elsewhere — never block the rename
     }
   }

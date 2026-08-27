@@ -353,7 +353,7 @@ section('The rating legend states every band, and the #1 override')
   check('first place leads', RATING_BANDS[0].id === 'top' && RATING_BANDS[0].label === '#1 Ranked')
   const byLabel = Object.fromEntries(RATING_BANDS.map((b) => [b.label, b.colourName]))
   check('#1 is Red', byLabel['#1 Ranked'] === 'Red')
-  check('1600+ is Gold', byLabel['1600+'] === 'Gold')
+  check('1700+ is Gold', byLabel['1700+'] === 'Gold')
   check('1500+ is Purple', byLabel['1500+'] === 'Purple')
   check('1400+ is Blue', byLabel['1400+'] === 'Blue')
   check('1300+ is Green', byLabel['1300+'] === 'Green')
@@ -387,8 +387,8 @@ section('The rating legend states every band, and the #1 override')
     /sr-only[^>]*>[^<]*\{b\.colourName\}/.test(legend))
 
   // The approved thresholds are untouched by this redesign.
-  check('1600 is still gold', ratingTier(1600) === 'gold')
-  check('1599 is still purple', ratingTier(1599) === 'purple')
+  check('1700 is gold', ratingTier(1700) === 'gold')
+  check('1699 is purple, the top of a band that now runs 1500-1699', ratingTier(1699) === 'purple')
   check('1500 is still purple', ratingTier(1500) === 'purple')
   check('1499 is still blue', ratingTier(1499) === 'blue')
   check('1400 is still blue', ratingTier(1400) === 'blue')
@@ -400,7 +400,7 @@ section('The rating legend states every band, and the #1 override')
   check('0 is grey', ratingTier(0) === 'grey')
   // The superseded 1200–1299 red band, asserted as absent.
   check('nothing is banded red any more',
-    [0, 1199, 1200, 1250, 1299, 1300, 1400, 1500, 1600, 1900].every((r) => ratingTier(r) !== 'red'))
+    [0, 1199, 1200, 1250, 1299, 1300, 1400, 1500, 1700, 1900].every((r) => ratingTier(r) !== 'red'))
   check('a missing rating still has no tier', ratingTier(null) === null)
 
   const cssRule = css.slice(css.indexOf('.rating-primary {'), css.indexOf('.rating-primary--gold'))

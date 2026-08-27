@@ -197,7 +197,7 @@ function QuickAlias({
     if (!res.ok) setError(res.error ?? 'Could not record that alias.')
     else {
       setValue('')
-      setAdded(res.aliases?.[res.aliases.length - 1]?.alias ?? raw)
+      setAdded(res.aliases?.[res.aliases.length - 1]?.display ?? raw)
     }
     setBusy(false)
   }

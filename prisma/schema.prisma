@@ -343,7 +343,16 @@ model Player {
 model PlayerAlias {
   id         String     @id @default(cuid())
   playerId   String
+  /// The MATCH key: lower-cased, letters and digits only. Every lookup compares this, so `Big_Nav`
+  /// and `bignav` are one alias rather than two that each match half the time.
   alias      String
+  /// The alias as a person actually wrote it, for display only. Never matched against.
+  ///
+  /// `alias` used to be both key and label, and the key won: recording `fsm_brian` stored `fsmbrian`
+  /// and the spelling was gone, so "Previously known as" listed match keys. Nullable because the
+  /// rows written before this column existed have no spelling left to recover -- they fall back to
+  /// the key, which is what they already displayed.
+  aliasDisplay String?
   aliasType  AliasType  @default(HANDLE)
   provenance Provenance @default(NATIVE)
   createdAt  DateTime   @default(now())
