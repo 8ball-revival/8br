@@ -54,13 +54,8 @@ export async function SiteHeader() {
     >
       <Wide name="header" className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
-          <Logo
-            siteName={branding.siteName}
-            logoUrl={branding.logoUrl}
-            logoWidth={branding.logoWidth}
-            logoHeight={branding.logoHeight}
-            logoAlt={branding.logoAlt}
-          />
+          {/* The mark is a tracked asset inside Logo; the wordmark and its alt stay admin-managed. */}
+          <Logo siteName={branding.siteName} logoAlt={branding.logoAlt} />
           {/*
             The red bars from the design: two short angled strokes flanking the navigation.
 
