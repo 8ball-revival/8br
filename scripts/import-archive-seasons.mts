@@ -86,6 +86,8 @@ interface SeasonProgress {
   round1Placed: number
   byes: number
   unresolved: string[]
+  /** Entrants kept although the surviving sources do not name them (Owner decision). */
+  legacyPreserved?: { entrantId: number; playerId: string | null; handle: string }[]
   notes: string[]
   error?: string
 }
@@ -260,9 +262,28 @@ for (const s of seasons) {
       }
       if (!recorded) strays.push(e.id)
     }
+    /*
+     * ── Uncorroborated entrants are PRESERVED, by Owner decision of 27 August 2026 ──────────────
+     * These rows used to be deleted outright. The reasoning was that an entrant the archive does not
+     * record should not be asserted -- but it had the evidence backwards: the two surviving sources
+     * (the Wayback manifests and the 8BRCAM export) are known to be incomplete, so their SILENCE is
+     * not evidence that somebody did not play. The database was reconstructed from sources that no
+     * longer exist in full, and this step was quietly discarding what only those sources knew.
+     *
+     * They are recorded instead, and the audit reports them as LEGACY_UNCORROBORATED: a passing
+     * state that is deliberately not VERIFIED, because nothing here claims the archive confirms
+     * them. Deletion is reserved for affirmative proof of fabrication or duplication, which absence
+     * from an incomplete source is not.
+     */
     if (strays.length > 0) {
-      await prisma.seasonEntrant.deleteMany({ where: { id: { in: strays } } })
-      p.notes.push(`removed ${strays.length} entrant(s) the archive does not record for this Season`)
+      const kept = await prisma.seasonEntrant.findMany({
+        where: { id: { in: strays } },
+        select: { id: true, playerId: true, cueverseId: true, username: true },
+      })
+      p.legacyPreserved = kept.map((k) => ({
+        entrantId: k.id, playerId: k.playerId, handle: String(k.cueverseId ?? k.username ?? ''),
+      }))
+      p.notes.push(`preserved ${strays.length} legacy entrant(s) the surviving sources do not record (Owner decision, 27 August 2026)`)
     }
 
     const before = await prisma.seasonEntrant.count({ where: { seasonId: s.id, status: 'APPROVED' } })

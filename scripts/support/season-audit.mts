@@ -82,6 +82,32 @@ export interface AuditCheck {
   detail?: string
 }
 
+/*
+ * ── Legacy participation, preserved by Owner decision (27 August 2026) ──────────────────────────
+ * The database was reconstructed from sources that no longer exist in full. Two survive and are
+ * wired in here -- the Wayback pages with their manifests, and the 8BRCAM CSV export -- and they are
+ * known to be incomplete. Their SILENCE about a record is therefore not evidence against it.
+ *
+ * reports/archive-legacy-expectations.json names, exactly, every record accepted on that basis:
+ * which Player, in which Season, with which entrant row. Those are reported as
+ * LEGACY_UNCORROBORATED rather than counted as failures -- a passing state, and deliberately a
+ * DIFFERENT one from VERIFIED, because nothing here claims the archive confirms them.
+ *
+ * The list is exact for a reason. It exempts the records the Owner accepted and nothing else, so a
+ * record that appears later, or one that drifts, is still a failure. It is a snapshot of a decision,
+ * not a blanket permission.
+ */
+interface LegacyPlayer { playerId: string; handle: string; entrantId: number; groupCode: string | null }
+let legacyExpectations: Record<string, { season: string; legacyPlayers: LegacyPlayer[] }> | null = null
+
+function acceptedLegacy(seasonId: number): LegacyPlayer[] {
+  if (legacyExpectations === null) {
+    const path = 'reports/archive-legacy-expectations.json'
+    legacyExpectations = sourceExists(path) ? (JSON.parse(readSource(path, 'utf8')).seasons ?? {}) : {}
+  }
+  return legacyExpectations![String(seasonId)]?.legacyPlayers ?? []
+}
+
 export interface SeasonAudit {
   seasonId: number
   label: string
@@ -89,6 +115,8 @@ export interface SeasonAudit {
   checks: AuditCheck[]
   passed: number
   failed: number
+  /** Records preserved by Owner decision because the surviving sources are silent about them. */
+  legacy: number
 }
 
 /**
@@ -194,6 +222,9 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
    * which is the same question the rest of this script asks.
    */
   const fromLegacyEarly = legacyRoster(season.competitionYear, season.number, season.division)
+  const legacy = acceptedLegacy(seasonId)
+  const legacyPlayerIds = new Set(legacy.map((l) => l.playerId))
+  const legacyGroupOf = new Map(legacy.map((l) => [l.playerId, l.groupCode]))
   const expectedPeople = new Set<string>()
   const unresolvedRecorded: string[] = []
   for (const h of recorded) {
@@ -203,7 +234,8 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
   }
   const expectedTotal = expectedPeople.size + entrants.filter((e) => {
     if (!e.playerId || expectedPeople.has(e.playerId)) return false
-    return fromLegacyEarly.has(legacyKey(String(e.cueverseId ?? e.username ?? '')))
+    // Corroborated by the older export, or accepted as legacy participation by the Owner.
+    return fromLegacyEarly.has(legacyKey(String(e.cueverseId ?? e.username ?? ''))) || legacyPlayerIds.has(e.playerId)
   }).length
   check(`entrant count matches the archive (${expectedTotal})`,
     entrants.length === expectedTotal,
@@ -239,6 +271,7 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
     const aliases = await prisma.playerAlias.findMany({ where: { playerId: e.playerId }, select: { alias: true } })
     spellings.push(...aliases.map((a) => a.alias))
     if (spellings.some((sp) => fromLegacy.has(legacyKey(sp)))) continue
+    if (legacyPlayerIds.has(e.playerId)) continue // preserved by Owner decision, 27 August 2026
     trueExtra++
     if (strays.length < 4) strays.push(String(e.cueverseId ?? e.username))
   }
@@ -277,7 +310,16 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
     if (!want) { misplaced += g.players.length; continue }
     for (const gp of g.players) {
       const e = entrantById.get(gp.entrantId)
-      if (!e?.playerId || !want.has(e.playerId)) misplaced++
+      if (!e?.playerId) { misplaced++; continue }
+      if (want.has(e.playerId)) continue
+      /*
+       * A legacy player the sources never mention has no archived group to disagree with, so the
+       * placement stands. One the sources DO place, somewhere else, is a contradiction and stays a
+       * failure -- that is the line between silence and disagreement.
+       */
+      const placedElsewhere = [...wantGroupPeople.values()].some((set) => set.has(e.playerId!))
+      if (legacyPlayerIds.has(e.playerId) && !placedElsewhere) continue
+      misplaced++
     }
   }
   check('every grouped player is in the group the archive lists', misplaced === 0, `${misplaced} misplaced`)
@@ -287,7 +329,20 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
     where: { seasonId },
     select: { homeEntrantId: true, awayEntrantId: true, homeGames: true, awayGames: true, status: true },
   })
-  const expectedFixtures = [...wantGroups.values()].reduce((a, s) => a + (s.size * (s.size - 1)) / 2, 0)
+  /*
+   * Group sizes include the legacy players sitting in them, because a round robin is played by
+   * everyone actually in the group -- counting only the archived names makes a complete schedule
+   * look oversized.
+   */
+  const legacyPerGroup = new Map<string, number>()
+  for (const l of legacy) {
+    if (!l.groupCode) continue
+    legacyPerGroup.set(l.groupCode, (legacyPerGroup.get(l.groupCode) ?? 0) + 1)
+  }
+  const expectedFixtures = [...wantGroups.entries()].reduce((a, [name, set]) => {
+    const n = set.size + (legacyPerGroup.get(name) ?? 0)
+    return a + (n * (n - 1)) / 2
+  }, 0)
   check(`the schedule is a full round robin (${expectedFixtures} fixtures)`, matches.length === expectedFixtures, `${matches.length}`)
 
   const scored = matches.filter((m) => m.homeGames !== null && m.awayGames !== null)
@@ -501,5 +556,6 @@ export async function auditSeason(seasonId: number, opts: { log?: boolean } = {}
     checks,
     passed: checks.length - failed,
     failed,
+    legacy: legacy.length,
   }
 }
