@@ -35,7 +35,41 @@ run whenever, and running it twice produces exactly what running it once did.
 | --- | --- |
 | `npm run dev:reset` | Rebuild the development database from scratch |
 | `npm run dev:seed` | Reseed only, leaving the schema alone |
+| `npm run verify` | The development suite — clones, runs, drops the clone |
+| `npm run audit:production` | Read-only audit of the live record (manual, refuses by default) |
 | `npm run db:migrate:production` | The **only** sanctioned way to change production's schema |
+
+## Tests come in three kinds
+
+Mixing them was the mistake this separates: a suite that asserted both behaviour and history could
+not run without a copy of production, which is how "verify the app works" came to require the live
+database.
+
+| Kind | Where | Runs against | In `npm run verify`? |
+| --- | --- | --- | --- |
+| **Behaviour** — does the application work? | `scripts/verify-*.mts` | A disposable clone of the fixtures | Yes. All must pass. |
+| **Record** — is the history intact? | `scripts/audit/` | Production, read-only | No. Run deliberately. |
+| **Legacy archive** — the retired import pipeline | `scripts/legacy-archive-audits/` | The archive, wherever it exists | No. See its README. |
+
+### `npm run verify` owns its database
+
+It clones `8br_dev_fixtures`, runs everything against the clone, starts and stops its own server,
+and drops the clone. It refuses any target that is not the local fixtures.
+
+This is not convenience. Most of these suites write, and running one straight at `.env` during this
+work emptied the fixture rating ledger — after which the failures looked like broken code rather
+than a damaged database. Use `--keep` to leave the clone in place when investigating a failure.
+
+### Production audits
+
+```bash
+PRODUCTION_AUDIT_URL="postgresql://..." npm run audit:production -- --confirm
+```
+
+It refuses without both the connection and `--confirm`, refuses anything that is not production, and
+opens a session PostgreSQL marks READ ONLY — a write is rejected by the database, not by the audit
+remembering to only read. The connection is never stored: not in `.env`, not in `.env.example`, not
+in the repository.
 
 ### Development accounts
 

@@ -372,8 +372,17 @@ try {
    * owner starting their next reconstruction into a test failure. What a correction must not do is
    * disturb a finished record, and that is what this asserts.
    */
+  /*
+   * Scoped to Seasons that CONTRIBUTE. A Division B season is completed and legitimate but does not
+   * count toward the ladder, so it has no ledger rows by design — and asserting that every completed
+   * Season carries contributions would report that correct state as a fault.
+   */
   const real = await prisma.season.findMany({
-    where: { competitionSeries: { slug: { not: FIXTURE_SLUG } }, lifecycleState: 'COMPLETED' },
+    where: {
+      competitionSeries: { slug: { not: FIXTURE_SLUG } },
+      lifecycleState: 'COMPLETED',
+      countsTowardRankings: true,
+    },
     select: { id: true, lifecycleState: true, reopenedAt: true, championName: true, _count: { select: { ratingLedger: true } } },
     orderBy: { id: 'asc' },
   })

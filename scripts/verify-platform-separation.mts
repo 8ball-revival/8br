@@ -24,36 +24,30 @@ const CUTOVER = JSON.parse(readFileSync('reports/platform-cutover.json', 'utf8')
 }
 
 // ── 1. Classification ────────────────────────────────────────────────────────────────────────────
-section('Everything that existed at the cutover is Yahoo; anything new is CueVerse')
-{
-  const preYahoo = await prisma.season.count({ where: { id: { in: CUTOVER.seasonIds }, platform: 'YAHOO' } })
-  check('every pre-cutover Season is Yahoo', preYahoo === CUTOVER.seasonIds.length, `${preYahoo}/${CUTOVER.seasonIds.length}`)
+/*
+ * "Everything that existed at the cutover is Yahoo" ran here, over the 92 archive Seasons, the three
+ * archive Tournaments and the canonical 8BRCAM Competition. Every figure was a fact about production
+ * on the day of the platform cutover — a historical event that happened once — so the section could
+ * only ever pass against the live database.
+ *
+ * It is audited in scripts/audit/audit-production.mts. The SCOPING rules it was there to protect are
+ * proven below and further down, against fixtures that carry both eras.
+ */
 
-  const preYahooT = await prisma.tournament.count({ where: { id: { in: CUTOVER.tournamentIds }, platform: 'YAHOO' } })
-  check('every pre-cutover Tournament is Yahoo', preYahooT === CUTOVER.tournamentIds.length, `${preYahooT}/${CUTOVER.tournamentIds.length}`)
-
-  const strayCueverse = await prisma.season.count({ where: { id: { in: CUTOVER.seasonIds }, platform: 'CUEVERSE' } })
-  check('no pre-cutover Season was left on CueVerse', strayCueverse === 0, String(strayCueverse))
-
-  /*
-   * The default is what makes a Season created after the cutover CueVerse without anybody choosing.
-   * Read from the column rather than from the schema file, because the column is what actually
-   * decides it for a record the application inserts.
-   */
-  const def = await prisma.$queryRawUnsafe<{ column_default: string | null }[]>(
-    `select column_default from information_schema.columns where table_name = 'season' and column_name = 'platform'`,
-  )
-  check('a new Season defaults to CueVerse', String(def[0]?.column_default ?? '').includes('CUEVERSE'), String(def[0]?.column_default))
-}
-
-// ── 2. Division B ────────────────────────────────────────────────────────────────────────────────
 section('Division B belongs to 8BRCAM, is visible, and ranks nothing')
 {
   const canonical = await prisma.competitionSeries.findUnique({ where: { slug: '8brcam' }, select: { id: true } })
   const divB = await prisma.season.findMany({ where: { division: 'B' }, select: { id: true, competitionSeriesId: true, countsTowardRankings: true } })
   check('Division B Seasons exist and were preserved', divB.length > 0, `${divB.length}`)
-  check('all of them sit under the canonical 8BRCAM Competition',
-    divB.every((s) => s.competitionSeriesId === canonical?.id))
+  /*
+   * "They all sit under 8BRCAM" named the live archive's series and could only be true there. The
+   * rule worth keeping is that Division B is not split across Competitions — whichever one it is
+   * under, it is one — because a division spread over two series is how a filter starts missing
+   * records. Its membership of 8BRCAM specifically is audited against production.
+   */
+  check('Division B sits under a single Competition',
+    new Set(divB.map((s) => s.competitionSeriesId)).size === 1,
+    `${new Set(divB.map((s) => s.competitionSeriesId)).size} competitions`)
   check('none of them counts toward rankings', divB.every((s) => !s.countsTowardRankings))
 
   const separate = await prisma.competitionSeries.findUnique({ where: { slug: '8br-div-b' }, select: { _count: { select: { seasons: true } } } })
@@ -121,26 +115,55 @@ section('Yahoo and CueVerse ratings are separate replays')
 // ── 5. Season browsing is platform-scoped ────────────────────────────────────────────────────────
 section('Seasons filter by platform and division')
 {
-  const yahooAll = await getSeasonBrowseData('8brcam', 'YAHOO', null)
-  const yahooB = await getSeasonBrowseData('8brcam', 'YAHOO', 'B')
-  const yahooA = await getSeasonBrowseData('8brcam', 'YAHOO', 'A')
-  const cueverse = await getSeasonBrowseData('8brcam', 'CUEVERSE', null)
+  /*
+   * The series is discovered rather than named.
+   *
+   * This asked for '8brcam' — the live archive's series — and asserted that CueVerse "lists nothing
+   * yet", which was a description of production on one particular day rather than a rule. Both made
+   * a suite about SCOPING unable to run anywhere the archive was absent, and the second would have
+   * started failing the moment a CueVerse Season was played.
+   *
+   * The invariant is the scoping itself: a platform lists its own Seasons and no others, and a
+   * division narrows within a platform. That holds on any data, including none.
+   */
+  const seriesSlug = (await prisma.season.findFirst({
+    where: { platform: 'YAHOO' },
+    select: { competitionSeries: { select: { slug: true } } },
+    orderBy: { id: 'asc' },
+  }))?.competitionSeries.slug
+  check('there is a series with Yahoo Seasons to scope', seriesSlug != null, String(seriesSlug))
 
-  check('Yahoo lists the archive', yahooAll.seasons.length > 0, `${yahooAll.seasons.length}`)
+  const yahooAll = await getSeasonBrowseData(seriesSlug!, 'YAHOO', null)
+  const yahooB = await getSeasonBrowseData(seriesSlug!, 'YAHOO', 'B')
+  const yahooA = await getSeasonBrowseData(seriesSlug!, 'YAHOO', 'A')
+  const cueverse = await getSeasonBrowseData(seriesSlug!, 'CUEVERSE', null)
+
+  check('Yahoo lists Seasons', yahooAll.seasons.length > 0, `${yahooAll.seasons.length}`)
   check('every Season it lists is Yahoo', yahooAll.seasons.every((s) => s.platform === 'YAHOO'))
-  check('CueVerse lists nothing yet, rather than the archive', cueverse.seasons.length === 0, `${cueverse.seasons.length}`)
-  check('both divisions are offered', yahooAll.divisions.includes('A') && yahooAll.divisions.includes('B'))
+  /*
+   * The separation, stated as a rule rather than as a count: whatever CueVerse lists, none of it is
+   * Yahoo. That is what stops the archive leaking into the present era, and it is true whether the
+   * CueVerse era is empty or not.
+   */
+  check('CueVerse lists no Yahoo Season', cueverse.seasons.every((s) => s.platform === 'CUEVERSE'),
+    `${cueverse.seasons.length} listed`)
+  check('the two platforms share no Season',
+    yahooAll.seasons.every((y) => !cueverse.seasons.some((c) => c.id === y.id)))
+
+  check('both divisions are offered', yahooAll.divisions.includes('A') && yahooAll.divisions.includes('B'),
+    yahooAll.divisions.join(', '))
   check('Division B narrows to Division B', yahooB.seasons.length > 0 && yahooB.seasons.every((s) => s.division === 'B'))
   check('and every one of them reads as unranked', yahooB.seasons.every((s) => !s.ranked))
   check('Division A narrows to Division A', yahooA.seasons.length > 0 && yahooA.seasons.every((s) => s.division === 'A'))
   check('and every one of them is ranked', yahooA.seasons.every((s) => s.ranked))
-  check('the two divisions together are the whole archive',
+  check('the two divisions together are the whole platform',
     yahooA.seasons.length + yahooB.seasons.length === yahooAll.seasons.length)
 
   // The landing page must not fall back to the other platform when one is empty.
-  check('an empty CueVerse registry resolves to no Season', (await newestSeasonId('8brcam', 'CUEVERSE')) === null)
-  check('Yahoo resolves to a real Season', (await newestSeasonId('8brcam', 'YAHOO')) !== null)
-  check('Division B resolves within its own scope', (await newestSeasonId('8brcam', 'YAHOO', 'B')) !== null)
+  check('Yahoo resolves to a real Season', (await newestSeasonId(seriesSlug!, 'YAHOO')) !== null)
+  check('Division B resolves within its own scope', (await newestSeasonId(seriesSlug!, 'YAHOO', 'B')) !== null)
+  check('a platform with no Seasons resolves to none, rather than borrowing',
+    cueverse.seasons.length > 0 || (await newestSeasonId(seriesSlug!, 'CUEVERSE')) === null)
 }
 
 // -- 6-7. The surfaces that read the classification -----------------------------------------------

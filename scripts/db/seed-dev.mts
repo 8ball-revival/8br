@@ -71,6 +71,41 @@ for (const account of DEV_ACCOUNTS) {
   log(`  ${account.role.padEnd(6)} ${account.email} -> user ${userIdByKey[account.key]}`)
 }
 
+/*
+ * The admin-managed globals.
+ *
+ * Written through Payload so the required-field validation runs, which is the point: a fixture
+ * database with no homepage content is one where every suite touching site content fails on a
+ * missing button destination rather than on anything it was meant to test.
+ *
+ * The values are APPROVED_SITE_CONTENT, the same single source the seed and the fallbacks use, so
+ * development shows the intended wording rather than a second invented copy of it.
+ */
+log('site content globals')
+const { APPROVED_SITE_CONTENT } = await import('../../src/lib/site-content/defaults.ts')
+await payload.updateGlobal({
+  slug: 'site-branding',
+  data: { siteName: APPROVED_SITE_CONTENT.siteName, logoAlt: APPROVED_SITE_CONTENT.logoAlt, _status: 'published' } as never,
+  overrideAccess: true,
+})
+await payload.updateGlobal({
+  slug: 'homepage-hero',
+  data: {
+    bannerAlt: APPROVED_SITE_CONTENT.bannerAlt,
+    welcomeLine: APPROVED_SITE_CONTENT.welcomeLine,
+    headlineLine1: APPROVED_SITE_CONTENT.headlineLine1,
+    headlineLine2: APPROVED_SITE_CONTENT.headlineLine2,
+    description: APPROVED_SITE_CONTENT.description,
+    supportingSentence: APPROVED_SITE_CONTENT.supportingSentence,
+    primaryButtonLabel: APPROVED_SITE_CONTENT.primaryButtonLabel,
+    primaryButtonHref: APPROVED_SITE_CONTENT.primaryButtonHref,
+    secondaryButtonLabel: APPROVED_SITE_CONTENT.secondaryButtonLabel,
+    secondaryButtonHref: APPROVED_SITE_CONTENT.secondaryButtonHref,
+    _status: 'published',
+  } as never,
+  overrideAccess: true,
+})
+
 await seedAll({ log }, userIdByKey)
 
 const counts = {

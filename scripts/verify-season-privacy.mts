@@ -16,6 +16,16 @@ import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 
 assertLocalDatabase('verify-season-privacy')
 
+/*
+ * Captured before anything else runs, so the publication guard below can be a delta rather than a
+ * pinned list of Season ids. A suite that names live rows cannot run anywhere they are absent.
+ */
+const OPEN_PUBLIC_AT_START = (await prisma.season.findMany({
+  where: { publiclyVisible: true, lifecycleState: 'REGISTRATION_OPEN' },
+  select: { id: true },
+  orderBy: { id: 'asc' },
+})).map((s) => s.id)
+
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
   if (c) { pass++ } else { fail++; console.log('  FAIL ' + n + (d ? ` — ${d}` : '')) }
@@ -154,23 +164,20 @@ section('Public Seasons are the finished ones, and nothing drifted public')
    * The guard that had to survive the change.
    *
    * What must never happen is a TEST making a Season public as a side effect of running. That was
-   * written as "exactly 443 and 2187 among the pre-existing Seasons", which cannot outlive the
-   * archive being published on purpose. It is written here as a statement about which UNFINISHED
-   * Seasons are public, because that is the set a fixture would pollute: finished Seasons are all
-   * public by rule now, so they can no longer tell you anything.
+   * written as "exactly 443 and 2187", then as one pinned id — both of which named rows in the live
+   * archive and made a behaviour suite depend on production.
    *
-   * Pinned to the one Season the owner published deliberately. If another is published on purpose,
-   * this line is the place to say so -- deliberately, in a commit, rather than by a test quietly
-   * flipping a column.
+   * It is asked as a DELTA now: whatever unfinished Seasons were public before this suite ran must
+   * be the same ones afterwards. That catches a fixture publishing something by accident without
+   * caring which Seasons exist, and it works on any database.
    */
-  const OWNER_PUBLISHED_OPEN_SEASON = 13152
   const openPublic = publicSeasons
     .filter((s) => s.lifecycleState === ('REGISTRATION_OPEN' as never))
     .map((s) => s.id)
     .sort((a, b) => a - b)
-  check('the only unfinished Season that is public is the one the owner published',
-    openPublic.length === 1 && openPublic[0] === OWNER_PUBLISHED_OPEN_SEASON,
-    `registration-open and public: ${openPublic.join(', ') || 'none'}`)
+  check('no unfinished Season was published while this suite ran',
+    openPublic.join(',') === OPEN_PUBLIC_AT_START.join(','),
+    `was [${OPEN_PUBLIC_AT_START.join(', ')}], now [${openPublic.join(', ')}]`)
 
   const completedPublic = publicSeasons.filter((s) => s.lifecycleState === ('COMPLETED' as never)).length
   console.log(`    (${completedPublic} completed Seasons public, ${openPublic.length} unfinished)`)

@@ -227,27 +227,14 @@ try {
       (nb.next == null || (await prisma.season.count({ where: { id: nb.next } })) === 1))
   }
 
-  console.log('')
-  console.log('--- The real 8BR 2005 Season 1 is untouched ---')
-  {
-    const s1 = await prisma.season.findFirst({
-      where: { competitionYear: 2005, number: 1, competitionSeries: { slug: '8brcam' } },
-      select: { id: true, number: true, competitionYear: true, lifecycleState: true, championHandle: true },
-    })
-    check('it is still 8BR 2005 Season 1', s1?.number === 1 && s1?.competitionYear === 2005, JSON.stringify(s1))
-    // Renumbering must not disturb the result. WHO won is not this suite's business — and pinning
-    // it to a literal CueVerse ID made an ordinary handle change look like a numbering regression.
-    check('still completed, with a champion recorded',
-      s1?.lifecycleState === 'COMPLETED' && (s1?.championHandle ?? '').trim() !== '',
-      JSON.stringify(s1))
-    if (s1) {
-      check('its 16 playoff seeds are intact',
-        (await prisma.seasonEntrant.count({ where: { seasonId: s1.id, playoffSeed: { not: null } } })) === 16)
-      check('its groups and matches are intact',
-        (await prisma.seasonMatch.count({ where: { seasonId: s1.id } })) === 112 &&
-        (await prisma.seasonPlayoffMatch.count({ where: { seasonId: s1.id } })) === 15)
-    }
-  }
+  /*
+   * "The real 8BR 2005 Season 1 is untouched" ran here: its number, its year, its champion and its
+   * sixteen playoff seeds, read from the live archive. Renumbering behaviour is proven above with
+   * Seasons this suite creates itself; the 2005 record is a fact about production, and needing it
+   * made a numbering suite depend on a copy of the live database.
+   *
+   * It is asserted in scripts/audit/audit-production.mts.
+   */
 
   console.log('')
   console.log('--- Schema enforces the rule, not just the application ---')

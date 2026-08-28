@@ -87,6 +87,28 @@ export const DEV_PLAYERS = [
  * spelling for display. The last one has no spelling at all, which is the shape of every alias
  * written before that column existed.
  */
+/**
+ * Entrants who only ever play Tournaments.
+ *
+ * Kept apart from the Season pool so that credit for a title is unambiguous: nobody here can be a
+ * Season champion, so a Tournament runner-up holding a title means something has gone wrong rather
+ * than that they won something else.
+ */
+export const TOURNAMENT_PLAYERS = [
+  { handle: 'DEV_CutShotCarla', name: 'Cut-Shot Carla', rating: 1500 },
+  { handle: 'DEV_JumpShotJim', name: 'Jump-Shot Jim', rating: 1500 },
+  { handle: 'DEV_KickSafeKai', name: 'Kick-Safe Kai', rating: 1500 },
+  { handle: 'DEV_StunRunSue', name: 'Stun-Run Sue', rating: 1500 },
+  { handle: 'DEV_DrawShotDee', name: 'Draw-Shot Dee', rating: 1500 },
+  { handle: 'DEV_FollowThruFinn', name: 'Follow-Through Finn', rating: 1500 },
+  { handle: 'DEV_CornerCallCass', name: 'Corner-Call Cass', rating: 1500 },
+  { handle: 'DEV_BreakBuildBo', name: 'Break-and-Build Bo', rating: 1500 },
+  { handle: 'DEV_RackRunRhea', name: 'Rack-Run Rhea', rating: 1500 },
+  { handle: 'DEV_SpotShotSol', name: 'Spot-Shot Sol', rating: 1500 },
+  { handle: 'DEV_ThinCutTeo', name: 'Thin-Cut Teo', rating: 1500 },
+  { handle: 'DEV_LongPotLux', name: 'Long-Pot Lux', rating: 1500 },
+] as const
+
 export const DEV_ALIASES: { handle: string; key: string; display: string }[] = [
   { handle: 'DEV_Chalkstripe', key: 'devchalkymki', display: 'DEV_Chalky_MkI' },
   { handle: 'DEV_Chalkstripe', key: 'devcstripe', display: 'DEV.C.Stripe' },
@@ -149,7 +171,7 @@ async function seedSeries(ctx: SeedContext) {
 
 /** Players, their aliases, and the account links that give five permission levels something to be. */
 async function seedPlayers(ctx: SeedContext, userIdByKey: Record<string, number>) {
-  ctx.log(`${DEV_PLAYERS.length} players`)
+  ctx.log(`${DEV_PLAYERS.length + TOURNAMENT_PLAYERS.length} players`)
   const accountByHandle: Record<string, string> = {
     DEV_Chalkstripe: 'owner',
     DEV_BaizeBaron: 'admin',
@@ -171,6 +193,18 @@ async function seedPlayers(ctx: SeedContext, userIdByKey: Record<string, number>
         blogTrustedAuthor: account?.trusted ?? false,
         linkedUserId: account ? String(userIdByKey[account.key]) : null,
         linkStatus: account ? 'VERIFIED' : 'UNLINKED',
+      },
+    })
+  }
+
+  for (const p of TOURNAMENT_PLAYERS) {
+    await prisma.player.create({
+      data: {
+        id: `dev_${p.handle.toLowerCase()}`,
+        primaryName: p.name,
+        cueverseId: p.handle,
+        cueverseIdNormalized: p.handle.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        active: true,
       },
     })
   }
@@ -224,7 +258,9 @@ async function seedSeasons(ctx: SeedContext) {
         lifecycleState: o.state as never,
         platform: ((o.platform as string) ?? 'CUEVERSE') as never,
         publiclyVisible: (o.publiclyVisible as boolean) ?? true,
-        division: (o.division as string) ?? 'Division A',
+        // 'A' / 'B', the archive's convention — the browse filters compare against exactly that.
+        division: (o.division as string) ?? 'A',
+        countsTowardRankings: (o.countsTowardRankings as boolean) ?? true,
         subtitle: o.subtitle as string,
         description: o.description as string,
         registrationOpensAt: day(-20),
@@ -254,7 +290,14 @@ async function seedSeasons(ctx: SeedContext) {
   // 7 — a completed CueVerse season, so the present era has a champion and a ladder of its own.
   await mk(7, { number: 7, state: 'COMPLETED', slug: 'dev-season-7', subtitle: 'CueVerse era, complete' })
 
-  await prisma.$executeRawUnsafe(`select setval('season_id_seq', 7, true)`)
+  // 8 — Division B. The division filter has two sides to distinguish, and one of them is not A.
+  /*
+   * Division B is unranked by design: it is the second tier, its results are recorded but do not move
+   * the ladder. Without one, "Division B reads as unranked" has nothing to be true of.
+   */
+  await mk(8, { number: 8, state: 'COMPLETED', slug: 'dev-season-8', subtitle: 'Division B', platform: 'YAHOO', division: 'B', countsTowardRankings: false })
+
+  await prisma.$executeRawUnsafe(`select setval('season_id_seq', 8, true)`)
 
   // ── Entrants ──────────────────────────────────────────────────────────────────────────────────
   const entrantsFor = async (seasonId: number, players: readonly { handle: string; name: string }[], status = 'APPROVED') => {
@@ -288,8 +331,9 @@ async function seedSeasons(ctx: SeedContext) {
   const s5 = await entrantsFor(5, twelve)
   const s6 = await entrantsFor(6, DEV_PLAYERS.slice(0, 4))
   const s7 = await entrantsFor(7, eight)
+  const s8 = await entrantsFor(8, DEV_PLAYERS.slice(8, 16))
 
-  return { s3, s4, s5, s6, s7, eight, twelve }
+  return { s3, s4, s5, s6, s7, s8, eight, twelve }
 }
 
 /**
@@ -368,8 +412,13 @@ async function seedGroupStage(
             homeEntrantId: home, awayEntrantId: away,
             homeUsername: homeName, awayUsername: awayName,
             status: status as never,
-            homeGames: status === 'NO_CONTEST' ? null : homeGames,
-            awayGames: status === 'NO_CONTEST' ? null : awayGames,
+            /*
+             * A forfeit records no scoreline, matching production: nobody played those games, and a
+             * recorded 0-7 would be counted as fourteen frames by anything summing games. Production
+             * has 240 forfeits and 988 no-contests, and not one of them carries a score.
+             */
+            homeGames: status === 'COMPLETED' ? homeGames : null,
+            awayGames: status === 'COMPLETED' ? awayGames : null,
             winnerEntrantId: status === 'NO_CONTEST' || isDraw ? null : homeWon ? home : away,
             loserEntrantId: status === 'NO_CONTEST' || isDraw ? null : homeWon ? away : home,
             forfeitEntrantId: awkward === 'FORFEIT' ? home : null,
@@ -517,7 +566,7 @@ async function seedTournaments(ctx: SeedContext) {
     { number: 5, name: 'DEV Round Robin', format: 'ROUND_ROBIN', participant: 'INDIVIDUAL', teamSize: null, state: 'REGISTRATION_OPEN', run: 'UPCOMING', visible: true, champion: null },
     { number: 6, name: 'DEV Groups and Playoffs', format: 'GROUPS_PLAYOFFS', participant: 'INDIVIDUAL', teamSize: null, state: 'DRAFT', run: 'UPCOMING', visible: true, champion: null },
     // Private: exists, and must not appear to anyone signed out.
-    { number: 7, name: 'DEV Private Invitational', format: 'SINGLE_ELIM', participant: 'INDIVIDUAL', teamSize: null, state: 'COMPLETED', run: 'COMPLETED', visible: false, champion: 'DEV_BaizeBaron' },
+    { number: 7, name: 'DEV Private Invitational', format: 'SINGLE_ELIM', participant: 'INDIVIDUAL', teamSize: null, state: 'COMPLETED', run: 'COMPLETED', visible: false, champion: null },
   ]
 
   for (const d of defs) {
@@ -530,6 +579,12 @@ async function seedTournaments(ctx: SeedContext) {
         competitionYear: 2026,
         competitionSeries: { connect: { id: d.number % 2 === 0 ? 2 : 1 } },
         gameType: '8-Ball',
+        /*
+         * Completed Tournaments sit in the Yahoo era, as production's three do. The ranking universe
+         * is per platform, so a completed Tournament on the other one credits its champion to a
+         * ladder nothing reads and the title appears to have gone missing.
+         */
+        platform: (d.run === 'COMPLETED' ? 'YAHOO' : 'CUEVERSE') as never,
         participantFormat: d.participant as never,
         teamSize: d.teamSize,
         tournamentFormat: d.format as never,
@@ -546,6 +601,83 @@ async function seedTournaments(ctx: SeedContext) {
     })
   }
   await prisma.$executeRawUnsafe(`select setval('comp_tournament_id_seq', ${defs.length}, true)`)
+
+  /*
+   * The completed individual Tournaments get a real bracket.
+   *
+   * Without one, a "completed" Tournament has no final, no winner and no title — so the Tournament
+   * pages render an empty shell and anything that credits a champion finds nobody. A four-player
+   * single-elimination draw is the smallest thing that produces a semi-final round, a final, and one
+   * winner to credit.
+   */
+  for (const [index, number] of [1, 2, 7].entries()) {
+    const tournament = await prisma.tournament.findFirstOrThrow({ where: { number } })
+    /*
+     * Tournament-only entrants.
+     *
+     * Drawing them from the Season pool made a Tournament's runner-up somebody else's Season
+     * champion, so "the runner-up holds no title" failed for a reason that was true rather than a
+     * fault. Their own four keeps title crediting unambiguous.
+     */
+    const field = TOURNAMENT_PLAYERS.slice(index * 4, index * 4 + 4)
+    const registrations: number[] = []
+    for (const [i, p] of field.entries()) {
+      const reg = await prisma.registration.create({
+        data: {
+          tournamentId: tournament.id,
+          username: p.handle,
+          displayName: p.name,
+          cueverseId: p.handle,
+          playerId: pid(p.handle),
+          status: 'APPROVED' as never,
+          seed: i + 1,
+          approvedAt: day(-20),
+        },
+      })
+      registrations.push(reg.id)
+    }
+
+    // Round 1: seeds 1v4 and 2v3, higher seed through. Round 2: the final.
+    const pairs: [number, number][] = [[0, 3], [1, 2]]
+    const winners: number[] = []
+    for (const [slot, [a, b]] of pairs.entries()) {
+      await prisma.playoffMatch.create({
+        data: {
+          tournamentId: tournament.id, round: 1, slot: slot + 1, label: `Semi-final ${slot + 1}`,
+          homeRegistrationId: registrations[a], awayRegistrationId: registrations[b],
+          homeUsername: field[a].handle, awayUsername: field[b].handle,
+          homeSeed: a + 1, awaySeed: b + 1,
+          homeGames: 5, awayGames: 3,
+          status: 'COMPLETED' as never,
+          winnerRegistrationId: registrations[a],
+          completedAt: day(-7),
+        },
+      })
+      winners.push(a)
+    }
+    await prisma.playoffMatch.create({
+      data: {
+        tournamentId: tournament.id, round: 2, slot: 1, label: 'Final',
+        homeRegistrationId: registrations[winners[0]], awayRegistrationId: registrations[winners[1]],
+        homeUsername: field[winners[0]].handle, awayUsername: field[winners[1]].handle,
+        homeSeed: winners[0] + 1, awaySeed: winners[1] + 1,
+        homeGames: 5, awayGames: 4,
+        status: 'COMPLETED' as never,
+        winnerRegistrationId: registrations[winners[0]],
+        completedAt: day(-6),
+      },
+    })
+    await prisma.tournament.update({
+      where: { id: tournament.id },
+      data: {
+        championName: field[winners[0]].handle,
+        championHandle: field[winners[0]].handle,
+        runnerUpName: field[winners[1]].handle,
+        runnerUpHandle: field[winners[1]].handle,
+        entrantsCount: field.length,
+      },
+    })
+  }
 }
 
 /**
@@ -657,18 +789,29 @@ async function seedAchievements(ctx: SeedContext) {
    * Both award types are represented, because MANUAL and AUTOMATIC take different paths.
    */
   const defs = [
-    { key: 'dev_most_wins', title: 'DEV Most Wins', statistic: 'wins', displayFormat: '{value} wins', awardType: 'AUTOMATIC' },
-    { key: 'dev_highest_rating', title: 'DEV Highest Rating', statistic: 'rating', displayFormat: '{value}', awardType: 'AUTOMATIC' },
-    { key: 'dev_most_titles', title: 'DEV Most Titles', statistic: 'totalTitles', displayFormat: '{value} titles', awardType: 'AUTOMATIC' },
-    { key: 'dev_best_win_rate', title: 'DEV Best Win Rate', statistic: 'winPct', displayFormat: '{value}%', awardType: 'AUTOMATIC' },
-    { key: 'dev_longest_streak', title: 'DEV Longest Win Streak', statistic: 'longestWinStreak', displayFormat: '{value} in a row', awardType: 'AUTOMATIC' },
-    { key: 'dev_committee_choice', title: 'DEV Committee Choice', statistic: null, displayFormat: '{value}', awardType: 'MANUAL' },
+    { key: 'dev_most_wins', title: 'DEV Most Wins', statistic: 'wins', displayFormat: '{value} wins', awardType: 'AUTOMATIC', minMatches: null, manualValue: null, manualPlayerId: null },
+    { key: 'dev_highest_rating', title: 'DEV Highest Rating', statistic: 'rating', displayFormat: '{value}', awardType: 'AUTOMATIC', minMatches: null, manualValue: null, manualPlayerId: null },
+    { key: 'dev_most_titles', title: 'DEV Most Titles', statistic: 'totalTitles', displayFormat: '{value} titles', awardType: 'AUTOMATIC', minMatches: null, manualValue: null, manualPlayerId: null },
+    // A rate needs a floor, or one lucky result tops the table — the validator insists on 10.
+    { key: 'dev_best_win_rate', title: 'DEV Best Win Rate', statistic: 'winPct', displayFormat: '{value}%', awardType: 'AUTOMATIC', minMatches: 10, manualValue: null, manualPlayerId: null },
+    { key: 'dev_longest_streak', title: 'DEV Longest Win Streak', statistic: 'longestWinStreak', displayFormat: '{value} in a row', awardType: 'AUTOMATIC', minMatches: null, manualValue: null, manualPlayerId: null },
+    // A manual award needs a value to display; it does not need a holder.
+    { key: 'dev_committee_choice', title: 'DEV Committee Choice', statistic: null, displayFormat: '{value}', awardType: 'MANUAL', minMatches: null, manualValue: 'Awarded by the committee', manualPlayerId: pid('DEV_Chalkstripe') },
   ]
   for (const [i, d] of defs.entries()) {
     await prisma.achievementDefinition.create({
       data: {
         key: d.key, title: d.title, statistic: d.statistic, displayFormat: d.displayFormat,
-        awardType: d.awardType as never, sortOrder: i, flavorText: 'Fixture achievement.',
+        awardType: d.awardType as never, minMatches: d.minMatches, manualValue: d.manualValue,
+        manualPlayerId: d.manualPlayerId ?? null,
+        /*
+         * Every fixture card stays visible even when nobody qualifies yet. The default is HIDE,
+         * which is right for the live site — an empty leaderboard is worse than no leaderboard — but
+         * it means a development database with a small field silently renders fewer cards than it
+         * has definitions, and the Achievements page cannot be looked at properly.
+         */
+        emptyBehavior: 'SHOW_PLACEHOLDER' as never,
+        sortOrder: i, flavorText: 'Fixture achievement.',
       },
     })
   }
@@ -706,17 +849,19 @@ export async function seedAll(ctx: SeedContext, userIdByKey: Record<string, numb
   await seedSeries(ctx)
   await seedPlayers(ctx, userIdByKey)
 
-  const { s3, s4, s5, s6, s7, eight, twelve } = await seedSeasons(ctx)
+  const { s3, s4, s5, s6, s7, s8, eight, twelve } = await seedSeasons(ctx)
 
   await seedGroupStage(ctx, 3, s3, eight, { complete: false })
   await seedGroupStage(ctx, 6, s6, DEV_PLAYERS.slice(0, 4), { complete: false })
   await seedGroupStage(ctx, 4, s4, eight, { complete: true })
   await seedGroupStage(ctx, 5, s5, twelve, { complete: true, awkward: true })
   await seedGroupStage(ctx, 7, s7, eight, { complete: true })
+  await seedGroupStage(ctx, 8, s8, DEV_PLAYERS.slice(8, 16), { complete: true })
 
   await seedPlayoffs(ctx, 4, s4, eight, false)
   await seedPlayoffs(ctx, 5, s5, twelve, true)
   await seedPlayoffs(ctx, 7, s7, eight, true)
+  await seedPlayoffs(ctx, 8, s8, DEV_PLAYERS.slice(8, 16), true)
 
   await seedTournaments(ctx)
   await seedTheBreak(ctx)
