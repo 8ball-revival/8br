@@ -1,0 +1,792 @@
+/*
+  Display Lab — what every control in the panel actually does.
+
+  ── The contract ────────────────────────────────────────────────────────────────────────────────
+  The panel writes `data-dl-*` attributes and `--dl-*` variables onto an element; every decision
+  about what those MEAN is made here. So a new effect never requires a change to the panel, and the
+  panel never encodes a colour, a radius or a duration. It is a preferences UI, not a second copy of
+  the design.
+
+  ── Why nothing below is written as `:root[...]` ────────────────────────────────────────────────
+  The live preview applies the very same attributes to a single container, so a reader sees the real
+  rendering of a setting rather than a mock-up of it. A rule anchored to `:root` cannot match that
+  container, so every selector here is a bare attribute selector — `[data-dl-frame='rails']` — which
+  matches <html> for the page and the preview box for the preview, with the nested one winning for
+  its own descendants exactly as the cascade intends.
+
+  Derived variables are declared on `:root, [data-dl-scope]` for the same reason: a custom property
+  computed on <html> reaches a child as its COMPUTED value, so `--glow-yellow` would carry the page's
+  glow into a preview asking for a different one. Re-declaring it at the scope re-evaluates it there.
+
+  ── Why the overlays are real elements ──────────────────────────────────────────────────────────
+  Background, grain and vignette are <div>s rendered by `DisplayLayers`, not pseudo-elements. <body>
+  has exactly two, both already spoken for, and stacking a background, a scrim, a grain field and a
+  vignette into them means each effect has to know what the others are doing. Real elements can also
+  be positioned `fixed` for the page and `absolute` for the preview from one class, which is what
+  lets the preview show a background at all. They are `pointer-events: none` and `aria-hidden`, so
+  nothing on the site can be covered or announced by a decoration.
+
+  ── What may never be recoloured ────────────────────────────────────────────────────────────────
+  Danger, success, warning, championship gold and qualification states are absent from every rule
+  below. They carry meaning — a title won, a match lost, a place secured — and a reader who prefers a
+  green interface must not see green qualification markers everywhere. Appearance is a preference;
+  what the colours SAY is not.
+*/
+
+/* ═══════════════════════════════════════════════════════════ derived light ══════════════════════ */
+
+/*
+  Every lit shadow in the interface, scaled by one slider.
+
+  The blur radius scales linearly and the alpha scales with it up to saturation, which is what makes
+  0 / 50 / 100 / 200 four unmistakably different renderings rather than four numbers: at 0 the shadow
+  collapses and the lit edge remains, at 50 it is a close halo, at 100 it is the designed value, and
+  at 200 the spread doubles and the core saturates into a genuine bloom.
+
+  `--glow-soft` is included, and that is the fix for the old slider. It is the shadow every panel in
+  the site wears, it was declared once in globals.css, and it was the one glow the multiplier never
+  reached — so dragging the control changed headlines and buttons while every panel stayed exactly as
+  bright, which read as a slider that did not work.
+*/
+:root,
+[data-dl-scope] {
+  --dl-glow: 1;
+  --dl-bloom: 1;
+  --dl-panel-light: 1;
+  --dl-linework: 1;
+  --dl-grid: 1;
+  --dl-scan: 1;
+  --dl-pulse: 1;
+  --dl-depth: 1;
+
+  --glow-yellow:
+    0 0 calc(4px * var(--dl-glow)) color-mix(in oklab, var(--acid) calc(55% * var(--dl-glow)), transparent),
+    0 0 calc(18px * var(--dl-glow)) color-mix(in oklab, var(--acid) calc(28% * var(--dl-glow)), transparent);
+  --glow-cyan:
+    0 0 calc(4px * var(--dl-glow)) color-mix(in oklab, var(--cyan) calc(60% * var(--dl-glow)), transparent),
+    0 0 calc(18px * var(--dl-glow)) color-mix(in oklab, var(--cyan) calc(30% * var(--dl-glow)), transparent);
+  --glow-magenta:
+    0 0 calc(4px * var(--dl-glow)) color-mix(in oklab, var(--hot-red) calc(60% * var(--dl-glow)), transparent),
+    0 0 calc(18px * var(--dl-glow)) color-mix(in oklab, var(--hot-red) calc(30% * var(--dl-glow)), transparent);
+  --glow-soft:
+    0 0 calc(12px * var(--dl-glow)) color-mix(in oklab, var(--cyan) calc(16% * var(--dl-glow)), transparent);
+
+  /* The overlays read their own strength, so Grid and Scanlines are dials and not only switches. */
+  --scan-line: color-mix(in oklab, var(--cyan) calc(5% * var(--dl-scan)), transparent);
+  --grid-line: color-mix(in oklab, var(--cyan) calc(6% * var(--dl-grid)), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════ accent ════════════════════════ */
+
+/*
+  A custom accent repoints ONE variable, and the interface follows.
+
+  Everything carrying the signature — the navigation surface, filter bars, buttons, active tabs, the
+  feature panel — derives from `--acid`, so moving that moves all of them together and no component
+  needs to know. The hover and dim shades are mixed here rather than computed in JavaScript, so a
+  custom colour gets the same three-shade treatment as the built-in one for free.
+
+  `--acid-ink` comes from the panel because it is the one value that must not be guessed: it is the
+  text colour on every accent surface, chosen against a WCAG contrast measurement in `color.ts`.
+
+  ── Why the attribute is written twice ──────────────────────────────────────────────────────────
+  `--acid` and its three shades are DECLARED in globals.css on a bare `:root`, which is specificity
+  (0,1,0). A single attribute selector is also (0,1,0), and globals.css is imported after this file,
+  so a tie goes to globals and a custom accent silently did nothing — the panel wrote the variable,
+  the attribute landed on <html>, and the interface stayed exactly the colour it was. The old panel
+  never hit this because `:root[data-hud-accent='red']` carried the extra pseudo-class.
+
+  `:root` is not available here: every rule in this file must match the preview container too, and a
+  preview that cannot show the accent is the one thing the accent control most needs to show. So the
+  specificity comes from repeating the attribute, which matches exactly the same elements and reads
+  as what it is — "an element that declares an accent mode, and whose mode is custom".
+*/
+[data-dl-accent-mode][data-dl-accent-mode='custom'] {
+  --acid: var(--dl-accent);
+  --acid-hover: color-mix(in oklab, var(--dl-accent) 80%, white);
+  --acid-dim: color-mix(in oklab, var(--dl-accent) 74%, black);
+  --acid-ink: var(--dl-accent-ink);
+}
+
+/* ══════════════════════════════════════════════════════════════ corners ════════════════════════ */
+
+[data-dl-corners='square'] .cyber-clip,
+[data-dl-corners='square'] .cyber-clip-sm,
+[data-dl-corners='square'] .dl-surface {
+  clip-path: none;
+  border-radius: 0;
+}
+
+[data-dl-corners='round'] .cyber-clip,
+[data-dl-corners='round'] .cyber-clip-sm,
+[data-dl-corners='round'] .dl-surface {
+  clip-path: none;
+  border-radius: 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════ frames ════════════════════════ */
+
+/*
+  Six frames, one rule.
+
+  Each frame sets a handful of variables; a single block below applies them to every shared surface.
+  Written the other way — a rule per frame per surface — the group selector would appear a dozen
+  times and a new surface would have to be added to all of them, which is how a Rankings panel ends
+  up wearing a frame that Achievements does not.
+
+  The decoration is drawn with `box-shadow` insets and `background-image` gradients rather than a
+  pseudo-element. Panels here live inside tables, grids and flex rows where an absolutely positioned
+  ::before is laid out unpredictably, and several already use both pseudo-elements for their own
+  purposes. Shadows and background layers belong to the element itself and cannot collide.
+
+  Nothing here touches `background-color`. The Competition History panel's ground is the accent, a
+  card's is graphite, and a summary's may be transparent; overwriting that to add lighting would
+  repaint panels the frame has no business repainting. Interior light is a background LAYER instead,
+  so it sits over whichever ground the component already chose.
+*/
+[data-dl-frame] {
+  --dl-fr-width: 1px;
+  --dl-fr-color: var(--neon-line);
+  --dl-fr-shadow: var(--glow-soft);
+  --dl-fr-inset: 0 0 0 0 transparent;
+  /*
+   * Four lists, always the same length as each other.
+   *
+   * `background-image` is composed from three sources - the frame mark, the interior wash and the
+   * texture - and CSS CYCLES the size, position and repeat lists when they are shorter than the
+   * image list rather than leaving the extra layers alone. A three-layer texture beside a two-value
+   * size list therefore drew its third layer at the frame mark's size: a hex mesh rendered as a
+   * hairline across the top of the panel. So every frame and every texture declares as many sizes,
+   * positions and repeats as it has images, and `verify-display-lab` counts them.
+   */
+  --dl-fr-mark: none;
+  --dl-fr-mark-size: auto;
+  --dl-fr-mark-pos: top left;
+  --dl-fr-mark-repeat: no-repeat;
+  --dl-fr-blur: none;
+
+  /* The drop shadow under a surface, as opposed to the light on it — see Panel Depth. */
+  --dl-depth-shadow:
+    0 calc(6px * var(--dl-depth)) calc(16px * var(--dl-depth))
+    color-mix(in oklab, black calc(42% * var(--dl-depth)), transparent);
+
+  /* Interior lighting: a wash from the top-left, so a flat rectangle has a light source. */
+  --dl-wash:
+    radial-gradient(
+      120% 100% at 0% 0%,
+      color-mix(in oklab, white calc(5% * var(--dl-panel-light) * var(--dl-tone-lift, 1)), transparent),
+      transparent 62%
+    );
+}
+
+/* Minimal — the current design. A hairline, the corner bracket, the soft interior light. */
+[data-dl-frame='minimal'] {
+  --dl-fr-mark:
+    linear-gradient(to right, color-mix(in oklab, var(--neon-cyan) calc(55% * var(--dl-linework)), transparent) 0 14px, transparent 14px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--neon-cyan) calc(55% * var(--dl-linework)), transparent) 0 14px, transparent 14px);
+  --dl-fr-mark-size: 100% 1px, 1px 100%;
+  --dl-fr-mark-pos: top left, top left;
+  --dl-fr-mark-repeat: no-repeat, no-repeat;
+}
+
+/* Tech Rails — a heavy lit rule along the top and bottom edges, like a rack-mounted unit. */
+[data-dl-frame='rails'] {
+  --dl-fr-color: color-mix(in oklab, var(--neon-line) 60%, transparent);
+  --dl-fr-inset:
+    inset 0 2px 0 0 color-mix(in oklab, var(--acid) calc(85% * var(--dl-bloom)), transparent),
+    inset 0 -2px 0 0 color-mix(in oklab, var(--hot-red) calc(65% * var(--dl-bloom)), transparent);
+  --dl-fr-mark:
+    linear-gradient(to right, color-mix(in oklab, var(--acid) calc(90% * var(--dl-linework)), transparent) 0 30px, transparent 30px),
+    linear-gradient(to left, color-mix(in oklab, var(--hot-red) calc(90% * var(--dl-linework)), transparent) 0 30px, transparent 30px);
+  --dl-fr-mark-size: 100% 3px, 100% 3px;
+  --dl-fr-mark-pos: top left, bottom right;
+  --dl-fr-mark-repeat: no-repeat, no-repeat;
+}
+
+/* Beveled — a lit top edge and a shadowed bottom one, so the panel reads as a raised plate. */
+[data-dl-frame='beveled'] {
+  --dl-fr-color: color-mix(in oklab, var(--line-strong) 90%, transparent);
+  --dl-fr-inset:
+    inset 0 1px 0 0 color-mix(in oklab, white calc(16% * var(--dl-panel-light)), transparent),
+    inset 1px 0 0 0 color-mix(in oklab, white calc(8% * var(--dl-panel-light)), transparent),
+    inset 0 -1px 0 0 color-mix(in oklab, black calc(60% * var(--dl-panel-light)), transparent),
+    inset 0 -20px 24px -20px color-mix(in oklab, black calc(65% * var(--dl-panel-light)), transparent);
+}
+
+/* Neon Edge — the border itself is the light source. */
+[data-dl-frame='neon'] {
+  --dl-fr-color: color-mix(in oklab, var(--acid) calc(80% * var(--dl-bloom)), var(--neon-line));
+  --dl-fr-shadow:
+    0 0 calc(3px * var(--dl-bloom)) color-mix(in oklab, var(--acid) calc(50% * var(--dl-bloom)), transparent),
+    0 0 calc(18px * var(--dl-bloom)) color-mix(in oklab, var(--acid) calc(22% * var(--dl-bloom)), transparent);
+  --dl-fr-inset:
+    inset 0 0 calc(24px * var(--dl-panel-light)) calc(-16px * var(--dl-panel-light))
+    color-mix(in oklab, var(--acid) 55%, transparent);
+}
+
+/* Broadcast — a double rule with a gap, the way a titles-safe area is marked up. */
+[data-dl-frame='broadcast'] {
+  --dl-fr-width: 2px;
+  --dl-fr-color: color-mix(in oklab, var(--acid) calc(70% * var(--dl-bloom)), var(--neon-line));
+  --dl-fr-inset: inset 0 0 0 4px color-mix(in oklab, var(--neon-line) calc(90% * var(--dl-linework)), transparent);
+  --dl-fr-mark:
+    linear-gradient(to right, color-mix(in oklab, var(--hot-red) calc(95% * var(--dl-linework)), transparent) 0 44px, transparent 44px),
+    linear-gradient(to left, color-mix(in oklab, var(--hot-red) calc(95% * var(--dl-linework)), transparent) 0 44px, transparent 44px);
+  --dl-fr-mark-size: 100% 2px, 100% 2px;
+  --dl-fr-mark-pos: top 6px left 6px, bottom 6px right 6px;
+  --dl-fr-mark-repeat: no-repeat, no-repeat;
+}
+
+/*
+  Glass — a translucent plate over whatever is behind it.
+
+  `backdrop-filter` blurs the BACKDROP, never the element's own content: the text on a glass panel is
+  drawn at full sharpness on top of a blurred ground. Body copy is never blurred here, and there is
+  no rule anywhere in this file that applies `filter: blur` to an element containing text.
+*/
+[data-dl-frame='glass'] {
+  --dl-fr-color: color-mix(in oklab, white calc(18% * var(--dl-bloom)), transparent);
+  --dl-fr-inset:
+    inset 0 1px 0 0 color-mix(in oklab, white calc(20% * var(--dl-panel-light)), transparent),
+    inset 0 0 44px 0 color-mix(in oklab, white calc(5% * var(--dl-panel-light)), transparent);
+  --dl-fr-blur: blur(14px) saturate(1.3);
+  --dl-fr-shadow: 0 10px 40px color-mix(in oklab, black 55%, transparent);
+  --dl-wash: linear-gradient(160deg, color-mix(in oklab, white calc(7% * var(--dl-panel-light)), transparent), transparent 55%);
+}
+
+@layer components {
+  /*
+    THE shared surface.
+
+    `.dl-surface` is the primitive; `.cyber-panel` and shadcn's card slot are listed alongside it so
+    every existing panel — Competition History, Latest News, the Rankings panels, Achievements, Season
+    and Tournament summaries — responds to the frame, corner and texture controls without each one
+    having to opt in. `.dl-quiet` opts a surface OUT, and dense tables, forms and small controls carry
+    it: a chamfered, railed, textured plate around a numeric input is noise around the one thing the
+    reader is trying to use.
+
+    Depth is part of `box-shadow` rather than a `filter: drop-shadow`. A filter makes an element a
+    containing block for fixed-position descendants, which would trap every dropdown, popover and
+    dialog that opens inside a card — a decoration must not be able to break a menu.
+  */
+  .dl-surface,
+  .cyber-panel {
+    border: var(--dl-fr-width) solid var(--dl-fr-color);
+    box-shadow: var(--dl-fr-shadow), var(--dl-fr-inset), var(--dl-depth-shadow);
+    background-image: var(--dl-fr-mark), var(--dl-wash), var(--dl-texture-image, none);
+    background-size: var(--dl-fr-mark-size), 100% 100%, var(--dl-texture-size, auto);
+    background-position: var(--dl-fr-mark-pos), top left, var(--dl-texture-pos, top left);
+    background-repeat: var(--dl-fr-mark-repeat), no-repeat, var(--dl-texture-repeat, repeat);
+    backdrop-filter: var(--dl-fr-blur);
+    transition: box-shadow 0.2s ease-out, border-color 0.2s ease-out;
+  }
+
+  .dl-quiet,
+  .dl-quiet.dl-surface,
+  .dl-quiet.cyber-panel {
+    --dl-fr-mark: none;
+    --dl-fr-inset: 0 0 0 0 transparent;
+    --dl-fr-shadow: none;
+    --dl-depth-shadow: 0 0 0 0 transparent;
+    --dl-wash: none;
+    --dl-texture-image: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════ surface tone ═══════════════════ */
+
+/*
+  Dark, Light and Auto describe how far panel grounds lift away from the page behind them — not a
+  light THEME. The site has one palette; this is the separation between a panel and its background,
+  which is what actually needs to change between a bright room and a dark one.
+*/
+[data-dl-tone='dark'] { --dl-tone-lift: 1; }
+[data-dl-tone='light'] { --dl-tone-lift: 3.2; }
+
+@media (prefers-color-scheme: light) {
+  [data-dl-tone='auto'] { --dl-tone-lift: 3.2; }
+}
+@media (prefers-color-scheme: dark) {
+  [data-dl-tone='auto'] { --dl-tone-lift: 1; }
+}
+
+/* ═════════════════════════════════════════════════════════════════ textures ════════════════════ */
+
+/*
+  Eight surface treatments, all drawn in CSS.
+
+  Not one of them is an image file. A texture library shipped as bitmaps costs a request per
+  material, a cache entry per material and a decode per material, for a pattern that is by definition
+  regular — and it cannot take the accent colour with it. These are gradients: they scale to any
+  density, they cost nothing to load, and `--dl-texture-ink` lets each one sit correctly on a dark
+  panel or a light one.
+
+  Strength is alpha and scale is tile size, so the two controls are genuinely independent: a large
+  faint hex mesh and a small dense one are both reachable.
+*/
+[data-dl-texture] {
+  --dl-texture-strength: 0.35;
+  --dl-texture-scale: 1;
+  /* White on the site's dark panels; flipped to ink by `.dl-on-light` for accent-ground surfaces. */
+  --dl-texture-ink: white;
+  /*
+   * Density: how much of the slider's value ONE layer of this material is allowed to use.
+   *
+   * Strength has to mean the same thing across materials, and it did not. Carbon draws two
+   * overlapping crosshatch layers and the hex mesh draws three, so at "20%" they composited to
+   * roughly 36% and 49% — dense enough to sit visibly over the digits in a standings table, while
+   * Brushed at the same setting was barely there. Dividing by how much each material actually
+   * covers makes one number describe one appearance.
+   *
+   * Substitution is lazy, so a texture setting `--dl-tex-density` on itself changes `--dl-tex`
+   * without needing to redeclare it.
+   */
+  --dl-tex-density: 1;
+  --dl-tex: color-mix(in oklab, var(--dl-texture-ink) calc(100% * var(--dl-texture-strength) * var(--dl-tex-density)), transparent);
+  --dl-texture-image: none;
+  --dl-texture-size: auto;
+  --dl-texture-pos: top left;
+  --dl-texture-repeat: repeat;
+}
+
+/* Panels whose ground is the accent rather than graphite: the texture must be drawn in ink. */
+.dl-on-light {
+  --dl-texture-ink: var(--acid-ink);
+}
+
+[data-dl-texture='carbon'] {
+  /* two crosshatch layers. */
+  --dl-tex-density: 0.6;
+  --dl-texture-image:
+    repeating-linear-gradient(45deg, var(--dl-tex) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, var(--dl-tex) 0 1px, transparent 1px 4px);
+  --dl-texture-size:
+    calc(8px * var(--dl-texture-scale)) calc(8px * var(--dl-texture-scale)),
+    calc(8px * var(--dl-texture-scale)) calc(8px * var(--dl-texture-scale));
+  --dl-texture-pos: top left, top left;
+  --dl-texture-repeat: repeat, repeat;
+}
+
+[data-dl-texture='brushed'] {
+  --dl-texture-image:
+    repeating-linear-gradient(90deg, var(--dl-tex) 0 1px, transparent 1px 2px, var(--dl-tex) 2px 3px, transparent 3px 7px);
+  --dl-texture-size: calc(7px * var(--dl-texture-scale)) 100%;
+  --dl-texture-pos: top left;
+  --dl-texture-repeat: repeat;
+}
+
+[data-dl-texture='frosted'] {
+  --dl-texture-image:
+    radial-gradient(circle at 30% 30%, var(--dl-tex) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 65%, var(--dl-tex) 0 1px, transparent 1.5px);
+  --dl-texture-size:
+    calc(9px * var(--dl-texture-scale)) calc(9px * var(--dl-texture-scale)),
+    calc(13px * var(--dl-texture-scale)) calc(13px * var(--dl-texture-scale));
+  --dl-texture-pos: top left, top left;
+  --dl-texture-repeat: repeat, repeat;
+}
+
+[data-dl-texture='hex'] {
+  /* three lines through every point. */
+  --dl-tex-density: 0.45;
+  --dl-texture-image:
+    repeating-linear-gradient(60deg, var(--dl-tex) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(-60deg, var(--dl-tex) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(0deg, var(--dl-tex) 0 1px, transparent 1px 26px);
+  --dl-texture-size:
+    calc(30px * var(--dl-texture-scale)) calc(26px * var(--dl-texture-scale)),
+    calc(30px * var(--dl-texture-scale)) calc(26px * var(--dl-texture-scale)),
+    calc(30px * var(--dl-texture-scale)) calc(26px * var(--dl-texture-scale));
+  --dl-texture-pos: top left, top left, top left;
+  --dl-texture-repeat: repeat, repeat, repeat;
+}
+
+[data-dl-texture='circuit'] {
+  --dl-texture-image:
+    linear-gradient(90deg, var(--dl-tex) 0 1px, transparent 1px),
+    linear-gradient(0deg, var(--dl-tex) 0 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, var(--dl-tex) 0 1.5px, transparent 2px);
+  --dl-texture-size:
+    calc(34px * var(--dl-texture-scale)) calc(34px * var(--dl-texture-scale)),
+    calc(34px * var(--dl-texture-scale)) calc(34px * var(--dl-texture-scale)),
+    calc(34px * var(--dl-texture-scale)) calc(34px * var(--dl-texture-scale));
+  --dl-texture-pos: top left, top left, top left;
+  --dl-texture-repeat: repeat, repeat, repeat;
+}
+
+[data-dl-texture='grid'] {
+  /* two full rules per cell. */
+  --dl-tex-density: 0.6;
+  --dl-texture-image:
+    linear-gradient(var(--dl-tex) 1px, transparent 1px),
+    linear-gradient(90deg, var(--dl-tex) 1px, transparent 1px);
+  --dl-texture-size:
+    calc(12px * var(--dl-texture-scale)) calc(12px * var(--dl-texture-scale)),
+    calc(12px * var(--dl-texture-scale)) calc(12px * var(--dl-texture-scale));
+  --dl-texture-pos: top left, top left;
+  --dl-texture-repeat: repeat, repeat;
+}
+
+/*
+  Holographic is the one texture that carries hue rather than only value, so it uses the accent and
+  the interactive cyan instead of `--dl-tex`. It is a diffraction sheen, and a colourless one is a
+  grey stripe.
+*/
+[data-dl-texture='holo'] {
+  --dl-texture-image:
+    repeating-linear-gradient(
+      115deg,
+      color-mix(in oklab, var(--acid) calc(50% * var(--dl-texture-strength)), transparent) 0 2px,
+      color-mix(in oklab, var(--cyan) calc(50% * var(--dl-texture-strength)), transparent) 2px 4px,
+      transparent 4px 12px
+    );
+  --dl-texture-size: calc(48px * var(--dl-texture-scale)) calc(48px * var(--dl-texture-scale));
+  --dl-texture-pos: top left;
+  --dl-texture-repeat: repeat;
+}
+
+/* ═══════════════════════════════════════════════════════════════ background ════════════════════ */
+
+/*
+  The page background and the readability scrim, on one element.
+
+  `.dl-bg-layer` is fixed to the viewport for the page and absolute inside the preview box, from the
+  same class — which is the whole reason it is an element rather than a pseudo-element. The scrim is
+  a child so the two can be blurred independently: blur belongs to the picture, and a blurred scrim
+  would be a soft-edged rectangle over the content.
+
+  Blur applies HERE, to an element that contains no text. Page copy is never blurred.
+*/
+.dl-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  display: none;
+}
+
+.dl-bg-layer > .dl-bg-image {
+  position: absolute;
+  inset: calc(-1 * var(--dl-bg-blur, 0px) * 2);
+  opacity: var(--dl-bg-opacity, 0.45);
+  filter: blur(var(--dl-bg-blur, 0px));
+  background-image: var(--dl-bg-image, none);
+  background-size: var(--dl-bg-size, cover);
+  background-position: var(--dl-bg-pos, center);
+  background-repeat: var(--dl-bg-repeat, no-repeat);
+}
+
+/*
+  The scrim is independent of the image's own opacity on purpose: a photograph can be at full
+  strength and still be readable over, provided something neutral sits between it and the text.
+  Collapsing the two into one control forces a choice between seeing the picture and reading the
+  page.
+*/
+.dl-bg-layer > .dl-bg-scrim {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklab, var(--void) calc(100% * var(--dl-bg-darken, 0.4)), transparent);
+}
+
+[data-dl-bg]:not([data-dl-bg='none']) .dl-bg-layer {
+  display: block;
+}
+
+[data-dl-bg='void-grid'] {
+  --dl-bg-image:
+    linear-gradient(color-mix(in oklab, var(--cyan) 24%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--cyan) 24%, transparent) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in oklab, var(--cyan) 26%, transparent), transparent 70%);
+  --dl-bg-size: 64px 64px, 64px 64px, 100% 100%;
+  --dl-bg-repeat: repeat, repeat, no-repeat;
+  --dl-bg-pos: center;
+}
+
+[data-dl-bg='carbon-weave'] {
+  --dl-bg-image:
+    repeating-linear-gradient(45deg, color-mix(in oklab, white 13%, transparent) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(-45deg, color-mix(in oklab, white 10%, transparent) 0 2px, transparent 2px 8px);
+  --dl-bg-size: 16px 16px;
+  --dl-bg-repeat: repeat;
+  --dl-bg-pos: center;
+}
+
+[data-dl-bg='data-stream'] {
+  --dl-bg-image:
+    repeating-linear-gradient(90deg, color-mix(in oklab, var(--cyan) 20%, transparent) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(180deg, color-mix(in oklab, var(--cyan) 11%, transparent) 0 1px, transparent 1px 22px);
+  --dl-bg-size: 3px 100%, 100% 22px;
+  --dl-bg-repeat: repeat;
+  --dl-bg-pos: center;
+}
+
+[data-dl-bg='red-circuit'] {
+  --dl-bg-image:
+    linear-gradient(90deg, color-mix(in oklab, var(--hot-red) 22%, transparent) 0 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in oklab, var(--hot-red) 22%, transparent) 0 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--hot-red) 48%, transparent) 0 2px, transparent 2.5px);
+  --dl-bg-size: 72px 72px;
+  --dl-bg-repeat: repeat;
+  --dl-bg-pos: center;
+}
+
+[data-dl-bg='holographic'] {
+  --dl-bg-image:
+    repeating-linear-gradient(
+      120deg,
+      color-mix(in oklab, var(--acid) 32%, transparent) 0 6px,
+      color-mix(in oklab, var(--cyan) 32%, transparent) 6px 12px,
+      color-mix(in oklab, var(--hot-red) 24%, transparent) 12px 18px,
+      transparent 18px 46px
+    );
+  --dl-bg-size: 100% 100%;
+  --dl-bg-repeat: repeat;
+  --dl-bg-pos: center;
+}
+
+/*
+  A custom image supplies its own URL — an object URL for a Blob held in IndexedDB, set on the scope
+  by `DisplayLayers`. Fit and position apply only here: the built-in backgrounds are generated
+  patterns whose tile size is part of the pattern, and "contain" on a 64px grid would stretch one
+  cell across the viewport.
+*/
+[data-dl-bg='custom'] {
+  --dl-bg-image: var(--dl-bg-url, none);
+}
+
+[data-dl-bg='custom'][data-dl-bg-fit='cover'] { --dl-bg-size: cover; --dl-bg-repeat: no-repeat; }
+[data-dl-bg='custom'][data-dl-bg-fit='contain'] { --dl-bg-size: contain; --dl-bg-repeat: no-repeat; }
+[data-dl-bg='custom'][data-dl-bg-fit='tile'] { --dl-bg-size: auto; --dl-bg-repeat: repeat; }
+
+[data-dl-bg='custom'][data-dl-bg-pos='top-left'] { --dl-bg-pos: left top; }
+[data-dl-bg='custom'][data-dl-bg-pos='top'] { --dl-bg-pos: center top; }
+[data-dl-bg='custom'][data-dl-bg-pos='top-right'] { --dl-bg-pos: right top; }
+[data-dl-bg='custom'][data-dl-bg-pos='left'] { --dl-bg-pos: left center; }
+[data-dl-bg='custom'][data-dl-bg-pos='center'] { --dl-bg-pos: center center; }
+[data-dl-bg='custom'][data-dl-bg-pos='right'] { --dl-bg-pos: right center; }
+[data-dl-bg='custom'][data-dl-bg-pos='bottom-left'] { --dl-bg-pos: left bottom; }
+[data-dl-bg='custom'][data-dl-bg-pos='bottom'] { --dl-bg-pos: center bottom; }
+[data-dl-bg='custom'][data-dl-bg-pos='bottom-right'] { --dl-bg-pos: right bottom; }
+
+/* ════════════════════════════════════════════════════════════════ overlays ════════════════════ */
+
+[data-dl-scan='off'] body::before,
+[data-dl-scan='off'] .scanlines::after {
+  display: none;
+}
+
+[data-dl-grid='off'] body {
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%, color-mix(in oklab, var(--cyan) 7%, transparent), transparent 62%),
+    radial-gradient(900px 560px at 96% 104%, color-mix(in oklab, var(--hot-red) 5.5%, transparent), transparent 60%);
+}
+
+[data-dl-grid='off'] .cyber-grid {
+  background-image: none;
+}
+
+/*
+  Grain and vignette, over everything and catching nothing.
+
+  Film grain is an feTurbulence field as a data URI: no network request, and it is what stops large
+  flat blacks from banding on cheap panels. Kept at 3.5% — visible as texture, never as dirt. The
+  vignette is a separate element rather than a second layer on the same one because the two need
+  different opacities, and one element cannot have two.
+*/
+.dl-grain-layer,
+.dl-vignette-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  display: none;
+}
+
+.dl-grain-layer {
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.dl-vignette-layer {
+  background-image: radial-gradient(ellipse at center, transparent 42%, color-mix(in oklab, var(--void) 78%, transparent) 100%);
+}
+
+[data-dl-grain='on'] .dl-grain-layer { display: block; }
+
+/*
+  The same three layers, confined to the live preview.
+
+  `position: fixed` ignores every ancestor except a transformed one, so the page's layers would spill
+  across the whole viewport if the preview reused them as-is. This is the only difference between a
+  preview and the page: where the decoration is allowed to reach.
+*/
+.dl-layer-inset {
+  position: absolute;
+  z-index: 0;
+}
+
+.dl-bg-layer.dl-layer-inset {
+  z-index: 0;
+}
+[data-dl-vignette='on'] .dl-vignette-layer { display: block; }
+
+/*
+  Chromatic aberration — off by default, deliberately. It is a lens defect, and on body text it is a
+  legibility defect too, so it is limited to display headings where it reads as a bad signal rather
+  than bad eyesight. Body copy is never touched by it.
+*/
+[data-dl-aberration='on'] h1,
+[data-dl-aberration='on'] h2 {
+  text-shadow:
+    -1px 0 0 color-mix(in oklab, var(--hot-red) 50%, transparent),
+    1px 0 0 color-mix(in oklab, var(--cyan) 50%, transparent);
+}
+
+/* ═════════════════════════════════════════════════════════════════ pulses ═════════════════════ */
+
+[data-dl-border-pulse='on'] .dl-surface,
+[data-dl-border-pulse='on'] .cyber-panel {
+  animation: dl-border-pulse calc(4.5s / max(var(--dl-pulse), 0.25)) ease-in-out infinite;
+}
+
+@keyframes dl-border-pulse {
+  0%, 100% { border-color: var(--dl-fr-color); }
+  50% { border-color: color-mix(in oklab, var(--acid) calc(70% * var(--dl-pulse)), var(--dl-fr-color)); }
+}
+
+/*
+  The live indicator. Its pulse is the one animation on by default, because it means "now" — and it
+  is never the only thing saying so: every pulsing dot on this site sits beside the word "Live".
+*/
+[data-dl-live-pulse='off'] .neon-pulse,
+[data-dl-live-pulse='off'] .animate-ping,
+[data-dl-live-pulse='off'] .animate-pulse {
+  animation: none;
+}
+
+[data-dl-live-pulse='on'] .neon-pulse {
+  animation-duration: calc(2.2s / max(var(--dl-pulse), 0.25));
+}
+
+/* ════════════════════════════════════════════════════════════════ motion ══════════════════════ */
+
+/*
+  `off` pauses rather than removes, so an animation resumes from where it stopped instead of jumping.
+  The rest scale the durations the neon layer declared.
+*/
+[data-dl-motion='off'] *,
+[data-dl-motion='off'] *::before,
+[data-dl-motion='off'] *::after {
+  animation-play-state: paused !important;
+}
+
+/*
+  Entrances are CANCELLED, not paused — and this is not a refinement.
+
+  Pausing holds an animation at the frame it has reached, and an entrance that has not started yet is
+  at frame zero: `opacity: 0`. Turning motion off therefore made the homepage headline, its eyebrow
+  and its description invisible — not dimmed, gone. `animation: none` drops the animation so the
+  element renders at its own natural styles, which is what the reduced-motion block does for exactly
+  the same reason. Pausing stays right for the looping ambience above: a paused loop is a still frame
+  of something already visible.
+*/
+[data-dl-motion='off'] .boot-in,
+[data-dl-motion='off'] .boot-in-slow {
+  animation: none !important;
+}
+
+[data-dl-motion='calm'] .cyber-grid { animation-duration: 44s; }
+[data-dl-motion='calm'] body::before { animation-duration: 16s; }
+[data-dl-motion='calm'] .neon-pulse { animation-duration: 4s; }
+[data-dl-motion='calm'] .neon-crown { animation-duration: 7s; }
+
+[data-dl-motion='fast'] .cyber-grid { animation-duration: 9s; }
+[data-dl-motion='fast'] body::before { animation-duration: 3s; }
+[data-dl-motion='fast'] .neon-pulse { animation-duration: 1.1s; }
+[data-dl-motion='fast'] .neon-crown { animation-duration: 1.6s; }
+
+/* ═════════════════════════════════════════════════════════════ intensity ═════════════════════ */
+
+/*
+  Intensity is not a switch with its own styles: it SETS the seven advanced values, in settings.ts,
+  and they are what every rule above reads. So a preset and the equivalent hand-set sliders render
+  identically — there is no hidden extra that only a preset can reach, and CUSTOM is not a
+  second-class state. Only structural changes a multiplier cannot express are declared per preset.
+*/
+[data-dl-intensity='clean'] body {
+  background-image: none;
+}
+
+[data-dl-intensity='clean'] .cyber-sweep::after {
+  display: none;
+}
+
+[data-dl-intensity='overdrive'] .cyber-panel {
+  animation: dl-panel-breathe 6s ease-in-out infinite;
+}
+
+[data-dl-intensity='overdrive'] h1 {
+  text-shadow:
+    -1px 0 0 color-mix(in oklab, var(--hot-red) 35%, transparent),
+    1px 0 0 color-mix(in oklab, var(--cyan) 35%, transparent),
+    0 0 30px color-mix(in oklab, var(--cyan) 30%, transparent);
+}
+
+@keyframes dl-panel-breathe {
+  0%, 100% { box-shadow: var(--dl-fr-shadow), var(--dl-fr-inset), var(--dl-depth-shadow); }
+  50% { box-shadow: var(--dl-fr-shadow), var(--dl-fr-inset), var(--dl-depth-shadow), 0 0 26px color-mix(in oklab, var(--cyan) 16%, transparent); }
+}
+
+/* ════════════════════════════════════════════════════════ performance guards ═════════════════ */
+
+/*
+  Two effects are expensive per FRAME rather than per paint, and both are dropped on small screens.
+
+  `backdrop-filter` forces the compositor to re-read and blur everything behind an element on every
+  scroll, and a page of glass panels on a mid-range phone drops frames while doing nothing a reader
+  asked for. The frame still applies — border, inset light, shadow — so Glass remains Glass; it
+  simply stops paying for a live blur on the device least able to afford it.
+*/
+@media (max-width: 767px) {
+  [data-dl-frame='glass'] {
+    --dl-fr-blur: none;
+  }
+
+  /* A viewport-sized blur on a phone is the single most expensive thing this file can ask for. */
+  .dl-bg-layer > .dl-bg-image {
+    filter: none;
+    inset: 0;
+  }
+}
+
+/*
+  A machine that says it cannot animate smoothly is believed.
+
+  `update: slow` is set by browsers on low-refresh and power-constrained displays. Ambient motion is
+  the first thing to go there, because it is the only motion nobody asked for.
+*/
+@media (update: slow) {
+  .cyber-grid,
+  body::before,
+  [data-dl-border-pulse='on'] .dl-surface,
+  [data-dl-border-pulse='on'] .cyber-panel,
+  [data-dl-intensity='overdrive'] .cyber-panel {
+    animation: none !important;
+  }
+}
+
+/*
+  The system preference is the ceiling, not the floor.
+
+  The panel can turn motion OFF for somebody whose system says nothing. It can never turn motion ON
+  for somebody whose system asked for less — so this is declared last and wins over every speed,
+  every pulse and every preset above it.
+*/
+@media (prefers-reduced-motion: reduce) {
+  [data-dl-motion] *,
+  [data-dl-motion] *::before,
+  [data-dl-motion] *::after {
+    animation: none !important;
+  }
+}

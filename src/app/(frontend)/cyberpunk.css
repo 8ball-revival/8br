@@ -61,25 +61,16 @@
   }
 
   /*
-   * A panel: dark ground, lit hairline, and a bracket mark in the top-left corner. The corner is
-   * drawn with a gradient rather than a pseudo-element so it survives inside tables and grids where
-   * an ::before would be laid out unpredictably.
+   * A panel: dark ground, and nothing else declared here.
+   *
+   * The edge, the interior light and the corner bracket moved to display.css, because they are what
+   * the Frame control changes — and a panel cannot wear Tech Rails or Glass while this file is also
+   * insisting on a cyan hairline and a bracket. What remains is the one thing no frame overrides:
+   * the ground a panel sits on.
    */
   .cyber-panel {
     position: relative;
     background-color: var(--card);
-    border: 1px solid var(--neon-line);
-    box-shadow: var(--glow-soft);
-  }
-  .cyber-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(to right, var(--neon-cyan) 0 14px, transparent 14px) top left / 100% 1px no-repeat,
-      linear-gradient(to bottom, var(--neon-cyan) 0 14px, transparent 14px) top left / 1px 100% no-repeat;
-    opacity: 0.55;
   }
 
   /* A divider that reads as a circuit trace rather than a rule. */
