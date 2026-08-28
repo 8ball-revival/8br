@@ -38,7 +38,22 @@ export function hashUnit(seed: string): number {
   return ((h >>> 0) % 100000) / 100000
 }
 
-export const DEV_PASSWORD = 'DevPassw0rd!'
+/**
+ * The development password.
+ *
+ * Read from the environment so a personal one can be used without it living in this file — which is
+ * committed, and a repository is the wrong place for a password somebody also uses elsewhere. Set
+ * DEV_OWNER_PASSWORD in `.env` (gitignored) to override; the fallback is what a fresh clone gets.
+ */
+export const DEV_PASSWORD = process.env.DEV_OWNER_PASSWORD || 'DevPassw0rd!'
+
+/**
+ * The Owner's sign-in name.
+ *
+ * Payload is configured with `loginWithUsername` and `allowEmailLogin`, so the Owner can sign in
+ * with either this or the address below. Overridable for the same reason as the password.
+ */
+export const DEV_OWNER_USERNAME = process.env.DEV_OWNER_USERNAME || 'DEV_Owner'
 
 /**
  * One account per permission level.
@@ -47,7 +62,7 @@ export const DEV_PASSWORD = 'DevPassw0rd!'
  * which is exactly why it is easy to forget.
  */
 export const DEV_ACCOUNTS = [
-  { key: 'owner', email: 'owner@example.test', username: 'DEV_Owner', name: 'Ottoline Owner', role: 'owner', headAdmin: true, trusted: true },
+  { key: 'owner', email: 'owner@example.test', username: DEV_OWNER_USERNAME, name: 'Ottoline Owner', role: 'owner', headAdmin: true, trusted: true },
   { key: 'admin', email: 'admin@example.test', username: 'DEV_Admin', name: 'Adrian Admin', role: 'admin', headAdmin: false, trusted: true },
   { key: 'author', email: 'author@example.test', username: 'DEV_TrustedPen', name: 'Tamsin Trusted', role: 'member', headAdmin: false, trusted: true },
   { key: 'member', email: 'member@example.test', username: 'DEV_Member', name: 'Marcus Member', role: 'member', headAdmin: false, trusted: false },

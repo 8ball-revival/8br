@@ -42,10 +42,17 @@ for (const account of DEV_ACCOUNTS) {
 
   if (existing.docs.length > 0) {
     const id = Number(existing.docs[0].id)
+    /*
+     * The password is rewritten too, not just the username.
+     *
+     * `dev:seed` runs against accounts that already exist, so without this a changed
+     * DEV_OWNER_PASSWORD would appear to take effect — the username updates — while the old password
+     * kept working, which is a confusing way to be locked out.
+     */
     await payload.update({
       collection: 'users',
       id,
-      data: { username: account.username, roles: [account.role] } as never,
+      data: { username: account.username, roles: [account.role], password: DEV_PASSWORD } as never,
       overrideAccess: true,
       context: SEED_CONTEXT,
     })
@@ -68,7 +75,7 @@ for (const account of DEV_ACCOUNTS) {
 }
 
 for (const account of DEV_ACCOUNTS) {
-  log(`  ${account.role.padEnd(6)} ${account.email} -> user ${userIdByKey[account.key]}`)
+  log(`  ${account.role.padEnd(6)} ${account.username.padEnd(16)} ${account.email} -> user ${userIdByKey[account.key]}`)
 }
 
 /*

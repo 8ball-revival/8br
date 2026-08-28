@@ -22,11 +22,23 @@
  *   npm run dev:seed         reseed only, leaving the schema alone
  */
 import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const SEED_ONLY = process.argv.includes('--seed-only')
+
+/** Minimal `.env` reader, so the closing banner can report the sign-in that actually applies. */
+function readEnvFile(file) {
+  if (!existsSync(file)) return {}
+  const out = {}
+  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line)
+    if (m) out[m[1]] = m[2].trim().replace(/^["']|["']$/g, '')
+  }
+  return out
+}
 
 function run(label, command, args) {
   process.stdout.write(`\n▶ ${label}\n`)
@@ -59,6 +71,15 @@ if (!SEED_ONLY) {
 run('Seeding fixtures',
   'node', ['scripts/run-with-esm.mjs', 'npx', 'tsx', '--tsconfig', 'scripts/tsconfig.verify.json', '--env-file=.env', 'scripts/db/seed-dev.mts'])
 
+/*
+ * Reported from the environment rather than printed as a fixed line: DEV_OWNER_USERNAME and
+ * DEV_OWNER_PASSWORD can change the Owner's sign-in, and a banner that always says DevPassw0rd!
+ * would be confidently wrong for anyone who has set them.
+ */
+const ownerName = readEnvFile(path.join(ROOT, '.env')).DEV_OWNER_USERNAME || 'DEV_Owner'
+const ownerPassSet = Boolean(readEnvFile(path.join(ROOT, '.env')).DEV_OWNER_PASSWORD)
+
 process.stdout.write('\n✓ Development database rebuilt from fixtures.\n')
-process.stdout.write('  Accounts: owner@example.test, admin@example.test, author@example.test, member@example.test\n')
-process.stdout.write('  Password: DevPassw0rd!\n')
+process.stdout.write(`  Owner:    ${ownerName}  (or owner@example.test)\n`)
+process.stdout.write(`  Password: ${ownerPassSet ? 'DEV_OWNER_PASSWORD, from .env' : 'DevPassw0rd!'}\n`)
+process.stdout.write('  Others:   admin@example.test, author@example.test, member@example.test (DevPassw0rd!)\n')
