@@ -18,6 +18,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 
 import { readDeclarations, resolveToken, contrastRatio } from './support/color.mts'
+import { checkAccent, hslToHex, readableInk, SEMANTIC_TOKENS } from '../src/lib/display/color.ts'
 
 let pass = 0
 let fail = 0
@@ -28,6 +29,7 @@ const check = (label: string, ok: boolean, detail?: string) => {
 const section = (t: string) => console.log(`\n--- ${t} ---`)
 
 const CSS = readFileSync('src/app/(frontend)/globals.css', 'utf8')
+const SETTINGS = readFileSync('src/lib/display/settings.ts', 'utf8')
 const DECLS = readDeclarations(CSS)
 const tok = (name: string) => resolveToken(name, DECLS) ?? ''
 
@@ -58,61 +60,90 @@ section('Text on the acid surface is black, and readable')
   check('a primary button clears AA', prim != null && prim >= AA, prim ? `${prim.toFixed(1)}:1` : 'unmeasurable')
 }
 
-section('Every accent stays readable, not just the default')
+section('Any accent a reader can reach stays readable')
 {
   /*
-   * The accent selector repoints --acid, and --acid is a SURFACE carrying black ink. So each palette
-   * has to clear AA on its own, not just the yellow the tokens are authored with — an accent that
-   * fails is a whole site nobody can read, chosen from a dropdown.
+   * The four locked accent buttons are gone. Colour Lab offers the whole HSL space instead, which
+   * removes the old audit's subject — there is no list of palettes to enumerate — and replaces it
+   * with a harder question: is EVERY colour a reader can now choose still readable?
    *
-   * Read out of hud.css rather than listed here, so adding a palette without checking its contrast
-   * is not possible: a new accent block is picked up automatically and has to pass.
+   * It has to be, because --acid is a SURFACE. The navigation, the filter bars, the buttons and the
+   * feature panel are filled with it and carry text on top, so an accent is not a preference about
+   * appearance alone — it decides whether those words can be read. The guarantee is therefore not "we
+   * picked four safe colours" but "the ink is measured, and an unreachable pairing is reported with a
+   * correction". This checks the machinery that makes that true, by running it.
    */
-  const HUD = readFileSync('src/app/(frontend)/hud.css', 'utf8')
   const ink = tok('--acid-ink')
+  const DISPLAY = readFileSync('src/app/(frontend)/display.css', 'utf8')
+  const LAB = readFileSync('src/components/display/display-lab.tsx', 'utf8')
 
-  const accents = [...HUD.matchAll(/\[data-hud-accent='([a-z]+)'\]\s*\{([\s\S]*?)\}/g)]
-    .map((m) => ({ name: m[1], acid: /--acid:\s*(#[0-9a-f]{3,8})/i.exec(m[2])?.[1] ?? null }))
-
-  check('the accent palettes are declared and readable', accents.length >= 3,
-    accents.map((a) => a.name).join(', '))
-  // Yellow is no longer the default, but its brand value is still exact — it moved, it did not change.
-  const yellowAcid = accents.find((a) => a.name === 'yellow')?.acid?.toLowerCase() ?? null
-  check('the yellow palette is unchanged', yellowAcid === '#d8dc2f', String(yellowAcid))
-
-  for (const a of accents) {
-    check(`${a.name} declares a colour`, a.acid != null)
-    if (!a.acid) continue
-    const r = contrastRatio(ink, a.acid)
-    check(`...and black ink on ${a.name} clears AA`, r != null && r >= AA,
-      r ? `${r.toFixed(1)}:1` : 'unmeasurable')
-  }
+  check('the default accent is the white pearl', /--acid:\s*#f5f4f1/i.test(CSS.slice(CSS.indexOf(':root'), CSS.indexOf(':root') + 4000)))
+  check('...and the panel agrees, so no reader sees one accent before the script runs and another after',
+    SETTINGS.includes("accentHex: '#f5f4f1'") && SETTINGS.includes("accentInk: '#050607'"))
 
   /*
-   * The retired palettes must be gone, not merely unlisted. A leftover rule would still apply to
-   * anybody whose browser held the old value.
+   * A sweep of the space a reader can actually reach, not a sample of approved values.
+   *
+   * Every 15° of hue at three saturations and nine lightnesses: 648 colours. For each, the ink the
+   * panel WOULD choose is computed by the shipped function and measured. Anything that fails must be
+   * offered a correction that passes — an unreadable colour is allowed to exist, being told nothing
+   * about it is not.
    */
-  for (const old of ['magenta', 'green', 'cyan']) {
-    check(`no leftover ${old} accent rule`, !HUD.includes(`data-hud-accent='${old}'`))
+  let sweepFailures = 0
+  let uncorrectable = 0
+  let flagged = 0
+  for (let h = 0; h < 360; h += 15) {
+    for (const sat of [35, 70, 100]) {
+      for (let l = 10; l <= 90; l += 10) {
+        const hex = hslToHex({ h, s: sat, l })
+        const result = checkAccent(hex)
+        const measured = contrastRatio(result.ink, hex)
+        if (measured == null) { sweepFailures++; continue }
+        // The ink the panel picks is the better of the two, always.
+        const other = result.ink === '#050607' ? '#f5f7f8' : '#050607'
+        const alternative = contrastRatio(other, hex)
+        if (alternative != null && alternative > measured + 0.001) sweepFailures++
+        // A failing colour must be flagged AND given a passing suggestion.
+        if (measured < AA) {
+          flagged++
+          if (!result.suggestion) uncorrectable++
+          else {
+            const fixed = contrastRatio(readableInk(result.suggestion), result.suggestion)
+            if (fixed == null || fixed < AA) uncorrectable++
+          }
+        }
+      }
+    }
   }
+  check('the ink chosen for an accent is always the more readable of the two', sweepFailures === 0,
+    `${sweepFailures} of 648 colours would be inked the wrong way`)
+  check('...the sweep really does contain unreadable colours, so this is not vacuous', flagged > 0,
+    `${flagged} of 648 fall below AA`)
+  check('...and every one of them is offered a shade that passes', uncorrectable === 0,
+    `${uncorrectable} flagged colours had no working suggestion`)
 
-  const panel = readFileSync('src/components/hud-settings.tsx', 'utf8')
-  check('the selector offers exactly the four palettes',
-    /\['yellow', 'Yellow'\], \['red', 'Red'\], \['white', 'White'\], \['blue', 'Blue'\]/.test(panel))
-  check('...and a stale stored accent falls back rather than applying',
-    panel.includes('ALLOWED') && panel.includes("accent: ['yellow', 'red', 'white', 'blue']"))
+  check('the panel warns rather than silently accepting a failing accent',
+    LAB.includes('checkAccent') && /below the 4\.5:1/.test(LAB))
+  check('...and offers the correction as one action', LAB.includes('Use the nearest readable shade'))
+  check('...with the ink measured at every write, never chosen',
+    (LAB.match(/readableInk\(/g) ?? []).length >= 2 && !/accentInk:\s*['"]#(?!050607)/.test(LAB))
 
   /*
-   * White is the default, and three separate places have to agree on that or a reader gets one
-   * accent before the inline script runs and another after — the exact flash the script exists to
-   * prevent. The bare `:root` is also what a reader with JavaScript off keeps for good.
+   * The accent may repoint STRUCTURE and nothing else.
+   *
+   * Danger, success, warning, championship gold and the qualification states carry meaning — a title
+   * won, a match lost, a place secured. A reader who prefers a green interface must not see green
+   * qualification markers everywhere, because the marker would have stopped being a marker. So the
+   * custom-accent rule is read out of the stylesheet and checked for them by name.
    */
-  const layout = readFileSync('src/app/(frontend)/layout.tsx', 'utf8')
-  const base = CSS.slice(CSS.indexOf(':root'), CSS.indexOf(':root') + 4000)
-  check('the unattributed :root accent is white', /--acid:\s*#f5f4f1/i.test(base))
-  check('...so yellow is an override like the other three', HUD.includes("data-hud-accent='yellow'"))
-  check('...the pre-paint script defaults to white', layout.includes("s.accent||'white'"))
-  check('...and the stored default agrees', /accent: 'white',/.test(panel))
+  const accentRule = /\[data-dl-accent-mode='custom'\]\s*\{([\s\S]*?)\}/.exec(DISPLAY)?.[1] ?? ''
+  check('a custom accent rule exists', accentRule.length > 0)
+  for (const semantic of SEMANTIC_TOKENS) {
+    check(`...and it does not repoint ${semantic}`, !new RegExp(`${semantic}\s*:`).test(accentRule))
+  }
+  const repointed = [...accentRule.matchAll(/^\s*(--[a-z-]+)\s*:/gm)].map((m) => m[1])
+  check('...it repoints only the acid family',
+    repointed.length > 0 && repointed.every((t) => t.startsWith('--acid')), repointed.join(', '))
 
   /*
    * The rating bands are NAMES, and the accent does not get to rename them. `--tier-gold` read
@@ -124,6 +155,8 @@ section('Every accent stays readable, not just the default')
     check(`the ${band} band is a literal, not the accent`, /^#[0-9a-f]{3,8}$/i.test(value), value)
   }
   check('...and gold is still the colour it has always rendered as', tok('--tier-gold').toLowerCase() === '#d8dc2f')
+  check('...the acid ink still clears AA on the default accent',
+    (contrastRatio(ink, tok('--acid')) ?? 0) >= AA)
 }
 
 section('Text on the dark grounds is readable')
