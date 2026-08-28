@@ -29,7 +29,7 @@ const check = (label: string, ok: boolean, detail?: string) => {
 const section = (s: string) => console.log(`\n--- ${s} ---`)
 
 const cyber = readFileSync('src/app/(frontend)/cyberpunk.css', 'utf8')
-const hud = readFileSync('src/app/(frontend)/hud.css', 'utf8')
+const hud = readFileSync('src/app/(frontend)/display.css', 'utf8')
 
 section('No entrance begins at zero opacity')
 {
@@ -56,14 +56,14 @@ section('No entrance begins at zero opacity')
 
 section('Turning motion off cancels entrances rather than freezing them')
 {
-  const pauses = /\[data-hud-motion='off'\][\s\S]*?animation-play-state:\s*paused/.test(hud)
+  const pauses = /\[data-dl-motion='off'\][\s\S]*?animation-play-state:\s*paused/.test(hud)
   check('the ambience is paused, so a loop holds a frame it had reached', pauses)
 
-  const cancels = /\[data-hud-motion='off'\]\s*\.boot-in[\s\S]{0,200}?animation:\s*none/.test(hud)
+  const cancels = /\[data-dl-motion='off'\]\s*\.boot-in[\s\S]{0,200}?animation:\s*none/.test(hud)
   check('entrances are cancelled, so nothing is held at frame zero', cancels)
 
   const order = hud.indexOf("animation-play-state: paused")
-  const cancelAt = hud.indexOf("[data-hud-motion='off'] .boot-in")
+  const cancelAt = hud.indexOf("[data-dl-motion='off'] .boot-in")
   check('the cancel is declared after the pause, so it wins', cancelAt > order, `pause@${order} cancel@${cancelAt}`)
 }
 
