@@ -25,7 +25,17 @@ export function Top10Table({ rows, platform }: { rows: LeaderRow[]; platform: 'C
   return (
     <section
       aria-labelledby="top10-heading"
-      className="cyber-clip flex h-full flex-col border border-[var(--line-strong)] bg-[var(--graphite)]"
+      /*
+        `min-w-0`, or this panel makes the whole PAGE scroll sideways on a phone.
+
+        The table inside carries `min-w-[34rem]` so its ten columns stay legible, and it sits in a
+        scroll frame that is meant to absorb that. But a grid item's default `min-width` is `auto`,
+        which means "at least my content's minimum" — so the 544px table propagated straight out
+        through the scroll frame and set this section's floor, and the homepage overflowed by about
+        110px at 390px wide. `min-w-0` lets the section shrink to its column, and the overflow goes
+        back to where it belongs: inside the frame built for it.
+      */
+      className="dl-surface cyber-clip flex h-full min-w-0 flex-col border border-[var(--line-strong)] bg-[var(--graphite)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
         <h2 id="top10-heading" className="flex items-baseline gap-2">

@@ -28,7 +28,13 @@ export function SeasonResults({ rows }: { rows: SeasonResultRow[] }) {
   return (
     <section
       aria-labelledby="season-results-heading"
-      className="cyber-clip flex h-full flex-col border border-[var(--line-strong)] bg-[var(--graphite)]"
+      /*
+        `min-w-0` for the same reason as Rankings Top 10 beside it: the table inside carries
+        `min-w-[34rem]`, and a grid item's default `min-width: auto` lets that minimum escape the
+        scroll frame and set the panel's floor, which made the whole page scroll sideways on a
+        phone. The table still scrolls in its own frame; the page no longer scrolls with it.
+      */
+      className="dl-surface cyber-clip flex h-full min-w-0 flex-col border border-[var(--line-strong)] bg-[var(--graphite)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
         <h2 id="season-results-heading" className="flex items-center gap-2">
@@ -58,7 +64,9 @@ export function SeasonResults({ rows }: { rows: SeasonResultRow[] }) {
           role="region"
           aria-label="Season championship results, scrollable"
           tabIndex={0}
-          className="scrollbar-themed max-h-[22rem] w-full overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          /* `relative` for the same reason as DataTableFrame: it contains the `sr-only` labels inside, which
+             otherwise resolve against the page and drag its scroll area past the right edge. */
+          className="scrollbar-themed relative max-h-[22rem] w-full overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         >
           <table className="w-full min-w-[34rem] border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--graphite)] text-[0.6rem] uppercase tracking-[0.12em] text-muted-foreground">

@@ -281,7 +281,17 @@ export function DataTableFrame({
       aria-label={label}
       tabIndex={0}
       className={cn(
-        'scrollbar-themed w-full overflow-x-auto',
+        /*
+         * `relative`, and it is what makes guarantee 1 above actually hold.
+         *
+         * Without it this element is not a containing block, so an absolutely positioned DESCENDANT
+         * resolves against the initial containing block instead and is not clipped by this scroller.
+         * Tailwind's `sr-only` is exactly that — `position: absolute` at its static position — so
+         * every screen-reader label inside a table wider than the viewport was laid out beyond the
+         * right edge of the page and extended the document's scroll area. One-pixel, invisible, and
+         * enough to give the homepage a horizontal scrollbar on a phone: 104px of it at 485px wide.
+         */
+        'scrollbar-themed relative w-full overflow-x-auto',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
         className,
       )}
