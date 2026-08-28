@@ -24,13 +24,38 @@
  */
 
 /** Databases a destructive local command may touch. */
-export const APPROVED_LOCAL_DATABASES = ['8br_dev', '8br_dev_redesign', '8br_test'] as const
+export const APPROVED_LOCAL_DATABASES = ['8br_dev_fixtures', '8br_test'] as const
+
+/**
+ * The ONLY databases a fixture, seed or reset may touch.
+ *
+ * Deliberately narrower than the list above and deliberately separate: reading is one risk, writing
+ * invented data is another. Everything here holds dummy data and nothing else, so the worst outcome
+ * of a mistake is a wasted minute re-seeding.
+ */
+export const FIXTURE_DATABASES = ['8br_dev_fixtures', '8br_test'] as const
 
 /** Hostnames that are the local machine. */
 export const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', ''] as const
 
 /** Databases that are production, named explicitly so a typo cannot reach them. */
-export const FORBIDDEN_DATABASES = ['neondb', 'eightballregistry_launch_20260818_1458'] as const
+/**
+ * Named refusals, kept even though the host check would catch most of them.
+ *
+ * `eightballregistry_local_20260827` is the database serving 8br.gg. The two beside it are its
+ * predecessors, retained only for rollback. `8br_dev_redesign` was the local authority until it was
+ * preserved as a recovery copy; it is listed here so a stale `.env` pointing at it fails loudly
+ * rather than quietly reviving a database that is supposed to be finished with.
+ */
+export const FORBIDDEN_DATABASES = [
+  'neondb',
+  'eightballregistry_local_20260827',
+  'eightballregistry_prod_20260827',
+  'eightballregistry_launch_20260818_1458',
+  '8br_dev_redesign',
+  '8br_dev_redesign_dirty_20260827',
+  '8br_dev_postincident_20260827',
+] as const
 
 /** Host fragments that mean a managed remote provider. */
 export const REMOTE_HOST_MARKERS = ['neon.tech', 'aws.neon', 'vercel-storage', 'supabase', 'rds.amazonaws'] as const
@@ -117,4 +142,105 @@ export function assertLocalDatabase(
     + `  Destructive development commands may only touch ${APPROVED_LOCAL_DATABASES.join(', ')} on localhost.\n`
     + '  There is no override. Point DATABASE_URL at a local database instead.',
   )
+}
+
+
+/**
+ * Refuse to continue unless this process may write INVENTED data.
+ *
+ * The stricter sibling of `assertLocalDatabase`, for seeds, resets and fixtures — anything that puts
+ * rows in a database that were never real. Two differences, both deliberate:
+ *
+ *   · It has no Vercel exemption. `assertLocalDatabase` returns early on Vercel because the deployed
+ *     application is SUPPOSED to write to production. A fixture never is, anywhere, for any reason,
+ *     so a seed that somehow runs in a deployment is refused rather than trusted.
+ *   · It accepts only the fixture databases, which hold dummy data and nothing else. The wider
+ *     development list is not good enough: reading real data locally is fine, overwriting it is not.
+ *
+ * There is no override flag. An escape hatch on a safety check becomes the thing everyone types.
+ */
+export function assertFixtureDatabase(
+  context: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (isVercelRuntime(env)) {
+    throw new Error(
+      `${context}: refusing to run in a deployment.
+`
+      + '  Seeds and fixtures write invented data. Nothing deployed may do that, in any environment.',
+    )
+  }
+
+  const verdict = inspectConnection(env.DATABASE_URL)
+  const database = (env.DATABASE_URL ?? '').split('/').pop()?.split('?')[0] ?? ''
+  const isFixtureDb = (FIXTURE_DATABASES as readonly string[]).includes(database)
+
+  if (verdict.allowed && isFixtureDb) return
+
+  throw new Error(
+    `${context}: refusing to write fixtures to ${verdict.summary}.
+`
+    + `  ${verdict.allowed ? `"${database}" is not a fixture database.` : verdict.reason}
+`
+    + `  Fixtures may only be written to ${FIXTURE_DATABASES.join(' or ')} on localhost.
+`
+    + '  There is no override. Run `npm run dev:reset` to build a fixture database instead.',
+  )
+}
+
+
+/**
+ * The endpoint the production database lives on.
+ *
+ * Named as well as listed by database name, because the mistake worth catching is not "somebody
+ * typed the production database's name" — it is a fresh database created on production's compute
+ * and given an innocent name, which every name-based check would wave through.
+ */
+export const PRODUCTION_DB_ENDPOINT = 'ep-spring-sun'
+
+/**
+ * Refuse to let a PREVIEW deployment talk to production.
+ *
+ * Preview builds are made from whatever branch somebody pushed, they are shared by URL, and they run
+ * the same code as production with none of the review. A preview pointed at the live database would
+ * be a public, unreviewed, write-capable window onto the only copy of the competition record — and
+ * the way that happens is not malice, it is an environment variable set on the wrong scope.
+ *
+ * Production itself is untouched by this: `VERCEL_ENV === 'production'` is exactly where the app is
+ * supposed to reach production, so the check does not apply there.
+ */
+export function assertPreviewIsolation(env: NodeJS.ProcessEnv = process.env): void {
+  /*
+   * Two callers, one rule: nothing may reach production except production itself.
+   *
+   * A PREVIEW is refused because it is built from any pushed branch and shared by URL — a public,
+   * unreviewed, write-capable window onto the only copy of the competition record.
+   *
+   * A LOCAL process is refused for the plainer reason: a developer's `.env` is the most likely place
+   * a production URL ends up, and a local server that connects to production is one careless click
+   * away from editing it. Production is served by Vercel, so nothing running off-Vercel has any
+   * business there.
+   *
+   * `VERCEL_ENV === 'production'` is exactly where the app SHOULD reach production, so it returns.
+   */
+  if (env.VERCEL_ENV === 'production') return
+
+  const url = env.DATABASE_URL ?? ''
+  const database = url.split('/').pop()?.split('?')[0] ?? ''
+  const looksLikeProduction =
+    url.includes(PRODUCTION_DB_ENDPOINT)
+    || (FORBIDDEN_DATABASES as readonly string[]).includes(database)
+
+  if (looksLikeProduction) {
+    const where = env.VERCEL_ENV === 'preview' ? 'Preview deployment' : 'Local process'
+    throw new Error(
+      [
+        `${where} refused: DATABASE_URL points at production.`,
+        `  database: ${database}`,
+        '  Production is the sole authority for real data and is reached by the live site alone.',
+        '  Development uses 8br_dev_fixtures; previews use the staging database.',
+        '  Run `npm run dev:reset` to build a fixture database.',
+      ].join('\n'),
+    )
+  }
 }

@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:context — precompute rich, DETERMINISTIC per-issue review context and
  * evidence SIGNALS (not conclusions) into reports/archive/review-context.json.

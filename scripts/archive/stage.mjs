@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:stage — read the READ-ONLY 8BRCAM archive and normalize it into
  * database-shaped staging JSON under data/staging/. Deterministic (no timestamps,

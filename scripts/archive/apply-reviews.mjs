@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:apply-reviews — derive data/reviewed-staging/ from data/staging/ by
  * applying ONLY approved/resolved review decisions. Never overwrites data/staging/.

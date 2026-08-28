@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Row counts and content checksums for the canonical competition record.
  *

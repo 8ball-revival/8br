@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Create one private reconstruction shell for every entry in the 8BRCAM manifest.
  *

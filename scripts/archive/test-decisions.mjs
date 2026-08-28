@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:review-test — verifies the decision store: (1) a decision saves, (2) a
  * replacement preserves the prior decision (history + `previous`), nothing overwritten.

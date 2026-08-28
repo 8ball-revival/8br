@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Restore the playoff seeds Season 1 lost.
  *

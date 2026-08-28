@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:import — DRY-RUN ONLY. Never connects to PostgreSQL, never writes rows.
  * Real execution is disabled: anything other than --dry-run is refused.

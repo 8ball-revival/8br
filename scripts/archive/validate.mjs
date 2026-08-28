@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:validate — read data/staging and detect identity/competition/match/
  * championship issues. Writes validation-summary.json and review-queue.json to

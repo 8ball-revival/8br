@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { changeCueverseId } from '../src/lib/players/service.ts'

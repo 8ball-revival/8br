@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Remove audit rows left behind by verification fixtures — and NOTHING else.
  *

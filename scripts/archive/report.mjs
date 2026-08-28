@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:report — render human-readable Markdown reports from the staging data and
  * validation summary. Deterministic (no timestamps). Reads only; writes to reports/archive/.

@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 #!/usr/bin/env node
 /**
  * Move locally stored media into Vercel Blob, once, before the first production deploy.

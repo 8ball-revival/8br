@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Seed canonical Player PROFILES from the shared identity resolver. One Player per
  * canonical identity (legacyPlayerId = the resolver id, e.g. "P0969" / "neo"), with

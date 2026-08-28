@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Number the ten one-item lists in the migrated "Top 10 Active CueVerse Players" post.
  *

@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * A read-only inventory of the offline 8BRCAM archive, 2006–2014.
  *

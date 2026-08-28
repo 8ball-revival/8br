@@ -1,5 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 
+import { assertPreviewIsolation } from '@/lib/db-guard'
+
 /**
  * Prisma client, loaded LAZILY via dynamic import and exposed through a proxy.
  *
@@ -31,6 +33,12 @@ const globalForPrisma = globalThis as unknown as {
 export function getPrisma(): Promise<PrismaClient> {
   if (globalForPrisma.prisma) return Promise.resolve(globalForPrisma.prisma)
   if (!globalForPrisma.prismaPromise) {
+    /*
+     * Checked here because this is the one place every database access passes through, so a preview
+     * wired to production fails on its first query rather than after somebody notices live data on a
+     * preview URL. It is a no-op everywhere except a Vercel preview.
+     */
+    assertPreviewIsolation()
     globalForPrisma.prismaPromise = import('@prisma/client').then(({ PrismaClient }) => {
       const client = new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],

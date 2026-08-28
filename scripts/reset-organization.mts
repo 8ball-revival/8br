@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * 8BR organization reset — permanently wipes ALL organization data and ALL accounts,
  * leaving a completely fresh platform (empty tournaments, rankings, predictions, and NO

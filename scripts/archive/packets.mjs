@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:review-packet — export selected unresolved issues into deterministic JSON +
  * Markdown packets under reports/archive/review-packets/. READ-ONLY: never modifies

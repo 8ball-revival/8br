@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import '../_retired.mjs'
+
 /**
  * archive:apply-policies — record the APPROVED default policy decisions as explicit
  * review decisions in the real decision store. Idempotent: skips if the current

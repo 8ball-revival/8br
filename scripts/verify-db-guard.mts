@@ -27,14 +27,14 @@ console.log('\nallowed')
     check(`the "localhost" spelling also works for ${db}`, inspectConnection(U('localhost', db)).allowed)
   }
   check('a query string does not confuse it',
-    inspectConnection(`${U('127.0.0.1', '8br_dev_redesign')}?sslmode=disable`).allowed)
+    inspectConnection(`${U('127.0.0.1', '8br_dev_fixtures')}?sslmode=disable`).allowed)
 }
 
 // ─────────────────────────────────────────────────── what is refused
 console.log('\nrefused')
 {
   const cases: [string, string][] = [
-    [U('ep-spring-sun-awpmeuv7.c-12.us-east-1.aws.neon.tech', '8br_dev_redesign'), 'an approved NAME on the production host'],
+    [U('ep-spring-sun-awpmeuv7.c-12.us-east-1.aws.neon.tech', '8br_dev_fixtures'), 'an approved NAME on the production host'],
     [U('127.0.0.1', 'neondb'), 'a production NAME on localhost'],
     [U('127.0.0.1', 'eightballregistry_launch_20260818_1458'), 'the live launch database, even locally'],
     [U('db.internal.example.com', '8br_dev'), 'an approved name on some other host'],
@@ -89,7 +89,7 @@ console.log('\nno credential leaks')
 console.log('\nassertLocalDatabase')
 {
   let ok = true
-  try { assertLocalDatabase('test', { DATABASE_URL: U('127.0.0.1', '8br_dev_redesign') } as NodeJS.ProcessEnv) } catch { ok = false }
+  try { assertLocalDatabase('test', { DATABASE_URL: U('127.0.0.1', '8br_dev_fixtures') } as NodeJS.ProcessEnv) } catch { ok = false }
   check('permits an approved local database', ok)
 
   let threw = false

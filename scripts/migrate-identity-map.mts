@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Apply the authoritative identity mapping to the DB Player layer (profiles + aliases +
  * current CueVerse ID + duplicate merges). SAFE for rankings — those resolve through the

@@ -1,3 +1,6 @@
+// RETIRED — see scripts/_retired.mjs. Importing this file refuses to run.
+import './_retired.mjs'
+
 /**
  * Regenerate a fresh one-time claim code for every UNCLAIMED migrated account and write a complete
  * admin-only list. Use this whenever the codes need to be (re)issued — it invalidates any previous
