@@ -96,7 +96,7 @@ export function AchievementsCarousel({ achievements }: { achievements: Achieveme
   return (
     <section
       aria-labelledby="achievements-heading"
-      className="cyber-clip relative border border-[var(--acid-dim)] bg-[var(--acid)] p-4 text-[var(--acid-ink)]"
+      className="dl-surface dl-on-light cyber-clip relative border border-[var(--acid-dim)] bg-[var(--acid)] p-4 text-[var(--acid-ink)]"
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="flex flex-wrap items-baseline gap-3">

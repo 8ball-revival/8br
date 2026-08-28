@@ -54,7 +54,16 @@ export function Panel({
   children: React.ReactNode
 }) {
   return (
-    <section className={cn('flex flex-col rounded-none border border-border bg-card', className)}>
+    /*
+      `dl-surface` makes anything built from this primitive answer the Frame, Corner, Texture and
+      Depth controls without opting in.
+
+      Note that the homepage panels do NOT currently come through here — Season Results, Rankings
+      Top 10, Live Rankings and the rest each own their root element, and each carries the class
+      itself. This component is the shared shape they should converge on; carrying the class here
+      means that when one of them does, it arrives already consistent with the others.
+    */
+    <section className={cn('dl-surface flex flex-col rounded-none border border-border bg-card', className)}>
       <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <h2 className="eyebrow text-foreground">{title}</h2>

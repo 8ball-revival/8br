@@ -76,7 +76,7 @@ export function RankingsRail({ rows, className }: { rows: ExplorerRow[]; classNa
 
 function RailPanel({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <section className="cyber-clip border border-[var(--hot-red)] bg-[var(--graphite)]">
+    <section className="dl-surface cyber-clip border border-[var(--hot-red)] bg-[var(--graphite)]">
       <div className="flex items-baseline justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
         <h2 className="font-display text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[var(--hot-red)]">
           {title}

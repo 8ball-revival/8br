@@ -30,7 +30,7 @@ export function BreakFeature({ news }: { news: HomeNews }) {
   return (
     <section
       aria-labelledby="break-feature-heading"
-      className="cyber-clip grid gap-5 border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)] lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)]"
+      className="dl-surface dl-on-light cyber-clip grid gap-5 border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)] lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)]"
     >
       <div className="min-w-0">
         <p className="eyebrow text-[var(--acid-ink)]/70">The Break</p>
@@ -107,7 +107,7 @@ export function BreakFeature({ news }: { news: HomeNews }) {
  */
 function BreakFallback() {
   return (
-    <section className="cyber-clip border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)]">
+    <section className="dl-surface dl-on-light cyber-clip border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)]">
       <p className="eyebrow text-[var(--acid-ink)]/70">The Break</p>
       <h2 className="mt-2 font-display text-2xl font-bold uppercase tracking-tight">
         Nothing published yet

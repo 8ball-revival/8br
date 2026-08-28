@@ -182,7 +182,7 @@ export function SeasonBracketPanel({
   return (
     <section
       aria-label="Playoff bracket"
-      className="w-full overflow-hidden cyber-clip border border-border bg-card"
+      className="dl-surface w-full overflow-hidden cyber-clip border border-border bg-card"
     >
       <header className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5">
         <h2 className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[var(--gold)]">
