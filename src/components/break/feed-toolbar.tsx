@@ -27,12 +27,22 @@ export function FeedToolbar({
   category,
   q,
   canPost,
+  signedIn,
 }: {
   sort: FeedSort
   window: string
   category: string | null
   q: string | null
   canPost: boolean
+  /**
+   * Told apart from `canPost` because they fail differently.
+   *
+   * A signed-OUT visitor is sent to sign in. A signed-IN member whose posting has been removed must
+   * not be: sending them to a login page they are already past is a dead end that looks like a bug,
+   * and it was the shape of the original problem here. They get no button and a line of explanation
+   * instead, with the full reason on the compose page.
+   */
+  signedIn: boolean
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -113,14 +123,21 @@ export function FeedToolbar({
           </div>
         </form>
 
-        <Link
-          href={canPost ? '/the-break/submit' : '/login?next=%2Fthe-break%2Fsubmit'}
-          className="inline-flex shrink-0 items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-        >
-          <PenSquare className="size-4" aria-hidden />
-          <span className="hidden sm:inline">Create Post</span>
-          <span className="sm:hidden">Post</span>
-        </Link>
+        {signedIn && !canPost ? (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            Posting removed —{' '}
+            <Link href="/the-break/submit" className="underline hover:text-foreground">why</Link>
+          </span>
+        ) : (
+          <Link
+            href={canPost ? '/the-break/submit' : '/login?next=%2Fthe-break%2Fsubmit'}
+            className="inline-flex shrink-0 items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          >
+            <PenSquare className="size-4" aria-hidden />
+            <span className="hidden sm:inline">Create Post</span>
+            <span className="sm:hidden">Post</span>
+          </Link>
+        )}
       </div>
 
       {category && (

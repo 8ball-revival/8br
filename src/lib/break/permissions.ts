@@ -37,6 +37,8 @@ export const currentBreakActor = cache(async function currentBreakActor(): Promi
     isAdmin: actor.isAdmin,
     isOwner: actor.isOwner,
     isTrustedAuthor: actor.isTrustedAuthor,
+    postingBlocked: actor.breakPostingBlocked,
+    postingBlockedReason: actor.breakPostingBlocked ? actor.breakPostingBlockedReason : null,
   }
 })
 

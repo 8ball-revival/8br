@@ -17,10 +17,33 @@ export interface BreakActorShape {
   isOwner: boolean
   /** Label only. Never a gate — The Break lets any member in good standing post. */
   isTrustedAuthor: boolean
+  /**
+   * Posting removed for abuse. A REVOCATION, not a grant: false is the ordinary state.
+   *
+   * Kept on the actor rather than looked up at each call site so every predicate below sees the
+   * same answer within one request, and so the rules stay pure functions of who is asking.
+   */
+  postingBlocked: boolean
+  /** The reason, shown to the member on the compose page. Null when nothing was removed. */
+  postingBlockedReason: string | null
 }
 
-/** Any signed-in member in good standing. Being an actor at all is the check. */
-export const canPost = (a: BreakActorShape | null): boolean => a != null
+/**
+ * Any signed-in member in good standing, unless posting has been taken away from them.
+ *
+ * ── Why the default is yes ──────────────────────────────────────────────────────────────────────
+ * The Break is a community feed, not a masthead. Requiring a grant before anybody could write would
+ * make a new member's first act asking permission, and would make an empty feed self-fulfilling. So
+ * the right arrives with the account and is removed from the people who misuse it, rather than being
+ * handed out one at a time.
+ *
+ * ── Why only posting ────────────────────────────────────────────────────────────────────────────
+ * Losing this does not silence anybody: reading, commenting, voting and saving are all untouched
+ * below. That is the point of having it at all. A timeout and a ban already exist for accounts that
+ * should not be here, and without a narrower penalty every posting problem had to be answered with
+ * one of those.
+ */
+export const canPost = (a: BreakActorShape | null): boolean => a != null && !a.postingBlocked
 export const canComment = (a: BreakActorShape | null): boolean => a != null
 export const canVote = (a: BreakActorShape | null): boolean => a != null
 export const canSave = (a: BreakActorShape | null): boolean => a != null

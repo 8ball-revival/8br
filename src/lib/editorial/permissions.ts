@@ -35,6 +35,14 @@ export interface EditorialActor {
   /** Owner only. Separate from isAdmin because attribution is an Owner-only power. */
   isOwner: boolean
   isTrustedAuthor: boolean
+  /**
+   * The Break: posting removed for abuse. Resolved here because this is where the canonical Player
+   * is already being read, and reading it in a second place is how two answers to one question
+   * appear.
+   */
+  breakPostingBlocked: boolean
+  /** Shown to the member on the compose page, so a removed permission is never unexplained. */
+  breakPostingBlockedReason: string | null
 }
 
 /**
@@ -77,7 +85,10 @@ export const currentEditorialActor = cache(async function currentEditorialActor(
   const playerId = await resolveCanonicalPlayerId(linked.id)
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-    select: { id: true, primaryName: true, cueverseId: true, active: true, blogTrustedAuthor: true },
+    select: {
+      id: true, primaryName: true, cueverseId: true, active: true, blogTrustedAuthor: true,
+      breakPostingBlocked: true, breakPostingBlockedReason: true,
+    },
   })
   if (!player || !player.active) return null
 
@@ -89,6 +100,16 @@ export const currentEditorialActor = cache(async function currentEditorialActor(
     isOwner,
     // An administrator can always publish; the flag is what matters for everyone else.
     isTrustedAuthor: isAdmin || player.blogTrustedAuthor,
+    /*
+     * Staff are exempt, and deliberately so: the people who lift a block must not be able to lock
+     * themselves out of the tool they lift it with.
+     *
+     * Nothing else about it is special-cased. It is read fresh here on every request rather than
+     * carried in a session, so removing somebody's posting takes effect on their next action instead
+     * of whenever their session happens to expire.
+     */
+    breakPostingBlocked: !isAdmin && player.breakPostingBlocked,
+    breakPostingBlockedReason: player.breakPostingBlockedReason,
   }
 })
 

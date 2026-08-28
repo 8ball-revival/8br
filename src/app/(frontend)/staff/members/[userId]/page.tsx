@@ -17,6 +17,7 @@ import { MemberProfileEditor } from '@/components/staff/member-profile-editor'
 import { AliasManager } from '@/components/staff/alias-manager'
 import { listAliases } from '@/lib/players/aliases'
 import { MemberTrustedAuthor } from '@/components/staff/member-trusted-author'
+import { MemberPostingAccess } from '@/components/staff/member-posting-access'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { getMemberDetail } from '@/lib/staff/members'
 
@@ -85,7 +86,25 @@ export default async function MemberDetailPage({ params }: Props) {
           />
         </Section>
 
-        <Section title="Publishing">
+        <Section title="The Break">
+          {/*
+            Posting first, because it is the control an administrator is far more likely to want.
+            Trusted Author sits beneath it and says plainly that it does NOT gate posting here -
+            reading it as though it did is what led to a member being granted a publishing
+            permission in the hope of clearing a 404 that had nothing to do with permissions.
+          */}
+          <MemberPostingAccess
+            targetUserId={userId}
+            targetLabel={m.cueverseId ?? m.preferredName ?? `#${m.userId}`}
+            blocked={m.breakPostingBlocked}
+            blockedReason={m.breakPostingBlockedReason}
+            blockedAt={m.breakPostingBlockedAt}
+            hasProfile={!!profile}
+            canManage={canMerge}
+          />
+        </Section>
+
+        <Section title="Publishing (legacy articles)">
           <MemberTrustedAuthor
             targetUserId={userId}
             targetLabel={m.cueverseId ?? m.preferredName ?? `#${m.userId}`}

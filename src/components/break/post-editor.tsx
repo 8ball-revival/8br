@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { updatePostAction } from '@/lib/break/post-actions'
+import { createPostAction, updatePostAction } from '@/lib/break/post-actions'
 import { POST_TYPES, MAX_TITLE, type PostType } from '@/lib/break/post-types'
 import { BodyEditor } from '@/components/editorial/body-editor'
 import { parseArticleBody } from '@/lib/editorial/richtext'
@@ -36,14 +36,26 @@ import { parseArticleBody } from '@/lib/editorial/richtext'
  * serialise-then-parse byte-identically, including ordered-list starts and media references.
  */
 export function PostEditor({
+  mode = 'edit',
   postId,
   slug,
   initial,
+  categories,
   canMarkOfficial,
   returnTo,
 }: {
-  postId: number
-  slug: string
+  /**
+   * Writing something new, or changing something that exists.
+   *
+   * One component rather than two, for the reason stated above: a second composer is how the two
+   * drift until one of them forgets to sanitise something. The differences are small and local -
+   * creation sends every field because there is no previous value to diff against, and it offers to
+   * publish rather than to save.
+   */
+  mode?: 'create' | 'edit'
+  /** Absent when creating: the post does not exist yet. */
+  postId?: number
+  slug?: string
   initial: {
     title: string
     type: PostType
@@ -53,7 +65,17 @@ export function PostEditor({
     official: boolean
     /** The body as the composer edits it, serialised from the canonical node tree. */
     bodySource: string
+    /** The category it is filed under, by slug. Null until the author chooses one. */
+    categorySlug?: string | null
   }
+  /**
+   * The categories a post may be filed under, already filtered to what this actor may use.
+   *
+   * Passed in rather than fetched here because the admin-only ones are decided on the server, and a
+   * client that received the full list and merely hid some would be drawing a permission boundary
+   * it does not hold.
+   */
+  categories: { slug: string; name: string }[]
   /** Only staff may mark a post as speaking for the site. */
   canMarkOfficial: boolean
   returnTo: string
@@ -70,8 +92,17 @@ export function PostEditor({
   const [sensitive, setSensitive] = useState(initial.sensitive)
   const [official, setOfficial] = useState(initial.official)
   const [body, setBody] = useState(initial.bodySource)
+  const [categorySlug, setCategorySlug] = useState(initial.categorySlug ?? '')
 
-  const dirty =
+  const creating = mode === 'create'
+
+  /*
+   * When creating, "dirty" means anything typed at all: there is no previous version to compare
+   * against, and the beforeunload warning below should fire for an abandoned draft.
+   */
+  const dirty = creating
+    ? title.trim().length > 0 || body.trim().length > 0 || linkUrl.trim().length > 0
+    :
     title !== initial.title
     || type !== initial.type
     || (linkUrl || null) !== initial.linkUrl
@@ -79,6 +110,7 @@ export function PostEditor({
     || sensitive !== initial.sensitive
     || official !== initial.official
     || body !== initial.bodySource
+    || (categorySlug || null) !== (initial.categorySlug ?? null)
 
   /*
    * Leaving with unsaved work should cost a keystroke, not a post.
@@ -97,6 +129,39 @@ export function PostEditor({
     setError(null)
     setSaved(false)
 
+    /*
+     * Creating sends everything, because there is nothing to diff against.
+     *
+     * The draft is written first and published second even here - `createPostAction` does both - so
+     * the publication rules stay in the one place that owns them. If publishing is refused the draft
+     * survives with the text intact, and the message says what to fix rather than discarding it.
+     */
+    if (creating) {
+      startTransition(async () => {
+        const r = await createPostAction(
+          {
+            type,
+            title,
+            body: parseArticleBody(body),
+            categorySlug: categorySlug || null,
+            linkUrl: linkUrl || null,
+            spoiler,
+            sensitive,
+            official: canMarkOfficial ? official : false,
+          },
+          { publish: true },
+        )
+        if (!r.ok) {
+          setError(r.errors?.join(' ') ?? r.error ?? 'That could not be posted.')
+          return
+        }
+        setSaved(true)
+        router.push(`/the-break/${r.slug}`)
+        router.refresh()
+      })
+      return
+    }
+
     // Only what actually moved.
     const input: Record<string, unknown> = {}
     if (title !== initial.title) input.title = title
@@ -105,6 +170,7 @@ export function PostEditor({
     if (spoiler !== initial.spoiler) input.spoiler = spoiler
     if (sensitive !== initial.sensitive) input.sensitive = sensitive
     if (canMarkOfficial && official !== initial.official) input.official = official
+    if ((categorySlug || null) !== (initial.categorySlug ?? null)) input.categorySlug = categorySlug || null
     /*
      * Parsed here, sanitised on the server. The client's tree is a proposal: `updatePost` runs it
      * through the same sanitizer post creation uses, so nothing reaches the database because a
@@ -113,6 +179,12 @@ export function PostEditor({
     if (body !== initial.bodySource) input.body = parseArticleBody(body)
 
     if (Object.keys(input).length === 0) { setSaved(true); return }
+
+    /*
+     * Unreachable when creating - that path returned above - but the compiler cannot know it, and an
+     * assertion here would be a lie told to silence it. A guard costs nothing and stays true.
+     */
+    if (postId == null) { setError('That post no longer exists.'); return }
 
     startTransition(async () => {
       const r = await updatePostAction(postId, input)
@@ -170,6 +242,19 @@ export function PostEditor({
       </fieldset>
 
       <div>
+        <label htmlFor="post-category" className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">Category</label>
+        <select
+          id="post-category" value={categorySlug}
+          onChange={(e) => setCategorySlug(e.target.value)} className={field}
+        >
+          <option value="">Choose a category</option>
+          {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+        </select>
+        {/* Required to publish, so it is said here rather than met as a refusal after writing. */}
+        <p className="mt-1 text-xs text-muted-foreground">Every post is filed under one.</p>
+      </div>
+
+      <div>
         <label htmlFor="post-body" className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">Body</label>
         <BodyEditor
           id="post-body"
@@ -182,7 +267,7 @@ export function PostEditor({
       </div>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      {saved && !error && <p role="status" className="text-sm text-[var(--gold)]">Saved.</p>}
+      {saved && !error && <p role="status" className="text-sm text-[var(--gold)]">{creating ? 'Posted.' : 'Saved.'}</p>}
 
       <div className="flex justify-end gap-2">
         <button
@@ -200,7 +285,7 @@ export function PostEditor({
           type="button" onClick={save} disabled={pending}
           className="rounded-md bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black hover:opacity-90 disabled:opacity-50"
         >
-          {pending ? 'Saving…' : 'Save changes'}
+          {pending ? (creating ? 'Posting…' : 'Saving…') : (creating ? 'Post' : 'Save changes')}
         </button>
       </div>
     </div>

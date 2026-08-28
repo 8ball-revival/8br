@@ -290,6 +290,18 @@ model Player {
   /// by an owner/admin, and never inferred from competition activity or management-only status.
   /// Revoking it stops new publishing immediately but leaves already-published work standing.
   blogTrustedAuthor    Boolean          @default(false)
+  /// The Break: posting is open to every member in good standing, so this is a REVOCATION rather
+  /// than a grant — false means "may post", which is why it defaults to false and why a new member
+  /// needs nothing done to them before they can write. Set only by a holder of manage_the_break,
+  /// and read fresh on every attempt rather than trusted from a resolved session.
+  ///
+  /// Deliberately narrower than a timeout or a ban: someone who abuses posting loses posting, and
+  /// keeps reading, commenting and voting. Silencing an account entirely is a different decision
+  /// with a different record, and collapsing the two would make the lighter penalty unavailable.
+  breakPostingBlocked  Boolean          @default(false)
+  breakPostingBlockedAt DateTime?
+  /// Shown to the member, so a removed permission is never a mystery they cannot act on.
+  breakPostingBlockedReason String?
   // Account linking: a Payload user may CLAIM this canonical identity without
   // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
   // @unique enforces one account ↔ at most one profile (both directions).

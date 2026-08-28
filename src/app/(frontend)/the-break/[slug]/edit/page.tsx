@@ -30,12 +30,23 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
       id: true, slug: true, title: true, type: true, state: true, linkUrl: true,
       spoiler: true, sensitive: true, official: true, body: true,
       authorPlayerId: true, authorHandleSnapshot: true, authorNameSnapshot: true,
+      category: { select: { slug: true } },
     },
   })
   if (!post) notFound()
   if (!manageBasis(actor, post.authorPlayerId)) notFound()
 
   const href = `/the-break/${post.slug}`
+
+  /*
+   * The same filtered list the compose page builds, for the same reason: an editor who is not staff
+   * must not be offered Announcement, and the service refuses it either way.
+   */
+  const categories = await prisma.breakCategory.findMany({
+    where: { active: true, ...(actor.isAdmin ? {} : { adminOnly: false }) },
+    select: { slug: true, name: true },
+    orderBy: { id: 'asc' },
+  })
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6">
@@ -60,6 +71,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
           postId={post.id}
           slug={post.slug}
           canMarkOfficial={canMarkOfficial(actor)}
+          categories={categories}
           returnTo={href}
           initial={{
             title: post.title,
@@ -73,6 +85,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
              * projection for search; editing it would throw away every link, list and image.
              */
             bodySource: serializeArticleBody(sanitizeDocument(post.body as unknown as RichDocument)),
+            categorySlug: post.category?.slug ?? null,
           }}
         />
       </div>

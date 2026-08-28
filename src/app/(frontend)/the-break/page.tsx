@@ -73,7 +73,7 @@ export default async function TheBreakPage({
         )}
       </header>
 
-      <FeedToolbar sort={sort} window={topWindow} category={category} q={q} canPost={canPost(actor)} />
+      <FeedToolbar sort={sort} window={topWindow} category={category} q={q} canPost={canPost(actor)} signedIn={actor != null} />
 
       {q && (
         <p className="mb-3 text-sm text-muted-foreground">

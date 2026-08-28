@@ -12,10 +12,22 @@ import { setTrustedAuthorAction } from '@/lib/editorial/trusted-author-actions'
 /**
  * The Trusted Author control on a member's admin Overview.
  *
+ * ── What it does NOT do ──────────────────────────────────────────────────────────────────────────
+ * It does not decide whether somebody can post in The Break. Every member in good standing can, and
+ * `canPost` has never consulted this flag.
+ *
+ * The wording here used to say that granting it let a member "publish articles to The Break
+ * immediately", which is how an administrator came to grant it to a member whose Create Post button
+ * was returning a 404 — a missing route, not a refused permission. Nothing changed for them, because
+ * nothing here was ever in that path. Misleading copy on a permission control is not cosmetic: it
+ * gets permissions handed out for reasons that were never true.
+ *
+ * What it actually gates is the legacy ARTICLE system under /news: whether an article publishes
+ * straight away or waits for review. To take posting away from somebody abusing it, use the Posting
+ * control above.
+ *
  * Mirrors the server rule rather than duplicating it: the action re-checks the capability itself, so
- * this component only decides what to show. The confirmation spells out what the permission actually
- * does in both directions, because "Trusted Author" on its own does not tell an administrator that
- * granting it means skipping review entirely.
+ * this component only decides what to show.
  */
 export function MemberTrustedAuthor({
   targetUserId,
@@ -51,8 +63,8 @@ export function MemberTrustedAuthor({
     void confirm({
       title: next ? 'Grant Trusted Author?' : 'Revoke Trusted Author?',
       message: next
-        ? `${targetLabel} will be able to publish articles to The Break immediately, without review. They still cannot mark anything as Official News, feature it, or pin it — those stay with administrators.`
-        : `${targetLabel} will go back to submitting articles for review before they appear. Anything they have already published stays published; this only affects what they write from now on.`,
+        ? `${targetLabel} will be able to publish legacy /news articles immediately, without review. This does not affect The Break: they can already post there, like every member. It also does not let them mark anything Official, feature it or pin it — those stay with administrators.`
+        : `${targetLabel} will go back to submitting legacy /news articles for review before they appear. Their ability to post in The Break is unaffected — use the Posting control for that. Anything already published stays published.`,
       confirmLabel: next ? 'Grant' : 'Revoke',
       cancelLabel: 'Cancel',
       tone: next ? 'default' : 'warning',
@@ -62,7 +74,7 @@ export function MemberTrustedAuthor({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">The Break:</span>
+        <span className="text-sm text-muted-foreground">Legacy articles:</span>
         {trusted
           ? <Badge variant="gold"><ShieldCheck className="mr-1 size-3" aria-hidden />Trusted Author</Badge>
           : <Badge variant="muted">Publishes after review</Badge>}
@@ -70,8 +82,8 @@ export function MemberTrustedAuthor({
 
       <p className="text-xs text-muted-foreground">
         {trusted
-          ? 'Articles by this member go live as soon as they publish them. Official News, featuring and pinning remain administrator-only.'
-          : 'Articles by this member are held for review before they appear on the site.'}
+          ? 'Legacy /news articles by this member go live as soon as they publish them. Does not affect posting in The Break, which is open to every member.'
+          : 'Legacy /news articles by this member are held for review. Does not affect posting in The Break, which is open to every member.'}
       </p>
 
       {msg && (

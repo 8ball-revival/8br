@@ -30,9 +30,13 @@ export interface MemberRow {
   timeoutUntil: string | null
   activePenalty: { type: PenaltyType; endAt: string | null } | null
   registrationCount: number
-  /// Trusted Author: may publish to The Break without review. Read from the canonical Player, so it
-  /// is the same value the editorial permission check uses rather than a second copy of it.
+  /// Trusted Author: may publish LEGACY /news articles without review. Read from the canonical
+  /// Player, so it is the same value the editorial permission check uses rather than a second copy.
+  /// It has never gated posting in The Break - see `breakPostingBlocked` for that.
   trustedAuthor: boolean
+  /// The Break: posting removed for abuse. A revocation, so `false` is the ordinary state and every
+  /// member has it. Set only by an administrator; read fresh on every posting attempt.
+  breakPostingBlocked: boolean
   /// Every handle this member also answers to. Shown in full on the roster so a search that failed
   /// on the current ID can be understood at a glance — the old handle is usually the reason.
   aliases: string[]
@@ -42,6 +46,9 @@ export interface MemberRow {
 
 export interface MemberDetail extends MemberRow {
   email: string | null // ONLY populated when the caller is authorized
+  /// When posting was removed, and the reason the member is shown. Null whenever it is not removed.
+  breakPostingBlockedAt: string | null
+  breakPostingBlockedReason: string | null
   discord: string | null
   timeZone: string | null
   createdAt: string | null
@@ -99,6 +106,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
       where: { linkedUserId: { in: userIds.map(String) } },
       select: {
         id: true, linkedUserId: true, primaryName: true, cueverseId: true, blogTrustedAuthor: true,
+        breakPostingBlocked: true,
         // Included with the profile rather than fetched per row: a hundred members would otherwise
         // be a hundred extra queries to draw one table.
         // The spelling for display; search below still matches on whatever is shown plus the key.
@@ -144,6 +152,7 @@ export async function listMembers(opts: { q?: string; status?: MemberStatus | 'A
       activePenalty: penByUser.get(uid) ?? null,
       registrationCount: countByUser.get(uid) ?? 0,
       trustedAuthor: prof?.blogTrustedAuthor ?? false,
+      breakPostingBlocked: prof?.breakPostingBlocked ?? false,
       aliases: (prof?.aliases ?? []).map((a) => a.aliasDisplay?.trim() || a.alias),
       /*
        * Both forms, for search only.
@@ -192,6 +201,7 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
       select: {
         id: true, primaryName: true, cueverseId: true, discord: true, timeZone: true,
         blogTrustedAuthor: true,
+        breakPostingBlocked: true, breakPostingBlockedAt: true, breakPostingBlockedReason: true,
         // The spelling for display; search below still matches on whatever is shown plus the key.
         aliases: { select: { alias: true, aliasDisplay: true }, orderBy: { alias: 'asc' } },
       },
@@ -227,6 +237,14 @@ export async function getMemberDetail(userId: number, opts: { includeEmail?: boo
     })(),
     registrationCount: regs.length,
     trustedAuthor: profile?.blogTrustedAuthor ?? false,
+    /*
+     * Posting in The Break is open to every member, so this reports a REMOVAL. `false` is the
+     * ordinary state and is also what a member with no linked profile gets, which is correct: an
+     * account that cannot be resolved to a Player cannot have had anything taken away from it.
+     */
+    breakPostingBlocked: profile?.breakPostingBlocked ?? false,
+    breakPostingBlockedAt: profile?.breakPostingBlockedAt?.toISOString() ?? null,
+    breakPostingBlockedReason: profile?.breakPostingBlockedReason ?? null,
     aliases: (profile?.aliases ?? []).map((a) => a.aliasDisplay?.trim() || a.alias),
     aliasSearch: (profile?.aliases ?? []).flatMap((a) => [a.alias, a.aliasDisplay ?? '']).filter(Boolean),
     warnings: warnings.map((w) => ({ id: w.id, reason: w.reason, internalNotes: w.internalNotes, staffUsername: w.staffUsername, createdAt: w.createdAt.toISOString() })),

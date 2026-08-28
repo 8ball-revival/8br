@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache'
 
 import { prisma } from '@/lib/prisma'
 import { currentBreakActor } from './permissions'
-import { canManageTheBreak, manageBasis } from './permission-rules'
-import { updatePost, softDeletePost, type PostDraftInput } from './posts'
+import { canManageTheBreak, canPost, manageBasis } from './permission-rules'
+import { consume, limitMessage } from './rate-limit'
+import { createDraft, publishPost, updatePost, softDeletePost, type PostDraftInput } from './posts'
 
 /**
  * The write path for managing a post.
@@ -29,6 +30,76 @@ export interface ManageResult {
   ok: boolean
   error?: string
   slug?: string
+}
+
+/**
+ * Write a post.
+ *
+ * ── The gap this fills ───────────────────────────────────────────────────────────────────────────
+ * The service layer has had `createDraft` and `publishPost` all along, and the rate-limit table has
+ * carried a `post.create` budget that nothing ever spent — but no action ever called them, and no
+ * page ever rendered a composer. The feed's Create Post button pointed at `/the-break/submit`, which
+ * did not exist, so it fell through to the `[slug]` route and every member who pressed it got a 404.
+ * "Anyone may post" was true of the permission model and false of the site.
+ *
+ * ── Draft first, always ──────────────────────────────────────────────────────────────────────────
+ * Even "publish now" creates a draft and then publishes it, rather than inserting a published row.
+ * That is not ceremony: `publishPost` is where the publication rules live — a link post needs a URL,
+ * a gallery needs two items, media must have finished processing — and a second path that wrote
+ * `state: PUBLISHED` directly would be a second place for those rules to be forgotten. If publishing
+ * is refused the draft survives with everything the author typed, and the message says what to fix.
+ */
+export async function createPostAction(
+  input: PostDraftInput,
+  opts: { publish?: boolean } = {},
+): Promise<ManageResult & { postId?: number; errors?: string[]; draft?: boolean }> {
+  const actor = await currentBreakActor()
+  if (!actor) return { ok: false, error: 'You need to be signed in to post.' }
+
+  /*
+   * The permission is checked here, not only on the page that drew the form.
+   *
+   * A server action is a public endpoint: the compose page refusing to render is a courtesy to
+   * somebody browsing, and nothing at all to somebody posting a request directly. This is the check
+   * that holds, and it reads the block from the actor, which was resolved from the database on this
+   * request rather than from anything the client sent.
+   */
+  if (!canPost(actor)) {
+    return { ok: false, error: 'Posting has been removed from your account. Everything else still works.' }
+  }
+
+  const limit = await consume('post.create', { playerId: actor.playerId })
+  if (!limit.allowed) return { ok: false, error: limitMessage('post.create', limit) }
+
+  const created = await createDraft(actor, input)
+  if (!created.ok || !created.postId) return { ok: false, error: created.error ?? 'That could not be saved.' }
+
+  if (!opts.publish) {
+    revalidatePath('/the-break/manage')
+    return { ok: true, postId: created.postId, slug: created.slug, draft: true }
+  }
+
+  const published = await publishPost(actor, created.postId)
+  if (!published.ok) {
+    /*
+     * The draft is kept, and the caller is told so. Discarding what somebody wrote because a
+     * category was missing would be the worst possible response to a validation failure.
+     */
+    return {
+      ok: false,
+      error: published.error ?? 'That could not be published.',
+      errors: published.errors,
+      postId: created.postId,
+      slug: created.slug,
+      draft: true,
+    }
+  }
+
+  revalidatePath('/the-break')
+  revalidatePath(`/the-break/${published.slug ?? created.slug}`)
+  revalidatePath('/the-break/manage')
+  revalidatePath('/')
+  return { ok: true, postId: created.postId, slug: published.slug ?? created.slug }
 }
 
 /** Edit any post the actor is entitled to manage. Attribution is not among the editable fields. */

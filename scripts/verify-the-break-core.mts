@@ -22,6 +22,7 @@ import { decideCategory } from '../src/lib/break/legacy-map.ts'
 import { LIMITS, clientHash } from '../src/lib/break/rate-limit.ts'
 import {
   canPost, canComment, canVote, canModerate, ownsContent, canViewDraft, canReplyTo, canViewRemovedBody,
+  canSave, canReport, canManagePost,
 } from '../src/lib/break/permission-rules.ts'
 
 assertLocalDatabase('verify-the-break-core')
@@ -186,9 +187,18 @@ section('A post is checked before it goes out')
 // ──────────────────────────────────────────────────────────────────────────────── Permissions
 section('Permissions')
 {
-  const member = { playerId: 'p1', name: 'Member', handle: 'member', isAdmin: false, isOwner: false, isTrustedAuthor: false }
+  const member = {
+    playerId: 'p1', name: 'Member', handle: 'member',
+    isAdmin: false, isOwner: false, isTrustedAuthor: false,
+    // The ordinary state: nothing has been taken away, because posting is not granted in the first place.
+    postingBlocked: false, postingBlockedReason: null,
+  }
   const trusted = { ...member, playerId: 'p2', isTrustedAuthor: true }
   const admin = { ...member, playerId: 'p3', isAdmin: true }
+  const blocked = {
+    ...member, playerId: 'p4',
+    postingBlocked: true, postingBlockedReason: 'Repeated off-topic spam.',
+  }
 
   check('an anonymous visitor cannot post', !canPost(null))
   check('...cannot comment', !canComment(null))
@@ -199,6 +209,22 @@ section('Permissions')
   // The rule the specification changes: Trusted Author is no longer a gate.
   check('an ordinary member posts without being a Trusted Author', canPost(member) && !member.isTrustedAuthor)
   check('being a Trusted Author grants nothing extra', canPost(trusted) === canPost(member))
+
+  /*
+   * Removing posting, and the shape of the penalty.
+   *
+   * The point of it existing is that it is NARROWER than a timeout or a ban: those already remove
+   * the whole account, so a lever that also silenced somebody would be a worse spelling of a lever
+   * that already existed. These assert the narrowness rather than only the refusal.
+   */
+  check('posting can be taken away from a member who abuses it', !canPost(blocked))
+  check('...and they keep commenting', canComment(blocked))
+  check('...voting', canVote(blocked))
+  check('...saving', canSave(blocked))
+  check('...reporting', canReport(blocked))
+  check('...and replying on an open post', canReplyTo(blocked, { postLocked: false, branchLocked: false, commentsEnabled: true }))
+  check('...while their own posts stay theirs to edit', canManagePost(blocked, 'p4'))
+  check('a removal is the exception, not the rule', canPost(member) && canPost(trusted) && canPost(admin))
   check('a member cannot moderate', !canModerate(member))
   check('an admin can', canModerate(admin))
 
