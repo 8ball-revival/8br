@@ -16,7 +16,7 @@ export function ArchiveNotice() {
   return (
     <section
       aria-labelledby="archive-notice-heading"
-      className="cyber-clip relative flex h-full flex-col justify-center border border-[var(--line-strong)] bg-[var(--graphite)] p-5 text-center lg:p-6"
+      className="dl-surface cyber-clip relative flex h-full flex-col justify-center border border-[var(--line-strong)] bg-[var(--graphite)] p-5 text-center lg:p-6"
     >
       <span aria-hidden className="pointer-events-none absolute left-0 top-0 size-3 border-l-2 border-t-2 border-[var(--hot-red)]" />
       <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 size-3 border-b-2 border-r-2 border-[var(--hot-red)]" />

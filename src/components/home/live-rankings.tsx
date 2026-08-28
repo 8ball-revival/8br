@@ -37,7 +37,7 @@ export function LiveRankings({
   return (
     <section
       aria-labelledby="live-rankings-heading"
-      className="cyber-clip flex h-full flex-col border border-[var(--hot-red)] bg-[var(--graphite)]"
+      className="dl-surface cyber-clip flex h-full flex-col border border-[var(--hot-red)] bg-[var(--graphite)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
         <h2 id="live-rankings-heading" className="flex items-baseline gap-2">

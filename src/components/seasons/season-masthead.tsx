@@ -59,7 +59,7 @@ export function SeasonMasthead({
   return (
     <section
       aria-label={`${competitionName} Season ${number}, ${year}`}
-      className="cyber-clip w-full overflow-hidden border border-[var(--line-strong)] bg-[var(--graphite)]"
+      className="dl-surface cyber-clip w-full overflow-hidden border border-[var(--line-strong)] bg-[var(--graphite)]"
     >
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)_minmax(0,1.45fr)]">
         <Identity

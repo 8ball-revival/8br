@@ -42,7 +42,12 @@ export function CompetitionHistory({ news }: { news: HomeNews }) {
   return (
     <section
       aria-labelledby="competition-history-heading"
-      className="cyber-clip relative grid gap-5 border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)] lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)] lg:p-6"
+      /*
+        `dl-surface` makes this respond to the Frame, Corner, Texture and Depth controls along with
+        every other shared panel; `dl-on-light` tells the texture layer to draw in ink rather than
+        white, because this is the one panel whose ground is the accent itself.
+      */
+      className="dl-surface dl-on-light cyber-clip relative grid gap-5 border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)] lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)] lg:p-6"
     >
       {/*
         The technical linework from the design, drawn in ink rather than red.
