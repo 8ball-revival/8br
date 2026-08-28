@@ -146,6 +146,74 @@ export async function getSeasonBrowseData(
  */
 export const DEFAULT_COMPETITION_SLUG = '8brcam'
 
+/**
+ * Ordering for "the newest Season", meaning the one most recently CREATED.
+ *
+ * Deliberately not NEWEST_FIRST. That is year, then Season number — the right order for the SEASON
+ * PICKER, where a reader scanning a Competition expects 2026 above 2025 and Season 3 above Season 2.
+ * It is the wrong answer for "where should Seasons open", because a Season created today for an
+ * earlier year, or numbered 1 in a brand-new Competition, sorts below records made years ago and the
+ * thing you just made is nowhere near the top.
+ *
+ * `createdAt` says when the record was made, which is the question being asked. Id breaks ties: two
+ * Seasons created in the same transaction share a timestamp, and without a tie-break the landing
+ * page could pick either one on different requests.
+ */
+const MOST_RECENTLY_CREATED = [
+  { createdAt: 'desc' as const },
+  { id: 'desc' as const },
+]
+
+export interface NewestSeasonTarget {
+  id: number
+  platform: CompetitionPlatform
+  competitionSlug: string
+  division: string | null
+}
+
+/**
+ * The most recently created Season this viewer may open.
+ *
+ * `includePrivate` is the caller's answer to "is this viewer staff", resolved once by the page
+ * rather than here, so this stays a query and the access rule keeps living in seasons/visibility.
+ * Left false — the anonymous case — only publicly visible Seasons can come back, which is what stops
+ * the landing page announcing the existence of a private one by opening it.
+ *
+ * Every filter is optional and omitted when absent, so a bare call searches the whole registry:
+ * scoping to one Competition by default is what made a Season created under a NEW Competition
+ * invisible to /seasons while it sat there in the database.
+ */
+export async function mostRecentlyCreatedSeason(opts: {
+  competitionSlug?: string | null
+  platform?: CompetitionPlatform | null
+  division?: string | null
+  includePrivate?: boolean
+} = {}): Promise<NewestSeasonTarget | null> {
+  const season = await prisma.season.findFirst({
+    where: {
+      deletedAt: null,
+      ...(opts.competitionSlug ? { competitionSeries: { slug: opts.competitionSlug } } : {}),
+      ...(opts.platform ? { platform: opts.platform } : {}),
+      ...(opts.division ? { division: opts.division } : {}),
+      ...(opts.includePrivate ? {} : { publiclyVisible: true }),
+    },
+    orderBy: MOST_RECENTLY_CREATED,
+    select: {
+      id: true,
+      platform: true,
+      division: true,
+      competitionSeries: { select: { slug: true } },
+    },
+  })
+  if (!season) return null
+  return {
+    id: season.id,
+    platform: season.platform,
+    competitionSlug: season.competitionSeries.slug,
+    division: season.division,
+  }
+}
+
 export async function newestSeasonId(
   competitionSlug?: string | null,
   platform: CompetitionPlatform = 'CUEVERSE',

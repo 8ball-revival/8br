@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils'
 import { identityText } from '@/lib/identity/display'
 import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import { createMemberAction } from '@/lib/staff/create-member'
+import { useEntrantCandidates } from '@/components/seasons/use-entrant-candidates'
 import {
-  searchSeasonPlayersAction, addSeasonEntrantAction, removeSeasonEntrantAction,
+  addSeasonEntrantAction, removeSeasonEntrantAction,
   type SeasonActionResult,
 } from '@/lib/seasons/actions'
 import { updateEntrantIdentityAction } from '@/lib/creator/entrant-identity-actions'
@@ -66,11 +67,23 @@ export function SeasonEntrantsBoard({
   }
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
+  /*
+   * Bumped whenever the roster actually changes, so the entrant picker can refetch its candidates.
+   * `router.refresh()` re-renders the server components, but the picker's list is client state
+   * fetched by a server action, and nothing in a refresh tells it to ask again — which is how a
+   * removed entrant stayed missing from the dropdown and an added one stayed in it.
+   */
+  const [rosterVersion, setRosterVersion] = useState(0)
+
   const run = (fn: () => Promise<SeasonActionResult>) =>
     start(async () => {
       const r = await fn()
       if (r.error) flash({ ok: false, text: r.error })
-      else { flash({ ok: true, text: r.message ?? 'Done.' }); router.refresh() }
+      else {
+        flash({ ok: true, text: r.message ?? 'Done.' })
+        setRosterVersion((v) => v + 1)
+        router.refresh()
+      }
     })
 
   return (
@@ -100,7 +113,7 @@ export function SeasonEntrantsBoard({
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        {isOpen && <AddEntrant seasonId={seasonId} run={run} onFlash={flash} />}
+        {isOpen && <AddEntrant seasonId={seasonId} run={run} onFlash={flash} rosterVersion={rosterVersion} />}
         {isOpen && (
           <button
             type="button"
@@ -281,24 +294,27 @@ function EntrantRow({
 
 /** Search existing accounts, or create one for somebody who has never had a record here. */
 function AddEntrant({
-  seasonId, run, onFlash,
+  seasonId, run, onFlash, rosterVersion,
 }: {
   seasonId: number
   run: (fn: () => Promise<SeasonActionResult>) => void
   onFlash: (t: { ok: boolean; text: string }) => void
+  /** Changes whenever the roster does, so the candidate list refetches. */
+  rosterVersion: number
 }) {
   const router = useRouter()
-  const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [candidates, setCandidates] = useState<{ playerId: string; primaryName: string; cueverseId: string | null }[]>([])
-  const [searching, startSearch] = useTransition()
   const [creating, startCreate] = useTransition()
+  const { query: q, setQuery: setQ, candidates, searching, search: load, reload, exclude } =
+    useEntrantCandidates(seasonId, rosterVersion)
 
-  const load = (value: string) => {
-    setQ(value)
-    startSearch(async () => setCandidates(await searchSeasonPlayersAction(seasonId, value.trim())))
-  }
-  const openList = () => { setOpen(true); if (candidates.length === 0) load('') }
+  /*
+   * Always refetch on open, never "only if the list is empty".
+   *
+   * That guard is what let a stale list survive being closed and reopened: it had entries, so it was
+   * left alone, and one of those entries was somebody already entered.
+   */
+  const openList = () => { setOpen(true); reload() }
 
   const createAndAdd = () => {
     const handle = q.trim()
@@ -336,7 +352,18 @@ function AddEntrant({
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { run(() => addSeasonEntrantAction(seasonId, c.playerId)); setQ('') }}
+                onClick={() => {
+                  /*
+                   * Gone from the open dropdown at once, by canonical id — before the server
+                   * answers, because the point is that the list is correct the instant it is
+                   * clicked. The add still goes through the same server action, which still refuses
+                   * a duplicate; `run` bumps the roster version on success and the list refetches,
+                   * so an add that actually failed puts the Player back rather than hiding them.
+                   */
+                  exclude(c.playerId)
+                  run(() => addSeasonEntrantAction(seasonId, c.playerId))
+                  setQ('')
+                }}
                 className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
               >
                 {c.cueverseId && <span className="font-semibold text-[var(--gold)]">{c.cueverseId}</span>}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEntrantCandidates } from '@/components/seasons/use-entrant-candidates'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, Plus, Search, UserPlus, X } from 'lucide-react'
@@ -12,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { createMemberAction } from '@/lib/staff/create-member'
 import {
-  searchSeasonPlayersAction,
   addSeasonEntrantAction,
   removeSeasonEntrantAction,
   closeSeasonRegistrationAction,
@@ -70,11 +70,18 @@ export function SeasonRegistration({
   }
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
+  /* Bumped on every successful roster change, so the picker refetches who is still addable. */
+  const [rosterVersion, setRosterVersion] = useState(0)
+
   const run = (fn: () => Promise<SeasonActionResult>) =>
     start(async () => {
       const r = await fn()
       if (r.error) flash({ ok: false, text: r.error })
-      else { flash({ ok: true, text: r.message ?? 'Done.' }); router.refresh() }
+      else {
+        flash({ ok: true, text: r.message ?? 'Done.' })
+        setRosterVersion((v) => v + 1)
+        router.refresh()
+      }
     })
 
   return (
@@ -115,7 +122,7 @@ export function SeasonRegistration({
           <p className="inline-flex items-center gap-2 rounded-md border border-success/30 bg-success/[0.06] px-3 py-2 text-sm text-foreground"><UserPlus className="size-4 text-success" /> You&apos;re registered for this Season.</p>
         )}
 
-        {canManage && isOpen && <AddPlayer seasonId={seasonId} run={run} />}
+        {canManage && isOpen && <AddPlayer seasonId={seasonId} run={run} rosterVersion={rosterVersion} />}
         {canManage && isOpen && (
           <Button
             size="sm"
@@ -190,15 +197,19 @@ function SelfRegister({ seasonId, onDone }: { seasonId: number; onDone: (r: Seas
   )
 }
 
-function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promise<SeasonActionResult>) => void }) {
-  const [q, setQ] = useState('')
+function AddPlayer({ seasonId, run, rosterVersion }: {
+  seasonId: number
+  run: (fn: () => Promise<SeasonActionResult>) => void
+  /** Changes whenever the roster does, so the candidate list refetches. */
+  rosterVersion: number
+}) {
   const [open, setOpen] = useState(false)
-  const [candidates, setCandidates] = useState<{ playerId: string; primaryName: string; cueverseId: string | null }[]>([])
-  const [searching, startSearch] = useTransition()
   const [creating, setCreating] = useState(false)
+  const { query: q, setQuery: setQ, candidates, searching, search: load, reload, exclude } =
+    useEntrantCandidates(seasonId, rosterVersion)
 
-  const load = (value: string) => { setQ(value); startSearch(async () => setCandidates(await searchSeasonPlayersAction(seasonId, value.trim()))) }
-  const openList = () => { setOpen(true); if (candidates.length === 0) load('') }
+  // Always refetch on open: the "only if empty" guard is what let a stale list survive a reopen.
+  const openList = () => { setOpen(true); reload() }
 
   return (
     <div className="relative max-w-md">
@@ -212,7 +223,13 @@ function AddPlayer({ seasonId, run }: { seasonId: number; run: (fn: () => Promis
           {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players — create one below.</li>}
           {candidates.map((c) => (
             <li key={c.playerId}>
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => run(async () => { const r = await addSeasonEntrantAction(seasonId, c.playerId); setQ(''); setCandidates([]); setOpen(false); return r })} className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted">
+              <button onMouseDown={(e) => e.preventDefault()} onClick={() => {
+                // Gone from the open list at once, by canonical id; the server still refuses a
+                // duplicate, and the refetch on rosterVersion puts them back if the add failed.
+                exclude(c.playerId)
+                run(() => addSeasonEntrantAction(seasonId, c.playerId))
+                setQ('')
+              }} className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted">
                 <PlayerName identity={{ cueverseId: c.cueverseId, preferredName: c.primaryName }} inline />
                 <Plus className="size-3.5 text-muted-foreground" />
               </button>

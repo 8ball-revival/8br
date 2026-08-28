@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { Wide } from '@/components/primitives'
-import { newestSeasonId, getSeasonBrowseData, DEFAULT_COMPETITION_SLUG } from '@/lib/seasons/browse'
+import { mostRecentlyCreatedSeason, getSeasonBrowseData } from '@/lib/seasons/browse'
+import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { pageMetadata } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
@@ -16,16 +17,32 @@ export const metadata: Metadata = pageMetadata({
 })
 
 /**
- * Seasons opens the SEASON BROWSER on the most recent Season.
+ * Seasons opens the SEASON BROWSER on the most recently created Season the visitor may see.
  *
  * The browser is the Seasons experience: its Competition, Year and Season pickers cover everything a
  * card grid would, and it lands the reader on real data — group tables, the champion, the playoff
  * bracket — rather than on a page of summaries they then have to click through. A list in front of
  * it is a menu in front of a menu.
  *
- * "Most recent" is competition year descending, then Season number descending, with the Competition
- * name and Season id breaking ties — the same rule the pickers use, so the landing page and the
- * controls can never disagree. A Season under way is by that rule the newest, so it is what opens.
+ * ── What "most recent" means, and what it used to mean ───────────────────────────────────────────
+ * `createdAt` descending, with id descending to break ties. It used to be competition year then
+ * Season number, borrowed from the Season picker — which is the right order for a reader scanning a
+ * Competition, and the wrong answer to "where should Seasons open". A Season created today for an
+ * earlier year, or numbered 1 because its Competition is new, sorts below records made years ago, so
+ * the thing you just made is not what opens.
+ *
+ * Worse, this defaulted the Competition to 8BRCAM whenever the URL named none. A Season created
+ * under any OTHER Competition was therefore invisible here: the page said "No CueVerse Seasons Yet"
+ * while the Season sat in the database, reachable only by typing its id. A bare request now searches
+ * the whole registry and scopes itself to whatever it finds.
+ *
+ * ── Visibility ──────────────────────────────────────────────────────────────────────────────────
+ * An anonymous visitor can only be sent to a publicly visible Season. Staff who may manage
+ * competitions can be sent to a private one — the same rule seasons/visibility applies to the detail
+ * page, asked here so the landing page cannot offer a door the next page refuses.
+ *
+ * An explicit competition, platform, division, year, Season, search or view in the URL is respected
+ * and carried through, so a shared link keeps its scope.
  *
  * The redirect targets the Season's immutable id, never its display number.
  *
@@ -39,43 +56,72 @@ export default async function SeasonsPage({
 }) {
   const sp = await searchParams
   const one = (k: string) => { const v = sp[k]; return typeof v === 'string' ? v : Array.isArray(v) ? v[0] : undefined }
-  // Visiting Seasons with no Competition in the URL opens 8BRCAM rather than every Competition at
-  // once. An explicit ?competition= still wins, so a shared link keeps its scope.
-  const competition = one('competition') ?? DEFAULT_COMPETITION_SLUG
-  /*
-   * Platform and division ride in the URL and are carried into the redirect.
-   *
-   * Without that, choosing Yahoo would land on a CueVerse Season — the filter would appear to do
-   * nothing. There is deliberately no fallback to the other platform when one is empty: an empty
-   * CueVerse registry says so, rather than quietly showing the archive and implying it is current.
-   */
-  const platform = one('platform')?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
-  const division = one('division') || null
 
-  const newest = await newestSeasonId(competition, platform, division)
-  if (newest != null) {
+  /*
+   * Only what the URL actually says.
+   *
+   * A default applied here becomes a filter the visitor never chose, and that was this page's whole
+   * failure: an unrequested Competition, quietly excluding everything outside it.
+   */
+  const askedCompetition = one('competition') || null
+  const askedPlatformRaw = one('platform')
+  const askedPlatform = askedPlatformRaw
+    ? (askedPlatformRaw.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE')
+    : null
+  const askedDivision = one('division') || null
+
+  /*
+   * Staff may be sent to a private Season; nobody else may. Resolved once here and handed to the
+   * query — the rule itself stays in seasons/visibility, which the detail page also asks.
+   */
+  const access = await resolveStaffAccess()
+  const includePrivate = access.status === 'ok' && access.actor.can('manage_competitions')
+
+  const target = await mostRecentlyCreatedSeason({
+    competitionSlug: askedCompetition,
+    platform: askedPlatform,
+    division: askedDivision,
+    includePrivate,
+  })
+
+  if (target != null) {
+    /*
+     * Everything that came in is carried through, so a link holding a year, a Season, a search or a
+     * view keeps them. Competition and platform are then pinned to the Season actually being opened,
+     * so the browser's own pickers show where the reader has landed rather than a scope the page
+     * quietly ignored.
+     */
     const qs = new URLSearchParams()
-    if (competition) qs.set('competition', competition)
-    if (platform === 'YAHOO') qs.set('platform', 'yahoo')
-    if (division) qs.set('division', division)
+    for (const [key, value] of Object.entries(sp)) {
+      const v = typeof value === 'string' ? value : Array.isArray(value) ? value[0] : undefined
+      if (v != null && v !== '') qs.set(key, v)
+    }
+    qs.set('competition', askedCompetition ?? target.competitionSlug)
+    if ((askedPlatform ?? target.platform) === 'YAHOO') qs.set('platform', 'yahoo')
+    else qs.delete('platform')
+    if (askedDivision) qs.set('division', askedDivision)
     qs.set('view', one('view') === 'playoffs' ? 'playoffs' : 'groups')
-    redirect(`/seasons/${newest}?${qs.toString()}`)
+    redirect(`/seasons/${target.id}?${qs.toString()}`)
   }
 
-  // Nothing to open under this platform — an empty CueVerse registry, or a filter matching nothing.
-  const { competitions } = await getSeasonBrowseData(null, platform, division)
+  /*
+   * Nothing this visitor may open: an empty registry, or a filter matching nothing. The empty state
+   * describes the scope that was actually asked for rather than assuming CueVerse.
+   */
+  const platform = askedPlatform ?? 'CUEVERSE'
+  const { competitions } = await getSeasonBrowseData(null, platform, askedDivision)
   return (
     <Wide name="seasons" className="py-16">
       <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center">
         <h1 className="font-display text-2xl font-bold text-foreground">
-          {platform === 'YAHOO' ? 'No Yahoo Seasons' : 'No CueVerse Seasons Yet'}
+          {platform === 'YAHOO' ? 'No Yahoo Seasons' : 'No Seasons Yet'}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {platform === 'CUEVERSE'
-            ? 'Nothing has been played on CueVerse yet. The Yahoo archive is under the platform filter.'
-            : competition && competitions.length > 0
-              ? 'That Competition has no Yahoo Seasons.'
-              : 'No Yahoo Seasons match that filter.'}
+          {askedCompetition && competitions.length > 0
+            ? 'That Competition has no Seasons you can open.'
+            : askedPlatform || askedDivision
+              ? 'No Seasons match that filter.'
+              : 'No Seasons have been created yet.'}
         </p>
         {/* Never a silent fall-back to the other platform: the way to the archive is a deliberate
             choice, so an empty CueVerse registry cannot be mistaken for a populated one. */}

@@ -351,8 +351,15 @@ try {
      */
     const landing = files[4][1]
     check('the landing page redirects to the newest Season', landing.includes('redirect(`/seasons/'))
+    /*
+     * Matched on what a CONTROL would look like, not on the letters "Create".
+     *
+     * The loose version tripped on `mostRecentlyCreatedSeason` — a query function, not a button —
+     * which is a test failing on its own vocabulary rather than on anything a visitor could click.
+     */
     check('...and offers no management controls',
-      !/\/creator|New Season|Create|Reopen|Delete/.test(landing), 'management control on a public page')
+      !/href=["'`]\/creator|>\s*(New Season|Create Season|Reopen|Delete)\s*</.test(landing),
+      'management control on a public page')
   }
 
   console.log('')

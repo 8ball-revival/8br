@@ -112,7 +112,16 @@ function killPort(port) {
 
 console.log(`Cloning ${database} -> ${CLONE}`)
 dropClone()
-// The source must have no open connections for a template copy; a running dev server is the usual one.
+
+/*
+ * The dev server is stopped BEFORE the clone, not merely disconnected.
+ *
+ * A template copy needs the source to have no open connections, and terminating them is not enough:
+ * a running Next server has a pool that reconnects in the gap between the terminate and the create,
+ * so the copy fails with "is being accessed by other users". Verification starts its own server
+ * afterwards anyway, so taking the port first is both simpler and what makes this reliable.
+ */
+killPort(3000)
 psql(adminUrl, `select pg_terminate_backend(pid) from pg_stat_activity where datname = '${database}'`)
 psql(adminUrl, `create database "${CLONE}" template "${database}"`)
 

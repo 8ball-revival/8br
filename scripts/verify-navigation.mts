@@ -228,7 +228,16 @@ section('Seasons opens the browser on the most recent Season')
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 
   check('it opens a Season rather than listing them', code.includes('redirect(`/seasons/'))
-  check('...chosen by the same rule the pickers use', code.includes('newestSeasonId'))
+  /*
+   * NOT the rule the pickers use, which is what this used to assert.
+   *
+   * The pickers order by competition year then Season number, which is right for a reader scanning a
+   * Competition and wrong for "where should Seasons open": a Season created today for an earlier
+   * year, or numbered 1 in a new Competition, sorts below records from years ago. The landing page
+   * opens the most recently CREATED Season instead.
+   */
+  check('...chosen by when the Season was created', code.includes('mostRecentlyCreatedSeason'))
+  check('...not by the picker ordering', !code.includes('newestSeasonId'))
   check('...addressed by immutable id, never the display number',
     !/redirect\(`\/seasons\/\$\{[^}]*[Nn]umber/.test(code))
   check('...carrying the Competition filter through', code.includes("one('competition')"))
@@ -250,8 +259,17 @@ section('Seasons opens the browser on the most recent Season')
   // Read-only, same as everywhere else public.
   check('...it offers no management control',
     !/\/creator|Reopen|Delete|New Season/.test(code), 'management control on a public page')
-  check('...and does not resolve staff access',
-    !/resolveStaffAccess|requireCapability|canSeeCreator/.test(code))
+  /*
+   * It DOES resolve access now, and must.
+   *
+   * Not to offer anybody a control — the check above still forbids that — but to decide which Season
+   * a visitor may be sent to. An anonymous visitor must never be redirected into a private Season,
+   * and staff must not be blocked from the newest one they manage. Reading who is asking is the only
+   * way to honour both, and it is the same rule seasons/visibility applies to the detail page.
+   */
+  check('...resolving access only to decide what the visitor may open',
+    code.includes('resolveStaffAccess') && code.includes("can('manage_competitions')"))
+  check('...and never to gate a control', !/requireCapability|canSeeCreator/.test(code))
 }
 
 // ─────────────────────────────────────────────────────────────────── labels
