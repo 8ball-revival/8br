@@ -4,7 +4,7 @@ import { ChevronDown, LogOut } from 'lucide-react'
 
 import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
-import { LiveClock } from '@/components/cyber/live-clock'
+import { DisplayLab } from '@/components/display/display-lab'
 import { MobileNav } from '@/components/mobile-nav'
 import { getCurrentUser } from '@/lib/account/auth'
 import { SessionKeepalive } from '@/components/account/session-keepalive'
@@ -78,7 +78,15 @@ export async function SiteHeader() {
             <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)]" />
           </span>
 
-          <LiveClock className="mr-3 hidden items-center lg:flex" />
+          {/*
+            Where the LIVE badge and clock used to sit.
+
+            They were chrome that said only "this page is being served now", occupying the most
+            valuable slot in the header on every page. Both moved into Display Lab's System Status
+            section, and the slot now holds the control that opens it — which is reachable at every
+            width, unlike the badge, which was hidden below 1024px.
+          */}
+          <DisplayLab className="mr-2" />
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
           {user ? (
             <details className="group relative ml-1">

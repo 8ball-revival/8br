@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @import './cyberpunk.css';
-@import './hud.css';
+@import './display.css';
 
 /*
   8 Ball Registry (8BR) — public (frontend) design system.
@@ -47,7 +47,7 @@
   /*
    * The structural accent, and its default is WHITE.
    *
-   * Every accent the display panel offers is an override in hud.css keyed on data-hud-accent;
+   * A custom accent from Display Lab overrides this in display.css, keyed on data-dl-accent-mode;
    * whichever one sits here unattributed is what a reader gets before choosing, and what a
    * reader without JavaScript gets always. Yellow used to sit here and is now an override like
    * the rest — the values are Crystal White Pearl, kept identical to the 'white' block.
@@ -273,14 +273,18 @@
   --neon-magenta: var(--hot-red);
   --neon-line: var(--line);
 
-  --glow-yellow: 0 0 4px color-mix(in oklab, var(--acid) 55%, transparent), 0 0 18px color-mix(in oklab, var(--acid) 28%, transparent);
-  --glow-cyan: 0 0 4px color-mix(in oklab, var(--cyan) 60%, transparent), 0 0 18px color-mix(in oklab, var(--cyan) 30%, transparent);
-  --glow-magenta: 0 0 4px color-mix(in oklab, var(--hot-red) 60%, transparent), 0 0 18px color-mix(in oklab, var(--hot-red) 30%, transparent);
-  --glow-soft: 0 0 12px color-mix(in oklab, var(--cyan) 16%, transparent);
+  /*
+   * The lit shadows are declared in display.css, not here, and that is the fix for a slider that
+   * did nothing.
+   *
+   * They were declared in BOTH: a scaled version in the display sheet, an unscaled copy here. Both
+   * sat on `:root` with equal specificity and this file is imported last, so the unscaled copy won
+   * every time — dragging Glow changed the attribute, the variable, and nothing a reader could see.
+   * One definition, in the file that owns what the controls mean.
+   */
 
   /* The scanline and grid overlays read against the ground, so they travel with the theme. */
-  --scan-line: color-mix(in oklab, var(--cyan) 5%, transparent);
-  --grid-line: color-mix(in oklab, var(--cyan) 6%, transparent);
+  /* --scan-line and --grid-line likewise: they are dials, and display.css scales them. */
   --chrome-edge: color-mix(in oklab, var(--clean-white) 9%, transparent);
 
   --chart-1: var(--acid);
