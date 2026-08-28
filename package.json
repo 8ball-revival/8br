@@ -22,6 +22,8 @@
     "db:migrate:production": "node scripts/db/migrate-production.mjs",
     "dev:reset": "node scripts/db/reset-dev.mjs",
     "dev:seed": "node scripts/db/reset-dev.mjs --seed-only",
+    "verify": "node scripts/verify.mjs",
+    "audit:production": "tsx --tsconfig scripts/tsconfig.verify.json scripts/audit/audit-production.mts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "archive:stage": "node scripts/archive/stage.mjs",

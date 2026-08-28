@@ -399,17 +399,18 @@ main()
     await prisma.$executeRawUnsafe(`DELETE FROM payload.users WHERE username LIKE '${TAG}%'`).catch(() => {})
 
     section('Nothing canonical moved')
-    const s = await prisma.season.findUnique({
-      where: { id: 3732 },
-      select: { championName: true, lifecycleState: true, _count: { select: { entrants: true, matches: true, playoffMatches: true, ratingLedger: true } } },
-    })
-    check('Season 3732 still has its champion', s?.championName === 'Adnan')
-    check('...49 entrants', s?._count.entrants === 49)
-    check('...147 matches', s?._count.matches === 147)
-    check('...and 31 playoff matches', s?._count.playoffMatches === 31)
+    /*
+     * "Nothing canonical moved" used to be asserted by naming the 2006 archive season and its exact
+     * counts — 49 entrants, 147 matches, 31 playoff matches. That is a statement about the record,
+     * and it made this suite unable to run anywhere the record was absent.
+     *
+     * The QUESTION is still worth asking, so it is asked relatively: whatever was here before this
+     * suite ran must still be here afterwards. Those exact archive figures are audited against
+     * production in scripts/audit/audit-production.mts.
+     */
     check('the Season count is unchanged', (await prisma.season.count()) === SEASON_BASELINE)
-    check('all 88 archive shells are present',
-      (await prisma.season.count({ where: { archiveTemplateKey: { not: null } } })) === 88)
+    check('every completed Season still has its champion',
+      (await prisma.season.count({ where: { lifecycleState: 'COMPLETED', championPlayerId: null } })) === 0)
     check('every fixture was removed',
       (await prisma.tournament.count({ where: { name: { startsWith: TAG } } })) === 0 &&
       (await prisma.player.count({ where: { primaryName: { startsWith: TAG } } })) === 0)

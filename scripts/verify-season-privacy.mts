@@ -140,8 +140,15 @@ section('Public Seasons are the finished ones, and nothing drifted public')
     where: { publiclyVisible: true }, select: { id: true, lifecycleState: true },
   })
   check('there are public Seasons to serve', publicSeasons.length >= 2, String(publicSeasons.length))
-  check('...including Season 443', publicSeasons.some((s) => s.id === 443))
-  check('...and Season 2187', publicSeasons.some((s) => s.id === 2187))
+  /*
+   * Naming Seasons 443 and 2187 here was a mistake I made writing this: they are rows in the live
+   * archive, and depending on them made a behaviour suite unable to run without production. What the
+   * rule needs is that FINISHED work is public, whichever Seasons those happen to be.
+   *
+   * Their continued existence is audited in scripts/audit/audit-production.mts.
+   */
+  check('...and the finished ones are among them',
+    publicSeasons.some((s) => s.lifecycleState === ('COMPLETED' as never)))
 
   /*
    * The guard that had to survive the change.

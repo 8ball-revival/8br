@@ -516,30 +516,14 @@ try {
     check('Next follows Previous', render.indexOf('label="Next season"') > at[at.length - 1])
   }
 
-  console.log('')
-  console.log('--- Points ordering, on real Season 1 data (read-only) ---')
-  {
-    const s1 = await prisma.season.findFirst({ where: { number: 1, competitionYear: 2005, competitionSeries: { slug: '8brcam' } }, select: { id: true, lifecycleState: true } })
-    if (!s1) {
-      check('Season 1 is present as the real-data validation case', false, 'it is missing')
-    } else {
-      check('Season 1 is present as the real-data validation case', true)
-      const { getSeasonGroupStage } = await import('../src/lib/seasons/views.ts')
-      const groups = await getSeasonGroupStage(s1.id)
-      check('its groups are published and readable', groups.length > 0, `${groups.length} groups`)
-
-      // The component's ordering rule, applied here so the assertion tracks the real data.
-      const ordered = [...groups[0].standings].sort((x, y) => y.points - x.points || x.rank - y.rank)
-      check('every group orders by points, highest first',
-        ordered.every((r, i) => i === 0 || ordered[i - 1].points >= r.points))
-
-      const participants = await seasonPlayoffParticipants(s1.id)
-      const entrants = await prisma.seasonEntrant.count({ where: { seasonId: s1.id, status: { not: 'WITHDRAWN' } } })
-      check('only some of the field reached the playoffs',
-        participants.size > 0 && participants.size < entrants, `${participants.size} of ${entrants}`)
-      check('Season 1 is still completed and untouched', s1.lifecycleState === 'COMPLETED')
-    }
-  }
+  /*
+   * "Points ordering, on real Season 1 data" used to run here, reading the 2005 archive to confirm
+   * standings sort the way the handbook says. The ORDERING is behaviour and is covered above with
+   * fixtures; the 2005 season is a record, and needing it here is what made this suite require a
+   * copy of production to run at all.
+   *
+   * The record-level assertions live in scripts/audit/audit-production.mts.
+   */
 } catch (e) {
   fail++
   console.error(e)

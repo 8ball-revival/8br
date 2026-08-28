@@ -32,30 +32,34 @@ const TIMEOUT_MS = 240_000
 const ENV_FILE = process.env.VERIFY_ENV_FILE || '.env'
 
 /*
- * Suites that are reported but do NOT gate.
+ * Nothing is excluded here any more.
  *
- * Both exercise the archive import pipeline, which is retired: the local database is curated by hand
- * and is the source of truth, and no archive importer may be run against it. Their assertions are
- * about that pipeline -- how an ambiguous handle resolves, whether generated shells stay private --
- * so they describe a tool nobody is allowed to use rather than anything the site does. They are left
- * EXACTLY as they are, still run and still printed, and excluded from the exit code so they cannot
- * block a deployment on behalf of a retired subsystem.
+ * The suites that used to be reported-but-not-gated have MOVED rather than been muted:
+ *   · scripts/legacy-archive-audits/  the retired archive pipeline (see its README)
+ *   · scripts/audit/                  assertions about the real production record
  *
- * A deliberate exclusion, not a skip: if either starts failing differently, the output still says so.
+ * This sweep runs the development suites, all of which must pass against fixtures. An exclusion list
+ * inside the runner was always a place for failures to accumulate quietly; a directory is somewhere
+ * a person can look.
  */
-const OUTSIDE_GATE = new Set([
-  'verify-archive-entrants-playoffs-apply.mts',
-  'verify-archive-shells.mts',
-])
+const OUTSIDE_GATE = new Set([])
 
 const suites = readdirSync(path.join(ROOT, 'scripts'))
   .filter((f) => f.startsWith('verify-') && f.endsWith('.mts'))
   .sort()
 
-/** A suite needs the ESM wrapper if anything it pulls in reaches Payload. */
+/**
+ * A suite needs the ESM wrapper if anything it pulls in reaches Payload.
+ *
+ * Matched on the suite's own imports, which means the list has to name modules that reach Payload
+ * INDIRECTLY as well. `lib/creator` is the example that caught this out: it imports creator/access,
+ * which imports staff-auth, which loads Payload — none of it visible in the suite file, and the
+ * failure is an unhelpful "Cannot destructure property 'loadEnvConfig'" rather than anything that
+ * points at the cause.
+ */
 function needsEsm(file) {
   const src = readFileSync(path.join(ROOT, 'scripts', file), 'utf8')
-  return /payload|staff-auth|account\/auth|editorial\/(permissions|comments|service|queries|pages|actions)|editorial\/article-editor|staff\/members|moderation/.test(src)
+  return /payload|staff-auth|account\/auth|editorial\/(permissions|comments|service|queries|pages|actions)|editorial\/article-editor|staff\/members|moderation|lib\/creator/.test(src)
 }
 
 const results = []

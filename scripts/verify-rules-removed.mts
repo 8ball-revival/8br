@@ -10,6 +10,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { prisma } from '../src/lib/prisma.ts'
+import { APPROVED_LOCAL_DATABASES } from '../src/lib/db-guard.ts'
 
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
@@ -100,10 +101,11 @@ console.log('--- The database no longer holds the feature ---')
 try {
   const [conn] = await prisma.$queryRaw<{ db: string; port: string }[]>`
     SELECT current_database() AS db, current_setting('port') AS port`
-  // Any approved local database on the contained cluster is fine. The redesign workspace runs
-  // against 8br_dev_redesign, a clone of live; pinning the original name would fail there for no
-  // reason. What matters is that this is the contained local cluster and not a remote one.
-  const APPROVED = ['8br_dev', '8br_dev_redesign', '8br_test']
+  // Any approved local database on the contained cluster is fine. Development runs on fixtures and
+  // the suite may be pointed at a disposable clone of them; pinning one name would fail for no
+  // reason. What matters is that this is the contained local cluster and not a remote one. The list
+  // is imported rather than restated, so it cannot drift from the guard that enforces it.
+  const APPROVED = [...APPROVED_LOCAL_DATABASES]
   check('running against an approved local database on the contained cluster',
     APPROVED.includes(conn.db) && conn.port === '55432', `${conn.db}:${conn.port}`)
 
@@ -139,18 +141,15 @@ try {
   // Competitions, Seasons and accounts are none of Rules' business.
   check('Seasons are untouched', (await prisma.season.count()) > 0)
   /*
-   * Season numbers are per competition and per year now, so `number: 1` matches a Season 1 in every
-   * year of every series — about twenty of them — and counting seeds across all of them answers a
-   * question nobody asked. Name the one Season this check is actually about.
+   * "The 2005 8BR Season 1 still exists, with its sixteen playoff seeds" used to be asserted here.
+   * It is a statement about the RECORD, not about removing Rules, and only production can answer it
+   * — which is what made this suite impossible to run without a copy of the live database.
+   *
+   * It lives in scripts/audit/audit-production.mts now. What belongs here is the question this suite
+   * is actually asking: that tearing Rules out did not take the competition data with it.
    */
-  const season1 = await prisma.season.findFirst({
-    where: { number: 1, competitionYear: 2005, competitionSeries: { slug: '8brcam' } },
-    select: { id: true },
-  })
-  check('the 2005 8BR Season 1 is still there', season1 != null)
-  check('Season 1 still holds its playoff seeds',
-    season1 != null &&
-    (await prisma.seasonEntrant.count({ where: { seasonId: season1.id, playoffSeed: { not: null } } })) === 16)
+  check('Seasons still hold their entrants', (await prisma.seasonEntrant.count()) > 0)
+  check('...and their playoff brackets', (await prisma.seasonPlayoffMatch.count()) > 0)
 } catch (e) {
   fail++
   console.error(e)

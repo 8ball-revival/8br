@@ -100,6 +100,18 @@ export interface SeedContext {
 }
 
 /**
+ * The global settings rows the application reads.
+ *
+ * Registration is PRIVATE with a code, because the interesting case is the gated one: a public
+ * registration form needs no code path exercised, and "what happens with the wrong code" is exactly
+ * the thing worth having a fixture for.
+ */
+export const DEV_SITE_SETTINGS: { key: string; value: string }[] = [
+  { key: 'registrationMode', value: 'PRIVATE' },
+  { key: 'registrationCode', value: 'dev-code' },
+]
+
+/**
  * Remove every row this seed owns.
  *
  * A reseed is a replacement, not an accumulation — otherwise the second run doubles every list and
@@ -210,6 +222,7 @@ async function seedSeasons(ctx: SeedContext) {
         competitionSeriesId: 1,
         slug: o.slug,
         lifecycleState: o.state as never,
+        platform: ((o.platform as string) ?? 'CUEVERSE') as never,
         publiclyVisible: (o.publiclyVisible as boolean) ?? true,
         division: (o.division as string) ?? 'Division A',
         subtitle: o.subtitle as string,
@@ -228,16 +241,20 @@ async function seedSeasons(ctx: SeedContext) {
   // 3 — group stage under way: some results in, some still to play.
   await mk(3, { number: 3, state: 'GROUP_STAGE_LIVE', slug: 'dev-season-3', subtitle: 'Groups in progress' })
 
-  // 4 — playoffs live, bracket half-decided.
-  await mk(4, { number: 4, state: 'PLAYOFFS_LIVE', slug: 'dev-season-4', subtitle: 'Playoffs under way' })
+  // 4 — playoffs live, bracket half-decided. Yahoo-era, so both platforms carry results.
+  await mk(4, { number: 4, state: 'PLAYOFFS_LIVE', slug: 'dev-season-4', subtitle: 'Playoffs under way', platform: 'YAHOO' })
 
   // 5 — finished, with a champion. The one the Rankings are computed from.
-  await mk(5, { number: 5, state: 'COMPLETED', slug: 'dev-season-5', subtitle: 'Complete, with a champion' })
+  await mk(5, { number: 5, state: 'COMPLETED', slug: 'dev-season-5', subtitle: 'Complete, with a champion', platform: 'YAHOO' })
 
-  // 6 — private. Exists, has data, and must 404 for anyone signed out.
-  await mk(6, { number: 6, state: 'GROUP_STAGE_LIVE', slug: 'dev-season-6', subtitle: 'Private — staff only', publiclyVisible: false })
+  // 6 — private and UNFINISHED. Exists, has data, and must 404 for anyone signed out. Registration
+  // stage rather than mid-group, because "unfinished work is private" is the rule being tested.
+  await mk(6, { number: 6, state: 'REGISTRATION_OPEN', slug: 'dev-season-6', subtitle: 'Private — staff only', publiclyVisible: false })
 
-  await prisma.$executeRawUnsafe(`select setval('season_id_seq', 6, true)`)
+  // 7 — a completed CueVerse season, so the present era has a champion and a ladder of its own.
+  await mk(7, { number: 7, state: 'COMPLETED', slug: 'dev-season-7', subtitle: 'CueVerse era, complete' })
+
+  await prisma.$executeRawUnsafe(`select setval('season_id_seq', 7, true)`)
 
   // ── Entrants ──────────────────────────────────────────────────────────────────────────────────
   const entrantsFor = async (seasonId: number, players: readonly { handle: string; name: string }[], status = 'APPROVED') => {
@@ -270,8 +287,9 @@ async function seedSeasons(ctx: SeedContext) {
   const s4 = await entrantsFor(4, eight)
   const s5 = await entrantsFor(5, twelve)
   const s6 = await entrantsFor(6, DEV_PLAYERS.slice(0, 4))
+  const s7 = await entrantsFor(7, eight)
 
-  return { s3, s4, s5, s6, eight, twelve }
+  return { s3, s4, s5, s6, s7, eight, twelve }
 }
 
 /**
@@ -478,6 +496,9 @@ async function seedPlayoffs(ctx: SeedContext, seasonId: number, entrantIds: numb
         championName: champion, championHandle: champion, championPlayerId: pid(champion),
         runnerUpName: runnerUp, runnerUpHandle: runnerUp,
         finalScore: '9-7', completedAt: day(-1),
+        // The ranking engine requires this: a Season with no ladderAppliedAt is not eligible, so a
+        // rebuild silently produces an empty ledger and every ranked page goes blank.
+        ladderAppliedAt: day(-1),
       },
     })
     return { champion, runnerUp }
@@ -520,6 +541,7 @@ async function seedTournaments(ctx: SeedContext) {
         championHandle: d.champion,
         runnerUpName: d.champion ? 'DEV_RailRunner' : null,
         archivedAt: d.run === 'COMPLETED' ? day(-6) : null,
+        ladderAppliedAt: d.run === 'COMPLETED' ? day(-6) : null,
       },
     })
   }
@@ -612,70 +634,64 @@ async function seedTheBreak(ctx: SeedContext) {
   }
 }
 
+/** The two global settings rows, so registration has a mode rather than a missing row. */
+async function seedSiteSettings(ctx: SeedContext) {
+  ctx.log('site settings')
+  for (const setting of DEV_SITE_SETTINGS) {
+    await prisma.siteSetting.upsert({
+      where: { key: setting.key },
+      update: { value: setting.value },
+      create: setting,
+    })
+  }
+}
+
 /** Achievement definitions, so the Achievements page is populated rather than blank. */
 async function seedAchievements(ctx: SeedContext) {
   ctx.log('achievement definitions')
+  /*
+   * Every `statistic` here is a key the registry actually knows (see lib/achievements/statistics).
+   * An invented one is accepted by the column and then fails at compute time, which is the sort of
+   * fixture that passes its own seed and breaks the page it was meant to exercise.
+   *
+   * Both award types are represented, because MANUAL and AUTOMATIC take different paths.
+   */
   const defs = [
-    { key: 'dev_most_wins', title: 'DEV Most Wins', statistic: 'wins', displayFormat: '{value} wins' },
-    { key: 'dev_highest_rating', title: 'DEV Highest Rating', statistic: 'rating', displayFormat: '{value}' },
-    { key: 'dev_most_titles', title: 'DEV Most Titles', statistic: 'titles', displayFormat: '{value} titles' },
-    { key: 'dev_best_win_rate', title: 'DEV Best Win Rate', statistic: 'winRate', displayFormat: '{value} percent' },
+    { key: 'dev_most_wins', title: 'DEV Most Wins', statistic: 'wins', displayFormat: '{value} wins', awardType: 'AUTOMATIC' },
+    { key: 'dev_highest_rating', title: 'DEV Highest Rating', statistic: 'rating', displayFormat: '{value}', awardType: 'AUTOMATIC' },
+    { key: 'dev_most_titles', title: 'DEV Most Titles', statistic: 'totalTitles', displayFormat: '{value} titles', awardType: 'AUTOMATIC' },
+    { key: 'dev_best_win_rate', title: 'DEV Best Win Rate', statistic: 'winPct', displayFormat: '{value}%', awardType: 'AUTOMATIC' },
+    { key: 'dev_longest_streak', title: 'DEV Longest Win Streak', statistic: 'longestWinStreak', displayFormat: '{value} in a row', awardType: 'AUTOMATIC' },
+    { key: 'dev_committee_choice', title: 'DEV Committee Choice', statistic: null, displayFormat: '{value}', awardType: 'MANUAL' },
   ]
   for (const [i, d] of defs.entries()) {
     await prisma.achievementDefinition.create({
-      data: { key: d.key, title: d.title, statistic: d.statistic, displayFormat: d.displayFormat, sortOrder: i, flavorText: 'Fixture achievement.' },
+      data: {
+        key: d.key, title: d.title, statistic: d.statistic, displayFormat: d.displayFormat,
+        awardType: d.awardType as never, sortOrder: i, flavorText: 'Fixture achievement.',
+      },
     })
   }
 }
 
 /**
- * The rating ledger the Rankings page reads.
+ * The rating ledger, built by the application's own engine.
  *
- * Written straight from the finished season's results rather than recomputed, because the fixture's
- * job is to give the page something plausible to render, not to re-implement the rating engine.
- * Elo with K=32 from a 1500 start, applied in a fixed order, so the table is identical every reset.
+ * This used to be a hand-rolled Elo replay writing rows directly, and it was wrong in a way that
+ * only showed up later: the rows looked right, but they were not what `rebuildRatingLedger` would
+ * produce. The moment any suite triggered a rebuild — and several do, because eligibility changes
+ * are supposed to rebuild — the fixture ledger was replaced by an empty one and every ranked page
+ * went blank, which read as broken code rather than a fixture that had never agreed with the engine.
+ *
+ * Calling the real engine means the fixture ledger is by definition what the site would compute, and
+ * a rebuild is a no-op rather than a demolition.
  */
-async function seedRatings(
-  ctx: SeedContext,
-  rows: { matchKey: string; playerId: string; playerName: string; opponentName: string; result: string; actual: number; seasonId: number; completedAt: Date }[],
-) {
-  ctx.log(`rating ledger: ${rows.length} rows`)
-  const rating = new Map<string, number>()
-  const K = 32
-  let sequence = 0
-
-  for (const r of rows) {
-    const pre = rating.get(r.playerId) ?? 1500
-    const oppId = pid(r.opponentName)
-    const oppPre = rating.get(oppId) ?? 1500
-    const expected = 1 / (1 + 10 ** ((oppPre - pre) / 400))
-    const change = Math.round(K * (r.actual - expected))
-    const post = pre + change
-    rating.set(r.playerId, post)
-
-    sequence++
-    await prisma.ratingLedger.create({
-      data: {
-        seasonId: r.seasonId,
-        matchKey: r.matchKey,
-        stage: 'GROUP',
-        roundLabel: 'Group stage',
-        playerId: r.playerId,
-        playerName: r.playerName,
-        opponentId: oppId,
-        opponentName: r.opponentName,
-        result: r.result,
-        actual: r.actual,
-        preRating: pre,
-        expected,
-        ratingChange: change,
-        postRating: post,
-        sequence,
-        completedAt: r.completedAt,
-        platform: 'CUEVERSE' as never,
-      },
-    })
-  }
+async function seedRatings(ctx: SeedContext) {
+  const { rebuildRatingLedger } = await import('../../src/lib/stats/ledger.ts')
+  await prisma.$transaction(async (tx) => rebuildRatingLedger(tx), { timeout: 180_000 })
+  const rows = await prisma.ratingLedger.count()
+  const byPlatform = await prisma.ratingLedger.groupBy({ by: ['platform'], _count: true })
+  ctx.log(`rating ledger: ${rows} rows (${byPlatform.map((p) => `${p.platform}:${p._count}`).join(', ')})`)
 }
 
 /**
@@ -690,20 +706,23 @@ export async function seedAll(ctx: SeedContext, userIdByKey: Record<string, numb
   await seedSeries(ctx)
   await seedPlayers(ctx, userIdByKey)
 
-  const { s3, s4, s5, s6, eight, twelve } = await seedSeasons(ctx)
+  const { s3, s4, s5, s6, s7, eight, twelve } = await seedSeasons(ctx)
 
   await seedGroupStage(ctx, 3, s3, eight, { complete: false })
   await seedGroupStage(ctx, 6, s6, DEV_PLAYERS.slice(0, 4), { complete: false })
   await seedGroupStage(ctx, 4, s4, eight, { complete: true })
-  const ledger = await seedGroupStage(ctx, 5, s5, twelve, { complete: true, awkward: true })
+  await seedGroupStage(ctx, 5, s5, twelve, { complete: true, awkward: true })
+  await seedGroupStage(ctx, 7, s7, eight, { complete: true })
 
   await seedPlayoffs(ctx, 4, s4, eight, false)
   await seedPlayoffs(ctx, 5, s5, twelve, true)
+  await seedPlayoffs(ctx, 7, s7, eight, true)
 
   await seedTournaments(ctx)
   await seedTheBreak(ctx)
   await seedAchievements(ctx)
-  await seedRatings(ctx, ledger)
+  await seedSiteSettings(ctx)
+  await seedRatings(ctx)
 
   // Staff designations, so the head-admin distinction is exercised rather than assumed.
   await prisma.staffDesignation.create({ data: { userId: userIdByKey.owner, headAdmin: true } })

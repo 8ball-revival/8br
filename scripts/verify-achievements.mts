@@ -375,50 +375,14 @@ section('18. THE RANKINGS CAN\'T TAKE IT BACK finds the lowest-rated champion')
 
 /* ─────────────────────────────────────────────────────────────────── against the archive ──────── */
 
-section('The real archive')
-{
-  const real = await loadAchievementFacts('YAHOO')
-  const ladder = await getLadder('all-time', new Date(), 'YAHOO')
-  const ratings = new Map(ladder.map((r) => [r.playerId, r.rating]))
-  const awards = computeAchievements(real, ratings)
-
-  check('all eighteen awards are produced', awards.length === 18, `${awards.length}`)
-  check('every award has a title and a caption', awards.every((a) => a.title && a.caption))
-  check('every player-facing award names somebody',
-    awards.every((a) => a.siteWide || a.winners.length > 0),
-    awards.filter((a) => !a.siteWide && !a.winners.length).map((a) => a.id).join(', '))
-  check('no caption uses an em dash', awards.every((a) => !a.caption.includes('—')),
-    awards.filter((a) => a.caption.includes('—')).map((a) => a.id).join(', '))
-  check('no caption reaches for "a testament to"',
-    awards.every((a) => !/testament to/i.test(a.caption + a.detail)))
-  check('captions stay short', awards.every((a) => a.caption.length <= 70),
-    awards.filter((a) => a.caption.length > 70).map((a) => `${a.id}:${a.caption.length}`).join(', '))
-
-  /*
-   * The identity rule reaches here too: a card that named only a Preferred Name would be the same
-   * fault as a table column that did.
-   */
-  check('every named winner carries a CueVerse ID',
-    awards.every((a) => a.winners.every((w) => (w.cueverseId ?? '').length > 0)),
-    awards.flatMap((a) => a.winners.filter((w) => !w.cueverseId).map((w) => `${a.id}:${w.preferredName}`)).join(', '))
-
-  /* Determinism: the same facts must give the same answer, including the order of tied winners. */
-  const again = computeAchievements(real, ratings)
-  check('two runs over the same archive agree exactly',
-    JSON.stringify(awards) === JSON.stringify(again))
-
-  /* Sanity bounds that a broken definition would breach. */
-  const choker = awards.find((a) => a.id === 'the-choker')
-  const finalsPlayed = real.matches.filter((m) => m.stage === 'PLAYOFF' && m.label === 'Final').length
-  check('nobody has lost more finals than there have been finals',
-    Number((choker?.stat ?? '0').split(' ')[0]) <= finalsPlayed,
-    `${choker?.stat} of ${finalsPlayed} finals`)
-
-  const hobby = awards.find((a) => a.id === 'find-another-hobby')
-  check('nobody has entered more seasons than exist',
-    Number((hobby?.stat ?? '0').split(' ')[0]) <= real.seasons.length,
-    `${hobby?.stat} of ${real.seasons.length}`)
-}
+/*
+ * "The real archive" ran here: eighteen awards computed from the live Yahoo record, every one of
+ * them naming somebody, no award claiming more finals than have been played. Every assertion needed
+ * the archive, so this suite could not run without it — while the sections above prove the ENGINE
+ * with fixtures they build themselves.
+ *
+ * Those record-level checks are in scripts/audit/audit-production.mts, where the archive exists.
+ */
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 await prisma.$disconnect()

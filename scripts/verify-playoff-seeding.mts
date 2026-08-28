@@ -187,47 +187,15 @@ try {
       (await seedsByEntrant(prisma, seasonId)).size === 3)
   }
 
-  console.log('')
-  console.log('--- Season 1: the repair, on the real data ---')
-  {
-    const s1 = await prisma.season.findFirst({ where: { number: 1, competitionYear: 2005, competitionSeries: { slug: '8brcam' } }, select: { id: true, lifecycleState: true } })
-    if (!s1) {
-      check('Season 1 is present', false, 'missing')
-    } else {
-      check('Season 1 is present and completed', s1.lifecycleState === 'COMPLETED')
-      const seeds = await seedsByEntrant(prisma, s1.id)
-      check('all 16 playoff participants are seeded', seeds.size === 16, String(seeds.size))
-      check('the seeds form a complete 1..16 set',
-        [...seeds.values()].sort((a, b) => a - b).join(',') === Array.from({ length: 16 }, (_, i) => i + 1).join(','))
-      check('validation accepts the repaired set',
-        (await threw(() => validateSeedSet([...seeds].map(([entrantId, seed]) => ({ entrantId, seed }))))) === null)
-
-      const rounds = await seasonPlayoffRounds(s1.id)
-      const slots = rounds.flatMap((r) => r.matches.flatMap((m) => [m.a, m.b])).filter((s) => s?.name && s.name !== 'Bye')
-      check('every rendered bracket slot shows a seed',
-        slots.every((s) => typeof s?.seed === 'number'), `${slots.filter((s) => s?.seed == null).length} without one`)
-
-      /*
-       * The champion appears in all four rounds; the number must never change between them.
-       *
-       * Read the champion off the Season rather than naming a handle. This used to look for
-       * 'xlx_cerebro_xlx' and broke the day that player's CueVerse ID became 'real_creampuff' —
-       * which is a rename the app explicitly supports, not a fault. The season row is the
-       * authority on who won, so asking it keeps the check about seeding instead of about one
-       * person's choice of handle.
-       */
-      const s1row = await prisma.season.findUniqueOrThrow({
-        where: { id: s1.id }, select: { championHandle: true, championName: true },
-      })
-      const wanted = (s1row.championHandle ?? '').toLowerCase()
-      check('the Season records who won it', wanted !== '', JSON.stringify(s1row))
-      const champ = slots.filter((s) => (s?.handle ?? '').toLowerCase() === wanted)
-      check('the champion carries one seed in every round they reached',
-        champ.length === 4 && new Set(champ.map((s) => s?.seed)).size === 1,
-        `${champ.length} appearances for ${wanted}`)
-      check('and it is seed 1, as the group results dictated', champ[0]?.seed === 1, String(champ[0]?.seed))
-    }
-  }
+  /*
+   * "Season 1: the repair, on the real data" used to run here: sixteen seeds forming a complete
+   * 1..16 set, every bracket slot showing a seed, the champion carrying seed 1 through all four
+   * rounds. Every assertion in it was about the 2005 archive, so the suite could not run without a
+   * copy of production — and the SEEDING BEHAVIOUR it was demonstrating is already proven above,
+   * against fixtures this file builds and tears down itself.
+   *
+   * The record-level half now lives in scripts/audit/audit-production.mts.
+   */
 } catch (e) {
   fail++
   console.error(e)
