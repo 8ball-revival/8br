@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev:replica": "node scripts/dev-replica.mjs",
     "reset:organization": "tsx scripts/reset-organization.mts",
     "test:tournament-isolation": "tsx scripts/test-cup-isolation.mts",
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build --webpack && node scripts/postbuild-cjs.mjs",

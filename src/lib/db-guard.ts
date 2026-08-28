@@ -23,14 +23,37 @@
  * workflows are separately named and carry their own read-only enforcement.
  */
 
-/** Databases a destructive local command may touch. */
-export const APPROVED_LOCAL_DATABASES = ['8br_dev', '8br_dev_redesign', '8br_test'] as const
+/**
+ * Databases a destructive local command may touch.
+ *
+ * `8br_prod_replica_20260828` is a COPY of the live database, restored locally so live-site bugs can
+ * be reproduced against the data that actually produces them. It is listed here on purpose: a script
+ * run against it destroys a copy, which is the point of having one. It is not a backup, not a
+ * deployment source, and nothing in it may travel back the other way — the only thing that leaves
+ * this worktree is reviewed code.
+ */
+export const APPROVED_LOCAL_DATABASES = [
+  '8br_dev', '8br_dev_redesign', '8br_test', '8br_prod_replica_20260828',
+] as const
 
 /** Hostnames that are the local machine. */
 export const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', ''] as const
 
-/** Databases that are production, named explicitly so a typo cannot reach them. */
-export const FORBIDDEN_DATABASES = ['neondb', 'eightballregistry_launch_20260818_1458'] as const
+/**
+ * Databases that are production, named explicitly so a typo cannot reach them.
+ *
+ * The two dated entries are the ones this guard did not know about and should have: on the Neon
+ * `main` branch, `eightballregistry_local_20260827` is the database 8br.gg is served from right now,
+ * and `eightballregistry_prod_20260827` is the pre-replacement backup kept for rollback. Both were
+ * reachable by name until this list included them — the remote-host check would still have caught a
+ * Neon URL, but a guard that names production should name the one that is actually production.
+ */
+export const FORBIDDEN_DATABASES = [
+  'neondb',
+  'eightballregistry_launch_20260818_1458',
+  'eightballregistry_local_20260827',
+  'eightballregistry_prod_20260827',
+] as const
 
 /** Host fragments that mean a managed remote provider. */
 export const REMOTE_HOST_MARKERS = ['neon.tech', 'aws.neon', 'vercel-storage', 'supabase', 'rds.amazonaws'] as const
