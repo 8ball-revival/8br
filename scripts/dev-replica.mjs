@@ -1,5 +1,5 @@
 /**
- * Start the site against the local PRODUCTION REPLICA, on port 3002.
+ * Start the site against the local PRODUCTION REPLICA, on port 3000.
  *
  * ── Why a launcher rather than `node --env-file=.env.replica next dev` ──────────────────────────
  * Next spawns worker processes and passes the parent's flags down through NODE_OPTIONS, and Node
@@ -14,8 +14,17 @@
  * script can wander into a copy of live data by default.
  *
  * ── The port ────────────────────────────────────────────────────────────────────────────────────
- * 3002, never 3000. The dummy development server owns 3000, and two servers showing different data
- * on adjacent ports is survivable only if you can never mistake one for the other.
+ * 3000 — the primary development environment, by explicit decision.
+ *
+ * It was 3002 while the dummy fixtures server owned 3000, on the reasoning that two servers showing
+ * different data are only safe if you cannot mistake one for the other. That reasoning is now
+ * inverted: development happens against a copy of the real record, so the real record is what the
+ * default port serves, and the fixtures server is the one you start deliberately.
+ *
+ * What that costs is worth naming. Port 3000 now shows real people's names, handles and results by
+ * default, so a screen share or a screenshot is showing member data rather than DEV_ placeholders.
+ * The guard below is unchanged and is what keeps this to a COPY: the live database is never a
+ * target, whatever port anything is on.
  */
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -24,7 +33,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ENV_FILE = path.join(ROOT, '.env.replica')
-const PORT = '3002'
+const PORT = '3000'
 
 if (!existsSync(ENV_FILE)) {
   console.error('✗ .env.replica is missing.')
