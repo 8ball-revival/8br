@@ -24,7 +24,8 @@
 
 /* ────────────────────────────────────────────────────────────────────── the settings ──────────── */
 
-export type Intensity = 'clean' | 'subtle' | 'standard' | 'overdrive' | 'custom'
+export type Intensity = 'off' | 'subtle' | 'standard' | 'overdrive' | 'custom'
+export type FontChoice = 'default' | 'grotesk' | 'inter' | 'mono'
 export type Frame = 'minimal' | 'rails' | 'beveled' | 'neon' | 'broadcast' | 'glass'
 export type Corners = 'chamfer' | 'square' | 'round'
 export type Texture = 'flat' | 'carbon' | 'brushed' | 'frosted' | 'hex' | 'circuit' | 'grid' | 'holo'
@@ -53,6 +54,17 @@ export interface DisplaySettings {
   scanStrength: number    // 0–200 %
   pulse: number       // 0–200 %, highlight and live pulses
 
+  /*
+   * The individually adjustable effects.
+   *
+   * Strengths rather than switches, and 0 IS off - which is why the separate on/off toggles these
+   * replace are gone. Two controls for one effect means a slider that appears to do nothing because
+   * a checkbox somewhere else is clear, and it doubles what a preset has to remember to set.
+   */
+  grainStrength: number
+  aberrationStrength: number
+  flickerStrength: number
+
   /* ── Colour ───────────────────────────────────────────────────────────────────────────────────
    * `accentInk` is stored alongside the accent rather than computed on load: it lets the pre-paint
    * script apply a custom accent without carrying a copy of the contrast maths, which is the only
@@ -62,6 +74,8 @@ export interface DisplaySettings {
   accentHex: string
   accentInk: string
   swatches: string[]
+  /** The last few colours touched, newest first. A convenience, not a saved decision. */
+  recentColors: string[]
 
   /* ── Structure ───────────────────────────────────────────────────────────────────────────────── */
   frame: Frame
@@ -70,6 +84,7 @@ export interface DisplaySettings {
   /* ── Surface ─────────────────────────────────────────────────────────────────────────────────── */
   texture: Texture
   textureStrength: number // 0–100 %
+  fontFamily: FontChoice
   textureScale: number    // 50–200 %
   surfaceTone: SurfaceTone
 
@@ -84,10 +99,6 @@ export interface DisplaySettings {
   /* ── Effects ─────────────────────────────────────────────────────────────────────────────────── */
   depth: number     // 0–200 %, drop shadow under panels
   motion: Motion
-  scanlines: boolean
-  grid: boolean
-  grain: boolean
-  aberration: boolean
   vignette: boolean
   borderPulse: boolean
   livePulse: boolean
@@ -108,12 +119,16 @@ export const DISPLAY_DEFAULTS: DisplaySettings = {
   gridStrength: 100,
   scanStrength: 100,
   pulse: 100,
+  grainStrength: 100,
+  aberrationStrength: 0,
+  flickerStrength: 0,
 
   accentMode: 'default',
   // Crystal White Pearl, the current accent. Black ink, as every accent surface requires.
   accentHex: '#f5f4f1',
   accentInk: '#050607',
   swatches: [],
+  recentColors: [],
 
   frame: 'minimal',
   corners: 'chamfer',
@@ -130,6 +145,7 @@ export const DISPLAY_DEFAULTS: DisplaySettings = {
   textureStrength: 20,
   textureScale: 100,
   surfaceTone: 'dark',
+  fontFamily: 'default',
 
   background: 'none',
   bgFit: 'cover',
@@ -140,10 +156,6 @@ export const DISPLAY_DEFAULTS: DisplaySettings = {
 
   depth: 100,
   motion: 'normal',
-  scanlines: true,
-  grid: true,
-  grain: true,
-  aberration: false,
   vignette: false,
   borderPulse: false,
   livePulse: true,
@@ -155,10 +167,26 @@ export const DISPLAY_DEFAULTS: DisplaySettings = {
 export type IntensityValues = Pick<
   DisplaySettings,
   'glow' | 'bloom' | 'panelLight' | 'linework' | 'gridStrength' | 'scanStrength' | 'pulse'
+  | 'textureStrength' | 'grainStrength' | 'aberrationStrength' | 'flickerStrength'
 >
 
+/**
+ * What a preset sets, and it is deliberately most of the interface.
+ *
+ * It used to be seven lighting numbers, which meant choosing Overdrive left the grain, the texture
+ * and the aberration exactly where they were - so the preset changed how lit the page was without
+ * changing how it FELT, and two presets could look nearly identical because the loudest effects were
+ * not theirs to move. A preset is a description of the whole atmosphere or it is a lighting slider
+ * with four names.
+ */
 export const INTENSITY_FIELDS: (keyof IntensityValues)[] = [
   'glow', 'bloom', 'panelLight', 'linework', 'gridStrength', 'scanStrength', 'pulse',
+  'textureStrength', 'grainStrength', 'aberrationStrength', 'flickerStrength',
+]
+
+/** The lighting core, which every preset must differ on. See `verify-display-lab`. */
+export const INTENSITY_CORE_FIELDS: (keyof IntensityValues)[] = [
+  'glow', 'bloom', 'panelLight', 'linework', 'gridStrength', 'scanStrength', 'pulse', 'textureStrength',
 ]
 
 /**
@@ -172,12 +200,38 @@ export const INTENSITY_FIELDS: (keyof IntensityValues)[] = [
  * `standard` is all 100 because 100 means "as designed" — see DISPLAY_DEFAULTS.
  */
 export const INTENSITY_PRESETS: Record<Exclude<Intensity, 'custom'>, IntensityValues> = {
-  /* Flat, quiet, and still the same layout and palette — for reading, and for a tired machine. */
-  clean:     { glow: 0,   bloom: 0,   panelLight: 0,   linework: 25,  gridStrength: 0,   scanStrength: 0,   pulse: 0 },
-  subtle:    { glow: 45,  bloom: 40,  panelLight: 50,  linework: 60,  gridStrength: 55,  scanStrength: 50,  pulse: 35 },
-  standard:  { glow: 100, bloom: 100, panelLight: 100, linework: 100, gridStrength: 100, scanStrength: 100, pulse: 100 },
-  /* Allowed to be too much. Somebody who chooses it has said what they want. */
-  overdrive: { glow: 180, bloom: 195, panelLight: 165, linework: 155, gridStrength: 150, scanStrength: 140, pulse: 185 },
+  /*
+   * Off keeps the palette, the layout and the type, and removes the atmosphere entirely. The site
+   * still looks like itself, just unlit - which is the point: this is the setting for reading on, and
+   * for a machine that cannot afford the rest.
+   */
+  off: {
+    glow: 0, bloom: 0, panelLight: 0, linework: 20,
+    gridStrength: 0, scanStrength: 0, pulse: 0,
+    textureStrength: 0, grainStrength: 0, aberrationStrength: 0, flickerStrength: 0,
+  },
+  /* Present but quiet. Everything on, nothing loud. */
+  subtle: {
+    glow: 45, bloom: 40, panelLight: 50, linework: 60,
+    gridStrength: 55, scanStrength: 50, pulse: 35,
+    textureStrength: 12, grainStrength: 60, aberrationStrength: 0, flickerStrength: 0,
+  },
+  /* The site as designed. Every value at 100 means "as authored" - see DISPLAY_DEFAULTS. */
+  standard: {
+    glow: 100, bloom: 100, panelLight: 100, linework: 100,
+    gridStrength: 100, scanStrength: 100, pulse: 100,
+    textureStrength: 20, grainStrength: 100, aberrationStrength: 0, flickerStrength: 0,
+  },
+  /*
+   * Allowed to be too much, and the only preset that turns on the two effects nobody should meet by
+   * accident. Chromatic aberration is a lens defect and CRT flicker is tiring; both are legible
+   * choices when somebody has asked for excess, and neither belongs in a default.
+   */
+  overdrive: {
+    glow: 180, bloom: 195, panelLight: 165, linework: 155,
+    gridStrength: 150, scanStrength: 140, pulse: 185,
+    textureStrength: 45, grainStrength: 150, aberrationStrength: 55, flickerStrength: 35,
+  },
 }
 
 /** Apply a preset, leaving every setting it does not own untouched. */
@@ -203,7 +257,7 @@ export function matchedPreset(v: IntensityValues): Exclude<Intensity, 'custom'> 
 /* ──────────────────────────────────────────────────────────────────────── validation ──────────── */
 
 const CHOICES = {
-  intensity: ['clean', 'subtle', 'standard', 'overdrive', 'custom'],
+  intensity: ['off', 'subtle', 'standard', 'overdrive', 'custom'],
   accentMode: ['default', 'custom'],
   frame: ['minimal', 'rails', 'beveled', 'neon', 'broadcast', 'glass'],
   corners: ['chamfer', 'square', 'round'],
@@ -213,17 +267,19 @@ const CHOICES = {
   bgFit: ['cover', 'contain', 'tile'],
   bgPosition: ['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'],
   motion: ['off', 'calm', 'normal', 'fast'],
+  fontFamily: ['default', 'grotesk', 'inter', 'mono'],
 } as const satisfies Partial<Record<keyof DisplaySettings, readonly string[]>>
 
 /** Numeric fields and the range each is clamped to. */
 const RANGES = {
   glow: [0, 200], bloom: [0, 200], panelLight: [0, 200], linework: [0, 200],
   gridStrength: [0, 200], scanStrength: [0, 200], pulse: [0, 200], depth: [0, 200],
+  grainStrength: [0, 200], aberrationStrength: [0, 100], flickerStrength: [0, 100],
   textureStrength: [0, 100], textureScale: [50, 200],
   bgOpacity: [0, 100], bgBlur: [0, 40], bgDarken: [0, 90],
 } as const satisfies Partial<Record<keyof DisplaySettings, readonly [number, number]>>
 
-const BOOLEANS = ['scanlines', 'grid', 'grain', 'aberration', 'vignette', 'borderPulse', 'livePulse'] as const
+const BOOLEANS = ['vignette', 'borderPulse', 'livePulse'] as const
 
 const HEX = /^#[0-9a-f]{6}$/i
 
@@ -280,9 +336,11 @@ export function parseDisplay(raw: string | null | undefined): DisplaySettings {
 
   if (!HEX.test(out.accentHex)) { out.accentHex = DISPLAY_DEFAULTS.accentHex; out.accentMode = 'default' }
   if (!HEX.test(out.accentInk)) out.accentInk = DISPLAY_DEFAULTS.accentInk
-  out.swatches = Array.isArray(out.swatches)
-    ? out.swatches.filter((c): c is string => typeof c === 'string' && HEX.test(c)).slice(0, 12)
-    : []
+  const colourList = (v: unknown, max: number) => (Array.isArray(v)
+    ? v.filter((c): c is string => typeof c === 'string' && HEX.test(c)).slice(0, max)
+    : [])
+  out.swatches = colourList(out.swatches, 12)
+  out.recentColors = colourList(out.recentColors, 8)
 
   /*
    * A stored `intensity` is believed only if the numbers still agree with it. Storage can hold a
@@ -316,7 +374,8 @@ export function migrateLegacyHud(raw: string | null | undefined): Partial<Displa
   } catch { return null }
 
   const next: Partial<DisplaySettings> = {}
-  const intensity = old.intensity === 'off' ? 'clean' : old.intensity
+  // 'off' meant the same thing in the old panel and means it again here, so it carries straight over.
+  const intensity = old.intensity
   if (typeof intensity === 'string' && CHOICES.intensity.includes(intensity as Intensity)) {
     Object.assign(next, withIntensity(DISPLAY_DEFAULTS, intensity as Intensity))
     next.intensity = intensity as Intensity
@@ -335,10 +394,17 @@ export function migrateLegacyHud(raw: string | null | undefined): Partial<Displa
   }
   if (typeof old.corners === 'string' && CHOICES.corners.includes(old.corners as Corners)) next.corners = old.corners as Corners
   if (typeof old.motion === 'string' && CHOICES.motion.includes(old.motion as Motion)) next.motion = old.motion as Motion
-  if (typeof old.scan === 'boolean') next.scanlines = old.scan
-  if (typeof old.grid === 'boolean') next.grid = old.grid
-  if (typeof old.noise === 'boolean') next.grain = old.noise
-  if (typeof old.aberration === 'boolean') next.aberration = old.aberration
+  /*
+   * The old switches become strengths: off is zero, on is the designed amount. A reader who had
+   * turned scanlines off keeps them off; one who had them on gets them at the strength the preset
+   * would have given them, which is what they were already looking at.
+   */
+  if (typeof old.scan === 'boolean') next.scanStrength = old.scan ? 100 : 0
+  if (typeof old.grid === 'boolean') next.gridStrength = old.grid ? 100 : 0
+  if (typeof old.noise === 'boolean') next.grainStrength = old.noise ? 100 : 0
+  if (typeof old.aberration === 'boolean') next.aberrationStrength = old.aberration ? 50 : 0
+  // The old panel had CRT flicker and Display Lab dropped it; it is back, so the choice carries over.
+  if (typeof old.flicker === 'boolean') next.flickerStrength = old.flicker ? 35 : 0
 
   return Object.keys(next).length > 0 ? next : null
 }
@@ -361,6 +427,7 @@ export const DOM_SPEC = {
     dlCorners: 'corners',
     dlTexture: 'texture',
     dlTone: 'surfaceTone',
+    dlFont: 'fontFamily',
     dlBg: 'background',
     dlBgFit: 'bgFit',
     dlBgPos: 'bgPosition',
@@ -369,13 +436,23 @@ export const DOM_SPEC = {
   },
   /** dataset key ← boolean field, written as on/off so CSS can select either state. */
   bools: {
-    dlScan: 'scanlines',
-    dlGrid: 'grid',
-    dlGrain: 'grain',
-    dlAberration: 'aberration',
     dlVignette: 'vignette',
     dlBorderPulse: 'borderPulse',
     dlLivePulse: 'livePulse',
+  },
+  /*
+   * Effects whose attribute is derived from a STRENGTH rather than a switch.
+   *
+   * `data-dl-grain="on"` still exists for the stylesheet to select on, but it is computed from
+   * `grainStrength > 0` rather than stored separately - so a slider at zero and a switch turned off
+   * cannot disagree, because there is only one of them.
+   */
+  onWhenPositive: {
+    dlScan: 'scanStrength',
+    dlGrid: 'gridStrength',
+    dlGrain: 'grainStrength',
+    dlAberration: 'aberrationStrength',
+    dlFlicker: 'flickerStrength',
   },
   /** CSS variable ← [field, divisor]. Percentages become the multipliers the stylesheet expects. */
   nums: {
@@ -388,6 +465,9 @@ export const DOM_SPEC = {
     '--dl-pulse': ['pulse', 100],
     '--dl-depth': ['depth', 100],
     '--dl-texture-strength': ['textureStrength', 100],
+    '--dl-grain': ['grainStrength', 100],
+    '--dl-aberration': ['aberrationStrength', 100],
+    '--dl-flicker': ['flickerStrength', 100],
     '--dl-texture-scale': ['textureScale', 100],
     '--dl-bg-opacity': ['bgOpacity', 100],
     '--dl-bg-darken': ['bgDarken', 100],
@@ -417,6 +497,9 @@ export function displayDom(s: DisplaySettings): DisplayDom {
 
   for (const [key, field] of Object.entries(DOM_SPEC.attrs)) attrs[key] = String(s[field as keyof DisplaySettings])
   for (const [key, field] of Object.entries(DOM_SPEC.bools)) attrs[key] = s[field as keyof DisplaySettings] ? 'on' : 'off'
+  for (const [key, field] of Object.entries(DOM_SPEC.onWhenPositive)) {
+    attrs[key] = (s[field as keyof DisplaySettings] as number) > 0 ? 'on' : 'off'
+  }
   for (const [name, [field, div]] of Object.entries(DOM_SPEC.nums)) {
     vars[name] = String((s[field as keyof DisplaySettings] as number) / (div as number))
   }

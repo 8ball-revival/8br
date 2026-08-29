@@ -22,9 +22,18 @@ import { cn } from '@/lib/utils'
  * works here works on the graphite panels; the reverse is not true. `.dl-on-light` tells the texture
  * layer to draw in ink rather than white, which is the one thing an accent-ground panel needs.
  */
-export function DisplayPreview({ settings, mode }: {
+export function DisplayPreview({ settings, mode, compact = false }: {
   settings: DisplaySettings
   mode: 'panel' | 'page'
+  /**
+   * The strip that sits above the tabs.
+   *
+   * Short, because it has to stay on screen alongside four tabs and a footer without pushing the
+   * controls into a second scroll. It keeps both grounds - the accent panel and a graphite one -
+   * because those are the two surfaces a frame or a texture can look different on, and showing only
+   * one is how a treatment gets approved that fails on the other.
+   */
+  compact?: boolean
 }) {
   const scope = useRef<HTMLDivElement>(null)
 
@@ -36,7 +45,10 @@ export function DisplayPreview({ settings, mode }: {
     <div
       ref={scope}
       data-dl-scope
-      className="relative isolate overflow-hidden border border-[var(--line)] bg-[var(--void)] p-3"
+      className={cn(
+        'relative isolate overflow-hidden border border-[var(--line)] bg-[var(--void)]',
+        compact ? 'p-2' : 'p-3',
+      )}
     >
       {/*
         The preview's own decorative layers, confined to this box. `dl-layer-inset` swaps the fixed
@@ -49,9 +61,12 @@ export function DisplayPreview({ settings, mode }: {
       <div className="dl-grain-layer dl-layer-inset" aria-hidden />
       <div className="dl-vignette-layer dl-layer-inset" aria-hidden />
 
-      <div className="relative z-[1] space-y-2">
+      <div className={cn('relative z-[1]', compact ? 'grid grid-cols-[1.4fr_1fr] gap-2' : 'space-y-2')}>
         {/* The accent-ground feature panel, in miniature and with real type. */}
-        <div className="dl-surface dl-on-light cyber-clip grid gap-3 border-[var(--acid-dim)] bg-[var(--acid)] p-3 text-[var(--acid-ink)] sm:grid-cols-[minmax(0,60fr)_minmax(0,40fr)]">
+        <div className={cn(
+          'dl-surface dl-on-light cyber-clip grid gap-3 border-[var(--acid-dim)] bg-[var(--acid)] text-[var(--acid-ink)]',
+          compact ? 'p-2' : 'p-3 sm:grid-cols-[minmax(0,60fr)_minmax(0,40fr)]',
+        )}>
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">
               Welcome to 8 Ball Registry
@@ -62,24 +77,29 @@ export function DisplayPreview({ settings, mode }: {
               <br />
               History
             </p>
-            <p className="mt-2 text-[0.7rem] font-semibold leading-snug">
-              Explore seasons, tournaments, champions, and results.
-            </p>
+            {!compact && (
+              <p className="mt-2 text-[0.7rem] font-semibold leading-snug">
+                Explore seasons, tournaments, champions, and results.
+              </p>
+            )}
             <span className="cyber-clip-sm mt-3 inline-flex bg-[var(--hot-red)] px-3 py-1.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[var(--clean-white)]">
               Rankings
             </span>
           </div>
-          <div className="min-w-0 border-t border-[var(--acid-ink)]/25 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
-            <p className="text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">Latest News</p>
-            <ul className="mt-2 space-y-1.5">
-              {['Season 9 groups are drawn', 'Playoff bracket published'].map((t) => (
-                <li key={t} className="flex gap-1.5 border-b border-[var(--acid-ink)]/15 pb-1.5 last:border-b-0 last:pb-0">
-                  <span aria-hidden className="mt-[0.35rem] size-1 shrink-0 rounded-full bg-[var(--hot-red)]" />
-                  <span className="text-[0.68rem] font-semibold leading-snug">{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* The news column is the first thing to go when the strip has to share a drawer. */}
+          {!compact && (
+            <div className="min-w-0 border-t border-[var(--acid-ink)]/25 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+              <p className="text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">Latest News</p>
+              <ul className="mt-2 space-y-1.5">
+                {['Season 9 groups are drawn', 'Playoff bracket published'].map((t) => (
+                  <li key={t} className="flex gap-1.5 border-b border-[var(--acid-ink)]/15 pb-1.5 last:border-b-0 last:pb-0">
+                    <span aria-hidden className="mt-[0.35rem] size-1 shrink-0 rounded-full bg-[var(--hot-red)]" />
+                    <span className="text-[0.68rem] font-semibold leading-snug">{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/*
@@ -92,7 +112,15 @@ export function DisplayPreview({ settings, mode }: {
         <div className="dl-surface cyber-clip bg-[var(--card)] p-3">
           <p className="text-[0.55rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">Live Rankings</p>
           <ul className="mt-2 space-y-1">
-            {[['1', 'DEV_CutShotCarla', '1842'], ['2', 'DEV_RailRunner', '1790']].map(([rank, name, rating]) => (
+            {/*
+              Neutral sample names, deliberately.
+
+              These were `DEV_` handles from when development ran on invented fixtures, which now
+              reads as a bug on a server showing the real roster — "why is there dummy data in the
+              panel" is a question this strip should never prompt. Real names would be worse: a
+              preview is illustration, and putting a member in it implies they are involved.
+            */}
+            {[['1', 'First Player', '1842'], ['2', 'Second Player', '1790']].map(([rank, name, rating]) => (
               <li key={rank} className="dl-quiet flex items-center gap-2 border border-[var(--line)] px-2 py-1 text-[0.7rem]">
                 <span className="tabular w-4 text-muted-foreground">{rank}</span>
                 <span className="min-w-0 flex-1 truncate text-[var(--cyan)]">{name}</span>

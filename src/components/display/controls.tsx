@@ -214,3 +214,32 @@ export function SwatchChoice<T extends string>({ label, value, onChange, options
     </div>
   )
 }
+
+/**
+ * A section that folds away until it is wanted.
+ *
+ * Built on <details>, not a hand-rolled toggle: it is focusable, it opens on Enter and Space, screen
+ * readers announce its state, and browser find-in-page can open it to reveal a match. Every one of
+ * those is something a div with an onClick has to reimplement and usually does not.
+ *
+ * Advanced controls live in these so the tab a reader lands on shows the four or five decisions that
+ * matter, and the twenty that occasionally matter stay one click away rather than in the way.
+ */
+export function Disclosure({ label, hint, children }: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <details className="group border border-[var(--line)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] [&::-webkit-details-marker]:hidden">
+        <span>{label}</span>
+        <span aria-hidden className="text-[0.8rem] leading-none transition-transform group-open:rotate-45">+</span>
+      </summary>
+      <div className="space-y-3 border-t border-[var(--line)] px-2.5 py-3">
+        {hint && <p className="-mt-1 text-[0.66rem] leading-snug text-muted-foreground/80">{hint}</p>}
+        {children}
+      </div>
+    </details>
+  )
+}

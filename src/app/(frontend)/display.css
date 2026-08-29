@@ -51,6 +51,21 @@
 :root,
 [data-dl-scope] {
   --dl-glow: 1;
+  /*
+   * The glow CURVE, so the slider is graduated rather than merely proportional.
+   *
+   * Straight multiplication was correct and unconvincing: at 200% a panel reached 24px at 32% alpha,
+   * which is brighter than 100% but not obviously so, and "obvious" is the whole job of a control
+   * whose only output is how lit something looks.
+   *
+   *   0.4g + 0.6g squared
+   *
+   * f(1) = 1 exactly, so the default appearance is untouched - that is the constraint everything
+   * here is built around. Below 1 it falls away faster than linear, so Subtle reads as restraint;
+   * above 1 it climbs, so 200% reaches roughly 38px at 51% and looks like a decision. CSS has no
+   * pow(), and it does not need one: multiplying the variable by itself is the same thing.
+   */
+  --dl-glow-curve: calc(var(--dl-glow) * (0.4 + 0.6 * var(--dl-glow)));
   --dl-bloom: 1;
   --dl-panel-light: 1;
   --dl-linework: 1;
@@ -58,18 +73,21 @@
   --dl-scan: 1;
   --dl-pulse: 1;
   --dl-depth: 1;
+  --dl-grain: 1;
+  --dl-aberration: 0;
+  --dl-flicker: 0;
 
   --glow-yellow:
-    0 0 calc(4px * var(--dl-glow)) color-mix(in oklab, var(--acid) calc(55% * var(--dl-glow)), transparent),
-    0 0 calc(18px * var(--dl-glow)) color-mix(in oklab, var(--acid) calc(28% * var(--dl-glow)), transparent);
+    0 0 calc(4px * var(--dl-glow-curve)) color-mix(in oklab, var(--acid) calc(55% * var(--dl-glow-curve)), transparent),
+    0 0 calc(18px * var(--dl-glow-curve)) color-mix(in oklab, var(--acid) calc(28% * var(--dl-glow-curve)), transparent);
   --glow-cyan:
-    0 0 calc(4px * var(--dl-glow)) color-mix(in oklab, var(--cyan) calc(60% * var(--dl-glow)), transparent),
-    0 0 calc(18px * var(--dl-glow)) color-mix(in oklab, var(--cyan) calc(30% * var(--dl-glow)), transparent);
+    0 0 calc(4px * var(--dl-glow-curve)) color-mix(in oklab, var(--cyan) calc(60% * var(--dl-glow-curve)), transparent),
+    0 0 calc(18px * var(--dl-glow-curve)) color-mix(in oklab, var(--cyan) calc(30% * var(--dl-glow-curve)), transparent);
   --glow-magenta:
-    0 0 calc(4px * var(--dl-glow)) color-mix(in oklab, var(--hot-red) calc(60% * var(--dl-glow)), transparent),
-    0 0 calc(18px * var(--dl-glow)) color-mix(in oklab, var(--hot-red) calc(30% * var(--dl-glow)), transparent);
+    0 0 calc(4px * var(--dl-glow-curve)) color-mix(in oklab, var(--hot-red) calc(60% * var(--dl-glow-curve)), transparent),
+    0 0 calc(18px * var(--dl-glow-curve)) color-mix(in oklab, var(--hot-red) calc(30% * var(--dl-glow-curve)), transparent);
   --glow-soft:
-    0 0 calc(12px * var(--dl-glow)) color-mix(in oklab, var(--cyan) calc(16% * var(--dl-glow)), transparent);
+    0 0 calc(12px * var(--dl-glow-curve)) color-mix(in oklab, var(--cyan) calc(16% * var(--dl-glow-curve)), transparent);
 
   /* The overlays read their own strength, so Grid and Scanlines are dials and not only switches. */
   --scan-line: color-mix(in oklab, var(--cyan) calc(5% * var(--dl-scan)), transparent);
@@ -489,6 +507,38 @@
   background-color: color-mix(in oklab, var(--void) calc(100% * var(--dl-bg-darken, 0.4)), transparent);
 }
 
+/*
+  A background thumbnail.
+
+  Paints the same `--dl-bg-image` the full-page layer does, so a swatch is the material itself at a
+  smaller size rather than a drawing of it — and a background retuned later retunes its own thumbnail.
+*/
+/*
+  A number field with no spinner.
+
+  The stepper arrows on `input[type=number]` are ~7px of the control and useless for an RGB channel
+  nobody nudges one at a time - and they were eating the third digit, so 245 rendered as "24". The
+  keyboard still steps with the arrow keys; only the chrome goes.
+*/
+.dl-no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.dl-no-spinner::-webkit-outer-spin-button,
+.dl-no-spinner::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dl-bg-thumb {
+  background-color: var(--void);
+  background-image: var(--dl-bg-image, none);
+  background-size: var(--dl-bg-size, cover);
+  background-position: var(--dl-bg-pos, center);
+  background-repeat: var(--dl-bg-repeat, no-repeat);
+}
+
 [data-dl-bg]:not([data-dl-bg='none']) .dl-bg-layer {
   display: block;
 }
@@ -604,7 +654,11 @@
 }
 
 .dl-grain-layer {
-  opacity: 0.035;
+  /*
+   * 3.5% at full strength - visible as texture, never as dirt. The slider scales that, so "grain at
+   * 40%" is a real amount rather than an on/off dressed up as a percentage.
+   */
+  opacity: calc(0.035 * var(--dl-grain));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -639,9 +693,37 @@
 [data-dl-aberration='on'] h1,
 [data-dl-aberration='on'] h2 {
   text-shadow:
-    -1px 0 0 color-mix(in oklab, var(--hot-red) 50%, transparent),
-    1px 0 0 color-mix(in oklab, var(--cyan) 50%, transparent);
+    calc(-2px * var(--dl-aberration)) 0 0 color-mix(in oklab, var(--hot-red) calc(70% * var(--dl-aberration)), transparent),
+    calc(2px * var(--dl-aberration)) 0 0 color-mix(in oklab, var(--cyan) calc(70% * var(--dl-aberration)), transparent);
 }
+
+/*
+  CRT flicker - the most authentic effect here and the most tiring, so it is opt-in and its amplitude
+  is a slider rather than a switch. Even at full strength the dip is small enough to read as a tube
+  warming up rather than a strobe, which is a deliberate ceiling: a display preference must not be
+  able to produce something uncomfortable to sit in front of.
+*/
+[data-dl-flicker='on'] body {
+  animation: dl-crt-flicker 5s steps(1, end) infinite;
+}
+
+@keyframes dl-crt-flicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: calc(1 - 0.06 * var(--dl-flicker)); }
+  98% { opacity: 1; }
+  99% { opacity: calc(1 - 0.03 * var(--dl-flicker)); }
+}
+
+/*
+  Typeface.
+
+  Only the BODY family moves. Display headings keep Space Grotesk and tabular data keeps the mono
+  face, because those two carry meaning: a numeric column that stops being tabular stops lining up,
+  and the wordmark is the wordmark. This is a reading preference, not a redesign.
+*/
+[data-dl-font='grotesk'] body { font-family: var(--font-display); }
+[data-dl-font='inter'] body { font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif; }
+[data-dl-font='mono'] body { font-family: var(--font-mono); }
 
 /* ═════════════════════════════════════════════════════════════════ pulses ═════════════════════ */
 

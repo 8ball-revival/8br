@@ -76,6 +76,12 @@ section('Any accent a reader can reach stays readable')
   const ink = tok('--acid-ink')
   const DISPLAY = readFileSync('src/app/(frontend)/display.css', 'utf8')
   const LAB = readFileSync('src/components/display/display-lab.tsx', 'utf8')
+  /*
+   * The contrast warning lives on the PICKER now, beside the colour being chosen, rather than in the
+   * panel that hosts it. That is where it belongs: the moment a reader can see the problem is the
+   * moment they are looking at the square that caused it.
+   */
+  const PICKER = readFileSync('src/components/display/color-picker.tsx', 'utf8')
 
   check('the default accent is the white pearl', /--acid:\s*#f5f4f1/i.test(CSS.slice(CSS.indexOf(':root'), CSS.indexOf(':root') + 4000)))
   check('...and the panel agrees, so no reader sees one accent before the script runs and another after',
@@ -122,9 +128,9 @@ section('Any accent a reader can reach stays readable')
   check('...and every one of them is offered a shade that passes', uncorrectable === 0,
     `${uncorrectable} flagged colours had no working suggestion`)
 
-  check('the panel warns rather than silently accepting a failing accent',
-    LAB.includes('checkAccent') && /below the 4\.5:1/.test(LAB))
-  check('...and offers the correction as one action', LAB.includes('Use the nearest readable shade'))
+  check('the picker warns rather than silently accepting a failing accent',
+    PICKER.includes('checkAccent') && /under the 4\.5:1/.test(PICKER))
+  check('...and offers the correction as one action', PICKER.includes('Use the nearest readable shade'))
   check('...with the ink measured at every write, never chosen',
     (LAB.match(/readableInk\(/g) ?? []).length >= 2 && !/accentInk:\s*['"]#(?!050607)/.test(LAB))
 

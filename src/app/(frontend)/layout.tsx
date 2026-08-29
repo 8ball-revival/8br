@@ -87,6 +87,7 @@ if(!s||typeof s!=='object'||Array.isArray(s))s={};
 var v=function(k){return s[k]===undefined||s[k]===null?D[k]:s[k]};
 for(var a in S.attrs)e.dataset[a]=String(v(S.attrs[a]));
 for(var b in S.bools)e.dataset[b]=v(S.bools[b])?'on':'off';
+for(var w in S.onWhenPositive)e.dataset[w]=Number(v(S.onWhenPositive[w]))>0?'on':'off';
 for(var n in S.nums)e.style.setProperty(n,String(Number(v(S.nums[n][0]))/S.nums[n][1]));
 for(var p in S.px)e.style.setProperty(p,Number(v(S.px[p][0]))+S.px[p][1]);
 if(v('accentMode')==='custom'){e.style.setProperty('--dl-accent',String(v('accentHex')));e.style.setProperty('--dl-accent-ink',String(v('accentInk')));}

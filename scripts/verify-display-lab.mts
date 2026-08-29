@@ -16,7 +16,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
 
 import {
-  DISPLAY_DEFAULTS, DISPLAY_KEY, DOM_SPEC, INTENSITY_FIELDS, INTENSITY_PRESETS, LEGACY_HUD_KEY,
+  DISPLAY_DEFAULTS, DISPLAY_KEY, DOM_SPEC, INTENSITY_FIELDS, INTENSITY_CORE_FIELDS,
+  INTENSITY_PRESETS, LEGACY_HUD_KEY,
   displayDom, matchedPreset, migrateLegacyHud, parseDisplay, withIntensity,
   type DisplaySettings, type IntensityValues,
 } from '../src/lib/display/settings.ts'
@@ -52,19 +53,25 @@ section('The default appearance is the official one')
    * and redesigning the site for everybody.
    */
   check('nothing stored renders the defaults', JSON.stringify(parseDisplay(null)) === JSON.stringify(DISPLAY_DEFAULTS))
-  check('...standard intensity means every value at 100',
-    INTENSITY_FIELDS.every((f) => DISPLAY_DEFAULTS[f] === 100))
+  check('...standard intensity means every lighting value at 100',
+    INTENSITY_CORE_FIELDS.filter((f) => f !== 'textureStrength').every((f) => DISPLAY_DEFAULTS[f] === 100))
   check('...the default frame is the current one', DISPLAY_DEFAULTS.frame === 'minimal')
   check('...with no texture', DISPLAY_DEFAULTS.texture === 'flat')
   check('...no background', DISPLAY_DEFAULTS.background === 'none')
   check('...the chamfered corners the site already has', DISPLAY_DEFAULTS.corners === 'chamfer')
   check('...and the site accent rather than a custom one', DISPLAY_DEFAULTS.accentMode === 'default')
 
-  /* The effects that were already on stay on, and the ones that were off stay off. */
-  check('scanlines, grid and grain start on, as they were',
-    DISPLAY_DEFAULTS.scanlines && DISPLAY_DEFAULTS.grid && DISPLAY_DEFAULTS.grain)
-  check('aberration, vignette and border pulse start off, as they were',
-    !DISPLAY_DEFAULTS.aberration && !DISPLAY_DEFAULTS.vignette && !DISPLAY_DEFAULTS.borderPulse)
+  /*
+   * The effects that were already on stay on, and the ones that were off stay off - now expressed as
+   * strengths, where 0 IS off. The pair of controls this replaces could disagree with each other.
+   */
+  check('scanlines, grid and grain start at full strength, as they rendered before',
+    DISPLAY_DEFAULTS.scanStrength === 100 && DISPLAY_DEFAULTS.gridStrength === 100 && DISPLAY_DEFAULTS.grainStrength === 100)
+  check('aberration and CRT flicker start at zero, as they were off',
+    DISPLAY_DEFAULTS.aberrationStrength === 0 && DISPLAY_DEFAULTS.flickerStrength === 0)
+  check('vignette and border pulse start off, as they were',
+    !DISPLAY_DEFAULTS.vignette && !DISPLAY_DEFAULTS.borderPulse)
+  check('the site typeface is left alone by default', DISPLAY_DEFAULTS.fontFamily === 'default')
 
   const dom = displayDom(DISPLAY_DEFAULTS)
   check('the default accent sets no accent variable, so the design can change without stranding anyone',
@@ -83,17 +90,35 @@ section('The intensity presets are genuinely different')
     for (let j = i + 1; j < names.length; j++) {
       const a = INTENSITY_PRESETS[names[i]]
       const b = INTENSITY_PRESETS[names[j]]
-      const same = INTENSITY_FIELDS.filter((f) => a[f] === b[f])
-      check(`${names[i]} and ${names[j]} differ on every value`, same.length === 0, `shared: ${same.join(', ')}`)
-      /* And by enough to see. A one-point difference is a difference nobody can perceive. */
-      const closest = Math.min(...INTENSITY_FIELDS.map((f) => Math.abs(a[f] - b[f])))
-      check(`...by a visible margin`, closest >= 10, `closest field differs by ${closest}`)
+      /*
+       * The LIGHTING CORE must differ on every field. The two opt-in effects are excluded on purpose:
+       * aberration and CRT flicker are zero in three of the four presets, because a lens defect and a
+       * flickering tube are things somebody asks for rather than things that distinguish "quiet" from
+       * "as designed". Requiring them to differ would force one preset to carry an effect nobody
+       * wanted just to satisfy a test.
+       */
+      const same = INTENSITY_CORE_FIELDS.filter((f) => a[f] === b[f])
+      check(`${names[i]} and ${names[j]} differ on every core value`, same.length === 0, `shared: ${same.join(', ')}`)
+      const closest = Math.min(...INTENSITY_CORE_FIELDS.map((f) => Math.abs(a[f] - b[f])))
+      check(`...by a visible margin`, closest >= 8, `closest field differs by ${closest}`)
     }
   }
 
-  check('standard is the design, unmodified', INTENSITY_FIELDS.every((f) => INTENSITY_PRESETS.standard[f] === 100))
-  check('clean removes light without removing structure',
-    INTENSITY_PRESETS.clean.glow === 0 && INTENSITY_PRESETS.clean.linework > 0)
+  check('standard is the design, unmodified',
+    INTENSITY_CORE_FIELDS.filter((f) => f !== 'textureStrength').every((f) => INTENSITY_PRESETS.standard[f] === 100))
+  check('off removes light without removing structure',
+    INTENSITY_PRESETS.off.glow === 0 && INTENSITY_PRESETS.off.linework > 0)
+
+  /*
+   * The point of widening what a preset owns: it must move the LOUD effects too, or Overdrive is a
+   * brightness setting with an exciting name.
+   */
+  check('a preset drives the texture, not just the lighting',
+    new Set(names.map((n) => INTENSITY_PRESETS[n].textureStrength)).size === names.length)
+  check('...and the grain', new Set(names.map((n) => INTENSITY_PRESETS[n].grainStrength)).size === names.length)
+  check('only overdrive turns on aberration and CRT flicker',
+    INTENSITY_PRESETS.overdrive.aberrationStrength > 0 && INTENSITY_PRESETS.overdrive.flickerStrength > 0
+    && names.filter((n) => INTENSITY_PRESETS[n].aberrationStrength > 0).length === 1)
 
   /* Applying a preset must not disturb anything it does not own. */
   const custom: DisplaySettings = { ...DISPLAY_DEFAULTS, frame: 'glass', texture: 'hex', motion: 'calm', bgOpacity: 12 }
@@ -158,10 +183,19 @@ section('Every control reaches a real rule')
    * What must never be true is an effect applied UNCONDITIONALLY with only a decorative attribute
    * beside it, which is the dead control this section exists to catch.
    */
-  for (const [key] of Object.entries(DOM_SPEC.bools)) {
+  for (const [key] of [...Object.entries(DOM_SPEC.bools), ...Object.entries(DOM_SPEC.onWhenPositive)]) {
     const attr = `data-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`
     check(`...and ${attr} gates its effect on an explicit state`,
       CSS.includes(`[${attr}='on']`) || CSS.includes(`[${attr}='off']`))
+  }
+
+  /*
+   * An effect driven by a strength must READ that strength, not merely be switched by it. Otherwise
+   * the slider is a checkbox with a hundred positions, which is exactly the complaint that produced
+   * this pass.
+   */
+  for (const name of ['--dl-grain', '--dl-aberration', '--dl-flicker']) {
+    check(`${name} changes the rendering, not only the attribute`, CSS.includes(`var(${name})`))
   }
   for (const layer of ['dl-grain-layer', 'dl-vignette-layer', 'dl-bg-layer']) {
     const base = new RegExp(`\\.${layer}[^{]*\\{([\\s\\S]*?)\\n\\}`).exec(CSS)?.[1] ?? ''
@@ -185,17 +219,35 @@ section('The glow slider actually changes the glow')
   check('...and every one of them scales with the slider',
     ['--glow-yellow', '--glow-cyan', '--glow-magenta', '--glow-soft'].every((g) => {
       const body = new RegExp(`${g}:([\\s\\S]*?);`).exec(CSS)?.[1] ?? ''
-      return body.includes('var(--dl-glow)')
+      return body.includes('var(--dl-glow-curve)')
     }))
   check('...including the panel shadow, which is the one the old slider missed',
-    /--glow-soft:[\s\S]*?var\(--dl-glow\)/.test(CSS))
+    /--glow-soft:[\s\S]*?var\(--dl-glow-curve\)/.test(CSS))
+
+  /*
+   * The curve, and the one property it must not break.
+   *
+   * Straight multiplication was correct and unconvincing: 200% was brighter than 100% without
+   * looking it, and "looking it" is the entire job of a control whose only output is how lit
+   * something is. The curve steepens the top end — and it is written so that f(1) = 1 EXACTLY,
+   * because 0.4 + 0.6 = 1. That is what keeps the default appearance identical for every reader who
+   * never opens this panel, and it is checked here rather than eyeballed.
+   */
+  const curve = /--dl-glow-curve:\s*calc\(([^;]+)\);/.exec(CSS)?.[1] ?? ''
+  check('the glow curve exists', curve.length > 0)
+  check('...and is a curve rather than a second multiplier',
+    (curve.match(/var\(--dl-glow\)/g) ?? []).length >= 2)
+  const coefficients = [...curve.matchAll(/0?\.\d+/g)].map((m) => Number(m[0]))
+  check('...whose coefficients sum to 1, so 100% is left exactly as designed',
+    coefficients.length >= 2 && Math.abs(coefficients.reduce((a, b) => a + b, 0) - 1) < 1e-9,
+    coefficients.join(' + '))
 
   /*
    * Blur radius scales linearly, which is what makes 0 / 50 / 100 / 200 four different renderings
    * rather than four numbers with the same saturated core.
    */
   check('...by radius as well as alpha, so 100% and 200% are not the same picture',
-    /calc\(\d+px \* var\(--dl-glow\)\)/.test(CSS))
+    /calc\(\d+px \* var\(--dl-glow-curve\)\)/.test(CSS))
 }
 
 section('An override actually overrides')
@@ -266,7 +318,17 @@ section('The preview is the real thing')
   check('...to its own scope rather than the document', PREVIEW.includes('data-dl-scope'))
   check('...and shows the Competition History panel', PREVIEW.includes('Competition') && PREVIEW.includes('Latest News'))
   check('...on both an accent ground and a graphite one', PREVIEW.includes('dl-on-light') && PREVIEW.includes('bg-[var(--card)]'))
-  check('...with panel-only and full-page modes', LAB.includes("'Panel Only'") && LAB.includes("'Full Page'"))
+  /*
+   * The draft, the Save button and the Full Page toggle are gone on purpose.
+   *
+   * They existed because a preview had to be shown somewhere other than the page. Applying every
+   * change straight through makes the PAGE the preview, which is what a browser-only setting should
+   * have done from the start - and it removes a whole class of confusion where a reader changed
+   * something, looked at the site behind the drawer, and saw nothing happen.
+   */
+  check('changes apply immediately rather than into a draft',
+    !LAB.includes('setDraft') && !LAB.includes("'Full Page'"))
+  check('...writing through the store on every edit', /const edit = useCallback[\s\S]{0,400}save\(next\)/.test(LAB))
 
   /*
    * No rule may be anchored to :root, or the preview silently renders a different thing from what
@@ -275,9 +337,8 @@ section('The preview is the real thing')
   check('no display rule is anchored to :root, so every one of them matches the preview too',
     !/:root\[data-dl/.test(CSS))
 
-  check('the draft is only persisted on Save', LAB.includes('const commit = () =>') && LAB.includes('save(draft)'))
-  check('...and closing without saving puts the stored settings back',
-    /const closeLab[\s\S]{0,200}applyDisplay\(document\.documentElement, stored\)/.test(LAB))
+  check('Reset is the way back, and it is always reachable',
+    LAB.includes('resetStored()') && /footer[\s\S]{0,600}Reset/.test(LAB))
 }
 
 section('Frames, corners, textures and backgrounds all exist')
@@ -427,12 +488,13 @@ section('Persistence, migration and corruption')
     scan: false, grid: true, noise: false, aberration: true, flicker: true,
   }))
   check('an old HUD configuration migrates', legacy != null)
-  check('...with "off" becoming Clean', legacy?.intensity === 'custom' || legacy?.intensity === 'clean')
+  check('...with "off" still meaning off', legacy?.intensity === 'custom' || legacy?.intensity === 'off')
   check('...the red accent kept as a custom colour rather than dropped',
     legacy?.accentMode === 'custom' && legacy?.accentHex === '#ff2a2a')
-  check('...and the toggles carried across',
-    legacy?.scanlines === false && legacy?.grain === false && legacy?.aberration === true)
-  check('...while an effect with no equivalent is not invented', !('flicker' in (legacy ?? {})))
+  check('...and the old switches became strengths',
+    legacy?.scanStrength === 0 && legacy?.grainStrength === 0 && (legacy?.aberrationStrength ?? 0) > 0)
+  check('...including CRT flicker, which Display Lab dropped and this restores',
+    (legacy?.flickerStrength ?? 0) > 0)
   check('migration runs only when nothing new is stored', STORE.includes('if (localStorage.getItem(DISPLAY_KEY)) return'))
   check('...and reads the old key by name', STORE.includes('LEGACY_HUD_KEY') && LEGACY_HUD_KEY === '8br-hud')
 }
@@ -446,7 +508,7 @@ section('The pre-paint script cannot drift from the applier')
   check('the script is generated from the shared spec', LAYOUT.includes('JSON.stringify(DOM_SPEC)'))
   check('...and from the shared defaults', LAYOUT.includes('JSON.stringify(DISPLAY_DEFAULTS)'))
   check('...and reads the versioned key', LAYOUT.includes('JSON.stringify(DISPLAY_KEY)'))
-  for (const group of ['attrs', 'bools', 'nums', 'px'] as const) {
+  for (const group of ['attrs', 'bools', 'onWhenPositive', 'nums', 'px'] as const) {
     check(`...covering the ${group} in the spec`, new RegExp(`S\\.${group}`).test(LAYOUT))
   }
   check('...including a custom accent, so a chosen colour does not flash the default first',
@@ -458,11 +520,12 @@ section('The pre-paint script cannot drift from the applier')
   const specced = new Set([
     ...Object.values(DOM_SPEC.attrs),
     ...Object.values(DOM_SPEC.bools),
+    ...Object.values(DOM_SPEC.onWhenPositive),
     ...Object.values(DOM_SPEC.nums).map(([f]) => f),
     ...Object.values(DOM_SPEC.px).map(([f]) => f),
   ])
   /* These four are not attributes: two are the accent pair, and two are panel state. */
-  const notDom = new Set(['accentHex', 'accentInk', 'swatches', 'intensity'])
+  const notDom = new Set(['accentHex', 'accentInk', 'swatches', 'recentColors', 'intensity'])
   const missed = Object.keys(DISPLAY_DEFAULTS).filter((f) => !specced.has(f) && !notDom.has(f))
   check('every setting is either applied to the DOM or explicitly not a DOM value', missed.length === 0, missed.join(', '))
 }
@@ -477,6 +540,20 @@ section('Motion can always be refused')
     /prefers-reduced-motion: reduce\)\s*\{[\s\S]*?animation: none !important/.test(CSS.slice(reduced)))
   check('the panel says so, rather than leaving a reader to discover it',
     LAB.includes('A system reduced-motion setting always wins'))
+
+  /*
+   * The new effect has to be covered by the old promise.
+   *
+   * CRT flicker animates <body>, which is a descendant of the element carrying `data-dl-motion`, so
+   * the reduced-motion block cancels it along with everything else. Asserted rather than assumed:
+   * an effect added after a safety rule is exactly the kind that slips outside it, and this one
+   * pulses the whole page.
+   */
+  const rmBlock = CSS.slice(CSS.lastIndexOf('@media (prefers-reduced-motion: reduce)'))
+  check('reduced motion cancels descendants of the motion scope, which includes CRT flicker',
+    /\[data-dl-motion\] \*/.test(rmBlock) && /animation: none !important/.test(rmBlock))
+  check('...and CRT flicker is on body, inside that scope',
+    /\[data-dl-flicker='on'\] body\s*\{[\s\S]{0,120}animation: dl-crt-flicker/.test(CSS))
 
   check('an entrance animation is cancelled rather than paused when motion is off',
     /\[data-dl-motion='off'\] \.boot-in[\s\S]{0,120}animation: none/.test(CSS))
@@ -518,7 +595,7 @@ section('The old HUD is gone, not hidden')
   check('...its label says what it opens', LAB.includes('aria-label="Customize Display"'))
   check('...with a tooltip that agrees', LAB.includes('title="Customize Display"'))
   check('the system status it replaced moved inside the panel',
-    LAB.includes('LiveClock') && LAB.includes('System Status'))
+    LAB.includes('LiveClock') && /System status/i.test(LAB))
 }
 
 section('The panel is operable from a keyboard')
