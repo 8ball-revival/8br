@@ -1048,6 +1048,36 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
 
   const byRound = new Map<number, typeof rows>()
   for (const r of rows) { if (!byRound.has(r.round)) byRound.set(r.round, []); byRound.get(r.round)!.push(r) }
+
+  /*
+   * Short codes, and where each side arrived from.
+   *
+   * The renderer draws "Loser of W12" instead of a connector line stretched across the screen, and
+   * highlights W12 when that label is hovered. Both are computed HERE, from the feed graph, because
+   * the renderer is not allowed to know how a bracket is wired -- only how to draw one.
+   */
+  const sectionOf = (round: number) => (round >= 201 ? 'GF' : round >= 101 ? 'LB' : 'WB') as 'WB' | 'LB' | 'GF'
+  const codeOf = new Map<number, string>()
+  {
+    const counters: Record<string, number> = { WB: 0, LB: 0, GF: 0 }
+    for (const round of [...byRound.keys()].sort((a, b) => a - b)) {
+      for (const r of byRound.get(round)!.slice().sort((a, b) => a.slot - b.slot)) {
+        const sec = sectionOf(round)
+        counters[sec] += 1
+        codeOf.set(r.id, sec === 'GF' ? 'GF' : `${sec === 'WB' ? 'W' : 'L'}${counters[sec]}`)
+      }
+    }
+  }
+  const sourceOf = new Map<string, { label: string; code: string }>()
+  for (const r of rows) {
+    const code = codeOf.get(r.id)!
+    if (r.feedsMatchId != null) {
+      sourceOf.set(`${r.feedsMatchId}:${r.feedsSlot ?? 0}`, { label: `Winner of ${code}`, code })
+    }
+    if (r.loserFeedsMatchId != null) {
+      sourceOf.set(`${r.loserFeedsMatchId}:${r.loserFeedsSlot ?? 0}`, { label: `Loser of ${code}`, code })
+    }
+  }
   const out: BracketRound[] = []
   for (const round of [...byRound.keys()].sort((a, b) => a - b)) {
     const matches: ViewMatch[] = byRound.get(round)!.sort((a, b) => a.slot - b.slot).map((r) => {
@@ -1071,7 +1101,9 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
           ...(forfeited ? { forfeit: true } : {}),
         }
       }
-      const m: ViewMatch = { id: r.id, updatedAt: r.updatedAt.toISOString() }
+      const m: ViewMatch = { id: r.id, updatedAt: r.updatedAt.toISOString(), code: codeOf.get(r.id) }
+      const sa = sourceOf.get(`${r.id}:0`); if (sa) m.sourceA = sa
+      const sb = sourceOf.get(`${r.id}:1`); if (sb) m.sourceB = sb
       const ff = r.forfeitEntrantId
       const a = slot(r.homeEntrantId, r.homeUsername, r.homeSeed, r.homeGames, ff != null && ff === r.homeEntrantId)
       const b = slot(r.awayEntrantId, r.awayUsername, r.awaySeed, r.awayGames, ff != null && ff === r.awayEntrantId)
@@ -1080,7 +1112,7 @@ export async function seasonPlayoffRounds(seasonId: number): Promise<BracketRoun
       if (r.winnerEntrantId != null) m.winner = r.winnerEntrantId === r.homeEntrantId ? 'a' : 'b'
       return m
     })
-    out.push({ name: columnName(round, totalWb), matches })
+    out.push({ name: columnName(round, totalWb), matches, section: sectionOf(round) })
   }
   return out
 }

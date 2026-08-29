@@ -872,3 +872,228 @@
     animation: none !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════
+   DOUBLE-ELIMINATION BRACKET  (src/components/brackets/double-elim-bracket.tsx)
+
+   The previous bracket was dark, small, clipped under the header and stretched across a canvas you
+   had to hunt around. This is the expanded form: every round its own labelled column, every
+   round-one position drawn including byes, and cards about 20% larger so names read at rest rather
+   than only when zoomed in.
+
+   Everything here is presentation. No rule in this file decides a winner or an advancement.
+   ════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * HORIZONTAL only.
+ *
+ * The bracket used to live in a fixed-height box with its own vertical scrollbar, which cut it off
+ * and made the reader scroll inside a panel to see a bracket that the page had plenty of room for.
+ * The section is now exactly as tall as the bracket it draws and the PAGE scrolls to reach the rest
+ * of it. Keeping overflow-y visible is load-bearing rather than tidying: any other value on the y
+ * axis makes the x axis a scroll container again and brings the inner scrollbar straight back.
+ */
+.dxb-viewport {
+  overflow-x: auto;
+  overflow-y: visible;
+  background: var(--bracket-canvas);
+  cursor: grab;
+  overscroll-behavior-x: contain;
+}
+.dxb-viewport:active { cursor: grabbing; }
+
+/*
+ * Zoom, as REAL layout rather than a transform.
+ *
+ * Every size below is multiplied by --dxb-scale, so the browser lays the bracket out at whatever
+ * zoom is asked for and the section is genuinely that tall. A transform would have left the layout
+ * box at 100% and needed a measured spacer to hold the space open -- and a spacer measured while the
+ * panel was hidden comes back zero, which collapsed the whole bracket to an empty box.
+ */
+.dxb-canvas { --dxb-scale: 1; }
+
+.dxb-canvas {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(56px * var(--dxb-scale));
+  padding: calc(20px * var(--dxb-scale)) calc(24px * var(--dxb-scale)) calc(28px * var(--dxb-scale));
+  width: max-content;
+}
+
+/* Desktop: winners on the left, losers mirrored on the right, the final between them. The bracket
+   reads inward from both edges and culminates in the middle. */
+.dxb-canvas--mirrored { flex-direction: row; align-items: stretch; }
+.dxb-section { display: flex; flex-direction: column; gap: 10px; }
+.dxb-section--final { justify-content: center; align-self: center; }
+.dxb-cols { display: flex; gap: calc(76px * var(--dxb-scale)); align-items: stretch; }
+.dxb-section--mirrored .dxb-cols { flex-direction: row; }
+
+.dxb-heading {
+  font-family: var(--font-display, inherit);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-bottom: 2px;
+  border-bottom: 1px solid color-mix(in oklab, var(--gold) 35%, transparent);
+}
+.dxb-section--mirrored .dxb-heading { text-align: right; }
+.dxb-heading--final { text-align: center; color: var(--gold); }
+
+.dxb-col { display: flex; flex-direction: column; gap: calc(10px * var(--dxb-scale)); min-width: calc(300px * var(--dxb-scale)); }
+.dxb-col-head {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-text);
+  text-align: center;
+  white-space: nowrap;
+}
+.dxb-cells {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: calc(18px * var(--dxb-scale));
+}
+
+.dxb-cell { position: relative; }
+
+/* Connectors, drawn only between adjacent columns of the SAME half, where the join is local and
+   short. A cross-half feed is a label instead -- see .dxb-source. */
+.dxb-cell--straight::after,
+.dxb-cell--join-down::after,
+.dxb-cell--join-up::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  width: calc(38px * var(--dxb-scale));
+  border-top: 2px solid var(--bracket-connector);
+  top: 50%;
+}
+.dxb-cell--join-down::before,
+.dxb-cell--join-up::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 38px * var(--dxb-scale));
+  width: 2px;
+  background: var(--bracket-connector);
+}
+.dxb-cell--join-down::before { top: 50%; height: calc(50% + 9px * var(--dxb-scale)); }
+.dxb-cell--join-up::before { bottom: 50%; height: calc(50% + 9px * var(--dxb-scale)); }
+
+/* Mirrored half: the same elbows, pointing the other way. */
+.dxb-section--mirrored .dxb-cell--straight::after,
+.dxb-section--mirrored .dxb-cell--join-down::after,
+.dxb-section--mirrored .dxb-cell--join-up::after { left: auto; right: 100%; }
+.dxb-section--mirrored .dxb-cell--join-down::before,
+.dxb-section--mirrored .dxb-cell--join-up::before { left: auto; right: calc(100% + 38px * var(--dxb-scale)); }
+
+.dxb-card {
+  position: relative;
+  width: calc(300px * var(--dxb-scale));
+  min-height: calc(74px * var(--dxb-scale));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--bracket-surface);
+  border: 1px solid var(--bracket-outline);
+  border-radius: 3px;
+  /* Readable AT REST. Nothing here dims a card that is not being pointed at. */
+  opacity: 1;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.dxb-card--done { border-color: color-mix(in oklab, var(--bracket-outline) 70%, var(--gold) 30%); }
+.dxb-card--lit {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--gold) 55%, transparent);
+}
+
+.dxb-code {
+  position: absolute;
+  top: -9px;
+  left: 8px;
+  padding: 0 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted-text);
+  background: var(--bracket-canvas);
+  border: 1px solid var(--bracket-outline);
+  border-radius: 2px;
+}
+
+.dxb-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(7px * var(--dxb-scale)) calc(10px * var(--dxb-scale));
+  font-size: calc(0.92rem * var(--dxb-scale));
+  line-height: 1.25;
+  color: var(--bracket-text);
+}
+.dxb-slot + .dxb-slot { border-top: 1px solid var(--bracket-outline); }
+.dxb-slot--won { color: var(--bracket-winner); font-weight: 700; box-shadow: inset 3px 0 0 0 var(--bracket-winner); }
+.dxb-slot--bye { color: var(--bracket-text-muted); font-style: italic; }
+.dxb-slot--tbd { color: var(--bracket-text-muted); }
+
+.dxb-seed {
+  min-width: calc(20px * var(--dxb-scale));
+  font-size: calc(0.72rem * var(--dxb-scale));
+  font-variant-numeric: tabular-nums;
+  color: var(--bracket-text-neutral);
+  text-align: right;
+}
+.dxb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dxb-score {
+  min-width: calc(24px * var(--dxb-scale));
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: calc(0.9rem * var(--dxb-scale));
+  color: var(--bracket-text-neutral);
+}
+.dxb-slot--won .dxb-score { color: var(--bracket-winner); }
+.dxb-score--ff { font-size: 0.76rem; font-weight: 700; color: var(--destructive); letter-spacing: 0.06em; }
+
+.dxb-source {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--bracket-text-muted);
+  text-decoration: underline dotted color-mix(in oklab, var(--gold) 55%, transparent);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+.dxb-source:hover, .dxb-source:focus-visible { color: var(--gold); outline: none; }
+
+.dxb-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+}
+/* Full screen is the one place with no page to scroll, so there it may scroll itself. */
+.dxb-fullscreen .dxb-viewport { overflow: auto; flex: 1; }
+
+/* ── Narrow screens ──────────────────────────────────────────────────────────────────────────────
+   Winners above, losers below, the final under both. The round columns are KEPT and scroll
+   horizontally inside the panel, so a phone still shows a bracket rather than a list -- and the
+   scrolling stays inside the viewport, never on the page. */
+@media (max-width: 1023px) {
+  .dxb-canvas, .dxb-canvas--mirrored { flex-direction: column; gap: 26px; align-items: stretch; }
+  /* Winners, then losers, then the grand final under both -- the reading order on a narrow screen,
+     rather than the middle-outwards arrangement the mirrored desktop layout uses. */
+  .dxb-canvas--mirrored > .dxb-section { order: 1; }
+  .dxb-canvas--mirrored > .dxb-section--mirrored { order: 2; }
+  .dxb-canvas--mirrored > .dxb-section--final { order: 3; }
+  .dxb-section--mirrored .dxb-cols { flex-direction: row-reverse; }
+  .dxb-section--mirrored .dxb-heading { text-align: left; }
+  .dxb-section--final { align-self: flex-start; }
+  .dxb-card { width: calc(268px * var(--dxb-scale)); }
+  .dxb-col { min-width: calc(268px * var(--dxb-scale)); }
+}

@@ -205,7 +205,16 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
       </div>
 
       {/* The only scroller: the page itself never scrolls sideways. */}
-      <div className="scrollbar-themed max-h-[78vh] overflow-auto cyber-clip border border-[var(--bracket-outline)] bg-[var(--bracket-canvas)]">
+      {/*
+        Horizontal only, and no height cap.
+
+        This board had the same fixed-height scroller the public bracket did: a 78vh box with its own
+        vertical scrollbar, so a tall bracket was cut off and had to be scrolled INSIDE a panel on a
+        page with room to spare. The section is now as tall as the bracket and the page scrolls to
+        reach the rest of it. `overflow-y-visible` is what keeps that true — any other y value turns
+        the x axis back into a scroll container and the inner scrollbar returns.
+      */}
+      <div className="scrollbar-themed overflow-x-auto overflow-y-visible cyber-clip border border-[var(--bracket-outline)] bg-[var(--bracket-canvas)]">
         <div className="flex min-w-max items-start gap-3 p-2" style={{ fontSize: `${zoom}rem` }}>
           {rounds.map((round) => (
             <section key={round.key} className="min-w-[13rem] shrink-0">

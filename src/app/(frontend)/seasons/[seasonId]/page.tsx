@@ -16,6 +16,7 @@ import { SeasonMasthead } from '@/components/seasons/season-masthead'
 import { SeasonRegistration } from '@/components/seasons/season-registration'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
+import { DoubleElimBracket } from '@/components/brackets/double-elim-bracket'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
 import { publicRegistrationOpen } from '@/lib/competition/registration-policy'
@@ -306,7 +307,15 @@ async function PlayoffsView({
           ...(champion?.finalScore ? [{ label: 'Final', value: champion.finalScore }] : []),
         ]}
       />
-      <SeasonBracketPanel rounds={rounds} note={note} champion={champion} />
+      {/*
+        A double-elimination bracket has two halves and a grand final, and the single-elimination
+        panel can only draw one column run -- which is what made it stretch off the screen. Anything
+        with a losers bracket goes to the mirrored renderer; every other Season keeps the panel it
+        has always had.
+      */}
+      {rounds.some((r) => r.section === 'LB')
+        ? <DoubleElimBracket rounds={rounds} note={note} champion={champion?.preferredName ?? champion?.cueverseId ?? null} />
+        : <SeasonBracketPanel rounds={rounds} note={note} champion={champion} />}
       {/* The note itself lives in the panel footer; this is only the way in to edit it. */}
       <PlayoffDisclaimer kind="season" id={seasonId} value={note} canManage={canManageComp} showValue={false} />
     </div>

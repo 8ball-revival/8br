@@ -46,11 +46,30 @@ export interface BracketMatch {
    *  results inline in the bracket (Tournaments omit these — the renderer stays read-only there). */
   id?: number
   updatedAt?: string
+  /**
+   * A short stable name for this match -- W12, L5, GF -- used to label where a player CAME FROM and
+   * to highlight that source on hover.
+   *
+   * Supplied by the engine, never derived in the renderer: the renderer must not know how a bracket
+   * is wired, only how to draw what it is given.
+   */
+  code?: string
+  /** Where each side arrives from, e.g. "Loser of W12". Absent for an entry position. */
+  sourceA?: { label: string; code: string }
+  sourceB?: { label: string; code: string }
 }
 
 export interface BracketRound {
   name: string // e.g. "Quarterfinals", "Semifinals", "Final"
   matches: BracketMatch[]
+  /**
+   * Which half of a double-elimination bracket this column belongs to.
+   *
+   * Absent for a single-elimination bracket, which has only one. The mirrored renderer needs it to
+   * decide what goes left, what goes right and what sits in the middle, and inferring it from the
+   * round NAME would break the moment a name is reworded.
+   */
+  section?: 'WB' | 'LB' | 'GF'
 }
 
 /** Team-format (e.g. 5v5) support: a tie is a set of individual player matches. */
