@@ -1050,3 +1050,34 @@
 
 /* Neon is a light source; on a white ground it is a smudge, so the light theme keeps the colour
    scale and drops the halo entirely. */
+
+/* ── Yahoo Pool Archive ────────────────────────────────────────────────────────────────────────
+   Scoped to the archive page. Nothing here redefines a global token; it names one local colour and
+   two layout rules that only this page needs.
+
+   Silver is the runner-up, and it exists because the alternative was worse in both directions: gold
+   for second place would spend the one colour reserved for champions on somebody who did not win,
+   and plain muted grey made a beaten finalist indistinguishable from an entrant count. It is
+   deliberately restrained -- a cool light grey, not a second accent -- so a card still reads
+   gold-first. */
+.ya-root {
+  --ya-silver: #b9c3ca;
+}
+.ya-root .ya-runner {
+  color: var(--ya-silver);
+}
+
+/* The honour roll is a natural-height list, never its own scrolling pane. A season list with an
+   inner scrollbar hides how long the archive is, which is most of what the page is saying. */
+.ya-root .ya-roll {
+  max-height: none;
+  overflow: visible;
+}
+
+/* No overflow rule on the page root, deliberately.
+   `overflow-x: clip` was here to stop the wide bracket pushing the page sideways. It did something
+   else as well: when one axis is `clip` and the other is `visible`, CSS computes the visible axis to
+   `clip` too, which turns the element into a clipping container. `scrollIntoView` then finds that
+   container as the nearest scrollport, scrolls it -- it cannot scroll -- and stops, so opening a
+   season by URL silently failed to move the page at all. The wide content already scrolls inside its
+   own `overflow-x-auto` wrappers, so the rule was buying nothing and costing the whole interaction. */

@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { computeExplorer, computeFacets } from '@/lib/stats/ladder-explorer'
 import { decodeRankingsState, aggregateFilters, activeChips } from '@/lib/stats/rankings-columns'
+import { SCOPE_SERIES_SLUG, scopeOverlay } from '@/lib/stats/rankings-scope'
+import { prisma } from '@/lib/prisma'
 import { UNASSIGNED_DIVISION } from '@/lib/stats/rankings-facts'
 import { buildRankingsCsv, csvFilename } from '@/lib/stats/rankings-csv'
 
@@ -42,9 +44,21 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const state = decodeRankingsState(params)
 
+  /*
+   * The export must be the table.
+   *
+   * The scope overlay is applied here exactly as the page applies it, because a CSV that ignored
+   * `?scope=` would hand somebody a file labelled WCC containing every result on the site.
+   */
+  const seriesSlug = SCOPE_SERIES_SLUG[state.scope]
+  const series = seriesSlug
+    ? await prisma.competitionSeries.findUnique({ where: { slug: seriesSlug }, select: { id: true } })
+    : null
+  const overlay = scopeOverlay(state.scope, series?.id ?? null)
+
   const [rows, facets] = await Promise.all([
     // The same permanently all-time overall aggregate the page renders.
-    computeExplorer('all-time', 'overall', aggregateFilters(state)),
+    computeExplorer('all-time', 'overall', { ...aggregateFilters(state), ...overlay }),
     computeFacets(),
   ])
 

@@ -3,11 +3,11 @@ import type { Metadata } from 'next'
 import { getExplorer, getFacets, getFreshness } from '@/lib/stats/ladder-explorer'
 import { RankingsExplorer } from '@/components/rankings/rankings-explorer'
 import { decodeRankingsState, aggregateFilters } from '@/lib/stats/rankings-columns'
+import { SCOPE_SERIES_SLUG, scopeOverlay } from '@/lib/stats/rankings-scope'
 import { Wide } from '@/components/primitives'
 import { pageMetadata } from '@/lib/site'
 import { prisma } from '@/lib/prisma'
-import { getRegistryStats } from '@/lib/stats/registry-stats'
-import { StatusRail } from '@/components/cyber/status-rail'
+
 
 export const dynamic = 'force-dynamic' // rankings reflect the latest completed competitions
 
@@ -40,33 +40,30 @@ export default async function RankingsPage({
     else if (Array.isArray(v) && v[0] != null) params.set(k, v[0])
   }
 
-  const requested = decodeRankingsState(params)
+  const state = decodeRankingsState(params)
 
   /*
-   * The default platform is whichever one has ranked players.
+   * This page is the CURRENT rankings, and nothing can widen it.
    *
-   * `decodeRankingsState` defaults to CueVerse, and on a deployment whose live platform has no
-   * ranked matches yet that is a URL with no parameters resolving to an empty table — the page
-   * appears broken to anybody arriving from the navigation, which is exactly what was happening
-   * here with forty-eight Yahoo seasons sitting behind it.
+   * It used to fall back to the Yahoo ladder when CueVerse had no rated matches — so a reader
+   * arriving from the navigation was shown forty-eight archived seasons under a heading that said
+   * "Rankings", with 2014 results reading as current form. The archive has its own page now, the
+   * fallback is gone, and an empty scope says so in words instead.
    *
-   * Only the DEFAULT falls back. An explicit `?platform=` is always honoured, including when it
-   * legitimately has no rows, because a reader who asked for a specific ladder should be told it is
-   * empty rather than quietly shown a different one.
+   * The scope is applied ON TOP of the reader's own filters rather than beside them, because it is
+   * not one of them: it decides which results exist for this table at all.
    */
-  const platformWasExplicit = params.has('platform')
-  let state = requested
-  if (!platformWasExplicit) {
-    const cueverseCount = await prisma.ratingLedger.count({ where: { platform: 'CUEVERSE' }, take: 1 })
-    if (cueverseCount === 0) state = { ...requested, platform: 'YAHOO' }
-  }
+  const seriesSlug = SCOPE_SERIES_SLUG[state.scope]
+  const series = seriesSlug
+    ? await prisma.competitionSeries.findUnique({ where: { slug: seriesSlug }, select: { id: true } })
+    : null
+  const overlay = scopeOverlay(state.scope, series?.id ?? null)
 
-  const [rows, facets, freshness, stats] = await Promise.all([
+  const [rows, facets, freshness] = await Promise.all([
     // Permanently the official all-time overall table — see the note in RankingsExplorer.
-    getExplorer('all-time', 'overall', aggregateFilters(state)),
+    getExplorer('all-time', 'overall', { ...aggregateFilters(state), ...overlay }),
     getFacets(),
     getFreshness(),
-    getRegistryStats(),
   ])
 
   return (
@@ -91,10 +88,14 @@ export default async function RankingsPage({
       />
 
       {/*
-        The same closing rail the homepage carries, from the same registry service, so the two pages
-        cannot print different totals for the same archive.
+        The registry rail is gone from this page.
+        
+        It carried registry-wide totals -- 525 players, 8,228 matches, 50 seasons -- and almost all of
+        them are Yahoo. Under a current ladder that legitimately has no rows yet, three large numbers
+        with no other figures on the page to compare them against read as the ladder's own, which is
+        the one thing this split exists to prevent. The homepage still carries it, where it describes
+        the whole registry and says so.
       */}
-      <StatusRail players={stats.players} matches={stats.matchesPlayed} seasons={stats.seasons} />
     </Wide>
   )
 }

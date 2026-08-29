@@ -8,6 +8,7 @@ import {
   COLUMN_BY_KEY, clampYear,
   type RankingsState, type EventType,
 } from '@/lib/stats/rankings-columns'
+import { scopePinsCompetition } from '@/lib/stats/rankings-scope'
 import { UNASSIGNED_DIVISION } from '@/lib/stats/rankings-facts'
 import { cn } from '@/lib/utils'
 
@@ -220,6 +221,12 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
             </p>
           </Section>
 
+          {/*
+            Competition and Event Type are the scope's business under 8BRCAM, WCC and Tournaments:
+            the tab has already fixed both, and offering them here would let the drawer contradict
+            the tab above it. Under All, where nothing is fixed, they work as before.
+          */}
+          {!scopePinsCompetition(draft.scope) && (<>
           <Section title="Competition">
             <select value={draft.competitionSeriesId ?? ''} className={FIELD}
               onChange={(e) => set({
@@ -246,6 +253,7 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
                 ))}
             </div>
           </Section>
+          </>)}
 
           {draft.eventType !== 'cups' && seasons.length > 0 && (
             <Section title="Specific Season">

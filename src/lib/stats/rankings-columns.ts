@@ -1,5 +1,6 @@
 import type { CompetitionPlatform } from '@prisma/client'
 import type { ExplorerRow, RecordView } from './ladder-explorer'
+import { DEFAULT_SCOPE, parseScope, type RankingScope } from './rankings-scope'
 
 /**
  * The four record views.
@@ -485,6 +486,15 @@ export type EventType = 'all' | 'seasons' | 'cups'
  * added; a checkbox list cannot drift.
  */
 export interface RankingsState {
+  /**
+   * Which of the four current-ranking scopes is showing.
+   *
+   * The scope decides WHICH RESULTS the ladder is built from -- all current CueVerse results, one
+   * competition series, or every tournament -- and the page recomputes the aggregate for it. It is
+   * not a row filter over one shared table: switching scope changes the population, the records and
+   * the order.
+   */
+  scope: RankingScope
   sort: SortSpec[]
   /** Optional columns currently shown. Permanent columns are never listed — they cannot be hidden. */
   visibleColumns: string[]
@@ -495,11 +505,12 @@ export interface RankingsState {
   division: string | null
   eventType: EventType
   /**
-   * Which ranking universe is being looked at.
+   * Which ranking universe is being looked at. On this page, permanently CueVerse.
    *
-   * Not a filter over one ladder: the two are produced by separate replays that never see each
-   * other's matches. There is deliberately no "all platforms" value, because a combined rating would
-   * describe a career nobody had.
+   * The two universes are produced by separate replays that never see each other's matches, so there
+   * is deliberately no "all platforms" value -- a combined rating would describe a career nobody had.
+   * The Yahoo ladder moved to a page of its own, so nothing here can select it any more; the field
+   * stays because the aggregate has to be told which replay to read.
    */
   platform: CompetitionPlatform
   /** Inclusive competition-year bounds. Defaults span the whole archive. */
@@ -524,6 +535,7 @@ export const PERMANENT_COLUMN_KEYS = ['rank', 'player', 'rating'] as const
 
 export function defaultState(now: Date = new Date()): RankingsState {
   return {
+    scope: DEFAULT_SCOPE,
     sort: [],
     visibleColumns: [...OPTIONAL_COLUMN_KEYS],
     rowFilters: { ...EMPTY_ROW_FILTERS },
@@ -603,8 +615,9 @@ export function encodeRankingsState(s: RankingsState, now: Date = new Date()): s
   const d = defaultState(now)
 
   if (s.rowFilters.search.trim()) p.set('q', s.rowFilters.search.trim())
-  // The universe rides in the URL, so a shared link opens the ladder it was read in.
-  if (s.platform === 'YAHOO') p.set('platform', 'yahoo')
+  // The scope rides in the URL, so a shared link opens the ladder it was read in. The default is
+  // omitted, which keeps a bare /rankings link clean and makes "no parameters" mean All.
+  if (s.scope !== DEFAULT_SCOPE) p.set('scope', s.scope)
   if (s.fromYear !== d.fromYear) p.set('from', String(s.fromYear))
   if (s.toYear !== d.toYear) p.set('to', String(s.toYear))
   if (s.competitionSeriesId != null) p.set('comp', String(s.competitionSeriesId))
@@ -635,7 +648,7 @@ export function encodeRankingsState(s: RankingsState, now: Date = new Date()): s
  * fact that they were deliberately dropped is written down somewhere. Silently tolerating unknown
  * parameters would do the same job but would not say why.
  */
-export const OBSOLETE_PARAMS = ['scope', 'view', 'mode', 'density', 'preset', 'pins', 'compare', 'era', 'year'] as const
+export const OBSOLETE_PARAMS = ['view', 'mode', 'density', 'preset', 'pins', 'compare', 'era', 'year', 'platform'] as const
 
 /**
  * Read state out of a query string.
@@ -652,8 +665,16 @@ export function decodeRankingsState(
   const s = defaultState(now)
 
   s.rowFilters.search = p.get('q') ?? ''
-  // Yahoo only when it is asked for by name; anything else, including nonsense, is CueVerse.
-  s.platform = p.get('platform')?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
+  s.scope = parseScope(p.get('scope'))
+  /*
+   * Always CueVerse, whatever the URL says.
+   *
+   * `?platform=yahoo` used to switch this table to the archive. That ladder now lives at /yahoo, and
+   * an old link carrying the parameter must land on the current rankings rather than half-open a
+   * page that no longer exists here -- so the parameter is ignored rather than honoured, which is
+   * why it joins the obsolete list above.
+   */
+  s.platform = 'CUEVERSE'
 
   const from = clampYear(p.get('from'), now)
   const to = clampYear(p.get('to'), now)

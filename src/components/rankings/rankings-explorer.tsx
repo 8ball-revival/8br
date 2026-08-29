@@ -22,7 +22,9 @@ import { loadPlayerDetail } from '@/app/(frontend)/rankings/actions'
 import { cn } from '@/lib/utils'
 import { CommandDeck } from '@/components/command-deck'
 import { FilterCommandBar, FilterField, SegmentedSwitch, filterControl } from '@/components/cyber/filter-bar'
+import { scopePinsCompetition, type RankingScope } from '@/lib/stats/rankings-scope'
 import { RankingsRail } from './rankings-rail'
+import { ScopeEmpty, ScopeTabs } from './scope-tabs'
 
 import { FilterDrawer } from './filter-drawer'
 import { RankingsTable } from './rankings-table'
@@ -209,6 +211,26 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
       </CommandDeck>
 
       {/*
+        ── The scope ─────────────────────────────────────────────────────────────────────────────
+        Which ladder, chosen before anything that narrows it. Changing scope abandons the
+        competition, season and tournament selections: they were chosen inside the previous scope
+        and carrying them across would silently return nothing.
+      */}
+      <ScopeTabs
+        scope={applied.scope}
+        pending={pending}
+        onSelect={(next: RankingScope) => navigate({
+          ...applied,
+          scope: next,
+          competitionSeriesId: null,
+          seasonId: null,
+          tournamentId: null,
+          division: null,
+          eventType: 'all',
+        })}
+      />
+
+      {/*
         ── The filter command bar ────────────────────────────────────────────────────────────────
         Every control that narrows the ladder, in one acid strip, each with a visible label.
 
@@ -217,6 +239,12 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
         Record type is the event kind. The segmented switch on the right chooses WHICH record the
         table shows, which the row data already carries split by stage.
       */}
+      {/*
+        The filter bar is withheld when the scope has no results at all. Controls that narrow
+        nothing invite the reader to conclude they have filtered the table empty, when in fact the
+        competition has not finished yet -- which is what the panel below says instead.
+      */}
+      {rows.length > 0 && (
       <FilterCommandBar
         actions={
           <>
@@ -248,18 +276,14 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
           </>
         }
       >
-        <FilterField label="Platform" htmlFor="rk-platform" className="w-[10.5rem]">
-          <select
-            id="rk-platform"
-            className={filterControl}
-            value={applied.platform}
-            onChange={(e) => navigate({ ...applied, platform: e.target.value as typeof applied.platform })}
-          >
-            <option value="CUEVERSE">CueVerse Rankings</option>
-            <option value="YAHOO">Yahoo Archive</option>
-          </select>
-        </FilterField>
-
+        {/*
+          Platform used to be the first control here, offering CueVerse or Yahoo. The archive is its
+          own page now, so this table is permanently the current CueVerse ladder and there is nothing
+          left to choose. Competition and Record type are hidden under the three narrow scopes for
+          the same reason: the scope has already decided them, and a control that cannot change
+          anything is worse than no control at all.
+        */}
+        {!scopePinsCompetition(applied.scope) && (
         <FilterField label="Competition" htmlFor="rk-competition" className="w-[11rem]">
           <select
             id="rk-competition"
@@ -278,6 +302,7 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
             ))}
           </select>
         </FilterField>
+        )}
 
         <FilterField label="Time range" htmlFor="rk-years" className="w-[9.5rem]">
           {/*
@@ -308,6 +333,7 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
           </select>
         </FilterField>
 
+        {!scopePinsCompetition(applied.scope) && (
         <FilterField label="Record type" htmlFor="rk-event" className="w-[9.5rem]">
           <select
             id="rk-event"
@@ -320,6 +346,7 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
             <option value="cups">Tournaments only</option>
           </select>
         </FilterField>
+        )}
 
         <FilterField label="Player search" htmlFor="rk-search" className="min-w-[11rem] flex-1 sm:max-w-xs">
           <div className="relative">
@@ -344,6 +371,7 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
           </div>
         </FilterField>
       </FilterCommandBar>
+      )}
 
       {/* ── Applied filters, as chips that remove themselves. */}
       {(chips.length > 0 || hasAnyFilter(applied, now)) && (
@@ -379,6 +407,10 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
         The rail is handed the rows the table is rendering. It cannot disagree with the table
         because it is looking at the same array.
       */}
+      <div id="rk-scope-panel" role="tabpanel" aria-labelledby={`rk-scope-${applied.scope}`} tabIndex={-1}>
+      {rows.length === 0 ? (
+        <ScopeEmpty scope={applied.scope} />
+      ) : (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className={cn('min-w-0 transition-opacity', pending && 'opacity-60')}>
           <RankingsTable
@@ -400,6 +432,8 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
         </div>
 
         <RankingsRail rows={visible} />
+      </div>
+      )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">

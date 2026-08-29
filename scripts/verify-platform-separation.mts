@@ -8,7 +8,7 @@
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { getSeasonBrowseData, newestSeasonId } from '../src/lib/seasons/browse.ts'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 assertLocalDatabase()
 
@@ -114,7 +114,17 @@ section('Yahoo and CueVerse ratings are separate replays')
 
   const cols = readFileSync('src/lib/stats/rankings-columns.ts', 'utf8')
   check('there is no "all platforms" option', !/ALL_PLATFORMS|'all'\s*\|\s*'CUEVERSE'/.test(cols))
-  check('the platform persists in the URL', /p\.set\('platform', 'yahoo'\)/.test(cols))
+  /*
+   * The archive is no longer a mode of this page.
+   *
+   * `?platform=yahoo` used to switch the Rankings table to the Yahoo ladder. That ladder has its own
+   * page at /yahoo, so the parameter is now ignored -- an old bookmark carrying it lands on the
+   * current rankings rather than half-opening a view that is not there any more.
+   */
+  check('the rankings URL no longer carries a platform', !/p\.set\('platform'/.test(cols))
+  check('...and an old ?platform= bookmark is treated as obsolete rather than honoured',
+    /OBSOLETE_PARAMS = \[[^\]]*'platform'/.test(cols))
+  check('the archive has a page of its own', existsSync('src/app/(frontend)/yahoo/page.tsx'))
   console.log(`    (ledger rows — CueVerse: ${counts.CUEVERSE ?? 0}, Yahoo: ${counts.YAHOO ?? 0})`)
 }
 

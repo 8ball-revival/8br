@@ -1003,18 +1003,26 @@ export interface RankingsFreshness {
  * `completedAt` is the match's own completion time as recorded when the competition closed, so the
  * figure survives a rebuild of this page and cannot be advanced by a deploy.
  */
-export async function computeFreshness(): Promise<RankingsFreshness> {
+export async function computeFreshness(platform: CompetitionPlatform = 'CUEVERSE'): Promise<RankingsFreshness> {
   type Row = Record<string, unknown>
   try {
+    /*
+     * Scoped to one platform, because the line it feeds sits under one platform's heading.
+     *
+     * Unscoped, the newest row in the whole ledger is a 2014 Yahoo result, so the current rankings
+     * reported "last updated 2014" and counted 16,110 archived matches as their own. The two ladders
+     * are separate replays; their freshness is separate too.
+     */
     const rows = await prisma.$queryRaw<Row[]>`
       SELECT rl."completedAt", rl."seasonId", rl."tournamentId",
              cs."name" AS series_name, se."number" AS season_number, se."competitionYear" AS season_year,
              t."name" AS tournament_name,
-             (SELECT count(*) FROM "public"."rating_ledger") AS ranked
+             (SELECT count(*) FROM "public"."rating_ledger" WHERE "platform" = ${platform}::"public"."CompetitionPlatform") AS ranked
         FROM "public"."rating_ledger" rl
         LEFT JOIN "public"."season" se ON se."id" = rl."seasonId"
         LEFT JOIN "public"."competition_series" cs ON cs."id" = se."competitionSeriesId"
         LEFT JOIN "public"."comp_tournament" t ON t."id" = rl."tournamentId"
+       WHERE rl."platform" = ${platform}::"public"."CompetitionPlatform"
        ORDER BY rl."completedAt" DESC, rl."sequence" DESC
        LIMIT 1`
     const r = rows[0]

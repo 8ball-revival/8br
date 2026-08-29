@@ -30,6 +30,15 @@ export function buildNav(opts: {
 
   if (canCreate) entries.push({ label: 'Creator', href: '/creator' })
   entries.push({ label: 'Rankings', href: '/rankings' })
+  /*
+   * Yahoo is a destination rather than a filter on Seasons.
+   *
+   * The Yahoo era ended in 2014 and nothing will be added to it: it is read, not followed. Folding
+   * it into Seasons would bury ten years and 48 finished seasons under whatever is running this
+   * month, and it would invite the one mistake this whole section exists to prevent -- reading a
+   * legacy rating as if it were a current one.
+   */
+  entries.push({ label: 'Yahoo', href: '/yahoo' })
   // Achievements is a destination in its own right, not only a link from the homepage strip.
   entries.push({ label: 'Achievements', href: '/achievements' })
   // The Break — the community. It is named on the tab rather than labelled "News", because it is no
@@ -46,6 +55,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Seasons', href: '/seasons' },
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Rankings', href: '/rankings' },
+  { label: 'Yahoo', href: '/yahoo' },
   { label: 'Achievements', href: '/achievements' },
   { label: 'The Break', href: '/the-break' },
 ]
