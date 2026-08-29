@@ -1,5 +1,5 @@
 /**
- * Start the site against the local PRODUCTION REPLICA, on port 3000.
+ * Start the site against the local COPY OF THE LIVE DATABASE, on port 3000.
  *
  * ── Why a launcher rather than `node --env-file=.env.replica next dev` ──────────────────────────
  * Next spawns worker processes and passes the parent's flags down through NODE_OPTIONS, and Node
@@ -58,17 +58,18 @@ for (const line of readFileSync(ENV_FILE, 'utf8').split(/\r?\n/)) {
  * before anything has been written — rather than at whatever the first mutating request happens to
  * be. The guard is the same one every destructive script uses; this is not a second opinion.
  */
+const LOCAL_COPY = '8br_live_copy_20260829'
 const url = env.DATABASE_URL ?? ''
 const database = url.split('/').pop()?.split('?')[0] ?? ''
-if (!/(localhost|127\.0\.0\.1)/.test(url) || database !== '8br_prod_replica_20260828') {
+if (!/(localhost|127\.0\.0\.1)/.test(url) || database !== LOCAL_COPY) {
   console.error(`✗ Refusing to start against "${database || '(no DATABASE_URL)'}".`)
-  console.error('  This command runs the replica and only the replica: a local database on the')
-  console.error('  loopback interface named 8br_prod_replica_20260828. Production is never a target')
-  console.error('  here, and there is no flag that makes it one.')
+  console.error(`  This command runs the local copy and only the local copy: a database on the`)
+  console.error(`  loopback interface named ${LOCAL_COPY}. Production is never a target here, and`)
+  console.error('  there is no flag that makes it one.')
   process.exit(1)
 }
 
-console.log(`Replica → ${database} on 127.0.0.1, serving http://localhost:${PORT}`)
+console.log(`Local copy → ${database} on 127.0.0.1, serving http://localhost:${PORT}`)
 console.log('Email, Blob writes, cron, webhooks and every external integration are absent by')
 console.log('omission: none of their credentials exist in this process.\n')
 

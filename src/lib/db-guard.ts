@@ -26,14 +26,19 @@
 /**
  * Databases a destructive local command may touch.
  *
- * `8br_prod_replica_20260828` is a COPY of the live database, restored locally so live-site bugs can
- * be reproduced against the data that actually produces them. It is listed here on purpose: a script
- * run against it destroys a copy, which is the point of having one. It is not a backup, not a
- * deployment source, and nothing in it may travel back the other way — the only thing that leaves
- * this worktree is reviewed code.
+ * The two dated entries are COPIES of the live database, restored locally so live-site bugs can be
+ * reproduced against the data that actually produces them. They are listed here on purpose: a script
+ * run against one destroys a copy, which is the point of having one. Neither is a backup, neither is
+ * a deployment source, and nothing in either may travel back the other way — the only thing that
+ * leaves this worktree is reviewed code.
+ *
+ * `8br_live_copy_20260829` is the CURRENT one and what localhost:3000 serves.
+ * `8br_prod_replica_20260828` is its predecessor, kept rather than dropped so anything mid-diagnosis
+ * against it still runs.
  */
 export const APPROVED_LOCAL_DATABASES = [
-  '8br_dev', '8br_dev_redesign', '8br_test', '8br_prod_replica_20260828',
+  '8br_dev', '8br_dev_redesign', '8br_test',
+  '8br_live_copy_20260829', '8br_prod_replica_20260828',
 ] as const
 
 /** Hostnames that are the local machine. */
