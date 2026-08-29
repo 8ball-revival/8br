@@ -555,24 +555,42 @@ export async function generateSeasonBracket(
  * It also runs after each live result, so a bye further down a chain resolves as its feeder decides.
  *
  * ── What counts as a bye ─────────────────────────────────────────────────────────────────────────
- * An ENTRY slot is one that nothing feeds into — round one of the winners' bracket, in practice.
- * Empty there means "no opponent". Empty anywhere else means "not decided yet" and must never be
- * read as a bye, or the bracket would advance players past ties still waiting to be played.
+ * An empty slot is a bye when NOTHING WILL EVER ARRIVE IN IT — which is a question about the tie that
+ * feeds it, not about the slot:
+ *
+ *   · nothing feeds it. Round one of the winners' bracket: empty means "no opponent".
+ *   · its feeder has not been decided. NOT a bye. Empty here means "not played yet", and settling it
+ *     would advance someone past a tie still waiting to happen.
+ *   · its feeder IS decided. A slot fed by that tie's WINNER always fills, because a decided tie has
+ *     a winner. A slot fed by that tie's LOSER only fills if the tie had two real players — a tie
+ *     played against a bye has no loser, so the losers'-bracket slot it feeds is empty for good.
+ *
+ * The last case is the one that matters in a double-elimination bracket, and the one this originally
+ * got wrong: it asked only whether a slot was fed by anything at all. Every losers'-bracket slot is,
+ * so no losers' slot could ever be a bye — and a field of 20 in a bracket of 32, with 12 winners'
+ * byes, stalled permanently at losers' round one with four half-filled ties waiting on opponents that
+ * did not exist.
+ *
+ * A FORFEIT is not a bye. Both sides were real people; the forfeiter is a real loser and drops into
+ * the losers' bracket like anybody else. Nobody is eliminated here for losing a tie they played.
  *
  * Reading the topology rather than the literal "Bye" label is what makes this survive manual
  * editing: clearing a slot writes null, not the placeholder, so a label check would miss it.
  */
 async function settleByes(tx: Prisma.TransactionClient, seasonId: number): Promise<void> {
-  // Iterate a few passes so byes chain through multiple rounds.
-  for (let pass = 0; pass < 6; pass++) {
+  /*
+   * Repeat until nothing more settles.
+   *
+   * A walkover creates the conditions for the next one, and in a double-elimination bracket that
+   * chain is as long as the losers path itself. The old fixed six passes was enough for a winners
+   * bracket and silently too few for anything deeper; bounding by the number of matches makes the
+   * limit a termination guarantee rather than a guess, because a pass that awards nothing stops and
+   * a pass that awards something has permanently decided a match that was undecided.
+   */
+  for (let pass = 0; ; pass++) {
     const all = await tx.seasonPlayoffMatch.findMany({ where: { seasonId } })
-    // Every slot some other tie feeds into — winners' feed and, in double elim, losers' feed.
-    const fed = new Set<string>()
-    for (const m of all) {
-      if (m.feedsMatchId != null) fed.add(`${m.feedsMatchId}:${m.feedsSlot ?? 0}`)
-      if (m.loserFeedsMatchId != null) fed.add(`${m.loserFeedsMatchId}:${m.loserFeedsSlot ?? 0}`)
-    }
-    const isEntrySlot = (matchId: number, slot: 0 | 1) => !fed.has(`${matchId}:${slot}`)
+    if (pass > all.length + 2) break
+    const view = analyseByes(all)
 
     let changed = false
     for (const m of all) {
@@ -583,8 +601,8 @@ async function settleByes(tx: Prisma.TransactionClient, seasonId: number): Promi
       if (m.needsReview) continue
       const homeReal = m.homeEntrantId != null
       const awayReal = m.awayEntrantId != null
-      const homeBye = !homeReal && isEntrySlot(m.id, 0)
-      const awayBye = !awayReal && isEntrySlot(m.id, 1)
+      const homeBye = !homeReal && view.permanentlyEmpty(m.id, 0)
+      const awayBye = !awayReal && view.permanentlyEmpty(m.id, 1)
       if (!((homeReal && awayBye) || (awayReal && homeBye))) continue
 
       const win = homeReal
@@ -603,8 +621,177 @@ async function settleByes(tx: Prisma.TransactionClient, seasonId: number): Promi
       await placeInto(tx, m.feedsMatchId, m.feedsSlot ?? 0, win)
       changed = true
     }
-    if (!changed) break
+    if (changed) continue
+
+    /*
+     * Nothing more can be awarded. What is left are the positions the bracket allocated and the
+     * field never reached: a losers tie both of whose feeders were byes, and everything downstream
+     * of it. Nobody is coming, so name them -- with a LABEL only. No winner, no status, no score,
+     * because nothing happened in them.
+     *
+     * This is presentation, but it is not cosmetic. An unnamed empty slot is how the board says
+     * "waiting on an earlier match", and a position that will wait for ever is indistinguishable
+     * from a bracket that is stuck unless it says otherwise.
+     */
+    for (const m of all) {
+      const home = m.homeEntrantId == null && m.homeUsername == null && view.permanentlyEmpty(m.id, 0)
+      const away = m.awayEntrantId == null && m.awayUsername == null && view.permanentlyEmpty(m.id, 1)
+      if (!home && !away) continue
+      await tx.seasonPlayoffMatch.update({
+        where: { id: m.id },
+        data: { ...(home ? { homeUsername: 'Bye' } : {}), ...(away ? { awayUsername: 'Bye' } : {}) },
+      })
+    }
+    break
   }
+}
+
+/**
+ * Re-run bye settlement over a bracket that is already live.
+ *
+ * ── Why this is a public operation and not a private step ────────────────────────────────────────
+ * Byes are settled when the playoffs start and again after every result, so a healthy bracket never
+ * needs this. A bracket generated while the rule was WRONG does: its losers-bracket positions fed by
+ * winners-bracket byes were never recognised as permanently empty, so they sat unfilled and the
+ * bracket could not move past them. The fix corrects the rule, and this applies the corrected rule to
+ * a Season that is already running, without touching anything else about it.
+ *
+ * ── What it can and cannot do ────────────────────────────────────────────────────────────────────
+ * It runs exactly the same settlement the engine runs, so it can only ever do what starting the
+ * playoffs would have done: award a walkover to somebody already sitting alone opposite a position
+ * nothing can reach, and name the positions the field never reached. It invents no player, no score,
+ * no winner and no loss, and it cannot alter a tie that has a result — settlement skips decided ties
+ * entirely.
+ *
+ * Idempotent, and it reports rather than assumes: `changed` is measured by comparing the rows before
+ * and after, so running it a second time returns 0 and a dry run can be believed.
+ */
+export async function resettleSeasonByes(
+  actor: Actor,
+  seasonId: number,
+): Promise<{ ok: boolean; error?: string; changed?: number; matches?: { id: number; label: string | null; before: string; after: string }[] }> {
+  const season = await prisma.season.findUnique({ where: { id: seasonId }, select: { lifecycleState: true } })
+  if (!season) return { ok: false, error: 'Season not found.' }
+  if (season.lifecycleState !== 'PLAYOFFS_LIVE') {
+    return { ok: false, error: 'Bye settlement can only be re-run while the playoffs are live.' }
+  }
+
+  const describe = (m: { homeUsername: string | null; awayUsername: string | null; winnerEntrantId: number | null; status: string }) =>
+    `${m.homeUsername ?? '—'} v ${m.awayUsername ?? '—'} [${m.status}${m.winnerEntrantId != null ? ` won by ${m.winnerEntrantId}` : ''}]`
+
+  const changes: { id: number; label: string | null; before: string; after: string }[] = []
+  await prisma.$transaction(async (tx) => {
+    const before = await tx.seasonPlayoffMatch.findMany({ where: { seasonId }, orderBy: { id: 'asc' } })
+    await settleByes(tx, seasonId)
+    const after = await tx.seasonPlayoffMatch.findMany({ where: { seasonId }, orderBy: { id: 'asc' } })
+    const beforeById = new Map(before.map((m) => [m.id, m]))
+    for (const a of after) {
+      const b = beforeById.get(a.id)!
+      const wasChanged = b.homeUsername !== a.homeUsername || b.awayUsername !== a.awayUsername
+        || b.homeEntrantId !== a.homeEntrantId || b.awayEntrantId !== a.awayEntrantId
+        || b.winnerEntrantId !== a.winnerEntrantId || b.status !== a.status
+      if (wasChanged) changes.push({ id: a.id, label: a.label, before: describe(b), after: describe(a) })
+    }
+    // Nothing changed means nothing to record. An audit entry per no-op run would bury the one run
+    // that did something under the dry runs that confirmed it was safe.
+    if (changes.length) {
+      await recordAudit(actor, {
+        action: 'season.playoff.resettle', entity: 'Season', entityId: seasonId,
+        newValue: { changed: changes.length, matches: changes },
+      }, tx)
+    }
+  })
+  return { ok: true, changed: changes.length, matches: changes }
+}
+
+/** The columns of a playoff tie that decide whether its slots can still be filled. */
+export interface ByeMatch {
+  id: number
+  homeEntrantId: number | null
+  awayEntrantId: number | null
+  winnerEntrantId: number | null
+  feedsMatchId: number | null
+  feedsSlot: number | null
+  loserFeedsMatchId: number | null
+  loserFeedsSlot: number | null
+}
+
+export interface ByeView {
+  /** Will anything EVER put a player in this slot? */
+  permanentlyEmpty: (matchId: number, slot: 0 | 1) => boolean
+}
+
+/**
+ * Read a bracket topology and answer, per slot, whether anybody can still arrive in it.
+ *
+ * Pure, and separated from the writing above so the rule can be tested against a bracket SHAPE
+ * rather than only through a database.
+ */
+export function analyseByes(all: ByeMatch[]): ByeView {
+  const feeders = new Map<string, { source: ByeMatch; kind: 'winner' | 'loser' }>()
+  for (const m of all) {
+    if (m.feedsMatchId != null) feeders.set(`${m.feedsMatchId}:${m.feedsSlot ?? 0}`, { source: m, kind: 'winner' })
+    if (m.loserFeedsMatchId != null) feeders.set(`${m.loserFeedsMatchId}:${m.loserFeedsSlot ?? 0}`, { source: m, kind: 'loser' })
+  }
+
+  const emptyMemo = new Map<string, boolean>()
+  const deadMemo = new Map<number, boolean>()
+  const visiting = new Set<number>()
+
+  const permanentlyEmpty = (matchId: number, slot: 0 | 1): boolean => {
+    const key = `${matchId}:${slot}`
+    const seen = emptyMemo.get(key)
+    if (seen !== undefined) return seen
+    const feeder = feeders.get(key)
+    let answer: boolean
+    if (!feeder) {
+      // Nothing feeds it: an entry slot, where empty means "no opponent".
+      answer = true
+    } else if (feeder.source.winnerEntrantId != null) {
+      /*
+       * The feeder is decided. A slot fed by its WINNER always fills, because a decided tie has one.
+       * A slot fed by its LOSER only fills if that tie had two real players -- a tie played against
+       * a bye produced no loser, so the losers-bracket slot it feeds is empty for good.
+       *
+       * A FORFEIT lands in the second half of that and stays false: both sides were real people, so
+       * there is a real loser to drop. Nobody is eliminated here for losing a tie they played.
+       */
+      answer = feeder.kind === 'loser'
+        && (feeder.source.homeEntrantId == null || feeder.source.awayEntrantId == null)
+    } else {
+      /*
+       * The feeder is undecided. Normally that means "not played yet" and the slot must WAIT --
+       * settling it would advance somebody past a tie still to come. The single exception is a tie
+       * that can never be played at all, because then nobody can ever reach this slot either.
+       */
+      answer = neverPlayed(feeder.source)
+    }
+    emptyMemo.set(key, answer)
+    return answer
+  }
+
+  /** A tie nobody can ever reach: undecided, unoccupied, and both of its own slots are dead ends. */
+  const neverPlayed = (m: ByeMatch): boolean => {
+    const seen = deadMemo.get(m.id)
+    if (seen !== undefined) return seen
+    if (m.winnerEntrantId != null || m.homeEntrantId != null || m.awayEntrantId != null) {
+      deadMemo.set(m.id, false)
+      return false
+    }
+    /*
+     * A bracket is a DAG, so this cannot recurse into itself -- but a corrupted one could, and the
+     * safe answer to "I cannot tell" is NOT dead. That leaves the bracket waiting rather than
+     * awarding a walkover past a tie whose status could not be established.
+     */
+    if (visiting.has(m.id)) return false
+    visiting.add(m.id)
+    const answer = permanentlyEmpty(m.id, 0) && permanentlyEmpty(m.id, 1)
+    visiting.delete(m.id)
+    deadMemo.set(m.id, answer)
+    return answer
+  }
+
+  return { permanentlyEmpty }
 }
 
 async function placeInto(tx: Prisma.TransactionClient, matchId: number, slot: number, player: { id: number; name: string; seed: number | null }): Promise<void> {

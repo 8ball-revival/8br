@@ -56,6 +56,9 @@ export interface ScoringMatchView {
   awayIsEntry: boolean
   /** Which ties decide this one, for the waiting message. */
   feederLabels: string[]
+  /** Empty, and nothing will ever arrive: a bye rather than a tie still to be decided. */
+  homeIsBye: boolean
+  awayIsBye: boolean
 }
 
 export interface ScoringRound {
@@ -258,11 +261,19 @@ function MatchCard({
   onSave: () => void
 }) {
   const bothKnown = match.home.entrantId != null && match.away.entrantId != null
-  // An empty ENTRY side is a bye; an empty fed side is a tie still waiting on its feeder.
-  const isBye =
-    (match.home.entrantId == null && match.homeIsEntry && match.away.entrantId != null)
-    || (match.away.entrantId == null && match.awayIsEntry && match.home.entrantId != null)
-  const waiting = !bothKnown && !isBye
+  /*
+   * An empty side nothing can ever reach is a bye; an empty side still expecting somebody is a tie
+   * waiting on its feeder. `isBye` is the engine's verdict, so the board agrees with the bracket.
+   */
+  const homeBye = match.home.entrantId == null && match.homeIsBye
+  const awayBye = match.away.entrantId == null && match.awayIsBye
+  const isBye = (homeBye && match.away.entrantId != null) || (awayBye && match.home.entrantId != null)
+  /*
+   * Both sides empty for good: a position the bracket allocated and the field never reached, which
+   * happens in a losers bracket when both feeding ties were byes. It is not waiting for anything.
+   */
+  const unused = homeBye && awayBye
+  const waiting = !bothKnown && !isBye && !unused
   const decided = match.winnerEntrantId != null
 
   return (
@@ -314,7 +325,7 @@ function MatchCard({
             >
               <span className="shrink-0">
                 {lines.primary === NO_IDENTITY
-                  ? (slot.entrantId == null && (side === 'home' ? match.homeIsEntry : match.awayIsEntry) ? 'Bye' : 'TBD')
+                  ? ((side === 'home' ? homeBye : awayBye) ? 'Bye' : 'TBD')
                   : lines.primary}
               </span>
               {lines.secondary && (
@@ -355,6 +366,7 @@ function MatchCard({
         </p>
       )}
       {isBye && <p className="mt-0.5 text-[0.6em] text-muted-foreground">Bye — advanced automatically, no result recorded.</p>}
+      {unused && <p className="mt-0.5 text-[0.6em] text-muted-foreground">Unused — both feeding matches were byes.</p>}
       {error && <p className="mt-0.5 text-[0.6em] text-destructive">{error}</p>}
 
 

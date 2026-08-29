@@ -2,16 +2,25 @@ import 'server-only'
 
 import { prisma } from '@/lib/prisma'
 import { bracketTopology, slotKey } from './playoff-topology'
+import { analyseByes } from './playoffs'
 import type { ScoringRound, ScoringMatchView } from '@/components/creator/playoff-scoring'
 
 /**
  * The live bracket, shaped for the Creator scoring board.
  *
  * ── Reads, decides nothing ───────────────────────────────────────────────────────────────────────
- * Every field here comes straight off the canonical rows. The one thing it computes is which sides
- * are ENTRY positions, and that comes from the same `bracketTopology` the placement workspace uses —
- * because the board has to tell an empty slot that means "bye" from an empty slot that means "not
- * decided yet", and the round number cannot answer that.
+ * Every field here comes straight off the canonical rows. The two things it computes are both about
+ * empty slots, because the board has to tell an empty slot that means "bye" from one that means "not
+ * decided yet", and the round number cannot answer that:
+ *
+ *   · isEntry — may this position be filled BY HAND? From the same `bracketTopology` the placement
+ *     workspace uses, so the board and the workspace never disagree about what is editable.
+ *   · isBye — will anything ever ARRIVE here? From the same `analyseByes` the engine settles byes
+ *     with, so the board and the bracket never disagree about what is finished.
+ *
+ * They are not the same question, and treating them as one is what made a double-elimination board
+ * sit for ever on "waiting on an earlier match" for a losers-bracket position whose feeders were both
+ * byes. Nothing was coming; the board had no way to say so.
  *
  * It writes nothing, so opening the scoring screen cannot change a Season.
  */
@@ -68,6 +77,9 @@ export async function playoffScoringRounds(seasonId: number): Promise<ScoringRou
     }
   }
 
+  // Which empty positions nothing can ever reach -- the engine's own rule, not a second copy of it.
+  const byes = analyseByes(rows)
+
   // The winners-bracket depth, for naming Final / Semi-finals / Quarter-finals.
   const maxMainRound = rows.filter((m) => m.section == null || m.section === 'WB')
     .reduce((max, m) => Math.max(max, m.round), 1)
@@ -95,6 +107,8 @@ export async function playoffScoringRounds(seasonId: number): Promise<ScoringRou
     updatedAt: m.updatedAt.toISOString(),
     homeIsEntry: topo.entryKeys.has(slotKey(m.id, 'home')),
     awayIsEntry: topo.entryKeys.has(slotKey(m.id, 'away')),
+    homeIsBye: m.homeEntrantId == null && byes.permanentlyEmpty(m.id, 0),
+    awayIsBye: m.awayEntrantId == null && byes.permanentlyEmpty(m.id, 1),
     feederLabels: feeders.get(m.id) ?? [],
   }))
 
