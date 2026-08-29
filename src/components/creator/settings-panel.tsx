@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Settings2, X, AlertTriangle, ShieldAlert } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { SeasonDangerZone } from '@/components/creator/danger-zone'
+import type { SeasonDeletionPlan } from '@/lib/seasons/admin'
 
 /**
  * Creator Settings: the things about a record that are true at every stage.
@@ -47,6 +49,8 @@ export function CreatorSettings({
   summary,
   onSaveDisplay,
   onSaveDetails,
+  deletionPlan,
+  onDelete,
 }: {
   summary: SettingsSummary
   /** Server action: the two switches that are safe to change at any stage. */
@@ -60,6 +64,15 @@ export function CreatorSettings({
    * under 2026. Passing this makes the row editable; leaving it out keeps the row read-only.
    */
   onSaveDetails?: (patch: { name?: string; competitionYear?: number }) => Promise<{ ok?: boolean; error?: string }>
+  /**
+   * Seasons only, and only for somebody entitled to it.
+   *
+   * Passed together: the plan is what the confirmation shows, the action is what it calls. Omitting
+   * either leaves the Danger Zone as the explanation it has always been, which is the correct state
+   * for a Tournament — whose deletion lives in its workspace and is untouched by this.
+   */
+  deletionPlan?: SeasonDeletionPlan | null
+  onDelete?: (input: { password: string; confirmTitle: string }) => Promise<{ ok?: boolean; error?: string; message?: string }>
 }) {
   const [open, setOpen] = useState(false)
   const [year, setYear] = useState(String(summary.competitionYear))
@@ -276,12 +289,23 @@ export function CreatorSettings({
 
               {summary.canDelete && (
                 <Section title="Danger Zone" tone="danger">
-                  <p className="flex items-start gap-2 text-xs text-destructive">
-                    <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                    Permanent deletion removes this record, every dependent result, its titles and its
-                    Rankings contribution, and cannot be undone. It asks for the full title first and
-                    shows exactly what will be removed.
-                  </p>
+                  {deletionPlan && onDelete ? (
+                    <SeasonDangerZone plan={deletionPlan} onDelete={onDelete} />
+                  ) : (
+                    /*
+                      The explanation, for a record this panel cannot delete.
+                      
+                      A Tournament is deleted from its workspace, where the control already exists and
+                      is confirmed by typing its code. Rather than describe a button that is not here,
+                      this says where the one that is can be found.
+                    */
+                    <p className="flex items-start gap-2 text-xs text-destructive">
+                      <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                      Permanent deletion removes this record, every dependent result, its titles and
+                      its Rankings contribution, and cannot be undone. For a Tournament it is in the
+                      workspace on the Bracket stage.
+                    </p>
+                  )}
                 </Section>
               )}
             </div>

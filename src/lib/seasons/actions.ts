@@ -18,9 +18,10 @@ import * as grp from './groups'
 import * as gs from './group-stage'
 import * as po from './playoffs'
 import { closeSeason } from './close'
-import { deleteSeason } from './admin'
+import { deleteSeason, planSeasonDeletion } from './admin'
 import { prisma } from '@/lib/prisma'
 import { invalidateRankings } from '@/lib/stats/invalidate-rankings'
+import { invalidateAchievements } from '@/lib/achievements/service'
 
 export interface SeasonActionResult {
   ok?: boolean
@@ -374,17 +375,71 @@ export async function closeSeasonAction(seasonId: number): Promise<SeasonActionR
   revalidateSeason(seasonId) // clears the ladder aggregate too
   return { ok: true, message: 'Season closed — champion crowned and rankings applied.' }
 }
-export async function deleteSeasonAction(seasonId: number, password: string): Promise<SeasonActionResult> {
+/**
+ * Permanently delete a Season.
+ *
+ * ── Three gates, and none of them is the button being drawn ──────────────────────────────────────
+ * A server action is a public endpoint, so every check the panel performs is repeated here:
+ *
+ *   1. WHO. Owner, or the Head Administrator. `delete_competition` is Owner-only, and the Head Admin
+ *      designation is deliberately allowed alongside it — they are the two people who already carry
+ *      irreversible powers, and restricting it to the role alone would leave the person who runs the
+ *      site unable to remove a record they created by mistake.
+ *   2. WHICH. The operator types the Season's title back. That is the check that catches the real
+ *      mistake here, which is not "meant to press cancel" but "had the wrong Season open" - a
+ *      password proves who you are and says nothing about what you are pointing at.
+ *   3. RE-AUTHENTICATION. Their own password, verified fresh. A borrowed session cannot do this.
+ *
+ * `deleteSeason` then writes the audit row BEFORE the delete and, for a completed Season, replays the
+ * rating ledger without it inside the same transaction.
+ */
+export async function deleteSeasonAction(
+  seasonId: number,
+  input: { password: string; confirmTitle: string },
+): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
-  const s = await prisma.season.findUnique({ where: { id: seasonId }, select: { number: true } })
-  if (!s) return { error: 'Season not found.' }
-  // Re-authentication gate: the admin must confirm their OWN password before this irreversible delete.
+  if (!actor.can('delete_competition') && !actor.isHeadAdmin) {
+    return { error: 'Permanent deletion is limited to the Owner and the Head Administrator.' }
+  }
+
+  const plan = await planSeasonDeletion(seasonId)
+  if (!plan) return { error: 'Season not found.' }
+
+  /*
+   * Compared after trimming and case-insensitively.
+   *
+   * The title is shown on screen to be copied, so demanding an exact byte match punishes a trailing
+   * space from a double-click selection rather than catching a wrong record. Case and surrounding
+   * whitespace carry no information about which Season this is; the words do.
+   */
+  if (input.confirmTitle.trim().toLowerCase() !== plan.title.trim().toLowerCase()) {
+    return { error: 'The title does not match. Nothing was deleted.' }
+  }
+
   const { verifyCurrentUserPassword } = await import('@/lib/account/auth')
-  if (!(await verifyCurrentUserPassword(password))) return { error: 'Incorrect password — deletion cancelled.' }
+  if (!(await verifyCurrentUserPassword(input.password))) {
+    return { error: 'Incorrect password — deletion cancelled.' }
+  }
+
   const r = await deleteSeason(actor, seasonId, actor.isHeadAdmin)
   if (!r.ok) return { error: r.error }
-  revalidatePath('/seasons'); invalidateRankings()
-  return { ok: true, message: 'Season permanently deleted.' }
+
+  /*
+   * Everything that was derived from this Season.
+   *
+   * Rankings unwind inside the transaction; these are the caches and rendered pages that would
+   * otherwise keep showing a Season that no longer exists. Achievements matter as much as rankings
+   * here: a Season Championship is DERIVED from `championPlayerId`, so the title vanishes from the
+   * data the moment the row goes, and only a stale cache would still be claiming it.
+   */
+  invalidateRankings()
+  invalidateAchievements()
+  revalidatePath('/seasons')
+  revalidatePath('/rankings')
+  revalidatePath('/achievements')
+  revalidatePath('/creator')
+  revalidatePath('/')
+  return { ok: true, message: `"${plan.title}" was permanently deleted.` }
 }
 
 export async function updateSeasonSettingsAction(seasonId: number, patch: import('./service').SeasonSettingsPatch): Promise<SeasonActionResult> {

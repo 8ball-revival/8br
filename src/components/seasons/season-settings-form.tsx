@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, Save, Trash2 } from 'lucide-react'
+import { Download, Save } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import type { SeasonView } from '@/lib/seasons/service'
 import type { CompetitionRef } from '@/lib/competitions/shared'
 import { CompetitionSelect } from '@/components/competitions/competition-select'
 import { COMPETITION_YEAR_MAX, COMPETITION_YEAR_MIN } from '@/lib/competition/competition-year'
-import { updateSeasonSettingsAction, exportSeasonDataAction, deleteSeasonAction } from '@/lib/seasons/actions'
+import { updateSeasonSettingsAction, exportSeasonDataAction } from '@/lib/seasons/actions'
 
 const input = 'w-full rounded-none border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/25'
 
@@ -188,53 +188,19 @@ export function SeasonSettingsForm({ seasonId, view, isHeadAdmin, competitions }
         <Button variant="outline" disabled={pending} onClick={exportData}><Download className="size-4" /> Export Season Data</Button>
       </div>
 
-      <DangerZone seasonId={seasonId} completed={completed} isHeadAdmin={isHeadAdmin} />
+      {/*
+        Permanent deletion is NOT here.
+        
+        It lives in the Creator's Settings drawer (`components/creator/settings-panel.tsx`), which is
+        the panel actually rendered on every Season stage. This form is not mounted on any route, and
+        the copy of the Danger Zone it used to carry was a second delete UI nobody could reach -
+        maintained, typechecked, and incapable of being used. One deletion path, in the place people
+        look for it.
+      */}
     </div>
   )
 }
 
-function DangerZone({ seasonId, completed, isHeadAdmin }: { seasonId: number; completed: boolean; isHeadAdmin: boolean }) {
-  const router = useRouter()
-  const confirm = useConfirm()
-  const canDelete = completed ? isHeadAdmin : true
-
-  return (
-    <section className="cyber-clip border border-destructive/40 bg-destructive/[0.04] p-4">
-      <h3 className="text-sm font-bold text-destructive">Danger Zone</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Permanently delete this Season and everything in it (entrants, groups, results, standings, bracket
-        {completed ? ', and reverse its ranking updates + remove its Season Championship award' : ''}).
-        {completed && !isHeadAdmin ? ' A completed Season can only be deleted by the Head Admin.' : ''} This cannot be undone.
-      </p>
-      {canDelete && (
-        <div className="mt-3">
-          <Button
-            variant="outline"
-            className="border-destructive/50 text-destructive hover:bg-destructive/10"
-            onClick={async () => {
-              const res = await confirm({
-                title: 'Permanently Delete Season?',
-                message: (
-                  <div>
-                    <p>This permanently removes the Season and everything in it: entrants, rating snapshots, groups, all results and statuses, standings, qualification decisions, the playoff bracket{completed ? ', and it reverses the ranking updates + removes the Season Championship award' : ''}.</p>
-                    <p className="mt-1.5 font-semibold text-destructive">This cannot be undone.</p>
-                  </div>
-                ),
-                confirmLabel: 'Permanently Delete',
-                tone: 'danger',
-                input: { label: 'Enter your admin password to confirm', placeholder: 'Your password', password: true, required: true },
-                action: async (value) => deleteSeasonAction(seasonId, value),
-              })
-              if (res.confirmed) router.push('/seasons')
-            }}
-          >
-            <Trash2 className="size-4" /> Permanently Delete Season
-          </Button>
-        </div>
-      )}
-    </section>
-  )
-}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="space-y-3 rounded-none border border-border bg-card/40 p-4"><h3 className="text-sm font-semibold text-foreground">{title}</h3>{children}</section>

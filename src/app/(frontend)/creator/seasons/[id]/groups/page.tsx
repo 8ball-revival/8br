@@ -9,6 +9,7 @@ import { UnsavedGroupsProvider } from '@/components/seasons/unsaved-groups'
 import { GroupStageControls, GroupsClosedControls } from '@/components/creator/group-controls'
 import { loadSeasonStage } from '@/lib/creator/season-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
+import { deleteSeasonAction } from '@/lib/seasons/actions'
 import { getSeasonGroupSetup, getSeasonGroupStage } from '@/lib/seasons/views'
 import { autoAssignAvailability } from '@/lib/archive/auto-assign'
 import { prisma } from '@/lib/prisma'
@@ -41,6 +42,11 @@ export default async function SeasonGroupsPage({ params }: { params: Promise<{ i
       onSaveDisplay={async (patch) => {
         'use server'
         return updateRecordDisplayAction('season', ctx.id, patch)
+      }}
+      deletionPlan={ctx.deletionPlan}
+      onDelete={async (input) => {
+        'use server'
+        return deleteSeasonAction(ctx.id, input)
       }}
     />
   )

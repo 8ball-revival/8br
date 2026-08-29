@@ -9,6 +9,7 @@ import { PlayoffScoring, ChampionBanner, NoBracketYet, ReviewWarning } from '@/c
 import { SeasonCompletion } from '@/components/creator/season-completion'
 import { loadSeasonStage } from '@/lib/creator/season-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
+import { deleteSeasonAction } from '@/lib/seasons/actions'
 import { loadSeasonSeeding, seasonChampion } from '@/lib/seasons/playoffs'
 import { playoffScoringRounds, playoffNeedsReviewCount } from '@/lib/seasons/playoff-scoring-view'
 import { completionReadiness } from '@/lib/seasons/close'
@@ -42,6 +43,11 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
       onSaveDisplay={async (patch) => {
         'use server'
         return updateRecordDisplayAction('season', ctx.id, patch)
+      }}
+      deletionPlan={ctx.deletionPlan}
+      onDelete={async (input) => {
+        'use server'
+        return deleteSeasonAction(ctx.id, input)
       }}
     />
   )

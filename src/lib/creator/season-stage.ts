@@ -5,6 +5,7 @@ import { requireCreator } from './access'
 import { workflowFor, currentStage, stageReachable, stageHref, type StageId, type StageView } from './workflow'
 import { getCompetitionRegistrationMode } from '@/lib/competition/registration-policy'
 import type { SettingsSummary } from '@/components/creator/settings-panel'
+import { planSeasonDeletion, type SeasonDeletionPlan } from '@/lib/seasons/admin'
 
 /**
  * Everything a Creator Season stage page needs, loaded once.
@@ -21,6 +22,8 @@ import type { SettingsSummary } from '@/components/creator/settings-panel'
  * 404-ing because the record does exist; it is the stage that does not, yet.
  */
 export interface SeasonStageContext {
+  /** What permanent deletion would remove, or null when this person may not delete. */
+  deletionPlan: SeasonDeletionPlan | null
   id: number
   title: string
   summary: string
@@ -90,7 +93,16 @@ export async function loadSeasonStage(rawId: string, asked: StageId): Promise<Se
    * deletion is the one control that is not merely "work", so it asks the narrower Owner-only
    * question instead of assuming Creator access implies it.
    */
-  const canDelete = gate.can('delete_competition')
+  const canDelete = gate.can('delete_competition') || gate.isHeadAdmin
+
+  /*
+   * The plan is only computed for somebody who could act on it.
+   *
+   * It is seven COUNT queries; running them for every Creator visit to build a panel section most
+   * people cannot use is work done to display nothing. `canDelete` gates the query, not just the
+   * markup.
+   */
+  const deletionPlan = canDelete ? await planSeasonDeletion(row.id) : null
 
   const settings: SettingsSummary = {
     kind: 'season',
@@ -126,6 +138,7 @@ export async function loadSeasonStage(rawId: string, asked: StageId): Promise<Se
     workflow: workflowFor('season', row.id, state),
     publicHref: `/seasons/${row.id}`,
     settings,
+    deletionPlan,
     lifecycleState: state,
     entrantsCount: row._count.entrants,
     stage,

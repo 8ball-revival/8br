@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { CreatorShell } from '@/components/creator/creator-shell'
 import { CreatorSettings } from '@/components/creator/settings-panel'
+import { deleteSeasonAction } from '@/lib/seasons/actions'
 import { DraftForm } from '@/components/creator/draft-form'
 import { prisma } from '@/lib/prisma'
 import { listAllCompetitions } from '@/lib/competitions/service'
@@ -49,6 +50,11 @@ export default async function SeasonSetupPage({ params }: { params: Promise<{ id
           onSaveDisplay={async (patch) => {
             'use server'
             return updateRecordDisplayAction('season', ctx.id, patch)
+          }}
+          deletionPlan={ctx.deletionPlan}
+          onDelete={async (input) => {
+            'use server'
+            return deleteSeasonAction(ctx.id, input)
           }}
         />
       }
