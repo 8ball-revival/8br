@@ -1921,6 +1921,12 @@ enum SeasonEntrantStatus {
 ///  FORFEIT     = FF: opponent awarded the match; Elo-neutral, no games counted
 ///  NO_CONTEST  = close-groups override: unplayed; excluded from everything
 ///  VOID        = KO-voided (a kicked entrant matches); excluded from everything
+/// How many times group opponents meet. See Season.groupFormat.
+enum SeasonGroupFormat {
+  SINGLE_ROUND_ROBIN
+  DOUBLE_ROUND_ROBIN
+}
+
 enum SeasonMatchStatus {
   SCHEDULED
   COMPLETED
@@ -2052,6 +2058,13 @@ model Season {
   /// invented. Shown on the archive card.
   dataCompleteness     String    @default("full")
   playoffDoubleElim    Boolean   @default(false) // decided at playoff setup, not creation
+  /// How many times each pair of group opponents meets.
+  ///
+  /// Almost every Season is a single round robin and stays SINGLE_ROUND_ROBIN, which is why that is
+  /// the default: adding this column changes no existing Season. DOUBLE_ROUND_ROBIN means every pair
+  /// meets TWICE, as separate matches with their own scores, and it is set per Season rather than
+  /// inferred from the fixtures so a half-entered double season is still described correctly.
+  groupFormat          SeasonGroupFormat @default(SINGLE_ROUND_ROBIN)
   /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
   /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
   /// that the pairings are archived but the scores are not, and have been approximated.
@@ -2187,6 +2200,12 @@ model SeasonMatch {
   seasonId         Int
   groupId          Int
   round            Int
+  /// Which of the two meetings between this pair, in a DOUBLE_ROUND_ROBIN group: 1 or 2.
+  ///
+  /// Always 1 in a single round robin, which is why it defaults to 1 — every existing row is already
+  /// correct without being touched. The pair is deliberately NOT unique on (group, players, meeting):
+  /// a bad import should be visible and fixable rather than rejected at the database boundary.
+  meeting          Int               @default(1)
   homeEntrantId    Int
   awayEntrantId    Int
   homeUsername     String

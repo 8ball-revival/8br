@@ -1,0 +1,55 @@
+# 8BRCAM Season 1 — Challonge GROUP STAGE standings (authoritative)
+# Source: https://challonge.com/rsy8er0/groups   Extracted 2026-08-29.
+# Scoring shown by Challonge: wins +3.0, ties +1.0
+# Match History is the ordered per-player result sequence: 12 entries in groups of 7,
+# 10 entries in group D (6 players) -> confirms DOUBLE ROUND ROBIN, 2*(n-1) per player.
+# "Advanced" marks the top 4 of each group; 5 groups x 4 = the 20 playoff seeds.
+
+--- GROUP A ---
+Rank | Participant | Match W-L-T | Score | Set Win % | Pts Diff | Match History
+1 | Advanced sixohtwo | 11 - 1 - 0 | 33.0 | 91.7 | 51 | W W L W W W W W W W W W
+2 | Advanced Mr.Gaz | 9 - 2 - 1 | 28.0 | 75.0 | 11 | W W W W W L W W W L W T
+3 | Advanced Adambuddy | 7 - 2 - 3 | 24.0 | 58.3 | 3 | T W L W W W T W L W T W
+4 | Advanced fsm_brian | 5 - 4 - 3 | 18.0 | 41.7 | 20 | T L W W L W T L W T L W
+5 | Claimed | 3 - 8 - 1 | 10.0 | 25.0 | -25 | W L L W L L W L L L T L
+6 | SabreGirl | 3 - 9 - 0 | 9.0 | 25.0 | -38 | L L L L W L L L W L W L
+7 | Black_Ball | 0 - 12 - 0 | 0.0 | 0.0 | -22 | L L L L L L L L L L L L
+
+--- GROUP B ---
+Rank | Participant | Match W-L-T | Score | Set Win % | Pts Diff | Match History
+1 | Advanced neo (stepatdis) | 8 - 2 - 2 | 26.0 | 66.7 | 40 | W W W W W T L W T W W L
+2 | Advanced JC (IrateMusicfool) | 6 - 3 - 3 | 21.0 | 50.0 | 8 | L L W T W T T W W L W W
+3 | Advanced jabronni16 | 5 - 2 - 5 | 20.0 | 41.7 | 9 | T W W L T W T W T T W L
+4 | Advanced mynameiseskimo | 5 - 2 - 5 | 20.0 | 41.7 | 6 | W L L T W T T W T T W W
+5 | lilsparky67 | 4 - 4 - 4 | 16.0 | 33.3 | 4 | T W T L L W T W T L L W
+6 | Sterlo (sterlo_) | 4 - 8 - 0 | 12.0 | 33.3 | -40 | W W L L L L W L L L W L
+7 | Javi_8 | 0 - 11 - 1 | 1.0 | 0.0 | -27 | L L L L L T L L L L L L
+
+--- GROUP C ---
+Rank | Participant | Match W-L-T | Score | Set Win % | Pts Diff | Match History
+1 | Advanced Travis (TechnoT) | 10 - 0 - 2 | 32.0 | 83.3 | 24 | W W T W W W W W T W W W
+2 | Advanced Iantunstall | 8 - 1 - 3 | 27.0 | 66.7 | 32 | W W W T L W W T W T W W
+3 | Advanced _Tarantula_69 (FreakyLilspider) | 6 - 6 - 0 | 18.0 | 50.0 | -4 | L W W W W L L L W L W L
+4 | Advanced o_aig_o (o_aig_p) | 5 - 5 - 2 | 17.0 | 41.7 | -4 | W L W T L W L W W T L L
+5 | Cameron90 | 4 - 6 - 2 | 14.0 | 33.3 | -4 | L L L T L W L T L W W W
+6 | Bye_all_c_ya | 2 - 8 - 2 | 8.0 | 16.7 | -22 | L L T T L L W L L W L L
+7 | THE_PFB | 0 - 9 - 3 | 3.0 | 0.0 | -22 | L L T T L L L L T L L L
+
+--- GROUP D ---  (6 players -> 10 matches each)
+Rank | Participant | Match W-L-T | Score | Set Win % | Pts Diff | Match History
+1 | Advanced l_Mr_CC_l (P00l_BeAsT) | 8 - 2 - 0 | 24.0 | 80.0 | 26 | W L W W L W W W W W
+2 | Advanced S_U_K_I_O_O | 8 - 2 - 0 | 24.0 | 80.0 | 12 | W W L W W W L W W W
+3 | Advanced 💎 (Derrick) (D3rrlck) | 7 - 3 - 0 | 21.0 | 70.0 | 16 | W W W W W W L L W L
+4 | Advanced Black_Jesus | 4 - 6 - 0 | 12.0 | 40.0 | -22 | L W L L W L W L L W
+5 | ArsH_ | 1 - 7 - 2 | 5.0 | 10.0 | -10 | L L T L L L W T L L
+6 | TrioTheLegend | 0 - 8 - 2 | 2.0 | 0.0 | -22 | L L T L L L L T L L
+
+--- GROUP E ---
+Rank | Participant | Match W-L-T | Score | Set Win % | Pts Diff | Match History
+1 | Advanced Easyrun | 11 - 0 - 1 | 34.0 | 91.7 | 44 | W W W W W W W W W T W W
+2 | Advanced Ogges | 6 - 2 - 4 | 22.0 | 50.0 | 4 | T W W L W T T W W T W L
+3 | Advanced leighjohn__ | 5 - 4 - 3 | 18.0 | 41.7 | 2 | L T W W L L W T T W L W
+4 | Advanced Faisal (Sicc94) | 5 - 5 - 2 | 17.0 | 41.7 | 5 | W L W L W T L T W L L W
+5 | TRICK__D | 4 - 6 - 2 | 14.0 | 33.3 | -7 | T T L L L W W W L W L L
+6 | spc_shogun | 3 - 6 - 3 | 12.0 | 25.0 | -13 | T W L L W L L T L T W L
+7 | JEFE_122 | 0 - 11 - 1 | 1.0 | 0.0 | -35 | L T L L L L L L L L L L

@@ -50,6 +50,14 @@ export function computeStandings(
   roster: readonly { registrationId: number; username: string }[],
   matches: readonly StandingMatchInput[],
   qualifiersPerGroup: number,
+  /**
+   * How many times each pair meets — 1 for a single round robin, 2 for a double one.
+   *
+   * Defaults to 1 so every existing caller keeps its exact behaviour; only the completion point
+   * depends on it. Wins, draws, games and every tiebreaker are counted from the matches themselves,
+   * so a double robin needs no other change here: it simply has twice as many of them.
+   */
+  meetingsPerPair: 1 | 2 = 1,
 ): StandingRowComputed[] {
   const acc = new Map<number, Acc>()
   for (const p of roster) {
@@ -102,8 +110,15 @@ export function computeStandings(
     }
   }
 
-  // A full round-robin slate is (group size − 1) matches; completing it earns a completion point.
-  const fullSlate = Math.max(0, roster.length - 1)
+  /*
+   * A full slate is (group size − 1) matches per meeting, and completing it earns a completion point.
+   *
+   * `meetingsPerPair` is what makes that correct for a DOUBLE round robin, where everybody plays each
+   * opponent twice and a full slate is therefore twice as long. Getting this wrong is not cosmetic:
+   * with the single-robin slate every player in a double group clears the bar halfway through and
+   * collects the completion point for a season they have not finished.
+   */
+  const fullSlate = Math.max(0, roster.length - 1) * meetingsPerPair
   const rows: StandingRowComputed[] = [...acc.values()].map((r) => ({
     registrationId: r.registrationId,
     username: r.username,

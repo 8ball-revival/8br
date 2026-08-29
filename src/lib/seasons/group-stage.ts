@@ -14,6 +14,9 @@ export const SEASON_QUALIFIERS_PER_GROUP = 3
 export async function recomputeSeasonStandings(seasonId: number): Promise<void> {
   const groups = await prisma.seasonGroup.findMany({ where: { seasonId }, include: { players: { include: { entrant: { select: { id: true, username: true, displayName: true } } } } } })
   const matches = await prisma.seasonMatch.findMany({ where: { seasonId, status: { in: ['COMPLETED', 'FORFEIT'] } } })
+  // The Season says how many times a pair meets; the standings only need it for the completion point.
+  const season = await prisma.season.findUnique({ where: { id: seasonId }, select: { groupFormat: true } })
+  const meetingsPerPair = season?.groupFormat === 'DOUBLE_ROUND_ROBIN' ? 2 : 1
   for (const g of groups) {
     const roster = g.players.map((p) => ({ registrationId: p.entrantId, username: p.entrant.displayName?.trim() || p.entrant.username }))
     const groupMatches: StandingMatchInput[] = matches
@@ -28,7 +31,7 @@ export async function recomputeSeasonStandings(seasonId: number): Promise<void> 
         awayGames: m.status === 'FORFEIT' ? 0 : m.awayGames ?? 0,
         winnerRegistrationId: m.winnerEntrantId ?? null,
       }))
-    const rows = computeStandings(roster, groupMatches, SEASON_QUALIFIERS_PER_GROUP)
+    const rows = computeStandings(roster, groupMatches, SEASON_QUALIFIERS_PER_GROUP, meetingsPerPair)
     await prisma.$transaction(async (tx) => {
       for (const r of rows) {
         await tx.seasonStanding.upsert({
