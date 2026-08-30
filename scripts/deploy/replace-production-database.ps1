@@ -152,6 +152,38 @@ function ProdQuery {
 }
 
 <#
+  The same file-based delivery, against a local database.
+
+  `8br_test_prodbackup_verify` begins with a digit, so PostgreSQL needs it quoted -- and the quotes
+  were being stripped on the way to psql exactly as they were in the preflight, leaving
+  `DROP DATABASE IF EXISTS 8br_test_prodbackup_verify` and "trailing junk after numeric literal".
+  The backup had already been taken and checksummed at that point, so nothing was at risk; the run
+  simply refused to continue without proving the backup restorable, which is what it should do.
+#>
+function LocalSql {
+  param([string] $Url, [string] $Sql, [switch] $Quiet)
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) ("8br-local-" + [Guid]::NewGuid().ToString('N') + ".sql")
+  try {
+    Set-Content -Path $tmp -Value $Sql -Encoding utf8
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+      $out = & psql.exe -w -Atq -v ON_ERROR_STOP=1 $Url -f $tmp 2>&1
+      $script:LocalSqlExit = $LASTEXITCODE
+    } finally {
+      $ErrorActionPreference = $previous
+    }
+    if (-not $Quiet -and $script:LocalSqlExit -ne 0) {
+      $text = ($out | ForEach-Object { $_.ToString() }) -join "`n   "
+      Die "Local query failed (psql exit $script:LocalSqlExit):`n   $text"
+    }
+    return @($out | ForEach-Object { $_.ToString() })
+  } finally {
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+  }
+}
+
+<#
   Which of these relations this database actually has.
 
   Production predates the local source by a number of migrations, so it legitimately lacks tables the
@@ -281,17 +313,25 @@ if ([string]::IsNullOrWhiteSpace($localAdmin)) {
   if ($go -ne 'y') { Die 'Stopped. Re-run and supply a local URL to verify the backup.' }
 } else {
   $adminBase = $localAdmin -replace '/[^/]+$', '/postgres'
-  & psql.exe -w -q $adminBase -c "DROP DATABASE IF EXISTS ""$ScratchDatabase"";" -c "CREATE DATABASE ""$ScratchDatabase"";" | Out-Null
-  if ($LASTEXITCODE -ne 0) { Die 'Could not create the scratch database.' }
+  LocalSql $adminBase "DROP DATABASE IF EXISTS ""$ScratchDatabase"";" | Out-Null
+  LocalSql $adminBase "CREATE DATABASE ""$ScratchDatabase"";" | Out-Null
   $scratchUrl = $localAdmin -replace '/[^/]+$', "/$ScratchDatabase"
-  & pg_restore.exe -d $scratchUrl --no-owner --no-privileges $backup 2>&1 | Out-Null
-  $scratchTables = & psql.exe -w -Atq $scratchUrl -c "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('public','payload') AND table_type='BASE TABLE';"
-  $prodTables = ProdQuery "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('public','payload') AND table_type='BASE TABLE';"
+  $previous = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { & pg_restore.exe -d $scratchUrl --no-owner --no-privileges $backup 2>&1 | Out-Null }
+  finally { $ErrorActionPreference = $previous }
+  # Take the last numeric line, not [0]. PowerShell unwraps a single-element return to a scalar, and
+  # indexing a scalar string with [0] yields its first CHARACTER -- so a count of 116 would have been
+  # read as 1 and the backup declared unverifiable.
+  $countSql = "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('public','payload') AND table_type='BASE TABLE';"
+  $scratchTables = @(LocalSql $scratchUrl $countSql) | Where-Object { $_ -match '^\d+$' } | Select-Object -Last 1
+  $prodTables    = @(ProdQuery $countSql)            | Where-Object { $_ -match '^\d+$' } | Select-Object -Last 1
+  if (-not $scratchTables -or -not $prodTables) { Die 'Could not read table counts for backup verification.' }
   if ([int]$scratchTables -lt 1 -or [int]$scratchTables -ne [int]$prodTables) {
     Die "Backup verification failed: production has $prodTables tables, the restored backup has $scratchTables."
   }
   Ok "backup restores cleanly and carries all $prodTables tables"
-  & psql.exe -w -q $adminBase -c "DROP DATABASE IF EXISTS ""$ScratchDatabase"";" | Out-Null
+  LocalSql $adminBase "DROP DATABASE IF EXISTS ""$ScratchDatabase"";" | Out-Null
   Ok 'scratch database dropped'
 }
 
