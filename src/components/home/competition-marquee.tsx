@@ -65,15 +65,15 @@ function WccHalf() {
       <span aria-hidden className="marquee-wcc-glow" />
       <span aria-hidden className="marquee-streaks" />
 
-      <div className="relative flex items-center gap-5 sm:gap-7">
+      <div className="marquee-wcc-row relative flex items-center gap-5 sm:gap-8">
         <Image
           src="/assets/branding/wcc-logo.png"
           alt="World Cue Championships"
           width={770}
           height={790}
-          sizes="(max-width: 1024px) 8rem, 11rem"
+          sizes="(max-width: 640px) 7rem, (max-width: 1024px) 10rem, 14rem"
           priority={false}
-          className="marquee-logo h-24 w-auto shrink-0 sm:h-28 lg:h-36"
+          className="marquee-logo h-28 w-auto shrink-0 sm:h-36 lg:h-48"
         />
         <div className="min-w-0">
           <p className="marquee-kicker text-[var(--wcc-silver)]">World Cue Championships</p>

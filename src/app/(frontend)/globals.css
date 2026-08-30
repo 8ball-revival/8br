@@ -1133,14 +1133,16 @@
 /* Both halves occupy the same grid cell; the clip on the second decides the boundary. */
 .marquee-stage {
   grid-template-areas: 'split';
-  min-height: 320px;
+  /* Taller than the pair of panels it replaced, because it is an announcement rather than a table:
+     the crest and the wordmark are the content here, and both need room to carry the row. */
+  min-height: clamp(360px, 30vw, 440px);
 }
 .marquee-stage > * {
   grid-area: split;
 }
 
 .marquee-half {
-  padding: 1.75rem clamp(1.25rem, 3vw, 2.75rem);
+  padding: clamp(1.75rem, 3vw, 2.5rem) clamp(1.25rem, 3vw, 3rem);
   text-decoration: none;
   transition: filter 200ms ease;
 }
@@ -1232,7 +1234,7 @@
    Sized in clamp() so the halves stay legible from 375px to 1920px without a breakpoint per size. */
 .marquee-kicker {
   font-family: var(--font-display, inherit);
-  font-size: clamp(0.62rem, 0.9vw, 0.78rem);
+  font-size: clamp(0.66rem, 1vw, 0.9rem);
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1240,7 +1242,7 @@
 }
 .marquee-title {
   font-family: var(--font-display, inherit);
-  font-size: clamp(1.5rem, 2.6vw, 2.35rem);
+  font-size: clamp(1.75rem, 3.1vw, 3rem);
   font-weight: 900;
   letter-spacing: -0.01em;
   /* Loose enough for the ink box to fit inside the line box. A tighter value looks fine until the
@@ -1249,7 +1251,7 @@
   margin-top: 0.15rem;
 }
 .marquee-status {
-  font-size: clamp(0.68rem, 1vw, 0.8rem);
+  font-size: clamp(0.72rem, 1.1vw, 0.92rem);
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1257,13 +1259,13 @@
 }
 .marquee-body {
   color: #c3ccd6;
-  font-size: clamp(0.78rem, 1vw, 0.9rem);
-  margin-top: 0.4rem;
-  max-width: 26ch;
+  font-size: clamp(0.84rem, 1.15vw, 1.05rem);
+  margin-top: 0.5rem;
+  max-width: 28ch;
 }
 .marquee-wordmark {
   font-family: var(--font-display, inherit);
-  font-size: clamp(2rem, 4.4vw, 3.9rem);
+  font-size: clamp(2.35rem, 5.2vw, 5rem);
   font-weight: 900;
   letter-spacing: -0.03em;
   /*
@@ -1289,9 +1291,19 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.85rem;
-  padding: 0.45rem 0.9rem;
-  font-size: clamp(0.66rem, 0.9vw, 0.76rem);
+  margin-top: 1rem;
+  padding: 0.55rem 1.1rem;
+  /*
+   * A thumb needs 44px, and the label needs one line.
+   *
+   * Left to itself the box was 36px tall — fine for a pointer, short for a finger — and on a 320px
+   * screen "Visit WCC website" broke across two lines and made a 70px slab of it. The minimum sets
+   * the floor; `nowrap` keeps the label a label. It still fits: the text measures about 215px inside
+   * a 248px column at the narrowest size tested.
+   */
+  min-height: 44px;
+  white-space: nowrap;
+  font-size: clamp(0.7rem, 1vw, 0.86rem);
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -1350,7 +1362,7 @@
 
   .marquee-half {
     padding: 1.5rem 1.25rem;
-    min-height: 13.5rem;
+    min-height: 15.5rem;
   }
   .marquee-wcc { padding-right: 1.25rem; padding-bottom: 2.5rem; }
   .marquee-brcam {
@@ -1366,4 +1378,22 @@
     opacity: 0.8;
   }
   .marquee-body { max-width: none; }
+}
+
+/*
+ * Very narrow: the crest moves above its text instead of beside it.
+ *
+ * Side by side, a 112px logo and a 20px gutter leave the copy about 130px on a 320px screen — too
+ * little for the call to action, which then ran past the panel edge and was clipped by the frame's
+ * own `overflow: hidden`. Stacking hands the text the full column, where the label fits on one line
+ * with room to spare.
+ */
+@media (max-width: 420px) {
+  .marquee-wcc-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9rem;
+  }
+  .marquee-wcc { padding-bottom: 3rem; }
+  .marquee-half { min-height: 17rem; }
 }
