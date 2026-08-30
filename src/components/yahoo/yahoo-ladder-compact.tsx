@@ -167,10 +167,20 @@ export function YahooLadderCompact({
           role="region"
           aria-label="Yahoo legacy rankings, scrollable"
           tabIndex={0}
-          className={cn('scrollbar-themed min-w-0 overflow-auto border border-border', FRAME,
+          /*
+            `relative` is load-bearing, not decoration.
+
+            A `.sr-only` span is `position: absolute`, and an absolutely positioned element inside an
+            unpositioned table cell resolves against the nearest POSITIONED ancestor -- which, without
+            this, is somewhere outside the scroller. Its 1px box then sits at the table's own
+            coordinates with nothing clipping it, and the page grows a horizontal scrollbar on a phone
+            because of a box a sighted reader will never see. Making the scroller the containing block
+            keeps every absolute descendant inside the thing that clips.
+          */
+          className={cn('scrollbar-themed relative min-w-0 overflow-auto border border-border', FRAME,
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]')}
         >
-          <table className="w-full min-w-[34rem] table-fixed border-collapse text-sm">
+          <table className="w-full min-w-[31rem] table-fixed border-collapse text-sm">
             {/*
               Fixed widths, because auto layout gives the slack to the widest column — which is the
               player's name — and that opened a hand's width of empty table between the identity and
@@ -179,25 +189,26 @@ export function YahooLadderCompact({
             */}
             <colgroup>
               {/*
-                These percentages ARE the column widths — the table is `table-fixed`, so padding and
-                content do not enter into it. Tightening W, L and D therefore means taking percent
-                from them and giving it to something else, which is what happened here: three columns
-                holding a one- or two-digit number were on 6% each, wider than the figures in them,
-                while Seasons sat on 8% and fell off the right edge of the panel.
+                These percentages ARE the column widths -- the table is `table-fixed`, so padding
+                and content do not enter into it.
 
-                W, L and D drop to 4% — still room for a three-figure win count in these tabular
-                figures — and the six points freed go to Seasons and to the player's name.
+                Seven tracks now rather than ten. W, L and D were three separate columns each holding
+                a one- or two-digit number, and Played was a fourth figure derived from them; between
+                them they spent a quarter of the table restating one record. They are one column, and
+                the width that bought back went to the player's name and to the statistics that were
+                being squeezed off the right edge.
+
+                Crown and rank stay as narrow as their contents allow, the name takes the slack, and
+                the four statistics get tracks sized to their widest real value: a four-figure rating,
+                a nine-character record like 221-57-21, a percentage, and a two-figure season count.
               */}
-              <col className="w-[7%]" />
+              <col className="w-[8%]" />
               <col className="w-[6%]" />
-              <col className="w-[28%]" />
-              <col className="w-[14%]" />
-              <col className="w-[4%]" />
-              <col className="w-[4%]" />
-              <col className="w-[4%]" />
-              <col className="w-[9%]" />
-              <col className="w-[11%]" />
+              <col className="w-[33%]" />
               <col className="w-[13%]" />
+              <col className="w-[18%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border bg-card text-[0.6rem] uppercase tracking-[0.1em] text-muted-foreground">
@@ -207,22 +218,25 @@ export function YahooLadderCompact({
                 </th>
                 <th scope="col" className="bg-card px-1.5 py-2 text-right">#</th>
                 <th scope="col" className="bg-card px-2 py-2 text-left">Player</th>
-                <th scope="col" className="bg-card px-1.5 py-2 text-right">Legacy rating</th>
+                <th scope="col" className="bg-card px-1 py-2 text-center">Rating</th>
                 {/*
-                  W, L and D are as narrow as three digits allow.
+                  One record, not three columns and a total.
 
-                  They carried the same padding as every other column, which spent about twenty
-                  pixels on whitespace and pushed Seasons past the right edge of the panel — a
-                  one- or two-digit number the reader had to scroll sideways to reach. `w-8` still
-                  holds a three-figure win count in these tabular figures, and the padding drops to
-                  match. Nothing about the data moves; only the space around it.
+                  `aria-label` rather than a visually-hidden twin: "W–L–D" followed by
+                  "Wins–Losses–Draws" is the same heading announced twice. The visible form is for
+                  the eye, the label is for the ear, and `title` covers a pointer hovering an
+                  abbreviation it has not met before.
                 */}
-                <th scope="col" className="w-8 bg-card px-0.5 py-2 text-right">W</th>
-                <th scope="col" className="w-8 bg-card px-0.5 py-2 text-right">L</th>
-                <th scope="col" className="w-8 bg-card px-0.5 py-2 text-right" title="Draws">D</th>
-                <th scope="col" className="bg-card px-1.5 py-2 text-right">Played</th>
-                <th scope="col" className="bg-card px-2 py-2 text-right">Win %</th>
-                <th scope="col" className="bg-card px-2 py-2 text-right">Seasons</th>
+                <th
+                  scope="col"
+                  className="bg-card px-1 py-2 text-center"
+                  aria-label="Wins–Losses–Draws"
+                  title="Wins–Losses–Draws"
+                >
+                  W–L–D
+                </th>
+                <th scope="col" className="bg-card px-1 py-2 text-center">Win %</th>
+                <th scope="col" className="bg-card px-1 py-2 text-center">Seasons</th>
               </tr>
             </thead>
             <tbody>
@@ -240,15 +254,24 @@ export function YahooLadderCompact({
                         className="min-w-0"
                       />
                     </td>
-                    <td className="tabular px-1.5 py-1.5 text-right">
+                    <td className="tabular px-1 py-1.5 text-center">
                       <RatingValue rating={r.rating} highest={highest} />
                     </td>
-                    <td className="tabular px-0.5 py-1.5 text-right">{rec.wins}</td>
-                    <td className="tabular px-0.5 py-1.5 text-right">{rec.losses}</td>
-                    <td className="tabular px-0.5 py-1.5 text-right">{rec.draws}</td>
-                    <td className="tabular px-1.5 py-1.5 text-right">{rec.played}</td>
-                    <td className="tabular px-2 py-1.5 text-right">{rec.pct}</td>
-                    <td className="tabular px-2 py-1.5 text-right text-muted-foreground">{r.seasonsPlayed}</td>
+                    <td className="tabular px-1 py-1.5 text-center">
+                      {/*
+                        Read aloud as a record rather than as arithmetic.
+
+                        "144–22–7" is three numbers and two dashes to a screen reader, and which
+                        number is which is exactly the information the dashes were carrying. So the
+                        printed form is hidden from the reader and the spoken form names each part.
+                      */}
+                      <span aria-hidden>{recordText(rec)}</span>
+                      <span className="sr-only">
+                        {rec.wins} wins, {rec.losses} losses, {rec.draws} draws
+                      </span>
+                    </td>
+                    <td className="tabular px-1 py-1.5 text-center">{rec.pct}</td>
+                    <td className="tabular px-1 py-1.5 text-center text-muted-foreground">{r.seasonsPlayed}</td>
                   </tr>
                 )
               })}
@@ -353,6 +376,18 @@ function ChampionshipCell({ row }: { row: ExplorerRow }) {
       )}
     </div>
   )
+}
+
+/**
+ * The record as one printed value.
+ *
+ * En dashes, not hyphens: these are three numbers in a span rather than a hyphenated word, and the
+ * wider rule keeps "221-57-21" from reading as one long number in a tabular face. Draws are printed
+ * even when they are zero -- a Playoffs record that showed two figures where Overall showed three
+ * would look like a column that sometimes loses a number.
+ */
+function recordText(rec: { wins: number; losses: number; draws: number }) {
+  return `${rec.wins}–${rec.losses}–${rec.draws}`
 }
 
 /** The split the Record Shown switch selects. Every figure is already on the row. */
