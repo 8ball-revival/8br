@@ -177,13 +177,24 @@ function PageRow({ page }: { page: PageOverview }) {
           {page.editHref ? (
             <Link
               href={page.editHref}
+              /*
+                A template's link opens a REAL instance — the newest Season, the latest article —
+                because a template edited against a placeholder shows none of the live data the
+                layout is actually arranging. The title says so, so the destination is not a surprise.
+              */
+              title={page.kind === 'TEMPLATE'
+                ? `Edit this template on a real page (${page.editHref.replace('?edit=1', '')})`
+                : `Edit ${page.title}`}
               className="flex items-center gap-1.5 bg-[var(--hot-red)] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:brightness-110"
             >
               <PenLine className="size-3" aria-hidden /> Edit
             </Link>
           ) : (
-            <span className="px-2 text-[10px] uppercase text-muted-foreground" title="A template governs many pages, so it is edited from any page that uses it.">
-              Template
+            <span
+              className="px-2 text-[10px] uppercase text-muted-foreground"
+              title="This template governs pages that do not exist yet. Publish one and the Edit button appears."
+            >
+              No example yet
             </span>
           )}
           {page.key.startsWith('/') && (

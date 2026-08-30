@@ -60,6 +60,25 @@ function PaletteBody({ onClose, actions }: { onClose: () => void; actions: Palet
     return () => cancelAnimationFrame(id)
   }, [])
 
+  /*
+    Escape closes it from anywhere, not only from the search box.
+
+    It was on the input's own `onKeyDown`, which works right up until focus is somewhere else — a
+    click on a result row, a browser that did not honour the autofocus, a screen reader moving the
+    cursor. A modal you cannot dismiss with Escape is the kind of thing that gets discovered by
+    somebody stuck in it, so the listener is on the window for as long as the palette is mounted.
+  */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [onClose])
+
   /** Inserting from the palette lands where the palette was opened, like the Modules panel. */
   const insert = (type: string) => {
     const selection = editor.selection

@@ -73,6 +73,34 @@ export async function getBuilderOverview(): Promise<BuilderOverview> {
     prisma.siteTrashItem.findMany({ orderBy: { deletedAt: 'desc' }, take: 100 }),
   ])
 
+  /*
+    Where a TEMPLATE is edited.
+
+    A template has no page of its own — it governs every Season, or every article — so it is edited
+    while standing on a real one. `/seasons/16426?edit=1` already edits the `season` template rather
+    than that Season's own copy, because the route renders through the template; the only thing
+    missing was somewhere to click.
+
+    Picking a REAL example matters more than it sounds. Editing a template against a placeholder
+    means the modules that read live data have nothing to draw, so the layout being designed looks
+    nothing like the pages it governs — which is exactly the mistake a visual builder exists to stop.
+
+    A template with no instance yet (no article has been published, say) gets no link and the control
+    centre says why, rather than offering one that leads to a 404.
+  */
+  const [exampleSeason, exampleTournament, exampleArticle, examplePlayer] = await Promise.all([
+    prisma.season.findFirst({ orderBy: { id: 'desc' }, select: { id: true } }),
+    prisma.tournament.findFirst({ orderBy: { id: 'desc' }, select: { number: true } }),
+    prisma.article.findFirst({ where: { state: 'PUBLISHED' }, orderBy: { publishAt: 'desc' }, select: { slug: true } }),
+    prisma.player.findFirst({ where: { cueverseId: { not: null } }, orderBy: { id: 'asc' }, select: { cueverseId: true } }),
+  ])
+  const templateExample: Record<string, string | null> = {
+    season: exampleSeason ? `/seasons/${exampleSeason.id}?edit=1` : null,
+    tournament: exampleTournament ? `/tournaments/${exampleTournament.number}?edit=1` : null,
+    article: exampleArticle ? `/the-break/${exampleArticle.slug}?edit=1` : null,
+    player: examplePlayer ? `/players/${examplePlayer.cueverseId}?edit=1` : null,
+  }
+
   const overview: PageOverview[] = pages.map((page) => {
     const doc = page.publishedRevision?.document ?? null
     const check = doc ? validateDocument(doc) : null
@@ -104,15 +132,15 @@ export async function getBuilderOverview(): Promise<BuilderOverview> {
         Where this page is edited.
 
         A STATIC page is edited in place, on itself. A GLOBAL has no page of its own — the navigation
-        appears on all of them — so it gets a surface under the control centre. A TEMPLATE governs
-        many routes and has no single page to stand on, so the control centre says so rather than
-        offering a link that would have to pick one arbitrarily.
+        appears on all of them — so it gets a surface under the control centre. A TEMPLATE is edited
+        while standing on a real instance of what it governs, which is the only way to see what the
+        layout actually does to live data.
       */
       editHref: page.kind === 'STATIC'
         ? `${page.key}${page.key.includes('?') ? '&' : '?'}edit=1`
         : page.kind === 'GLOBAL'
           ? `/staff/site-builder/global/${page.key}`
-          : null,
+          : templateExample[page.key] ?? null,
     }
   })
 

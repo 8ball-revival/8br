@@ -15,9 +15,36 @@
  * canonical one so a missing config cannot silently produce a dead page again.
  */
 import { spawn } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+/*
+  These scripts run under plain `node`, which does not read a .env file, and the dev server they
+  drive is started by `npm run dev:replica`, which does. Without this the suites fail with
+  "SITE_BUILDER_E2E_SECRET is not set" on a machine where it is perfectly well set — a confusing way
+  to discover that two processes disagree about their environment. Existing variables always win, so
+  an explicit `SB_BASE=... npm run test:responsive` still overrides.
+*/
+function loadEnvFile(file) {
+  try {
+    // Split on the line feed and trim, which handles a CRLF file without a regex literal.
+    for (const raw of readFileSync(file, 'utf8').split(String.fromCharCode(10))) {
+      const line = raw.trim()
+      const eq = line.indexOf('=')
+      if (eq < 1 || line.startsWith('#')) continue
+      const key = line.slice(0, eq).trim()
+      if (!/^[A-Z0-9_]+$/.test(key)) continue
+      let value = line.slice(eq + 1).trim()
+      if (value.length > 1 && (value[0] === '"' || value[0] === "'") && value.at(-1) === value[0]) {
+        value = value.slice(1, -1)
+      }
+      if (process.env[key] === undefined) process.env[key] = value
+    }
+  } catch { /* no such file, which is fine */ }
+}
+loadEnvFile(path.join(process.cwd(), '.env.replica'))
+loadEnvFile(path.join(process.cwd(), '.env'))
 
 export const BASE = process.env.SB_BASE || 'http://localhost:3000'
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
@@ -82,6 +109,54 @@ export async function launch({ port = 9500 + Math.floor(Math.random() * 400) } =
     },
     async viewport(width, height, mobile = false) {
       await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile })
+    },
+    /**
+     * A real key press, through the protocol rather than a synthesised event.
+     *
+     * A dispatched `KeyboardEvent` carries `isTrusted: false`, and more to the point it never
+     * reaches anything listening above the element it was dispatched on in the way a real press
+     * does. Driving the input pipeline means the editor's shortcuts are exercised exactly as a
+     * person exercises them, which is the only version worth asserting on.
+     */
+    async key(key, { ctrl = false, alt = false, shift = false, meta = false } = {}) {
+      const modifiers = (alt ? 1 : 0) | (ctrl ? 2 : 0) | (meta ? 4 : 0) | (shift ? 8 : 0)
+      /*
+        A named key without its virtual key code is a key press nothing reacts to.
+        Chrome derives `keyCode` from this, and a handler testing `e.key === 'Escape'` sees the
+        event but a handler testing `keyCode` does not — so both are supplied rather than one.
+      */
+      const CODES = { Escape: 27, Enter: 13, Tab: 9, Backspace: 8, Delete: 46, ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39 }
+      const code = CODES[key] ?? (key.length === 1 ? key.toUpperCase().charCodeAt(0) : undefined)
+      const common = { modifiers, key, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code }
+      /*
+        `text` is the character the key TYPES, not its name.
+
+        Sending `text: 'Escape'` makes Chrome treat the press as typing the seven letters E-s-c-a-p-e
+        into whatever has focus, and the Escape handler never runs. Only a printable key with no
+        modifier has text at all; everything else is a `rawKeyDown`, which is what Chrome dispatches
+        for a key that produces no character.
+      */
+      const printable = key.length === 1 && !ctrl && !meta
+      await cdp.send('Input.dispatchKeyEvent', printable
+        ? { type: 'keyDown', ...common, text: key }
+        : { type: 'rawKeyDown', ...common })
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...common })
+      await sleep(200)
+    },
+    /**
+     * A real mouse click at a point, for the same reason `key` exists.
+     *
+     * The editing overlay sits ON TOP of the canvas and owns selection — that is how a module can be
+     * selected without its own click handlers firing and following a link. So `element.click()` on
+     * the module underneath selects nothing, and a check built on it would be testing a path no
+     * person can take. Clicking the point drives the overlay exactly as a pointer does.
+     */
+    async click(x, y) {
+      const common = { x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 }
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...common })
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...common })
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...common })
+      await sleep(250)
     },
     async eval(expression) {
       const r = await cdp.send('Runtime.evaluate', { returnByValue: true, expression, awaitPromise: true })

@@ -401,7 +401,20 @@ function FieldControl({ name, field, value, siblings, onChange }: {
     case 'color':
       return (
         <Labelled label={field.label} help={field.help}>
-          <ColorControl value={String(value ?? field.default)} onChange={onChange} />
+          {/*
+            `allowEmpty` on every colour field, because every colour field means it.
+
+            A colour whose default is empty is one the site fills in itself, and without a way back
+            to empty the only route to "use the built-in" is deleting the text by hand — which most
+            people do not realise is allowed. The placeholder names the value that will be used
+            instead of a generic example, so an unset field says what unset actually means.
+          */}
+          <ColorControl
+            value={String(value ?? field.default)}
+            onChange={onChange}
+            allowEmpty={field.default === ''}
+            placeholder={THEME_TOKENS.find((t) => t.label === field.label)?.fallback}
+          />
         </Labelled>
       )
     case 'media':
@@ -919,7 +932,13 @@ const TOKEN_SWATCHES = [
   { value: 'var(--brcam-teal)', label: 'Teal' },
 ]
 
-function ColorControl({ value, onChange, allowEmpty }: { value: string; onChange: (v: string) => void; allowEmpty?: boolean }) {
+function ColorControl({ value, onChange, allowEmpty, placeholder }: {
+  value: string
+  onChange: (v: string) => void
+  allowEmpty?: boolean
+  /** The colour that will be used when this is left empty, so the field can say so. */
+  placeholder?: string
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap gap-1">
@@ -947,9 +966,9 @@ function ColorControl({ value, onChange, allowEmpty }: { value: string; onChange
       <input
         type="text"
         value={value}
-        placeholder="#101418"
+        placeholder={placeholder ? `${placeholder} (built in)` : '#101418'}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-border bg-transparent px-2 py-1 font-mono text-[11px] text-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        className="w-full border border-border bg-transparent px-2 py-1 font-mono text-[11px] text-foreground placeholder:text-muted-foreground focus:border-[var(--hot-red)] focus:outline-none"
       />
     </div>
   )
