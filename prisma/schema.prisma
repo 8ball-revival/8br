@@ -261,35 +261,35 @@ enum RecordType {
 /// Preserves the stable legacy id (e.g. "P1316") for traceability across the
 /// import. A Player is fronted by exactly one Competitor for all competitive refs.
 model Player {
-  id                   String           @id @default(cuid())
-  legacyPlayerId       String?          @unique // e.g. "P1316" from the 8BRCAM archive
-  primaryName          String
-  country              String?
-  firstYear            Int?
-  lastYear             Int?
-  primaryYm            String? // primary Yahoo Messenger id (identity signal)
-  primaryEmail         String? // primary email (identity signal)
+  id                        String           @id @default(cuid())
+  legacyPlayerId            String?          @unique // e.g. "P1316" from the 8BRCAM archive
+  primaryName               String
+  country                   String?
+  firstYear                 Int?
+  lastYear                  Int?
+  primaryYm                 String? // primary Yahoo Messenger id (identity signal)
+  primaryEmail              String? // primary email (identity signal)
   // Public current-identity fields (safe to display): competitive handle, Discord,
   // and time zone. Email is NEVER stored here (it lives only on the Payload account).
-  cueverseId           String? // public competitive handle (e.g. "Starkiller") — the site-wide default display identity (preserves casing)
+  cueverseId                String? // public competitive handle (e.g. "Starkiller") — the site-wide default display identity (preserves casing)
   // Case-insensitive canonical form of cueverseId (trim + lowercase = cueverseLoginKey). This is the
   // authoritative uniqueness key for account identity: a UNIQUE index enforces that no two players can
   // hold the same CueVerse ID regardless of casing. Written ONLY by the central identity service, which
   // also mirrors it to the Payload auth `username` (the login projection). Nullable for archive/backing
   // players that carry no CueVerse ID (Postgres treats NULLs as distinct, so many may be null).
-  cueverseIdNormalized String?          @unique
-  cueverseIdChangedAt  DateTime? // last time the CueVerse ID changed (enforces the self-service cooldown)
-  discord              String? // public contact (community norm — shown publicly)
-  timeZone             String?
-  active               Boolean          @default(true) // staff can mark a profile inactive
+  cueverseIdNormalized      String?          @unique
+  cueverseIdChangedAt       DateTime? // last time the CueVerse ID changed (enforces the self-service cooldown)
+  discord                   String? // public contact (community norm — shown publicly)
+  timeZone                  String?
+  active                    Boolean          @default(true) // staff can mark a profile inactive
   /// Management-only account: a real login for running the site, not a competitor. Kept out of the
   /// member list and out of every entrant/free-agent selector, so it can never be added to a Season
   /// or Tournament by accident. Distinct from `active`, which hides a profile outright.
-  managementOnly       Boolean          @default(false)
+  managementOnly            Boolean          @default(false)
   /// Trusted Author: may publish their own articles without prior review. Server-enforced, set only
   /// by an owner/admin, and never inferred from competition activity or management-only status.
   /// Revoking it stops new publishing immediately but leaves already-published work standing.
-  blogTrustedAuthor    Boolean          @default(false)
+  blogTrustedAuthor         Boolean          @default(false)
   /// The Break: posting is open to every member in good standing, so this is a REVOCATION rather
   /// than a grant — false means "may post", which is why it defaults to false and why a new member
   /// needs nothing done to them before they can write. Set only by a holder of manage_the_break,
@@ -298,15 +298,15 @@ model Player {
   /// Deliberately narrower than a timeout or a ban: someone who abuses posting loses posting, and
   /// keeps reading, commenting and voting. Silencing an account entirely is a different decision
   /// with a different record, and collapsing the two would make the lighter penalty unavailable.
-  breakPostingBlocked  Boolean          @default(false)
-  breakPostingBlockedAt DateTime?
+  breakPostingBlocked       Boolean          @default(false)
+  breakPostingBlockedAt     DateTime?
   /// Shown to the member, so a removed permission is never a mystery they cannot act on.
   breakPostingBlockedReason String?
   // Account linking: a Payload user may CLAIM this canonical identity without
   // owning it. linkedUserId is an app-level ref to a Payload user (no cross-ORM FK).
   // @unique enforces one account ↔ at most one profile (both directions).
-  linkedUserId         String?          @unique
-  linkStatus           PlayerLinkStatus @default(UNLINKED)
+  linkedUserId              String?          @unique
+  linkStatus                PlayerLinkStatus @default(UNLINKED)
 
   /// Editorial back-relations. All optional and all SetNull/Cascade on the owning side, so an
   /// archived author never takes published history down with them.
@@ -357,11 +357,11 @@ model Player {
 /// over time (see PlayerSplit). Uniqueness is only per (player, alias, type) to
 /// prevent duplicate rows for the same player.
 model PlayerAlias {
-  id         String     @id @default(cuid())
-  playerId   String
+  id           String     @id @default(cuid())
+  playerId     String
   /// The MATCH key: lower-cased, letters and digits only. Every lookup compares this, so `Big_Nav`
   /// and `bignav` are one alias rather than two that each match half the time.
-  alias      String
+  alias        String
   /// The alias as a person actually wrote it, for display only. Never matched against.
   ///
   /// `alias` used to be both key and label, and the key won: recording `fsm_brian` stored `fsmbrian`
@@ -369,9 +369,9 @@ model PlayerAlias {
   /// rows written before this column existed have no spelling left to recover -- they fall back to
   /// the key, which is what they already displayed.
   aliasDisplay String?
-  aliasType  AliasType  @default(HANDLE)
-  provenance Provenance @default(NATIVE)
-  createdAt  DateTime   @default(now())
+  aliasType    AliasType  @default(HANDLE)
+  provenance   Provenance @default(NATIVE)
+  createdAt    DateTime   @default(now())
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
@@ -2035,19 +2035,19 @@ model Season {
   /// Publicly visible. Separate from lifecycle on purpose: a Season can be running and still be
   /// private, and a published Season can be finished. Live requires BOTH.
   /// Defaults true so every existing Season keeps behaving exactly as it does today.
-  publiclyVisible      Boolean   @default(true)
+  publiclyVisible      Boolean           @default(true)
   /// Whether this record contributes to Rankings at all. Default yes; an exhibition or a
   /// reconstruction whose results should not count can be excluded without deleting it.
-  countsTowardRankings Boolean   @default(true)
+  countsTowardRankings Boolean           @default(true)
   /// Built in Creator by hand from an archive rather than played on the site. Never appears under
   /// Live while it is being entered; moves to Archives only once completed and finalised.
-  reconstruction       Boolean   @default(false)
+  reconstruction       Boolean           @default(false)
   /// Links a reconstruction shell to its entry in the 8BRCAM archive manifest.
   ///
   /// Nullable and additive: every existing Season has none, which is correct — they were not built
   /// from the archive. It holds a manifest key, never archive DATA, so the source of truth for what
   /// the archive said stays the manifest file and this is only the pointer to it.
-  archiveTemplateKey   String?   @unique
+  archiveTemplateKey   String?           @unique
   /// Set while an authorised administrator has reopened a completed Season for correction. While
   /// this is set the Season leaves Archives and stops contributing to the rankings.
   reopenedAt           DateTime?
@@ -2056,8 +2056,8 @@ model Season {
   /// 'full' | 'partial'. A claim about the SOURCE archive, not about the entry: 'partial' means
   /// some matches, scores or dates were never preserved and have been left missing rather than
   /// invented. Shown on the archive card.
-  dataCompleteness     String    @default("full")
-  playoffDoubleElim    Boolean   @default(false) // decided at playoff setup, not creation
+  dataCompleteness     String            @default("full")
+  playoffDoubleElim    Boolean           @default(false) // decided at playoff setup, not creation
   /// How many times each pair of group opponents meets.
   ///
   /// Almost every Season is a single round robin and stays SINGLE_ROUND_ROBIN, which is why that is
@@ -2104,15 +2104,16 @@ model Season {
   /// pair has to be able to coexist. The DATABASE index also folds a NULL division to '' so two
   /// undivided Seasons still cannot share a number — Prisma cannot express that, which is why the
   /// real constraint lives in 20260820_030000_season_number_per_division.
-  /*
-    Season numbering is unique per series, year and division — but the real index is
-    `season_competition_year_number_division_key`, built on COALESCE(division, ''), so that a second
-    Season with NO division collides with the first instead of slipping past on SQL's rule that
-    NULLs are all distinct. Prisma has no syntax for an expression index, and declaring the plain
-    four-column version here does not describe it: `db push` would add a SECOND, weaker unique index
-    beside it. It cannot see the real one, so leaving this undeclared is what keeps the database as
-    it is. isSeasonNumberCollision still recognises the violation by name.
-  */
+  /**
+   * /*
+   * Season numbering is unique per series, year and division — but the real index is
+   * `season_competition_year_number_division_key`, built on COALESCE(division, ''), so that a second
+   * Season with NO division collides with the first instead of slipping past on SQL's rule that
+   * NULLs are all distinct. Prisma has no syntax for an expression index, and declaring the plain
+   * four-column version here does not describe it: `db push` would add a SECOND, weaker unique index
+   * beside it. It cannot see the real one, so leaving this undeclared is what keeps the database as
+   * it is. isSeasonNumberCollision still recognises the violation by name.
+   */
   @@index([lifecycleState])
   @@index([competitionYear])
   @@index([competitionSeriesId])
@@ -2896,14 +2897,14 @@ model BreakPost {
   authorNameSnapshot   String
   authorHandleSnapshot String?
 
-  title    String
+  title        String
   /// `slug` keeps the author's casing for display; `slugKey` is lower-cased and unique.
-  slug     String
-  slugKey  String  @unique
+  slug         String
+  slugKey      String                   @unique
   /// Structured rich text, sanitised server-side. Never raw HTML.
-  body     Json?
+  body         Json?
   /// Flattened plain text, maintained alongside `body` purely so search has something indexable.
-  bodyText String?
+  bodyText     String?
   /// Weighted tsvector over title (A), author name and handle (B) and bodyText (C). GENERATED
   /// ALWAYS in the database, so nothing writes it; declared only so `db push` does not drop it.
   searchVector Unsupported("tsvector")? @default(dbgenerated())
@@ -2986,14 +2987,14 @@ model BreakPost {
   @@index([authorPlayerId, state, publishedAt]) // a member's own posts and drafts
   @@index([categoryId, state, publishedAt]) // category filter
   @@index([state, removedAt, deletedAt]) // public-visibility predicate
-  /*
-    Search. These exist in the database and must be DECLARED here, or `db push` reads them as drift
-    and drops them — which is exactly what happened: the deploy step runs
-    `prisma db push --accept-data-loss`, and an index this file does not mention is one it removes.
-    `searchVector` is a STORED generated column; Prisma has no syntax for the generation expression,
-    so it is carried as Unsupported with a database-generated default, which is enough for Prisma to
-    leave the column alone.
-  */
+  /**
+   * Search. These exist in the database and must be DECLARED here, or `db push` reads them as drift
+   * and drops them — which is exactly what happened: the deploy step runs
+   * `prisma db push --accept-data-loss`, and an index this file does not mention is one it removes.
+   * `searchVector` is a STORED generated column; Prisma has no syntax for the generation expression,
+   * so it is carried as Unsupported with a database-generated default, which is enough for Prisma to
+   * leave the column alone.
+   */
   @@index([searchVector], type: Gin, map: "break_post_search_idx")
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "break_post_title_trgm_idx")
   @@index([authorHandleSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "break_post_author_trgm_idx")
@@ -3100,11 +3101,11 @@ model BreakPollVote {
   player    Player          @relation("BreakPollVoter", fields: [playerId], references: [id], onDelete: Cascade)
   createdAt DateTime        @default(now())
 
-  /*
-    A vote's option must belong to the vote's poll, enforced by the database rather than trusted. It
-    is a second, composite foreign key alongside the plain optionId one, which is why it needs a
-    named relation: without it the constraint is not in this file, and `db push` drops it.
-  */
+  /**
+   * A vote's option must belong to the vote's poll, enforced by the database rather than trusted. It
+   * is a second, composite foreign key alongside the plain optionId one, which is why it needs a
+   * named relation: without it the constraint is not in this file, and `db push` drops it.
+   */
   optionInPoll BreakPollOption @relation("BreakPollVoteOptionInPoll", fields: [optionId, pollId], references: [id, pollId], onDelete: Cascade, onUpdate: NoAction, map: "break_poll_vote_option_matches_poll")
 
   @@unique([pollId, playerId])
@@ -3524,4 +3525,218 @@ model AchievementDefinition {
 
   @@index([status, sortOrder])
   @@map("achievement_definition")
+}
+
+// ============================================================================
+// SITE BUILDER
+// ----------------------------------------------------------------------------
+// Admin-only visual editing of the public site. These tables describe how pages
+// are PRESENTED; they never hold competition data. A module that shows a ranking
+// stores which ranking to show, and reads the figures from the canonical service
+// at render time — so the builder can never disagree with the record.
+//
+// The layout itself is JSON, validated server-side against the module registry
+// before every write. A fully normalised module tree would need a row per module,
+// per style override and per breakpoint override, plus a recursive read to render
+// one page; the document is read, written and versioned as a unit, so it is
+// stored as one. See docs/site-builder-architecture.md.
+// ============================================================================
+
+enum SitePageKind {
+  /// One concrete route, e.g. "/" or "/rankings".
+  STATIC
+  /// A template every entity of a kind renders through, e.g. every Season page.
+  TEMPLATE
+}
+
+enum SiteRevisionState {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+model SitePage {
+  id   String       @id @default(cuid())
+  kind SitePageKind @default(STATIC)
+
+  /// Route for a STATIC page ("/"), or the template key for a TEMPLATE ("season").
+  key         String  @unique
+  title       String
+  /// Shown in the control centre so an administrator knows what a template governs.
+  description String?
+
+  /// Templates may narrow to a subset, e.g. platform=YAHOO or competitionSeriesId=1.
+  /// Null on every axis means "the default template for this kind".
+  scopePlatform String?
+  scopeSeriesId Int?
+  /// A single Season/Tournament that overrides its template entirely.
+  scopeEntityId Int?
+  /// The template this one falls back to for anything it does not define.
+  parentId      String?
+  parent        SitePage?  @relation("SitePageInheritance", fields: [parentId], references: [id], onDelete: SetNull)
+  children      SitePage[] @relation("SitePageInheritance")
+
+  /// False hides the page from the builder without deleting anything.
+  enabled    Boolean   @default(true)
+  archivedAt DateTime?
+
+  publishedRevisionId String?           @unique
+  publishedRevision   SitePageRevision? @relation("SitePagePublished", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
+
+  draft     SitePageDraft?
+  revisions SitePageRevision[] @relation("SitePageRevisions")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, enabled])
+  @@index([scopePlatform, scopeSeriesId, scopeEntityId])
+  @@map("site_page")
+}
+
+/// The single mutable working copy for a page. Autosaved; never public.
+model SitePageDraft {
+  id     String   @id @default(cuid())
+  pageId String   @unique
+  page   SitePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  document Json
+
+  /// Optimistic concurrency. A save carries the version it was based on; a mismatch
+  /// is a conflict rather than a silent overwrite, so two tabs cannot clobber
+  /// each other.
+  version Int @default(1)
+
+  /// Set when the draft has changes the published revision does not have.
+  dirty Boolean @default(false)
+
+  lastEditorId       Int?
+  lastEditorUsername String?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  @@map("site_page_draft")
+}
+
+/// An immutable published snapshot. Never edited after creation — rollback creates
+/// a NEW draft from an old revision rather than mutating history.
+model SitePageRevision {
+  id     String   @id @default(cuid())
+  pageId String
+  page   SitePage @relation("SitePageRevisions", fields: [pageId], references: [id], onDelete: Cascade)
+
+  /// Monotonic per page, so revisions have a human-meaningful number.
+  number   Int
+  document Json
+  state    SiteRevisionState @default(PUBLISHED)
+
+  /// Written by the publisher; shown in history and in the publish confirmation.
+  summary String?
+
+  /// The revision this one replaced, so history is a chain rather than a list.
+  previousRevisionId String?
+
+  publishedAt         DateTime @default(now())
+  publishedById       Int?
+  publishedByUsername String?
+
+  /// Scheduling. `scheduledFor` publishes it; `expiresAt` reverts to the previous
+  /// revision. Both are acted on by the scheduler, never by the render path.
+  scheduledFor DateTime?
+  expiresAt    DateTime?
+
+  publishedFor SitePage? @relation("SitePagePublished")
+
+  @@unique([pageId, number])
+  @@index([pageId, publishedAt])
+  @@index([state, scheduledFor])
+  @@map("site_page_revision")
+}
+
+/// A module saved for reuse. Instances either stay synced to this record or are
+/// detached into independent copies.
+model SiteReusableModule {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  moduleType  String
+  config      Json
+  style       Json?
+
+  /// Bumped on every edit so synced instances can tell they are behind.
+  version Int @default(1)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdByUsername String?
+  archivedAt        DateTime?
+
+  @@index([moduleType])
+  @@map("site_reusable_module")
+}
+
+/// A saved page or section layout an administrator can start from.
+model SiteTemplate {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  /// "page" or "section".
+  scope       String
+  category    String?
+  document    Json
+  favorite    Boolean @default(false)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdByUsername String?
+  archivedAt        DateTime?
+
+  @@index([scope])
+  @@map("site_template")
+}
+
+/// A published set of design tokens. Exactly one row may be active; it renders as
+/// server-side custom properties UNDER the visitor's own Display Lab settings.
+model SiteThemeProfile {
+  id     String  @id @default(cuid())
+  name   String
+  active Boolean @default(false)
+  tokens Json
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdByUsername String?
+
+  @@index([active])
+  @@map("site_theme_profile")
+}
+
+/// Soft-deleted modules, sections and pages. Delete moves here; permanent removal
+/// is a second, explicit act.
+model SiteTrashItem {
+  id                String    @id @default(cuid())
+  /// "module" | "section" | "page".
+  kind              String
+  pageId            String?
+  label             String
+  payload           Json
+  deletedAt         DateTime  @default(now())
+  deletedByUsername String?
+  /// When the trash sweeper may remove it permanently.
+  purgeAfter        DateTime?
+
+  @@index([kind, deletedAt])
+  @@map("site_trash_item")
+}
+
+/// Per-administrator editor preferences. Convenience only — nothing here affects
+/// what is published or who may publish it.
+model SiteBuilderPref {
+  userId      Int      @id
+  preferences Json
+  updatedAt   DateTime @updatedAt
+
+  @@map("site_builder_pref")
 }
