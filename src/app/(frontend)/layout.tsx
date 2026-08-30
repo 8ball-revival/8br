@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
+import { Inter, Space_Grotesk, JetBrains_Mono, Barlow_Condensed } from 'next/font/google'
 import React from 'react'
 
 import { DisplayRuntime } from '@/components/display/display-runtime'
@@ -20,6 +20,29 @@ const spaceGrotesk = Space_Grotesk({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains',
+  display: 'swap',
+})
+
+/*
+ * The condensed face the redesign is set in.
+ *
+ * Weights are declared rather than left to `next/font` guessing, because the design uses three of
+ * them at very different sizes -- 600 for eyebrows and labels, 700 for section headings, 800 for the
+ * champion's name and the record figure -- and a missing weight is what produces faux bold, which
+ * on a condensed face at 96px is unmistakable.
+ *
+ * The italic is loaded because the approved composition uses it in exactly one place (the
+ * champion's real name beneath their ID). Loading it up front rather than synthesising it is the
+ * difference between a drawn italic and a sheared roman.
+ *
+ * `display: 'swap'` with a metric-matched fallback below keeps the layout still: the fallback is
+ * declared with `size-adjust` in globals.css so the swap does not move anything.
+ */
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  style: ['normal', 'italic'],
+  variable: '--font-barlow-condensed',
   display: 'swap',
 })
 
@@ -116,7 +139,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${barlowCondensed.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: displayScript }} />

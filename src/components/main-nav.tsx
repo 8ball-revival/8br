@@ -11,18 +11,24 @@ function isActive(pathname: string, href: string) {
 }
 
 /**
- * Primary navigation, on the acid surface.
+ * Primary navigation, on the navigation surface — whatever that surface currently is.
  *
- * ── Why the colours are inverted from everywhere else ────────────────────────────────────────────
- * This bar used to be dark, so its items were muted grey and lit yellow when active. The bar is
- * acid now, and both of those are wrong on it: grey on yellow is mud and yellow on yellow is
- * nothing. Black is the only text colour permitted on acid, so an inactive item is black held back
- * with opacity, and the ACTIVE item is red — the one other colour that survives on this surface and
- * the same red used for every piece of technical linework in the interface.
+ * ── Why the colours are named rather than picked ─────────────────────────────────────────────────
+ * This has now been three different bars: dark with yellow items, warm-white with black items, and
+ * graphite with warm-white items. Each time, the ink was written against the surface of the day —
+ * most recently as `--acid-ink`, which is near-black — so the day the bar became graphite every link
+ * in it turned black on black and vanished while remaining perfectly present in the DOM.
+ *
+ * So it asks for a ROLE instead. `--nav-inactive` and `--nav-foreground` are declared next to
+ * `--nav-bg` and move with it, and verify-acid-contrast measures all three against each other. A
+ * future bar of any colour brings its own legible ink or fails the check.
+ *
+ * Opacity is gone with it: an inactive item is a dimmer token, not the active one at 75%. Alpha over
+ * an unknown ground is how a contrast ratio stops being knowable.
  *
  * ── The marker is not colour alone ───────────────────────────────────────────────────────────────
  * The active item also gains a solid underline and `aria-current`, so the current page is
- * identifiable without seeing the difference between black and red.
+ * identifiable without seeing the difference between the two colours.
  */
 export function MainNav({
   className, entries, extraItems = [],
@@ -44,16 +50,16 @@ export function MainNav({
             aria-current={active ? 'page' : undefined}
             className={cn(
               'relative px-3 py-2 text-sm font-semibold tracking-wide transition-colors duration-150',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
               active
-                ? 'text-[var(--hot-red)]'
-                : 'text-[var(--acid-ink)]/75 hover:text-[var(--acid-ink)]',
+                ? 'text-[var(--nav-active)]'
+                : 'text-[var(--nav-inactive)] hover:text-[var(--nav-foreground)]',
             )}
           >
             {entry.label}
             {active && (
               <span
-                className="absolute inset-x-2 -bottom-[2px] h-[3px] bg-[var(--hot-red)]"
+                className="absolute inset-x-2 -bottom-[2px] h-[3px] bg-[var(--nav-active)]"
                 aria-hidden
               />
             )}

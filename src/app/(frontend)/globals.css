@@ -67,6 +67,61 @@
   --muted-text: #9ca6ad;
   --champ-gold: #e9b949;
 
+  /*
+   * ── The graphite-black ratio ──────────────────────────────────────────────────────────────────
+   *
+   * The approved composition is roughly 68% graphite and true black, 22% warm white, 7% steel and
+   * 3% signal red. Those four are named here so a component can ASK for the role it wants rather
+   * than reach for a palette colour and hope, which is how a "theme" quietly becomes a set of
+   * hardcoded hexes that no theme profile can move.
+   *
+   * `--steel` is the missing seventh: the grey that is neither text nor a line. Divider rules,
+   * plaque edges, inactive tab ink, the scoreboard strip, the thin marks on a photograph. It used
+   * to be improvised from --muted-text at partial alpha, which is why those details drifted apart.
+   *
+   * `--signal` is red with ONE job: the thing you are meant to notice. Active navigation, rank one,
+   * a live or record label, the primary action, and thin rules. It is deliberately scarce. Red as a
+   * large surface is what makes an interface look like a warning, so nothing here fills with it
+   * except a button, and a button is small.
+   */
+  /*
+   * Steel is the SECOND text colour, so it is set by a measurement rather than by eye.
+   *
+   * The first value here was #6d7a83, which looked right and measured 3.89:1 against the plaque
+   * surface -- under AA for body text, and the plaque is exactly where it is used most (a player's
+   * real name, an achievement's supporting line, a publication date). Raised until it clears 4.5:1
+   * on the LIGHTEST ground it is used on, which is the plaque; every darker ground is then clear by
+   * construction. Checked in verify-acid-contrast, so it cannot drift back down unnoticed.
+   *
+   * `--steel-dim` stays dark because it is only ever a RULE or a border, never a glyph. Anything
+   * that has to be read uses --steel or --steel-bright.
+   */
+  --steel: #7d8a94;
+  --steel-dim: #46525a;
+  --steel-bright: #a3aeb6;
+
+  /*
+   * Two reds, because one red cannot do both jobs.
+   *
+   * Red as FOREGROUND on near-black has to be bright to clear 4.5:1 -- #ff2a2a measures 5.3:1 on
+   * the page ground. Red as a SURFACE carrying white text has to be dark to clear 4.5:1 the other
+   * way -- white on #ff2a2a is only 3.7:1, which is a button label a good many people cannot read.
+   * The two requirements point in opposite directions and no single value satisfies both, so the
+   * roles are named separately and each is measured against its own ground in verify-acid-contrast.
+   *
+   *   --signal        the mark: rank one, a live dot, a record label, a thin rule. On dark.
+   *   --signal-fill   the surface: the one filled button on a page. Carries --signal-ink.
+   *
+   * Hover DARKENS rather than brightens, which is the direction that keeps the label readable --
+   * brightening a red that is already at the contrast floor takes it under.
+   */
+  --signal: var(--hot-red);
+  --signal-fill: #e01021;
+  --signal-fill-hover: var(--hot-red-dim);
+  --signal-dim: var(--hot-red-dim);
+  /* The one ink permitted on a signal surface. Measured, not chosen -- see verify-acid-contrast. */
+  --signal-ink: #ffffff;
+
   --background: var(--void);
   --foreground: var(--clean-white);
 
@@ -78,9 +133,9 @@
   --popover-foreground: var(--clean-white);
 
   /* The structural yellow. Black ink on it, always. */
-  --primary: var(--acid);
-  --primary-foreground: var(--acid-ink);
-  --primary-hover: var(--acid-hover);
+  --primary: var(--signal-fill);
+  --primary-foreground: var(--signal-ink);
+  --primary-hover: var(--signal-fill-hover);
 
   --secondary: var(--graphite-raised);
   --secondary-foreground: var(--clean-white);
@@ -118,7 +173,48 @@
 
   --border: var(--line);
   --input: var(--line);
-  --ring: var(--cyan); /* focus is cyan everywhere, on dark and on acid alike */
+  /*
+   * Focus stays cyan, and that is a deliberate exception to "no cyan in the graphite composition".
+   *
+   * A focus ring is an accessibility affordance, not decoration: it is invisible until somebody
+   * navigates by keyboard, and it has to clear 3:1 against whatever it lands on. Cyan clears it on
+   * graphite, on a warm-white surface and on a signal-red button alike. Red would not -- a red ring
+   * around a red button is the one place a focus indicator disappears completely.
+   */
+  --ring: var(--cyan);
+
+  /*
+   * ── Surfaces, as roles rather than elevations ────────────────────────────────────────────────
+   *
+   * `--surface` and `--card` already carry the first two steps. These name the two the redesign
+   * needs and the system did not have: the PLAQUE (a news row, an achievement card -- raised above
+   * a panel and bounded by steel rather than by the quiet line) and the INSET (a well pressed into
+   * a panel: the scoreboard strip, a statistic trough).
+   */
+  --surface-plaque: #171c21;
+  --surface-inset: #080b0d;
+
+  /*
+   * ── Text roles ────────────────────────────────────────────────────────────────────────────────
+   *
+   * Four, because a component needs to say which of them it wants. `--text-on-media` is the one
+   * that did not exist: copy sitting on a photograph, which needs to be brighter than ordinary
+   * body text because it is competing with an image rather than with a flat ground.
+   */
+  --text-primary: var(--clean-white);
+  --text-secondary: var(--muted-text);
+  --text-muted: var(--steel);
+  --text-on-media: #ffffff;
+
+  /*
+   * ── Scrims ────────────────────────────────────────────────────────────────────────────────────
+   *
+   * Photography carries text in this design, so the darkening is a token rather than a magic rgba
+   * repeated at four different opacities. `--scrim-copy` is what guarantees the contrast measured
+   * in the hero; `--scrim-veil` is the lighter pass used where nothing sits on top.
+   */
+  --scrim-copy: color-mix(in oklab, var(--void) 82%, transparent);
+  --scrim-veil: color-mix(in oklab, var(--void) 45%, transparent);
 
   /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
      so only the advancing side is emphasised. */
@@ -157,12 +253,22 @@
    * This is what makes the yellow reach its share of the viewport, and it is why --nav-foreground is
    * black: white on acid fails contrast badly, and verify-acid-contrast forbids it outright.
    */
-  --nav-bg: var(--acid);
-  --nav-foreground: var(--acid-ink);
-  --nav-border: var(--hot-red);
+  --nav-bg: var(--void);
+  --nav-foreground: var(--clean-white);
+  --nav-border: var(--signal);
+  /* The current page, and the only navigation item wearing red. */
+  --nav-active: var(--signal);
+  --nav-inactive: var(--steel-bright);
 
-  /* Brand emphasis, headings, active states - the structural yellow. */
-  --brand: var(--acid);
+  /*
+   * ── The primary action ────────────────────────────────────────────────────────────────────────
+   *
+   * `--brand` was the acid surface, which made every button a warm-white slab. In the graphite
+   * composition the one filled control on a page is signal red carrying white -- "Rankings", "Read
+   * The Break" -- and everything else is an outline. Repointed here rather than in the components
+   * so a theme profile can move every button at once, which is the entire purpose of the token.
+   */
+  --brand: var(--signal-fill);
   /*
    * The ink for anything wearing --brand.
    *
@@ -171,10 +277,10 @@
    * gold; on acid it is 1.7:1 and unreadable, so the token is declared here and verify-acid-contrast
    * fails the build if a brand surface ever goes without it again.
    */
-  --brand-foreground: var(--acid-ink);
-  --brand-hover: var(--acid-hover);
-  --brand-soft: var(--acid-hover);
-  --brand-dim: var(--acid-dim);
+  --brand-foreground: var(--signal-ink);
+  --brand-hover: var(--signal-fill-hover);
+  --brand-soft: var(--signal-fill-hover);
+  --brand-dim: var(--signal-dim);
 
   /* Competitive-result semantics: the winner reads gold, the loser recedes to muted. */
   --win: var(--champ-gold);
@@ -327,6 +433,21 @@
   --color-nav-bg: var(--nav-bg);
   --color-nav-foreground: var(--nav-foreground);
   --color-nav-border: var(--nav-border);
+  --color-nav-active: var(--nav-active);
+  --color-nav-inactive: var(--nav-inactive);
+  --color-steel: var(--steel);
+  --color-steel-dim: var(--steel-dim);
+  --color-steel-bright: var(--steel-bright);
+  --color-signal: var(--signal);
+  --color-signal-fill: var(--signal-fill);
+  --color-signal-fill-hover: var(--signal-fill-hover);
+  --color-signal-ink: var(--signal-ink);
+  --color-surface-plaque: var(--surface-plaque);
+  --color-surface-inset: var(--surface-inset);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-on-media: var(--text-on-media);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
@@ -347,6 +468,39 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+
+  /*
+   * ── The condensed display face ────────────────────────────────────────────────────────────────
+   *
+   * A THIRD family rather than a replacement for --font-display. Space Grotesk still sets section
+   * headings and the rest of the interface; Barlow Condensed sets the things the redesign wants
+   * narrow and tall -- the champion's name, the ranking numbers, the record figure, the big page
+   * heading. Swapping --font-display for it would have re-set the entire site from one homepage
+   * decision.
+   *
+   * `--font-condensed-fallback` is a metrics-adjusted stack rather than a bare sans. Barlow
+   * Condensed is roughly 82% the width of a default sans at the same size, so a plain fallback
+   * renders "COMPETITION HISTORY" a third wider than the real face and the line rewraps when the
+   * webfont arrives. `size-adjust` below holds the metrics still through the swap.
+   */
+  --font-condensed: var(--font-barlow-condensed), 'Barlow Condensed Fallback', var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+  The metric-matched stand-in for Barlow Condensed.
+
+  Declared against Arial because it is present on every platform this site is read on, and adjusted
+  so a heading occupies the same box before and after the webfont loads. Without it the swap moves
+  every condensed heading on the page, which is the layout shift `display: swap` is otherwise
+  famous for.
+*/
+@font-face {
+  font-family: 'Barlow Condensed Fallback';
+  src: local('Arial Narrow'), local('Helvetica Neue Condensed'), local('Arial');
+  size-adjust: 82%;
+  ascent-override: 105%;
+  descent-override: 26%;
+  line-gap-override: 0%;
 }
 
 @layer base {
@@ -1118,7 +1272,8 @@
    8BRCAM. No warm neutrals anywhere — red over charcoal at low alpha turns brown, so every wash is
    either a saturated hue at low opacity over pure black, or a neutral step in lightness. */
 .marquee {
-  --wcc-red: #e01326;
+  /* Raised from #e01326, which measured 4.14:1 for the status line on the WCC panel. */
+  --wcc-red: #f43a4a;
   --wcc-red-deep: #7a0512;
   --wcc-silver: #d7dde3;
   --brcam-teal: #19e3d0;

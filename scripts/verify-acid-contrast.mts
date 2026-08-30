@@ -51,10 +51,49 @@ section('Text on the acid surface is black, and readable')
   check('...and white on acid would NOT, which is why the rule exists',
     white != null && white < AA, white ? `${white.toFixed(1)}:1` : 'unmeasurable')
 
-  check('the navigation ink is the acid ink', tok('--nav-foreground') === tok('--acid-ink'),
-    `${tok('--nav-foreground')} vs ${tok('--acid-ink')}`)
+  /*
+    The navigation is a GRAPHITE surface now, so it is no longer an acid surface at all.
+
+    This used to assert `--nav-foreground === --acid-ink`, which encoded the old design decision
+    rather than the thing that decision was protecting. The invariant worth keeping is the one
+    below: whatever the navigation is made of, its ink has to clear AA on it. That holds for a
+    warm-white bar with black ink and for a black bar with warm-white ink alike, and it goes on
+    failing if somebody puts white text back on acid.
+  */
   const nav = ratio('--nav-foreground', '--nav-bg')
   check('the navigation clears AA', nav != null && nav >= AA, nav ? `${nav.toFixed(1)}:1` : 'unmeasurable')
+  const navActive = ratio('--nav-active', '--nav-bg')
+  check('the active navigation item clears AA large', navActive != null && navActive >= AA_LARGE,
+    navActive ? `${navActive.toFixed(1)}:1` : 'unmeasurable')
+  const navInactive = ratio('--nav-inactive', '--nav-bg')
+  check('an inactive navigation item clears AA', navInactive != null && navInactive >= AA,
+    navInactive ? `${navInactive.toFixed(1)}:1` : 'unmeasurable')
+
+  /*
+    And the new roles, measured the same way.
+
+    Each is a foreground the redesign relies on: the ink on a signal-red button, steel on the two
+    dark surfaces it is used on, and body text on a plaque. Stated as ratios rather than as approved
+    pairs, so retuning the palette moves the numbers and this fails on the consequence.
+  */
+  const sig = ratio('--signal-ink', '--signal-fill')
+  check('the ink on a signal button clears AA', sig != null && sig >= AA,
+    sig ? `${sig.toFixed(1)}:1` : 'unmeasurable')
+  const sigHover = ratio('--signal-ink', '--signal-fill-hover')
+  check('...and still clears AA while hovered', sigHover != null && sigHover >= AA,
+    sigHover ? `${sigHover.toFixed(1)}:1` : 'unmeasurable')
+  const sigMark = ratio('--signal', '--background')
+  check('the signal mark clears AA as text on the page ground', sigMark != null && sigMark >= AA,
+    sigMark ? `${sigMark.toFixed(1)}:1` : 'unmeasurable')
+  const steelOnPlaque = ratio('--steel-bright', '--surface-plaque')
+  check('bright steel clears AA on a plaque', steelOnPlaque != null && steelOnPlaque >= AA,
+    steelOnPlaque ? `${steelOnPlaque.toFixed(1)}:1` : 'unmeasurable')
+  const textOnPlaque = ratio('--text-primary', '--surface-plaque')
+  check('primary text clears AA on a plaque', textOnPlaque != null && textOnPlaque >= AA,
+    textOnPlaque ? `${textOnPlaque.toFixed(1)}:1` : 'unmeasurable')
+  const textOnInset = ratio('--text-secondary', '--surface-inset')
+  check('secondary text clears AA on an inset', textOnInset != null && textOnInset >= AA,
+    textOnInset ? `${textOnInset.toFixed(1)}:1` : 'unmeasurable')
 
   const prim = ratio('--primary-foreground', '--primary')
   check('a primary button clears AA', prim != null && prim >= AA, prim ? `${prim.toFixed(1)}:1` : 'unmeasurable')

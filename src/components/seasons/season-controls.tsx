@@ -206,8 +206,8 @@ export function SeasonControls({
                   className={cn(
                     'px-4 py-1.5 text-sm font-semibold capitalize transition-colors',
                     view === v
-                      ? 'bg-[var(--void)] text-[var(--acid)]'
-                      : 'text-[var(--acid-ink)]/70 hover:bg-[var(--acid-ink)]/10 hover:text-[var(--acid-ink)]',
+                      ? 'bg-[var(--surface-plaque)] text-[var(--nav-foreground)]'
+                      : 'text-[var(--nav-inactive)] hover:bg-[color-mix(in_oklab,var(--nav-foreground)_12%,transparent)] hover:text-[var(--nav-foreground)]',
                   )}
                 >
                   {v}
@@ -307,7 +307,7 @@ function NavButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="cyber-clip-sm flex h-8 min-w-10 items-center justify-center border border-[var(--acid-ink)]/30 bg-[var(--void)] text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:cursor-not-allowed disabled:opacity-35"
+      className="cyber-clip-sm flex h-8 min-w-10 items-center justify-center border border-[var(--line-strong)] bg-[var(--surface-plaque)] text-[var(--nav-foreground)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>
@@ -363,7 +363,7 @@ function Zoom() {
         <ZoomButton label="Decrease text size" disabled={z <= ZOOM_MIN} onClick={() => step(-0.1)}>
           <Minus className="size-3.5" />
         </ZoomButton>
-        <output className="tabular min-w-[3rem] text-center text-xs font-semibold text-[var(--acid-ink)]/75">
+        <output className="tabular min-w-[3rem] text-center text-xs font-semibold text-[var(--nav-inactive)]">
           {Math.round(z * 100)}%
         </output>
         <ZoomButton label="Increase text size" disabled={z >= ZOOM_MAX} onClick={() => step(0.1)}>
@@ -385,7 +385,7 @@ function ZoomButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="cyber-clip-sm flex size-7 items-center justify-center border border-[var(--acid-ink)]/30 bg-[var(--void)] text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:cursor-not-allowed disabled:opacity-35"
+      className="cyber-clip-sm flex size-7 items-center justify-center border border-[var(--line-strong)] bg-[var(--surface-plaque)] text-[var(--nav-foreground)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>
@@ -444,7 +444,7 @@ function PlayerSearch({ searchPlayers }: { searchPlayers: (q: string) => Promise
             spellCheck={false}
             onChange={(e) => load(e.target.value)}
             onFocus={() => { setOpen(true); if (hits.length === 0) load(q) }}
-            className="cyber-clip-sm h-8 w-full min-w-[13rem] border border-[var(--acid-ink)]/30 bg-[var(--void)] py-1 pl-8 pr-2 text-sm text-[var(--clean-white)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)]"
+            className="cyber-clip-sm h-8 w-full min-w-[13rem] border border-[var(--line-strong)] bg-[var(--void)] py-1 pl-8 pr-2 text-sm text-[var(--clean-white)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--cyan)]"
           />
         </div>
       </Field>

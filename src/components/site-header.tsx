@@ -152,12 +152,12 @@ export async function SiteHeader() {
                 */}
                 <span
                   aria-hidden
-                  className="cyber-clip-sm flex size-8 items-center justify-center bg-[var(--void)] text-xs font-bold text-[var(--acid)]"
+                  className="cyber-clip-sm flex size-8 items-center justify-center border border-[var(--line-strong)] bg-[var(--surface-plaque)] text-xs font-bold text-[var(--nav-foreground)]"
                 >
                   {displayName.slice(0, 2).toUpperCase()}
                 </span>
-                <span className="hidden text-sm font-semibold text-[var(--acid-ink)] sm:block">{displayName}</span>
-                <ChevronDown className="size-4 text-[var(--acid-ink)]/70 transition-transform group-open:rotate-180" aria-hidden />
+                <span className="hidden text-sm font-semibold text-[var(--nav-foreground)] sm:block">{displayName}</span>
+                <ChevronDown className="size-4 text-[var(--nav-inactive)] transition-transform group-open:rotate-180" aria-hidden />
               </summary>
               <div className="cyber-clip absolute right-0 z-50 mt-2 w-52 overflow-hidden border border-[var(--line-strong)] bg-popover p-1 text-foreground shadow-lg">
                 <p className="truncate px-3 py-2 text-xs text-muted-foreground">
@@ -204,7 +204,7 @@ export async function SiteHeader() {
           ) : (
             <Link
               href="/login"
-              className="cyber-clip-sm ml-1 hidden items-center bg-[var(--void)] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--acid)] transition-colors hover:bg-[var(--graphite-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)] sm:inline-flex"
+              className="cyber-clip-sm ml-1 hidden items-center bg-[var(--signal-fill)] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--signal-ink)] transition-colors hover:bg-[var(--signal-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:inline-flex"
             >
               Sign In
             </Link>

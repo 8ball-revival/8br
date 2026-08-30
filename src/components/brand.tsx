@@ -78,9 +78,9 @@ export function Logo({
 
           The size is untouched: this is weight, not scale.
         */}
-        <span className="font-sans text-lg font-black tracking-tight text-[var(--acid-ink)] sm:text-xl">{siteName}</span>
+        <span className="font-sans text-lg font-black tracking-tight text-[var(--nav-foreground)] sm:text-xl">{siteName}</span>
         {showTagline && (
-          <span className="eyebrow mt-1 text-[0.6rem] text-[var(--acid-ink)]/65">{brandTagline}</span>
+          <span className="eyebrow mt-1 text-[0.6rem] text-[var(--nav-inactive)]">{brandTagline}</span>
         )}
       </span>
     </span>
