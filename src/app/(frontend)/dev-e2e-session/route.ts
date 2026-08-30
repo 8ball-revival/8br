@@ -29,6 +29,8 @@
  */
 
 import { timingSafeEqual } from 'node:crypto'
+
+import { E2E_SESSION_PREFIX } from '@/lib/site-builder/e2e-marker'
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
@@ -68,14 +70,6 @@ async function openGate(url: URL): Promise<NextResponse | null> {
   }
   return null
 }
-
-/**
- * The marker every session this route issues carries.
- *
- * A valid UUID prefix, so the value is still a well-formed session id, and unmistakable, so a sweep
- * can never catch a real one. Eight characters is a whole UUID group: `e2e5e551-…`.
- */
-export const E2E_SESSION_PREFIX = 'e2e5e551'
 
 export async function GET(req: Request): Promise<NextResponse> {
   const gate = await openGate(new URL(req.url))

@@ -109,6 +109,7 @@ const TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000
  */
 const LIFETIME_TOLERANCE_MS = 2000
 
+const { E2E_SESSION_PREFIX } = await import('../src/lib/site-builder/e2e-marker')
 const { prisma } = await import('../src/lib/prisma')
 
 const email = env.SITE_BUILDER_E2E_EMAIL || process.env.SITE_BUILDER_E2E_EMAIL || ''
@@ -156,6 +157,7 @@ const classified = rows.map((row) => {
   const isBaseline = BASELINE_SESSION_IDS.has(row.id)
   const lifetime = row.created ? row.expires.getTime() - row.created.getTime() : null
   const exactLifetime = lifetime !== null && Math.abs(lifetime - TOKEN_LIFETIME_MS) <= LIFETIME_TOLERANCE_MS
+
   return {
     ...row,
     isVerifierAccount,
@@ -166,6 +168,15 @@ const classified = rows.map((row) => {
     verificationCreated: isVerifierAccount && !isBaseline && exactLifetime,
   }
 })
+
+/*
+  Sessions issued AFTER the marker existed identify themselves.
+
+  Everything above is the evidence needed for the rows that predate it. A marked row needs none —
+  nothing else in the application produces that prefix — so it is included without argument.
+*/
+const marked = classified.filter((c) => c.id.startsWith(E2E_SESSION_PREFIX))
+for (const m of marked) m.verificationCreated = true
 
 const toDelete = classified.filter((c) => c.verificationCreated)
 const kept = classified.filter((c) => !c.verificationCreated)

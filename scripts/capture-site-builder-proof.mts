@@ -394,6 +394,95 @@ try {
     template.editing === true && template.liveData === true, JSON.stringify(template))
   await shoot('15-dynamic-template', 'the Season template, edited on a real Season')
 
+  /*
+    ── 11. A template with nothing built from it ───────────────────────────────────────────────────
+
+    The case that used to be impossible. A template created from nothing, opened, edited and saved,
+    with no page anywhere having ever used it — which is why the control centre used to say "no edit
+    link" and offer nothing.
+  */
+  r.section('A template with zero instances')
+  await browser.viewport(1600, 1100, false)
+  await browser.goto('/staff/site-builder', 8000)
+
+  const templatesTab = await browser.eval(CLICK_BY_TEXT('^Templates'))
+  await sleep(1500)
+  r.check('the Templates area opens', templatesTab === true)
+  await shoot('17-templates-area', 'every template, including empty ones')
+
+  const newDialog = await browser.eval(CLICK_BY_TEXT('New template'))
+  await sleep(1200)
+  r.check('a template can be created from nothing', newDialog === true)
+
+  const named = await browser.eval(`(function () {
+    var inputs = [].slice.call(document.querySelectorAll('input[type="text"]'));
+    if (!inputs.length) return 'no name field';
+    var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(inputs[0], 'Zero-instance probe');
+    inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+    if (inputs[1]) {
+      setter.call(inputs[1], 'Made empty, edited directly, used by nothing.');
+      inputs[1].dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    return 'ok'
+  })()`)
+  r.check('it can be named and described', named === 'ok', String(named))
+  await sleep(400)
+  await shoot('18-new-template', 'a blank template, before anything has been built from it')
+
+  const created = await browser.eval(CLICK_BY_TEXT('Create and open'))
+  await sleep(6000)
+  r.check('creating it opens the editor', created === true)
+
+  const editorState = await browser.eval(`(function () {
+    var t = document.body.innerText;
+    return {
+      onTemplate: /Zero-instance probe/.test(t),
+      overlay: !!document.querySelector('.sb-overlay'),
+      // No regex escape here on purpose: inside a template literal JS eats the backslash in \s,
+      // so /Nothing\s*publishes/ evaluates as /Nothingspublishes/ and never matches anything.
+      savesNotPublishes: t.replace(/[^A-Za-z ]+/g, ' ').replace(/ +/g, ' ').indexOf('Nothing publishes') >= 0,
+      hasPublishButton: [].slice.call(document.querySelectorAll('button')).some(function (b) {
+        return /^Publish$/i.test((b.textContent || '').trim())
+      }),
+      url: location.pathname
+    }
+  })()`)
+  r.check('the template editor is the real editor', editorState.overlay === true, JSON.stringify(editorState))
+  r.check('on its own route', /\/staff\/site-builder\/templates\//.test(String(editorState.url)), String(editorState.url))
+  r.check('with no publish step, because a template is not on the site', editorState.hasPublishButton === false)
+  r.check('and it says so', editorState.savesNotPublishes === true)
+  await shoot('19-template-editor', 'a template with zero instances, open in the full editor')
+
+  // Build something in it, which is the whole point of a template that starts empty.
+  await browser.eval(CLICK_BY_TEXT('Add a section'))
+  await sleep(3000)
+  const addedToTemplate = await browser.eval(`(function () {
+    var buttons = [].slice.call(document.querySelectorAll('aside button'));
+    var hit = buttons.filter(function (b) {
+      var label = b.querySelector('span span');
+      return label && label.textContent.trim() === 'Heading'
+    })[0];
+    if (!hit) return 'no Heading button';
+    hit.click();
+    return 'clicked'
+  })()`)
+  await sleep(4000)
+  const templateModules = await browser.eval("document.querySelectorAll('[data-sb-module]').length")
+  r.check('a module can be added to an empty template',
+    addedToTemplate === 'clicked' && Number(templateModules) > 0, `${addedToTemplate}, ${templateModules} modules`)
+  await shoot('20-template-built', 'the same template after building in it, saved as you work')
+
+  const usageOpened = await browser.eval(CLICK_BY_TEXT('Where it is used'))
+  await sleep(2500)
+  const usage = await browser.eval(`(function () {
+    var t = document.body.innerText;
+    return { open: /Where this template is used/i.test(t), none: /None\./.test(t) }
+  })()`)
+  r.check('it reports where it is used', usageOpened === true && usage.open === true, JSON.stringify(usage))
+  await shoot('21-template-usage', 'nothing links to it, and it says so plainly')
+
+  r.section('The template applied')
   await browser.viewport(1600, 1000, false)
   await browser.goto('/seasons/16426', 4000)
   const season = await browser.eval(`(function () {
