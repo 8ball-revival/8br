@@ -22,7 +22,7 @@
  * The overlay sits above the content and takes the click; the module underneath never receives it.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ArrowDown, ArrowUp, Copy, Eye, EyeOff, GripVertical, Pencil, Plus, Replace, Save, Trash2,
@@ -34,6 +34,9 @@ import {
   duplicateModule, findModule, moveModule, nudgeModule, removeModule, updateModuleVisibility,
 } from '@/lib/site-builder/operations'
 import { trashAction } from '@/lib/site-builder/actions'
+
+/** Never changes, so `useSyncExternalStore` never re-subscribes; the two snapshots do the work. */
+const subscribeNever = () => () => {}
 
 interface Rect { top: number; left: number; width: number; height: number }
 interface Measured {
@@ -61,9 +64,12 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
     `document.body` to portal into and returns null — and React resolves that mismatch by discarding
     the client tree, so the overlay silently never appeared. Waiting one commit makes the first
     client render match the server's, and the portal arrives in the second.
+
+    `useSyncExternalStore` rather than `useState` + an effect: it is told the server snapshot and the
+    client snapshot separately, so it reports the right answer on each side without a state update
+    during commit — which the React compiler correctly flags as a cascading render.
   */
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false)
 
   /**
    * Measure every module and section frame.

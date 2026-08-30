@@ -17,7 +17,7 @@
  * field mid-sentence.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ChevronDown, Info, RotateCcw, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -702,7 +702,20 @@ function Labelled({ label, help, children }: { label: string; help?: string; chi
 function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [local, setLocal] = useState(value)
   const [focused, setFocused] = useState(false)
-  useEffect(() => { if (!focused) setLocal(value) }, [value, focused])
+  /*
+    Adjusted during render rather than in an effect.
+
+    The field owns its value while focused, so the caret does not jump to the end when the server
+    re-renders the canvas mid-sentence. When it is NOT focused it must follow the document, which
+    changes on undo, on a revision restore and on a replace. React's documented way to express that
+    is to compare against the previous prop during render and set state there; an effect would run a
+    frame later and flash the stale value.
+  */
+  const [lastValue, setLastValue] = useState(value)
+  if (!focused && value !== lastValue) {
+    setLastValue(value)
+    setLocal(value)
+  }
   return (
     <input
       type="text"
@@ -721,7 +734,12 @@ function TextArea({ value, onChange, rows = 3, mono, placeholder }: {
 }) {
   const [local, setLocal] = useState(value)
   const [focused, setFocused] = useState(false)
-  useEffect(() => { if (!focused) setLocal(value) }, [value, focused])
+  // Same reasoning as TextInput above.
+  const [lastValue, setLastValue] = useState(value)
+  if (!focused && value !== lastValue) {
+    setLastValue(value)
+    setLocal(value)
+  }
   return (
     <textarea
       value={local}

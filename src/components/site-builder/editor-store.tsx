@@ -113,39 +113,60 @@ export function EditorProvider({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inFlightRef = useRef(false)
   const pendingRef = useRef(false)
+  /*
+    Kept in step by every path that changes the document — `apply`, `undo`, `redo` — rather than by an
+    assignment during render. Writing a ref while rendering is a side effect in the render phase, and
+    under concurrent rendering a discarded render would leave the ref describing a document that was
+    never committed. The save would then post it.
+  */
   const documentRef = useRef(document)
-  documentRef.current = document
 
+  /*
+    One save at a time, with the next queued behind it.
+
+    Two overlapping saves would race on the version number and the second would be rejected as a
+    conflict against the first — a conflict with yourself, which is the most confusing error the
+    editor could produce. So a save that arrives while one is running sets a flag, and the running
+    save picks it up.
+
+    Written as a LOOP rather than by calling itself from its own `finally`. The self-reference was
+    the honest expression of "and then go round again", but a function that closes over itself cannot
+    be memoized, and the React compiler bailed out of the whole component rather than the one
+    callback. The loop says the same thing and compiles.
+  */
   const performSave = useCallback(async () => {
     if (inFlightRef.current) {
-      // Do not interleave. The save that is running will pick this up when it finishes.
       pendingRef.current = true
       return
     }
     inFlightRef.current = true
-    setSaveState({ status: 'saving' })
     try {
-      const result = await saveDraftAction(pageKey, documentRef.current, versionRef.current)
-      if (result.ok) {
-        versionRef.current = result.data.version
-        setDirty(false)
-        setSaveState({ status: 'saved', at: Date.now() })
-      } else if (result.conflictVersion !== undefined) {
-        // Deliberately NOT resolved automatically. Whichever side is discarded is somebody's work,
-        // and the editor is not in a position to know which. The administrator is told and decides.
-        versionRef.current = result.conflictVersion
-        setSaveState({ status: 'conflict', message: result.error })
-      } else {
-        setSaveState({ status: 'error', message: result.error })
-      }
-    } catch (err) {
-      setSaveState({ status: 'error', message: err instanceof Error ? err.message : 'Could not save.' })
+      do {
+        pendingRef.current = false
+        setSaveState({ status: 'saving' })
+        try {
+          const result = await saveDraftAction(pageKey, documentRef.current, versionRef.current)
+          if (result.ok) {
+            versionRef.current = result.data.version
+            setDirty(false)
+            setSaveState({ status: 'saved', at: Date.now() })
+          } else if (result.conflictVersion !== undefined) {
+            // Deliberately NOT resolved automatically. Whichever side is discarded is somebody's
+            // work, and the editor is not in a position to know which. The administrator decides.
+            versionRef.current = result.conflictVersion
+            setSaveState({ status: 'conflict', message: result.error })
+            break
+          } else {
+            setSaveState({ status: 'error', message: result.error })
+            break
+          }
+        } catch (err) {
+          setSaveState({ status: 'error', message: err instanceof Error ? err.message : 'Could not save.' })
+          break
+        }
+      } while (pendingRef.current)
     } finally {
       inFlightRef.current = false
-      if (pendingRef.current) {
-        pendingRef.current = false
-        void performSave()
-      }
     }
   }, [pageKey])
 

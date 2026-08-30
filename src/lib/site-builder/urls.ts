@@ -38,7 +38,6 @@ function normalise(raw: string): string {
   return raw
     .replace(/&#(\d+);?/g, (_, d: string) => String.fromCharCode(Number(d)))
     .replace(/&#x([0-9a-f]+);?/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
-    // eslint-disable-next-line no-control-regex
     .replace(new RegExp('[\u0000-\u0020\u007f-\u009f]', 'g'), '')
     .trim()
 }

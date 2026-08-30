@@ -46,6 +46,23 @@ const KEY = '/'
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 section('Bootstrap')
 
+/*
+  Clear the builder tables first.
+
+  The clone is taken from the working local database, which is now bootstrapped, so without this the
+  suite would assert that bootstrap creates eleven pages against a database that already has them —
+  and would report a failure that means nothing except "the clone was made later than the bootstrap".
+  A test that only passes from one starting state is a test that will be wrong eventually.
+
+  Only site_* tables are touched, and only on a disposable clone the guard above has already
+  verified. No competition data is involved, which the final section asserts.
+*/
+await prisma.$executeRawUnsafe(`
+  TRUNCATE site_page_revision, site_page_draft, site_trash_item,
+           site_reusable_module, site_template, site_theme_profile, site_builder_pref,
+           site_page RESTART IDENTITY CASCADE
+`)
+
 const first = await bootstrap(actor)
 check('bootstrap creates pages', first.created.length > 0, `${first.created.length} created`)
 check('bootstrap includes the homepage', first.created.includes('/'))
