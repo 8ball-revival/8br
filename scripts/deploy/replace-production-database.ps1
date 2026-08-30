@@ -112,11 +112,79 @@ if ($ProdUrl -match '-pooler\.') {
 $env:PGCONNECT_TIMEOUT = '30'
 $env:PGOPTIONS = '-c timezone=UTC'
 
+<#
+  Every query goes to psql through a FILE, never through -c.
+
+  Windows PowerShell hands arguments to native executables through a single command line, and it
+  does not escape double quotes inside them. `max("createdAt")` therefore arrived at psql as
+  `max(createdAt)`, which PostgreSQL folds to lowercase, and the preflight died on
+  `column "createdat" does not exist` — while the column, correctly spelled, was there all along.
+
+  A file has no quoting layer to lose anything in. ON_ERROR_STOP makes psql exit non-zero on the
+  first SQL error rather than continuing and returning partial output that reads like an answer.
+#>
 function ProdQuery {
   param([string] $Sql)
-  $out = & psql.exe -w -Atq $ProdUrl -c $Sql 2>&1
-  if ($LASTEXITCODE -ne 0) { Die "Production query failed: $out" }
-  return $out
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) ("8br-preflight-" + [Guid]::NewGuid().ToString('N') + ".sql")
+  try {
+    Set-Content -Path $tmp -Value $Sql -Encoding utf8
+    # Windows PowerShell turns anything a native command writes to stderr into a terminating error
+    # while ErrorActionPreference is Stop -- which aborts with a raw .NET trace instead of the
+    # explanation below. Relaxed for the call itself; the exit code is what decides.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+      $out = & psql.exe -w -Atq -v ON_ERROR_STOP=1 $ProdUrl -f $tmp 2>&1
+      $code = $LASTEXITCODE
+    } finally {
+      $ErrorActionPreference = $previous
+    }
+    if ($code -ne 0) {
+      $text = ($out | ForEach-Object { $_.ToString() }) -join "`n   "
+      Die "Production query failed (psql exit $code):`n   $text"
+    }
+    # Only real result rows come back; psql's own notices go to stderr and are filtered out here.
+    return @($out | Where-Object { $_ -is [string] -or $_ -is [System.Management.Automation.PSObject] } |
+             ForEach-Object { $_.ToString() })
+  } finally {
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+  }
+}
+
+<#
+  Which of these relations this database actually has.
+
+  Production predates the local source by a number of migrations, so it legitimately lacks tables the
+  newer schema defines — and Payload's own tables are created by a different tool again. Asking the
+  catalogue first means a missing relation is REPORTED as missing instead of aborting the run, while
+  anything unexpected still surfaces rather than being swallowed.
+#>
+function ProdRelationsPresent {
+  param([string[]] $Names)
+  $values = ($Names | ForEach-Object { "('" + $_.Replace("'", "''") + "')" }) -join ', '
+  $rows = ProdQuery "SELECT v.n || '|' || (to_regclass(v.n) IS NOT NULL)::text FROM (VALUES $values) AS v(n);"
+  $present = @{}
+  foreach ($r in $rows) { $parts = $r -split '\|'; $present[$parts[0]] = ($parts[1] -eq 'true') }
+  return $present
+}
+
+<# Which (table, column) pairs exist, so a timestamp column can be missing without stopping the run. #>
+function ProdColumnsPresent {
+  param([string[]] $Pairs)   # 'schema.table.column'
+  $values = foreach ($pair in $Pairs) {
+    $bits = $pair -split '\.'
+    "('" + $bits[0] + "','" + $bits[1] + "','" + $bits[2] + "')"
+  }
+  $sql = @"
+SELECT v.s || '.' || v.t || '.' || v.c || '|' || (EXISTS (
+         SELECT 1 FROM information_schema.columns
+          WHERE table_schema = v.s AND table_name = v.t AND column_name = v.c))::text
+  FROM (VALUES $($values -join ', ')) AS v(s, t, c);
+"@
+  $rows = ProdQuery $sql
+  $present = @{}
+  foreach ($r in $rows) { $parts = $r -split '\|'; $present[$parts[0]] = ($parts[1] -eq 'true') }
+  return $present
 }
 
 Step 'Connection test (read-only)'
@@ -125,27 +193,69 @@ Ok "connected: $who"
 
 # ── What is there now ────────────────────────────────────────────────────────────────────────────
 Step 'Production right now (read-only)'
-$summary = ProdQuery @"
-SELECT 'seasons            ' || count(*) FROM season
-UNION ALL SELECT 'rating_ledger      ' || count(*) FROM rating_ledger
-UNION ALL SELECT 'tournaments        ' || count(*) FROM comp_tournament
-UNION ALL SELECT 'articles           ' || count(*) FROM article
-UNION ALL SELECT 'registrations      ' || count(*) FROM comp_registration
-UNION ALL SELECT 'users              ' || count(*) FROM payload.users
-UNION ALL SELECT 'media              ' || count(*) FROM payload.media
-UNION ALL SELECT 'audit rows         ' || count(*) FROM comp_audit_log;
-"@
-$summary | ForEach-Object { Say "   $_" }
+$counted = [ordered]@{
+  'seasons'       = 'public.season'
+  'rating_ledger' = 'public.rating_ledger'
+  'tournaments'   = 'public.comp_tournament'
+  'articles'      = 'public.article'
+  'registrations' = 'public.comp_registration'
+  'users'         = 'payload.users'
+  'media'         = 'payload.media'
+  'audit rows'    = 'public.comp_audit_log'
+}
+$relPresent = ProdRelationsPresent ([string[]] $counted.Values)
 
-$newest = ProdQuery @"
-SELECT 'newest article     ' || coalesce(max("createdAt")::text, 'none') FROM article
-UNION ALL SELECT 'newest season      ' || coalesce(max("createdAt")::text, 'none') FROM season
-UNION ALL SELECT 'newest audit entry ' || coalesce(max("createdAt")::text, 'none') FROM comp_audit_log;
-"@
-$newest | ForEach-Object { Say "   $_" }
+# UNION ALL returns rows in whatever order it likes; the ordinal keeps the summary in the order it
+# is written here, so the same database reads the same way twice.
+$i = 0
+$countParts = foreach ($label in $counted.Keys) {
+  $rel = $counted[$label]
+  $i++
+  if ($relPresent[$rel]) { "SELECT $i AS ord, '$($label.PadRight(15)) ' || count(*)::text AS line FROM $rel" }
+}
+if ($countParts) {
+  ProdQuery ('SELECT line FROM (' + ($countParts -join ' UNION ALL ') + ') s ORDER BY ord;') |
+    ForEach-Object { Say "   $_" }
+}
+foreach ($label in $counted.Keys) {
+  if (-not $relPresent[$counted[$label]]) { Say "   $($label.PadRight(15)) (table not in this database)" }
+}
+
+<#
+  The substantive-change check, unchanged in strength.
+
+  These dates are how you tell whether production holds something newer than what is about to replace
+  it. A missing timestamp column is reported as missing rather than skipped, because "no date shown"
+  and "nothing recent" must not look the same.
+#>
+Say ''
+$dated = [ordered]@{
+  'newest article'     = 'public.article.createdAt'
+  'newest season'      = 'public.season.createdAt'
+  'newest audit entry' = 'public.comp_audit_log.createdAt'
+  'newest registration' = 'public.comp_registration.createdAt'
+}
+$colPresent = ProdColumnsPresent ([string[]] $dated.Values)
+$j = 0
+$dateParts = foreach ($label in $dated.Keys) {
+  $bits = $dated[$label] -split '\.'
+  $rel = "$($bits[0]).$($bits[1])"
+  $j++
+  if ($relPresent[$rel] -ne $false -and $colPresent[$dated[$label]]) {
+    "SELECT $j AS ord, '$($label.PadRight(20)) ' || coalesce(max(""$($bits[2])"")::text, 'none') AS line FROM $rel"
+  }
+}
+if ($dateParts) {
+  ProdQuery ('SELECT line FROM (' + ($dateParts -join ' UNION ALL ') + ') s ORDER BY ord;') |
+    ForEach-Object { Say "   $_" }
+}
+foreach ($label in $dated.Keys) {
+  if (-not $colPresent[$dated[$label]]) { Say "   $($label.PadRight(20)) (no such column in this database)" }
+}
+
 Say ''
 Say '   Read those dates. If something there is newer than your local copy and matters,'
-Say '   stop now — this replaces all of it.'
+Say '   stop now - this replaces all of it.'
 
 # ── Back it up, and prove the backup works ───────────────────────────────────────────────────────
 Step 'Backing up production'
@@ -218,16 +328,17 @@ Ok "$cleared copied sessions removed"
 # ── Verify ───────────────────────────────────────────────────────────────────────────────────────
 Step 'Verifying production'
 $after = ProdQuery @"
-SELECT 'tables             ' || count(*) FROM information_schema.tables
+SELECT 'tables               ' || count(*)::text FROM information_schema.tables
   WHERE table_schema IN ('public','payload') AND table_type='BASE TABLE'
-UNION ALL SELECT 'seasons            ' || count(*) FROM season
-UNION ALL SELECT 'rating_ledger      ' || count(*) FROM rating_ledger
-UNION ALL SELECT 'yahoo ledger rows  ' || count(*) FROM rating_ledger WHERE platform='YAHOO'
-UNION ALL SELECT 'cueverse ledger rows ' || count(*) FROM rating_ledger WHERE platform='CUEVERSE'
-UNION ALL SELECT 'tournaments        ' || count(*) FROM comp_tournament
-UNION ALL SELECT 'articles           ' || count(*) FROM article
-UNION ALL SELECT 'users              ' || count(*) FROM payload.users
-UNION ALL SELECT 'migrations recorded ' || count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;
+UNION ALL SELECT 'seasons              ' || count(*)::text FROM season
+UNION ALL SELECT 'rating_ledger        ' || count(*)::text FROM rating_ledger
+UNION ALL SELECT 'yahoo ledger rows    ' || count(*)::text FROM rating_ledger WHERE platform = 'YAHOO'
+UNION ALL SELECT 'cueverse ledger rows ' || count(*)::text FROM rating_ledger WHERE platform = 'CUEVERSE'
+UNION ALL SELECT 'tournaments          ' || count(*)::text FROM comp_tournament
+UNION ALL SELECT 'articles             ' || count(*)::text FROM article
+UNION ALL SELECT 'users                ' || count(*)::text FROM payload.users
+UNION ALL SELECT 'migrations recorded  ' || (
+  SELECT count(*)::text FROM _prisma_migrations WHERE finished_at IS NOT NULL);
 "@
 $after | ForEach-Object { Say "   $_" }
 
