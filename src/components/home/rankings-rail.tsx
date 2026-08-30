@@ -52,7 +52,7 @@ export function RankingsRail({
           aria-label={`${label}, scrollable`}
         >
           {/* ── What this rail is ──────────────────────────────────────────────────────────────── */}
-          <div className="relative flex shrink-0 snap-start flex-col justify-center py-4 pr-8 lg:pr-10">
+          <div className="relative flex shrink-0 snap-start flex-col justify-center py-4 pr-8 lg:pr-6 xl:pr-9">
             <h2 id="home-rail-heading" className="font-condensed text-[0.78rem] font-bold uppercase tracking-[0.26em] text-[var(--text-primary)]">
               {label}
             </h2>
@@ -106,8 +106,18 @@ export function RankingsRail({
               </>
             )
 
+            /*
+              Tighter from `lg` up, because that is where the names were being cut.
+
+              Each segment holds a rank, a two-line identity and a rating, and they share the width
+              equally. At 1600 that was enough for "STARKILLER"; at 1440 the same padding left about
+              eighty pixels for the name and every entry ended in an ellipsis. The padding is the
+              part with no information in it, so it goes first -- the truncation itself stays, for
+              the genuinely long handles it was written for.
+            */
             const cls = cn(
-              'relative flex shrink-0 snap-start items-center gap-3 py-4 pl-6 pr-8 lg:pl-7 lg:pr-9',
+              'relative flex shrink-0 snap-start items-center gap-3 py-4 pl-6 pr-8',
+              'lg:gap-2.5 lg:pl-4 lg:pr-5 xl:gap-3 xl:pl-6 xl:pr-7',
               'min-w-[15rem] lg:min-w-0 lg:flex-1',
               'transition-colors hover:bg-[color-mix(in_oklab,var(--surface-plaque)_70%,transparent)]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
@@ -131,7 +141,7 @@ export function RankingsRail({
             )
           })}
 
-          <div className="relative flex shrink-0 snap-start items-center py-4 pl-6 lg:pl-7">
+          <div className="relative flex shrink-0 snap-start items-center py-4 pl-6 lg:pl-4 xl:pl-7">
             <Link
               href={viewAllHref}
               className="inline-flex min-h-6 items-center gap-2 py-1 font-condensed text-[0.72rem] font-bold uppercase leading-tight tracking-[0.2em] text-[var(--steel-bright)] transition-colors hover:text-[var(--signal)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
