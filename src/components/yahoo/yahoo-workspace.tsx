@@ -268,7 +268,6 @@ export function YahooWorkspace({
              * the sorting, the colours and the filters identical to the current ladder rather than
              * merely similar to it.
              */
-            <div className="scrollbar-themed flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
             <RankingsExplorer
               rows={rows}
               facets={facets}
@@ -277,6 +276,9 @@ export function YahooWorkspace({
               paramPrefix={YAHOO_PARAM_PREFIX}
               keepParams={pageParams(params)}
               showScopes={false}
+              /* The frame reaches the bottom of the page, so the legend is pinned to it — the same
+                 footer the compact ladder has, rather than a row that scrolls away with the table. */
+              fillHeight
               eyebrow="Historical Archive"
               title="Yahoo Legacy Rankings"
               heading={
@@ -297,7 +299,6 @@ export function YahooWorkspace({
                 </button>
               }
             />
-            </div>
           ) : (
             /*
              * One frame grows, the other does not.

@@ -88,12 +88,24 @@ export interface RankingsExplorerProps {
   title?: string
   /** Rendered in the deck's top-right — the archive puts its Minimize control there. */
   action?: React.ReactNode
+  /**
+   * Fill the height given by the parent, and scroll the table rather than the page.
+   *
+   * Off by default, which is the Rankings page: there the table is the page, and it scrolls with it.
+   * The archive turns it on, because its expanded ladder lives inside a frame that reaches the bottom
+   * of the window — and in that frame the rating legend has to stay put while five hundred players
+   * move past above it, exactly as it does in the compact view.
+   *
+   * When off, the extra wrappers are `display: contents`, so the DOM shape is the same in both modes
+   * and the Rankings page lays out exactly as it did before this prop existed.
+   */
+  fillHeight?: boolean
 }
 
 export function RankingsExplorer({
   rows, facets, state, heading, canExport = false,
   basePath = '/rankings', paramPrefix = '', keepParams, showScopes = true,
-  eyebrow = 'Ranking Ladder', title = 'Rankings', action,
+  eyebrow = 'Ranking Ladder', title = 'Rankings', action, fillHeight = false,
 }: RankingsExplorerProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -223,7 +235,13 @@ export function RankingsExplorer({
   }, [applied, sort, search, now])
 
   return (
-    <>
+    /*
+     * `contents` when not filling, so this wrapper is invisible to layout and the Rankings page is
+     * untouched. A conditional COMPONENT here would be a different element type on each render and
+     * would remount the table -- losing the search box, the sort and the open row -- so the element
+     * stays and only its class changes.
+     */
+    <div className={fillHeight ? 'flex min-h-0 flex-1 flex-col' : 'contents'}>
       <CommandDeck
         eyebrow={eyebrow}
         title={title}
@@ -435,6 +453,8 @@ export function RankingsExplorer({
         The rail is handed the rows the table is rendering. It cannot disagree with the table
         because it is looking at the same array.
       */}
+      {/* The rows are the only part that scrolls when this table is filling a frame. */}
+      <div className={fillHeight ? 'scrollbar-themed min-h-0 flex-1 overflow-y-auto pr-1' : 'contents'}>
       <div id="rk-scope-panel" role="tabpanel" aria-labelledby={`rk-scope-${applied.scope}`} tabIndex={-1}>
       {rows.length === 0 ? (
         <ScopeEmpty scope={applied.scope} />
@@ -463,8 +483,14 @@ export function RankingsExplorer({
       </div>
       )}
       </div>
+      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      {/*
+        The legend is a footer of the frame, not the last row of the table.
+        Outside the scroller and after it, so it stays visible while the rows move, and it never
+        overlays one -- it occupies its own space rather than floating above.
+      */}
+      <div className={cn('mt-3 flex flex-wrap items-center gap-3', fillHeight && 'shrink-0')}>
         {/* The colour key sits with the table it explains, not up in the filter bar. */}
         <RatingLegend className="min-w-0" />
         <Methodology />
@@ -502,7 +528,7 @@ export function RankingsExplorer({
           divisions: facets.divisions,
         }}
       />
-    </>
+    </div>
   )
 }
 

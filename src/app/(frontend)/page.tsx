@@ -5,7 +5,6 @@ import { pageMetadata, brandName } from '@/lib/site'
 
 import { getRegistryStats } from '@/lib/stats/registry-stats'
 import { getHomeNews } from '@/lib/home/news'
-import { getSeasonResults } from '@/lib/home/season-results'
 import { getHomeLeaderboard } from '@/lib/home/leaderboard'
 import { getPublicAchievements } from '@/lib/achievements/service'
 import { shuffleAchievements } from '@/lib/achievements/shuffle'
@@ -13,8 +12,7 @@ import { shuffleAchievements } from '@/lib/achievements/shuffle'
 import { CompetitionHistory } from '@/components/home/competition-history'
 import { LiveRankings } from '@/components/home/live-rankings'
 import { AchievementsCarousel } from '@/components/home/achievements-carousel'
-import { SeasonResults } from '@/components/home/season-results'
-import { Top10Table } from '@/components/home/top10-table'
+import { CompetitionMarquee } from '@/components/home/competition-marquee'
 import { BreakFeature } from '@/components/home/break-feature'
 import { ArchiveNotice } from '@/components/home/archive-notice'
 import { StatusRail } from '@/components/cyber/status-rail'
@@ -72,19 +70,18 @@ export default async function HomePage() {
    * sets the page's latency instead of the sum of all of them.
    */
   /*
-   * The leaderboard resolves the era first, then everything else follows it.
+   * The leaderboard resolves the era, and the Live Rankings panel is what reports it.
    *
-   * It decides whether this deployment's homepage is describing CueVerse or the Yahoo archive, and
-   * the champions list and the achievements are read for that same platform. A page that showed a
-   * CueVerse ladder above a list of Yahoo champions would be presenting two separate competitive
-   * histories as one.
+   * It decides whether this deployment's homepage is describing CueVerse or the Yahoo archive. The
+   * champions list used to be read for the same platform for the same reason — a CueVerse ladder
+   * above a list of Yahoo champions would present two separate competitive histories as one — and
+   * that panel has since been replaced by the competition marquee, which announces what is coming
+   * rather than reporting what has been, and so belongs to no era.
    */
   const leaderboard = await getHomeLeaderboard(10)
-  const platform = leaderboard.platform
 
-  const [news, seasonResults, achievements, stats] = await Promise.all([
+  const [news, achievements, stats] = await Promise.all([
     getHomeNews(),
-    getSeasonResults(platform),
     getPublicAchievements(),
     getRegistryStats(),
   ])
@@ -99,12 +96,12 @@ export default async function HomePage() {
         </div>
       </Wide>
 
-      {/* ── 3. Season Results + Rankings Top 10 ───────────────────────────────────────────────── */}
+      {/* ── 3. The competition marquee ────────────────────────────────────────────────────────────
+          One announcement panel across the width the Season Results and Top 10 pair used to hold.
+          Both are still reachable in full — the seasons browser and /rankings — and both remain on
+          their own pages; the homepage says what is COMING instead of repeating what has been. */}
       <Wide className="mt-4">
-        <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,48fr)_minmax(0,52fr)]">
-          <SeasonResults rows={seasonResults} />
-          <Top10Table rows={leaderboard.rows} platform={leaderboard.platform} />
-        </div>
+        <CompetitionMarquee />
       </Wide>
 
       {/* ── 4. The Break + the archive notice ─────────────────────────────────────────────────── */}

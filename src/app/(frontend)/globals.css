@@ -1106,3 +1106,264 @@
    container as the nearest scrollport, scrolls it -- it cannot scroll -- and stops, so opening a
    season by URL silently failed to move the page at all. The wide content already scrolls inside its
    own `overflow-x-auto` wrappers, so the rule was buying nothing and costing the whole interaction. */
+
+/* ── Competition marquee ───────────────────────────────────────────────────────────────────────
+   The homepage announcement panel: two competitions, one frame, split on a diagonal.
+
+   Scoped entirely under `.marquee`. It defines its own palettes as local variables rather than
+   reaching for the site tokens, because this module is deliberately unlike the rest of the page —
+   and because neither palette belongs anywhere else. Nothing here redefines a global token.
+
+   Colour discipline: crimson/silver on black for WCC, teal-to-ultraviolet with a magenta accent for
+   8BRCAM. No warm neutrals anywhere — red over charcoal at low alpha turns brown, so every wash is
+   either a saturated hue at low opacity over pure black, or a neutral step in lightness. */
+.marquee {
+  --wcc-red: #e01326;
+  --wcc-red-deep: #7a0512;
+  --wcc-silver: #d7dde3;
+  --brcam-teal: #19e3d0;
+  --brcam-blue: #2b7bff;
+  --brcam-violet: #7b2ff7;
+  --brcam-magenta: #ff2bd1;
+  --marquee-ink: #05060a;
+
+  background: var(--marquee-ink);
+}
+
+/* Both halves occupy the same grid cell; the clip on the second decides the boundary. */
+.marquee-stage {
+  grid-template-areas: 'split';
+  min-height: 320px;
+}
+.marquee-stage > * {
+  grid-area: split;
+}
+
+.marquee-half {
+  padding: 1.75rem clamp(1.25rem, 3vw, 2.75rem);
+  text-decoration: none;
+  transition: filter 200ms ease;
+}
+
+/* ── The seam.
+   The right half is clipped to a wedge and the left is simply underneath it, so the diagonal is one
+   polygon rather than two edges that have to agree. The padding percentages either side leave a
+   clear corridor, which is what stops the copy running into the join. */
+.marquee-wcc {
+  background:
+    radial-gradient(120% 140% at 12% 0%, rgba(224, 19, 38, 0.28) 0%, transparent 55%),
+    linear-gradient(115deg, #14070a 0%, #0a0508 45%, var(--marquee-ink) 100%);
+  /*
+   * Clear of the seam at its LEFTMOST point, not its average.
+   *
+   * The diagonal runs from 56% at the top to 44% at the bottom, so anything past 44% is inside the
+   * clipped region for part of its height. An earlier 46% put the whole 8BRCAM column left of the
+   * line, where the clip removed it: the half rendered as an empty gradient with its text present in
+   * the DOM and invisible on screen.
+   */
+  padding-right: 58%;
+}
+.marquee-brcam {
+  clip-path: polygon(56% 0, 100% 0, 100% 100%, 44% 100%);
+  background:
+    radial-gradient(120% 140% at 88% 100%, rgba(123, 47, 247, 0.34) 0%, transparent 58%),
+    linear-gradient(115deg, #04121a 0%, #071226 48%, #0b0620 100%);
+  /* Mirrors the other side: clear of the seam at its rightmost point, leaving both halves the same
+     usable column and a corridor between them that neither can reach into. */
+  padding-left: 58%;
+  align-items: flex-start;
+}
+
+/* A hairline of light on the join, so the two halves meet rather than merely abut. */
+.marquee-brcam::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 0 calc(50% - 1px), rgba(215, 221, 227, 0.55) 50%, transparent calc(50% + 1px) 100%);
+  opacity: 0.55;
+}
+
+/* ── Light behind the artwork.
+   A separate layer under the logo, never a filter on it: the mark itself is untouched. */
+.marquee-wcc-glow,
+.marquee-brcam-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+.marquee-wcc-glow {
+  background: radial-gradient(38% 60% at 20% 50%, rgba(224, 19, 38, 0.32) 0%, rgba(224, 19, 38, 0.08) 45%, transparent 72%);
+  opacity: 0.9;
+}
+.marquee-brcam-glow {
+  background:
+    radial-gradient(46% 70% at 78% 46%, rgba(25, 227, 208, 0.22) 0%, transparent 68%),
+    radial-gradient(40% 60% at 96% 92%, rgba(255, 43, 209, 0.2) 0%, transparent 70%);
+  opacity: 0.85;
+}
+
+/* ── Energy streaks: fine diagonal lines, drawn with a repeating gradient rather than an image. */
+.marquee-streaks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 22px,
+    rgba(224, 19, 38, 0.55) 22px 23px,
+    transparent 23px 46px
+  );
+  mask-image: linear-gradient(100deg, black 0%, transparent 70%);
+}
+.marquee-streaks--brcam {
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 26px,
+    rgba(25, 227, 208, 0.45) 26px 27px,
+    transparent 27px 54px
+  );
+  mask-image: linear-gradient(280deg, black 0%, transparent 72%);
+}
+
+/* ── Type.
+   Sized in clamp() so the halves stay legible from 375px to 1920px without a breakpoint per size. */
+.marquee-kicker {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(0.62rem, 0.9vw, 0.78rem);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.marquee-title {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.5rem, 2.6vw, 2.35rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  /* Loose enough for the ink box to fit inside the line box. A tighter value looks fine until the
+     panel's `overflow: hidden` meets a descender. */
+  line-height: 1.18;
+  margin-top: 0.15rem;
+}
+.marquee-status {
+  font-size: clamp(0.68rem, 1vw, 0.8rem);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+}
+.marquee-body {
+  color: #c3ccd6;
+  font-size: clamp(0.78rem, 1vw, 0.9rem);
+  margin-top: 0.4rem;
+  max-width: 26ch;
+}
+.marquee-wordmark {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(2rem, 4.4vw, 3.9rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  /*
+   * 1.12, not 0.92.
+   *
+   * `background-clip: text` paints the gradient through the glyphs, but only within the element's
+   * own box — so a line-height shorter than the letters leaves the tops and tails of the tallest
+   * ones unpainted, and they vanish. The wordmark is standing in for a logo here; it cannot afford
+   * to lose its edges.
+   */
+  line-height: 1.12;
+  /* The display face's ink box is a few pixels taller than its line box at this weight, and the
+     gradient is clipped to the element — so the box gets a little air rather than the letters
+     losing their tops. Measured, not guessed: 74px of ink in a 70px line at the largest size. */
+  padding-block: 0.06em;
+  background: linear-gradient(96deg, var(--brcam-teal) 0%, var(--brcam-blue) 46%, var(--brcam-violet) 82%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.marquee-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+  padding: 0.45rem 0.9rem;
+  font-size: clamp(0.66rem, 0.9vw, 0.76rem);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  transition: box-shadow 200ms ease, background-color 200ms ease;
+}
+.marquee-cta--wcc { color: var(--wcc-red); }
+.marquee-cta--brcam { color: var(--brcam-teal); }
+
+/* ── Hover: more light, no movement.
+   Nothing shifts position, so pointing at one half cannot nudge the other or reflow the page. */
+@media (hover: hover) {
+  .marquee-wcc:hover .marquee-wcc-glow { opacity: 1.25; }
+  .marquee-brcam:hover .marquee-brcam-glow { opacity: 1.2; }
+  .marquee-wcc:hover .marquee-cta--wcc {
+    background-color: rgba(224, 19, 38, 0.14);
+    box-shadow: 0 0 18px rgba(224, 19, 38, 0.45);
+  }
+  .marquee-brcam:hover .marquee-cta--brcam {
+    background-color: rgba(25, 227, 208, 0.12);
+    box-shadow: 0 0 18px rgba(25, 227, 208, 0.4);
+  }
+}
+
+/* Focus is drawn INSIDE the half, because an outline on a clipped element is clipped away with it. */
+.marquee-half:focus-visible {
+  outline: none;
+}
+.marquee-wcc:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--wcc-red), inset 0 0 0 6px rgba(255, 255, 255, 0.85);
+}
+.marquee-brcam:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--brcam-teal), inset 0 0 0 6px rgba(255, 255, 255, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-half,
+  .marquee-wcc-glow,
+  .marquee-brcam-glow,
+  .marquee-cta {
+    transition: none;
+  }
+}
+
+/* ── Stacked, below the point where a diagonal stops leaving either side a usable column.
+   The wedge flattens into a shallow horizontal transition rather than disappearing, so the two
+   halves still read as one object rather than as two cards that happen to touch. */
+@media (max-width: 767px) {
+  .marquee-stage {
+    grid-template-areas: 'top' 'bottom';
+    grid-template-rows: auto auto;
+    min-height: 0;
+  }
+  .marquee-wcc { grid-area: top; }
+  .marquee-brcam { grid-area: bottom; }
+
+  .marquee-half {
+    padding: 1.5rem 1.25rem;
+    min-height: 13.5rem;
+  }
+  .marquee-wcc { padding-right: 1.25rem; padding-bottom: 2.5rem; }
+  .marquee-brcam {
+    clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%);
+    padding-left: 1.25rem;
+    padding-top: 2.5rem;
+    margin-top: -1.75rem;
+  }
+  .marquee-brcam::before {
+    background: linear-gradient(96deg, transparent 0%, rgba(215, 221, 227, 0.45) 50%, transparent 100%);
+    inset: 0 0 auto 0;
+    height: 2px;
+    opacity: 0.8;
+  }
+  .marquee-body { max-width: none; }
+}
