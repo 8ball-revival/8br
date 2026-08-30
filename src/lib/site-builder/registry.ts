@@ -184,3 +184,73 @@ export function sharedFields(fromType: string, toType: string): string[] {
   if (!a || !b) return []
   return Object.keys(a.fields).filter((k) => k in b.fields && a.fields[k].kind === b.fields[k].kind)
 }
+
+// ── Crossing to the client ──────────────────────────────────────────────────────────────────────
+
+/**
+ * A module definition with everything that cannot cross a serialisation boundary removed.
+ *
+ * ── Why this exists ──────────────────────────────────────────────────────────────────────────────
+ * The registry is populated by importing the module files, and those files import `next/image`,
+ * Payload's media service and the canonical competition services — all server-only. So the client
+ * bundle cannot import them, and the registry was simply EMPTY there: the inspector reported every
+ * selected module as "unknown", and the palette had nothing to offer. Nothing failed loudly; the
+ * editor just could not see the modules it was editing.
+ *
+ * Rather than splitting nineteen modules into paired definition/renderer files — which would put a
+ * module's fields and its markup in different places for the rest of the project's life — the server
+ * serialises what it already has and hands it to the editor as a prop. Field descriptors are pure
+ * data by design, which is exactly what makes this possible.
+ *
+ * `Render` and `upgrade` are dropped because they are functions. The client never renders a module
+ * (the server does) and never upgrades a config (the server does, on read), so neither is missed.
+ */
+export interface ModuleManifestEntry {
+  type: string
+  name: string
+  category: ModuleCategory
+  icon: string
+  description: string
+  configVersion: number
+  fields: FieldSet
+  layoutDefaults?: Partial<LayoutAtBreakpoint>
+  dataDriven?: boolean
+  ownsScroll?: boolean
+  a11y: ModuleDefinition['a11y']
+}
+
+export function serialiseRegistry(): ModuleManifestEntry[] {
+  return allModules().map((m) => ({
+    type: m.type,
+    name: m.name,
+    category: m.category,
+    icon: m.icon,
+    description: m.description,
+    configVersion: m.configVersion,
+    fields: m.fields,
+    layoutDefaults: m.layoutDefaults,
+    dataDriven: m.dataDriven,
+    ownsScroll: m.ownsScroll,
+    a11y: m.a11y,
+  }))
+}
+
+/**
+ * Populate the registry on the client from the serialised manifest.
+ *
+ * The placeholder renderer is never invoked: the client asks the registry for fields, names, icons
+ * and categories, and the actual rendering happens on the server through the real definition. It
+ * exists so that one `ModuleDefinition` shape serves both sides and every existing call site --
+ * `createInstance`, `replaceModule`, `sharedFields`, the inspector, the palette -- keeps working
+ * without knowing which side it is on.
+ */
+export function hydrateRegistry(entries: ModuleManifestEntry[]): void {
+  for (const entry of entries) {
+    REGISTRY.set(entry.type, {
+      ...entry,
+      Render: PLACEHOLDER_RENDERER,
+    } as unknown as ModuleDefinition)
+  }
+}
+
+const PLACEHOLDER_RENDERER = (() => null) as unknown as ModuleDefinition['Render']

@@ -30,15 +30,27 @@ import { CanvasOverlay } from './canvas-overlay'
 import { Inspector } from './inspector'
 import { ModuleLibrary, ReplaceDialog, Dialog } from './palette'
 import { BREAKPOINT_WIDTHS, type LayoutDocument } from '@/lib/site-builder/document'
+import { hydrateRegistry, type ModuleManifestEntry } from '@/lib/site-builder/registry'
 import { findModule } from '@/lib/site-builder/operations'
 import { saveReusableAction } from '@/lib/site-builder/actions'
 
-export function SiteBuilderEditor({ pageKey, document, version, pageTitle }: {
+export function SiteBuilderEditor({ pageKey, document, version, pageTitle, manifest }: {
   pageKey: string
   document: LayoutDocument
   version: number
   pageTitle: string
+  manifest: ModuleManifestEntry[]
 }) {
+  /*
+    Hydrated during render, not in an effect.
+
+    The inspector and the palette read the registry on their FIRST render. Populating it from an
+    effect would mean that first pass sees an empty registry and reports every module as unknown --
+    which is exactly the bug this manifest exists to fix, moved one frame later. Registration is
+    idempotent, so doing it on every render is harmless.
+  */
+  hydrateRegistry(manifest)
+
   return (
     <EditorProvider pageKey={pageKey} initialDocument={document} initialVersion={version}>
       <Shell pageTitle={pageTitle} />

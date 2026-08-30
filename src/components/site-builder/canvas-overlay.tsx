@@ -23,6 +23,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ArrowDown, ArrowUp, Copy, Eye, EyeOff, GripVertical, Pencil, Plus, Replace, Save, Trash2,
 } from 'lucide-react'
@@ -53,6 +54,16 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
   const [dragging, setDragging] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ sectionId: string; index: number } | null>(null)
   const frameRef = useRef<number | null>(null)
+  /*
+    The portal is mounted only AFTER hydration.
+
+    Rendering it on the first client pass produces a tree the server did not send — the server has no
+    `document.body` to portal into and returns null — and React resolves that mismatch by discarding
+    the client tree, so the overlay silently never appeared. Waiting one commit makes the first
+    client render match the server's, and the portal arrives in the second.
+  */
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   /**
    * Measure every module and section frame.
@@ -169,9 +180,19 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
     setDropTarget(null)
   }
 
-  return (
+  /*
+    Portalled to <body>, not rendered in place.
+
+    The measured positions are in DOCUMENT space -- each rectangle's viewport position plus the
+    scroll offset -- which only lines up if the overlay's containing block is the document origin.
+    Rendered where the editor sits, the overlay was `absolute` inside <main>, which is not a
+    positioned ancestor; every rectangle was offset by the header's height and the click that was
+    meant to select a module landed on the page underneath it instead. A portal to <body> makes the
+    coordinate space the one the measurements were taken in.
+  */
+  const overlay = (
     <div
-      className="sb-overlay pointer-events-none absolute inset-0 z-[60]"
+      className="sb-overlay pointer-events-none absolute left-0 top-0 z-[60] w-full"
       data-sb-editing="true"
       style={{ height: typeof window !== 'undefined' ? document.documentElement.scrollHeight : '100%' }}
     >
@@ -278,6 +299,9 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
       ))}
     </div>
   )
+
+  if (!mounted || typeof document === 'undefined') return null
+  return createPortal(overlay, document.body)
 }
 
 // ── Quick actions ───────────────────────────────────────────────────────────────────────────────
