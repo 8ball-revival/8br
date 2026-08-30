@@ -106,3 +106,6 @@ verification/redesign-compare/
 verification/ladder/before/*.png
 verification/ladder/after/*.png
 .next-verify
+
+.vercel
+.env*

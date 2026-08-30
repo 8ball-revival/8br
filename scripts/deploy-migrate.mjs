@@ -1,15 +1,29 @@
 /**
  * Prepares the database before the Next.js build so a deployment against a brand-new
  * (empty) PostgreSQL database (e.g. Neon on Vercel) needs zero manual DB work. Applies:
- *   1. Prisma schema (public schema — competition + records tables) via `prisma db push`
+ *   1. Prisma migrations (public schema — competition + records tables) via `prisma migrate deploy`
  *   2. Payload migrations (payload schema — auth / CMS tables) via `payload migrate`
  *
- * Prisma (public): uses `db push` rather than `migrate deploy` because this project's Prisma
- * migration history is intentionally INCOMPLETE — some changes (notably Season→Tournament,
- * comp_season→comp_tournament) were applied via `db push` / raw SQL and never captured as
- * migration files, so replaying them against a fresh DB fails. `db push` reconciles the DB to
- * the canonical schema.prisma directly. `--accept-data-loss` is needed once to reconcile any
- * pre-existing drift; it is harmless for additive changes and touches only the `public` schema.
+ * ── Why this no longer uses `db push --accept-data-loss` ────────────────────────────────────────
+ * It used to, because the Prisma migration history could not replay from empty: some changes
+ * (notably Season→Tournament, comp_season→comp_tournament) were applied by hand and never captured,
+ * so `20260813000000_remove_tournament_flair_colors` refers to a table no earlier migration creates.
+ * `db push` sidestepped that by reconciling the database to schema.prisma directly.
+ *
+ * The cost of that was a build step allowed to drop whatever stood between the database and the
+ * schema, on production, unattended, on every deploy. `--accept-data-loss` is not a warning about a
+ * hypothetical: it is the flag that lets a rename be executed as a drop.
+ *
+ * So the database is BASELINED instead. Every historical migration is recorded as applied in
+ * `_prisma_migrations`, which is Prisma's documented answer for an existing database whose history
+ * cannot be replayed, and `migrate deploy` then applies only what is genuinely new — reviewed SQL,
+ * in a file, that someone approved. It still never runs the broken early migrations, because the
+ * baseline says they are done.
+ *
+ * The one thing this requires: the database must carry that baseline. A brand-new empty database
+ * cannot be built by this path, and would need `prisma migrate diff` to generate a fresh baseline
+ * first. That is a deliberate trade — the deployment target is an existing database, and protecting
+ * it matters more than being able to bootstrap an empty one unattended.
  *
  * Payload (payload): uses proper, version-controlled migrations in src/migrations (regenerated
  * from the current config — see 20260815_191908_init). `payload migrate` creates the payload
@@ -21,7 +35,7 @@
  * POSTGRES_URL_NON_POOLING / DIRECT_URL), schema ops run over it — Prisma's engine needs
  * advisory locks a pooled/PgBouncer endpoint cannot provide. The app still runs on DATABASE_URL.
  *
- * Idempotent: `db push` is a no-op when the DB already matches the schema, and `payload migrate`
+ * Idempotent: `migrate deploy` applies only migrations not yet recorded, and `payload migrate`
  * skips already-applied migrations, so re-deploys are safe.
  */
 import { execSync } from 'node:child_process'
@@ -71,9 +85,9 @@ function withEsmPackage(fn) {
 }
 
 try {
-  run('Prisma: syncing schema to schema.prisma (public schema)', 'npx prisma db push --accept-data-loss --skip-generate')
+  run('Prisma: applying migrations (public schema)', 'npx prisma migrate deploy')
   withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
-  console.log('\n✓ Database ready: Prisma public schema synced + Payload migrations applied.')
+  console.log('\n✓ Database ready: Prisma migrations applied + Payload migrations applied.')
 } catch (err) {
   console.error('\n✗ Database preparation failed. Aborting build.')
   console.error(err?.message ?? err)
