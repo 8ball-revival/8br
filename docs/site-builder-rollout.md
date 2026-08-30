@@ -26,7 +26,7 @@ is not this plan.
 | **Altered existing tables** | None outside `site_*` |
 | **Destructive statements** | None. No DROP, DELETE, TRUNCATE, RENAME, type change or NOT NULL added |
 | **New environment variables** | `SITE_BUILDER_CRON_SECRET` (required for scheduling) |
-| **New cron** | `/api/cron/site-builder-schedule`, every 5 minutes, already in `vercel.json` |
+| **New cron** | `/api/cron/site-builder-schedule`, once daily at 09:00 UTC, already in `vercel.json` |
 | **Data written on first run** | The bootstrap: 14 `site_page` rows, one draft and one revision each |
 
 Verify the additivity claim yourself before deploying:
@@ -106,6 +106,20 @@ It is idempotent — it creates only pages that do not already exist — so it i
 Then check the site: the homepage should be **pixel-identical** to what it was five minutes earlier.
 That is the whole point of bootstrapping from the code layout rather than from anything else. If it
 is not identical, see *Rolling back* below.
+
+### 4a. A note on the cron interval
+
+This was written as `*/5 * * * *`, and the Vercel account is on the Hobby plan, which permits **one
+cron invocation per day**. The deploy is rejected at validation with that expression -- before any
+build runs, so nothing is at risk, but nothing ships either.
+
+It is now `0 9 * * *`, and that is a smaller loss than it sounds. The cron was never the guarantee:
+`getPublishedLayout` sweeps for overdue revisions on every public read, precisely because a platform
+cron is a promise the platform can quietly stop keeping. The cron only makes a scheduled publication
+appear promptly on a page nobody has visited. With a daily cron the worst case is that a scheduled
+revision goes live when the next visitor arrives instead of within five minutes.
+
+If the account moves to Pro, `*/5 * * * *` can go back and this paragraph can go with it.
 
 ### 5. Verify the scheduler
 

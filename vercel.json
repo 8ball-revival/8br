@@ -9,7 +9,7 @@
     },
     {
       "path": "/api/cron/site-builder-schedule",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
