@@ -33,7 +33,8 @@
     "archive:import": "node scripts/archive/import.mjs",
     "test:site-builder": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder.mts",
     "test:site-builder:db": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-db.mts",
-    "site-builder:bootstrap": "tsx --tsconfig tsconfig.scripts.json scripts/site-builder-bootstrap.mts"
+    "site-builder:bootstrap": "tsx --tsconfig tsconfig.scripts.json scripts/site-builder-bootstrap.mts",
+    "test:dev-hydration": "node scripts/verify-dev-hydration.mjs"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",

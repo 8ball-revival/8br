@@ -20,6 +20,26 @@ const nextConfig: NextConfig = {
    * `git checkout tsconfig.json` once the build has been checked.
    */
   distDir: process.env.NEXT_DIST_DIR || '.next',
+
+  /*
+   * Origins the DEV server will serve its client bootstrap to.
+   *
+   * ── What this fixes, and why it was so hard to see ──────────────────────────────────────────────
+   * Next 15.2 began treating a dev request whose origin is not the canonical one as cross-origin and
+   * refusing it the development client assets. The canonical origin here is `localhost:3000`, so
+   * opening the very same server on `http://127.0.0.1:3000` produced a page that was completely
+   * correct and completely dead: the HTML rendered, the inline scripts ran, the RSC flight payload
+   * arrived in full — and hydration never completed, because the dev bootstrap and its HMR socket
+   * were blocked. No console error, no failed request, nothing in the overlay. Every control was
+   * visible and none of them worked.
+   *
+   * The two are genuinely the same machine, and a developer typing either one expects the same site,
+   * so both are allowed. The LAN address is included because `next dev` prints it as the Network URL
+   * and inviting somebody to open a URL that cannot work is its own trap.
+   *
+   * This is development only — `next build` and `next start` ignore it entirely.
+   */
+  allowedDevOrigins: ['127.0.0.1', 'localhost', '192.168.1.104'],
   images: {
     /*
       Media is served from /api/media/file/** and normally referenced with a relative path, which is

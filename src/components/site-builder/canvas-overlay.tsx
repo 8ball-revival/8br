@@ -161,12 +161,12 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
       // browser's own arrow-key scrolling.
       if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         e.preventDefault()
-        editor.apply((d) => nudgeModule(d, selected.id, e.key === 'ArrowUp' ? -1 : 1))
+        editor.apply((d) => nudgeModule(d, selected.id, e.key === 'ArrowUp' ? -1 : 1), { structural: true })
         return
       }
       if (mod && e.key.toLowerCase() === 'd') {
         e.preventDefault()
-        editor.apply((d) => duplicateModule(d, selected.id))
+        editor.apply((d) => duplicateModule(d, selected.id), { structural: true })
       }
     }
     window.addEventListener('keydown', onKey)
@@ -181,7 +181,7 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
 
   const handleDrop = (sectionId: string, index: number) => {
     if (!dragging) return
-    editor.apply((d) => moveModule(d, dragging, sectionId, index))
+    editor.apply((d) => moveModule(d, dragging, sectionId, index), { structural: true })
     setDragging(null)
     setDropTarget(null)
   }
@@ -325,9 +325,11 @@ function ModuleActions({
   const location = findModule(editor.document, moduleId)
   const hidden = location?.module.visibility.hidden ?? false
 
+  // Every action in this toolbar changes which modules exist or where they are, so each one needs
+  // the server to redraw the canvas.
   const act = (fn: (d: typeof editor.document) => typeof editor.document) => (e: React.MouseEvent) => {
     e.stopPropagation()
-    editor.apply(fn)
+    editor.apply(fn, { structural: true })
   }
 
   /**
@@ -345,7 +347,7 @@ function ModuleActions({
       window.alert(`This module was not deleted, because it could not be copied to the trash first: ${result.error}`)
       return
     }
-    editor.apply((d) => removeModule(d, moduleId))
+    editor.apply((d) => removeModule(d, moduleId), { structural: true })
     editor.select(null)
   }
 

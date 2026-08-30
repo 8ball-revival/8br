@@ -87,7 +87,7 @@ function ModuleInspector({ moduleId }: { moduleId: string }) {
               field={field}
               value={location.module.config[key]}
               siblings={location.module.config}
-              onChange={(v) => editor.apply((d) => updateModuleConfig(d, moduleId, { [key]: v }))}
+              onChange={(v) => editor.apply((d) => updateModuleConfig(d, moduleId, { [key]: v }), { structural: true })}
             />
           ))}
         </Group>
@@ -100,14 +100,14 @@ function ModuleInspector({ moduleId }: { moduleId: string }) {
       <Group title="Appearance" defaultOpen={false}>
         <StyleControls
           style={location.module.style}
-          onChange={(patch) => editor.apply((d) => updateModuleStyle(d, moduleId, patch))}
+          onChange={(patch) => editor.apply((d) => updateModuleStyle(d, moduleId, patch), { structural: true })}
         />
       </Group>
 
       <Group title="Visibility" defaultOpen={false}>
         <VisibilityControls
           rule={location.module.visibility}
-          onChange={(patch) => editor.apply((d) => updateModuleVisibility(d, moduleId, patch))}
+          onChange={(patch) => editor.apply((d) => updateModuleVisibility(d, moduleId, patch), { structural: true })}
         />
       </Group>
     </div>

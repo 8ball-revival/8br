@@ -48,8 +48,14 @@ interface EditorValue {
   document: LayoutDocument
   selection: Selection | null
   select: (s: Selection | null) => void
-  /** Apply a pure operation, push to the undo stack, and schedule a save. */
-  apply: (fn: (doc: LayoutDocument) => LayoutDocument, options?: { immediate?: boolean }) => void
+  /**
+   * Apply a pure operation, push to the undo stack, and schedule a save.
+   *
+   * `structural` marks an edit that changes WHICH modules exist, where they are, or what one of
+   * them renders. Those need the server to redraw the canvas, because the modules are server
+   * components and the editor cannot render them itself.
+   */
+  apply: (fn: (doc: LayoutDocument) => LayoutDocument, options?: { immediate?: boolean; structural?: boolean }) => void
   undo: () => void
   redo: () => void
   canUndo: boolean
@@ -134,6 +140,19 @@ export function EditorProvider({
     be memoized, and the React compiler bailed out of the whole component rather than the one
     callback. The loop says the same thing and compiles.
   */
+  /*
+    Whether the canvas has to be redrawn once the save lands.
+
+    A structural change alters which server components belong on the page, and the editor cannot
+    render those itself. Without this, an inserted module saved correctly, persisted correctly,
+    and simply did not appear until the page was reloaded by hand — the feature looked broken
+    while working perfectly, which is the worst kind of bug to be told about.
+
+    A ref rather than state: `performSave` reads it inside an async callback, where state would
+    be the value captured when the callback was created.
+  */
+  const needsRefreshRef = useRef(false)
+
   const performSave = useCallback(async () => {
     if (inFlightRef.current) {
       pendingRef.current = true
@@ -150,6 +169,12 @@ export function EditorProvider({
             versionRef.current = result.data.version
             setDirty(false)
             setSaveState({ status: 'saved', at: Date.now() })
+            if (needsRefreshRef.current) {
+              needsRefreshRef.current = false
+              // After the save, never before: refreshing first would redraw the canvas from the
+              // document the server still holds.
+              router.refresh()
+            }
           } else if (result.conflictVersion !== undefined) {
             // Deliberately NOT resolved automatically. Whichever side is discarded is somebody's
             // work, and the editor is not in a position to know which. The administrator decides.
@@ -168,7 +193,7 @@ export function EditorProvider({
     } finally {
       inFlightRef.current = false
     }
-  }, [pageKey])
+  }, [pageKey, router])
 
   const scheduleSave = useCallback((immediate = false) => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -179,7 +204,7 @@ export function EditorProvider({
     timerRef.current = setTimeout(() => { void performSave() }, AUTOSAVE_DELAY)
   }, [performSave])
 
-  const apply = useCallback((fn: (doc: LayoutDocument) => LayoutDocument, options?: { immediate?: boolean }) => {
+  const apply = useCallback((fn: (doc: LayoutDocument) => LayoutDocument, options?: { immediate?: boolean; structural?: boolean }) => {
     setDocument((current) => {
       const next = fn(current)
       // An operation that could not do anything — a move past the end, a missing id — returns the
@@ -190,6 +215,7 @@ export function EditorProvider({
       setFuture([])
       setDirty(true)
       documentRef.current = next
+      if (options?.structural) needsRefreshRef.current = true
       scheduleSave(options?.immediate)
       return next
     })
@@ -203,6 +229,9 @@ export function EditorProvider({
       setDocument(previous)
       documentRef.current = previous
       setDirty(true)
+      // Undo can reverse a structural change and there is no way to tell from here which kind it
+      // was, so it always redraws. A redraw that was not needed costs one render.
+      needsRefreshRef.current = true
       scheduleSave()
       return p.slice(0, -1)
     })
@@ -216,6 +245,7 @@ export function EditorProvider({
       setDocument(nextDoc)
       documentRef.current = nextDoc
       setDirty(true)
+      needsRefreshRef.current = true
       scheduleSave()
       return f.slice(1)
     })

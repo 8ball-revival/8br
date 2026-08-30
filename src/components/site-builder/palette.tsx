@@ -76,7 +76,7 @@ export function ModuleLibrary() {
         return insertSection(doc, section)
       }
       return insertModule(doc, last.id, instance)
-    })
+    }, { structural: true })
     editor.select({ kind: 'module', id: instance.id })
   }
 
@@ -95,7 +95,7 @@ export function ModuleLibrary() {
         type="button"
         onClick={() => {
           const section = createSection('New section')
-          editor.apply((doc) => insertSection(doc, section))
+          editor.apply((doc) => insertSection(doc, section), { structural: true })
           editor.select({ kind: 'section', id: section.id })
         }}
         className="flex items-center justify-center gap-1.5 border border-dashed border-border px-2 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:border-[var(--hot-red)] hover:text-foreground"
@@ -206,7 +206,7 @@ export function ReplaceDialog({ moduleId, onClose }: { moduleId: string; onClose
           disabled={!chosen}
           onClick={() => {
             if (!chosen) return
-            editor.apply((d) => replaceModule(d, moduleId, chosen))
+            editor.apply((d) => replaceModule(d, moduleId, chosen), { structural: true })
             onClose()
           }}
           className="bg-[var(--hot-red)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white disabled:opacity-40"
