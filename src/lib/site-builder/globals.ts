@@ -69,7 +69,7 @@ export interface NavConfig {
   items: NavLink[]
 }
 
-interface RawNavItem {
+export interface RawNavItem {
   label: string
   mobileLabel: string
   destination: string
@@ -90,7 +90,7 @@ interface RawNavItem {
  * The date window is applied HERE rather than in the browser: a link that is meant to appear next
  * month must not be in the markup this month, where anybody reading the source would find it.
  */
-function toLink(raw: RawNavItem, now: Date): NavLink | null {
+export function toLink(raw: RawNavItem, now: Date): NavLink | null {
   const from = raw.from ? Date.parse(raw.from) : NaN
   const until = raw.until ? Date.parse(raw.until) : NaN
   if (!Number.isNaN(from) && now.getTime() < from) return null
@@ -285,28 +285,10 @@ export async function getTheme(): Promise<ThemeConfig> {
   return { vars, fontDisplay: String(raw.fontDisplay ?? 'space-grotesk') }
 }
 
-/**
- * Contrast, for the warning the theme editor shows.
- *
- * WCAG relative luminance, so the number means what the accessibility guidance means. Returned
- * rather than enforced: an administrator may have a reason, and a builder that silently refused a
- * colour would be harder to work with than one that says what the ratio is.
- */
-export function contrastRatio(a: string, b: string): number | null {
-  const parse = (hex: string): [number, number, number] | null => {
-    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim())
-    if (!m) return null
-    const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1]
-    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number]
-  }
-  const lum = (rgb: [number, number, number]) => {
-    const [r, g, bl] = rgb.map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
-    return 0.2126 * r + 0.7152 * g + 0.0722 * bl
-  }
-  const ca = parse(a)
-  const cb = parse(b)
-  if (!ca || !cb) return null
-  const la = lum(ca)
-  const lb = lum(cb)
-  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
-}
+/*
+  Contrast lives in `./contrast`, not here.
+
+  The theme inspector recalculates it as a colour is dragged, so it has to run in the browser — and
+  this file is `server-only`. Re-exported so existing callers keep working.
+*/
+export { contrastRatio, contrastLevel, themeContrastPairs, type ContrastPair } from './contrast'

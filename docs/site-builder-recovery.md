@@ -11,7 +11,8 @@ What to do when a published layout is wrong, and why the public site cannot be t
 | A page looks wrong after publishing | Restore the previous revision | Admin → Site Builder → 🕘 |
 | A module was deleted by mistake | Trash | Admin → Site Builder → Trash |
 | A page needs to go back to its original design | Reset | Admin → Site Builder → ↺ on that page |
-| The navigation is broken | `/staff/site-builder` still works — edit it there | Direct URL |
+| The navigation is broken | `/staff/site-builder` still works — edit it there | Direct URL, or the account menu |
+| The theme is unreadable | The admin area does not use it — edit it back | Admin → Site Builder → Theme |
 | Something is wrong and you cannot tell what | Health | Admin → Site Builder → Health |
 | The builder itself is the problem | Disable it — see below | Code, one line |
 
@@ -82,6 +83,15 @@ result first.
 cannot be removed by publishing anything, precisely so that the way back never depends on the thing
 being recovered.
 
+Two more routes back, for the same reason:
+
+- **Admin** and **Site Builder** are appended to your **account menu** and to the **mobile menu**
+  after whatever the published navigation says. Publishing a navigation with neither link in it
+  hides them from everybody else and never from you.
+- The **admin interface does not use the published theme.** A theme that makes the public site
+  unreadable leaves the editor, the control centre and the admin area exactly as they were, so it
+  can always be edited back.
+
 The builder also cannot disable authentication, remove a capability check, or grant itself
 permissions. Those live in `src/lib/auth/roles.ts` and `src/lib/competition/staff-auth.ts` and are
 only changeable in code.
@@ -148,10 +158,28 @@ It reports:
 ## Verifying after a recovery
 
 ```bash
-npm run test:site-builder          # 250 checks, no database needed
-scripts/db/make-test-clone.sh 8br_test_sb
-DATABASE_URL=<clone> npm run test:site-builder:db   # 39 checks, disposable clone only
+npm run test:site-builder                            # 519 checks, no database, no server
 ```
 
-The second suite refuses to run against anything but a database named `8br_test_*`, checked before
-Prisma is even imported. There is no override.
+```bash
+scripts/db/make-test-clone.sh 8br_test_sb
+DATABASE_URL=<clone> npm run test:site-builder:db       # 104 checks, disposable clone only
+```
+
+```bash
+scripts/db/make-test-clone.sh 8br_test_sec
+DATABASE_URL=<clone> npm run test:site-builder:security  # 108 checks, disposable clone only
+```
+
+Both database suites refuse to run against anything but a database named `8br_test_*`, checked
+before Prisma is even imported. There is no override.
+
+With the dev server running (`npm run dev:replica`):
+
+```bash
+npm run test:dev-hydration     # 36 checks: the editor actually mounts and responds
+npm run test:responsive    # 99 checks: nine widths, published and in Edit Mode
+```
+
+Both drive a headless Chrome on a **clean profile**. That matters: an everyday browser running a
+theming extension will report layout and colour problems the site does not have.

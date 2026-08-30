@@ -142,6 +142,48 @@ and visible.
 
 ---
 
+## Containers
+
+A module that holds other modules sets `container: true` and renders a `Slot`:
+
+```tsx
+registerModule({
+  type: 'layout.split',
+  container: true,
+  slotLabel: 'Panels',
+  Render: function Split({ config, Slot }) {
+    return (
+      <div className="grid gap-6 md:grid-cols-[58fr_42fr]">
+        <Slot />
+      </div>
+    )
+  } as never,
+})
+```
+
+`Slot` renders `instance.children` through the same safe renderer as everything else, so a child that
+throws costs that child and nothing more.
+
+Three things the editor handles for you, and one you must not undo:
+
+- **Depth is capped at four** during validation. Do not add a container that assumes deeper nesting.
+- **Duplicating gives every descendant a fresh id.** A document may never contain two modules
+  answering to one id — selection, drag targets and the layer tree all resolve by id.
+- **A container cannot be dropped into itself.** The drag target list excludes its own subtree.
+
+---
+
+## Essential modules
+
+`essential: true` marks a module as the reason its page exists — the rankings table, an article
+body, a tournament bracket. It changes exactly one thing: deleting it asks the administrator to type
+its name first.
+
+Use it for a module that carries a page's actual content. Do not use it for a module that is merely
+important-looking; a confirmation that appears too often is a confirmation nobody reads.
+
+---
+
 ## The client boundary
 
 The registry is populated by importing these files, and they import `next/image`, Payload's media
@@ -164,8 +206,9 @@ exactly this reason.
 npm run test:site-builder
 ```
 
-The suite walks every registered module and asserts, among other things, that its **default config
-validates against its own schema**. That check exists because it once did not: a marquee panel
+519 checks, no database, no browser, no server — about a second. The suite walks every registered
+module and asserts, among other things, that its **default config validates against its own
+schema**. That check exists because it once did not: a marquee panel
 defaulted `logoHeight` to `0` against a minimum of `48`, and the module rendered as a fallback on the
 homepage until the suite was written and caught it.
 

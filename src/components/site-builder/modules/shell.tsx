@@ -16,6 +16,7 @@
  */
 
 import { registerModule, type ModuleRenderProps } from '@/lib/site-builder/registry'
+import { THEME_TOKENS } from '@/lib/site-builder/theme-tokens'
 import { ModulePlaceholder } from './content'
 
 // ── Navigation ──────────────────────────────────────────────────────────────────────────────────
@@ -229,18 +230,10 @@ registerModule({
  * Admin surfaces are NOT themeable from here. The Payload admin and the staff console keep their own
  * appearance, so a public theme cannot make the controls needed to fix it unreadable.
  */
-export const THEME_TOKENS = [
-  { key: 'accent', css: '--hot-red', label: 'Accent', group: 'Colour', fallback: '#ff2d3d' },
-  { key: 'gold', css: '--gold', label: 'Gold', group: 'Colour', fallback: '#e8b93b' },
-  { key: 'acid', css: '--acid', label: 'Highlight', group: 'Colour', fallback: '#e8ff4f' },
-  { key: 'foreground', css: '--foreground', label: 'Text', group: 'Colour', fallback: '#f4f4f5' },
-  { key: 'muted', css: '--muted-foreground', label: 'Muted text', group: 'Colour', fallback: '#a1a1aa' },
-  { key: 'background', css: '--background', label: 'Page background', group: 'Surface', fallback: '#000000' },
-  { key: 'card', css: '--card', label: 'Card surface', group: 'Surface', fallback: '#0d0f14' },
-  { key: 'graphite', css: '--graphite', label: 'Panel surface', group: 'Surface', fallback: '#101418' },
-  { key: 'border', css: '--border', label: 'Border', group: 'Surface', fallback: '#26262b' },
-  { key: 'lineStrong', css: '--line-strong', label: 'Strong border', group: 'Surface', fallback: '#3f3f46' },
-] as const
+// Re-exported so `THEME_TOKENS` stays importable from here; the data itself is client-safe and
+// lives in `@/lib/site-builder/theme-tokens` so the inspector can read it without pulling this file
+// — and the whole module registry with it — into the browser bundle.
+export { THEME_TOKENS }
 
 registerModule({
   type: 'global.theme',

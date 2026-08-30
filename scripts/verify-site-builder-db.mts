@@ -553,6 +553,48 @@ check('a phone-only link appears only on a phone', ownerOnPhone.includes('Phone'
 check('a desktop-only link stays off the phone', !ownerOnPhone.includes('Desk'))
 
 /*
+  A navigation link's date window is applied when the navigation is READ, not in the browser.
+
+  That is the difference between "not shown yet" and "shown to anyone who reads the page source".
+  A link meant to appear when registration opens must not be in the markup a month early, so this is
+  checked against the real published read rather than against the filter.
+*/
+const { toLink } = await import('../src/lib/site-builder/globals')
+const now = new Date('2026-08-30T12:00:00Z')
+const dated = (from: string, until: string) => toLink({
+  label: 'Probe', mobileLabel: '', destination: '/rankings', customHref: '', newTab: false,
+  icon: '', badge: '', audience: 'everyone', device: 'both', from, until, children: [],
+}, now)
+check('a link inside its window is published', dated('2026-01-01', '2026-12-31') !== null)
+check('a link that has not started yet is dropped entirely', dated('2999-01-01', '') === null)
+check('and one that has finished is too', dated('', '2000-01-01') === null)
+check('an open-ended start is honoured', dated('2026-01-01', '') !== null)
+check('an open-ended end is honoured', dated('', '2999-01-01') !== null)
+check('no window at all always publishes', dated('', '') !== null)
+check('an unreadable date is ignored rather than hiding the link', dated('not a date', '') !== null)
+
+/*
+  Dropped, not hidden — the returned value is null, so the link never enters the document the header
+  renders from. A link scheduled for next month must not be in this month's markup, where anybody
+  reading the page source would find it.
+*/
+const scheduledChild = toLink({
+  label: 'Parent', mobileLabel: '', destination: '/', customHref: '', newTab: false,
+  icon: '', badge: '', audience: 'everyone', device: 'both', from: '', until: '',
+  children: [{
+    label: 'Future child', mobileLabel: '', destination: '/rankings', customHref: '', newTab: false,
+    icon: '', badge: '', audience: 'everyone', device: 'both', from: '2999-01-01', until: '', children: [],
+  }],
+}, now)
+eq('a dropdown item outside its window is dropped too', scheduledChild?.children.length, 0)
+
+// A link with no destination at all is dropped rather than published as a dead '#'.
+check('a link with nowhere to go is dropped', toLink({
+  label: 'Nowhere', mobileLabel: '', destination: 'custom', customHref: '', newTab: false,
+  icon: '', badge: '', audience: 'everyone', device: 'both', from: '', until: '', children: [],
+}, now) === null)
+
+/*
   And the recovery links are appended regardless of what any of that says.
 
   This is the rule that makes a broken navigation survivable: publish one with no Admin link and it

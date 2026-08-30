@@ -33,6 +33,8 @@ import {
 import { describeVisibility, impossibleCombinations } from '@/lib/site-builder/visibility'
 import type { LayoutDocument as Doc } from '@/lib/site-builder/document'
 import { MediaPicker } from './media-picker'
+import { themeContrastPairs } from '@/lib/site-builder/contrast'
+import { THEME_TOKENS } from '@/lib/site-builder/theme-tokens'
 
 export function Inspector() {
   const editor = useEditor()
@@ -110,6 +112,8 @@ function ModuleInspector({ moduleId }: { moduleId: string }) {
         </p>
       )}
 
+      {location.module.type === 'global.theme' && <ThemeContrastReport config={location.module.config} />}
+
       {groups.map(({ group, entries }) => (
         <Group key={group ?? 'general'} title={group ?? 'Settings'} defaultOpen>
           {entries.map(([key, field]) => (
@@ -144,6 +148,87 @@ function ModuleInspector({ moduleId }: { moduleId: string }) {
       </Group>
     </div>
   )
+}
+
+/**
+ * What the theme you are typing does to legibility, as you type it.
+ *
+ * ── Why it is here and not a check at publish time ───────────────────────────────────────────────
+ * A contrast warning is only useful while the colour is still being chosen. Told at publish time,
+ * the answer is "go back and pick a different colour", which is the same work again — and by then
+ * the palette has usually been decided around the colour that fails.
+ *
+ * ── Why unset tokens are resolved to the built-in value ──────────────────────────────────────────
+ * A theme that overrides two colours still renders against the other eight. Checking only what was
+ * typed would report nothing at all for the most common case, which is one accent changed against a
+ * background nobody touched.
+ *
+ * The ratio is reported, never enforced. An accent that never carries text is allowed to fail, and
+ * the row says which pairing it is so that judgement can be made.
+ */
+function ThemeContrastReport({ config }: { config: Record<string, unknown> }) {
+  const resolve = (key: string): string => {
+    const set = config[key]
+    if (typeof set === 'string' && set.trim()) return set.trim()
+    return THEME_TOKENS.find((t) => t.key === key)?.fallback ?? '#000000'
+  }
+  const pairs = themeContrastPairs(resolve)
+  const failing = pairs.filter((p) => p.level === 'fail')
+
+  return (
+    <Group title="Contrast" defaultOpen>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        {failing.length === 0
+          ? 'Every pairing the site actually renders passes WCAG AA.'
+          : `${failing.length} pairing${failing.length === 1 ? '' : 's'} below WCAG AA. Nothing stops you publishing — but that text will be hard to read.`}
+      </p>
+      <ul className="flex flex-col gap-px border border-border bg-border">
+        {pairs.map((p, i) => (
+          <li key={i} className="flex items-center gap-2 bg-[var(--graphite)] px-2 py-1.5">
+            <span
+              aria-hidden
+              className="size-4 shrink-0 border border-[var(--line-strong)]"
+              style={{ background: p.ratio === null ? 'transparent' : resolve(pairKey(p)) }}
+            />
+            <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+              <span className="text-foreground">{p.label}</span> on {p.on}
+              {p.large && <span className="text-muted-foreground"> (headings)</span>}
+            </span>
+            <span className="tabular shrink-0 text-[11px] text-muted-foreground">
+              {p.ratio === null ? '—' : `${p.ratio.toFixed(1)}:1`}
+            </span>
+            <span
+              className={cn(
+                'shrink-0 border px-1 text-[9px] font-bold uppercase tracking-[0.08em]',
+                p.level === 'fail'
+                  ? 'border-[var(--hot-red)] text-[var(--hot-red)]'
+                  : p.level === 'AA Large'
+                    ? 'border-[var(--gold)] text-[var(--gold)]'
+                    : 'border-[var(--line-strong)] text-muted-foreground',
+              )}
+            >
+              {p.level ?? '—'}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[10px] leading-relaxed text-muted-foreground">
+        AA is 4.5:1 for body text and 3:1 for headings. Visitors keep their own Display Lab settings
+        on top of this, and the admin interface is unaffected by whatever you publish here.
+      </p>
+    </Group>
+  )
+}
+
+/** Which token's colour to show in a row's swatch — the thing being read, not the surface. */
+function pairKey(p: { label: string }): string {
+  switch (p.label) {
+    case 'Muted text': return 'muted'
+    case 'Accent': return 'accent'
+    case 'Gold': return 'gold'
+    case 'Highlight': return 'acid'
+    default: return 'foreground'
+  }
 }
 
 // ── Section ─────────────────────────────────────────────────────────────────────────────────────

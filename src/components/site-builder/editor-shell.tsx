@@ -31,10 +31,11 @@ import { Inspector } from './inspector'
 import { ModuleLibrary, ReplaceDialog, Dialog } from './palette'
 import { BREAKPOINT_WIDTHS, type LayoutDocument } from '@/lib/site-builder/document'
 import { hydrateRegistry, type ModuleManifestEntry } from '@/lib/site-builder/registry'
-import { duplicateModule, findModule, findSection, removeModule } from '@/lib/site-builder/operations'
+import { duplicateModule, findModule, findSection, removeModule, walkModules } from '@/lib/site-builder/operations'
 import { saveReusableAction, saveTemplateAction, trashAction } from '@/lib/site-builder/actions'
 import { getModule } from '@/lib/site-builder/registry'
 import { validateDocument } from '@/lib/site-builder/document'
+import { impossibleCombinations } from '@/lib/site-builder/visibility'
 import { ModuleTree, useSelectionPath } from './module-tree'
 import { CommandPalette, type PaletteAction } from './command-palette'
 import { GuidedTour } from './guided-tour'
@@ -498,6 +499,41 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
     }
   })
 
+  /*
+    Advisories: things that are legitimate but almost never intended.
+
+    Kept separate from `problems` and deliberately NOT blocking. An empty section during a redesign
+    is a normal intermediate state, and a warning that stops you publishing trains you to ignore
+    warnings. These name the module and take you to it, and then get out of the way.
+  */
+  const advisories: { moduleId?: string; sectionId?: string; name: string; message: string }[] = []
+  for (const section of editor.document.sections) {
+    if (!section.modules.length) {
+      advisories.push({ sectionId: section.id, name: section.name, message: 'is empty, so it will publish as blank space.' })
+    }
+    for (const why of impossibleCombinations(section.visibility)) {
+      advisories.push({ sectionId: section.id, name: section.name, message: why })
+    }
+    for (const instance of walkModules({ version: 1, sections: [section] })) {
+      const m = instance.module
+      const def = getModule(m.type)
+      const name = def?.name ?? m.type
+      for (const why of impossibleCombinations(m.visibility)) {
+        advisories.push({ moduleId: m.id, name, message: why })
+      }
+      /*
+        Alt text, by convention rather than by a flag: a module that takes an image has a `media`
+        field and an `alt` beside it. Checking the shape rather than a hand-maintained list means a
+        module added next month is covered without anybody remembering to add it here.
+      */
+      const fields = def?.fields ?? {}
+      const hasImage = Object.entries(fields).some(([key, f]) => f.kind === 'media' && m.config[key] != null)
+      if (hasImage && 'alt' in fields && !String(m.config.alt ?? '').trim()) {
+        advisories.push({ moduleId: m.id, name, message: 'has an image with no alt text, so it is invisible to a screen reader.' })
+      }
+    }
+  }
+
   // An essential module that has been hidden is not invalid — it is a decision — but it is worth
   // saying out loud at the moment it becomes public.
   const hiddenEssentials = editor.document.sections.flatMap((sec) => sec.modules
@@ -533,6 +569,35 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {advisories.length > 0 && (
+        <div className="border border-[var(--gold)] p-2.5">
+          <p className="eyebrow text-[var(--gold)]">
+            {advisories.length} thing{advisories.length === 1 ? '' : 's'} worth a look — none of them stop you publishing
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {advisories.slice(0, 6).map((a, i) => (
+              <li key={i} className="text-[11px] text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (a.moduleId) editor.select({ kind: 'module', id: a.moduleId })
+                    else if (a.sectionId) editor.select({ kind: 'section', id: a.sectionId })
+                    onClose()
+                  }}
+                  className="font-semibold text-foreground underline underline-offset-2"
+                >
+                  {a.name}
+                </button>
+                {' '}{a.message}
+              </li>
+            ))}
+          </ul>
+          {advisories.length > 6 && (
+            <p className="mt-1 text-[11px] text-muted-foreground">and {advisories.length - 6} more.</p>
+          )}
         </div>
       )}
 

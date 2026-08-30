@@ -9,15 +9,32 @@ is available inside the app, under **Admin → Site Builder → Guide**.
 
 Sign in as the Owner and open any page on the site. Press **Edit** in the header.
 
+**Admin** and **Site Builder** are in your account menu** — the one behind your name at the right of
+the header — and in the mobile menu. They are deliberately not in the main navigation: the main
+navigation is editable, and a link you can publish away is not a way back in.
+
 The page becomes an editing canvas. It is the real page, not a preview — the rankings on it are the
 real rankings, the marquee is the real marquee. That is deliberate: what you see while editing is
 what visitors will see when you publish.
+
+The first time you enter Edit Mode you are offered a short **guided tour**. Skip it or take it; it
+does not come back once dismissed, and the **?** button in the bottom-right corner reopens it.
 
 To leave, press the **✕** at the right of the toolbar, or remove `?edit=1` from the address bar.
 
 > **Only the Owner sees the Edit button.** The site builder can change every public page and the
 > navigation, so it is restricted to one person by default. Everything you do is recorded in the
 > Activity Log.
+
+### Every page, not just the edges
+
+All of it is editable — the rankings table, the tournament list, an article body, a player profile.
+The real page content sits inside the layout as a module like any other, so you can put things above
+it, below it, beside it, or move it into a column.
+
+Those content modules are marked **essential**. You can move, resize and hide them, but removing one
+takes a typed confirmation, because deleting the rankings table from the rankings page is a thing
+somebody would want to be sure about.
 
 ---
 
@@ -33,11 +50,39 @@ Along the top, from left to right:
 | **↶ ↷** | Undo and redo (also `Ctrl+Z` / `Ctrl+Shift+Z`) |
 | 🖥 📱 | Desktop, tablet and phone — narrows the page and switches which layout you are editing |
 | 👁 | Preview: hides every editing outline so you can see the page as a visitor would |
-| ▦ ⚙ | Show or hide the Modules and Settings panels |
+| ▦ ⚙ | Show or hide the left and right panels |
+| ⌘K | The command palette — every action, by name |
 | 🕘 | Revision history |
 | **Save draft** | Saves now (it also saves by itself as you work) |
 | **Publish** | Makes the draft live for everyone |
 | **✕** | Leave Edit Mode |
+
+---
+
+## The command palette
+
+`Ctrl+K` (`⌘K` on a Mac) opens a search box over the page. Type a few letters and press Enter.
+
+Everything is in there: publish, save, undo, redo, preview, the three device widths, the layer tree,
+the control centre, replace, duplicate and delete the selected module — and **every module in the
+library**, so "add a heading" is three keystrokes rather than a hunt through a panel.
+
+It is worth learning because it is the fastest path to anything, and because it is the one control
+that does not depend on finding a small button.
+
+---
+
+## Layers
+
+The left panel has two tabs: **Add** and **Layers**.
+
+**Layers** is the page as a tree — sections, the modules inside them, and anything nested inside a
+container. Click a row to select it; the page scrolls to it and the Settings panel follows.
+
+This is how you reach something you cannot easily click: a module hidden by a visibility rule, one
+inside a collapsed accordion, or a container whose children cover it completely. The breadcrumb
+above the Settings panel does the same job from the other direction — it shows where the selected
+module sits, and each step of it is clickable.
 
 ---
 
@@ -79,9 +124,14 @@ Four ways, all equivalent — use whichever suits you:
 4. Moving past the end of a row moves it into the next row.
 
 Nothing in the builder requires a precise drag. On a phone or tablet the arrow buttons are the
-primary way, and they work everywhere.
+primary way, and they work everywhere. Dragging shows an insertion line where the module will land,
+including inside a container.
 
 Sections themselves move the same way — click a section's name label to select it.
+
+**Copy and paste** works too: `Ctrl+C` on a selected module, `Ctrl+V` to paste it after whatever is
+selected. The copy travels as text, so it survives a reload and can cross to another page or another
+browser tab. Pasting anything that is not a copied module does nothing at all.
 
 ---
 
@@ -110,14 +160,22 @@ is not removed until you confirm, and **Undo** brings it back.
 
 ## Adding and removing
 
-**Add**: open the **Modules** panel on the left, search or browse by category, and click one. It is
-inserted after whatever you had selected. **Add a section** creates a new row.
+**Add**: open the **Add** panel on the left, search or browse by category, and click one. It is
+inserted after whatever you had selected — or *inside* it, if what you had selected was a container.
+**Add a section** creates a new row.
+
+The same panel has two more tabs. **Saved** holds reusable modules; **Templates** holds saved
+layouts. See below.
 
 Modules marked **LIVE** read real competition data. You choose *what* they show; the figures always
 come from the registry itself.
 
 **Remove**: select the module and press the **🗑** button. It goes to the **Trash**, where it stays
 for 30 days — deleting is never immediate and never final.
+
+Deleting an **essential** module — the rankings table, an article body, a tournament bracket — asks
+you to type its name first. That is not a formality: those modules are the reason the page exists,
+and a stray click should not be able to empty a page that thousands of results depend on.
 
 **Duplicate**: the **⧉** button, or `Ctrl+D`.
 
@@ -149,6 +207,29 @@ describing what changed — that note appears in the revision history and is wor
 
 Publishing is all-or-nothing: it either happens completely or not at all.
 
+### What Publish checks first
+
+Before it offers to publish, the dialog re-checks the whole page. Two lists, and they behave
+differently.
+
+**Settings that need attention** stop the publish. These are settings that could not be stored as
+typed — a destination that is not a valid address, a number outside its range. Publishing anyway
+would put the module on the public page with that setting at its default, which is not what anybody
+meant.
+
+**Things worth a look** do not stop anything:
+
+- a visibility rule that can never be true, so the module would never appear at all,
+- an image with no alt text, which makes it invisible to a screen reader,
+- an empty section, which publishes as blank space,
+- an **essential** module you have hidden.
+
+These are legitimate states — an empty section halfway through a redesign is normal — and a warning
+that blocked you would only teach you to ignore warnings.
+
+Every entry in both lists is a **button**. Press it and the page selects that module and scrolls to
+it, so "the third module in row two" never means hunting for the third module in row two.
+
 ---
 
 ## Scheduling
@@ -177,26 +258,96 @@ you restored *from* is still there and the restore itself can be undone.
 
 ---
 
-## Reusable modules and templates
+## Reusable modules
 
 **Save as reusable** (the 💾 button) keeps a module's settings so the same thing can be dropped onto
 other pages — an announcement you want on three pages, a call to action you reuse each season.
 
-**Save as template** keeps a whole row or page layout to start from later.
+Saved modules appear under **Add → Saved**. Inserting one creates a **linked** instance: the
+inspector says so, and shows which other pages carry one.
 
-Both live in **Admin → Site Builder**.
+**Editing the saved module does not republish the pages that use it.** They pick the change up when
+you next publish each of them. That is deliberate — a linked module can sit on a dozen pages, each
+with its own draft, and quietly publishing all of them because you changed a phone number would be
+the single most surprising thing this system could do.
+
+**Detach** turns a linked instance into an ordinary copy. It keeps exactly the settings it had and
+stops following the original.
 
 ---
 
-## Navigation, header and footer
+## Templates
 
-These are edited from **Admin → Site Builder** rather than on the page, because they appear on every
-page.
+A template is a saved **layout** — a starting point, never a link.
 
-You can rename links, reorder them, add and remove them, and choose whether one opens in a new tab.
+**Save as template** offers two scopes when a section is selected:
 
-> **You cannot lock yourself out.** `/staff/site-builder` works regardless of what the published
-> navigation says, so even a completely broken menu leaves the way back open.
+- **This whole page** — every section, to start another page from.
+- **Just this section** — the row you have selected. This is the one you will use most: a standings
+  block with its heading and spacing, a sponsor row, a call to action.
+
+Templates appear under **Add → Templates**. Inserting a **section** template drops its sections in
+after whatever you have selected. Inserting a **page** template replaces the page's layout, and asks
+first.
+
+Either way it goes into the **draft**, so it is undoable and visitors see nothing until you publish.
+Everything a template brings in is a fresh copy: renaming or editing the template later changes
+nothing on any page that started from it.
+
+---
+
+## Navigation, header, footer and theme
+
+These appear on every page, so they are edited from **Admin → Site Builder** rather than on one page
+— under **Navigation & header**, **Footer** and **Theme**.
+
+They are edited exactly like a page: a draft that autosaves, a Publish button, a revision history and
+a Restore. Changing the site navigation is a publish, recorded in the Activity Log like any other.
+
+### Navigation
+
+Each link has:
+
+| Setting | What it does |
+| --- | --- |
+| **Label** | What the link says |
+| **Phone label** | A shorter label used only in the mobile menu. Blank means "use the label" |
+| **Where it goes** | Pick a page from the list, or type an address |
+| **New tab** | For links that leave the site |
+| **Icon** and **Badge** | Optional; a badge is a short word like *New* |
+| **Who sees it** | Everyone, signed in, signed out, staff, or the Owner |
+| **Where it shows** | Both, desktop only, or phone only |
+| **Sub-links** | One level of drop-down menu |
+
+Internal links are chosen from a list of the site's real pages, so they cannot point at a route that
+does not exist. Typed addresses are checked: anything that is not an ordinary web address is refused
+at the point of typing, not discovered later by a visitor.
+
+The **logo** (text or an image), its link, and the header density are on the same page. So is the
+site-wide **banner** — a strip above the header with its own message, link and date window, for
+"registration closes Sunday".
+
+### Footer
+
+Columns of links, the legal line, and the social icons. Columns are added, reordered and removed the
+same way modules are, and each link is validated the same way a navigation link is.
+
+### Theme
+
+Colours, type and spacing for every public page. Each colour shows its **contrast ratio** against the
+surface it sits on, with a plain pass/fail against WCAG AA — so a palette that looks striking and
+reads as grey mush is caught before it publishes rather than after.
+
+The theme is published *underneath* each visitor's own Display Lab settings. Somebody who has chosen
+larger text or a different contrast mode keeps it; the site theme moves everything else.
+
+The admin interface does not use the site theme. Whatever you publish, the editor, the control centre
+and the admin area keep their own colours — so a theme that turns out to be unreadable can always be
+edited back.
+
+> **You cannot lock yourself out.** **Admin** and **Site Builder** are in your account menu and the
+> mobile menu, not in the editable navigation, and `/staff/site-builder` works regardless of what is
+> published. A completely broken menu still leaves the way back open.
 
 ---
 
@@ -219,9 +370,11 @@ Full recovery steps are in [`site-builder-recovery.md`](./site-builder-recovery.
 
 | Key | Action |
 | --- | --- |
+| `Ctrl+K` | The command palette |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` / `Ctrl+Y` | Redo |
 | `Ctrl+D` | Duplicate the selected module |
+| `Ctrl+C` / `Ctrl+V` | Copy and paste a module, across pages and tabs |
 | `Alt+↑` / `Alt+↓` | Move the selected module |
 | `Esc` | Deselect |
 | `Enter` / `Space` | Select the focused module |

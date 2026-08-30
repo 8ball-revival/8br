@@ -1,6 +1,12 @@
 # Site Builder — Architecture
 
-> Status: implemented on `feature/visual-site-builder`. Local development only.
+> Status: implemented on `feature/visual-site-builder`. Local development only — not deployed.
+>
+> **Running it.** `npm run dev:replica` (the dev server against the local live-data replica), then
+> open <http://localhost:3000>. Use `localhost`, not `127.0.0.1`: Next refuses to serve its dev
+> client bootstrap to an origin it does not recognise, and the page then renders but never hydrates
+> — no editor, no controls, no error. `allowedDevOrigins` in `next.config.ts` lists the origins that
+> are accepted; add one there rather than working around it.
 
 ## 1. What this is
 
@@ -42,7 +48,7 @@ panel shows, navigation, theme accents) stop requiring a code change and a deplo
 New tables, all prefixed `site_`. No existing table is altered.
 
 ```
-SitePage            one editable route, or one dynamic template
+SitePage            one editable route, one dynamic template, or one GLOBAL
   ├── SitePageDraft      exactly one mutable working copy per page (autosaved)
   └── SitePageRevision   immutable published snapshots; the newest published one wins
 SiteReusableModule  a module saved for reuse; instances stay synced or are detached
@@ -58,6 +64,17 @@ read as a unit, written as a unit and versioned as a unit, so it is stored as a 
 normalisation would have bought is bought instead by **validating every document server-side against
 the module registry before it is written** — on autosave, on manual save, and again at publish. An
 invalid document cannot reach the database.
+
+**Navigation, footer and theme are pages.** They are `SitePage` rows of kind `GLOBAL`, holding one
+module each. That is the whole reason they get drafts, revision history, rollback and audit for
+nothing — the alternative was a settings table with its own save endpoint, which would have meant a
+second, weaker approval path for the one change that affects every page on the site.
+
+Adding the kind was one additive migration (`ALTER TYPE "SitePageKind" ADD VALUE 'GLOBAL'`).
+
+**Scheduling freezes at schedule time, not at publish time.** A scheduled revision is built and
+validated when it is scheduled, so a later edit to the draft cannot silently change what was
+scheduled, and activation is a pointer move rather than an unattended build-and-validate.
 
 **Optimistic concurrency.** `SitePageDraft.version` increments on every write. A save carries the
 version it was based on; a mismatch is rejected as a conflict the editor surfaces, so two tabs
@@ -93,6 +110,15 @@ ModuleInstance {
 }
 ```
 
+`ModuleInstance` also carries optional `children`, for **container** modules — a stack, a grid, a
+split, a set of tabs. A container declares itself in the registry rather than being recognised by
+name, and renders its children through a `Slot` render prop.
+
+Nesting is capped at four during validation. Nothing this site needs goes deeper than a grid inside a
+split inside a section, and an uncapped tree is a stack overflow waiting for an imported document to
+find it. `findModule` returns a **path** (siblings, ancestors, parent) rather than an index, because
+"the third module" stops being a location once a module can be inside another.
+
 Breakpoints are `desktop` (12 columns), `tablet` (8) and `mobile` (4). Tablet and mobile **inherit**
 from desktop until explicitly overridden, and an override can be cleared back to inherited.
 
@@ -116,6 +142,16 @@ Every module is one `ModuleDefinition`:
 The editor and the public site call the same `Render`. There is no separate preview implementation,
 so a preview cannot disagree with what publishes.
 
+**System modules make the whole site editable.** Each page's real content — the rankings table, the
+tournament list, an article body, a player profile — was extracted verbatim into a component under
+`src/components/system/` and wrapped in a registered module marked `essential`. The page body is
+therefore a module like any other: it can be moved, resized, placed in a column and surrounded by
+other modules, and the code that renders it is the same code that rendered it before.
+
+`essential` costs nothing except a typed confirmation before deletion. That guard exists because
+deleting the rankings table from `/rankings` leaves a page with a heading and nothing else, and the
+person doing it almost certainly meant to delete something adjacent.
+
 **Unknown or invalid modules never break a page.** `renderModuleSafe` handles three failures:
 an unknown `type` renders an admin-visible warning and nothing for the public; a config that fails
 validation renders the module's own fallback; a throw during render is logged server-side and the
@@ -134,7 +170,26 @@ valid revision, and failing that to the code-defined factory layout.
 - URLs are validated (internal path, or an allowlisted scheme); embeds are restricted to an
   allowlist of providers; rich text is sanitised to a fixed tag and attribute set.
 - The builder cannot disable authentication, remove capability checks, or hide
-  `/admin/site-builder`, which is reachable independently of editable navigation.
+  `/staff/site-builder`, which is reachable independently of editable navigation. **Admin** and
+  **Site Builder** are rendered into the account menu and the mobile menu after the published
+  navigation, so no publish can remove them.
+- Nothing a document contains is authority. A revision records the session actor, never a username
+  the document claims; a visibility rule can only hide a module, never reveal one to somebody the
+  server did not already consider entitled to it; and publishing a navigation that links into
+  `/staff` grants nobody anything, because the route gate does not read the document.
+
+### The suites
+
+| Suite | Checks | Needs |
+| --- | --- | --- |
+| `npm run test:site-builder` | 519 | nothing |
+| `npm run test:site-builder:db` | 104 | a disposable `8br_test_*` clone |
+| `npm run test:site-builder:security` | 108 | a disposable `8br_test_*` clone |
+| `npm run test:dev-hydration` | 36 | the dev server |
+| `npm run test:responsive` | 99 | the dev server |
+
+The two database suites assert the target database matches `8br_test_*` **before Prisma is
+imported**, because importing it opens a connection. There is no override.
 
 ## 8. Performance
 
