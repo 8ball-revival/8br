@@ -162,6 +162,11 @@ npm run test:site-builder                            # 537 checks, no database, 
 ```
 
 ```bash
+scripts/db/make-test-clone.sh 8br_test_sched
+DATABASE_URL=<clone> npm run test:site-builder:scheduler # 64 checks, disposable clone only
+```
+
+```bash
 scripts/db/make-test-clone.sh 8br_test_sb
 DATABASE_URL=<clone> npm run test:site-builder:db       # 113 checks, disposable clone only
 ```
@@ -179,7 +184,15 @@ With the dev server running (`npm run dev:replica`):
 ```bash
 npm run test:dev-hydration     # 36 checks: the editor actually mounts and responds
 npm run test:responsive    # 99 checks: nine widths, published and in Edit Mode
-npm run capture:site-builder  # 29 checks, and the screenshots in docs/site-builder-proof/
+npm run capture:site-builder -- --i-accept-local-writes   # 39 checks + the proof screenshots
+```
+
+And the integration suite, which needs nothing running because it starts its own server against
+its own disposable clone:
+
+```bash
+npm run test:site-builder:integration   # 53 checks: the real navigation read path, cache
+                                        # invalidation, rollback, and the cron endpoint's auth
 ```
 
 Both drive a headless Chrome on a **clean profile**. That matters: an everyday browser running a

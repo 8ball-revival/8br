@@ -47,6 +47,15 @@ export interface CaptureJournal {
   takenAt: string
   database: string
   pages: PageSnapshot[]
+  /**
+   * Template ids present before the run.
+   *
+   * The capture creates a template to photograph the zero-instance workflow, and a template it
+   * created is as much a leftover as a revision it published. Recorded as a list of ids so that
+   * only templates the run ADDED are removed — anything that existed first is not the run's to
+   * delete.
+   */
+  templateIds: string[]
 }
 
 function envFile(file: string): Record<string, string> {
@@ -145,7 +154,8 @@ export async function snapshotPages(prisma: PrismaLike, databaseLabel: string): 
     })
   }
 
-  const journal: CaptureJournal = { takenAt: new Date().toISOString(), database: databaseLabel, pages }
+  const templateIds = (await prisma.siteTemplate.findMany({ select: { id: true } })).map((t) => t.id)
+  const journal: CaptureJournal = { takenAt: new Date().toISOString(), database: databaseLabel, pages, templateIds }
   mkdirSync(dirname(JOURNAL), { recursive: true })
   writeFileSync(JOURNAL, JSON.stringify(journal, null, 2))
   return journal
@@ -191,6 +201,21 @@ export async function restorePages(prisma: PrismaLike, journal: CaptureJournal):
     }
     notes.push(`${snap.key}: published revision restored, ${added.length} revision${added.length === 1 ? '' : 's'} added by the run removed`)
   }
+
+  /*
+    Templates the run created.
+
+    Deleting cascades to their revisions, which is what the schema says should happen — a template's
+    history belongs to the template. Templates that existed before the run are never touched.
+  */
+  const before = new Set(journal.templateIds ?? [])
+  const now = await prisma.siteTemplate.findMany({ select: { id: true, name: true } })
+  const addedTemplates = now.filter((t) => !before.has(t.id))
+  if (addedTemplates.length) {
+    await prisma.siteTemplate.deleteMany({ where: { id: { in: addedTemplates.map((t) => t.id) } } })
+    notes.push(`removed ${addedTemplates.length} template${addedTemplates.length === 1 ? '' : 's'} the run created: ${addedTemplates.map((t) => t.name).join(', ')}`)
+  }
+
   return notes
 }
 
@@ -223,6 +248,10 @@ export function clearJournal(): void {
 
 /** The narrow slice of the Prisma client this module uses, so it need not import the real one. */
 interface PrismaLike {
+  siteTemplate: {
+    findMany: (args: unknown) => Promise<{ id: string; name?: string }[]>
+    deleteMany: (args: unknown) => Promise<unknown>
+  }
   sitePage: {
     findUnique: (args: unknown) => Promise<{
       id: string

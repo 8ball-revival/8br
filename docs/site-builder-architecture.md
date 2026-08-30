@@ -183,11 +183,17 @@ valid revision, and failing that to the code-defined factory layout.
 | Suite | Checks | Needs |
 | --- | --- | --- |
 | `npm run test:site-builder` | 537 | nothing |
-| `npm run test:site-builder:db` | 113 | a disposable `8br_test_*` clone |
+| `npm run test:site-builder:db` | 192 | a disposable `8br_test_*` clone |
 | `npm run test:site-builder:security` | 108 | a disposable `8br_test_*` clone |
+| `npm run test:site-builder:scheduler` | 64 | a disposable `8br_test_*` clone |
+| `npm run test:site-builder:integration` | 53 | nothing — it starts its own server and clone |
 | `npm run test:dev-hydration` | 36 | the dev server |
-| `npm run capture:site-builder` | 29 | the dev server (also writes the proof screenshots) |
 | `npm run test:responsive` | 99 | the dev server |
+| `npm run capture:site-builder` | 39 | the dev server, and `--i-accept-local-writes` |
+
+**992 checks.** The capture and the integration suite both write, and both restore what they wrote;
+the capture refuses a non-local host outright. See `site-builder-scheduling.md` for the scheduler and
+`build-warnings.md` for the one thing `npm run build` reports that is not ours.
 
 The two database suites assert the target database matches `8br_test_*` **before Prisma is
 imported**, because importing it opens a connection. There is no override.
