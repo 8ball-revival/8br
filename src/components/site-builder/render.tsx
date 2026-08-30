@@ -171,13 +171,17 @@ function SafeModule({ instance, editing, context }: { instance: ModuleInstance; 
     console.error('[site-builder] invalid module config', {
       moduleId: instance.id, type: instance.type, issues: result.issues,
     })
-    if (!editing) return null
-    return (
-      <FallbackNotice
-        title={`${def.name} — settings need attention`}
-        detail={result.issues.slice(0, 3).map((i) => `${i.path}: ${i.message}`).join(' · ')}
-      />
-    )
+    // An editing administrator is told, so the problem is fixable. A public visitor gets the module
+    // rendered from its SAFE value — every failing field sits at its default — because a panel with
+    // one wrong setting is a better page than a hole where the panel was.
+    if (editing) {
+      return (
+        <FallbackNotice
+          title={`${def.name} — settings need attention`}
+          detail={result.issues.slice(0, 3).map((i) => `${i.path}: ${i.message}`).join(' · ')}
+        />
+      )
+    }
   }
 
   const Render = def.Render as React.ComponentType<{

@@ -1,0 +1,11 @@
+{
+  "//": "Used by the tsx-based verification scripts only. The application build uses tsconfig.json and never sees the shim below.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@payload-config": ["./src/payload.config.ts"],
+      "server-only": ["./scripts/shims/server-only.ts"]
+    }
+  }
+}

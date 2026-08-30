@@ -1,7 +1,7 @@
 {
   "name": "8-ball-registry",
   "version": "0.1.0",
-  "description": "8 Ball Registry (8BR) — a standalone tournament platform for competitive cue sports.",
+  "description": "8 Ball Registry (8BR) \u2014 a standalone tournament platform for competitive cue sports.",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
@@ -30,7 +30,9 @@
     "archive:apply-reviews": "node scripts/archive/apply-reviews.mjs",
     "archive:review-packet": "node scripts/archive/packets.mjs",
     "archive:review-test": "node scripts/archive/test-decisions.mjs",
-    "archive:import": "node scripts/archive/import.mjs"
+    "archive:import": "node scripts/archive/import.mjs",
+    "test:site-builder": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder.mts",
+    "test:site-builder:db": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-db.mts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",

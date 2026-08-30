@@ -245,7 +245,16 @@ export function validateDocument(input: unknown): DocumentValidation {
         id: mid,
         type,
         configVersion: def.configVersion,
-        config: result.ok ? result.value as Record<string, unknown> : upgraded,
+        /*
+          ALWAYS the validated value, including when validation failed.
+
+          This used to fall back to the raw config on failure, which meant a module with one bad
+          field had its ENTIRE untrusted config written to the database — and a `javascript:` href
+          in a button reached storage that way. `validateConfig` now returns a usable value in both
+          cases, with failing fields at their defaults, so there is no longer a branch where the
+          unsafe value is the one that gets kept.
+        */
+        config: result.value as Record<string, unknown>,
         layout: normaliseLayout(m.layout, def.layoutDefaults),
         style: normaliseStyle(m.style),
         visibility: normaliseVisibility(m.visibility),

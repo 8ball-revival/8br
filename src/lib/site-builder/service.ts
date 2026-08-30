@@ -37,7 +37,14 @@ export interface PublishedLayout {
   pageId: string | null
 }
 
-async function readPublished(key: string): Promise<PublishedLayout> {
+/**
+ * The uncached read.
+ *
+ * Exported because `unstable_cache` throws outside a request context, and there are legitimate
+ * callers that are not requests: the verification suite, a script, a health check that must see the
+ * database rather than a cached answer. The cached wrapper below is what pages use.
+ */
+export async function readPublishedLayout(key: string): Promise<PublishedLayout> {
   const page = await prisma.sitePage.findUnique({
     where: { key },
     include: { publishedRevision: true },
@@ -90,7 +97,7 @@ async function readPublished(key: string): Promise<PublishedLayout> {
  * more here than a narrower key.
  */
 export const getPublishedLayout = unstable_cache(
-  readPublished,
+  readPublishedLayout,
   ['site-builder-published-v1'],
   { revalidate: 300, tags: [SITE_BUILDER_TAG] },
 )
@@ -100,7 +107,7 @@ export async function getDraft(key: string): Promise<{ document: LayoutDocument;
   const page = await prisma.sitePage.findUnique({ where: { key }, include: { draft: true } })
   if (!page) return null
   if (!page.draft) {
-    const published = await readPublished(key)
+    const published = await readPublishedLayout(key)
     return { document: published.document, version: 0, dirty: false }
   }
   const check = validateDocument(page.draft.document)
@@ -334,6 +341,26 @@ export async function discardDraft(key: string, actor: Actor): Promise<void> {
 // ── Cache ───────────────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Cache invalidation that tolerates having no cache.
+ *
+ * `revalidateTag` and `revalidatePath` throw outside a request context ("static generation store
+ * missing"). That is not a hypothetical: `bootstrap` is meant to be runnable from a script and from
+ * the verification suite, neither of which is inside a request — and there, correctly, there is no
+ * cache to invalidate. Throwing would make the whole operation fail after it had already committed,
+ * which is the worst possible outcome for a function whose entire job is to be safely re-runnable.
+ *
+ * Deliberately silent rather than logged: outside a request this is the expected case, and a warning
+ * on every script run trains people to ignore warnings.
+ */
+function invalidate(fn: () => void): void {
+  try {
+    fn()
+  } catch {
+    // No request context, so nothing is cached and nothing needs clearing.
+  }
+}
+
+/**
  * Revalidate what a publish actually affects.
  *
  * A static page revalidates its own path. A TEMPLATE governs an unbounded set of routes, so it
@@ -341,12 +368,12 @@ export async function discardDraft(key: string, actor: Actor): Promise<void> {
  * revalidating each, which is slower and still wrong the moment a new one is created.
  */
 async function revalidateFor(key: string): Promise<void> {
-  revalidateTag(SITE_BUILDER_TAG, 'max')
+  invalidate(() => revalidateTag(SITE_BUILDER_TAG, 'max'))
   if (key.startsWith('/')) {
-    revalidatePath(key)
+    invalidate(() => revalidatePath(key))
   } else {
     const prefix = { season: '/seasons', tournament: '/tournaments', article: '/the-break', player: '/players' }[key]
-    if (prefix) revalidatePath(`${prefix}/[id]`, 'page')
+    if (prefix) invalidate(() => revalidatePath(`${prefix}/[id]`, 'page'))
   }
 }
 
@@ -421,6 +448,6 @@ export async function bootstrap(actor: Actor): Promise<{ created: string[]; skip
     created.push(factory.key)
   }
 
-  if (created.length) revalidateTag(SITE_BUILDER_TAG, 'max')
+  if (created.length) invalidate(() => revalidateTag(SITE_BUILDER_TAG, 'max'))
   return { created, skipped }
 }

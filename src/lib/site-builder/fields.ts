@@ -90,9 +90,24 @@ export interface ValidationIssue {
   message: string
 }
 
-export type ValidationResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; issues: ValidationIssue[] }
+/**
+ * A validation result ALWAYS carries a usable value.
+ *
+ * The obvious shape is a discriminated union — a value on success, issues on failure — and it was
+ * that first. The consequence was a security bug: the document validator, having nothing safe to
+ * store for a failing module, stored the RAW config instead, and a `javascript:` href written into
+ * a button reached the database. It was caught by the verification suite rather than by review.
+ *
+ * So a failing field falls back to its DEFAULT and the issue is reported alongside. Callers that
+ * must refuse — publishing — check `ok`. Callers that must not break — rendering, autosave — use
+ * `value`, which is always safe. There is no longer a path where "this did not validate" and
+ * "here is what to store" disagree.
+ */
+export interface ValidationResult<T> {
+  ok: boolean
+  value: T
+  issues: ValidationIssue[]
+}
 
 /**
  * Validate and COERCE an untrusted config against a field set.
@@ -126,15 +141,26 @@ export function validateConfig<F extends FieldSet>(
       continue
     }
     const r = validateField(f, raw, path)
-    if (r.ok) out[key] = r.value
-    else issues.push(...r.issues)
+    /*
+      Never the rejected value; the default instead — that is what keeps an unsafe href out of the
+      database when the surrounding module fails to validate.
+
+      The exception is a field that failed but still produced something usable, which is what a LIST
+      does when one of its items is bad: the other items were coerced successfully and are returned.
+      Discarding them would mean one wrong number in a marquee's third panel silently emptied the
+      whole marquee. `undefined` is the signal that there is nothing salvageable.
+    */
+    out[key] = r.value !== undefined
+      ? r.value
+      : (f.kind === 'list' || f.kind === 'multiSelect' ? structuredClone(f.default) : f.default)
+    if (!r.ok) issues.push(...r.issues)
   }
 
-  return issues.length ? { ok: false, issues } : { ok: true, value: out as Infer<F> }
+  return { ok: issues.length === 0, value: out as Infer<F>, issues }
 }
 
 function validateField(f: Field, raw: unknown, path: string): ValidationResult<unknown> {
-  const fail = (message: string): ValidationResult<unknown> => ({ ok: false, issues: [{ path, message }] })
+  const fail = (message: string): ValidationResult<unknown> => ({ ok: false, value: undefined, issues: [{ path, message }] })
 
   switch (f.kind) {
     case 'text':
@@ -145,7 +171,7 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
       const cleaned = f.kind === 'richText' ? sanitiseRichText(raw) : raw.replace(/[<>]/g, '')
       const max = f.maxLength ?? (f.kind === 'richText' ? 20000 : 2000)
       if (cleaned.length > max) return fail(`Too long (limit ${max} characters).`)
-      return { ok: true, value: cleaned }
+      return { ok: true, value: cleaned, issues: [] }
     }
 
     case 'number': {
@@ -153,23 +179,23 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
       if (!Number.isFinite(n)) return fail('Expected a number.')
       if (f.min !== undefined && n < f.min) return fail(`Must be at least ${f.min}.`)
       if (f.max !== undefined && n > f.max) return fail(`Must be at most ${f.max}.`)
-      return { ok: true, value: n }
+      return { ok: true, value: n, issues: [] }
     }
 
     case 'boolean':
-      return { ok: true, value: raw === true || raw === 'true' }
+      return { ok: true, value: raw === true || raw === 'true', issues: [] }
 
     case 'select': {
       const v = String(raw)
       if (!f.options.some((o) => o.value === v)) return fail(`"${v}" is not one of the allowed values.`)
-      return { ok: true, value: v }
+      return { ok: true, value: v, issues: [] }
     }
 
     case 'multiSelect': {
       if (!Array.isArray(raw)) return fail('Expected a list.')
       const allowed = new Set(f.options.map((o) => o.value))
       const picked = raw.map(String).filter((v) => allowed.has(v))
-      return { ok: true, value: picked }
+      return { ok: true, value: picked, issues: [] }
     }
 
     case 'color': {
@@ -179,23 +205,23 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
       if (!/^#[0-9a-fA-F]{3,8}$/.test(v) && !/^var\(--[a-z0-9-]+\)$/.test(v)) {
         return fail('Expected a hex colour or a design token.')
       }
-      return { ok: true, value: v }
+      return { ok: true, value: v, issues: [] }
     }
 
     case 'media': {
-      if (raw === '' ) return { ok: true, value: null }
+      if (raw === '' ) return { ok: true, value: null, issues: [] }
       const n = typeof raw === 'number' ? raw : Number(raw)
       if (!Number.isInteger(n) || n <= 0) return fail('Expected a media item.')
-      return { ok: true, value: n }
+      return { ok: true, value: n, issues: [] }
     }
 
     case 'url': {
       const v = String(raw).trim()
-      if (v === '') return { ok: true, value: '' }
+      if (v === '') return { ok: true, value: '', issues: [] }
       if (!isSafeUrl(v, { internalOnly: f.internalOnly })) {
         return fail(f.internalOnly ? 'Expected a path on this site.' : 'That link is not allowed.')
       }
-      return { ok: true, value: v }
+      return { ok: true, value: v, issues: [] }
     }
 
     case 'list': {
@@ -205,10 +231,12 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
       const items: unknown[] = []
       raw.forEach((item, i) => {
         const r = validateConfig(f.of, item, `${path}.${i}`)
-        if (r.ok) items.push(r.value)
-        else issues.push(...r.issues)
+        // The coerced item is kept either way: one bad field in the third panel of a marquee must
+        // not silently discard the other two.
+        items.push(r.value)
+        if (!r.ok) issues.push(...r.issues)
       })
-      return issues.length ? { ok: false, issues } : { ok: true, value: items }
+      return { ok: issues.length === 0, value: items, issues }
     }
   }
 }
