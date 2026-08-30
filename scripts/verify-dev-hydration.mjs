@@ -175,7 +175,7 @@ try {
   r.check('no uncaught errors in Edit Mode', browser.events.errors.length === 0, browser.events.errors[0]?.slice(0, 160))
   r.check('no hydration mismatches in Edit Mode', browser.events.hydrationWarnings.length === 0, browser.events.hydrationWarnings[0]?.slice(0, 160))
 } finally {
-  browser.close()
+  await browser.close()
 }
 
 process.exit(r.finish() ? 1 : 0)

@@ -13,12 +13,51 @@
  * ── What it writes ───────────────────────────────────────────────────────────────────────────────
  * PNGs into docs/site-builder-proof/, numbered in the order a reviewer should read them.
  *
- * Run: npm run dev:replica, then npm run capture:site-builder
+ * ── And what it writes to the DATABASE ───────────────────────────────────────────────────────────
+ * It publishes. That is what makes it proof rather than a mock-up. So it runs behind a guard: the
+ * host must be local, the operator must acknowledge that builder rows will be written, and the exact
+ * rows it touches are snapshotted first and restored in a `finally` — including after a failure, and
+ * including after a run that was killed outright, which the next invocation finishes for it.
+ *
+ * It touches ONE page. Nothing else is snapshotted, because restoring rows nobody wrote would be its
+ * own way of losing work, and competition data is never involved at all.
+ *
+ * Run: npm run dev:replica, then npm run capture:site-builder -- --i-accept-local-writes
  */
 import { launch, reporter, sleep } from './browser/driver.mjs'
+import {
+  assertCaptureAllowed, clearJournal, recoverInterruptedRun, restorePages, snapshotPages,
+  TOUCHED_PAGE_KEYS, type CaptureJournal,
+} from './capture-guard.mts'
 
+const JOURNAL_HINT = 'The snapshot is in .fingerprints/capture-journal.json; the next run will finish the restore.'
 const OUT = 'docs/site-builder-proof'
 const r = reporter('proof')
+
+// ── The guard, before anything is launched ──────────────────────────────────────────────────────
+let allowed: { databaseUrl: string; label: string }
+try {
+  allowed = assertCaptureAllowed()
+} catch (err) {
+  console.error(`
+  ${err instanceof Error ? err.message : String(err)}
+`)
+  process.exit(1)
+}
+
+process.env.DATABASE_URL = allowed.databaseUrl
+const { prisma } = await import('../src/lib/prisma')
+
+console.log(`
+  database:        ${allowed.label}`)
+console.log(`  pages it writes: ${TOUCHED_PAGE_KEYS.join(', ')}`)
+
+for (const note of await recoverInterruptedRun(prisma, allowed.label)) console.log(`  ${note}`)
+
+const journal: CaptureJournal = await snapshotPages(prisma, allowed.label)
+console.log(`  snapshotted:     ${journal.pages.map((p) => `${p.key} (${p.revisionNumbers.length} revisions)`).join(', ') || 'nothing'}
+`)
+
 const browser = await launch()
 
 /** Click the first button whose text matches, and say whether one was found. */
@@ -366,7 +405,24 @@ try {
   r.check('and Season 16426 still shows Kevin as its champion', season.kevin === true)
   await shoot('16-template-applied', 'Season 16426 as a visitor sees it, through the template')
 } finally {
-  browser.close()
+  await browser.close()
+
+  /*
+    Put the page back, whatever happened above.
+
+    This runs after a pass, after a failed check, and after a thrown exception. The journal on disk
+    covers the one case it cannot — a process killed outright — by having the next run do it.
+  */
+  console.log('')
+  console.log('  restoring what this run changed:')
+  try {
+    for (const note of await restorePages(prisma, journal)) console.log(`    ${note}`)
+    clearJournal()
+  } catch (err) {
+    console.error(`    RESTORE FAILED: ${err instanceof Error ? err.message : String(err)}`)
+    console.error(`    ${JOURNAL_HINT}`)
+  }
+  await prisma.$disconnect().catch(() => {})
 }
 
 process.exit(r.finish() ? 1 : 0)

@@ -46,7 +46,15 @@ function secretMatches(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b)
 }
 
-export async function GET(req: Request): Promise<NextResponse> {
+/**
+ * The three gates, in one place.
+ *
+ * Returns a response when the caller may not proceed, and nothing when they may. Written out here
+ * rather than repeated because the DELETE below needs exactly the same gates: a way to remove
+ * somebody's sessions is not a smaller privilege than a way to create one, and two copies of an
+ * authorisation check is how one of them ends up a gate short.
+ */
+async function openGate(url: URL): Promise<NextResponse | null> {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 })
   }
@@ -54,10 +62,24 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (!expected) {
     return NextResponse.json({ error: 'Not enabled.' }, { status: 404 })
   }
-  const provided = new URL(req.url).searchParams.get('secret') ?? ''
+  const provided = url.searchParams.get('secret') ?? ''
   if (!secretMatches(provided, expected)) {
     return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
   }
+  return null
+}
+
+/**
+ * The marker every session this route issues carries.
+ *
+ * A valid UUID prefix, so the value is still a well-formed session id, and unmistakable, so a sweep
+ * can never catch a real one. Eight characters is a whole UUID group: `e2e5e551-…`.
+ */
+export const E2E_SESSION_PREFIX = 'e2e5e551'
+
+export async function GET(req: Request): Promise<NextResponse> {
+  const gate = await openGate(new URL(req.url))
+  if (gate) return gate
 
   const payload = await getPayload({ config })
   const collection = payload.collections.users
@@ -85,15 +107,46 @@ export async function GET(req: Request): Promise<NextResponse> {
     session is rejected — which is the same protection a real session has, and is what lets the suite
     revoke this one by deleting the row.
   */
-  const sid = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + (collection.config.auth.tokenExpiration ?? 7200) * 1000)
-  const existing = Array.isArray((user as { sessions?: unknown[] }).sessions)
-    ? (user as { sessions: unknown[] }).sessions
-    : []
+  /*
+    A recognisable identifier, so these sessions can always be found again.
+
+    A verification run that crashes, is interrupted, or has its browser killed never reaches its own
+    cleanup, and the session it created stays in the table indefinitely. Thirty-three rows where
+    there had been nine is how that ends up being discovered — as a puzzle, weeks later, with no way
+    to tell a test's session from somebody's real one.
+
+    The prefix removes the puzzle. Every session this route issues starts with it; nothing else in
+    the application produces one; and it is still a unique identifier, because everything after the
+    prefix is random. Sessions can therefore be swept by pattern rather than by an audit of
+    timestamps, and a crashed run cleans up after itself on the NEXT run rather than never.
+  */
+  const sid = `${E2E_SESSION_PREFIX}${crypto.randomUUID().slice(E2E_SESSION_PREFIX.length)}`
+  /*
+    One instant for both timestamps.
+
+    `createdAt` and `expiresAt` were computed from two separate `Date.now()` calls, so they
+    occasionally landed a millisecond apart — which showed up later as a session whose lifetime was
+    999 999 999 rather than a round number, and made it fractionally harder to tell this route's
+    sessions from a real sign-in. Taking the instant once removes the ambiguity at the source.
+  */
+  const issuedAtDate = new Date()
+  const expiresAt = new Date(issuedAtDate.getTime() + (collection.config.auth.tokenExpiration ?? 7200) * 1000)
+  const existing = (Array.isArray((user as { sessions?: { id?: string }[] }).sessions)
+    ? (user as { sessions: { id?: string }[] }).sessions
+    : [])
+    /*
+      Every earlier session from THIS route is dropped as the new one is created.
+
+      Self-healing: whatever the last run left behind goes now, whether or not it ended tidily. Only
+      sessions carrying the prefix are touched — a real sign-in on this machine is not this route's
+      business and is left exactly alone.
+    */
+    .filter((session) => !String(session?.id ?? '').startsWith(E2E_SESSION_PREFIX))
+
   await payload.update({
     collection: 'users',
     id: user.id,
-    data: { sessions: [...existing, { id: sid, createdAt: new Date().toISOString(), expiresAt: expiresAt.toISOString() }] } as never,
+    data: { sessions: [...existing, { id: sid, createdAt: issuedAtDate.toISOString(), expiresAt: expiresAt.toISOString() }] } as never,
     overrideAccess: true,
     // No hooks: this is not a real account change and must not fire anything that treats it as one.
     context: { skipAudit: true },
@@ -134,4 +187,64 @@ export async function GET(req: Request): Promise<NextResponse> {
     expires: new Date(exp * 1000),
   })
   return res
+}
+
+/**
+ * Revoke the sessions this route created.
+ *
+ * Called by a verification suite when it finishes, successfully or not. It removes ONLY sessions
+ * carrying the marker prefix, so it cannot log anybody out of anything they did themselves — and it
+ * needs the same three gates the sign-in needs, because a way to remove somebody's sessions is not
+ * a smaller privilege than a way to create one.
+ *
+ * `?all=1` sweeps every marked session on the account rather than one; that is what a suite calls
+ * from its `finally`, and what clears up after a run that never got there.
+ */
+export async function DELETE(req: Request): Promise<NextResponse> {
+  const url = new URL(req.url)
+  const gate = await openGate(url)
+  if (gate) return gate
+
+  const { getPayload } = await import('payload')
+  const config = (await import('@payload-config')).default
+  const payload = await getPayload({ config })
+
+  const email = process.env.SITE_BUILDER_E2E_EMAIL
+  if (!email) return NextResponse.json({ error: 'No account is configured.' }, { status: 400 })
+
+  const found = await payload.find({
+    collection: 'users',
+    where: { email: { equals: email } },
+    limit: 1,
+    overrideAccess: true,
+    depth: 0,
+  })
+  const user = found.docs[0]
+  if (!user) return NextResponse.json({ error: 'That account does not exist.' }, { status: 404 })
+
+  const sessions = Array.isArray((user as { sessions?: { id?: string }[] }).sessions)
+    ? (user as { sessions: { id?: string }[] }).sessions
+    : []
+  const sid = url.searchParams.get('sid')
+  const sweepAll = url.searchParams.get('all') === '1'
+
+  const keep = sessions.filter((session) => {
+    const id = String(session?.id ?? '')
+    if (!id.startsWith(E2E_SESSION_PREFIX)) return true   // never ours; never touched
+    if (sweepAll) return false
+    return sid ? id !== sid : true
+  })
+  const removed = sessions.length - keep.length
+
+  if (removed > 0) {
+    await payload.update({
+      collection: 'users',
+      id: user.id,
+      data: { sessions: keep } as never,
+      overrideAccess: true,
+      context: { skipAudit: true },
+    })
+  }
+
+  return NextResponse.json({ ok: true, removed, remaining: keep.length })
 }

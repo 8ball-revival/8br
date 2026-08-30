@@ -786,6 +786,154 @@ eq('and adds nothing for a visitor', ensureRecoveryLinks([], guestViewer).length
 
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
+section('The capture suite’s guard, snapshot and restore')
+
+/*
+  The screenshot capture publishes — that is what makes it proof rather than a mock-up — so it is the
+  one verification script that mutates a database somebody cares about. Everything below is the
+  machinery that makes that safe, and it is checked here rather than trusted, because a restore that
+  quietly does not work is worse than no restore at all: it looks like the page was put back.
+*/
+const {
+  assertCaptureAllowed, snapshotPages, restorePages, recoverInterruptedRun, clearJournal, JOURNAL,
+} = await import('../scripts/capture-guard.mts')
+const { existsSync, readFileSync, writeFileSync } = await import('node:fs')
+
+const realUrl = process.env.DATABASE_URL
+const realAck = process.env.SB_CAPTURE_ACKNOWLEDGE
+
+/** Run something with a pretend environment, and always put the real one back. */
+const withEnv = <T>(url: string | undefined, ack: string | undefined, fn: () => T): T => {
+  if (url === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = url
+  if (ack === undefined) delete process.env.SB_CAPTURE_ACKNOWLEDGE; else process.env.SB_CAPTURE_ACKNOWLEDGE = ack
+  try {
+    return fn()
+  } finally {
+    if (realUrl === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = realUrl
+    if (realAck === undefined) delete process.env.SB_CAPTURE_ACKNOWLEDGE; else process.env.SB_CAPTURE_ACKNOWLEDGE = realAck
+  }
+}
+
+const refuses = (url: string | undefined, ack: string | undefined): string => {
+  try {
+    withEnv(url, ack, () => assertCaptureAllowed())
+    return ''
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err)
+  }
+}
+
+const ACK = 'i-accept-local-writes'
+check('a remote host is refused',
+  /not local/i.test(refuses('postgresql://u:p@db.example.com:5432/anything', ACK)))
+check('a managed host is refused even with the acknowledgement',
+  /not local/i.test(refuses('postgresql://u:p@ep-x.aws.neon.tech/neondb', ACK)))
+check('a local host with a production-looking name is refused',
+  /does not look disposable/i.test(refuses('postgresql://u:p@127.0.0.1:5432/8br_production', ACK)))
+check('and one named for Neon or Vercel is too',
+  /does not look disposable/i.test(refuses('postgresql://u:p@localhost:5432/neondb', ACK)))
+check('a local database with no acknowledgement is refused',
+  /--i-accept-local-writes/i.test(refuses('postgresql://u:p@127.0.0.1:5432/8br_dev_copy', undefined)))
+check('a wrong acknowledgement does not count',
+  /--i-accept-local-writes/i.test(refuses('postgresql://u:p@127.0.0.1:5432/8br_dev_copy', 'yes')))
+/*
+  With no DATABASE_URL set, the guard reads `.env.replica` — which is the whole point, because that
+  is how the capture is normally run. What it must NOT do is skip the host check on that path, so
+  what is asserted is that the fallback still goes through the same gate and still names a local
+  database rather than being waved through.
+*/
+const fallback = (() => {
+  try { return withEnv(undefined, ACK, () => assertCaptureAllowed()) } catch (err) { return err instanceof Error ? err.message : String(err) }
+})()
+check('with no DATABASE_URL the guard falls back to the development one',
+  typeof fallback === 'object' && /127\.0\.0\.1|localhost/.test(fallback.label), JSON.stringify(fallback))
+check('and that fallback is still a local database',
+  typeof fallback === 'object' && !/neon|vercel|amazonaws/i.test(fallback.label), JSON.stringify(fallback))
+check('something that is not a URL is refused',
+  /could not be read as a URL/i.test(refuses('not-a-url', ACK)))
+
+// And the one case that must be allowed, or the capture cannot run at all.
+let allowed: { label: string } | null = null
+try {
+  allowed = withEnv('postgresql://u:p@127.0.0.1:55432/8br_test_capture', ACK, () => assertCaptureAllowed())
+} catch { /* reported below */ }
+check('a local, disposable-looking database with the acknowledgement is allowed', !!allowed)
+eq('and it says which database it is about to write to', allowed?.label, '8br_test_capture on 127.0.0.1')
+
+// ── Snapshot and restore ────────────────────────────────────────────────────────────────────────
+const journalBefore = await snapshotPages(prisma, 'suite')
+const homeSnapshot = journalBefore.pages.find((p) => p.key === '/')!
+check('the snapshot captures the page the capture writes to', !!homeSnapshot)
+check('including its published revision', homeSnapshot.publishedRevisionId !== undefined)
+check('and every revision number it had', homeSnapshot.revisionNumbers.length > 0)
+check('and it is written to disk, so a killed run can be finished later', existsSync(JOURNAL))
+
+const beforePublished = (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId
+const beforeRevisions = await prisma.sitePageRevision.count({ where: { page: { key: KEY } } })
+
+// Now do to the page roughly what the capture does: edit it and publish, twice.
+for (const label of ['capture-probe-one', 'capture-probe-two']) {
+  const d = (await getDraft(KEY))!
+  await saveDraft(KEY, insertModule(d.document, d.document.sections[0].id, createInstance('content.heading', { id: label })), d.version, actor)
+  await publish(KEY, actor, label)
+}
+const afterPublished = (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId
+check('the probe publishes moved the page', afterPublished !== beforePublished)
+eq('and added two revisions', await prisma.sitePageRevision.count({ where: { page: { key: KEY } } }), beforeRevisions + 2)
+
+const notes = await restorePages(prisma, journalBefore)
+check('the restore reports what it did', notes.length > 0, notes.join('; '))
+eq('the page points at the revision it did before',
+  (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId, beforePublished)
+eq('and the revisions the run added are gone',
+  await prisma.sitePageRevision.count({ where: { page: { key: KEY } } }), beforeRevisions)
+check('the restored page still renders', (await readPublishedLayout(KEY)).document.sections.length > 0)
+check('and none of the probe content survives',
+  !JSON.stringify((await readPublishedLayout(KEY)).document).includes('capture-probe'))
+
+/*
+  ── A run that was killed outright ─────────────────────────────────────────────────────────────
+
+  No `finally` runs when a process is killed, so the journal on disk is the only thing left. The
+  next invocation reads it and finishes the job — which is the difference between "the homepage is
+  restored" and "the homepage is restored unless something went badly wrong", and the second is not
+  a guarantee worth having.
+*/
+const interrupted = await snapshotPages(prisma, 'suite')
+const publishedBeforeKill = (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId
+const revisionsBeforeKill = await prisma.sitePageRevision.count({ where: { page: { key: KEY } } })
+
+const killedDraft = (await getDraft(KEY))!
+await saveDraft(KEY, insertModule(killedDraft.document, killedDraft.document.sections[0].id, createInstance('content.heading', { id: 'killed-run-probe' })), killedDraft.version, actor)
+await publish(KEY, actor, 'a run that never cleaned up')
+check('the killed run left the page changed',
+  (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId !== publishedBeforeKill)
+check('and its journal is still on disk', existsSync(JOURNAL))
+
+const recoveredNotes = await recoverInterruptedRun(prisma, 'suite')
+check('the next run recovers it', recoveredNotes.length > 0, recoveredNotes.join(' | '))
+eq('the page is back where it was',
+  (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId, publishedBeforeKill)
+eq('with no revisions left over',
+  await prisma.sitePageRevision.count({ where: { page: { key: KEY } } }), revisionsBeforeKill)
+check('and the journal is cleared, so it is not recovered twice', !existsSync(JOURNAL))
+void interrupted
+
+// A journal from a DIFFERENT database is left alone rather than applied to this one.
+writeFileSync(JOURNAL, JSON.stringify({ takenAt: new Date().toISOString(), database: 'somewhere else', pages: [] }))
+const foreign = await recoverInterruptedRun(prisma, 'suite')
+check('a journal from another database is not applied', /different database/i.test(foreign.join(' ')), foreign.join(' '))
+check('and is left where it is', existsSync(JOURNAL))
+clearJournal()
+
+// An unreadable journal is discarded rather than crashing the next run.
+writeFileSync(JOURNAL, 'this is not json')
+const broken = await recoverInterruptedRun(prisma, 'suite')
+check('an unreadable journal is discarded', /discarded/i.test(broken.join(' ')), broken.join(' '))
+check('and does not stop the run', !existsSync(JOURNAL))
+void readFileSync
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
 section('Competition data untouched')
 
 // The builder is a presentation layer. Nothing it does may alter the record.

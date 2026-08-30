@@ -36,10 +36,11 @@
     "site-builder:bootstrap": "tsx --tsconfig tsconfig.scripts.json scripts/site-builder-bootstrap.mts",
     "test:dev-hydration": "node scripts/verify-dev-hydration.mjs",
     "test:responsive": "node scripts/verify-responsive.mjs",
-    "capture:site-builder": "node scripts/capture-site-builder-proof.mjs",
+    "capture:site-builder": "tsx --tsconfig tsconfig.scripts.json scripts/capture-site-builder-proof.mts",
     "test:site-builder:security": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-security.mts",
     "test:site-builder:scheduler": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-scheduler.mts",
-    "test:site-builder:integration": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-integration.mts"
+    "test:site-builder:integration": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-integration.mts",
+    "cleanup:verification-sessions": "tsx --tsconfig tsconfig.scripts.json scripts/cleanup-verification-sessions.mts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",

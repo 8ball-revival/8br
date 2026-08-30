@@ -77,6 +77,9 @@ export async function launch({ port = 9500 + Math.floor(Math.random() * 400) } =
   await cdp.send('Network.enable')
   await cdp.send('Log.enable')
 
+  /** Set once a session has been created, so `close` knows whether there is anything to revoke. */
+  let signedIn = false
+
   const events = { console: [], errors: [], failedRequests: [], hydrationWarnings: [] }
   cdp.on((m) => {
     if (m.method === 'Runtime.consoleAPICalled') {
@@ -188,10 +191,55 @@ export async function launch({ port = 9500 + Math.floor(Math.random() * 400) } =
       await this.goto(`/dev-e2e-session?secret=${encodeURIComponent(secret)}`, 1500)
       const body = await this.eval('document.body.innerText.slice(0, 200)')
       if (!/"ok"\s*:\s*true/.test(String(body))) throw new Error(`Sign-in failed: ${String(body).slice(0, 160)}`)
+      signedIn = true
       return true
     },
-    close() {
+    /**
+     * Remove the sessions this suite created.
+     *
+     * Called from `close`, which every suite calls in a `finally`, so it runs after a pass, after a
+     * failure and after a thrown exception. It sweeps by the marker prefix rather than by the one id
+     * it knows about, which is what also clears up after a run that was killed before it could.
+     *
+     * Only marked sessions are touched. A real sign-in on this machine is somebody's, not the
+     * suite's, and is left alone.
+     */
+    async revokeOwnerSessions() {
+      const secret = process.env.SITE_BUILDER_E2E_SECRET
+      if (!secret || !signedIn) return { removed: 0 }
+      try {
+        const res = await fetch(`${BASE}/dev-e2e-session?secret=${encodeURIComponent(secret)}&all=1`, { method: 'DELETE' })
+        return await res.json()
+      } catch {
+        // Never throws. Cleanup that can fail a passing suite is worse than cleanup that is late.
+        return { removed: 0 }
+      }
+    },
+    /**
+     * Shut down, revoking whatever this suite created.
+     *
+     * `async`, and awaited by every caller, because a fire-and-forget revoke does not survive
+     * `process.exit()` — the first version of this left exactly one session behind on every run,
+     * which is the shape of the problem it was written to solve.
+     *
+     * The sweep is idempotent regardless: a run that is killed outright still gets cleaned up, by
+     * the next sign-in.
+     */
+    async close() {
+      await this.revokeOwnerSessions()
+      /*
+        Close the socket, let libuv finish with it, THEN kill Chrome.
+
+        Killing the browser while the CDP WebSocket is mid-close aborts the handle underneath libuv,
+        which asserts — `!(handle->flags & UV_HANDLE_CLOSING)` — and takes the process down with exit
+        code 127 AFTER every check has passed. A suite that reports "36 passed, 0 failed" and then
+        exits non-zero is the worst of both: it looks fine to a person and fails in CI.
+
+        It only started happening when `close` became async: the await moved the socket teardown into
+        the same tick as the kill. One turn of the loop between them is enough.
+      */
       try { cdp.close() } catch { /* already gone */ }
+      await sleep(50)
       chrome.kill()
       try { rmSync(profile, { recursive: true, force: true }) } catch { /* best effort */ }
     },

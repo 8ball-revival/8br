@@ -137,7 +137,7 @@ try {
     }
   }
 } finally {
-  browser.close()
+  await browser.close()
 }
 
 process.exit(r.finish() ? 1 : 0)

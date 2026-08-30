@@ -437,8 +437,8 @@ ${tail}`)
       r.check('and still records Kevin', s16426.championName === 'Kevin', String(s16426.championName))
     }
   } finally {
-    owner.close()
-    anon.close()
+    await owner.close()
+    await anon.close()
   }
 } finally {
   if (server) {
