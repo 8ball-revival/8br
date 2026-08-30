@@ -158,12 +158,12 @@ It reports:
 ## Verifying after a recovery
 
 ```bash
-npm run test:site-builder                            # 519 checks, no database, no server
+npm run test:site-builder                            # 537 checks, no database, no server
 ```
 
 ```bash
 scripts/db/make-test-clone.sh 8br_test_sb
-DATABASE_URL=<clone> npm run test:site-builder:db       # 104 checks, disposable clone only
+DATABASE_URL=<clone> npm run test:site-builder:db       # 113 checks, disposable clone only
 ```
 
 ```bash
@@ -179,6 +179,7 @@ With the dev server running (`npm run dev:replica`):
 ```bash
 npm run test:dev-hydration     # 36 checks: the editor actually mounts and responds
 npm run test:responsive    # 99 checks: nine widths, published and in Edit Mode
+npm run capture:site-builder  # 29 checks, and the screenshots in docs/site-builder-proof/
 ```
 
 Both drive a headless Chrome on a **clean profile**. That matters: an everyday browser running a

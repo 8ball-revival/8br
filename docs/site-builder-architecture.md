@@ -182,10 +182,11 @@ valid revision, and failing that to the code-defined factory layout.
 
 | Suite | Checks | Needs |
 | --- | --- | --- |
-| `npm run test:site-builder` | 519 | nothing |
-| `npm run test:site-builder:db` | 104 | a disposable `8br_test_*` clone |
+| `npm run test:site-builder` | 537 | nothing |
+| `npm run test:site-builder:db` | 113 | a disposable `8br_test_*` clone |
 | `npm run test:site-builder:security` | 108 | a disposable `8br_test_*` clone |
 | `npm run test:dev-hydration` | 36 | the dev server |
+| `npm run capture:site-builder` | 29 | the dev server (also writes the proof screenshots) |
 | `npm run test:responsive` | 99 | the dev server |
 
 The two database suites assert the target database matches `8br_test_*` **before Prisma is

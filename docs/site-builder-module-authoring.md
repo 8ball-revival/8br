@@ -206,7 +206,7 @@ exactly this reason.
 npm run test:site-builder
 ```
 
-519 checks, no database, no browser, no server — about a second. The suite walks every registered
+537 checks, no database, no browser, no server — about a second. The suite walks every registered
 module and asserts, among other things, that its **default config validates against its own
 schema**. That check exists because it once did not: a marquee panel
 defaulted `logoHeight` to `0` against a minimum of `48`, and the module rendered as a fallback on the
