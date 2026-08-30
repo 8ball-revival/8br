@@ -1,14 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Archives › Tournaments is now just Tournaments.
+ * Archives › Tournaments is the Yahoo archive now.
  *
- * Seasons and Tournaments are single top-level sections now, each leading with what is running and
- * following with what is finished, so this split no longer exists. Permanent redirect with the query
- * string preserved, because the filters carried across unchanged.
+ * This used to redirect to /tournaments — the CURRENT tournaments listing — so a link kept from the
+ * archive arrived at an unrelated present-day event. The Yahoo era's three tournaments are part of
+ * the historical space, so that is where this goes. Individual tournament detail routes are
+ * untouched: a link to a specific event still opens that event.
  */
 export function GET(request: NextRequest) {
   const url = request.nextUrl.clone()
-  url.pathname = '/tournaments'
+  url.pathname = '/yahoo'
+  url.search = ''
   return NextResponse.redirect(url, 308)
 }

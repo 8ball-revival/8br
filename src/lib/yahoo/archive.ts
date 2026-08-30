@@ -28,7 +28,15 @@ export interface YahooSummary {
   firstYear: number | null
   lastYear: number | null
   yearsRepresented: number
+  /** Seasons with a recorded champion. Equal to `seasons` here: all 48 are decided. */
   champions: number
+  /**
+   * How many DIFFERENT people have won a Season.
+   *
+   * The page prints this on its own, as "Unique champions". It used to read "26 of 48", which looks
+   * like a completeness figure -- as though twenty-two Seasons were missing a winner. They are not:
+   * every Season in the archive has one, and 26 is the count of distinct people who hold them.
+   */
   distinctChampions: number
   tournaments: number
 }
@@ -153,4 +161,51 @@ export async function getYahooEntrantPlayers(seasonId: number): Promise<Map<numb
   const out = new Map<number, string>()
   for (const r of rows) if (r.playerId) out.set(r.id, r.playerId)
   return out
+}
+
+/**
+ * Every Yahoo season in canonical order, oldest first.
+ *
+ * Ordered by the year it was PLAYED and then by its number within that year, which is the order the
+ * competition actually ran in. Database id order looks the same until it isn't: the archive was
+ * imported season by season and a later correction re-created a row, so ids carry the order somebody
+ * typed them in. Previous and Next follow the competition, not the import.
+ *
+ * Season numbers restart each year -- there is a Season 1 in 2005 and another in 2014 -- so the id
+ * remains the identifier in URLs. It is globally unique, stable, and already what every other Season
+ * link on the site uses.
+ */
+export interface YahooSeasonRef {
+  id: number
+  year: number
+  number: number
+  /** "2005 · Season 1", the label the archive is browsed by. */
+  label: string
+}
+
+export async function getYahooSeasonOrder(): Promise<YahooSeasonRef[]> {
+  const rows = await prisma.season.findMany({
+    where: { platform: YAHOO },
+    orderBy: [{ competitionYear: 'asc' }, { number: 'asc' }],
+    select: { id: true, number: true, competitionYear: true },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    year: r.competitionYear,
+    number: r.number,
+    label: `${r.competitionYear} \u00b7 Season ${r.number}`,
+  }))
+}
+
+/** The season before and after this one in canonical order. Null at either end. */
+export function yahooNeighbours(order: YahooSeasonRef[], seasonId: number): {
+  previous: YahooSeasonRef | null
+  next: YahooSeasonRef | null
+} {
+  const i = order.findIndex((s) => s.id === seasonId)
+  if (i < 0) return { previous: null, next: null }
+  return {
+    previous: i > 0 ? order[i - 1] : null,
+    next: i < order.length - 1 ? order[i + 1] : null,
+  }
 }

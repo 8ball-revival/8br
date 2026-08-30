@@ -84,15 +84,33 @@ section('Every retired URL still resolves, with its query string')
     ['src/app/(frontend)/live/seasons/route.ts', '/seasons'],
     ['src/app/(frontend)/live/cups/route.ts', '/tournaments'],
     ['src/app/(frontend)/live/tournaments/route.ts', '/tournaments'],
-    ['src/app/(frontend)/archives/seasons/route.ts', '/seasons'],
-    ['src/app/(frontend)/archives/cups/route.ts', '/tournaments'],
-    ['src/app/(frontend)/archives/tournaments/route.ts', '/tournaments'],
+    /*
+     * Archives means the Yahoo era now.
+     *
+     * These used to land on the CURRENT seasons and tournaments listings, so a link kept from the
+     * archive arrived at a competition running this month. The historical space has a page of its
+     * own, and an archive URL belongs there.
+     */
+    ['src/app/(frontend)/archives/route.ts', '/yahoo'],
+    ['src/app/(frontend)/archives/seasons/route.ts', '/yahoo'],
+    ['src/app/(frontend)/archives/cups/route.ts', '/yahoo'],
+    ['src/app/(frontend)/archives/tournaments/route.ts', '/yahoo'],
   ]
   for (const [file, target] of redirects) {
     if (!existsSync(file)) { check(`${file} exists`, false, 'missing'); continue }
     const src = read(file)
-    check(`${file} → ${target}`, src.includes(`url.pathname = '${target}'`), 'wrong or missing target')
-    check(`${file} is a permanent redirect`, /308/.test(src))
+    /*
+     * Two shapes of redirect, both valid.
+     *
+     * Most rewrite the path and keep the query. `/archives/seasons` builds its destination instead,
+     * because it maps an old season link through to that season inside the archive — which needs a
+     * lookup, and a lookup means the answer must not be cached forever, so it answers 307 rather
+     * than 308. Asserting one shape would have forced the other route to lie about what it does.
+     */
+    check(`${file} → ${target}`,
+      src.includes(`url.pathname = '${target}'`) || src.includes(`origin + '${target}'`),
+      'wrong or missing target')
+    check(`${file} redirects`, /30[78]/.test(src))
     /*
      * The query string carries the reader's filters. `nextUrl.clone()` keeps it; building a fresh URL
      * from the pathname alone silently drops it, and every shared filtered link stops working.

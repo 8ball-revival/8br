@@ -15,6 +15,7 @@ import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import {
   getYahooSummary, getYahooHonorRoll, isYahooSeason, getYahooEntrantPlayers,
+  getYahooSeasonOrder, yahooNeighbours,
 } from '../src/lib/yahoo/archive.ts'
 import { computeExplorer } from '../src/lib/stats/ladder-explorer.ts'
 import { getSeasonGroupStage } from '../src/lib/seasons/views.ts'
@@ -129,12 +130,24 @@ section('10. Historical brackets are rendered in their own shape')
 // -- Proof 11: what is missing stays missing
 section('11. Missing archive information is left unknown, never invented')
 {
-  const src = read('src/components/yahoo/yahoo-archive.tsx')
-  check('the page has an explicit "Unknown"', src.includes("const UNKNOWN = 'Unknown'"))
-  check('...and a phrase for what the archive lost', src.includes('Not available in the surviving archive'))
-  check('a missing final score is stated rather than blanked', src.includes('Final score {UNKNOWN.toLowerCase()}'))
-  check('a missing entrant count is stated rather than shown as zero', src.includes('Entrant count unknown'))
-  check('an unrecorded group score is not printed as nil-nil', src.includes('unrecorded'))
+  /*
+   * The archive shows a season through the site's OWN presentations now — the masthead, the group
+   * tables, the bracket — rather than through a simplified copy of them. So the honesty rules are
+   * checked where they actually live: in the data layer, which returns null rather than a
+   * placeholder, and in the shared panel, which prints a forfeit as FF instead of inventing a score.
+   */
+  const results = read('src/components/home/season-results.tsx')
+  check('a forfeited final shows FF rather than a score nobody played', results.includes('finalsForfeit ? ('))
+  check('a missing score is a dash, not a zero', results.includes("finalScore ?? <span"))
+
+  const summary = read('src/components/yahoo/yahoo-summary.tsx')
+  check('a missing year span is stated as unknown', summary.includes("'Unknown'"))
+
+  const panel = read('src/components/yahoo/yahoo-season-panel.tsx')
+  check('a season outside the archive is refused rather than rendered',
+    panel.includes('not part of this archive'))
+  check('the season views are the site\'s own, not archive copies',
+    panel.includes('SeasonGroupsView') && panel.includes('SeasonBracketPanel'))
 
   const lib = read('src/lib/yahoo/archive.ts')
   check('the data layer returns null rather than a placeholder', lib.includes('|| null'))
@@ -161,36 +174,48 @@ section('11. Missing archive information is left unknown, never invented')
     scoresOk + '/' + honorRoll.length)
 }
 
-// -- Proofs 9 + 12: the explorer is part of the page, and the phone reads it in the right order
-section('9 + 12. Inline explorer, no inner scroll pane, and the mobile order')
+// -- Proofs 9 + 12: one page, and the phone reads it in the right order
+section('9 + 12. One route, bounded frames, and the mobile order')
 {
-  const src = read('src/components/yahoo/yahoo-archive.tsx')
-  check('the explorer is a section in the page, not a dialog',
-    !src.includes('role="dialog"') && src.includes('ya-explorer'))
-  check('no section is given its own vertical scroller',
-    !/overflow-y-(auto|scroll)/.test(src) && !/max-h-\[/.test(src))
-  check('only horizontal overflow is allowed, for the wide tables and the bracket',
-    src.includes('overflow-x-auto'))
+  const src = read('src/components/yahoo/yahoo-workspace.tsx')
+  check('the views are part of the page, not dialogs',
+    !src.includes('role="dialog"') && src.includes('role="tabpanel"'))
+  check('Home, Groups and Playoffs are all at /yahoo',
+    !/router\.push\(`?['`]\/seasons/.test(src) && /`\/yahoo\?/.test(src))
+  // The words appear in the note explaining WHY it is not persisted; what must not appear is a call.
+  check('expansion is not persisted anywhere',
+    !/(localStorage|sessionStorage)\s*\.\s*(get|set)Item/.test(src))
 
   /*
    * Order is expressed as CSS order rather than as two copies of the markup: a duplicated section is
    * two things to keep in step, and a screen reader hears both.
    */
-  check('the honour roll comes first on a phone', /order-1 [^"]*lg:order-2/.test(src))
+  check('the season results come first on a phone', /order-1 [^"]*lg:order-2/.test(src))
   check('...and the ladder second', /order-2 [^"]*lg:order-1/.test(src))
-  check('the summary is above both', src.indexOf('<Summary s={summary} />') < src.indexOf('lg:order-1'))
-  check('the explorer is last', src.indexOf('<SeasonExplorer') > src.indexOf('lg:order-2'))
   /*
-   * Both columns must be allowed to shrink. A grid child defaults to `min-width: auto`, so the
-   * ladder's `min-w-[38rem]` table refused to let its column narrow and pushed a 375px page sideways
-   * -- the wide table is supposed to scroll inside its own box, not take the page with it.
+   * Both columns must be allowed to shrink. A grid child defaults to `min-width: auto`, so a table
+   * with a minimum width refuses to let its column narrow and pushes the page sideways -- the wide
+   * table is supposed to scroll inside its own box, not take the page with it.
    */
   check('neither column can be widened past the screen by the table inside it',
-    (src.match(/min-w-0/g) || []).length >= 4)
+    (src.match(/min-w-0/g) || []).length >= 3)
+
+  const ladder = read('src/components/yahoo/yahoo-ladder-compact.tsx')
+  check('the compact ladder scrolls internally rather than growing without limit',
+    ladder.includes('overflow-auto') && ladder.includes('flex-1'))
+  check('...with a sticky header', ladder.includes('sticky top-0'))
+  // lastIndexOf, because the import at the top of the file is not the placement being tested.
+  check('...and the rating legend outside the scroller, after it',
+    ladder.lastIndexOf('<RatingLegend') > ladder.lastIndexOf('</table>'))
+  check('the shared rating helpers are reused, not reimplemented',
+    ladder.includes("from '@/lib/stats/rating-tier'") && !/1700|1500|1400|1300/.test(ladder))
+  check('the shared identity cell is reused', ladder.includes('IdentityCell'))
+  check('the championship icon is the shared outlined Crown',
+    ladder.includes('Crown') && !/💎|👑/.test(ladder))
 
   const css = read('src/app/(frontend)/globals.css')
   const scoped = css.split('Yahoo Pool Archive')[1] || ''
-  check('the archive styles are scoped to the page', scoped.includes('.ya-root .ya-runner'))
+  check('the archive styles are scoped to the page', scoped.includes('.ya-root'))
   check('...and redefine no global token', !/^\s*--gold:/m.test(scoped) && !/^:root/m.test(scoped))
 }
 
@@ -202,14 +227,31 @@ section('7. Season, view and group are all in the URL')
   check('the view comes from the query string', page.includes("one('view')"))
   check('the group comes from the query string', page.includes("one('group')"))
   check('the selection is resolved on the server, so a deep link cannot render the wrong season first',
-    page.includes('const detail = seasonId'))
+    page.includes('const seasonId ='))
+  check('a season outside the archive is refused', page.includes('isYahooSeason(requested)'))
+  check('Groups without a season prompts rather than choosing one', page.includes('needsSeason'))
 
-  const src = read('src/components/yahoo/yahoo-archive.tsx')
+  const src = read('src/components/yahoo/yahoo-workspace.tsx')
   check('unrelated query parameters survive a selection change',
     src.includes('new URLSearchParams(params.toString())'))
-  check('closing removes the selection from the URL',
-    src.includes('urlWith({ season: null, view: null, group: null })'))
   check('navigating does not jump the page to the top', src.includes('{ scroll: false }'))
+  /*
+   * Read from the shared module, not from the client component.
+   *
+   * The constant used to be exported from the workspace, which carries 'use client'. A Server
+   * Component importing a plain value from a client module gets a client REFERENCE rather than
+   * the value, so the page prefixed its lookups with something that was not "r": every
+   * parameter missed and the archive rendered the unfiltered ladder whatever the URL said.
+   */
+  const paramsModule = read('src/lib/yahoo/params.ts')
+  check('the ladder has its own parameter namespace, so both can own "season"',
+    paramsModule.includes("YAHOO_PARAM_PREFIX = 'r'"))
+  // The directive is a first statement, not a mention: the note above it explains the very bug it
+  // must not reintroduce, and naming that is not the same as carrying it.
+  check('...from a module with no client directive, so the server reads the value',
+    !/^\s*['"]use client['"]/.test(paramsModule))
+  check('...and the page imports it from there',
+    read('src/app/(frontend)/yahoo/page.tsx').includes("from '@/lib/yahoo/params'"))
 }
 
 // -- Groups view: standings, the results behind them, and the roster-only distinction
@@ -239,14 +281,60 @@ section('Groups view carries the standing AND the results behind it')
   }
 }
 
-// -- The disclaimer and where the ladder points
-section('The archive says what it is')
+// -- The disclaimer, and the shared panel the archive reuses
+section('The archive says what it is, and reuses what already exists')
 {
-  const src = read('src/components/yahoo/yahoo-archive.tsx')
+  const src = read('src/components/yahoo/yahoo-workspace.tsx')
   check('the affiliation disclaimer is present, verbatim',
     src.includes('A historical community archive. 8 Ball Registry is not affiliated with or endorsed by Yahoo.'))
-  check('the ladder opens the YAHOO record on a profile, not the empty CueVerse one',
-    src.includes('?platform=yahoo'))
+  check('expanded mode renders the Rankings interface itself, not a copy',
+    src.includes('RankingsExplorer'))
+  check('the four current scopes are withheld from the archive', src.includes('showScopes={false}'))
+
+  const page = read('src/app/(frontend)/yahoo/page.tsx')
+  check('the season list is the shared homepage panel', page.includes('SeasonResults'))
+  check('...fed with Yahoo rows only', page.includes("getSeasonResults('YAHOO')"))
+  check('...and a row opens the season inside the archive',
+    page.includes('/yahoo?season=${r.seasonId}&view=groups'))
+  check('the facets offered belong to the archive', page.includes("getFacets('YAHOO')"))
+
+  const summary = read('src/components/yahoo/yahoo-summary.tsx')
+  check('the summary says "Unique champions" rather than a completeness figure',
+    summary.includes("label: 'Unique champions'")
+    && !/value:\s*`\$\{[^}]*\}\s*of\s*\$\{/.test(summary))
+  check('Seasons remains its own statistic', summary.includes("label: 'Seasons'"))
+}
+
+// -- Previous and Next follow the competition, not the import
+section('Season navigation is in canonical order')
+{
+  const order = await getYahooSeasonOrder()
+  check('every Yahoo season is in the order', order.length === honorRoll.length,
+    order.length + ' vs ' + honorRoll.length)
+  check('it runs oldest first, by year and then by number within the year',
+    order.every((s, i) => i === 0
+      || s.year > order[i - 1].year
+      || (s.year === order[i - 1].year && s.number > order[i - 1].number)))
+  /*
+   * Season numbers restart each year, so the id stays the identifier in URLs: it is unique, stable,
+   * and already what every other Season link on the site uses.
+   */
+  const labels = new Set(order.map((s) => s.number))
+  check('season numbers repeat across years, which is why the id is the identifier',
+    labels.size < order.length, labels.size + ' distinct numbers over ' + order.length + ' seasons')
+  check('ids are unique', new Set(order.map((s) => s.id)).size === order.length)
+
+  const first = yahooNeighbours(order, order[0].id)
+  const last = yahooNeighbours(order, order[order.length - 1].id)
+  check('the oldest season has no Previous', first.previous === null)
+  check('...and does have a Next', first.next !== null)
+  check('the newest season has no Next', last.next === null)
+  check('...and does have a Previous', last.previous !== null)
+
+  const middle = yahooNeighbours(order, order[5].id)
+  check('a middle season has both', middle.previous?.id === order[4].id && middle.next?.id === order[6].id)
+  check('navigation never leaves the archive',
+    order.every((s) => honorRoll.some((h) => h.id === s.id)))
 }
 
 // -- The counts, printed for the record

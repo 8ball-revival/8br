@@ -1,6 +1,6 @@
 import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
-import { ratingsForScope, windowCutoff } from '@/lib/stats/rating-history'
+import { inWindow, ratingsForScope, replayRatings, windowCutoff } from '@/lib/stats/rating-history'
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { ELO_START, withChampionStep } from '@/lib/stats/elo'
@@ -107,7 +107,31 @@ export interface ExplorerFilters {
  * in completion order, and the aggregate needs one row per player. Trying to serve both from one
  * query is what produced two different notions of "the rating" in the first place.
  */
-async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear: number | null | undefined, platform: CompetitionPlatform = 'CUEVERSE') {
+/**
+ * Which filters make this a PERIOD rather than the whole record.
+ *
+ * A period ladder is a self-contained competition: everybody starts at the standard initial rating
+ * and only the results inside the period are played. That is what a reader asking for "2008", or for
+ * "the WCC", means -- how did people perform HERE -- and it is the only reading under which the
+ * number shown and the record printed beside it describe the same thing.
+ *
+ * The alternative, which this replaces, carried each player's rating in from every earlier result
+ * and set it against a record drawn only from the period. Somebody who arrived in 2008 already rated
+ * 1680 appeared to have earned it that year.
+ */
+function isPeriodScoped(filters: ExplorerFilters): boolean {
+  return filters.year != null
+    || filters.fromYear != null
+    || filters.toYear != null
+    || filters.competitionSeriesId != null
+    || filters.seasonId != null
+    || filters.tournamentId != null
+    || !!filters.division
+    || (filters.eventType != null && filters.eventType !== 'all')
+}
+
+async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, filters: ExplorerFilters) {
+  const platform: CompetitionPlatform = filters.platform ?? 'CUEVERSE'
   const rows = await prisma.ratingLedger.findMany({
     where: { platform },
     orderBy: { sequence: 'asc' },
@@ -127,15 +151,55 @@ async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear
    * never both.
    */
   const [seasons, tournaments] = await Promise.all([
-    prisma.season.findMany({ select: { id: true, competitionYear: true } }),
+    prisma.season.findMany({ select: { id: true, competitionYear: true, competitionSeriesId: true, division: true } }),
     prisma.tournament.findMany({ select: { id: true, competitionYear: true } }),
   ])
-  const seasonYear = new Map(seasons.map((x) => [x.id, x.competitionYear]))
+  const seasonMeta = new Map(seasons.map((x) => [x.id, x]))
   const tournamentYear = new Map(tournaments.map((x) => [x.id, x.competitionYear]))
   const yearOf = (r: { seasonId: number | null; tournamentId: number | null }) =>
-    (r.seasonId != null ? seasonYear.get(r.seasonId) : r.tournamentId != null ? tournamentYear.get(r.tournamentId) : null) ?? null
+    (r.seasonId != null ? seasonMeta.get(r.seasonId)?.competitionYear
+      : r.tournamentId != null ? tournamentYear.get(r.tournamentId) : null) ?? null
 
-  const ratings = ratingsForScope(rows, scope, windowCutoff(now), { toYear, yearOf })
+  /*
+   * The replay reads the SAME result stream the records are drawn from.
+   *
+   * Every predicate here mirrors one in `scopeClause` above, and every one resolves against the
+   * canonical record rather than a timestamp: a Season imported in 2026 belongs to the year it was
+   * played, and an administrative stamp on a Tournament says when somebody typed it in. Two
+   * different notions of "in scope" is exactly how a ladder ends up disagreeing with the table
+   * printed beside it.
+   */
+  const inScope = (r: { seasonId: number | null; tournamentId: number | null }) => {
+    const season = r.seasonId != null ? seasonMeta.get(r.seasonId) : undefined
+    const year = yearOf(r)
+    if (filters.year != null && year !== filters.year) return false
+    if (filters.fromYear != null && (year == null || year < filters.fromYear)) return false
+    if (filters.toYear != null && (year == null || year > filters.toYear)) return false
+    if (filters.eventType === 'seasons' && r.seasonId == null) return false
+    if (filters.eventType === 'cups' && r.seasonId != null) return false
+    if (filters.competitionSeriesId != null && season?.competitionSeriesId !== filters.competitionSeriesId) return false
+    if (filters.seasonId != null && r.seasonId !== filters.seasonId) return false
+    if (filters.tournamentId != null && r.tournamentId !== filters.tournamentId) return false
+    if (filters.division === UNASSIGNED_DIVISION) {
+      if (r.seasonId == null || season?.division != null) return false
+    } else if (filters.division && season?.division !== filters.division) return false
+    return true
+  }
+
+  const period = isPeriodScoped(filters)
+  const stream = period ? rows.filter(inScope) : rows
+  /*
+   * A period is replayed; the unbounded All-Time ladder is still read from storage.
+   *
+   * `storedRatings` returns the running figure the ledger wrote, which is the right answer for "the
+   * whole record" and the wrong one for any subset of it -- it knows about every match, including
+   * the ones the filter just excluded.
+   */
+  const ratings = period
+    ? replayRatings(scope === 'current'
+        ? stream.filter((r) => inWindow(r.completedAt, windowCutoff(now)))
+        : stream)
+    : ratingsForScope(stream, scope, windowCutoff(now), { toYear: null, yearOf })
 
   /*
    * The championship step, applied to the one canonical rating rather than in the SQL.
@@ -147,7 +211,31 @@ async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, toYear
    */
   const champs = await prisma.season.groupBy({
     by: ['championPlayerId'],
-    where: { lifecycleState: 'COMPLETED', championPlayerId: { not: null }, platform },
+    where: {
+      lifecycleState: 'COMPLETED',
+      championPlayerId: { not: null },
+      platform,
+      /*
+       * Titles inside the period only.
+       *
+       * The step is a standing bonus for having won, so on a 2008 ladder it has to reflect what had
+       * been won by then. Crediting a 2013 title to a 2008 standing would lift a player above the
+       * people who actually beat them that year.
+       */
+      ...(filters.year != null ? { competitionYear: filters.year } : {}),
+      ...(filters.year == null && (filters.fromYear != null || filters.toYear != null)
+        ? {
+            competitionYear: {
+              ...(filters.fromYear != null ? { gte: filters.fromYear } : {}),
+              ...(filters.toYear != null ? { lte: filters.toYear } : {}),
+            },
+          }
+        : {}),
+      ...(filters.competitionSeriesId != null ? { competitionSeriesId: filters.competitionSeriesId } : {}),
+      ...(filters.seasonId != null ? { id: filters.seasonId } : {}),
+      // A tournaments-only ladder contains no Season titles at all.
+      ...(filters.eventType === 'cups' || filters.tournamentId != null ? { id: -1 } : {}),
+    },
     _count: { _all: true },
   })
   const titlesOf = new Map(champs.map((c) => [c.championPlayerId!, c._count._all]))
@@ -393,6 +481,17 @@ export async function computeExplorer(
 
   const scopeClause = clauses.length ? `AND ${clauses.join(' AND ')}` : ''
 
+  /*
+   * The platform, as a SQL literal.
+   *
+   * Interpolated rather than parameterised because it also appears inside CTEs that take no
+   * parameters, and it is not user input: `CompetitionPlatform` is a closed enum and anything that
+   * is not YAHOO is CueVerse. Every championship CTE below reads it, so the ladder and its title
+   * counts can never describe different universes.
+   */
+  const platformLiteral = filters.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
+
+
   /**
    * The scope a RATING is read from, which is not the scope a record is read from.
    *
@@ -408,6 +507,8 @@ export async function computeExplorer(
    */
   const ratingParams: unknown[] = []
   const ratingClauses: string[] = []
+  /* Read lazily so the competition scope above can number its placeholders after this block. */
+  const ratingParamsLength = () => ratingParams.length
   /*
    * The time window still applies.
    *
@@ -425,6 +526,67 @@ export async function computeExplorer(
     ratingClauses.push(`l.comp_year <= $${params.length + ratingParams.length}`)
   }
   const ratingClause = ratingClauses.length ? `AND ${ratingClauses.join(' AND ')}` : ''
+
+  /*
+   * The competitions this ladder is made of — ONE list, used by everything.
+   *
+   * The aggregate below draws championships, runner-up finishes, group points and seasons-played
+   * from the Season and Tournament tables directly, and until now none of those reads knew about the
+   * filter. A 2012-2014 ladder therefore showed a player's 2012-2014 record beside their LIFETIME
+   * championship count and lifetime seasons-played: the ranking was filtered and the honours were
+   * not, which is worse than either alone because the two disagree on the same row.
+   *
+   * So the filter is resolved once, into a set of season ids and a set of tournament ids, and every
+   * one of those reads joins it. There is no second definition of "in scope" left to drift.
+   *
+   * Years come from `competitionYear` — the year the competition was PLAYED. Every Yahoo season in
+   * this database was imported in 2026; anything reading a timestamp would file the whole archive
+   * under one year.
+   */
+  const compParams: unknown[] = []
+  const compN = () => `$${params.length + ratingParamsLength() + compParams.length}`
+  const seasonWhere: string[] = [`se."platform" = '${platformLiteral}'`]
+  const tournamentWhere: string[] = [`t."platform" = '${platformLiteral}'`]
+
+  // A tournaments-only ladder contains no seasons at all, and vice versa. An explicit single
+  // competition narrows its own kind and excludes the other outright.
+  if (filters.eventType === 'cups' || filters.tournamentId != null) seasonWhere.push('false')
+  if (filters.eventType === 'seasons' || filters.seasonId != null || filters.division) tournamentWhere.push('false')
+
+  if (filters.year != null) {
+    compParams.push(filters.year); seasonWhere.push(`se."competitionYear" = ${compN()}`)
+    compParams.push(filters.year); tournamentWhere.push(`t."competitionYear" = ${compN()}`)
+  }
+  if (filters.fromYear != null) {
+    compParams.push(filters.fromYear); seasonWhere.push(`se."competitionYear" >= ${compN()}`)
+    compParams.push(filters.fromYear); tournamentWhere.push(`t."competitionYear" >= ${compN()}`)
+  }
+  if (filters.toYear != null) {
+    compParams.push(filters.toYear); seasonWhere.push(`se."competitionYear" <= ${compN()}`)
+    compParams.push(filters.toYear); tournamentWhere.push(`t."competitionYear" <= ${compN()}`)
+  }
+  if (filters.competitionSeriesId != null) {
+    compParams.push(filters.competitionSeriesId); seasonWhere.push(`se."competitionSeriesId" = ${compN()}`)
+    // A Tournament has no series, so narrowing to one excludes tournaments rather than matching none.
+    tournamentWhere.push('false')
+  }
+  if (filters.seasonId != null) { compParams.push(filters.seasonId); seasonWhere.push(`se."id" = ${compN()}`) }
+  if (filters.tournamentId != null) { compParams.push(filters.tournamentId); tournamentWhere.push(`t."id" = ${compN()}`) }
+  if (filters.division === UNASSIGNED_DIVISION) {
+    seasonWhere.push(`se."division" IS NULL`)
+  } else if (filters.division) {
+    compParams.push(filters.division); seasonWhere.push(`se."division" = ${compN()}`)
+  }
+
+  const compScopeSql = `
+    -- Every Season this ladder counts, and nothing else.
+    season_scope AS (
+      SELECT se."id" FROM "public"."season" se WHERE ${seasonWhere.join(' AND ')}
+    ),
+    -- Every Tournament this ladder counts, and nothing else.
+    tournament_scope AS (
+      SELECT t."id" FROM "public"."comp_tournament" t WHERE ${tournamentWhere.join(' AND ')}
+    ),`
 
   /**
    * Whether this table is showing the population the official ladder ranks.
@@ -459,6 +621,7 @@ export async function computeExplorer(
 
   const sql = `
     ${ledgerWithGames(filters.platform ?? 'CUEVERSE')},
+    ${compScopeSql}
     -- Everything inside the time scope, whatever the view. Rating and peak are read from HERE, not
     -- from the view-filtered set: a player's rating is their rating, not "their rating counting only
     -- playoff matches". Narrowing it per view would print a different number for the same player on
@@ -466,9 +629,11 @@ export async function computeExplorer(
     in_scope AS (
       SELECT l.* FROM ledger l WHERE true ${scopeClause}
     ),
-    -- Every result up to the end of the period, unfiltered otherwise. See the note on ratingClause.
+    -- The fallback rating's stream. Under a period filter it is the SAME stream the records come
+    -- from, so a player the canonical replay never saw still gets a number that belongs to this
+    -- ladder rather than to their whole career. See the note on ratingClause.
     rating_scope AS (
-      SELECT l.* FROM ledger l WHERE true ${ratingClause}
+      SELECT l.* FROM ledger l WHERE true ${isPeriodScoped(filters) ? scopeClause : ratingClause}
     ),
     -- The view-filtered subset. Records, splits and appearances come from here.
     scoped AS (
@@ -550,15 +715,17 @@ export async function computeExplorer(
     champs AS (
       -- Scoped to this platform: a title won on the other one belongs to a different ladder, and
       -- counting it here would both inflate the column and hand out the championship step for it.
+      -- Tournament titles and runner-up counts below carry the same predicate for the same reason.
       SELECT se."championPlayerId" AS "playerId", count(*)::int AS season_titles
         FROM "public"."season" se
+        JOIN season_scope ss ON ss."id" = se."id"
        WHERE se."lifecycleState" = 'COMPLETED' AND se."championPlayerId" IS NOT NULL
-         AND se."platform" = '${filters.platform === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'}'
        GROUP BY 1
     ),
     runners AS (
       SELECT e."playerId", count(*)::int AS runner_ups
         FROM "public"."season" se
+        JOIN season_scope ss ON ss."id" = se."id"
         JOIN "public"."season_entrant" e
           ON e."seasonId" = se."id" AND e."playerId" IS NOT NULL
        WHERE se."lifecycleState" = 'COMPLETED'
@@ -578,6 +745,7 @@ export async function computeExplorer(
       SELECT DISTINCT ON (pm."tournamentId")
              pm."tournamentId" AS tid, pm."winnerRegistrationId" AS reg
         FROM "public"."comp_playoff_match" pm
+        JOIN tournament_scope ts ON ts."id" = pm."tournamentId"
         JOIN "public"."comp_tournament" t
           ON t."id" = pm."tournamentId" AND t."lifecycleState" = 'COMPLETED'
        WHERE pm."winnerRegistrationId" IS NOT NULL
@@ -601,6 +769,7 @@ export async function computeExplorer(
         FROM (
           SELECT p."id" AS "playerId", t."id" AS tid
             FROM "public"."comp_tournament" t
+            JOIN tournament_scope ts ON ts."id" = t."id"
             JOIN "public"."Player" p
               ON p."cueverseId" IS NOT NULL
              AND lower(p."cueverseId") = lower(t."championHandle")
@@ -631,6 +800,9 @@ export async function computeExplorer(
         FROM "public"."season_standing" st
         JOIN "public"."season_entrant" e
           ON e."id" = st."entrantId" AND e."playerId" IS NOT NULL
+        -- Scoped like everything else. Unfiltered, this counted group stages from the other platform
+        -- and from outside the selected years into a figure printed beside a filtered record.
+        JOIN season_scope ss ON ss."id" = e."seasonId"
        GROUP BY e."playerId"
     ),
     aliases AS (
@@ -656,6 +828,9 @@ export async function computeExplorer(
               */
              count(DISTINCT e."seasonId") FILTER (WHERE e."status" <> 'WITHDRAWN')::int AS seasons_played
         FROM "public"."season_entrant" e
+        -- "Seasons" means seasons INSIDE this ladder. Unscoped it was a career total, so a
+        -- 2012-2014 ladder credited a player with nineteen seasons next to a three-year record.
+        JOIN season_scope ss ON ss."id" = e."seasonId"
        WHERE e."playerId" IS NOT NULL
        GROUP BY e."playerId"
     )
@@ -689,7 +864,7 @@ export async function computeExplorer(
   try {
     // The rating bound is appended after the scope predicates, matching how its placeholder
     // number was allocated above.
-    rows = await prisma.$queryRawUnsafe<Raw[]>(sql, ...params, ...ratingParams)
+    rows = await prisma.$queryRawUnsafe<Raw[]>(sql, ...params, ...ratingParams, ...compParams)
   } catch (err) {
     // A failed aggregate must not take the Ladder page down; it degrades to no explorer data.
     console.error('[ladder-explorer] aggregate failed:', err instanceof Error ? err.message : err)
@@ -716,7 +891,7 @@ export async function computeExplorer(
    * The rest of this query is untouched: records, streaks, games and the qualification counts are
    * legitimately per-view and SQL is the right place for them.
    */
-  const canonicalRatings = await ratingsForScope_(scope, now, filters.toYear, filters.platform ?? 'CUEVERSE')
+  const canonicalRatings = await ratingsForScope_(scope, now, filters)
 
   const mapped: ExplorerRow[] = rows.map((r) => {
     const wins = num(r.wins)
@@ -894,21 +1069,32 @@ export interface ExplorerFacets {
  * competition and year so the client can narrow the Season list when a Competition or Year is chosen
  * without another round trip.
  */
-export async function computeFacets(): Promise<ExplorerFacets> {
+export async function computeFacets(platform: CompetitionPlatform = 'CUEVERSE'): Promise<ExplorerFacets> {
   type Row = Record<string, unknown>
   try {
+    /*
+     * Scoped to one platform, like the ladder it describes.
+     *
+     * Without this the Yahoo filter offered CueVerse competitions and a 2026 year that the archive
+     * has no results in -- an option that selects nothing, which reads as missing data rather than
+     * as an empty intersection. It went unnoticed while CueVerse had no ranked matches at all; the
+     * moment one Season was finalised the archive's year list gained a year twelve years after it
+     * ended. Facets describe a ladder, so they belong to the same universe as the ladder.
+     */
     const [seasons, tournaments] = await Promise.all([
       prisma.$queryRaw<Row[]>`
         SELECT se."id", se."number", se."competitionYear" AS year, se."competitionSeriesId" AS series,
                se."division", cs."name" AS series_name
           FROM "public"."season" se
           JOIN "public"."competition_series" cs ON cs."id" = se."competitionSeriesId"
-         WHERE EXISTS (SELECT 1 FROM "public"."rating_ledger" rl WHERE rl."seasonId" = se."id")
+         WHERE se."platform" = ${platform}::"public"."CompetitionPlatform"
+           AND EXISTS (SELECT 1 FROM "public"."rating_ledger" rl WHERE rl."seasonId" = se."id")
          ORDER BY se."competitionYear" DESC, se."number" DESC`,
       prisma.$queryRaw<Row[]>`
         SELECT t."id", t."name", t."competitionYear" AS year
           FROM "public"."comp_tournament" t
-         WHERE EXISTS (SELECT 1 FROM "public"."rating_ledger" rl WHERE rl."tournamentId" = t."id")
+         WHERE t."platform" = ${platform}::"public"."CompetitionPlatform"
+           AND EXISTS (SELECT 1 FROM "public"."rating_ledger" rl WHERE rl."tournamentId" = t."id")
          ORDER BY t."competitionYear" DESC, t."name" ASC`,
     ])
 
@@ -965,7 +1151,7 @@ export async function computeFacets(): Promise<ExplorerFacets> {
   }
 }
 
-export const getFacets = unstable_cache(computeFacets, ['ladder-explorer-facets'], {
+export const getFacets = unstable_cache(computeFacets, ['ladder-explorer-facets-v2'], {
   tags: [LADDER_EXPLORER_TAG],
   revalidate: 300,
 })

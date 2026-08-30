@@ -48,6 +48,33 @@ const OUTSIDE_GATE = new Set([
   'verify-archive-shells.mts',
 ])
 
+/*
+ * Nothing runs until the target is disposable.
+ *
+ * This sweep writes: it creates fixture Seasons, enters results, rebuilds the rating ledger and
+ * closes competitions. Pointed at a curated copy it is not a test but an edit, and that has already
+ * happened here -- a Season under review was closed and rated because the only protection was
+ * remembering to set VERIFY_ENV_FILE.
+ *
+ * The rule lives in db-guard.ts and is enforced by running it, not by restating it: only a database
+ * named `8br_test_<something>` on localhost gets past this line.
+ */
+{
+  const pre = spawnSync('npx.cmd', [
+    'tsx', '--tsconfig', 'scripts/tsconfig.verify.json', `--env-file=${ENV_FILE}`, 'scripts/assert-disposable.mts',
+  ], { cwd: ROOT, encoding: 'utf8', shell: true, timeout: 120_000 })
+  const said = `${pre.stdout ?? ''}${pre.stderr ?? ''}`.trim()
+  if (pre.status !== 0) {
+    console.error('\nrun-all-verify: refusing to start.')
+    console.error(said)
+    console.error('\n  Restore a fresh clone and point the sweep at it:')
+    console.error('    createdb 8br_test_<name> && pg_restore -d 8br_test_<name> <dump>')
+    console.error('    VERIFY_ENV_FILE=.env.<name> node scripts/run-all-verify.mjs\n')
+    process.exit(2)
+  }
+  console.log(said)
+}
+
 const suites = readdirSync(path.join(ROOT, 'scripts'))
   .filter((f) => f.startsWith('verify-') && f.endsWith('.mts'))
   .sort()

@@ -1051,6 +1051,31 @@
 /* Neon is a light source; on a white ground it is a smudge, so the light theme keeps the colour
    scale and drops the halo entirely. */
 
+
+/* The archive workspace is wider than the site frame.
+   Two full panels side by side, and beneath them a bracket that is wide by nature, need more room
+   than a reading column; 96% of the viewport keeps a real margin on both sides while giving the two
+   columns enough width that neither has to scroll sideways to show its own table. The cap stops it
+   sprawling on an ultrawide, where a 2500px table is not more readable, only longer to cross. */
+.ya-frame {
+  width: 96%;
+  max-width: 1880px;
+  padding-left: 0;
+  padding-right: 0;
+  /* A flex child's minimum is its content unless told otherwise, and the archive's content is a
+     five-hundred-row table. Without this the workspace refuses to shrink to the page and the two
+     frames run off the bottom instead of ending at it. */
+  min-height: 0;
+}
+@media (max-width: 640px) {
+  /* On a phone 96% would waste both edges; the page's own gutters are the right size there. */
+  .ya-frame {
+    width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
 /* ── Yahoo Pool Archive ────────────────────────────────────────────────────────────────────────
    Scoped to the archive page. Nothing here redefines a global token; it names one local colour and
    two layout rules that only this page needs.

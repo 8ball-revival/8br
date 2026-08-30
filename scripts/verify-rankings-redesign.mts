@@ -497,12 +497,21 @@ async function main() {
     new Set(byWinPct.map((r) => r.rank)).size === new Set(all.map((r) => r.rank)).size)
 
   section('A year range narrows the RECORDS')
+  /*
+   * Scoped to the platform under test.
+   *
+   * Unscoped, the newest year here was 2026 — a CueVerse year — while the table being measured is
+   * the Yahoo archive, which ends in 2014. Every "single year" check then asked the archive for a
+   * year it has no results in and compared two empty tables, which passes for the wrong reason and
+   * fails the moment anything else changes.
+   */
   const years = await prisma.$queryRawUnsafe<{ y: number }[]>(
     `SELECT DISTINCT coalesce(s."competitionYear", t."competitionYear") AS y
        FROM rating_ledger l
        LEFT JOIN season s ON s.id = l."seasonId"
        LEFT JOIN comp_tournament t ON t.id = l."tournamentId"
       WHERE coalesce(s."competitionYear", t."competitionYear") IS NOT NULL
+        AND l."platform" = 'YAHOO'
       ORDER BY y`)
   const available = years.map((r) => Number(r.y))
   console.log(`  (archive spans ${available[0]}–${available[available.length - 1]})`)
@@ -526,10 +535,16 @@ async function main() {
         wide.length === all.length, `${wide.length} vs ${all.length}`)
     }
 
-    section('A year range does NOT rewrite the rating that produced those records')
-    // The property: a player's rating for a period ending at YEAR is the rating they actually held
-    // after their last result on or before that year — not a fresh 1500, and not affected by the
-    // From bound at all.
+    section('A year range IS its own ladder')
+    /*
+     * This rule was reversed deliberately.
+     *
+     * A period used to keep the rating a player had accumulated across their whole career and set it
+     * beside a record drawn only from the period — so somebody who arrived in 2013 already rated
+     * 1680 appeared to have earned it that year. A period is now replayed from the standard initial
+     * rating using only the results inside it, which is the only reading under which the number and
+     * the record beside it describe the same thing.
+     */
     const upTo = await computeExplorer('all-time', 'overall',
       aggregateFilters({ ...archiveState(NOW), fromYear: MIN_YEAR, toYear: hi }, NOW))
     const narrow = await computeExplorer('all-time', 'overall',
@@ -537,15 +552,21 @@ async function main() {
 
     const sample = narrow.filter((r) => upTo.some((x) => x.playerId === r.playerId)).slice(0, 25)
     check('there are players to compare', sample.length > 0, String(sample.length))
-    check('the From year does not change any rating',
-      sample.every((r) => upTo.find((x) => x.playerId === r.playerId)?.rating === r.rating),
-      sample.filter((r) => upTo.find((x) => x.playerId === r.playerId)?.rating !== r.rating)
-        .slice(0, 3).map((r) => `${r.preferredName}: ${r.rating}`).join(', '))
+    check('a single year does not reproduce the wider ladder\'s ratings',
+      sample.some((r) => upTo.find((x) => x.playerId === r.playerId)?.rating !== r.rating),
+      'every sampled rating was identical')
 
-    const restarted = sample.filter((r) => r.rating === 1500 && r.played > 0)
-    console.log(`  (${restarted.length} of ${sample.length} sampled players sit exactly at 1500)`)
-    check('players are not all reset to the starting rating',
-      restarted.length < sample.length, `${restarted.length}/${sample.length}`)
+    const spread = (rs: { rating: number }[]) =>
+      rs.length ? Math.max(...rs.map((r) => r.rating)) - Math.min(...rs.map((r) => r.rating)) : 0
+    check('one year is a narrower spread than the whole archive',
+      spread(narrow) < spread(upTo), `${spread(narrow)} vs ${spread(upTo)}`)
+    check('nobody carries a career rating into a single year',
+      narrow.every((r) => Math.abs(r.rating - 1500) <= spread(upTo)))
+
+    check('a period counts only that period\'s seasons',
+      sample.every((r) => (upTo.find((x) => x.playerId === r.playerId)?.seasonsPlayed ?? 0) >= r.seasonsPlayed))
+    check('...and only that period\'s championships',
+      sample.every((r) => (upTo.find((x) => x.playerId === r.playerId)?.seasonTitles ?? 0) >= r.seasonTitles))
 
     if (available.length > 1) {
       // A snapshot must not know about results that came later.

@@ -609,34 +609,44 @@ export function clampYear(value: unknown, now: Date = new Date()): number | null
  * exactly what its default value means. Parameters are written in one canonical order so the same
  * view always produces the same URL and two shared links can be compared by eye.
  */
-export function encodeRankingsState(s: RankingsState, now: Date = new Date()): string {
-  // Platform rides in the URL so a link carries the universe it was read in.
+/**
+ * A namespace for these parameters, so two things can own the word "season" in one URL.
+ *
+ * The archive page carries its own `season` -- which historical Season is open -- and the ladder on
+ * the same page carries a Season FILTER. They are different questions with the same natural name, so
+ * the ladder's keys are prefixed there (`rseason`, `rfrom`, ...) and the page keeps the bare ones.
+ * The Rankings page passes no prefix and its URLs are unchanged.
+ */
+export type StateKeyPrefix = string
+
+export function encodeRankingsState(s: RankingsState, now: Date = new Date(), prefix: StateKeyPrefix = ''): string {
+  const K = (k: string) => prefix + k
   const p = new URLSearchParams()
   const d = defaultState(now)
 
-  if (s.rowFilters.search.trim()) p.set('q', s.rowFilters.search.trim())
+  if (s.rowFilters.search.trim()) p.set(K('q'), s.rowFilters.search.trim())
   // The scope rides in the URL, so a shared link opens the ladder it was read in. The default is
   // omitted, which keeps a bare /rankings link clean and makes "no parameters" mean All.
-  if (s.scope !== DEFAULT_SCOPE) p.set('scope', s.scope)
-  if (s.fromYear !== d.fromYear) p.set('from', String(s.fromYear))
-  if (s.toYear !== d.toYear) p.set('to', String(s.toYear))
-  if (s.competitionSeriesId != null) p.set('comp', String(s.competitionSeriesId))
-  if (s.eventType !== d.eventType) p.set('event', s.eventType)
-  if (s.seasonId != null) p.set('season', String(s.seasonId))
-  if (s.tournamentId != null) p.set('cup', String(s.tournamentId))
-  if (s.division) p.set('division', s.division)
-  if (s.rowFilters.activeOnly) p.set('active', '1')
-  if (s.rowFilters.entrantType !== 'all') p.set('type', s.rowFilters.entrantType)
-  if (s.rowFilters.seasonChampionsOnly) p.set('sc', '1')
-  if (s.rowFilters.cupChampionsOnly) p.set('tc', '1')
-  if (s.rowFilters.minMatches > 0) p.set('min', String(s.rowFilters.minMatches))
+  if (s.scope !== DEFAULT_SCOPE) p.set(K('scope'), s.scope)
+  if (s.fromYear !== d.fromYear) p.set(K('from'), String(s.fromYear))
+  if (s.toYear !== d.toYear) p.set(K('to'), String(s.toYear))
+  if (s.competitionSeriesId != null) p.set(K('comp'), String(s.competitionSeriesId))
+  if (s.eventType !== d.eventType) p.set(K('event'), s.eventType)
+  if (s.seasonId != null) p.set(K('season'), String(s.seasonId))
+  if (s.tournamentId != null) p.set(K('cup'), String(s.tournamentId))
+  if (s.division) p.set(K('division'), s.division)
+  if (s.rowFilters.activeOnly) p.set(K('active'), '1')
+  if (s.rowFilters.entrantType !== 'all') p.set(K('type'), s.rowFilters.entrantType)
+  if (s.rowFilters.seasonChampionsOnly) p.set(K('sc'), '1')
+  if (s.rowFilters.cupChampionsOnly) p.set(K('tc'), '1')
+  if (s.rowFilters.minMatches > 0) p.set(K('min'), String(s.rowFilters.minMatches))
 
   // Only written when it differs from "all optional columns", so the common case adds nothing.
   const cols = OPTIONAL_COLUMN_KEYS.filter((k) => s.visibleColumns.includes(k))
-  if (cols.length !== OPTIONAL_COLUMN_KEYS.length) p.set('cols', cols.join(','))
+  if (cols.length !== OPTIONAL_COLUMN_KEYS.length) p.set(K('cols'), cols.join(','))
 
-  if (s.sort.length) p.set('sort', s.sort.map((x) => `${x.key}:${x.dir}`).join(','))
-  if (s.expanded) p.set('expand', s.expanded)
+  if (s.sort.length) p.set(K('sort'), s.sort.map((x) => `${x.key}:${x.dir}`).join(','))
+  if (s.expanded) p.set(K('expand'), s.expanded)
 
   return p.toString()
 }
@@ -660,8 +670,11 @@ export const OBSOLETE_PARAMS = ['view', 'mode', 'density', 'preset', 'pins', 'co
 export function decodeRankingsState(
   input: URLSearchParams | string,
   now: Date = new Date(),
+  prefix: StateKeyPrefix = '',
 ): RankingsState {
-  const p = typeof input === 'string' ? new URLSearchParams(input) : input
+  const raw = typeof input === 'string' ? new URLSearchParams(input) : input
+  // One indirection, so every read below is namespaced without repeating the prefix at each call.
+  const p = { get: (k: string) => raw.get(prefix + k), has: (k: string) => raw.has(prefix + k) }
   const s = defaultState(now)
 
   s.rowFilters.search = p.get('q') ?? ''

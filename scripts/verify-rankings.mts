@@ -502,11 +502,24 @@ section('The colouring is strictly scoped to the primary Rankings cell')
     }
   }
   walk('src')
-  const emitters = sweep.filter((f) =>
-    f !== 'src/components/rankings/rankings-table.tsx'
-    && f !== 'src/app/(frontend)/globals.css'
-    && readFileSync(f, 'utf8').includes('rating-primary'))
-  check('no other file in src colours a rating', emitters.length === 0, emitters.join(', '))
+  /*
+   * What must not exist is a SECOND set of bands, not a second surface that uses the first.
+   *
+   * The archive ladder renders the same coloured rating, and it does so by importing `ratingTier`
+   * and the `rating-primary` classes -- the shared implementation -- which is the point: a player is
+   * the same colour there as here because there is only one rule. What would be a fault is a file
+   * that writes its own thresholds, so that is what this looks for.
+   */
+  const emitters = sweep.filter((f) => {
+    if (f === 'src/components/rankings/rankings-table.tsx') return false
+    if (f === 'src/app/(frontend)/globals.css') return false
+    const src = readFileSync(f, 'utf8')
+    if (!src.includes('rating-primary')) return false
+    const usesShared = src.includes("from '@/lib/stats/rating-tier'")
+    const ownThresholds = /1[3-7]00/.test(src)
+    return !usesShared || ownThresholds
+  })
+  check('no file writes its own rating bands', emitters.length === 0, emitters.join(', '))
 
   const table = readFileSync('src/components/rankings/rankings-table.tsx', 'utf8')
   check('the table renders the treated cell in exactly one place',

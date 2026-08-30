@@ -71,9 +71,30 @@ export interface RankingsExplorerProps {
    * showing a control that would answer 403.
    */
   canExport?: boolean
+  /**
+   * Where this table lives, and how its parameters are named there.
+   *
+   * The archive renders THIS component -- the same filters, the same rail, the same columns -- over
+   * Yahoo rows at /yahoo. It is the same table, so it is the same code; only the URL it writes back
+   * to differs. `keepParams` carries the parameters the host page owns (which season is open, which
+   * view) through a filter change, so filtering the ladder never closes the season beside it.
+   */
+  basePath?: string
+  paramPrefix?: string
+  keepParams?: Record<string, string>
+  /** The four current-ranking scopes belong to the current ladder, and only to it. */
+  showScopes?: boolean
+  eyebrow?: string
+  title?: string
+  /** Rendered in the deck's top-right — the archive puts its Minimize control there. */
+  action?: React.ReactNode
 }
 
-export function RankingsExplorer({ rows, facets, state, heading, canExport = false }: RankingsExplorerProps) {
+export function RankingsExplorer({
+  rows, facets, state, heading, canExport = false,
+  basePath = '/rankings', paramPrefix = '', keepParams, showScopes = true,
+  eyebrow = 'Ranking Ladder', title = 'Rankings', action,
+}: RankingsExplorerProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const topOffset = useHeaderOffset()
@@ -125,9 +146,13 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
 
   /** Push a new applied state into the URL. The server recomputes and sends new rows back. */
   const navigate = useCallback((next: RankingsState) => {
-    const qs = encodeRankingsState(next, now)
-    startTransition(() => router.push(qs ? `/rankings?${qs}` : '/rankings', { scroll: false }))
-  }, [router, now])
+    const p = new URLSearchParams(encodeRankingsState(next, now, paramPrefix))
+    // The host page's own parameters survive a filter change; without this, narrowing the archive
+    // ladder would close the season open beside it.
+    for (const [k, v] of Object.entries(keepParams ?? {})) p.set(k, v)
+    const qs = p.toString()
+    startTransition(() => router.push(qs ? `${basePath}?${qs}` : basePath, { scroll: false }))
+  }, [router, now, basePath, paramPrefix, keepParams])
 
   // Search is a row filter, so it is applied locally at once and written to the URL as it settles —
   // typing that waits for a round trip feels broken however fast the round trip is.
@@ -200,14 +225,15 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
   return (
     <>
       <CommandDeck
-        eyebrow="Ranking Ladder"
-        title="Rankings"
+        eyebrow={eyebrow}
+        title={title}
         meta={heading}
         stats={[{ label: 'Ranked players', value: visible.length.toLocaleString() }]}
       >
         <p className="sr-only" aria-live="polite">
           {visible.length.toLocaleString()} {visible.length === 1 ? 'player' : 'players'}
         </p>
+        {action}
       </CommandDeck>
 
       {/*
@@ -216,6 +242,7 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
         competition, season and tournament selections: they were chosen inside the previous scope
         and carrying them across would silently return nothing.
       */}
+      {showScopes && (
       <ScopeTabs
         scope={applied.scope}
         pending={pending}
@@ -229,6 +256,7 @@ export function RankingsExplorer({ rows, facets, state, heading, canExport = fal
           eventType: 'all',
         })}
       />
+      )}
 
       {/*
         ── The filter command bar ────────────────────────────────────────────────────────────────

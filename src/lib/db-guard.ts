@@ -41,6 +41,31 @@ export const APPROVED_LOCAL_DATABASES = [
   '8br_live_copy_20260829', '8br_prod_replica_20260828',
 ] as const
 
+/**
+ * The shape of a database that exists to be destroyed.
+ *
+ * A verification sweep creates fixture Seasons, enters results, rebuilds the rating ledger and
+ * closes competitions. Against a curated copy that is not a test, it is an edit -- and it has
+ * happened here: the sweep once closed and rated a Season that was under review, because the only
+ * thing standing between it and the live copy was remembering to set an environment variable.
+ *
+ * So a suite that can write now has to be pointed at a database whose NAME says it is disposable.
+ * The name is the permission. `8br_test_yahoo_20260829` passes; `8br_live_copy_20260829` cannot,
+ * whatever else is configured, because no amount of intent changes what it is called.
+ */
+export const DISPOSABLE_TEST_DATABASE = /^8br_test_[a-z0-9][a-z0-9_]*$/
+
+/**
+ * Local databases a MUTATING TEST may never touch, even though the application may.
+ *
+ * These are curated copies. The running site writes to `8br_live_copy_20260829` all day and must --
+ * that is what it serves. A test suite doing the same thing is a different act entirely, and this is
+ * the line between the two.
+ */
+export const PROTECTED_LOCAL_DATABASES = [
+  '8br_live_copy_20260829', '8br_prod_replica_20260828', '8br_dev_fixtures',
+] as const
+
 /** Hostnames that are the local machine. */
 export const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', ''] as const
 
@@ -106,15 +131,51 @@ export function inspectConnection(rawUrl: string | undefined | null): GuardVerdi
   if (!LOOPBACK_HOSTS.includes(host as (typeof LOOPBACK_HOSTS)[number])) {
     return { allowed: false, summary, reason: `Host "${host}" is not the local machine.` }
   }
-  if (!APPROVED_LOCAL_DATABASES.includes(database as (typeof APPROVED_LOCAL_DATABASES)[number])) {
+  const named = APPROVED_LOCAL_DATABASES.includes(database as (typeof APPROVED_LOCAL_DATABASES)[number])
+  // A disposable clone is approved by its NAME rather than by being listed, because a new one is
+  // created and dropped for every sweep and a list would always be one run out of date.
+  if (!named && !DISPOSABLE_TEST_DATABASE.test(database)) {
     return {
       allowed: false,
       summary,
-      reason: `"${database}" is not an approved local database (${APPROVED_LOCAL_DATABASES.join(', ')}).`,
+      reason: `"${database}" is not an approved local database (${APPROVED_LOCAL_DATABASES.join(', ')})`
+        + ' and is not a disposable clone named 8br_test_<something>.',
     }
   }
 
   return { allowed: true, summary }
+}
+
+/**
+ * Decide whether a MUTATING TEST may proceed against this connection string.
+ *
+ * Stricter than `inspectConnection` in one specific way: being a legitimate local development
+ * database is no longer enough. The target has to be disposable by name, and the curated copies are
+ * refused explicitly rather than merely failing the pattern -- so the error says WHY, and says it
+ * about the database somebody actually pointed at.
+ */
+export function inspectDisposable(rawUrl: string | undefined | null): GuardVerdict {
+  const base = inspectConnection(rawUrl)
+  if (!base.allowed) return base
+
+  const database = base.summary.slice(base.summary.lastIndexOf('/') + 1)
+  if (PROTECTED_LOCAL_DATABASES.includes(database as (typeof PROTECTED_LOCAL_DATABASES)[number])) {
+    return {
+      allowed: false,
+      summary: base.summary,
+      reason: `"${database}" is a curated local copy, not a test database.`
+        + ' Restore a fresh clone named 8br_test_<something> and point the suite at that instead.',
+    }
+  }
+  if (!DISPOSABLE_TEST_DATABASE.test(database)) {
+    return {
+      allowed: false,
+      summary: base.summary,
+      reason: `"${database}" is not named as a disposable test database.`
+        + ' A suite that can write may only run against 8br_test_<something>.',
+    }
+  }
+  return { allowed: true, summary: base.summary }
 }
 
 /** Are we running as the deployed application rather than a developer's machine? */
@@ -144,5 +205,27 @@ export function assertLocalDatabase(
     + `  ${verdict.reason}\n`
     + `  Destructive development commands may only touch ${APPROVED_LOCAL_DATABASES.join(', ')} on localhost.\n`
     + '  There is no override. Point DATABASE_URL at a local database instead.',
+  )
+}
+
+/**
+ * Refuse to continue unless this process may safely mutate a THROWAWAY database.
+ *
+ * Call at the top of the verification sweep, and of any suite that writes. Unlike
+ * `assertLocalDatabase` this never exempts Vercel: a test sweep has no business running there at
+ * all, so there is nothing to exempt.
+ */
+export function assertDisposableTestDatabase(
+  context: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const verdict = inspectDisposable(env.DATABASE_URL)
+  if (verdict.allowed) return
+
+  throw new Error(
+    `${context}: refusing to run a mutating suite against ${verdict.summary}.\n`
+    + `  ${verdict.reason}\n`
+    + '  Suites that can write may only run against a disposable clone named 8br_test_<something>\n'
+    + '  on localhost. There is no override.',
   )
 }
