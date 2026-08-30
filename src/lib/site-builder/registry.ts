@@ -115,13 +115,23 @@ const REGISTRY = new Map<string, ModuleDefinition>()
 /**
  * Register a module.
  *
- * Duplicate types throw at import time rather than silently replacing. Two definitions claiming one
- * type would mean whichever module file happened to be imported second decided how every existing
- * instance renders — a difference that would only show up in production.
+ * ── Duplicates are fatal in production, and a replacement in development ─────────────────────────
+ * Two definitions claiming one type would mean whichever file happened to be imported second decided
+ * how every existing instance renders — a difference that would surface only in production, so it is
+ * a startup error there.
+ *
+ * In development the same condition is how HOT RELOAD looks. Editing a module file re-runs it, the
+ * type is already registered, and throwing would abort the re-registration and leave the previous
+ * definition in the map. The symptom is unpleasant to diagnose: the file on disk is correct, the
+ * editor shows the new field, and the server keeps validating against the old schema until somebody
+ * restarts it. So a re-registration replaces, which is what a reload means.
  */
 export function registerModule<F extends FieldSet>(def: ModuleDefinition<F>): ModuleDefinition<F> {
   if (REGISTRY.has(def.type)) {
-    throw new Error(`Site builder: two modules are registered as "${def.type}".`)
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`Site builder: two modules are registered as "${def.type}".`)
+    }
+    console.warn(`[site-builder] re-registering "${def.type}" (hot reload).`)
   }
   REGISTRY.set(def.type, def as unknown as ModuleDefinition)
   return def

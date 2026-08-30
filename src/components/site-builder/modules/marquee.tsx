@@ -72,6 +72,7 @@ interface Panel {
   theme: string
   weight: number
   logoMediaId: number | null
+  logoPath: string
   logoHeight: number
   wordmark: string
   kicker: string
@@ -98,7 +99,15 @@ registerModule({
       help: 'Not shown on screen. Announced to screen readers so the panel is not an unlabelled region.',
     },
     angle: {
-      kind: 'number', label: 'Diagonal angle', default: 12, min: 0, max: 30, unit: '%',
+      /*
+        Six, because that is what the published homepage uses.
+
+        Its clip-path is `polygon(56% 0, 100% 0, 100% 100%, 44% 100%)` -- a midpoint of 50 leaning 6
+        either way. The default is a transcription of the site as it stands, not a preference; a
+        larger angle looks fine on its own and would have meant the first published layout did not
+        match the page it replaced.
+      */
+      kind: 'number', label: 'Diagonal angle', default: 6, min: 0, max: 30, unit: '%',
       help: 'How far the seam leans. Zero is a straight vertical split.',
     },
     minHeight: { kind: 'number', label: 'Minimum height', default: 440, min: 200, max: 900, unit: 'px' },
@@ -116,13 +125,13 @@ registerModule({
       */
       default: [
         {
-          theme: 'wcc', weight: 50, logoMediaId: null, logoHeight: 192,
+          theme: 'wcc', weight: 50, logoMediaId: null, logoPath: '/assets/branding/wcc-logo.png', logoHeight: 192,
           wordmark: '', kicker: 'World Cue Championships', title: 'Season 1', status: 'Starting soon',
           body: 'The inaugural season begins soon.',
           ctaLabel: 'Visit WCC website', ctaHref: 'https://www.worldcuechampionships.com/', newTab: true,
         },
         {
-          theme: 'brcam', weight: 50, logoMediaId: null, logoHeight: 0,
+          theme: 'brcam', weight: 50, logoMediaId: null, logoPath: '', logoHeight: 192,
           wordmark: '8BRCAM', kicker: '', title: 'Season 2', status: 'Coming soon',
           body: 'Hosted here on 8 Ball Registry.',
           ctaLabel: 'View Season 2 here', ctaHref: '/seasons', newTab: false,
@@ -134,8 +143,16 @@ registerModule({
           options: Object.entries(PANEL_THEMES).map(([value, t]) => ({ value, label: t.label })),
         },
         weight: { kind: 'number', label: 'Relative width', default: 50, min: 10, max: 200, help: 'Panels share the width in proportion to these numbers.' },
-        logoMediaId: { kind: 'media', label: 'Logo', default: null, help: 'Leave empty to lead with the wordmark instead.' },
-        logoHeight: { kind: 'number', label: 'Logo height', default: 192, min: 48, max: 320, unit: 'px' },
+        logoMediaId: { kind: 'media', label: 'Logo', default: null, help: 'Choose from the media library. Leave empty to use the file path below, or to lead with the wordmark.' },
+        /*
+          The WCC crest ships in the repository rather than the media library, and the published
+          homepage references it by path. Making the logo media-only would have meant the first
+          published layout could not reproduce the site it replaced without someone first
+          re-uploading the artwork -- and a re-upload is a re-encode, which is exactly what "save
+          this supplied image without modifying it" ruled out.
+        */
+        logoPath: { kind: 'url', label: 'Or a logo file path', default: '', internalOnly: true, help: 'A file already on the site, such as /assets/branding/wcc-logo.png.' },
+        logoHeight: { kind: 'number', label: 'Logo height', default: 192, min: 48, max: 320, unit: 'px', help: 'Ignored when there is no logo.' },
         wordmark: { kind: 'text', label: 'Wordmark', default: '', maxLength: 30, help: 'Used when there is no logo. This is the panel’s mark, so it is set large.' },
         kicker: { kind: 'text', label: 'Competition label', default: '', maxLength: 80 },
         title: { kind: 'text', label: 'Season label', default: 'Season 1', maxLength: 60 },
@@ -157,7 +174,11 @@ registerModule({
 
     // Resolved together rather than inside each panel, so a marquee with three logos still costs one
     // pass rather than three sequential lookups.
-    const logos = await Promise.all(panels.map((p) => mediaUrl(p.logoMediaId)))
+    const uploaded = await Promise.all(panels.map((p) => mediaUrl(p.logoMediaId)))
+    // A media item wins when one is chosen; otherwise the file path, if there is one. Both are
+    // validated -- the path is an internal-only URL field, so it cannot point off-site.
+    const logos = panels.map((p, i) => uploaded[i]
+      ?? (p.logoPath ? { url: p.logoPath, width: null, height: null, alt: null, id: 0 } : null))
 
     const total = panels.reduce((sum, p) => sum + Math.max(1, p.weight), 0)
     const stack = config.stackBelow === 'lg' ? 'marquee-stack-lg' : config.stackBelow === 'sm' ? 'marquee-stack-sm' : 'marquee-stack-md'
@@ -202,8 +223,19 @@ registerModule({
               could never override it. Handing the values to CSS lets the breakpoint decide whether
               to use them, which is what makes the panels stack cleanly instead of staying wedged.
             */
-            const padStart = first ? 0 : Math.min(60, (end - start) * 0.15 + lean)
-            const padEnd = last ? 0 : Math.min(60, (end - start) * 0.15 + lean)
+            /*
+              Clear of the seam at its WORST point, not its average.
+
+              The diagonal for this panel's left edge runs from `start + lean` at the top to
+              `start - lean` at the bottom, so content is inside the clipped region for part of its
+              height anywhere left of `start + lean`. Sizing the gutter as a fraction of the panel
+              width instead -- which is what this did first -- put the 8BRCAM column at 19% on a
+              seam that reaches 62%, and the half rendered as an empty gradient with its text
+              present in the DOM and invisible on screen. This is the same trap the hand-written
+              CSS documented, arrived at from the other direction.
+            */
+            const padStart = first ? 0 : Math.min(75, start + lean)
+            const padEnd = last ? 0 : Math.min(75, 100 - (end - lean))
             const logo = logos[i]
             const external = isExternalUrl(panel.ctaHref)
 
