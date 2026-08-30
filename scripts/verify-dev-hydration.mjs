@@ -91,6 +91,21 @@ try {
   r.check('the module library is present', shell.library === true)
   r.check('the inspector is present', shell.inspector === true)
 
+  /*
+    Dismiss the first-run tour before touching the canvas.
+
+    It is a modal on a fresh browser by design — this suite starts one every run — so leaving it up
+    would make every canvas interaction fail for a reason that has nothing to do with the editor.
+  */
+  const tour = await browser.eval(`(function () {
+    var skip = [].slice.call(document.querySelectorAll('button')).filter(function (b) { return /^Skip$/i.test((b.textContent || '').trim()) })[0];
+    if (!skip) return 'no tour';
+    skip.click();
+    return 'dismissed';
+  })()`)
+  r.check('the first-run tour appears and can be dismissed', tour === 'dismissed' || tour === 'no tour', String(tour))
+  await new Promise((res) => setTimeout(res, 800))
+
   // Selecting must actually change editor state — this is the interaction the whole feature rests on.
   const selected = await browser.eval(`(function () {
     var el = document.querySelector('[data-sb-module]');

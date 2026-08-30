@@ -9,13 +9,14 @@
  * search boxes, two keyboard behaviours and two places for the icon lookup to go stale.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import * as Icons from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { useEditor } from './editor-store'
 import { modulesByCategory, getModule, replacementsFor, sharedFields, type ModuleDefinition } from '@/lib/site-builder/registry'
 import { createInstance, createSection, findModule, findSection, insertModule, insertSection, replaceModule } from '@/lib/site-builder/operations'
+import { listReusablesAction, listTemplatesAction, type ReusableSummary } from '@/lib/site-builder/reusable-actions'
 
 /**
  * Resolve a lucide icon by name.
@@ -33,6 +34,16 @@ function Icon({ name, className }: { name: string; className?: string }) {
 export function ModuleLibrary() {
   const editor = useEditor()
   const [query, setQuery] = useState('')
+  const [mode, setMode] = useState<'modules' | 'reusable'>('modules')
+  const [reusables, setReusables] = useState<ReusableSummary[] | null>(null)
+
+  // Loaded on demand, once. Most sessions never open this tab.
+  useEffect(() => {
+    if (mode !== 'reusable' || reusables !== null) return
+    let alive = true
+    void listReusablesAction().then((r) => { if (alive) setReusables(r.ok ? r.data : []) })
+    return () => { alive = false }
+  }, [mode, reusables])
 
   const groups = useMemo(() => {
     const all = modulesByCategory()
@@ -80,8 +91,86 @@ export function ModuleLibrary() {
     editor.select({ kind: 'module', id: instance.id })
   }
 
+  /**
+   * Insert a reusable module, LINKED to its source.
+   *
+   * The instance stores `reusableId`, so editing the source later updates every page that carries
+   * one — and the inspector says so before an edit is made. Detaching turns it into an ordinary
+   * copy that stops following.
+   */
+  const addReusable = (r: ReusableSummary) => {
+    const instance = createInstance(r.moduleType, { config: r.config, reusableId: r.id })
+    const selection = editor.selection
+    editor.apply((doc) => {
+      if (selection?.kind === 'module') {
+        const found = findModule(doc, selection.id)
+        if (found) return insertModule(doc, found.section.id, instance, found.moduleIndex + 1, found.parent?.id)
+      }
+      if (selection?.kind === 'section') {
+        const found = findSection(doc, selection.id)
+        if (found) return insertModule(doc, found.section.id, instance)
+      }
+      const last = doc.sections[doc.sections.length - 1]
+      return last ? insertModule(doc, last.id, instance) : doc
+    }, { structural: true })
+    editor.select({ kind: 'module', id: instance.id })
+  }
+
   return (
     <div className="flex h-full flex-col gap-3">
+      <div className="flex border border-border" role="tablist" aria-label="What to add">
+        {(['modules', 'reusable'] as const).map((m) => (
+          <button
+            key={m}
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => setMode(m)}
+            className={cn(
+              'flex-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] transition',
+              mode === m ? 'bg-[var(--hot-red)] text-white' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {m === 'modules' ? 'Modules' : 'Saved'}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'reusable' && (
+        <div className="flex-1 overflow-y-auto">
+          {reusables === null && <p className="p-2 text-[11px] text-muted-foreground">Loading…</p>}
+          {reusables?.length === 0 && (
+            <p className="p-2 text-[11px] leading-relaxed text-muted-foreground">
+              Nothing saved yet. Select a module on the page and choose <strong className="text-foreground">Save as reusable</strong> to
+              keep its settings for other pages. Instances stay linked, so editing the saved one updates them all.
+            </p>
+          )}
+          <ul className="flex flex-col gap-1">
+            {(reusables ?? []).map((r) => {
+              const def = getModule(r.moduleType)
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => addReusable(r)}
+                    className="flex w-full items-start gap-2 border border-transparent px-2 py-1.5 text-left hover:border-border hover:bg-[var(--graphite)]"
+                  >
+                    <Icon name={def?.icon ?? 'Box'} className="mt-0.5 size-3.5 shrink-0 text-[var(--brcam-teal)]" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-semibold text-foreground">{r.name}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {def?.name ?? r.moduleType}{def ? '' : ' · this build has no such module'}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {mode === 'modules' && (
+      <>
       <input
         type="search"
         value={query}
@@ -137,6 +226,8 @@ export function ModuleLibrary() {
           </section>
         ))}
       </div>
+      </>
+      )}
     </div>
   )
 }

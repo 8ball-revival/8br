@@ -31,6 +31,7 @@ import {
   updateModuleVisibility, updateSection,
 } from '@/lib/site-builder/operations'
 import { describeVisibility, impossibleCombinations } from '@/lib/site-builder/visibility'
+import type { LayoutDocument as Doc } from '@/lib/site-builder/document'
 import { MediaPicker } from './media-picker'
 
 export function Inspector() {
@@ -69,6 +70,7 @@ function ModuleInspector({ moduleId }: { moduleId: string }) {
   }
 
   const groups = groupFields(def.fields)
+  const linked = location.module.reusableId
 
   return (
     <div className="flex flex-col gap-4">
@@ -77,6 +79,36 @@ function ModuleInspector({ moduleId }: { moduleId: string }) {
         <h2 className="font-display text-lg font-black uppercase tracking-tight text-foreground">{def.name}</h2>
         <p className="mt-1 text-xs text-muted-foreground">{def.description}</p>
       </header>
+
+      {/*
+        A linked module says so BEFORE it is edited, not after.
+
+        Changing one here changes it on every page that carries it, and finding that out afterwards
+        is the worst possible moment. Detaching turns this instance into an ordinary copy that stops
+        following the saved one — which is what somebody usually wants when they came here to change
+        one page.
+      */}
+      {linked && (
+        <div className="border border-[var(--brcam-teal)] p-2.5">
+          <p className="eyebrow text-[var(--brcam-teal)]">Linked module</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            This follows a saved module. Editing it here changes it everywhere it appears.
+          </p>
+          <button
+            type="button"
+            onClick={() => editor.apply((d) => detachModule(d, moduleId), { structural: true })}
+            className="mt-2 border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:border-[var(--hot-red)] hover:text-foreground"
+          >
+            Detach this copy
+          </button>
+        </div>
+      )}
+
+      {def.essential && (
+        <p className="border-l-2 border-[var(--gold)] pl-2 text-[11px] text-[var(--gold)]">
+          Essential to this page. {def.essential}
+        </p>
+      )}
 
       {groups.map(({ group, entries }) => (
         <Group key={group ?? 'general'} title={group ?? 'Settings'} defaultOpen>
@@ -848,3 +880,18 @@ function Empty({ title, body }: { title: string; body: string }) {
 }
 
 export type { LayoutDocument }
+
+
+/**
+ * Turn a linked instance into an ordinary copy.
+ *
+ * Only the link is removed; the settings stay exactly as they were, so the page looks identical the
+ * moment after detaching and only stops CHANGING with the saved module.
+ */
+function detachModule(doc: Doc, moduleId: string): Doc {
+  const next = structuredClone(doc)
+  const found = findModule(next, moduleId)
+  if (!found) return doc
+  found.module.reusableId = null
+  return next
+}

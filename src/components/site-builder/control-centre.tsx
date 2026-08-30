@@ -97,8 +97,14 @@ export function SiteBuilderControlCentre({ overview }: { overview: BuilderOvervi
 function PagesTab({ overview }: { overview: BuilderOverview }) {
   const statics = overview.pages.filter((p) => p.kind === 'STATIC')
   const templates = overview.pages.filter((p) => p.kind === 'TEMPLATE')
+  const globals = overview.pages.filter((p) => p.kind === 'GLOBAL')
   return (
     <div className="flex flex-col gap-6">
+      <PageGroup
+        title="Everywhere"
+        description="The navigation, the footer, the theme and the site-wide banner. These appear on every page, and they use the same drafts, revisions and rollback as everything else."
+        pages={globals}
+      />
       <PageGroup title="Pages" description="One layout each. Open a page to edit it where it lives." pages={statics} />
       <PageGroup
         title="Dynamic templates"

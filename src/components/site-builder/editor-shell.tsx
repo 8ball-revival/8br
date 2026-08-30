@@ -37,6 +37,7 @@ import { getModule } from '@/lib/site-builder/registry'
 import { validateDocument } from '@/lib/site-builder/document'
 import { ModuleTree, useSelectionPath } from './module-tree'
 import { CommandPalette, type PaletteAction } from './command-palette'
+import { GuidedTour } from './guided-tour'
 
 export function SiteBuilderEditor({ pageKey, document, version, pageTitle, manifest }: {
   pageKey: string
@@ -184,6 +185,9 @@ function Shell({ pageTitle }: { pageTitle: string }) {
       />
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
+      {/* Shown once per browser, and reopenable from the corner thereafter. Never in preview, where
+          the whole point is to see the page without editor chrome on it. */}
+      {!editor.previewing && <GuidedTour />}
       {replacing && <ReplaceDialog moduleId={replacing} onClose={() => setReplacing(null)} />}
       {savingReusable && <SaveReusableDialog moduleId={savingReusable} onClose={() => setSavingReusable(null)} />}
       {savingTemplate && <SaveTemplateDialog onClose={() => setSavingTemplate(false)} />}

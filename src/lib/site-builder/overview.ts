@@ -100,9 +100,19 @@ export async function getBuilderOverview(): Promise<BuilderOverview> {
       unknownTypes: check?.unknownTypes ?? [],
       moduleCount: check ? check.value.sections.reduce((n, s) => n + s.modules.length, 0) : 0,
       sectionCount: check ? check.value.sections.length : 0,
-      // Only a concrete route can be opened in Edit Mode. A template governs many routes and has no
-      // single page to stand on, so the control centre says so rather than offering a broken link.
-      editHref: page.kind === 'STATIC' ? `${page.key}${page.key.includes('?') ? '&' : '?'}edit=1` : null,
+      /*
+        Where this page is edited.
+
+        A STATIC page is edited in place, on itself. A GLOBAL has no page of its own — the navigation
+        appears on all of them — so it gets a surface under the control centre. A TEMPLATE governs
+        many routes and has no single page to stand on, so the control centre says so rather than
+        offering a link that would have to pick one arbitrarily.
+      */
+      editHref: page.kind === 'STATIC'
+        ? `${page.key}${page.key.includes('?') ? '&' : '?'}edit=1`
+        : page.kind === 'GLOBAL'
+          ? `/staff/site-builder/global/${page.key}`
+          : null,
     }
   })
 
