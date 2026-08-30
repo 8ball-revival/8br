@@ -20,7 +20,7 @@ import '@/components/site-builder/modules'
 export interface PageOverview {
   key: string
   title: string
-  kind: 'STATIC' | 'TEMPLATE'
+  kind: 'STATIC' | 'TEMPLATE' | 'GLOBAL'
   description: string | null
   /** Null until the page has been bootstrapped. */
   publishedRevision: number | null

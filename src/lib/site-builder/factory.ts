@@ -132,7 +132,7 @@ function templateShell(label: string, systemType: string): LayoutDocument {
 export interface FactoryPage {
   key: string
   title: string
-  kind: 'STATIC' | 'TEMPLATE'
+  kind: 'STATIC' | 'TEMPLATE' | 'GLOBAL'
   description: string
   document: () => LayoutDocument
 }
@@ -143,6 +143,19 @@ export interface FactoryPage {
  * Adding one here and re-running the bootstrap is all it takes to make a route editable — the
  * bootstrap is idempotent and only creates what is missing.
  */
+/**
+ * A global: the navigation, the footer or the theme.
+ *
+ * Modelled as a page so it inherits draft, revision history, atomic publish, scheduling, rollback
+ * and audit rather than needing all of that written a second time.
+ */
+function globalShell(label: string, moduleTypes: string[]): LayoutDocument {
+  return {
+    version: DOCUMENT_VERSION,
+    sections: [section('global', label, [1], moduleTypes.map((t, i) => mod(`global-${t.replace(/\W/g, '-')}-${i}`, t, {}, 12)))],
+  }
+}
+
 export const FACTORY_PAGES: FactoryPage[] = [
   {
     key: '/',
@@ -185,6 +198,27 @@ export const FACTORY_PAGES: FactoryPage[] = [
     kind: 'STATIC',
     description: 'The Break feed, placed as a module, with editable content around it.',
     document: () => aroundSystem('system.theBreak', 'The Break'),
+  },
+  {
+    key: 'nav',
+    title: 'Navigation & header',
+    kind: 'GLOBAL',
+    description: 'The links in the header, the mobile menu, the logo, and the site-wide banner.',
+    document: () => globalShell('Header', ['global.navigation', 'global.siteBanner']),
+  },
+  {
+    key: 'footer',
+    title: 'Footer',
+    kind: 'GLOBAL',
+    description: 'Footer columns, legal line and social links.',
+    document: () => globalShell('Footer', ['global.footer']),
+  },
+  {
+    key: 'theme',
+    title: 'Theme',
+    kind: 'GLOBAL',
+    description: 'Colours, type and spacing for every public page.',
+    document: () => globalShell('Theme', ['global.theme']),
   },
   {
     key: 'season',

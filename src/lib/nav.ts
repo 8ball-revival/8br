@@ -1,5 +1,18 @@
 /** Public navigation — single source of truth for header, mobile nav, and footer. */
-export type NavItem = { label: string; href: string }
+export type NavItem = {
+  label: string
+  href: string
+  /** Shown instead of `label` in the mobile menu, when the published navigation sets one. */
+  mobileLabel?: string
+  /** Open in a new tab. The built-in entries never do; the published navigation may. */
+  newTab?: boolean
+  /** A short flash such as NEW. */
+  badge?: string
+  /** A lucide icon name. */
+  icon?: string
+  /** Nested items: a dropdown on desktop, indented in the mobile menu. */
+  children?: NavItem[]
+}
 
 /**
  * Build the navigation for one request.

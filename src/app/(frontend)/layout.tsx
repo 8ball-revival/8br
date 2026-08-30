@@ -8,6 +8,7 @@ import { DialogProvider } from '@/components/ui/confirm-dialog'
 import { SiteFooter } from '@/components/site-footer'
 import { SITE_NAME, SITE_TITLE_DEFAULT, SITE_DESCRIPTION, SITE_URL } from '@/lib/site'
 import { DISPLAY_DEFAULTS, DISPLAY_KEY, DOM_SPEC } from '@/lib/display/settings'
+import { getTheme } from '@/lib/site-builder/globals'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
@@ -93,7 +94,24 @@ for(var p in S.px)e.style.setProperty(p,Number(v(S.px[p][0]))+S.px[p][1]);
 if(v('accentMode')==='custom'){e.style.setProperty('--dl-accent',String(v('accentHex')));e.style.setProperty('--dl-accent-ink',String(v('accentInk')));}
 }catch(err){}`
 
-export default function FrontendLayout({ children }: { children: React.ReactNode }) {
+/**
+ * The published theme, applied as server-rendered custom properties.
+ *
+ * ── Why it sits UNDER Display Lab rather than beside it ──────────────────────────────────────────
+ * Display Lab is the visitor's own appearance, applied to <html> before first paint from their
+ * localStorage. The site theme is the administrator's, and it must not fight it: a reader who has
+ * chosen a dark frame keeps it. So the theme is written to <body>, one level further in, where it
+ * sets the site's defaults and anything the visitor has personally chosen still wins by being on the
+ * more specific element. Two layers, two owners, no contest.
+ *
+ * ── Why it cannot reach the admin console ───────────────────────────────────────────────────────
+ * This is the FRONTEND layout only. Payload's admin and the staff console render through a separate
+ * root layout that never reads this, so a published theme cannot make the controls needed to undo it
+ * unreadable. That is the whole reason the two layouts stay separate.
+ */
+export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
+  // Never throws and never blocks: an unreadable theme is no theme, and the site renders as built.
+  const theme = await getTheme().catch(() => ({ vars: {}, fontDisplay: 'space-grotesk' }))
   return (
     <html
       lang="en"
@@ -103,7 +121,10 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       <head>
         <script dangerouslySetInnerHTML={{ __html: displayScript }} />
       </head>
-      <body className="flex min-h-screen flex-col bg-transparent text-foreground antialiased">
+      <body
+        className="flex min-h-screen flex-col bg-transparent text-foreground antialiased"
+        style={Object.keys(theme.vars).length ? (theme.vars as React.CSSProperties) : undefined}
+      >
         <DialogProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>

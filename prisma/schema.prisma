@@ -3547,6 +3547,13 @@ enum SitePageKind {
   STATIC
   /// A template every entity of a kind renders through, e.g. every Season page.
   TEMPLATE
+  /// Something that appears on EVERY page: the navigation, the footer, the theme.
+  ///
+  /// Modelled as a page rather than as its own table so it inherits the whole lifecycle already
+  /// built here — draft, preview, revision history, atomic publish, scheduling, rollback and audit.
+  /// A second mechanism for "edit the navigation" would have needed every one of those written
+  /// again, and would have been the one that was missing a rollback when it mattered.
+  GLOBAL
 }
 
 enum SiteRevisionState {

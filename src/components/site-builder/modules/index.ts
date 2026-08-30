@@ -21,5 +21,6 @@ import './system'
 import './layout'
 import './content-extra'
 import './competitions'
+import './shell'
 
 export { }

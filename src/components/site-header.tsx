@@ -12,6 +12,8 @@ import { getSiteBranding } from '@/lib/site-content/service'
 import { signOut } from '@/lib/account/actions'
 import { isStaff } from '@/lib/auth/roles'
 import { buildNav, type NavItem } from '@/lib/nav'
+import { getNavigation, getBanner, visibleLinks, ensureRecoveryLinks } from '@/lib/site-builder/globals'
+import { SiteBanner } from '@/components/site-builder/site-banner'
 import { canSeeCreator } from '@/lib/creator/access'
 import { EditModeButton } from '@/components/site-builder/edit-mode-button'
 import { canEditSite } from '@/components/site-builder/edit-mode'
@@ -21,12 +23,14 @@ import { FACTORY_PAGES } from '@/lib/site-builder/factory'
 export async function SiteHeader() {
   // Branding is admin-managed (published version only); `getSiteBranding` falls back to the
   // built-in identity so the header still renders before anything is published.
-  const [user, branding, creator, mayEditSite] = await Promise.all([
-    getCurrentUser(), getSiteBranding(), canSeeCreator(), canEditSite(),
+  const [user, branding, creator, mayEditSite, nav, banner] = await Promise.all([
+    getCurrentUser(), getSiteBranding(), canSeeCreator(), canEditSite(), getNavigation(), getBanner(),
   ])
   const staff = !!user && isStaff(user.roles)
   // Staff-only Admin entry, appended after the public nav.
-  const staffItems: NavItem[] = staff ? [{ label: 'Admin', href: '/staff' }] : []
+  // Admin is added by ensureRecoveryLinks now, so the old extra-items list is empty and kept
+  // only so the two nav components keep their existing prop shape.
+  const staffItems: NavItem[] = []
   /*
     Which routes the Edit button may appear on.
     Read from the factory list rather than hard-coded, so a page added to the builder becomes
@@ -39,7 +43,38 @@ export async function SiteHeader() {
   // Creator is gated on the competition-management capability, which is not the same permission as
   // "is staff" — an editor is staff and has no business creating competitions. This only decides
   // whether the item is DRAWN; every Creator route re-checks for itself.
-  const navEntries = buildNav({ canCreate: creator })
+  /*
+    The published navigation, with the built-in one as its floor.
+
+    `getNavigation` already falls back when nothing is published or the document cannot be read, so
+    this cannot produce a header with no links. Creator is appended rather than published because it
+    is gated on a capability rather than on a choice — an administrator should not have to remember
+    to add it, and should not be able to remove it from somebody who has the capability.
+
+    `ensureRecoveryLinks` then adds Admin and Site Builder for anyone who can reach them, whatever
+    the published navigation says. That is what makes a broken navigation recoverable from the
+    browser: publishing one with no Admin link hides it from everybody else, never from the Owner.
+  */
+  const viewer = { signedIn: !!user, isStaff: staff, isOwner: mayEditSite }
+  // Filter for this viewer first, then guarantee the recovery routes, then map to the shape the two
+  // nav components take. Doing it in that order means the recovery links cannot be filtered out by
+  // an audience rule they were never given.
+  const navEntries: NavItem[] = ensureRecoveryLinks(visibleLinks(nav.items, viewer, 'desktop'), viewer)
+    .map((l) => ({
+      label: l.label,
+      href: l.href,
+      mobileLabel: l.mobileLabel,
+      newTab: l.newTab,
+      badge: l.badge || undefined,
+      icon: l.icon || undefined,
+      children: l.children.length
+        ? l.children.map((c) => ({ label: c.label, href: c.href, newTab: c.newTab }))
+        : undefined,
+    }))
+  if (creator && !navEntries.some((i) => i.href === '/creator')) {
+    navEntries.splice(3, 0, { label: 'Creator', href: '/creator' })
+  }
+  void buildNav
   // Display policy: Preferred Name when present, otherwise the CueVerse ID (the account identity).
   // Never a separate "username" — that is only the internal login key.
   const displayName = user ? (user.preferredName || user.cueverseId || user.username) : ''
@@ -51,6 +86,8 @@ export async function SiteHeader() {
     <>
     {/* Signed-in only: nothing to keep alive otherwise. See SessionKeepalive. */}
     {user && <SessionKeepalive />}
+    {/* Above the header, because that is what a site-wide notice means. */}
+    {banner && <SiteBanner banner={banner} />}
     <header
       data-site-header
       /*
