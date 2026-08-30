@@ -83,19 +83,28 @@ check('the draft starts clean', page?.draft?.dirty === false)
 // The captured layout must be the homepage as built in code.
 const published0 = await readPublishedLayout(KEY)
 eq('published source is the revision', published0.source, 'published')
-eq('five sections captured', published0.document.sections.length, 5)
+eq('four sections captured', published0.document.sections.length, 4)
 eq('module order captured', published0.document.sections.flatMap((s) => s.modules.map((m) => m.type)), [
-  'competitions.history', 'rankings.live', 'competitions.marquee',
-  'competitions.recordFeature', 'layout.stack', 'rankings.achievements', 'rankings.statusRail',
+  'home.championHero', 'rankings.rail', 'layout.stack', 'layout.stack', 'rankings.statsBar',
 ])
-// The editorial column is a STACK now, so its two cards are children rather than top-level modules.
-// Checked separately: a flat list of module types would not notice if they went missing.
-eq('the editorial column holds the two cards', published0.document.sections
-  .flatMap((s) => s.modules)
-  .filter((m) => m.type === 'layout.stack')
-  .flatMap((m) => (m.children ?? []).map((c) => c.type)), [
-  'editorial.breakFeature', 'content.archiveNotice',
-])
+/*
+  Almost every panel on this page is NESTED, two and three levels deep.
+
+  A flat list of top-level module types reports a homepage with no marquee, no record, no article, no
+  news and no achievements on it, and passes. So the tree is walked instead, and the assertion is
+  about what a reader would actually find on the page.
+*/
+const flatten = (mods: { type: string; children?: { type: string }[] }[]): string[] =>
+  mods.flatMap((m) => [m.type, ...flatten((m.children ?? []) as never)])
+eq('every panel survives the capture, however deeply nested',
+  flatten(published0.document.sections.flatMap((s) => s.modules) as never), [
+    'home.championHero',
+    'rankings.rail',
+    'layout.stack', 'competitions.marquee', 'layout.columns',
+    'competitions.recordFeature', 'editorial.breakFeature',
+    'layout.stack', 'editorial.newsPlaques', 'rankings.achievementPlaques',
+    'rankings.statsBar',
+  ])
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 section('Draft isolation')
@@ -214,7 +223,7 @@ check('discard leaves the draft clean', !discarded.dirty)
 
 await resetToFactory(KEY, actor)
 const reset = (await getDraft(KEY))!
-eq('reset restores five sections', reset.document.sections.length, 5)
+eq('reset restores four sections', reset.document.sections.length, 4)
 check('reset marks the draft dirty so it can be reviewed', reset.dirty)
 // Crucially, reset does NOT publish. The public page must still be whatever was live.
 const afterReset = await prisma.sitePage.findUnique({ where: { key: KEY }, include: { publishedRevision: true } })
@@ -286,7 +295,7 @@ eq(
 const liveAfterActivation = await readPublishedLayout(KEY)
 check(
   'the live page renders the activated revision',
-  liveAfterActivation.source === 'published' && liveAfterActivation.document.sections.length === 5,
+  liveAfterActivation.source === 'published' && liveAfterActivation.document.sections.length === 4,
 )
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════

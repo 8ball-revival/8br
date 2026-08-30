@@ -32,8 +32,12 @@ export function RecordFeature({
   description,
   videoId,
   playLabel,
+  poster,
+  posterAlt,
+  posterFocal,
+  scoreboard,
 }: {
-  /** "TABLE CLEAR" — rendered in cyan. */
+  /** "TABLE CLEAR" — steel, so the red lands on the second half alone. */
   eyebrowLead: string
   /** "CHALLENGE" — rendered in red, so the eyebrow carries both accents as the design intends. */
   eyebrowTrail: string
@@ -45,15 +49,35 @@ export function RecordFeature({
   description?: string
   videoId: string | null
   playLabel: string
+  /** A supplied still for the video region. Empty falls back to YouTube's own thumbnail. */
+  poster?: string
+  posterAlt?: string
+  posterFocal?: string
+  /** The branded strip across the top of the poster. Empty draws nothing. */
+  scoreboard?: string
 }) {
   return (
     <section
       aria-labelledby="record-feature-heading"
       className={cn(
         'dl-surface cyber-clip relative overflow-hidden border border-[var(--line-strong)] bg-[var(--void)]',
-        // The two halves. Below `lg` they stack, numbers first, which is the reading order that
-        // makes sense on a phone: the record, then the proof.
-        'grid gap-0 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)]',
+        /*
+          Fills the row rather than sitting at its own height.
+
+          The three columns of this row are different lengths -- the reading column carries a news
+          panel and three plaques -- and a panel that stopped at its content left a third of a
+          screen of empty page beneath it. `h-full` with the video set to fill means the frame grows
+          into the space instead, which is also what keeps the three columns ending on one line.
+        */
+        'h-full',
+        /*
+          The two halves. Below `lg` they stack, numbers first, which is the reading order that
+          makes sense on a phone: the record, then the proof.
+
+          40/60 rather than an even split: the figure needs enough width not to wrap and no more,
+          and everything after that belongs to the video, which is the evidence.
+        */
+        'grid gap-0 lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)]',
       )}
     >
       {/*
@@ -67,7 +91,7 @@ export function RecordFeature({
         className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(0deg, rgba(0,229,255,0.10) 0 1px, transparent 1px 3px),'
+            'repeating-linear-gradient(0deg, color-mix(in oklab, var(--steel-dim) 26%, transparent) 0 1px, transparent 1px 3px),'
             + 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),'
             + 'linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
           backgroundSize: '100% 3px, 44px 44px, 44px 44px',
@@ -75,13 +99,13 @@ export function RecordFeature({
       />
 
       {/* Angular corner details, matching the marquee above. */}
-      <span aria-hidden className="pointer-events-none absolute left-0 top-0 z-10 size-4 border-l-2 border-t-2 border-[var(--neon-cyan)]" />
-      <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 z-10 size-4 border-b-2 border-r-2 border-[var(--hot-red)]" />
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 z-10 size-4 border-l-2 border-t-2 border-[var(--signal)]" />
+      <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 z-10 size-4 border-b-2 border-r-2 border-[var(--steel-dim)]" />
 
       <div className="relative z-[1] flex min-w-0 flex-col justify-center gap-1 p-5 sm:p-6 lg:p-7">
-        <p className="eyebrow text-[var(--neon-cyan)]">
+        <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-[var(--steel-bright)]">
           {eyebrowLead}{' '}
-          <span className="text-[var(--hot-red)]">{eyebrowTrail}</span>
+          <span className="text-[var(--signal)]">{eyebrowTrail}</span>
         </p>
 
         <h2 id="record-feature-heading" className="sr-only">
@@ -95,50 +119,71 @@ export function RecordFeature({
           never wrap or clip, and the panel's width changes continuously with the column beside it.
           `tabular-nums` keeps "58.7" from shifting as digits change.
         */}
+        {/*
+          The figure appears HERE and nowhere else.
+
+          An earlier draft put it over the poster as well, which is one number too many for a page
+          to state twice. The poster is a photograph of a table and asserts nothing; the record is
+          written once, in HTML, where it can be edited, selected, translated and read aloud.
+        */}
         <p
-          className="font-display font-black leading-[0.86] tracking-tight text-[var(--clean-white)] [font-variant-numeric:tabular-nums]"
-          style={{ fontSize: 'clamp(3.25rem, 8vw, 6.5rem)' }}
+          className="font-condensed font-extrabold leading-[0.84] tracking-[-0.01em] text-[var(--text-primary)] [font-variant-numeric:tabular-nums]"
+          style={{ fontSize: 'clamp(3.5rem, 8.5vw, 7rem)' }}
         >
           {time}
         </p>
         <p
-          className="font-display font-black uppercase leading-none tracking-tight text-[var(--clean-white)]"
-          style={{ fontSize: 'clamp(1.35rem, 3vw, 2.4rem)' }}
+          className="font-condensed font-bold uppercase leading-none tracking-[0.02em] text-[var(--text-primary)]"
+          style={{ fontSize: 'clamp(1.4rem, 3vw, 2.5rem)' }}
         >
           {unit}
         </p>
 
-        <p className="mt-3 font-display text-sm font-bold uppercase tracking-[0.14em] text-[var(--hot-red)] sm:text-base">
+        <p className="mt-3 font-condensed text-sm font-bold uppercase tracking-[0.2em] text-[var(--signal)] sm:text-base">
           {status}
         </p>
 
         {description && (
-          <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--clean-white)]/70">{description}</p>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">{description}</p>
         )}
 
         {holder && (
-          <div className="mt-5">
-            <p className="eyebrow text-[var(--neon-cyan)]">{holderLabel}</p>
-            <div className="mt-1 min-w-0">
+          <div className="mt-5 min-w-0">
+            <p className="font-condensed text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-[var(--steel-bright)]">
+              {holderLabel}
+            </p>
+            {/*
+              Handle and name on ONE line, divided by a slash.
+
+              Two stacked lines made the holder look like a row from a ranking table, in a panel
+              that is not a ranking. One line reads as an attribution, which is what it is. It still
+              truncates and still carries the full text in `title`, so a long CueVerse ID cannot
+              push the name out of the panel.
+            */}
+            <p className="mt-1 flex min-w-0 items-baseline gap-2 font-condensed text-xl font-bold sm:text-2xl">
               {holder.href ? (
                 <Link
                   href={holder.href}
-                  className="block truncate font-display text-xl font-bold text-[var(--clean-white)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:text-2xl"
+                  className="min-w-0 truncate text-[var(--text-primary)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                   title={holder.primary}
                 >
                   {holder.primary}
                 </Link>
               ) : (
-                <p className="truncate font-display text-xl font-bold text-[var(--clean-white)] sm:text-2xl" title={holder.primary}>
+                <span className="min-w-0 truncate text-[var(--text-primary)]" title={holder.primary}>
                   {holder.primary}
-                </p>
+                </span>
               )}
               {holder.secondary && (
-                <p className="truncate text-sm text-[var(--clean-white)]/60" title={holder.secondary}>
-                  {holder.secondary}
-                </p>
+                <>
+                  {/* --steel, not --steel-dim: this is a glyph somebody reads, not a rule. */}
+                  <span aria-hidden className="shrink-0 text-[var(--steel)]">/</span>
+                  <span className="min-w-0 truncate font-medium italic text-[var(--steel-bright)]" title={holder.secondary}>
+                    {holder.secondary}
+                  </span>
+                </>
               )}
-            </div>
+            </p>
           </div>
         )}
       </div>
@@ -149,6 +194,10 @@ export function RecordFeature({
             videoId={videoId}
             playLabel={playLabel}
             title={`${eyebrowLead} ${eyebrowTrail} — ${time} ${unit}`}
+            poster={poster}
+            posterAlt={posterAlt}
+            posterFocal={posterFocal}
+            scoreboard={scoreboard}
             fill
             className="h-full"
           />
@@ -158,7 +207,7 @@ export function RecordFeature({
             the number is the point and it does not depend on the footage existing.
           */
           <div className="flex aspect-video w-full items-center justify-center border-l border-[var(--line-strong)] bg-black/60 p-6 text-center">
-            <p className="text-sm text-[var(--clean-white)]/55">
+            <p className="text-sm text-[var(--text-muted)]">
               No video is set for this record yet.
             </p>
           </div>

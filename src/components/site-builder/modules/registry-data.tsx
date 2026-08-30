@@ -290,6 +290,34 @@ registerModule({
       default: 'Play the record run', maxLength: 120,
       help: 'Read aloud instead of "play". Say whose run and how long: "Play Kevin\u2019s 58.7-second record run".',
     },
+
+    /*
+      ── The poster, and what must never be printed on it ────────────────────────────────────────
+
+      A supplied still shown in place of YouTube's own thumbnail. Empty falls back to YouTube, which
+      is what this did before any art existed, so a record pointed at a different video still gets a
+      picture rather than a black rectangle.
+
+      The figure is NOT on it. `58.7` is set once, in the HTML beside the video, where it can be
+      edited, selected, translated and read aloud. Baking it into the photograph would put the same
+      number on the page twice and make the editable one a lie the moment somebody changed it.
+    */
+    poster: {
+      kind: 'url', label: 'Video poster', group: 'The video', default: '', internalOnly: true,
+      help: 'A file already on the site, such as /assets/homepage/table-clear-58-7-poster.webp. Empty uses the video\u2019s own thumbnail.',
+    },
+    posterAlt: {
+      kind: 'text', label: 'Poster description', group: 'The video', default: '', maxLength: 160,
+      help: 'Usually empty: the record and the holder are already stated beside the video, so the picture adds nothing a reader needs described.',
+    },
+    posterFocal: {
+      kind: 'text', label: 'Poster focal point', group: 'The video', default: '50% 50%', maxLength: 24,
+      help: 'Which part survives the crop, as a CSS object-position.',
+    },
+    scoreboard: {
+      kind: 'text', label: 'Strip across the poster', group: 'The video', default: '', maxLength: 60,
+      help: 'Drawn as text over the poster rather than baked into it, so it stays sharp and can be changed. Empty draws nothing.',
+    },
   },
   /*
     The video is a facade, not an embed.
@@ -303,6 +331,7 @@ registerModule({
     eyebrowLead: string; eyebrowTrail: string; time: string; unit: string; status: string
     description: string; holderLabel: string; holderPlayerId: string
     holderCueverseId: string; holderDisplayName: string; videoUrl: string; playLabel: string
+    poster: string; posterAlt: string; posterFocal: string; scoreboard: string
   }>) {
     const holder = await resolveRecordHolder({
       playerId: config.holderPlayerId || null,
@@ -321,6 +350,10 @@ registerModule({
         holder={holder}
         videoId={youtubeVideoId(config.videoUrl)}
         playLabel={config.playLabel}
+        poster={config.poster}
+        posterAlt={config.posterAlt}
+        posterFocal={config.posterFocal}
+        scoreboard={config.scoreboard}
       />
     )
   } as never,

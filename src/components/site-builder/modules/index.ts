@@ -15,6 +15,7 @@
 
 import './content'
 import './registry-data'
+import './registry-home'
 import './marquee'
 import './global'
 import './system'

@@ -84,6 +84,24 @@ export async function SiteFooter() {
 
   return (
     <footer className="mt-16 border-t-2 border-nav-border bg-[var(--graphite)] text-foreground">
+      {/*
+        The identity strip.
+
+        A thin band above the legal line carrying the mark and what this site is, in the same
+        register as the totals bar it sits under — condensed, letterspaced, quiet. It is the last
+        thing on the page and it should read as a sign-off rather than as another panel, which is
+        why it has a rule above it and nothing else.
+      */}
+      <Wide name="footer-identity" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-b border-[var(--border)] py-3 text-center lg:justify-start">
+        <span className="font-condensed text-sm font-bold uppercase tracking-[0.14em] text-[var(--text-primary)]">
+          {brandName}
+        </span>
+        <span aria-hidden className="font-condensed text-sm font-bold text-[var(--signal)]">{'//'}</span>
+        <span className="font-condensed text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-[var(--steel-bright)]">
+          The home of competitive 8-ball
+        </span>
+      </Wide>
+
       <Wide name="footer" className="flex flex-col items-center gap-4 py-6 text-sm lg:flex-row lg:justify-between lg:gap-6">
         <p className="text-xs text-muted-foreground">
           © {year} {brandName}. {legal}
@@ -95,7 +113,7 @@ export async function SiteFooter() {
               <Link
                 key={l.label}
                 href={safeHref(l.href)}
-                className="text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-[var(--cyan)]"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-[var(--signal)]"
               >
                 {l.label}
               </Link>
@@ -112,7 +130,7 @@ export async function SiteFooter() {
                   key={s.label}
                   href={safeHref(s.href)}
                   aria-label={s.label}
-                  className="cyber-clip-sm flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-[var(--cyan)]"
+                  className="cyber-clip-sm flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-[var(--signal)]"
                 >
                   <Icon className="size-4" aria-hidden />
                 </Link>

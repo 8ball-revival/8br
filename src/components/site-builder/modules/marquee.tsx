@@ -74,6 +74,9 @@ interface Panel {
   logoMediaId: number | null
   logoPath: string
   logoHeight: number
+  bgPath: string
+  bgFocal: string
+  bgOpacity: number
   wordmark: string
   kicker: string
   title: string
@@ -154,6 +157,27 @@ registerModule({
         logoPath: { kind: 'url', label: 'Or a logo file path', default: '', internalOnly: true, help: 'A file already on the site, such as /assets/branding/wcc-logo.png.' },
         logoHeight: { kind: 'number', label: 'Logo height', default: 192, min: 48, max: 320, unit: 'px', help: 'Ignored when there is no logo.' },
         wordmark: { kind: 'text', label: 'Wordmark', default: '', maxLength: 30, help: 'Used when there is no logo. This is the panel’s mark, so it is set large.' },
+
+        /*
+          A photograph behind the panel, beneath the gradient rather than instead of it.
+
+          The panel palettes are what make WCC read as WCC and 8BRCAM as 8BRCAM, and a picture that
+          replaced them would take that away. So the image sits under the existing glow and streak
+          layers at an editable strength: at 100 it is a photograph with a wash of brand colour over
+          it, at 0 it is not there at all and the panel is exactly what it was.
+        */
+        bgPath: {
+          kind: 'url', label: 'Background photograph', default: '', internalOnly: true,
+          help: 'A file already on the site, such as /assets/homepage/homepage-8brcam-camera.webp. Leave empty for no photograph.',
+        },
+        bgFocal: {
+          kind: 'text', label: 'Photograph focal point', default: '50% 50%', maxLength: 24,
+          help: 'Which part survives the crop, as a CSS object-position. "78% 50%" keeps the right-hand subject.',
+        },
+        bgOpacity: {
+          kind: 'number', label: 'Photograph strength', default: 55, min: 0, max: 100, unit: '%',
+          help: 'How far the photograph comes through the panel colour.',
+        },
         kicker: { kind: 'text', label: 'Competition label', default: '', maxLength: 80 },
         title: { kind: 'text', label: 'Season label', default: 'Season 1', maxLength: 60 },
         status: { kind: 'text', label: 'Status label', default: 'Coming soon', maxLength: 60 },
@@ -241,6 +265,31 @@ registerModule({
 
             const inner = (
               <>
+                {/*
+                  The photograph is the BOTTOM layer, and it is decorative.
+
+                  It carries no information the panel does not already state in text -- the season,
+                  the status and the destination are all written above it -- so it is hidden from
+                  assistive technology rather than given an alt that would repeat them. `object-cover`
+                  with an editable focal point, because this panel is a different shape at every
+                  width and a fixed centre crop loses the subject at the extremes.
+                */}
+                {panel.bgPath && (
+                  <span aria-hidden className="absolute inset-0 -z-10 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={panel.bgPath}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="size-full object-cover"
+                      style={{
+                        objectPosition: panel.bgFocal || '50% 50%',
+                        opacity: Math.max(0, Math.min(100, panel.bgOpacity ?? 55)) / 100,
+                      }}
+                    />
+                  </span>
+                )}
                 {theme.glow && <span aria-hidden className={theme.glow} />}
                 {theme.streaks && <span aria-hidden className={theme.streaks} />}
                 <div className={cn('marquee-wcc-row relative flex items-center gap-5 sm:gap-8', !logo && 'block')}>

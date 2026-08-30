@@ -137,29 +137,41 @@ function BreakCard({ news }: { news: HomeNews }) {
   if (!featured) return <BreakFallback variant="card" />
 
   return (
+    /*
+      Graphite, not ivory.
+
+      This card used to be a large warm-white slab, which in a composition that is 68% near-black
+      read as a hole cut in the page. What separated it from its surroundings was brightness, and
+      brightness is the crudest tool available. It is separated by SPACING and TYPE instead: a
+      steel-bordered panel a shade above the page, a red section label, a heading twice the size of
+      anything near it, and one filled action. Nothing here is lighter than the rest of the page and
+      it is still the first thing the eye lands on in its column.
+    */
     <section
       aria-labelledby="break-card-heading"
-      className="dl-surface dl-on-light cyber-clip flex h-full min-w-0 flex-col border border-[var(--line)] bg-[var(--clean-white)] p-5 text-[var(--void)] sm:p-6"
+      className="cyber-clip flex h-full min-w-0 flex-col border border-[var(--line-strong)] bg-[var(--graphite)] p-5 text-[var(--text-primary)] sm:p-6"
     >
-      <p className="eyebrow text-[var(--void)]/60">The Break</p>
+      <p className="font-condensed text-[0.72rem] font-bold uppercase tracking-[0.3em] text-[var(--signal)]">
+        The Break
+      </p>
 
       <h2
         id="break-card-heading"
-        className="mt-2 font-display text-xl font-bold uppercase leading-[1.08] tracking-tight sm:text-2xl"
+        className="mt-2.5 font-condensed text-2xl font-bold uppercase leading-[1.02] tracking-[-0.005em] sm:text-3xl"
       >
         <Link
           href={`/the-break/${featured.slug}`}
-          className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]"
+          className="underline-offset-4 transition-colors hover:text-[var(--signal)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         >
           {featured.title}
         </Link>
       </h2>
 
       {featured.excerpt && (
-        <p className="mt-3 text-sm leading-relaxed text-[var(--void)]/75">{featured.excerpt}</p>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{featured.excerpt}</p>
       )}
 
-      <p className="mt-4 text-[0.66rem] font-semibold uppercase tracking-wider text-[var(--void)]/55">
+      <p className="mt-4 border-t border-[var(--border)] pt-3 font-condensed text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
         {featured.author}
         {` · ${featured.readingMinutes} min read`}
       </p>
@@ -167,7 +179,7 @@ function BreakCard({ news }: { news: HomeNews }) {
       {/* Pinned to the bottom, so two cards of different text length still line their buttons up. */}
       <Link
         href={`/the-break/${featured.slug}`}
-        className="cyber-clip-sm mt-auto inline-flex w-fit items-center gap-2 self-start bg-[var(--hot-red)] px-4 py-2.5 pt-4 text-xs font-bold uppercase tracking-wider text-[var(--clean-white)] transition-colors hover:bg-[var(--hot-red-dim)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]"
+        className="cyber-clip-sm mt-auto inline-flex w-fit items-center gap-2 self-start bg-[var(--signal-fill)] px-4 py-2.5 font-condensed text-xs font-bold uppercase tracking-[0.16em] text-[var(--signal-ink)] transition-colors hover:bg-[var(--signal-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--graphite)]"
         style={{ marginTop: 'auto' }}
       >
         Read The Break
@@ -187,21 +199,21 @@ function BreakFallback({ variant = 'panel' }: { variant?: BreakVariant } = {}) {
   const card = variant === 'card'
   return (
     <section className={cn(
-      'dl-surface dl-on-light cyber-clip p-5',
-      card
-        ? 'flex h-full flex-col border border-[var(--line)] bg-[var(--clean-white)] text-[var(--void)]'
-        : 'border border-[var(--acid-dim)] bg-[var(--acid)] text-[var(--acid-ink)]',
+      'cyber-clip border border-[var(--line-strong)] bg-[var(--graphite)] p-5 text-[var(--text-primary)]',
+      card && 'flex h-full flex-col',
     )}>
-      <p className="eyebrow text-[var(--acid-ink)]/70">The Break</p>
-      <h2 className="mt-2 font-display text-2xl font-bold uppercase tracking-tight">
+      <p className="font-condensed text-[0.72rem] font-bold uppercase tracking-[0.3em] text-[var(--signal)]">
+        The Break
+      </p>
+      <h2 className="mt-2.5 font-condensed text-2xl font-bold uppercase tracking-[-0.005em]">
         Nothing published yet
       </h2>
-      <p className="mt-2 max-w-lg text-sm text-[var(--acid-ink)]/75">
+      <p className="mt-2 max-w-lg text-sm text-[var(--text-secondary)]">
         Match reports, season write-ups and everything else land here.
       </p>
       <Link
         href="/the-break"
-        className="cyber-clip-sm mt-4 inline-flex items-center gap-2 bg-[var(--hot-red)] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[var(--clean-white)] transition-colors hover:bg-[var(--hot-red-dim)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]"
+        className="cyber-clip-sm mt-4 inline-flex w-fit items-center gap-2 bg-[var(--signal-fill)] px-4 py-2.5 font-condensed text-xs font-bold uppercase tracking-[0.16em] text-[var(--signal-ink)] transition-colors hover:bg-[var(--signal-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--graphite)]"
       >
         Visit The Break
         <ArrowRight className="size-4" aria-hidden />

@@ -58,49 +58,108 @@ function homepage(): LayoutDocument {
   return {
     version: DOCUMENT_VERSION,
     sections: [
-      // Row 1 — 58/42. The introduction beside the standings.
-      section('home-intro', 'Introduction & Rankings', [58, 42], [
-        mod('home-history', 'competitions.history'),
-        mod('home-live-rankings', 'rankings.live', { platform: 'auto', limit: 5 }),
+      /*
+        Row 1 — full width. One photograph, three columns of information.
+
+        Full width and no columns declared, because the hero arranges its own three columns ON the
+        photograph. Handing it to the section grid would have put borders between them and turned
+        one cinematic band back into the three separate cards this replaced.
+      */
+      section('home-hero', 'Champion hero', [1], [
+        mod('home-hero-module', 'home.championHero'),
       ]),
-      // Row 2 — full width. The announcement.
-      section('home-marquee', 'Competition marquee', [1], [
-        mod('home-marquee-module', 'competitions.marquee'),
+      // Row 2 — full width. The top five, as one line beneath the hero.
+      section('home-rail', 'Top five rail', [1], [
+        mod('home-rail-module', 'rankings.rail'),
       ]),
       /*
-        Row 3 — 58/42. The record beside the editorial column.
+        Row 3 — 68/32. Everything below the rail, in two columns.
 
-        The record feature takes the larger share because it contains a video, and a 16:9 frame in
-        the smaller column would be the size of a thumbnail. The right column is a STACK rather than
-        a third section: the article card and the accuracy strip belong together and move together,
-        and stacking them inside one column keeps the row two columns wide at every width.
+        The marquee, the record and the article are one reading column; the news and the
+        achievements are the other. They are ONE section rather than two stacked rows because the
+        approved composition runs the narrow column alongside the marquee as well as alongside the
+        record — which is also what makes the two columns end on the same line instead of leaving a
+        third of a screen of empty page under whichever one is shorter.
       */
-      section('home-record', 'Record & editorial', [58, 42], [
-        // The play label names the holder and the time: "Play" alone tells a screen-reader user
-        // that something will play and nothing whatsoever about what.
-        mod('home-record-feature', 'competitions.recordFeature', {
-          playLabel: "Play Kevin's 58.7-second record run",
-        }),
+      section('home-body', 'Marquee, record & reading column', [68, 32], [
         {
-          ...mod('home-editorial-stack', 'layout.stack', { gap: 3 }),
+          ...mod('home-main-stack', 'layout.stack', { gap: 3 }),
           children: [
-            mod('home-break', 'editorial.breakFeature', { variant: 'card' }),
-            mod('home-archive-notice', 'content.archiveNotice', { variant: 'compact' }),
+            /*
+              Sized for the column it now sits in, not for the full width it used to have.
+
+              The marquee moved from a full-width row into a two-thirds column, and three of its
+              defaults were tuned for the old width: a 192px crest ate the room the WCC copy needed,
+              a 6% seam pushed the button past the diagonal and clipped it, and 440px of height left
+              the panel mostly empty. A narrower panel is a different design problem, and these are
+              the three numbers that answer it.
+            */
+            mod('home-marquee-module', 'competitions.marquee', {
+              angle: 4,
+              minHeight: 380,
+              panels: [
+                /*
+                  The two halves, spelled out here rather than left to the module defaults.
+
+                  A default is what a NEW panel gets; this is what the homepage has. Writing it out
+                  means the 8BRCAM photograph, the focal point and the copy travel with the layout,
+                  so a site bootstrapped tomorrow gets the approved composition rather than two
+                  empty panels.
+                */
+                {
+                  theme: 'wcc', weight: 50,
+                  logoMediaId: null, logoPath: '/assets/branding/wcc-logo.png', logoHeight: 140,
+                  wordmark: '',
+                  kicker: 'World Cue Championships', title: 'Season 1', status: 'Starting soon',
+                  body: 'The inaugural season begins soon.',
+                  ctaLabel: 'Visit WCC website', ctaHref: 'https://www.worldcuechampionships.com/', newTab: true,
+                  bgPath: '', bgFocal: '50% 50%', bgOpacity: 0,
+                },
+                {
+                  theme: 'brcam', weight: 50,
+                  logoMediaId: null, logoPath: '', logoHeight: 192,
+                  wordmark: '8BRCAM',
+                  kicker: '', title: 'Season 2', status: 'Coming soon',
+                  body: 'Keep track of the action here on 8 Ball Registry.',
+                  ctaLabel: 'View Season 2 here', ctaHref: '/seasons', newTab: false,
+                  bgPath: '/assets/homepage/homepage-8brcam-camera.webp', bgFocal: '78% 50%', bgOpacity: 55,
+                },
+              ],
+            }),
+            {
+              /*
+                The record and the article, side by side.
+
+                Two thirds to the record because it holds a 16:9 video AND the figure beside it; one
+                third to the article, which is the narrow measure a headline reads best in.
+              */
+              ...mod('home-record-row', 'layout.columns', { ratio: '66-34', gap: 3, align: 'stretch', stackBelow: 'lg' }),
+              children: [
+                // The play label names the holder and the time: "Play" alone tells a screen-reader
+                // user that something will play and nothing whatsoever about what.
+                mod('home-record-feature', 'competitions.recordFeature', {
+                  playLabel: "Play Kevin's 58.7-second record run",
+                  poster: '/assets/homepage/table-clear-58-7-poster.webp',
+                  posterAlt: '',
+                  posterFocal: '62% 50%',
+                  scoreboard: '8 Ball Registry',
+                }),
+                mod('home-break', 'editorial.breakFeature', { variant: 'card' }),
+              ],
+            },
+          ],
+        },
+        {
+          ...mod('home-column-stack', 'layout.stack', { gap: 3 }),
+          children: [
+            mod('home-news-plaques', 'editorial.newsPlaques'),
+            mod('home-achievement-plaques', 'rankings.achievementPlaques'),
           ],
         },
       ]),
-      /*
-        Row 4 — full width. A diversion, deliberately below the competition data.
-
-        Dark, so the light cards inside it are separated from the section rather than sharing its
-        colour. On the acid surface an acid card had only a hairline to distinguish it.
-      */
-      section('home-achievements', 'Achievements', [1], [
-        mod('home-achievements-module', 'rankings.achievements', { surface: 'dark' }),
-      ]),
-      // Row 5 — full width. The totals.
-      section('home-status', 'Status rail', [1], [
-        mod('home-status-module', 'rankings.statusRail'),
+      // Row 5 — full width. The totals, in the register of a status line rather than an award.
+      section('home-stats', 'Registry totals', [1], [
+        mod('home-stats-module', 'rankings.statsBar'),
       ]),
     ],
   }

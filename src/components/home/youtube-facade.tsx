@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Play } from 'lucide-react'
 
 import { youtubeEmbedUrl, youtubeThumbnails, youtubeWatchUrl } from '@/lib/media/youtube'
 import { cn } from '@/lib/utils'
@@ -19,16 +18,28 @@ import { cn } from '@/lib/utils'
  * starts because it was asked for, which is the one circumstance in which autoplay is not rude. It
  * starts muted regardless; the player's unmute control is right there for anybody who wants sound.
  *
- * ── Why the thumbnail falls back rather than erroring ───────────────────────────────────────────
- * `maxresdefault.jpg` exists only for videos uploaded above a certain resolution. When it does not,
- * YouTube serves a 120×90 grey placeholder with a 200 — so an `onError` handler never fires and the
- * poster is silently a grey smudge. This walks the list on error AND treats a suspiciously small
- * natural size as a miss, which is the only way to catch the placeholder.
+ * ── A supplied poster, or YouTube's ─────────────────────────────────────────────────────────────
+ * `poster` is a repository asset chosen for the composition. When it is absent the component falls
+ * back to YouTube's own thumbnail chain, which is what it did before any art existed. That fallback
+ * has to walk a list rather than trust one URL: `maxresdefault.jpg` exists only for videos uploaded
+ * above a certain resolution, and when it does not YouTube serves a 120x90 grey placeholder with a
+ * 200 — so `onError` never fires and the poster is silently a smudge. A suspiciously small natural
+ * width is therefore treated as a miss, which is the only way to catch it.
+ *
+ * ── When playback will not start ────────────────────────────────────────────────────────────────
+ * A browser may refuse autoplay, or refuse third-party frames entirely. Neither is recoverable from
+ * here and neither is worth a spinner: a refused autoplay leaves YouTube's own play button in a
+ * loaded player, and a refused frame leaves an empty box. The permanent escape link in the corner
+ * covers both, which is why it is rendered in every state rather than only in the poster state.
  */
 export function YoutubeFacade({
   videoId,
   playLabel,
   title,
+  poster,
+  posterAlt,
+  posterFocal,
+  scoreboard,
   fill = false,
   className,
 }: {
@@ -37,15 +48,22 @@ export function YoutubeFacade({
   playLabel: string
   /** The accessible name of the region, and the iframe's title once it exists. */
   title: string
+  /** A supplied still. Empty falls back to YouTube's own thumbnail. */
+  poster?: string
+  posterAlt?: string
+  posterFocal?: string
+  /** The branded strip across the top. Empty draws nothing. */
+  scoreboard?: string
   /** Fill the height it is given from `lg` up, instead of holding 16:9 and letterboxing. */
   fill?: boolean
   className?: string
 }) {
-  const posters = youtubeThumbnails(videoId)
+  const fallbacks = youtubeThumbnails(videoId)
   const [posterIndex, setPosterIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
 
-  const poster = posters[posterIndex]
+  const supplied = poster?.trim() ? poster.trim() : null
+  const src = supplied ?? fallbacks[posterIndex]
 
   return (
     <div
@@ -59,7 +77,7 @@ export function YoutubeFacade({
           the panel beside it is taller. The poster is `object-cover`, so filling crops rather than
           distorts.
         */
-        'relative w-full overflow-hidden bg-black',
+        'relative w-full overflow-hidden bg-[var(--surface-inset)]',
         fill ? 'aspect-video lg:aspect-auto lg:h-full' : 'aspect-video',
         className,
       )}
@@ -73,6 +91,9 @@ export function YoutubeFacade({
           would cut the table off, and stretching it is worse. So the iframe holds the ratio and is
           centred in the space, which puts the panel's own dark ground above and below it rather than
           YouTube's black bars. The outer box does not change size, so nothing moves when it starts.
+
+          Nothing of the poster survives this branch — it is not hidden behind the player, it is not
+          rendered at all.
         */
         <span className="absolute inset-0 flex items-center justify-center">
           <iframe
@@ -87,76 +108,138 @@ export function YoutubeFacade({
         </span>
       ) : (
         <>
-          {poster && (
-            // A plain <img>, not next/image: this is a third-party poster that changes when the
-            // uploader changes it, and routing it through the optimiser would cache a stale frame
-            // and put our server in the middle of a request that does not need us.
+          {src && (
+            // A plain <img>, not next/image: the supplied poster is already an optimised WebP at
+            // the size this frame needs, and the YouTube fallback is a third-party file that
+            // changes when the uploader changes it — routing either through the optimiser would
+            // spend a round trip to produce what is already on disk, or cache a stale frame.
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={poster}
-              alt=""
-              aria-hidden
-              loading="lazy"
+              src={src}
+              alt={supplied ? (posterAlt ?? '') : ''}
+              aria-hidden={supplied && posterAlt ? undefined : true}
+              width={1600}
+              height={900}
               decoding="async"
               className="absolute inset-0 size-full object-cover"
-              onError={() => setPosterIndex((i) => Math.min(i + 1, posters.length - 1))}
+              style={{ objectPosition: posterFocal ?? '50% 50%' }}
+              onError={() => { if (!supplied) setPosterIndex((i) => Math.min(i + 1, fallbacks.length - 1)) }}
               onLoad={(e) => {
                 /*
-                  The grey-placeholder check.
+                  The grey-placeholder check, for YouTube's chain only.
 
-                  A missing maxres poster comes back as a real 120×90 image with a 200, so the error
-                  handler never runs. Anything that small is the placeholder, so step down.
+                  A missing maxres poster comes back as a real 120x90 image with a 200, so the error
+                  handler never runs. Anything that small is the placeholder, so step down. A
+                  supplied asset is never second-guessed this way.
                 */
+                if (supplied) return
                 const img = e.currentTarget
                 if (img.naturalWidth > 0 && img.naturalWidth <= danglingPlaceholderWidth) {
-                  setPosterIndex((i) => Math.min(i + 1, posters.length - 1))
+                  setPosterIndex((i) => Math.min(i + 1, fallbacks.length - 1))
                 }
               }}
             />
           )}
 
-          {/* A wash, so white text and the red button hold their contrast over any frame. */}
-          <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/40" />
+          {/* A wash, so the white strip and the red button hold their contrast over any frame. */}
+          <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/45" />
 
+          {scoreboard && <Scoreboard text={scoreboard} />}
+
+          {/*
+            The whole frame is the button.
+
+            A small target over a large picture is a target people miss, and on a phone the picture
+            IS the affordance. `aria-label` carries the whole sentence because the visible control is
+            a triangle, and a triangle is not a label.
+          */}
           <button
             type="button"
             onClick={() => setPlaying(true)}
             aria-label={playLabel}
-            className="group absolute inset-0 flex items-center justify-center focus-visible:outline-none"
+            className={cn(
+              'group absolute inset-0 flex cursor-pointer items-center justify-center',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
+            )}
           >
             <span
               className={cn(
-                'flex size-16 items-center justify-center rounded-xl bg-[#ff0033] text-white shadow-[0_6px_24px_rgba(0,0,0,0.55)] transition',
-                'group-hover:scale-105 group-hover:bg-[#ff1a47]',
-                'group-focus-visible:ring-4 group-focus-visible:ring-[var(--ring)] group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-black',
-                'sm:size-20',
+                'flex h-12 w-[4.6rem] items-center justify-center rounded-[0.7rem] bg-[#ff0033] text-white',
+                'shadow-[0_6px_24px_rgba(0,0,0,0.55)]',
+                'transition-transform duration-150 group-hover:scale-105 group-hover:bg-[#ff1a47]',
+                /*
+                  Reduced motion removes the transform, not the feedback: the colour change stays,
+                  so a reader who has asked for less movement still sees the control respond.
+                */
+                'motion-reduce:transition-none motion-reduce:group-hover:scale-100',
+                'sm:h-[3.6rem] sm:w-[5.6rem]',
               )}
             >
-              <Play className="ml-1 size-7 fill-current sm:size-9" aria-hidden />
+              {/* The triangle, drawn rather than iconised, so it keeps YouTube's proportions. */}
+              <svg aria-hidden viewBox="0 0 24 24" className="ml-0.5 size-7 sm:size-8" focusable="false">
+                <path d="M8 5.5 L18 12 L8 18.5 Z" fill="currentColor" />
+              </svg>
             </span>
           </button>
         </>
       )}
 
       {/*
-        The way out.
+        The way out, in every state.
 
         A browser or extension that refuses third-party frames shows an empty box and no explanation,
-        so there is always a direct link. It sits in the corner rather than under the video because
-        the video is the dominant element of this panel and nothing should push it around.
+        and a browser that refuses autoplay shows a player that has not started. This link covers
+        both. It sits in the corner rather than under the video because the video is the dominant
+        element of this panel and nothing should push it around.
       */}
       <a
         href={youtubeWatchUrl(videoId)}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          'absolute bottom-2 right-2 z-10 border border-white/25 bg-black/65 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-wider text-white/85 backdrop-blur-sm transition',
+          'absolute bottom-2 right-2 z-10 border border-white/25 bg-black/65 px-2 py-1',
+          'font-condensed text-[0.62rem] font-bold uppercase tracking-wider text-white/85 backdrop-blur-sm transition',
           'hover:border-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
         )}
       >
         Watch on YouTube
       </a>
     </div>
+  )
+}
+
+/**
+ * The branded strip across the top of the poster.
+ *
+ * Drawn here rather than baked into the photograph, so it stays sharp at every width, follows the
+ * theme, and can be edited. The X marks either side are the scoring notation from a paper
+ * scoresheet — decoration, and hidden from screen readers along with the rest of the strip, because
+ * the record it decorates is stated properly in the panel beside it.
+ */
+function Scoreboard({ text }: { text: string }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 border-b border-[color-mix(in_oklab,var(--signal)_45%,transparent)] bg-[color-mix(in_oklab,var(--void)_78%,transparent)] px-3 py-1.5 backdrop-blur-[2px]"
+    >
+      <Marks />
+      <span className="min-w-0 flex-1 truncate text-center font-condensed text-[0.62rem] font-bold uppercase tracking-[0.3em] text-[var(--text-on-media)] sm:text-[0.7rem]">
+        {text}
+      </span>
+      <Marks />
+    </div>
+  )
+}
+
+function Marks() {
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-[var(--signal)]">
+      {[0, 1, 2].map((i) => (
+        <svg key={i} viewBox="0 0 10 10" className="size-2" focusable="false">
+          <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      ))}
+    </span>
   )
 }
 
