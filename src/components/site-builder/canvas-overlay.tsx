@@ -31,9 +31,8 @@ import {
 import { cn } from '@/lib/utils'
 import { useEditor } from './editor-store'
 import {
-  duplicateModule, findModule, moveModule, nudgeModule, removeModule, updateModuleVisibility,
+  duplicateModule, findModule, moveModule, nudgeModule, updateModuleVisibility,
 } from '@/lib/site-builder/operations'
-import { trashAction } from '@/lib/site-builder/actions'
 
 /** Never changes, so `useSyncExternalStore` never re-subscribes; the two snapshots do the work. */
 const subscribeNever = () => () => {}
@@ -47,9 +46,10 @@ interface Measured {
   rect: Rect
 }
 
-export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
+export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable, onRequestDelete }: {
   onRequestReplace: (moduleId: string) => void
   onRequestSaveReusable: (moduleId: string) => void
+  onRequestDelete: (moduleId: string) => void
 }) {
   const editor = useEditor()
   const [measured, setMeasured] = useState<Measured[]>([])
@@ -281,6 +281,7 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
                 onDragEnd={() => { setDragging(null); setDropTarget(null) }}
                 onReplace={() => onRequestReplace(m.id)}
                 onSaveReusable={() => onRequestSaveReusable(m.id)}
+                onDelete={() => onRequestDelete(m.id)}
               />
             )}
           </div>
@@ -313,13 +314,14 @@ export function CanvasOverlay({ onRequestReplace, onRequestSaveReusable }: {
 // ── Quick actions ───────────────────────────────────────────────────────────────────────────────
 
 function ModuleActions({
-  moduleId, onDragStart, onDragEnd, onReplace, onSaveReusable,
+  moduleId, onDragStart, onDragEnd, onReplace, onSaveReusable, onDelete,
 }: {
   moduleId: string
   onDragStart: () => void
   onDragEnd: () => void
   onReplace: () => void
   onSaveReusable: () => void
+  onDelete: () => void
 }) {
   const editor = useEditor()
   const location = findModule(editor.document, moduleId)
@@ -330,25 +332,6 @@ function ModuleActions({
   const act = (fn: (d: typeof editor.document) => typeof editor.document) => (e: React.MouseEvent) => {
     e.stopPropagation()
     editor.apply(fn, { structural: true })
-  }
-
-  /**
-   * Delete moves to the trash first, then removes.
-   *
-   * The order matters. Removing first and trashing after would lose the module entirely if the trash
-   * write failed — and the trash write is the thing that makes deletion recoverable after the
-   * session ends, which is exactly when somebody needs it.
-   */
-  const onDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!location) return
-    const result = await trashAction('module', location.module.type, location.module, undefined)
-    if (!result.ok) {
-      window.alert(`This module was not deleted, because it could not be copied to the trash first: ${result.error}`)
-      return
-    }
-    editor.apply((d) => removeModule(d, moduleId), { structural: true })
-    editor.select(null)
   }
 
   return (
@@ -378,7 +361,7 @@ function ModuleActions({
         {hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
       </ActionButton>
       <ActionButton title="Save as reusable" onClick={(e) => { e.stopPropagation(); onSaveReusable() }}><Save className="size-3.5" /></ActionButton>
-      <ActionButton title="Move to trash" onClick={onDelete}><Trash2 className="size-3.5" /></ActionButton>
+      <ActionButton title="Move to trash" onClick={(e) => { e.stopPropagation(); onDelete() }}><Trash2 className="size-3.5" /></ActionButton>
     </div>
   )
 }

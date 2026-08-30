@@ -1,6 +1,6 @@
 import { BuilderPage } from '@/components/site-builder/edit-mode'
 import type { Metadata } from 'next'
-import { getTournament, tournamentBracket } from '@/lib/tournaments/service'
+import { getTournament } from '@/lib/tournaments/service'
 
 
 /**

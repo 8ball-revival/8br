@@ -72,6 +72,7 @@ export async function BuilderPage({
     viewer: {
       signedIn: access.status === 'ok',
       isAdmin: access.status === 'ok' && access.actor.isAdmin,
+      isOwner: access.status === 'ok' && access.actor.isOwner,
     },
   }
 

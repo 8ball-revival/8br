@@ -12,7 +12,6 @@ import 'server-only'
  * and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { getSeasonView } from '@/lib/seasons/service'
@@ -32,7 +31,7 @@ import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { SeasonBracketPanel } from '@/components/seasons/season-bracket-panel'
 import { DoubleElimBracket } from '@/components/brackets/double-elim-bracket'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
-import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
+import { seasonAccess } from '@/lib/seasons/visibility'
 import { publicRegistrationOpen } from '@/lib/competition/registration-policy'
 import { autoEntrantsAvailability } from '@/lib/archive/auto-entrants'
 import { getCurrentUser } from '@/lib/account/auth'

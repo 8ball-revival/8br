@@ -10,10 +10,8 @@ import 'server-only'
  * The route is now a shell that supplies metadata and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 
 import { Wide } from '@/components/primitives'
-import { pageMetadata } from '@/lib/site'
 import { getExplorer, getFacets } from '@/lib/stats/ladder-explorer'
 import { aggregateFilters, decodeRankingsState } from '@/lib/stats/rankings-columns'
 import {

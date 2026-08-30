@@ -85,7 +85,7 @@ export interface RenderContext {
   /** The dynamic route's params, so a system module knows which entity it is drawing. */
   routeParams?: Record<string, string>
   /** Signed-in viewer, for visibility conditions only — never for authorization. */
-  viewer?: { signedIn: boolean; isAdmin: boolean }
+  viewer?: { signedIn: boolean; isAdmin: boolean; isOwner: boolean }
 }
 
 export interface ModuleDefinition<F extends FieldSet = FieldSet> {

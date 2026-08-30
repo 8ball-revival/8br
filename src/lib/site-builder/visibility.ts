@@ -16,7 +16,7 @@
  * clearly in the inspector than a nested boolean tree, and is far harder to get subtly wrong.
  */
 
-import type { Breakpoint, Condition, VisibilityRule } from './document'
+import type { Breakpoint, Condition, ConditionGroup, VisibilityRule } from './document'
 import type { RenderContext } from './registry'
 
 /** Facts a rule may be evaluated against. Assembled once per page, not per module. */
@@ -24,8 +24,14 @@ export interface VisibilityFacts {
   now: Date
   signedIn: boolean
   isAdmin: boolean
+  isOwner: boolean
   route: string
   currentYear: number
+  /** 'static', 'season', 'tournament', 'article', 'player' or 'global'. */
+  pageType?: string
+  competitionSlug?: string
+  seasonId?: number
+  tournamentId?: number
   seasonStatus?: string
   registrationOpen?: boolean
   groupsPublished?: boolean
@@ -41,8 +47,14 @@ export function factsFor(context: RenderContext, extra: Partial<VisibilityFacts>
     now,
     signedIn: context.viewer?.signedIn ?? false,
     isAdmin: context.viewer?.isAdmin ?? false,
+    isOwner: context.viewer?.isOwner ?? false,
     route: context.route,
     currentYear: now.getUTCFullYear(),
+    // A route beginning with a slash is a concrete page; anything else is a template key, which is
+    // exactly what "what kind of page is this?" means to an administrator.
+    pageType: context.route.startsWith('/') ? 'static' : context.route,
+    seasonId: context.seasonId,
+    tournamentId: context.tournamentId,
     ...extra,
   }
 }
@@ -60,11 +72,25 @@ export function factsFor(context: RenderContext, extra: Partial<VisibilityFacts>
 export function isVisible(rule: VisibilityRule | undefined, facts: VisibilityFacts): boolean {
   if (!rule) return true
   if (rule.hidden) return false
-  if (!rule.conditions?.length) return true
-  return rule.conditions.every((c) => {
+
+  const direct = rule.conditions ?? []
+  const groups = rule.groups ?? []
+  if (!direct.length && !groups.length) return true
+
+  const test = (c: Condition) => {
     const holds = evaluate(c, facts)
     return c.negate ? !holds : holds
-  })
+  }
+  const groupHolds = (g: ConditionGroup) =>
+    (g.match === 'any' ? g.conditions.some(test) : g.conditions.every(test))
+
+  /*
+    `all` is the default, because that is what a rule written before groups existed meant. An older
+    document therefore keeps behaving exactly as it did rather than quietly loosening the moment
+    this feature shipped.
+  */
+  const results = [...direct.map(test), ...groups.map(groupHolds)]
+  return rule.match === 'any' ? results.some(Boolean) : results.every(Boolean)
 }
 
 function evaluate(c: Condition, f: VisibilityFacts): boolean {
@@ -81,6 +107,11 @@ function evaluate(c: Condition, f: VisibilityFacts): boolean {
     }
     case 'signedIn': return f.signedIn
     case 'isAdmin': return f.isAdmin
+    case 'isOwner': return f.isOwner
+    case 'pageType': return !!c.value && f.pageType === c.value
+    case 'competition': return !!c.value && f.competitionSlug === c.value
+    case 'seasonId': return !!c.value && String(f.seasonId ?? '') === c.value
+    case 'tournamentId': return !!c.value && String(f.tournamentId ?? '') === c.value
     // Device is a viewport question, and the server has no viewport. It is expressed as a class by
     // `hideOn` instead; a device CONDITION would have to guess, and would be wrong for somebody.
     case 'device': return true
@@ -108,6 +139,11 @@ const SUBJECT_PHRASES: Record<Condition['subject'], (c: Condition) => string> = 
   },
   signedIn: () => 'the visitor is signed in',
   isAdmin: () => 'the visitor is an administrator',
+  isOwner: () => 'the visitor is the Owner',
+  pageType: (c) => 'the page is a ' + (c.value || 'page') + ' page',
+  competition: (c) => 'the competition is ' + (c.value || 'unset'),
+  seasonId: (c) => 'the Season is #' + (c.value || 'unset'),
+  tournamentId: (c) => 'the Tournament is #' + (c.value || 'unset'),
   device: (c) => `the visitor is on ${c.value ?? 'a device'}`,
   seasonStatus: (c) => `the Season status is ${c.value ?? '—'}`,
   registrationOpen: () => 'registration is open',
@@ -129,8 +165,15 @@ export function describeCondition(c: Condition): string {
 export function describeVisibility(rule: VisibilityRule | undefined, hideOn?: Breakpoint[]): string {
   const parts: string[] = []
   if (rule?.hidden) return 'Hidden. This is not shown to anybody.'
-  if (rule?.conditions?.length) {
-    parts.push(`Shown when ${rule.conditions.map(describeCondition).join(', and ')}`)
+  const direct = rule?.conditions ?? []
+  const groups = rule?.groups ?? []
+  if (direct.length || groups.length) {
+    const joiner = rule?.match === 'any' ? ', or ' : ', and '
+    const clauses = [
+      ...direct.map(describeCondition),
+      ...groups.map((g) => '(' + g.conditions.map(describeCondition).join(g.match === 'any' ? ', or ' : ', and ') + ')'),
+    ]
+    parts.push('Shown when ' + clauses.join(joiner))
   } else {
     parts.push('Always shown')
   }
@@ -146,9 +189,27 @@ export function describeVisibility(rule: VisibilityRule | undefined, hideOn?: Br
  * which is far more confusing to diagnose than a warning at the point of setting it.
  */
 export function impossibleCombinations(rule: VisibilityRule | undefined): string[] {
-  if (!rule?.conditions?.length) return []
   const out: string[] = []
-  const cs = rule.conditions
+  /*
+    Only ANDed conditions can contradict each other.
+
+    Two mutually exclusive conditions under `any` are not a mistake -- that is precisely what OR is
+    for -- so flagging them would train an administrator to ignore the warnings.
+  */
+  for (const g of rule?.groups ?? []) {
+    if (g.match === 'all') out.push(...contradictionsIn(g.conditions))
+  }
+  if (rule?.match !== 'any') out.push(...contradictionsIn(rule?.conditions ?? []))
+  if (rule?.hideOn && rule.hideOn.length === 3) {
+    out.push('This is hidden on desktop, tablet and mobile, so it will never be seen.')
+  }
+  return [...new Set(out)]
+}
+
+/** Combinations within one ANDed list that can never all hold at once. */
+function contradictionsIn(cs: Condition[]): string[] {
+  if (!cs.length) return []
+  const out: string[] = []
 
   for (const c of cs) {
     if (c.subject === 'dateWindow' && c.from && c.to && Date.parse(c.from) > Date.parse(c.to)) {
@@ -157,21 +218,17 @@ export function impossibleCombinations(rule: VisibilityRule | undefined): string
   }
   const has = (s: Condition['subject'], negate: boolean) =>
     cs.some((c) => c.subject === s && !!c.negate === negate)
-  for (const s of ['signedIn', 'isAdmin', 'registrationOpen', 'groupsPublished', 'playoffsPublished'] as const) {
+  for (const s of ['signedIn', 'isAdmin', 'isOwner', 'registrationOpen', 'groupsPublished', 'playoffsPublished'] as const) {
     if (has(s, false) && has(s, true)) {
       out.push(`This requires "${s}" to be both true and false, so it will never be shown.`)
     }
   }
   // Two different values for a subject that can only hold one at a time.
-  for (const s of ['seasonStatus', 'competitionPlatform', 'currentYear', 'route'] as const) {
+  for (const s of ['seasonStatus', 'competitionPlatform', 'currentYear', 'route', 'pageType', 'seasonId', 'tournamentId'] as const) {
     const values = new Set(cs.filter((c) => c.subject === s && !c.negate).map((c) => c.value))
     if (values.size > 1) {
       out.push(`This requires ${s} to be ${[...values].join(' and ')} at once, so it will never be shown.`)
     }
-  }
-  // Everything hidden at every breakpoint is the same outcome as being hidden outright.
-  if (rule.hideOn && rule.hideOn.length === 3) {
-    out.push('This is hidden on desktop, tablet and mobile, so it will never be seen.')
   }
   return [...new Set(out)]
 }

@@ -10,7 +10,6 @@ import 'server-only'
  * The route is now a shell that supplies metadata and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { Wide } from '@/components/primitives'
@@ -20,7 +19,6 @@ import { PostCard } from '@/components/break/post-card'
 import { getFeed, searchPosts } from '@/lib/break/feed'
 import { currentBreakActor, canPost, canManageTheBreak } from '@/lib/break/permissions'
 import { FEED_SORTS, TOP_WINDOWS, type FeedSort, type TopWindow } from '@/lib/break/ranking'
-import { pageMetadata } from '@/lib/site'
 
 
 

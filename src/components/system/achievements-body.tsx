@@ -10,7 +10,6 @@ import 'server-only'
  * The route is now a shell that supplies metadata and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 
 import { prisma } from '@/lib/prisma'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'

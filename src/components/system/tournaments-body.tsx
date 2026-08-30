@@ -10,7 +10,6 @@ import 'server-only'
  * The route is now a shell that supplies metadata and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 import { Suspense } from 'react'
 
 import { Wide } from '@/components/primitives'
@@ -18,7 +17,6 @@ import { SectionHeader } from '@/components/section-header'
 import { TournamentList } from '@/components/tournaments/tournament-list'
 import { getTournamentList } from '@/lib/tournaments/list'
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
-import { pageMetadata } from '@/lib/site'
 
 /*
  * A running Tournament has to leave the Active section the moment it completes, not when a cache

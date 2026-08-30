@@ -10,14 +10,12 @@ import 'server-only'
  * The route is now a shell that supplies metadata and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 
 import { getExplorer, getFacets, getFreshness } from '@/lib/stats/ladder-explorer'
 import { RankingsExplorer } from '@/components/rankings/rankings-explorer'
 import { decodeRankingsState, aggregateFilters } from '@/lib/stats/rankings-columns'
 import { SCOPE_SERIES_SLUG, scopeOverlay } from '@/lib/stats/rankings-scope'
 import { Wide } from '@/components/primitives'
-import { pageMetadata } from '@/lib/site'
 import { prisma } from '@/lib/prisma'
 
 

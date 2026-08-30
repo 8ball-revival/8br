@@ -65,9 +65,10 @@ export interface StyleOverrides {
  * season opens" from becoming a scripting surface.
  */
 export type ConditionSubject =
-  | 'dateWindow' | 'signedIn' | 'isAdmin' | 'device'
+  | 'dateWindow' | 'signedIn' | 'isAdmin' | 'isOwner' | 'device'
   | 'seasonStatus' | 'registrationOpen' | 'groupsPublished' | 'playoffsPublished'
   | 'competitionPlatform' | 'dataAvailable' | 'currentYear' | 'route'
+  | 'pageType' | 'competition' | 'seasonId' | 'tournamentId'
 
 export interface Condition {
   subject: ConditionSubject
@@ -79,11 +80,32 @@ export interface Condition {
   negate?: boolean
 }
 
+/**
+ * A group of conditions with one operator.
+ *
+ * Groups are how OR is expressed without an expression language. `(A and B) or (C and D)` is two
+ * groups; the rule's own `match` says how the groups combine. That is enough for everything an
+ * administrator has actually needed here, and it stays readable in plain English — which an
+ * arbitrary boolean tree does not, and which is the whole reason for the summary line under the
+ * controls.
+ */
+export interface ConditionGroup {
+  match: 'all' | 'any'
+  conditions: Condition[]
+}
+
 export interface VisibilityRule {
   /** Hidden outright — the "temporarily hide" action, independent of any condition. */
   hidden?: boolean
-  /** All conditions must hold. An empty list always shows. */
+  /**
+   * How the top-level conditions and groups combine. Defaults to `all`, which is what a rule written
+   * before groups existed meant, so an older document keeps behaving exactly as it did.
+   */
+  match?: 'all' | 'any'
+  /** Conditions applied directly, without a group. An empty list always shows. */
   conditions?: Condition[]
+  /** Groups, each with its own operator. */
+  groups?: ConditionGroup[]
   /** Per-breakpoint visibility, independent of conditions. */
   hideOn?: Breakpoint[]
 }
@@ -403,9 +425,26 @@ function normaliseStyle(input: unknown): StyleOverrides {
 }
 
 const CONDITION_SUBJECTS: ConditionSubject[] = [
-  'dateWindow', 'signedIn', 'isAdmin', 'device', 'seasonStatus', 'registrationOpen',
+  'dateWindow', 'signedIn', 'isAdmin', 'isOwner', 'device', 'seasonStatus', 'registrationOpen',
   'groupsPublished', 'playoffsPublished', 'competitionPlatform', 'dataAvailable', 'currentYear', 'route',
+  'pageType', 'competition', 'seasonId', 'tournamentId',
 ]
+
+function normaliseConditionList(input: unknown): Condition[] {
+  if (!Array.isArray(input)) return []
+  return input
+    .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object')
+    .filter((c) => CONDITION_SUBJECTS.includes(String(c.subject) as ConditionSubject))
+    .slice(0, 12)
+    .map((c) => {
+      const cond: Condition = { subject: String(c.subject) as ConditionSubject }
+      if (typeof c.value === 'string') cond.value = c.value.slice(0, 64)
+      if (typeof c.from === 'string' && !Number.isNaN(Date.parse(c.from))) cond.from = c.from
+      if (typeof c.to === 'string' && !Number.isNaN(Date.parse(c.to))) cond.to = c.to
+      if (c.negate === true) cond.negate = true
+      return cond
+    })
+}
 
 function normaliseVisibility(input: unknown): VisibilityRule {
   if (!input || typeof input !== 'object') return {}
@@ -416,20 +455,19 @@ function normaliseVisibility(input: unknown): VisibilityRule {
     const bps = o.hideOn.filter((b): b is Breakpoint => (BREAKPOINTS as readonly string[]).includes(String(b)))
     if (bps.length) out.hideOn = bps
   }
-  if (Array.isArray(o.conditions)) {
-    const conds = o.conditions
-      .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object')
-      .filter((c) => CONDITION_SUBJECTS.includes(String(c.subject) as ConditionSubject))
-      .slice(0, 12)
-      .map((c) => {
-        const cond: Condition = { subject: String(c.subject) as ConditionSubject }
-        if (typeof c.value === 'string') cond.value = c.value.slice(0, 64)
-        if (typeof c.from === 'string' && !Number.isNaN(Date.parse(c.from))) cond.from = c.from
-        if (typeof c.to === 'string' && !Number.isNaN(Date.parse(c.to))) cond.to = c.to
-        if (c.negate === true) cond.negate = true
-        return cond
-      })
-    if (conds.length) out.conditions = conds
+  if (o.match === 'any' || o.match === 'all') out.match = o.match
+  const conds = normaliseConditionList(o.conditions)
+  if (conds.length) out.conditions = conds
+  if (Array.isArray(o.groups)) {
+    const groups = o.groups
+      .filter((g): g is Record<string, unknown> => !!g && typeof g === 'object')
+      .slice(0, 6)
+      .map((g) => ({
+        match: (g.match === 'any' ? 'any' : 'all') as 'all' | 'any',
+        conditions: normaliseConditionList(g.conditions),
+      }))
+      .filter((g) => g.conditions.length)
+    if (groups.length) out.groups = groups
   }
   return out
 }

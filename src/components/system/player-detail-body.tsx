@@ -12,12 +12,10 @@ import 'server-only'
  * and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
-import { pageMetadata } from '@/lib/site'
 import { Container } from '@/components/ui/container'
 import { getPlayerProfile, getUnrankedHistory } from '@/lib/stats/ladder'
 import { UnrankedBadge, divisionLabel } from '@/components/platform/platform-badge'

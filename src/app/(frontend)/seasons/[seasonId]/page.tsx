@@ -1,6 +1,5 @@
 import { BuilderPage } from '@/components/site-builder/edit-mode'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 import { getSeasonView } from '@/lib/seasons/service'
 import { seasonAccess, HIDDEN_SEASON_METADATA } from '@/lib/seasons/visibility'
 

@@ -12,7 +12,6 @@ import 'server-only'
  * and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Trophy } from 'lucide-react'

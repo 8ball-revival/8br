@@ -12,7 +12,6 @@ import 'server-only'
  * and hands the page to the builder.
  */
 
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Lock, Pin, BadgeCheck, ExternalLink } from 'lucide-react'

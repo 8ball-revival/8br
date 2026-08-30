@@ -93,8 +93,8 @@ registerModule({
             <p className="text-xs text-muted-foreground">
               {latest.label}
               {/* A forfeited final has no score to show, and printing one would invent a result. */}
-              {latest.finalScore && !latest.finalsForfeit ? ` \u00b7 ${latest.finalScore}` : ''}
-              {latest.finalsForfeit ? ' \u00b7 won by forfeit' : ''}
+              {latest.finalScore && !latest.finalsForfeit ? ` · ${latest.finalScore}` : ''}
+              {latest.finalsForfeit ? ' · won by forfeit' : ''}
               {latest.runnerUpHandle ? ` def. ${latest.runnerUpHandle}` : ''}
             </p>
           </div>
@@ -178,9 +178,9 @@ registerModule({
     return (
       <Panel title={config.title} action={<ViewAll href={config.platform === 'YAHOO' ? '/yahoo' : '/rankings'} />}>
         <ol className="divide-y divide-border">
-          {rows.slice(0, config.limit).map((r, i) => (
+          {rows.slice(0, config.limit).map((r, index) => (
             <li key={r.playerId} className="flex items-center gap-3 px-4 py-2">
-              <span className="tabular w-6 shrink-0 text-xs font-bold text-muted-foreground">{i + 1}</span>
+              <span className="tabular w-6 shrink-0 text-xs font-bold text-muted-foreground">{index + 1}</span>
               <Link href={`/players/${r.slug}`} className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground hover:underline">
                 {/* An archive row can have no CueVerse ID; the preferred name is then all there is. */}
                 {r.cueverseId ?? r.preferredName ?? 'Unknown'}
@@ -557,10 +557,10 @@ registerModule({
     return (
       <Panel title={config.title} action={<ViewAll href="/yahoo" label="Archive" />}>
         <ol className="divide-y divide-border">
-          {roll.slice(0, config.limit).map((entry, i) => (
+          {roll.slice(0, config.limit).map((entry) => (
             <li key={entry.id} className="flex items-center justify-between gap-3 px-4 py-2">
-              <span className="min-w-0 truncate text-sm text-muted-foreground">{entry.year} \u00b7 {entry.title}</span>
-              <span className="shrink-0 truncate text-sm font-semibold text-foreground">{entry.champion ?? '\u2014'}</span>
+              <span className="min-w-0 truncate text-sm text-muted-foreground">{entry.year} · {entry.title}</span>
+              <span className="shrink-0 truncate text-sm font-semibold text-foreground">{entry.champion ?? '—'}</span>
             </li>
           ))}
         </ol>
@@ -591,7 +591,7 @@ registerModule({
       ['Seasons', summary.seasons],
       ['Players', summary.players],
       ['Matches', summary.matches],
-      ['Unique champions', summary.distinctChampions, `${summary.distinctChampions} different people won the archive\u2019s Seasons.`],
+      ['Unique champions', summary.distinctChampions, `${summary.distinctChampions} different people won the archive’s Seasons.`],
     ]
     return (
       <section>
