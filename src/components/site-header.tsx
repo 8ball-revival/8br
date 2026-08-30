@@ -13,17 +13,28 @@ import { signOut } from '@/lib/account/actions'
 import { isStaff } from '@/lib/auth/roles'
 import { buildNav, type NavItem } from '@/lib/nav'
 import { canSeeCreator } from '@/lib/creator/access'
+import { EditModeButton } from '@/components/site-builder/edit-mode-button'
+import { canEditSite } from '@/components/site-builder/edit-mode'
+import { FACTORY_PAGES } from '@/lib/site-builder/factory'
 
 /** Sticky public header: brand, primary nav, and the signed-in user / sign-in control. */
 export async function SiteHeader() {
   // Branding is admin-managed (published version only); `getSiteBranding` falls back to the
   // built-in identity so the header still renders before anything is published.
-  const [user, branding, creator] = await Promise.all([
-    getCurrentUser(), getSiteBranding(), canSeeCreator(),
+  const [user, branding, creator, mayEditSite] = await Promise.all([
+    getCurrentUser(), getSiteBranding(), canSeeCreator(), canEditSite(),
   ])
   const staff = !!user && isStaff(user.roles)
   // Staff-only Admin entry, appended after the public nav.
   const staffItems: NavItem[] = staff ? [{ label: 'Admin', href: '/staff' }] : []
+  /*
+    Which routes the Edit button may appear on.
+    Read from the factory list rather than hard-coded, so a page added to the builder becomes
+    editable from the header without this file being touched -- and, more importantly, so the button
+    never appears on a page that has no layout behind it, where it would open an empty toolbar and
+    read as the feature being broken.
+  */
+  const builderRoutes = FACTORY_PAGES.filter((p) => p.kind === 'STATIC').map((p) => p.key)
   // Home · Seasons · Cups · Creator? · Rankings · News · Admin?
   // Creator is gated on the competition-management capability, which is not the same permission as
   // "is staff" — an editor is staff and has no business creating competitions. This only decides
@@ -86,6 +97,13 @@ export async function SiteHeader() {
             section, and the slot now holds the control that opens it — which is reachable at every
             width, unlike the badge, which was hidden below 1024px.
           */}
+          {/*
+            Edit Mode, immediately before Display Lab.
+
+            Only rendered when the SERVER has confirmed the capability -- the button's presence is a
+            shortcut, never the permission. Every builder action re-checks independently.
+          */}
+          {mayEditSite && <EditModeButton editable={builderRoutes.length > 0} />}
           <DisplayLab className="mr-2" />
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
           {user ? (

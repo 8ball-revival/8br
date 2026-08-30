@@ -6,7 +6,7 @@ import type { Capability } from '@/lib/auth/roles'
 
 export type AdminSection =
   | 'dashboard' | 'reset' | 'audit' | 'members' | 'penalties'
-  | 'staff' | 'competition' | 'competitions' | 'news' | 'settings' | 'security' | 'health'
+  | 'staff' | 'competition' | 'competitions' | 'news' | 'settings' | 'security' | 'health' | 'site-builder'
 
 /**
  * Every Admin section. `hiddenFromNav` removes an entry from the visible tab strip WITHOUT touching
@@ -34,6 +34,13 @@ const SECTIONS: {
   { key: 'settings', label: 'Site Settings', href: '/staff/settings', headAdminOnly: true, hiddenFromNav: true },
   { key: 'security', label: 'Security', href: '/staff/security', cap: 'view_audit', hiddenFromNav: true },
   { key: 'health', label: 'Data & System Health', href: '/staff/health', headAdminOnly: true, hiddenFromNav: true },
+  /*
+    The visual site builder.
+    Shown in the strip rather than hidden, because routine content and layout work is a far more
+    frequent errand than most of the sections above it. Its capability is Owner-only, so it simply
+    does not appear for anyone else.
+  */
+  { key: 'site-builder', label: 'Site Builder', href: '/staff/site-builder', cap: 'manage_site_builder' },
 ]
 
 /** The Admin Portal chrome — rendered INSIDE the normal 8BR site shell (header/footer/background are
