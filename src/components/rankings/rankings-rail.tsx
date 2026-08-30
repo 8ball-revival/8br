@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Star, Target, Trophy, Flame, Snowflake } from 'lucide-react'
 
 import type { ExplorerRow } from '@/lib/stats/ladder-explorer'
+import { championshipsOf, championshipsLabel, type TableProfile } from '@/lib/stats/rankings-columns'
 import { identityLines } from '@/lib/identity/display'
 import { cn } from '@/lib/utils'
 
@@ -25,7 +26,19 @@ import { cn } from '@/lib/utils'
  * a signed count of an active, unbroken run — which is genuinely recent and genuinely measured. The
  * panel therefore shows form and is labelled as form, rather than showing form dressed as movement.
  */
-export function RankingsRail({ rows, className }: { rows: ExplorerRow[]; className?: string }) {
+export function RankingsRail({ rows, className, profile = 'rankings' }: {
+  rows: ExplorerRow[]
+  className?: string
+  /**
+   * Which table this rail belongs to.
+   *
+   * It changes exactly one thing: what "championships" counts. The archive's table shows 8BRCAM
+   * Season championships, so its rail has to name the same figure — a panel saying one player leads
+   * on championships while the column beside it shows another leading is the kind of disagreement
+   * nobody can resolve by looking.
+   */
+  profile?: TableProfile
+}) {
   if (rows.length === 0) return null
 
   const best = <K extends keyof ExplorerRow>(key: K) =>
@@ -33,7 +46,8 @@ export function RankingsRail({ rows, className }: { rows: ExplorerRow[]; classNa
 
   const topRated = best('rating')
   const mostWins = best('wins')
-  const titlesOf = (r: ExplorerRow) => r.seasonTitles + r.tournamentTitles
+  // The same function the table column uses. See `championshipsOf`.
+  const titlesOf = (r: ExplorerRow) => championshipsOf(r, profile)
   const mostTitles = rows.reduce((a, b) => (titlesOf(b) > titlesOf(a) ? b : a))
 
   /* Longest active runs, in both directions. A run of one or two is not a run. */
@@ -50,7 +64,7 @@ export function RankingsRail({ rows, className }: { rows: ExplorerRow[]; classNa
         <LeaderRow icon={<Star className="size-3.5" aria-hidden />} label="Highest rating" row={topRated} value={topRated.rating.toLocaleString()} tone="gold" />
         <LeaderRow icon={<Target className="size-3.5" aria-hidden />} label="Most wins" row={mostWins} value={mostWins.wins.toLocaleString()} tone="cyan" />
         {titlesOf(mostTitles) > 0 && (
-          <LeaderRow icon={<Trophy className="size-3.5" aria-hidden />} label="Most championships" row={mostTitles} value={String(titlesOf(mostTitles))} tone="gold" />
+          <LeaderRow icon={<Trophy className="size-3.5" aria-hidden />} label={championshipsLabel(profile)} row={mostTitles} value={String(titlesOf(mostTitles))} tone="gold" />
         )}
       </RailPanel>
 

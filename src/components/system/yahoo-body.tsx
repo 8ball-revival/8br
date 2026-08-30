@@ -15,7 +15,7 @@ import { Wide } from '@/components/primitives'
 import { getExplorer, getFacets } from '@/lib/stats/ladder-explorer'
 import { aggregateFilters, decodeRankingsState } from '@/lib/stats/rankings-columns'
 import {
-  getYahooSeasonOrder, getYahooSummary, isYahooSeason, yahooNeighbours,
+  getYahooSeasonOrder, getYahooSummary, getYahooYearBounds, isYahooSeason, yahooNeighbours,
 } from '@/lib/yahoo/archive'
 import { getSeasonResults } from '@/lib/home/season-results'
 import { SeasonResults } from '@/components/home/season-results'
@@ -79,7 +79,22 @@ export async function YahooBody({
   const needsSeason = wanted !== 'home' && seasonId == null
   const view: YahooView = needsSeason ? 'home' : wanted
 
-  const state = decodeRankingsState(params, new Date(), YAHOO_PARAM_PREFIX)
+  /*
+   * The archive's own year bounds, before the state is decoded.
+   *
+   * Without them the state defaulted its upper bound to the CURRENT year, so a plain load of the
+   * archive applied 2005–2026 and the filter chip announced a range seventeen years past the last
+   * match in it. Worse, the "All time" preset could never match, because the applied upper bound was
+   * always beyond the newest year the data has — so the control read "custom" over what was in fact
+   * the whole archive.
+   *
+   * One small aggregate, awaited before the rest: everything below depends on the decoded state.
+   */
+  const archiveYears = await getYahooYearBounds()
+  const state = decodeRankingsState(params, new Date(), YAHOO_PARAM_PREFIX, {
+    profile: 'archive',
+    years: { min: archiveYears.min ?? undefined, max: archiveYears.max ?? undefined },
+  })
 
   const [summary, order, results, facets, rows] = await Promise.all([
     getYahooSummary(),

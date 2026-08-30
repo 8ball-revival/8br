@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 
 import {
-  MIN_YEAR, maxYear, defaultState, activeChips, OPTIONAL_COLUMN_KEYS, PERMANENT_COLUMN_KEYS, columnAppliesTo,
+  MIN_YEAR, maxYear, defaultState, activeChips, optionalColumnKeys, PERMANENT_COLUMN_KEYS, columnAppliesTo,
   COLUMN_BY_KEY, clampYear,
   type RankingsState, type EventType,
 } from '@/lib/stats/rankings-columns'
@@ -37,6 +37,13 @@ export interface DrawerFacets {
   seasons: { id: number; label: string; year: number | null; seriesId: number | null }[]
   cups: { id: number; label: string; year: number | null }[]
   divisions: string[]
+  /**
+   * Every competition year this table actually holds.
+   *
+   * The year controls are bounded by these rather than by the calendar, so the archive's sliders
+   * stop at the year it closed instead of offering a decade it has no data for.
+   */
+  years: number[]
 }
 
 export interface FilterDrawerProps {
@@ -65,7 +72,23 @@ export function FilterDrawer(props: FilterDrawerProps) {
 
 function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
   const now = useMemo(() => new Date(), [])
-  const YEAR_MAX = maxYear(now)
+  /*
+   * The bounds of THIS table, not of the calendar.
+   *
+   * The archive closed in 2014, so its sliders, its number inputs and the "whole archive" line
+   * beneath them all stop there. Reading the clock instead offered twelve years the archive has no
+   * data for, and a reader who dragged the slider to 2026 got the same rows and a filter chip that
+   * claimed a range the page could not fill.
+   *
+   * `facets.years` is what the table actually holds, so this needs no separate constant and stays
+   * right if a season from a new year is ever reconstructed.
+   */
+  // Memoised: the clamped setters below close over these, and a fresh pair on every render makes
+  // their `useCallback` unpreservable — which the compiler reports as an error rather than a hint.
+  const { YEAR_MIN, YEAR_MAX } = useMemo(() => ({
+    YEAR_MIN: facets.years.length ? Math.min(...facets.years) : MIN_YEAR,
+    YEAR_MAX: facets.years.length ? Math.max(...facets.years) : maxYear(now),
+  }), [facets.years, now])
 
   const [draft, setDraft] = useState<RankingsState>(applied)
   const panel = useRef<HTMLDivElement | null>(null)
@@ -122,11 +145,11 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
   // Typed fields and slider handles edit the same two numbers through the same clamp, so they can
   // never drift apart or cross over.
   const setFrom = (raw: unknown) => {
-    const v = clampYear(raw, now) ?? MIN_YEAR
+    const v = clampYear(raw, now, { min: YEAR_MIN, max: YEAR_MAX }) ?? YEAR_MIN
     setDraft((d) => ({ ...d, fromYear: Math.min(v, d.toYear) }))
   }
   const setTo = (raw: unknown) => {
-    const v = clampYear(raw, now) ?? YEAR_MAX
+    const v = clampYear(raw, now, { min: YEAR_MIN, max: YEAR_MAX }) ?? YEAR_MAX
     setDraft((d) => ({ ...d, toYear: Math.max(v, d.fromYear) }))
   }
 
@@ -142,7 +165,8 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
     competition: facets.competitions.find((c) => c.id === draft.competitionSeriesId)?.name,
     season: seasons.find((s) => s.id === draft.seasonId)?.label,
     cup: cups.find((c) => c.id === draft.tournamentId)?.label,
-  }, now)
+    // Against the years this table actually spans — see `activeChips`.
+  }, now, { min: YEAR_MIN, max: YEAR_MAX })
 
   return (
     <div className="fixed inset-0 z-[120]">
@@ -189,13 +213,13 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
             <div className="flex items-end gap-2">
               <label className="flex-1">
                 <span className="mb-1 block text-xs text-muted-foreground">From</span>
-                <input type="number" inputMode="numeric" min={MIN_YEAR} max={YEAR_MAX}
+                <input type="number" inputMode="numeric" min={YEAR_MIN} max={YEAR_MAX}
                   value={draft.fromYear} onChange={(e) => setFrom(e.target.value)} className={FIELD} />
               </label>
               <span aria-hidden className="pb-2 text-muted-foreground">–</span>
               <label className="flex-1">
                 <span className="mb-1 block text-xs text-muted-foreground">To</span>
-                <input type="number" inputMode="numeric" min={MIN_YEAR} max={YEAR_MAX}
+                <input type="number" inputMode="numeric" min={YEAR_MIN} max={YEAR_MAX}
                   value={draft.toYear} onChange={(e) => setTo(e.target.value)} className={FIELD} />
               </label>
             </div>
@@ -203,21 +227,21 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
             <div className="mt-3 space-y-2">
               <label className="block">
                 <span className="sr-only">Earliest year</span>
-                <input type="range" min={MIN_YEAR} max={YEAR_MAX} value={draft.fromYear}
+                <input type="range" min={YEAR_MIN} max={YEAR_MAX} value={draft.fromYear}
                   onChange={(e) => setFrom(e.target.value)}
                   aria-valuetext={`From ${draft.fromYear}`}
                   className="w-full accent-[var(--gold)]" />
               </label>
               <label className="block">
                 <span className="sr-only">Latest year</span>
-                <input type="range" min={MIN_YEAR} max={YEAR_MAX} value={draft.toYear}
+                <input type="range" min={YEAR_MIN} max={YEAR_MAX} value={draft.toYear}
                   onChange={(e) => setTo(e.target.value)}
                   aria-valuetext={`To ${draft.toYear}`}
                   className="w-full accent-[var(--gold)]" />
               </label>
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {MIN_YEAR}–{YEAR_MAX} is the whole archive.
+              {YEAR_MIN}–{YEAR_MAX} is the whole archive.
             </p>
           </Section>
 
@@ -356,7 +380,13 @@ function DrawerPanel({ onClose, applied, onApply, facets }: FilterDrawerProps) {
               ))}
               {/* A column the current scope does not offer is not listed: a checkbox that
                   changes nothing is worse than an absent one. */}
-              {OPTIONAL_COLUMN_KEYS.filter((k) => columnAppliesTo(k, draft.platform)).map((k) => (
+              {/*
+                The columns this table offers, which the archive changes: its Tournament record is
+                replaced by its 8BRCAM championship count. Reading the list from the profile means
+                the checkbox names the column the reader can actually see.
+              */}
+              {optionalColumnKeys(draft.profile ?? 'rankings')
+                .filter((k) => columnAppliesTo(k, draft.platform)).map((k) => (
                 <label key={k} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"

@@ -39,6 +39,23 @@ import { Tip } from './tooltip'
 export const PLAYER_COL_WIDTH = 'clamp(11rem, 20vw, 300px)'
 
 /**
+ * The Player column on the Yahoo archive, which carries one statistic column more.
+ *
+ * The room for it comes from here rather than from the table getting wider: a wider table would push
+ * the new column off the right edge, which is exactly what it must not do. Both identity lines still
+ * fit — the CueVerse ID and the display name are short in this archive — and `IdentityCell` already
+ * truncates with the full value in a `title`, so the rare long handle is clipped legibly rather than
+ * wrapping the row.
+ */
+export const ARCHIVE_PLAYER_COL_WIDTH = 'clamp(9rem, 14vw, 210px)'
+
+/** The narrowest the Player column may be, per width setting. Keeps two lines readable. */
+const playerMinWidth = (width: string) => (width === ARCHIVE_PLAYER_COL_WIDTH ? '9rem' : '11rem')
+
+/** The widest it may be. Mirrors the clamp above so the header and the cells never disagree. */
+const playerMaxWidth = (width: string) => (width === ARCHIVE_PLAYER_COL_WIDTH ? 210 : 300)
+
+/**
  * The two frozen columns' widths, which are also their neighbours' sticky offsets.
  *
  * These are ENFORCED with matching width/minWidth/maxWidth rather than guessed from the content,
@@ -224,6 +241,13 @@ export interface RankingsTableProps {
   /** Sticky offset for the pane, measured from the real rendered site header. */
   topOffset: number
   emptyMessage: string
+  /**
+   * How wide the Player column is.
+   *
+   * A prop rather than a constant because the archive carries one statistic column more and has to
+   * find the room somewhere. Absent means the live ladder's width, which is what /rankings passes.
+   */
+  playerColumnWidth?: string
 }
 
 export function RankingsTable(props: RankingsTableProps) {
@@ -282,12 +306,24 @@ export function RankingsTable(props: RankingsTableProps) {
   )
 }
 
-function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTableProps) {
+function HeaderCell({ col, sort, onSort, playerColumnWidth = PLAYER_COL_WIDTH }: {
+  col: ColumnDef
+  playerColumnWidth?: string
+} & RankingsTableProps) {
   const s = sort.find((x) => x.key === col.key)
   const sticky = col.key === 'rank' ? { left: CONTROL_COL } : col.key === 'player' ? { left: CONTROL_COL + RANK_COL } : null
   const label = col.short ?? col.label
   const fullLabel = col.label
   const tooltip = col.tooltip
+  /*
+    A two-line heading, asked for by the column rather than guessed from its length.
+
+    "8BRCAM Championships" on one line is wider than the numbers beneath it and drags the column out
+    to the width of the phrase. Stacking it costs a line of header height that the honours columns
+    beside it already use, and nothing horizontally. The screen-reader label stays the full phrase on
+    one line — the break is a layout decision, not part of the name.
+  */
+  const stacked = label.includes(String.fromCharCode(10))
 
   return (
     <th
@@ -300,7 +336,10 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
         // "Season Championships 👑" onto one line drags the whole column to its width and pushes
         // everything else off screen. Those wrap instead, and the row aligns on its baseline so a
         // two-line header sits level with the one-line ones beside it.
-        col.group === 'titles' ? 'w-[7.5rem] whitespace-normal leading-tight' : 'whitespace-nowrap',
+        // A header carrying an explicit line break stacks exactly where it says, and nowhere else.
+        // `whitespace-pre-line` honours the newline and still collapses ordinary runs of spaces.
+        stacked ? 'w-[6.5rem] whitespace-pre-line leading-tight'
+          : col.group === 'titles' ? 'w-[7.5rem] whitespace-normal leading-tight' : 'whitespace-nowrap',
         col.align === 'right' ? 'text-right' : 'text-left',
         sticky && 'z-40',
         // The active sort is marked with a neutral lift and gold TEXT. A translucent gold wash over
@@ -310,7 +349,11 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
       style={{
         ...(sticky ?? {}),
         ...(col.key === 'player'
-          ? { width: PLAYER_COL_WIDTH, minWidth: '11rem', maxWidth: 300 }
+          ? {
+            width: playerColumnWidth,
+            minWidth: playerMinWidth(playerColumnWidth),
+            maxWidth: playerMaxWidth(playerColumnWidth),
+          }
           : col.key === 'rank' ? { width: RANK_COL, minWidth: RANK_COL, maxWidth: RANK_COL } : {}),
       }}
     >
@@ -336,6 +379,7 @@ function HeaderCell({ col, sort, onSort }: { col: ColumnDef } & RankingsTablePro
 
 function Row({
   row, highestRating = null, columns, expanded, onToggleExpand, details, minMatches,
+  playerColumnWidth = PLAYER_COL_WIDTH,
 }: {
   row: ExplorerRow
   /** The highest rating on the whole table, so a row can tell whether it holds it. */
@@ -378,7 +422,11 @@ function Row({
               style={{
                 ...(sticky ?? {}),
                 ...(c.key === 'player'
-                  ? { width: PLAYER_COL_WIDTH, minWidth: '11rem', maxWidth: 300 }
+                  ? {
+                    width: playerColumnWidth,
+                    minWidth: playerMinWidth(playerColumnWidth),
+                    maxWidth: playerMaxWidth(playerColumnWidth),
+                  }
                   : c.key === 'rank' ? { width: RANK_COL, minWidth: RANK_COL, maxWidth: RANK_COL } : {}),
               }}
             >

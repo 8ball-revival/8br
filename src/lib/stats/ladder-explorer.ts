@@ -305,6 +305,15 @@ export interface ExplorerRow {
   tournamentLosses: number
 
   seasonTitles: number
+  /**
+   * Season championships in the 8BRCAM series alone, under the same filters.
+   *
+   * A subset of `seasonTitles`, and identical to it wherever every Season in scope is 8BRCAM —
+   * which is the whole Yahoo archive today. It is carried separately so the archive's championship
+   * column keeps meaning "8BRCAM championships" rather than "championships that happen to be
+   * 8BRCAM because nothing else exists yet".
+   */
+  brcamSeasonTitles: number
   tournamentTitles: number
   runnerUps: number
   finalsAppearances: number
@@ -716,9 +725,29 @@ export async function computeExplorer(
       -- Scoped to this platform: a title won on the other one belongs to a different ladder, and
       -- counting it here would both inflate the column and hand out the championship step for it.
       -- Tournament titles and runner-up counts below carry the same predicate for the same reason.
-      SELECT se."championPlayerId" AS "playerId", count(*)::int AS season_titles
+      --
+      -- Counting DISTINCT season ids rather than rows: a Season with divisions is stored as one row
+      -- per division, and a champion recorded on two of them is one championship, not two.
+      -- (No backticks in here: this whole statement is a JS template literal.)
+      SELECT se."championPlayerId" AS "playerId",
+             count(DISTINCT se."id")::int AS season_titles,
+             /*
+              * The same count, narrowed to the 8BRCAM series.
+              *
+              * The archive's championship column asks a narrower question than "titles on this
+              * ladder": how many 8BRCAM Season championships, within the filters in force. Today
+              * every Yahoo Season is 8BRCAM, so the two agree — which is exactly why the predicate
+              * belongs here rather than being left implicit. The moment a Yahoo-era Season from
+              * another series is reconstructed, this column stays right and the other one changes.
+              *
+              * Matched by SLUG, not by a hardcoded id. The series id is data; the slug is the name
+              * the rest of the codebase already uses for this competition.
+              */
+             count(DISTINCT se."id") FILTER (WHERE bs."id" IS NOT NULL)::int AS brcam_season_titles
         FROM "public"."season" se
         JOIN season_scope ss ON ss."id" = se."id"
+        LEFT JOIN "public"."competition_series" bs
+          ON bs."id" = se."competitionSeriesId" AND lower(bs."slug") = '8brcam'
        WHERE se."lifecycleState" = 'COMPLETED' AND se."championPlayerId" IS NOT NULL
        GROUP BY 1
     ),
@@ -840,6 +869,7 @@ export async function computeExplorer(
       coalesce(pk.peak_rating, ${ELO_START})::int AS peak_rating,
       st.longest_win_run, st.last_result, coalesce(st.last_run, 0)::int AS last_run,
       coalesce(c.season_titles, 0)::int      AS season_titles,
+      coalesce(c.brcam_season_titles, 0)::int AS brcam_season_titles,
       coalesce(ru.runner_ups, 0)::int        AS runner_ups,
       coalesce(tc.tournament_titles, 0)::int AS tournament_titles,
       g.group_points, g.groups_entered, g.first_places, g.perfect_stages,
@@ -950,6 +980,7 @@ export async function computeExplorer(
       tournamentWins: num(r.tournament_wins),
       tournamentLosses: num(r.tournament_losses),
       seasonTitles: num(r.season_titles),
+      brcamSeasonTitles: num(r.brcam_season_titles),
       tournamentTitles: num(r.tournament_titles),
       runnerUps: num(r.runner_ups),
       finalsAppearances: num(r.finals_appearances),

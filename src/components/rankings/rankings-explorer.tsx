@@ -24,6 +24,7 @@ import { CommandDeck } from '@/components/command-deck'
 import { FilterCommandBar, FilterField, SegmentedSwitch, filterControl } from '@/components/cyber/filter-bar'
 import { scopePinsCompetition, type RankingScope } from '@/lib/stats/rankings-scope'
 import { RankingsRail } from './rankings-rail'
+import { ARCHIVE_PLAYER_COL_WIDTH } from './rankings-table'
 import { ScopeEmpty, ScopeTabs } from './scope-tabs'
 
 import { FilterDrawer } from './filter-drawer'
@@ -184,8 +185,19 @@ export function RankingsExplorer({
    * both preferences: switching to Playoffs does not silently re-enable a column they hid.
    */
   const columns = useMemo(() => {
-    const chosen = new Set(visibleColumnKeys({ ...applied, sort }))
-    return columnsForView(recordScope).filter((c) => chosen.has(c.key))
+    /*
+      Ordered by `visibleColumnKeys`, not by the order the columns happen to be DECLARED in.
+
+      Those two agreed for as long as there was one column set, so filtering the declaration list
+      was indistinguishable from ordering by the key list — until the archive wanted its
+      championship column somewhere other than where its definition sits, and the reorder silently
+      did nothing. `visibleColumnKeys` is documented as "the keys actually rendered, in canonical
+      order"; this now honours that rather than approximating it.
+    */
+    const forView = new Map(columnsForView(recordScope).map((c) => [c.key, c]))
+    return visibleColumnKeys({ ...applied, sort })
+      .map((key) => forView.get(key))
+      .filter((c): c is NonNullable<typeof c> => c != null)
   }, [applied, sort, recordScope])
 
   const visible = useMemo(() => {
@@ -193,11 +205,16 @@ export function RankingsExplorer({
     return sortRows(filtered, sort)
   }, [rows, applied.rowFilters, search, sort])
 
+  /** The years this table spans, so a chip describes a narrowing rather than the table itself. */
+  const yearBounds = useMemo(() => (facets.years.length
+    ? { min: Math.min(...facets.years), max: Math.max(...facets.years) }
+    : undefined), [facets.years])
+
   const chips = useMemo(() => activeChips(applied, {
     competition: facets.competitions.find((c) => c.id === applied.competitionSeriesId)?.name,
     season: facets.seasons.find((s) => s.id === applied.seasonId)?.label,
     cup: facets.tournaments.find((t) => t.id === applied.tournamentId)?.label,
-  }, now), [applied, facets, now])
+  }, now, yearBounds), [applied, facets, now, yearBounds])
 
   const groupCount = activeFilterGroups(applied, now).length
 
@@ -426,7 +443,7 @@ export function RankingsExplorer({
             <button
               key={c.key}
               type="button"
-              onClick={() => navigate(removeChip(applied, c.key, now))}
+              onClick={() => navigate(removeChip(applied, c.key, now, yearBounds))}
               aria-label={`Remove filter: ${c.label}`}
               className="inline-flex items-center gap-1 cyber-clip-sm border border-border bg-card px-2.5 py-1 text-xs transition-colors hover:border-[var(--gold)]/50"
             >
@@ -471,6 +488,14 @@ export function RankingsExplorer({
             details={details}
             minMatches={applied.rowFilters.minMatches}
             topOffset={topOffset}
+            /*
+              The archive carries one more statistic column than the live ladder, and the width has
+              to come from somewhere. It comes from the Player column, which is the widest thing on
+              the table and the one with the most slack: both identity lines still fit at a normal
+              desktop width, and each already carries its full value in a `title` for the rare case
+              a long name has to be clipped.
+            */
+            playerColumnWidth={applied.profile === 'archive' ? ARCHIVE_PLAYER_COL_WIDTH : undefined}
             emptyMessage={
               hasAnyFilter(applied, now) || search
                 ? 'No players match these filters.'
@@ -479,7 +504,8 @@ export function RankingsExplorer({
           />
         </div>
 
-        <RankingsRail rows={visible} />
+        {/* The rail's championship panel must count what the column counts. See `championshipsOf`. */}
+        <RankingsRail rows={visible} profile={applied.profile} />
       </div>
       )}
       </div>
@@ -523,6 +549,7 @@ export function RankingsExplorer({
         onApply={navigate}
         facets={{
           competitions: facets.competitions,
+          years: facets.years,
           seasons: facets.seasons.map((s) => ({ id: s.id, label: s.label, year: s.year, seriesId: s.competitionSeriesId ?? null })),
           cups: facets.tournaments.map((t) => ({ id: t.id, label: t.label, year: t.year })),
           divisions: facets.divisions,

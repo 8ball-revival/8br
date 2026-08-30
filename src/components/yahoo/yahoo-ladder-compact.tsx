@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Crown, Maximize2, Search, Trophy, X } from 'lucide-react'
 
 import type { ExplorerRow, ExplorerFacets, RecordView } from '@/lib/stats/ladder-explorer'
-import { RECORD_VIEWS, type RankingsState } from '@/lib/stats/rankings-columns'
+import { RECORD_VIEWS, championshipsOf, type RankingsState } from '@/lib/stats/rankings-columns'
 import { highestRatingOf, isHighestRating, ratingAriaLabelFor, ratingTier } from '@/lib/stats/rating-tier'
 import { IdentityCell } from '@/components/rankings/identity-cell'
 import { RatingLegend } from '@/components/rankings/rating-legend'
@@ -170,7 +170,7 @@ export function YahooLadderCompact({
           className={cn('scrollbar-themed min-w-0 overflow-auto border border-border', FRAME,
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]')}
         >
-          <table className="w-full min-w-[36rem] table-fixed border-collapse text-sm">
+          <table className="w-full min-w-[34rem] table-fixed border-collapse text-sm">
             {/*
               Fixed widths, because auto layout gives the slack to the widest column — which is the
               player's name — and that opened a hand's width of empty table between the identity and
@@ -178,16 +178,26 @@ export function YahooLadderCompact({
               in the narrow column on Home and in a wider one.
             */}
             <colgroup>
+              {/*
+                These percentages ARE the column widths — the table is `table-fixed`, so padding and
+                content do not enter into it. Tightening W, L and D therefore means taking percent
+                from them and giving it to something else, which is what happened here: three columns
+                holding a one- or two-digit number were on 6% each, wider than the figures in them,
+                while Seasons sat on 8% and fell off the right edge of the panel.
+
+                W, L and D drop to 4% — still room for a three-figure win count in these tabular
+                figures — and the six points freed go to Seasons and to the player's name.
+              */}
               <col className="w-[7%]" />
               <col className="w-[6%]" />
-              <col className="w-[26%]" />
-              <col className="w-[15%]" />
-              <col className="w-[6%]" />
-              <col className="w-[6%]" />
-              <col className="w-[6%]" />
+              <col className="w-[28%]" />
+              <col className="w-[14%]" />
+              <col className="w-[4%]" />
+              <col className="w-[4%]" />
+              <col className="w-[4%]" />
               <col className="w-[9%]" />
               <col className="w-[11%]" />
-              <col className="w-[8%]" />
+              <col className="w-[13%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border bg-card text-[0.6rem] uppercase tracking-[0.1em] text-muted-foreground">
@@ -198,9 +208,18 @@ export function YahooLadderCompact({
                 <th scope="col" className="bg-card px-1.5 py-2 text-right">#</th>
                 <th scope="col" className="bg-card px-2 py-2 text-left">Player</th>
                 <th scope="col" className="bg-card px-1.5 py-2 text-right">Legacy rating</th>
-                <th scope="col" className="bg-card px-1.5 py-2 text-right">W</th>
-                <th scope="col" className="bg-card px-1.5 py-2 text-right">L</th>
-                <th scope="col" className="bg-card px-1.5 py-2 text-right" title="Draws">D</th>
+                {/*
+                  W, L and D are as narrow as three digits allow.
+
+                  They carried the same padding as every other column, which spent about twenty
+                  pixels on whitespace and pushed Seasons past the right edge of the panel — a
+                  one- or two-digit number the reader had to scroll sideways to reach. `w-8` still
+                  holds a three-figure win count in these tabular figures, and the padding drops to
+                  match. Nothing about the data moves; only the space around it.
+                */}
+                <th scope="col" className="w-8 bg-card px-0.5 py-2 text-right">W</th>
+                <th scope="col" className="w-8 bg-card px-0.5 py-2 text-right">L</th>
+                <th scope="col" className="w-8 bg-card px-0.5 py-2 text-right" title="Draws">D</th>
                 <th scope="col" className="bg-card px-1.5 py-2 text-right">Played</th>
                 <th scope="col" className="bg-card px-2 py-2 text-right">Win %</th>
                 <th scope="col" className="bg-card px-2 py-2 text-right">Seasons</th>
@@ -224,9 +243,9 @@ export function YahooLadderCompact({
                     <td className="tabular px-1.5 py-1.5 text-right">
                       <RatingValue rating={r.rating} highest={highest} />
                     </td>
-                    <td className="tabular px-1.5 py-1.5 text-right">{rec.wins}</td>
-                    <td className="tabular px-1.5 py-1.5 text-right">{rec.losses}</td>
-                    <td className="tabular px-1.5 py-1.5 text-right">{rec.draws}</td>
+                    <td className="tabular px-0.5 py-1.5 text-right">{rec.wins}</td>
+                    <td className="tabular px-0.5 py-1.5 text-right">{rec.losses}</td>
+                    <td className="tabular px-0.5 py-1.5 text-right">{rec.draws}</td>
                     <td className="tabular px-1.5 py-1.5 text-right">{rec.played}</td>
                     <td className="tabular px-2 py-1.5 text-right">{rec.pct}</td>
                     <td className="tabular px-2 py-1.5 text-right text-muted-foreground">{r.seasonsPlayed}</td>
@@ -273,7 +292,14 @@ function RatingValue({ rating, highest }: { rating: number | null; highest: numb
 function ChampionshipCell({ row }: { row: ExplorerRow }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const total = row.seasonTitles + row.tournamentTitles
+  /*
+    The same figure the expanded table's championship column shows.
+
+    It summed Season and Tournament titles, which on this archive is a different number from the one
+    the expanded column reports — two counts of "championships" for one player, on one page, a click
+    apart. See `championshipsOf`.
+  */
+  const total = championshipsOf(row, 'archive')
 
   const close = useCallback(() => setOpen(false), [])
   useEffect(() => {

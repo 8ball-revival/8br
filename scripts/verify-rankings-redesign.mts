@@ -20,7 +20,7 @@ import {
   defaultState, encodeRankingsState, decodeRankingsState, clampYear, activeChips, removeChip,
   hasAnyFilter, activeFilterGroups, visibleColumnKeys, aggregateFilters,
   MIN_YEAR, maxYear, OPTIONAL_COLUMN_KEYS, PERMANENT_COLUMN_KEYS, OBSOLETE_PARAMS,
-  COLUMN_BY_KEY, filterRows, sortRows,
+  COLUMN_BY_KEY, filterRows, sortRows, optionalColumnKeys, championshipsOf, championshipsLabel,
 } from '../src/lib/stats/rankings-columns.ts'
 import { RATING_BANDS, ratingTier } from '../src/lib/stats/rating-tier.ts'
 import { computeExplorer } from '../src/lib/stats/ladder-explorer.ts'
@@ -140,6 +140,78 @@ section('The page defaults to the whole archive with every optional column')
   check('Rank is first', keys[0] === 'rank')
   check('Player is second', keys[1] === 'player')
   check('Rating is third', keys[2] === 'rating')
+
+  /*
+   * The ARCHIVE has a column set of its own.
+   *
+   * The Yahoo table at /yahoo is this same component over Yahoo rows, and it asks a narrower
+   * question: 8BRCAM Season championships rather than a Tournament win-loss record it has almost no
+   * data for. The two sets are asserted together so that changing one and forgetting the other is a
+   * failing check rather than a page nobody looks at closely.
+   */
+  const archive = defaultState(NOW, { profile: 'archive', years: { min: 2005, max: 2014 } })
+  const archiveKeys = visibleColumnKeys(archive)
+  check('the archive column order is the specified one',
+    archiveKeys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonsPlayed,brcamTitles,groupRecord,playoffRecord,seasonTitles,tournamentTitles',
+    archiveKeys.join(','))
+  check('the archive drops the Tournament record', !archiveKeys.includes('cupRecord'))
+  check('...and carries the 8BRCAM championship column instead', archiveKeys.includes('brcamTitles'))
+  check('the live ladder still carries the Tournament record', keys.includes('cupRecord'))
+  check('...and does not carry the archive column', !keys.includes('brcamTitles'))
+  check('the archive column is offered by name', optionalColumnKeys('archive').includes('brcamTitles'))
+  check('the live one is not', !optionalColumnKeys('rankings').includes('brcamTitles'))
+
+  const brcamCol = COLUMN_BY_KEY.brcamTitles
+  check('the archive column exists in the registry', !!brcamCol)
+  check('its full name says which competition', brcamCol?.label === '8BRCAM Championships', brcamCol?.label)
+  // Two lines, so the heading does not drag the column out to the width of the phrase.
+  check('its heading is stacked on two lines', (brcamCol?.short ?? '').includes(String.fromCharCode(10)), JSON.stringify(brcamCol?.short))
+  check('it is aligned with the other statistics', brcamCol?.align === 'right', brcamCol?.align)
+  check('it reads the 8BRCAM count, not the general one',
+    brcamCol?.value({ brcamSeasonTitles: 3, seasonTitles: 9, tournamentTitles: 4 } as never) === 3)
+  check('its tooltip says it is a snapshot rather than a lifetime total',
+    /not a lifetime total/i.test(brcamCol?.tooltip ?? ''), brcamCol?.tooltip)
+
+  /*
+   * The table column and the rail's leader panel are one calculation.
+   *
+   * They sat six inches apart computing different things — the panel summed Season and Tournament
+   * titles while the archive's column counted 8BRCAM Season championships — so on the archive they
+   * named different players as the leader. One function now answers for both.
+   */
+  const titleRow = { seasonTitles: 5, tournamentTitles: 2, brcamSeasonTitles: 4 }
+  check('the archive counts 8BRCAM Season championships', championshipsOf(titleRow, 'archive') === 4)
+  check('the live ladder counts Season titles plus Tournament titles', championshipsOf(titleRow, 'rankings') === 7)
+  check('the default is the live ladder', championshipsOf(titleRow) === 7)
+  check('the rail names what it counts on the archive',
+    championshipsLabel('archive') === 'Most 8BRCAM championships', championshipsLabel('archive'))
+  check('and stays as it was on the live ladder',
+    championshipsLabel('rankings') === 'Most championships', championshipsLabel('rankings'))
+
+  /*
+   * The archive's year range stops where the archive does.
+   *
+   * Its upper bound was read from the clock, so a plain load applied 2005–2026 and the filter chip
+   * announced a range twelve years past the last match in it — while the "All time" preset could
+   * never match, because the applied bound was always beyond the newest year on record.
+   */
+  check('the archive default ends at its last year', archive.toYear === 2014, String(archive.toYear))
+  check('...and starts at its first', archive.fromYear === 2005, String(archive.fromYear))
+  check('the live default still runs to this year', d.toYear === maxYear(NOW), String(d.toYear))
+  check('a year past the archive is pulled back to it',
+    clampYear('2026', NOW, { min: 2005, max: 2014 }) === 2014)
+  check('a year before it is pulled forward', clampYear('1999', NOW, { min: 2005, max: 2014 }) === 2005)
+  check('a year inside it is left alone', clampYear('2009', NOW, { min: 2005, max: 2014 }) === 2009)
+  check('a stale to=2026 in a URL is clamped when decoded',
+    decodeRankingsState('to=2026', NOW, '', { profile: 'archive', years: { min: 2005, max: 2014 } }).toYear === 2014)
+  check('the archive full span raises no chip',
+    activeChips(archive, {}, NOW, { min: 2005, max: 2014 }).every((c) => c.key !== 'years'))
+  check('but a narrowed one does',
+    activeChips({ ...archive, fromYear: 2012 }, {}, NOW, { min: 2005, max: 2014 }).some((c) => c.key === 'years'))
+  check('removing the year chip restores the archive span, not the calendar',
+    removeChip({ ...archive, fromYear: 2012, toYear: 2013 }, 'years', NOW, { min: 2005, max: 2014 }).toYear === 2014)
+  check('the archive reports no hidden columns when nothing is hidden',
+    activeChips(archive, {}, NOW, { min: 2005, max: 2014 }).every((c) => c.key !== 'cols'))
 
   /*
    * The group column is GROUP PLAY ONLY.

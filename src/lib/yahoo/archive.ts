@@ -140,6 +140,24 @@ export async function getYahooHonorRoll(): Promise<HonorRollEntry[]> {
 }
 
 /** Is this season part of the Yahoo archive? Guards the explorer against a CueVerse id in the URL. */
+/**
+ * The first and last competition year the archive actually holds.
+ *
+ * Read from the seasons rather than written down. The archive is closed, so a constant would be
+ * correct today — and would be quietly wrong the moment somebody reconstructs a season from a year
+ * not yet represented, which is exactly the kind of work this archive exists to receive.
+ *
+ * Returns null bounds when there are no Yahoo seasons at all, and the caller falls back to the
+ * ordinary clock-derived range rather than to an empty one.
+ */
+export async function getYahooYearBounds(): Promise<{ min: number | null; max: number | null }> {
+  const [row] = await prisma.$queryRaw<{ min: number | null; max: number | null }[]>`
+    SELECT min("competitionYear")::int AS min, max("competitionYear")::int AS max
+      FROM "public"."season" WHERE "platform" = 'YAHOO'
+  `
+  return { min: row?.min ?? null, max: row?.max ?? null }
+}
+
 export async function isYahooSeason(id: number): Promise<boolean> {
   const s = await prisma.season.findUnique({ where: { id }, select: { platform: true } })
   return s?.platform === YAHOO

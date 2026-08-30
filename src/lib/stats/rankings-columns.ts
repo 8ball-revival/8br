@@ -149,6 +149,28 @@ export const COLUMNS: ColumnDef[] = [
       : record2(r.tournamentWins, r.tournamentLosses)),
   },
   {
+    /*
+     * The archive's championship column.
+     *
+     * Deliberately NOT `seasonTitles` under a different name. That column counts every Season
+     * championship on the ladder in view; this one counts 8BRCAM championships specifically, which
+     * is the question the Yahoo archive is asking. They agree today because every Yahoo Season is
+     * 8BRCAM — and the day one is not, this column is the one that stays correct.
+     *
+     * The value is a SNAPSHOT, not a lifetime total: it is computed inside the same season scope as
+     * every other figure on the row, so narrowing to 2012–2014 narrows this too.
+     */
+    key: 'brcamTitles',
+    label: '8BRCAM Championships',
+    // Two lines, stacked, so the header does not drag the column to the width of the phrase.
+    short: '8BRCAM\nChampionships',
+    group: 'titles',
+    align: 'right',
+    tooltip: '8BRCAM Season championships won inside the years and filters currently applied — not a lifetime total. Counts each Season once, from the champion recorded on it. Tournaments and runner-up finishes are not counted.',
+    value: (r) => r.brcamSeasonTitles,
+    format: (r) => dash(r.brcamSeasonTitles),
+  },
+  {
     key: 'seasonTitles', label: 'Season Championships', short: 'Season Championships', group: 'titles', align: 'right',
     tooltip: 'Season Championships — Seasons this player won, from the champion recorded on each completed, archived Season. Click a count to see which ones.',
     value: (r) => r.seasonTitles,
@@ -516,8 +538,27 @@ export interface RankingsState {
   /** Inclusive competition-year bounds. Defaults span the whole archive. */
   fromYear: number
   toYear: number
+  /**
+   * Which table this is: the live ladder, or the Yahoo archive.
+   *
+   * Optional so every existing caller keeps working unchanged and means `rankings`, which is what
+   * they were. It is not read from the URL — it is a property of the PAGE, not of the reader's
+   * filters, and a query parameter that could turn /rankings into the archive would be a way to
+   * show live data under an archive's rules.
+   */
+  profile?: TableProfile
   expanded: string | null
 }
+
+/**
+ * How far the year range may reach, per profile.
+ *
+ * The live ladder runs to the current year, read from the clock. The archive runs to the year it
+ * closed — reaching past that offers years the archive has no data for, and the filter chip then
+ * reads "2010–2026" over a table whose last match was played in 2014, which is a claim the page
+ * should not be making.
+ */
+export interface YearBounds { min: number; max: number }
 
 /**
  * Optional columns, in the order they appear. Rank, Player and Rating are absent on purpose: they
@@ -530,14 +571,88 @@ export const OPTIONAL_COLUMN_KEYS = [
   'seasonTitles', 'tournamentTitles',
 ] as const
 
+/**
+ * Which table this state describes.
+ *
+ * `rankings` is the live ladder at /rankings. `archive` is the Yahoo table at /yahoo, which is the
+ * SAME component over different rows — so the difference has to be carried in the state rather than
+ * guessed from the URL or from the shape of the data.
+ *
+ * It drives exactly two things, both of them facts about the archive rather than preferences:
+ * which columns are offered, and how far the year range may reach. Everything else is identical,
+ * which is the point of the two pages sharing one component.
+ */
+export type TableProfile = 'rankings' | 'archive'
+
+/**
+ * The archive's championship column stands where the live table's Tournament record stands.
+ *
+ * A swap rather than an addition. The archive has three Tournaments in its whole history, so a
+ * Tournament W–L column there is nine-tenths dashes; the championship count is the figure a reader
+ * of a closed archive actually wants, and it costs the same width.
+ */
+const ARCHIVE_COLUMN_SWAPS: Record<string, string> = { cupRecord: 'brcamTitles' }
+
+/** Every optional column key any table offers, for validating a device-wide preference. */
+const KNOWN_COLUMN_KEYS = new Set<string>([...OPTIONAL_COLUMN_KEYS, ...Object.values(ARCHIVE_COLUMN_SWAPS)])
+
+/**
+ * How many championships a row has, under a given profile.
+ *
+ * ── Why this is a function and not two expressions ──────────────────────────────────────────────
+ * The table column and the rail's "Most championships" panel are two renderings of one fact, six
+ * inches apart, and both look authoritative. If they compute it separately they will eventually
+ * disagree — the rail summed Season and Tournament titles while the archive's column counted 8BRCAM
+ * Season championships, which on the archive are different numbers for the same player.
+ *
+ * So there is one function, and both call it. Making them agree is not a matter of remembering to.
+ */
+export function championshipsOf(
+  row: { seasonTitles: number; tournamentTitles: number; brcamSeasonTitles: number },
+  profile: TableProfile = 'rankings',
+): number {
+  // The archive asks a narrower question, and its column says so in its heading.
+  return profile === 'archive'
+    ? row.brcamSeasonTitles
+    : row.seasonTitles + row.tournamentTitles
+}
+
+/** What the rail should call that number, so the panel's label matches the column's. */
+export function championshipsLabel(profile: TableProfile = 'rankings'): string {
+  return profile === 'archive' ? 'Most 8BRCAM championships' : 'Most championships'
+}
+
+/**
+ * The optional columns offered under a profile, in the order they appear.
+ *
+ * ── Why the archive reorders as well as swaps ───────────────────────────────────────────────────
+ * Left where the Tournament record sat — tenth of twelve — the championship column fell off the
+ * right edge at 1440 and 1280, which are ordinary laptop widths. A column somebody has to go looking
+ * for is a column most readers never find, and on a closed archive the championship count is the
+ * headline honour rather than a footnote.
+ *
+ * So it moves up beside Seasons Played, where "how many did they enter, and how many did they win"
+ * reads as one thought. The record columns follow it and the remaining honours stay at the end.
+ */
+export function optionalColumnKeys(profile: TableProfile): readonly string[] {
+  if (profile !== 'archive') return OPTIONAL_COLUMN_KEYS
+  return [
+    'record', 'matchWinPct', 'currentStreak',
+    'seasonsPlayed', 'brcamTitles',
+    'groupRecord', 'playoffRecord',
+    'seasonTitles', 'tournamentTitles',
+  ]
+}
+
 /** Always rendered, never offered as a checkbox. */
 export const PERMANENT_COLUMN_KEYS = ['rank', 'player', 'rating'] as const
 
-export function defaultState(now: Date = new Date()): RankingsState {
+export function defaultState(now: Date = new Date(), options: StateOptions = {}): RankingsState {
+  const bounds = yearBoundsFor(options, now)
   return {
     scope: DEFAULT_SCOPE,
     sort: [],
-    visibleColumns: [...OPTIONAL_COLUMN_KEYS],
+    visibleColumns: [...optionalColumnKeys(options.profile ?? 'rankings')],
     rowFilters: { ...EMPTY_ROW_FILTERS },
     competitionSeriesId: null,
     seasonId: null,
@@ -545,9 +660,30 @@ export function defaultState(now: Date = new Date()): RankingsState {
     division: null,
     eventType: 'all',
     platform: 'CUEVERSE',
-    fromYear: MIN_YEAR,
-    toYear: maxYear(now),
+    fromYear: bounds.min,
+    toYear: bounds.max,
+    profile: options.profile,
     expanded: null,
+  }
+}
+
+/** What a caller may tell the state about the table it belongs to. */
+export interface StateOptions {
+  profile?: TableProfile
+  /**
+   * The real bounds of the data behind this table.
+   *
+   * Supplied by the page rather than assumed here, because only the page knows them — the archive
+   * reads its first and last year from the seasons it actually holds. Absent, the live ladder's
+   * clock-derived bounds are used, which is what every existing caller wants.
+   */
+  years?: Partial<YearBounds>
+}
+
+export function yearBoundsFor(options: StateOptions, now: Date = new Date()): YearBounds {
+  return {
+    min: options.years?.min ?? MIN_YEAR,
+    max: options.years?.max ?? maxYear(now),
   }
 }
 
@@ -578,8 +714,17 @@ export function columnAppliesTo(key: string, platform: RankingsState['platform']
 
 /** The keys actually rendered, permanent columns first and optional ones in canonical order. */
 export function visibleColumnKeys(s: RankingsState): string[] {
-  const optional = OPTIONAL_COLUMN_KEYS
-    .filter((k) => s.visibleColumns.includes(k))
+  /*
+    A column swapped in by the profile is visible when the column it REPLACED is.
+
+    Otherwise every reader who had ever touched the column checkboxes would find the archive's
+    championship column missing, because their saved preference names a key that did not exist when
+    they saved it. Inheriting the predecessor's visibility means an existing preference keeps
+    meaning what it meant.
+  */
+  const swappedFrom = new Map(Object.entries(ARCHIVE_COLUMN_SWAPS).map(([from, to]) => [to, from]))
+  const optional = optionalColumnKeys(s.profile ?? 'rankings')
+    .filter((k) => s.visibleColumns.includes(k) || s.visibleColumns.includes(swappedFrom.get(k) ?? ''))
     .filter((k) => columnAppliesTo(k, s.platform))
   return ['rank', 'player', 'rating', ...optional]
 }
@@ -590,14 +735,16 @@ export function visibleColumnKeys(s: RankingsState): string[] {
  * A pasted 1066 or 3000 is a typo, not a request for an empty table, so it is pulled to the nearest
  * real bound rather than rejected.
  */
-export function clampYear(value: unknown, now: Date = new Date()): number | null {
+export function clampYear(value: unknown, now: Date = new Date(), bounds?: YearBounds): number | null {
   // Absent is not zero. `Number(null)` and `Number('')` are both 0, which is finite and would clamp
   // to the first archived year — turning "no year given" into "the earliest year", and quietly
   // rewriting the default upper bound to 2005 on every plain page load.
   if (value == null || (typeof value === 'string' && value.trim() === '')) return null
   const n = Number(value)
   if (!Number.isFinite(n)) return null
-  return Math.min(Math.max(Math.trunc(n), MIN_YEAR), maxYear(now))
+  const lo = bounds?.min ?? MIN_YEAR
+  const hi = bounds?.max ?? maxYear(now)
+  return Math.min(Math.max(Math.trunc(n), lo), hi)
 }
 
 // --------------------------------------------------------------------------- serialisation
@@ -642,8 +789,11 @@ export function encodeRankingsState(s: RankingsState, now: Date = new Date(), pr
   if (s.rowFilters.minMatches > 0) p.set(K('min'), String(s.rowFilters.minMatches))
 
   // Only written when it differs from "all optional columns", so the common case adds nothing.
-  const cols = OPTIONAL_COLUMN_KEYS.filter((k) => s.visibleColumns.includes(k))
-  if (cols.length !== OPTIONAL_COLUMN_KEYS.length) p.set(K('cols'), cols.join(','))
+  // Against THIS table's column set: the archive's is not the live ladder's, and comparing the two
+  // encoded a "columns hidden" parameter into a URL where nothing was hidden.
+  const allCols = optionalColumnKeys(s.profile ?? 'rankings')
+  const cols = allCols.filter((k) => s.visibleColumns.includes(k))
+  if (cols.length !== allCols.length) p.set(K('cols'), cols.join(','))
 
   if (s.sort.length) p.set(K('sort'), s.sort.map((x) => `${x.key}:${x.dir}`).join(','))
   if (s.expanded) p.set(K('expand'), s.expanded)
@@ -671,11 +821,13 @@ export function decodeRankingsState(
   input: URLSearchParams | string,
   now: Date = new Date(),
   prefix: StateKeyPrefix = '',
+  options: StateOptions = {},
 ): RankingsState {
   const raw = typeof input === 'string' ? new URLSearchParams(input) : input
   // One indirection, so every read below is namespaced without repeating the prefix at each call.
   const p = { get: (k: string) => raw.get(prefix + k), has: (k: string) => raw.has(prefix + k) }
-  const s = defaultState(now)
+  const s = defaultState(now, options)
+  const bounds = yearBoundsFor(options, now)
 
   s.rowFilters.search = p.get('q') ?? ''
   s.scope = parseScope(p.get('scope'))
@@ -689,8 +841,15 @@ export function decodeRankingsState(
    */
   s.platform = 'CUEVERSE'
 
-  const from = clampYear(p.get('from'), now)
-  const to = clampYear(p.get('to'), now)
+  /*
+    Clamped to the table's OWN bounds.
+
+    A pasted or stale `to=2026` on the archive is pulled back to the year the archive closed rather
+    than honoured — otherwise the chip announces a range the data cannot fill, and the "all time"
+    preset never matches because the applied upper bound sits past the newest year on record.
+  */
+  const from = clampYear(p.get('from'), now, bounds)
+  const to = clampYear(p.get('to'), now, bounds)
   if (from != null) s.fromYear = from
   if (to != null) s.toYear = to
   // A reversed range is a typo, not a request for zero rows. Reading it the way the reader clearly
@@ -729,7 +888,7 @@ export function decodeRankingsState(
     // a column somebody chose.
     const asked = cols.split(',').map((k) => k.trim()).filter(Boolean)
       .map((k) => LEGACY_COLUMN_KEYS[k] ?? k)
-    s.visibleColumns = OPTIONAL_COLUMN_KEYS.filter((k) => asked.includes(k))
+    s.visibleColumns = optionalColumnKeys(options.profile ?? 'rankings').filter((k) => asked.includes(k))
   }
 
   const sort = p.get('sort')
@@ -763,7 +922,7 @@ export function activeFilterGroups(s: RankingsState, now: Date = new Date()): st
   if (s.rowFilters.minMatches > 0) groups.push('minMatches')
   // Hiding columns is ONE change however many columns it hides — a badge reading "4" because
   // somebody unchecked four boxes would overstate how filtered the table is.
-  if (OPTIONAL_COLUMN_KEYS.some((k) => !s.visibleColumns.includes(k))) groups.push('columns')
+  if (optionalColumnKeys(s.profile ?? 'rankings').some((k) => !s.visibleColumns.includes(k))) groups.push('columns')
   return groups
 }
 
@@ -814,7 +973,14 @@ export function readDevicePrefs(storage: Pick<Storage, 'getItem'> | null | undef
       ? [...new Set(parsed.columns
           .filter((k): k is string => typeof k === 'string')
           .map((k) => LEGACY_COLUMN_KEYS[k] ?? k))]
-        .filter((k) => (OPTIONAL_COLUMN_KEYS as readonly string[]).includes(k))
+        /*
+          Either table's column set is acceptable here.
+
+          This is a DEVICE preference, and the same device visits both the live ladder and the
+          archive. Filtering to one table's keys would discard the other's every time the reader
+          crossed between them, and their column choices would keep resetting.
+        */
+        .filter((k) => KNOWN_COLUMN_KEYS.has(k))
       : null
     return { columns }
   } catch {
@@ -845,8 +1011,17 @@ export function activeChips(
   s: RankingsState,
   names: { competition?: string | null; season?: string | null; cup?: string | null } = {},
   now: Date = new Date(),
+  /*
+    The years THIS table spans, when they are not the live ladder's.
+
+    Without it the archive's own full range — 2005 to the year it closed — was compared against the
+    live ladder's default, which runs to the current year, and so produced a "Years: 2005–2014" chip
+    on a table nobody had filtered. A chip is a statement that something has been narrowed; one that
+    appears on an untouched table teaches the reader to ignore chips.
+  */
+  bounds?: YearBounds,
 ): FilterChip[] {
-  const d = defaultState(now)
+  const d = defaultState(now, bounds ? { years: bounds } : {})
   const chips: FilterChip[] = []
 
   if (s.fromYear !== d.fromYear || s.toYear !== d.toYear) {
@@ -877,7 +1052,7 @@ export function activeChips(
   }
 
   // One chip for the whole column choice, however many boxes were unchecked.
-  const hidden = OPTIONAL_COLUMN_KEYS.filter((k) => !s.visibleColumns.includes(k)).length
+  const hidden = optionalColumnKeys(s.profile ?? 'rankings').filter((k) => !s.visibleColumns.includes(k)).length
   if (hidden > 0) chips.push({ key: 'cols', label: `Columns: ${hidden} hidden` })
 
   return chips
@@ -889,8 +1064,14 @@ export function activeChips(
  * Each chip resets exactly its own group to the default — never the whole table — so removing
  * "Division: B" cannot silently also drop the year range somebody set.
  */
-export function removeChip(s: RankingsState, key: string, now: Date = new Date()): RankingsState {
-  const d = defaultState(now)
+export function removeChip(
+  s: RankingsState,
+  key: string,
+  now: Date = new Date(),
+  /** Same reason as `activeChips`: removing the year chip must restore THIS table's whole span. */
+  bounds?: YearBounds,
+): RankingsState {
+  const d = defaultState(now, bounds ? { years: bounds } : {})
   const next: RankingsState = { ...s, rowFilters: { ...s.rowFilters } }
   switch (key) {
     case 'years': next.fromYear = d.fromYear; next.toYear = d.toYear; break
@@ -906,7 +1087,7 @@ export function removeChip(s: RankingsState, key: string, now: Date = new Date()
     case 'sc': next.rowFilters.seasonChampionsOnly = false; break
     case 'tc': next.rowFilters.cupChampionsOnly = false; break
     case 'min': next.rowFilters.minMatches = 0; break
-    case 'cols': next.visibleColumns = [...OPTIONAL_COLUMN_KEYS]; break
+    case 'cols': next.visibleColumns = [...optionalColumnKeys(s.profile ?? 'rankings')]; break
     default: break
   }
   return next
