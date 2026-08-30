@@ -2105,6 +2105,7 @@ model Season {
   /// undivided Seasons still cannot share a number — Prisma cannot express that, which is why the
   /// real constraint lives in 20260820_030000_season_number_per_division.
   /**
+   * /**
    * /*
    * Season numbering is unique per series, year and division — but the real index is
    * `season_competition_year_number_division_key`, built on COALESCE(division, ''), so that a second
@@ -3561,6 +3562,14 @@ enum SiteRevisionState {
   PUBLISHED
   SCHEDULED
   ARCHIVED
+
+  /// A scheduled revision the scheduler tried to activate and could not.
+  ///
+  /// Distinct from ARCHIVED, which is a decision somebody made. FAILED is a thing that happened
+  /// unattended, at a time nobody was watching, and it needs to be visible afterwards with the
+  /// reason attached — otherwise a schedule that quietly did not happen looks exactly like a
+  /// schedule nobody set.
+  FAILED
 }
 
 model SitePage {
@@ -3653,6 +3662,26 @@ model SitePageRevision {
   scheduledFor DateTime?
   expiresAt    DateTime?
 
+  /// When the scheduler actually made it live, which is not the same as `scheduledFor`.
+  ///
+  /// A cron that runs every five minutes activates a revision up to five minutes late, and an
+  /// administrator asking "did that go out on time?" needs both numbers to answer it.
+  activatedAt DateTime?
+
+  /// When a pending schedule was called off, and by whom.
+  ///
+  /// Cancelling archives the revision, but ARCHIVED alone cannot distinguish "somebody cancelled
+  /// this" from "this was superseded", and the two need different words in the interface.
+  cancelledAt         DateTime?
+  cancelledByUsername String?
+
+  /// Why activation failed, for a FAILED revision.
+  ///
+  /// Deliberately the validator's own message and nothing else: this is rendered to an
+  /// administrator, so it must never carry a connection string, a stack frame or an environment
+  /// value that happened to be in scope when it went wrong.
+  activationError String?
+
   publishedFor SitePage? @relation("SitePagePublished")
 
   @@unique([pageId, number])
@@ -3700,8 +3729,46 @@ model SiteTemplate {
   createdByUsername String?
   archivedAt        DateTime?
 
+  revisions SiteTemplateRevision[]
+
   @@index([scope])
+  @@index([archivedAt])
   @@map("site_template")
+}
+
+/// An immutable snapshot of a template, written on every save.
+///
+/// Templates are edited directly now, which is what makes this necessary: a page has revision
+/// history and a rollback because somebody will eventually need to undo a change they made a week
+/// ago, and a template that is edited the same way needs the same recourse. The alternative — a
+/// template that can only ever be overwritten — is the one piece of the builder where a mistake
+/// would have been permanent.
+model SiteTemplateRevision {
+  id         String       @id @default(cuid())
+  templateId String
+  template   SiteTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  /// Monotonic per template, so a revision has a human-meaningful number.
+  number Int
+
+  /// The name, description and scope AS THEY WERE, not only the document. Rolling back a rename is
+  /// part of rolling back, and a revision that restored the layout but kept the new name would be
+  /// a confusing half-measure.
+  name        String
+  description String?
+  scope       String
+  document    Json
+
+  /// What the editor wrote about the change, shown in the history.
+  summary String?
+
+  createdAt         DateTime @default(now())
+  createdById       Int?
+  createdByUsername String?
+
+  @@unique([templateId, number])
+  @@index([templateId, createdAt])
+  @@map("site_template_revision")
 }
 
 /// A published set of design tokens. Exactly one row may be active; it renders as

@@ -12,19 +12,21 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  AlertTriangle, Check, Clock, ExternalLink, FileStack, History, Loader2, PenLine,
+  AlertTriangle, CalendarClock, Check, Clock, ExternalLink, FileStack, History, Loader2, PenLine,
   RotateCcw, Trash2, Undo2,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import type { BuilderOverview, PageOverview } from '@/lib/site-builder/overview'
 import {
-  bootstrapAction, cancelScheduleAction, purgeTrashAction, resetToFactoryAction, rollbackAction,
+  bootstrapAction, cancelScheduleAction, purgeTrashAction, rescheduleAction, resetToFactoryAction,
+  rollbackAction, runSchedulesNowAction,
 } from '@/lib/site-builder/actions'
-import { getRevisionsAction } from '@/lib/site-builder/overview-actions'
+import { getRevisionsAction, listSchedulesAction } from '@/lib/site-builder/overview-actions'
+import type { ScheduleEntry, ScheduleState } from '@/lib/site-builder/scheduler'
 import { Dialog } from './palette'
 
-type Tab = 'pages' | 'reusables' | 'templates' | 'trash' | 'health' | 'help'
+type Tab = 'pages' | 'schedule' | 'reusables' | 'templates' | 'trash' | 'health' | 'help'
 
 export function SiteBuilderControlCentre({ overview }: { overview: BuilderOverview }) {
   const [tab, setTab] = useState<Tab>('pages')
@@ -33,6 +35,7 @@ export function SiteBuilderControlCentre({ overview }: { overview: BuilderOvervi
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'pages', label: 'Pages', count: overview.pages.length },
+    { key: 'schedule', label: 'Schedule', count: overview.pages.reduce((n, p) => n + p.scheduled.length, 0) },
     { key: 'reusables', label: 'Reusable modules', count: overview.reusables.length },
     { key: 'templates', label: 'Templates', count: overview.templates.length },
     { key: 'trash', label: 'Trash', count: overview.trash.length },
@@ -83,6 +86,7 @@ export function SiteBuilderControlCentre({ overview }: { overview: BuilderOvervi
       </div>
 
       {tab === 'pages' && <PagesTab overview={overview} />}
+      {tab === 'schedule' && <ScheduleTab />}
       {tab === 'reusables' && <ReusablesTab overview={overview} />}
       {tab === 'templates' && <TemplatesTab overview={overview} />}
       {tab === 'trash' && <TrashTab overview={overview} />}
@@ -90,6 +94,258 @@ export function SiteBuilderControlCentre({ overview }: { overview: BuilderOvervi
       {tab === 'help' && <HelpTab />}
     </div>
   )
+}
+
+// ── Schedule ────────────────────────────────────────────────────────────────────────────────────
+
+const SCHEDULE_WORDS: Record<ScheduleState, { label: string; tone: string; help: string }> = {
+  scheduled: { label: 'Scheduled', tone: 'border-[var(--brcam-teal)] text-[var(--brcam-teal)]', help: 'Waiting for its time.' },
+  overdue: { label: 'Overdue', tone: 'border-[var(--gold)] text-[var(--gold)]', help: 'Its time has passed and it has not published yet. Run the schedule below, or wait for the next sweep.' },
+  activated: { label: 'Published', tone: 'border-[var(--line-strong)] text-muted-foreground', help: 'It went out.' },
+  failed: { label: 'Failed', tone: 'border-[var(--hot-red)] text-[var(--hot-red)]', help: 'It could not be published, and the page kept what it already had.' },
+  cancelled: { label: 'Cancelled', tone: 'border-[var(--line-strong)] text-muted-foreground', help: 'Called off before it published.' },
+}
+
+/**
+ * Everything the scheduler has done or is about to do.
+ *
+ * ── Times are stored in UTC and shown in yours ───────────────────────────────────────────────────
+ * Every timestamp crosses the wire as an ISO string ending in Z, and `formatWhen` renders it in the
+ * reader's own zone with the zone NAMED. A scheduling interface that shows a bare "3:00" is the one
+ * that gets an announcement published in the middle of the night, and the zone is the only part of
+ * that sentence anybody would have wanted to check.
+ */
+function ScheduleTab() {
+  const [rows, setRows] = useState<ScheduleEntry[] | null>(null)
+  const [sweeping, setSweeping] = useState<string | null>(null)
+  const [rescheduling, setRescheduling] = useState<ScheduleEntry | null>(null)
+  const router = useRouter()
+  const [pending, start] = useTransition()
+
+  const load = () => void listSchedulesAction().then(setRows)
+  if (rows === null) load()
+
+  const pendingRows = (rows ?? []).filter((r) => r.state === 'scheduled' || r.state === 'overdue')
+  const doneRows = (rows ?? []).filter((r) => r.state !== 'scheduled' && r.state !== 'overdue')
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border border-border p-3">
+        <div className="min-w-0 max-w-2xl">
+          <p className="eyebrow text-muted-foreground">How this runs</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            A scheduled publication goes out on its own — a job runs on the server every few minutes,
+            and any page the site serves also activates anything overdue before it renders. You do
+            not have to be here for it to happen. If something is <strong className="text-foreground">Overdue</strong> and
+            you would rather not wait, run the schedule now.
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Times below are shown in your own time zone. They are stored in UTC.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => start(async () => {
+            const r = await runSchedulesNowAction()
+            setSweeping(r.ok
+              ? `Checked ${r.data.considered} due ${r.data.considered === 1 ? 'revision' : 'revisions'}: ${r.data.activated} published, ${r.data.failed} failed.`
+              : r.error ?? 'The schedule could not be run.')
+            load(); router.refresh()
+          })}
+          className="flex shrink-0 items-center gap-1.5 border border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground hover:border-[var(--hot-red)] hover:text-foreground disabled:opacity-50"
+        >
+          {pending && <Loader2 className="size-3 animate-spin" aria-hidden />}
+          Run the schedule now
+        </button>
+      </div>
+      {sweeping && <p className="border-l-2 border-[var(--brcam-teal)] pl-2 text-[11px] text-muted-foreground">{sweeping}</p>}
+
+      {rows === null && <p className="text-[11px] text-muted-foreground">Loading…</p>}
+      {rows?.length === 0 && (
+        <EmptyPanel
+          icon={<CalendarClock className="size-5" />}
+          title="Nothing is scheduled"
+          body="In Edit Mode, use Publish → Schedule to have a page publish itself at a time you choose."
+        />
+      )}
+
+      {pendingRows.length > 0 && (
+        <section>
+          <h3 className="eyebrow mb-1.5 text-muted-foreground">Waiting to publish</h3>
+          <ul className="flex flex-col gap-1">
+            {pendingRows.map((r) => (
+              <ScheduleRow
+                key={`${r.pageKey}-${r.revisionNumber}`}
+                row={r}
+                busy={pending}
+                onCancel={() => start(async () => {
+                  await cancelScheduleAction(r.pageKey, r.revisionNumber)
+                  load(); router.refresh()
+                })}
+                onReschedule={() => setRescheduling(r)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {doneRows.length > 0 && (
+        <section>
+          <h3 className="eyebrow mb-1.5 text-muted-foreground">Recently</h3>
+          <ul className="flex flex-col gap-1">
+            {doneRows.map((r) => (
+              <ScheduleRow key={`${r.pageKey}-${r.revisionNumber}-${r.state}`} row={r} busy={pending} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {rescheduling && (
+        <RescheduleDialog
+          row={rescheduling}
+          onClose={() => setRescheduling(null)}
+          onDone={() => { setRescheduling(null); load(); router.refresh() }}
+        />
+      )}
+    </div>
+  )
+}
+
+function ScheduleRow({ row, busy, onCancel, onReschedule }: {
+  row: ScheduleEntry
+  busy: boolean
+  onCancel?: () => void
+  onReschedule?: () => void
+}) {
+  const word = SCHEDULE_WORDS[row.state]
+  return (
+    <li className="flex flex-wrap items-start gap-2 border border-border px-2.5 py-2">
+      <span className={cn('mt-0.5 shrink-0 border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]', word.tone)}>
+        {word.label}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-foreground">
+          <span className="font-semibold">{row.pageTitle}</span>
+          <span className="tabular text-muted-foreground"> · revision {row.revisionNumber}</span>
+        </p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+          {row.state === 'activated' && row.activatedAt && <>Published {formatWhen(row.activatedAt)}{row.scheduledFor ? ` (due ${formatWhen(row.scheduledFor)})` : ''}.</>}
+          {(row.state === 'scheduled' || row.state === 'overdue') && <>Due {formatWhen(row.scheduledFor)}{row.expiresAt ? `, reverting ${formatWhen(row.expiresAt)}` : ''}.</>}
+          {row.state === 'cancelled' && <>Cancelled {formatWhen(row.cancelledAt)}{row.cancelledBy ? ` by ${row.cancelledBy}` : ''}.</>}
+          {row.state === 'failed' && <>{row.error ?? 'It could not be published.'}</>}
+          {' '}{word.help}
+        </p>
+      </div>
+      {(onCancel || onReschedule) && (
+        <div className="flex shrink-0 items-center gap-1">
+          {onReschedule && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onReschedule}
+              className="border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              Move
+            </button>
+          )}
+          {onCancel && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onCancel}
+              className="border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:border-[var(--hot-red)] hover:text-foreground disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+    </li>
+  )
+}
+
+/**
+ * Move a pending publication to a different time.
+ *
+ * The field is a `datetime-local`, which means the browser presents it in the reader's own zone and
+ * hands back a value with no zone attached. `new Date(value).toISOString()` interprets that in the
+ * same local zone and converts to UTC — so what the Owner typed is what is stored, and the two ends
+ * agree without either of them having to say the zone out loud.
+ */
+function RescheduleDialog({ row, onClose, onDone }: { row: ScheduleEntry; onClose: () => void; onDone: () => void }) {
+  const [when, setWhen] = useState(() => toLocalInput(row.scheduledFor))
+  const [expires, setExpires] = useState(() => toLocalInput(row.expiresAt))
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <Dialog title={`Move the ${row.pageTitle} schedule`} onClose={onClose}>
+      <p className="text-xs text-muted-foreground">
+        This changes only <em>when</em> revision {row.revisionNumber} publishes. The layout that goes
+        out is the one that was frozen when it was scheduled, not whatever the draft says now.
+      </p>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Publish at ({localZone()})</span>
+        <input
+          type="datetime-local"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+          className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Revert at (optional)</span>
+        <input
+          type="datetime-local"
+          value={expires}
+          onChange={(e) => setExpires(e.target.value)}
+          className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        />
+      </label>
+      {when && <p className="text-[11px] text-muted-foreground">That is {formatWhen(new Date(when).toISOString())}.</p>}
+      {error && <p className="border-l-2 border-[var(--hot-red)] pl-2 text-[11px] text-[var(--hot-red)]">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onClose} className="border border-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground">Cancel</button>
+        <button
+          type="button"
+          disabled={busy || !when}
+          onClick={async () => {
+            setBusy(true); setError(null)
+            const result = await rescheduleAction(
+              row.pageKey,
+              row.revisionNumber,
+              new Date(when).toISOString(),
+              expires ? new Date(expires).toISOString() : null,
+            )
+            setBusy(false)
+            if (result.ok) onDone(); else setError(result.error)
+          }}
+          className="flex items-center gap-1.5 bg-[var(--hot-red)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white disabled:opacity-40"
+        >
+          {busy && <Loader2 className="size-3 animate-spin" aria-hidden />}
+          Move it
+        </button>
+      </div>
+    </Dialog>
+  )
+}
+
+/** An ISO instant as the value a `datetime-local` input expects, in the reader's own zone. */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** The reader's zone, named, so a time on screen is never ambiguous. */
+function localZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'your time'
+  } catch {
+    return 'your time'
+  }
 }
 
 // ── Pages ───────────────────────────────────────────────────────────────────────────────────────
@@ -499,8 +755,15 @@ function EmptyPanel({ icon, title, body }: { icon: React.ReactNode; title: strin
  * Formatting on the server would use the server's locale and timezone, which is not the reader's —
  * and in this app it would also be a hydration mismatch, because the two would disagree.
  */
+/**
+ * An instant, in the reader's own zone, with the zone named.
+ *
+ * The zone is not decoration. Everything here is stored in UTC and read by somebody who is not in
+ * UTC, and "publishes at 3:00" without a zone is the sentence that gets an announcement published
+ * in the middle of somebody's night.
+ */
 function formatWhen(iso: string | null): string {
   if (!iso) return 'never'
   const d = new Date(iso)
-  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZoneName: 'short' })
 }

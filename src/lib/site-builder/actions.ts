@@ -98,7 +98,9 @@ export async function bootstrapAction(): Promise<ActionResult<{ created: string[
   return guarded(async () => {
     const actor = await requireCapability('manage_site_builder')
     const result = await bootstrap(actor)
-    revalidatePath('/admin/site-builder')
+    // `/staff/site-builder`, not `/admin/…`: the route moved and this line did not follow it, so
+    // the control centre kept showing "not bootstrapped" until something else revalidated it.
+    revalidatePath('/staff/site-builder')
     return { ok: true, data: result }
   })
 }
@@ -174,17 +176,136 @@ export async function cancelScheduleAction(key: string, revisionNumber: number):
     const actor = await requireCapability('manage_site_builder')
     const page = await prisma.sitePage.findUnique({ where: { key } })
     if (!page) return fail(`No editable page is registered for "${key}".`)
-    // Archived rather than deleted: a cancelled schedule is a thing that happened, and the audit
-    // trail should be able to point at the document that was going to publish.
-    await prisma.sitePageRevision.updateMany({
+    /*
+      Archived rather than deleted, and stamped rather than merely archived.
+
+      A cancelled schedule is a thing that happened, so the audit trail should be able to point at
+      the document that was going to publish. `cancelledAt` is what lets the interface say
+      "cancelled" rather than "archived": ARCHIVED alone cannot tell somebody calling it off from a
+      revision that was superseded, and those two need different words in front of an administrator.
+
+      `updateMany` with the state in the WHERE clause is deliberate. It makes this a no-op when the
+      scheduler has already activated the revision, rather than a race that un-publishes something
+      that is live.
+    */
+    const cancelled = await prisma.sitePageRevision.updateMany({
       where: { pageId: page.id, number: revisionNumber, state: 'SCHEDULED' },
-      data: { state: 'ARCHIVED', scheduledFor: null },
+      data: {
+        state: 'ARCHIVED',
+        scheduledFor: null,
+        cancelledAt: new Date(),
+        cancelledByUsername: actor.username,
+      },
     })
+    if (cancelled.count === 0) {
+      return fail('That schedule is no longer pending — it has already published, or was cancelled.')
+    }
     await recordAudit(actor, {
       action: 'site_builder.cancel_schedule', entity: 'SitePage', entityId: key,
       newValue: { revision: revisionNumber },
     })
+    revalidatePath('/staff/site-builder')
     return { ok: true }
+  })
+}
+
+/**
+ * Move a pending schedule to a different time.
+ *
+ * Deliberately NOT "cancel and re-schedule": that would freeze the CURRENT draft, which may have
+ * moved on since the schedule was set. Rescheduling keeps the document exactly as it was frozen and
+ * changes only when it goes out — which is what an administrator means when they say "make that
+ * Tuesday instead".
+ */
+export async function rescheduleAction(
+  key: string,
+  revisionNumber: number,
+  scheduledFor: string,
+  expiresAt?: string | null,
+): Promise<ActionResult<{ scheduledFor: string }>> {
+  return guarded(async () => {
+    const actor = await requireCapability('manage_site_builder')
+    const when = Date.parse(scheduledFor)
+    if (Number.isNaN(when)) return fail('That publish date could not be read.')
+    if (expiresAt && Number.isNaN(Date.parse(expiresAt))) return fail('That expiry date could not be read.')
+    if (expiresAt && Date.parse(expiresAt) <= when) return fail('The expiry must be after the publish time.')
+
+    const page = await prisma.sitePage.findUnique({ where: { key } })
+    if (!page) return fail(`No editable page is registered for "${key}".`)
+
+    const existing = await prisma.sitePageRevision.findUnique({
+      where: { pageId_number: { pageId: page.id, number: revisionNumber } },
+      select: { state: true, scheduledFor: true },
+    })
+    if (!existing) return fail(`Revision ${revisionNumber} does not exist for this page.`)
+    if (existing.state !== 'SCHEDULED') {
+      return fail('Only a pending schedule can be moved. This one has already published or was cancelled.')
+    }
+
+    const moved = await prisma.sitePageRevision.updateMany({
+      // The state is in the WHERE clause for the same reason it is in `cancelScheduleAction`: the
+      // scheduler may have activated this revision between the read above and this write.
+      where: { pageId: page.id, number: revisionNumber, state: 'SCHEDULED' },
+      data: {
+        scheduledFor: new Date(when),
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        summary: `Scheduled for ${new Date(when).toISOString()}`,
+      },
+    })
+    if (moved.count === 0) return fail('That schedule published while you were changing it.')
+
+    await recordAudit(actor, {
+      action: 'site_builder.reschedule',
+      entity: 'SitePage',
+      entityId: key,
+      oldValue: { scheduledFor: existing.scheduledFor?.toISOString() ?? null },
+      newValue: { revision: revisionNumber, scheduledFor: new Date(when).toISOString(), expiresAt: expiresAt ?? null },
+    })
+    revalidatePath('/staff/site-builder')
+    return { ok: true, data: { scheduledFor: new Date(when).toISOString() } }
+  })
+}
+
+/**
+ * Run the schedule sweep now, by hand.
+ *
+ * The manual recovery path documented in docs/site-builder-scheduling.md. It exists so that an
+ * Owner who finds an overdue schedule does not have to wait for a cron they may not be able to see,
+ * and does not need a secret to do it — they are already holding the capability that lets them
+ * publish the same thing directly.
+ *
+ * It runs the same service the cron runs. There is no "publish this one" variant, here or anywhere:
+ * the server picks what is due.
+ */
+export async function runSchedulesNowAction(): Promise<ActionResult<{
+  considered: number
+  activated: number
+  failed: number
+}>> {
+  return guarded(async () => {
+    const actor = await requireCapability('manage_site_builder')
+    const { runDueSchedules } = await import('./scheduler')
+    const result = await runDueSchedules({ trigger: 'manual' })
+
+    await recordAudit(actor, {
+      action: 'site_builder.run_schedules',
+      entity: 'SitePage',
+      entityId: null,
+      newValue: {
+        considered: result.considered,
+        activated: result.activations.filter((a) => a.status === 'activated').map((a) => `${a.pageKey}#${a.revisionNumber}`),
+        failed: result.activations.filter((a) => a.status === 'failed').map((a) => `${a.pageKey}#${a.revisionNumber}`),
+      },
+    })
+    revalidatePath('/staff/site-builder')
+    return {
+      ok: true,
+      data: {
+        considered: result.considered,
+        activated: result.activations.filter((a) => a.status === 'activated').length,
+        failed: result.activations.filter((a) => a.status === 'failed').length,
+      },
+    }
   })
 }
 
@@ -207,7 +328,7 @@ export async function saveReusableAction(
       action: 'site_builder.reusable_create', entity: 'SiteReusableModule', entityId: created.id,
       newValue: { name: clean, moduleType },
     })
-    revalidatePath('/admin/site-builder')
+    revalidatePath('/staff/site-builder')
     return { ok: true, data: { id: created.id } }
   })
 }
@@ -230,7 +351,7 @@ export async function saveTemplateAction(
       action: 'site_builder.template_create', entity: 'SiteTemplate', entityId: created.id,
       newValue: { name: clean, scope, sections: check.value.sections.length },
     })
-    revalidatePath('/admin/site-builder')
+    revalidatePath('/staff/site-builder')
     return { ok: true, data: { id: created.id } }
   })
 }
@@ -282,7 +403,7 @@ export async function purgeTrashAction(id: string): Promise<ActionResult> {
       action: 'site_builder.trash_purge', entity: 'SiteTrashItem', entityId: id,
       oldValue: { kind: item.kind, label: item.label },
     })
-    revalidatePath('/admin/site-builder')
+    revalidatePath('/staff/site-builder')
     return { ok: true }
   })
 }

@@ -37,7 +37,8 @@
     "test:dev-hydration": "node scripts/verify-dev-hydration.mjs",
     "test:responsive": "node scripts/verify-responsive.mjs",
     "capture:site-builder": "node scripts/capture-site-builder-proof.mjs",
-    "test:site-builder:security": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-security.mts"
+    "test:site-builder:security": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-security.mts",
+    "test:site-builder:scheduler": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-scheduler.mts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",

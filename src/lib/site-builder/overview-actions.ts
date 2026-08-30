@@ -17,3 +17,16 @@ export async function getRevisionsAction(key: string) {
   await requireCapability('manage_site_builder')
   return getRevisions(key)
 }
+
+/**
+ * Every schedule worth showing: pending, overdue, activated, failed, cancelled.
+ *
+ * Capability-checked for the same reason revision history is: a schedule names a page, a revision
+ * number and the moment something unpublished is going to become public, which is not information
+ * the site owes to anybody who is not running it.
+ */
+export async function listSchedulesAction() {
+  await requireCapability('manage_site_builder')
+  const { listSchedules } = await import('./scheduler')
+  return listSchedules()
+}

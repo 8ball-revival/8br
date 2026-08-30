@@ -89,18 +89,58 @@ export async function readPublishedLayout(key: string): Promise<PublishedLayout>
 }
 
 /**
- * The public read.
+ * The cached read.
  *
  * Cached under one tag so a publish invalidates every page at once — layouts reference reusable
  * modules and a shared theme, so a per-page key would leave a page showing a stale copy of a global
  * an administrator had just changed. Layout reads are small and infrequent; correctness is worth
  * more here than a narrower key.
  */
-export const getPublishedLayout = unstable_cache(
+const cachedPublishedLayout = unstable_cache(
   readPublishedLayout,
   ['site-builder-published-v1'],
   { revalidate: 300, tags: [SITE_BUILDER_TAG] },
 )
+
+/**
+ * The public read: activate anything overdue, then serve.
+ *
+ * ── Why the sweep is here and not only on a cron ─────────────────────────────────────────────────
+ * A cron is a promise made by the platform, and platforms lose crons: a misconfigured `vercel.json`,
+ * a project moved, an incident where scheduled functions were paused. Without this line, that
+ * failure mode is silent — the announcement simply never appears, and nobody finds out until it is
+ * raised as a complaint. With it, the worst case is that the announcement appears when the next
+ * visitor arrives.
+ *
+ * ── Why it costs almost nothing ─────────────────────────────────────────────────────────────────
+ * `ensureSchedulesApplied` remembers when the next revision is actually due and does no database
+ * work at all before then. On a site with nothing scheduled it runs one query per server process,
+ * ever. It also never throws: a scheduler fault must degrade to "the schedule is late", never to a
+ * page that will not render.
+ *
+ * ── Why before the cached read rather than after ─────────────────────────────────────────────────
+ * Activating revalidates the layout tag, so the read below misses the cache and returns the layout
+ * that was just published. The other order would serve the stale one and correct it on the next
+ * request, which is exactly the bug the fallback exists to prevent.
+ *
+ * The import is dynamic to break a cycle: the scheduler imports `revalidateForKey` from this file.
+ */
+export async function getPublishedLayout(key: string): Promise<PublishedLayout> {
+  const { ensureSchedulesApplied } = await import('./scheduler')
+  await ensureSchedulesApplied()
+  return cachedPublishedLayout(key)
+}
+
+/**
+ * The cached read WITHOUT the schedule sweep.
+ *
+ * For callers that are already inside a sweep, or that must not trigger one: the scheduler's own
+ * validation reads, and the health page, which is meant to report what the database says rather
+ * than to change it.
+ */
+export async function getPublishedLayoutRaw(key: string): Promise<PublishedLayout> {
+  return cachedPublishedLayout(key)
+}
 
 /** Draft read. Never cached — an administrator must see their own last keystroke. */
 export async function getDraft(key: string): Promise<{ document: LayoutDocument; version: number; dirty: boolean } | null> {
@@ -366,15 +406,42 @@ function invalidate(fn: () => void): void {
  * A static page revalidates its own path. A TEMPLATE governs an unbounded set of routes, so it
  * revalidates the tag — the alternative would be enumerating every Season on the site and
  * revalidating each, which is slower and still wrong the moment a new one is created.
+ *
+ * ── The globals are the case that is easy to get wrong ───────────────────────────────────────────
+ * `nav`, `footer` and `theme` are rendered by the ROOT LAYOUT, so they appear on every page and on
+ * none of their own. Revalidating a path named after them clears nothing that anybody reads;
+ * `revalidatePath('/', 'layout')` is what actually reaches them, and it is the difference between
+ * publishing a new navigation and publishing a new navigation that nobody sees until the cache
+ * happens to lapse.
  */
+export const GLOBAL_PAGE_KEYS = ['nav', 'footer', 'theme'] as const
+
 async function revalidateFor(key: string): Promise<void> {
   invalidate(() => revalidateTag(SITE_BUILDER_TAG, 'max'))
+
+  if ((GLOBAL_PAGE_KEYS as readonly string[]).includes(key)) {
+    // Every page, because that is where a global appears.
+    invalidate(() => revalidatePath('/', 'layout'))
+    return
+  }
+
   if (key.startsWith('/')) {
     invalidate(() => revalidatePath(key))
   } else {
     const prefix = { season: '/seasons', tournament: '/tournaments', article: '/the-break', player: '/players' }[key]
     if (prefix) invalidate(() => revalidatePath(`${prefix}/[id]`, 'page'))
   }
+}
+
+/**
+ * The same invalidation, for callers outside this file.
+ *
+ * The scheduler publishes without going through `publish` — it activates a revision that was frozen
+ * days ago — so it needs the identical invalidation rather than an approximation of it. Exporting
+ * the one implementation is what stops the two drifting apart.
+ */
+export async function revalidateForKey(key: string): Promise<void> {
+  await revalidateFor(key)
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────────────────────────
