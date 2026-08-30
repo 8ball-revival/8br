@@ -353,7 +353,12 @@ $shape = ProdQuery @"
 SELECT 'entrants ' || (SELECT count(*) FROM season_entrant WHERE "seasonId"=16426)
     || ' / groups ' || (SELECT count(*) FROM season_group WHERE "seasonId"=16426)
     || ' / group matches ' || (SELECT count(*) FROM season_match WHERE "seasonId"=16426)
-    || ' / playoff matches ' || (SELECT count(*) FROM season_playoff_match WHERE "seasonId"=16426);
+    || ' / bracket rows ' || (SELECT count(*) FROM season_playoff_match WHERE "seasonId"=16426)
+    || ' (played ' || (SELECT count(*) FROM season_playoff_match
+                        WHERE "seasonId"=16426 AND "homeUsername" <> 'Bye' AND "awayUsername" <> 'Bye'
+                          AND "homeEntrantId" IS NOT NULL AND "awayEntrantId" IS NOT NULL)
+    || ' + byes ' || (SELECT count(*) FROM season_playoff_match
+                       WHERE "seasonId"=16426 AND ("homeUsername" = 'Bye' OR "awayUsername" = 'Bye')) || ')';
 "@
 Say "   $shape"
 
@@ -361,7 +366,11 @@ Step 'Source versus production'
 Say '   Expected from the local source that produced this dump:'
 Say '     tables 116 | seasons 50 | rating_ledger 16482 (16110 Yahoo + 372 CueVerse)'
 Say '     Season 16426 COMPLETED, Kevin beat Trav 9-1'
-Say '     entrants 34 / groups 5 / group matches 198 / playoff matches 38'
+Say '     entrants 34 / groups 5 / group matches 198'
+# A bracket row is not the same thing as a match played. Twelve of the fifty rows are first-round
+# bye positions -- a seeded player with no opponent, drawn so the shape of the draw is visible rather
+# than collapsed away. Reporting 38 next to a query that counts 50 made a correct restore look wrong.
+Say '     bracket rows 50 = 38 played + 12 first-round byes'
 Say '     migrations recorded 50'
 Say ''
 Say '   Differences you should EXPECT and which are not faults:'
