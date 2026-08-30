@@ -43,8 +43,45 @@ export interface Selection {
   id: string
 }
 
+/**
+ * Where the editor's document actually lives.
+ *
+ * ── Why this exists ─────────────────────────────────────────────────────────────────────────────
+ * The editor edits two different things now: a PAGE, which has a draft row and a publish step, and
+ * a TEMPLATE, which is a single row that is saved directly and never published. Everything else
+ * about the experience is identical — the same canvas, the same inspector, the same palette, the
+ * same undo, the same autosave — so the difference is expressed as two small functions rather than
+ * as a second editor.
+ *
+ * A second editor was the alternative, and it is the reason templates were not editable at all:
+ * building the whole surface again for a slightly different save call is enough work that nobody
+ * does it, and the feature stays a stub.
+ */
+export interface EditorTarget {
+  /** What is being edited, for the toolbar and for anything that needs to branch. */
+  kind: 'page' | 'template'
+  /**
+   * Persist the document.
+   *
+   * Returns the new version for optimistic concurrency, or a conflict version when the row moved
+   * on. A target with no concurrency of its own returns the version it was given.
+   */
+  save: (document: LayoutDocument, version: number) => Promise<
+    { ok: true; version: number } | { ok: false; error: string; conflictVersion?: number }
+  >
+  /**
+   * Make it public. Absent when the concept does not apply.
+   *
+   * A template has no publish step by design: it is a starting point, and inserting one copies it.
+   * The toolbar hides the control rather than offering one that would have to explain itself.
+   */
+  publish?: (summary?: string) => Promise<{ ok: boolean; error?: string; revision?: number }>
+}
+
 interface EditorValue {
   pageKey: string
+  /** What the document is: a page with a publish step, or a template that saves directly. */
+  target: EditorTarget
   document: LayoutDocument
   selection: Selection | null
   select: (s: Selection | null) => void
@@ -90,11 +127,13 @@ const UNDO_LIMIT = 50
 const AUTOSAVE_DELAY = 1200
 
 export function EditorProvider({
-  pageKey, initialDocument, initialVersion, children,
+  pageKey, initialDocument, initialVersion, target, children,
 }: {
   pageKey: string
   initialDocument: LayoutDocument
   initialVersion: number
+  /** Omitted for a page, which is what almost every mount is. */
+  target?: EditorTarget
   children: ReactNode
 }) {
   const router = useRouter()
@@ -153,6 +192,29 @@ export function EditorProvider({
   */
   const needsRefreshRef = useRef(false)
 
+  /*
+    The page target, built here so the common case needs no prop.
+
+    `useMemo` on `pageKey` rather than a module constant: the closures capture the key, and a
+    remount on a different page must not keep saving to the previous one.
+  */
+  const pageTarget = useMemo<EditorTarget>(() => ({
+    kind: 'page',
+    async save(doc, version) {
+      const result = await saveDraftAction(pageKey, doc, version)
+      if (result.ok) return { ok: true, version: result.data.version }
+      return { ok: false, error: result.error, conflictVersion: result.conflictVersion }
+    },
+    async publish(summary) {
+      const result = await publishAction(pageKey, summary)
+      return result.ok
+        ? { ok: true, revision: result.data.revisionNumber }
+        : { ok: false, error: result.error }
+    },
+  }), [pageKey])
+
+  const activeTarget = target ?? pageTarget
+
   const performSave = useCallback(async () => {
     if (inFlightRef.current) {
       pendingRef.current = true
@@ -164,9 +226,9 @@ export function EditorProvider({
         pendingRef.current = false
         setSaveState({ status: 'saving' })
         try {
-          const result = await saveDraftAction(pageKey, documentRef.current, versionRef.current)
+          const result = await activeTarget.save(documentRef.current, versionRef.current)
           if (result.ok) {
-            versionRef.current = result.data.version
+            versionRef.current = result.version
             setDirty(false)
             setSaveState({ status: 'saved', at: Date.now() })
             if (needsRefreshRef.current) {
@@ -193,7 +255,7 @@ export function EditorProvider({
     } finally {
       inFlightRef.current = false
     }
-  }, [pageKey, router])
+  }, [activeTarget, router])
 
   const scheduleSave = useCallback((immediate = false) => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -262,13 +324,13 @@ export function EditorProvider({
     // Always flushed first. Publishing takes what is SAVED, so publishing with an unsaved edit
     // pending would quietly ship the previous version and look like the publish had failed.
     await performSave()
-    const result = await publishAction(pageKey, summary)
-    if (result.ok) {
-      router.refresh()
-      return { ok: true, revision: result.data.revisionNumber }
+    if (!activeTarget.publish) {
+      return { ok: false, error: 'This does not publish. It is saved as you work.' }
     }
-    return { ok: false, error: result.error }
-  }, [pageKey, performSave, router])
+    const result = await activeTarget.publish(summary)
+    if (result.ok) router.refresh()
+    return result
+  }, [activeTarget, performSave, router])
 
   /*
     The browser's own "leave site?" prompt, for the case the in-app warning cannot cover.
@@ -291,6 +353,7 @@ export function EditorProvider({
 
   const value = useMemo<EditorValue>(() => ({
     pageKey,
+    target: activeTarget,
     document,
     selection,
     select: setSelection,
@@ -310,7 +373,7 @@ export function EditorProvider({
     panels,
     togglePanel,
   }), [
-    pageKey, document, selection, apply, undo, redo, past.length, future.length,
+    pageKey, activeTarget, document, selection, apply, undo, redo, past.length, future.length,
     dirty, saveState, saveNow, publish, breakpoint, previewing, panels, togglePanel,
   ])
 

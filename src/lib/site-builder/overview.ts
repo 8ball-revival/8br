@@ -39,6 +39,8 @@ export interface PageOverview {
   sectionCount: number
   /** Where an administrator goes to edit it. */
   editHref: string | null
+  /** A TEMPLATE with no live instance to preview against, edited on its own surface instead. */
+  editingWithoutExample: boolean
 }
 
 export interface BuilderOverview {
@@ -135,12 +137,19 @@ export async function getBuilderOverview(): Promise<BuilderOverview> {
         appears on all of them — so it gets a surface under the control centre. A TEMPLATE is edited
         while standing on a real instance of what it governs, which is the only way to see what the
         layout actually does to live data.
+
+        And when there is no instance — no article written yet, no Season created — the template
+        falls back to that same surface rather than to nothing. Being unable to edit the layout that
+        governs every future article until somebody writes an article is exactly backwards, and
+        "no edit link" was not an explanation anybody could act on.
       */
       editHref: page.kind === 'STATIC'
         ? `${page.key}${page.key.includes('?') ? '&' : '?'}edit=1`
         : page.kind === 'GLOBAL'
           ? `/staff/site-builder/global/${page.key}`
-          : templateExample[page.key] ?? null,
+          : templateExample[page.key] ?? `/staff/site-builder/global/${page.key}`,
+      /** True when a TEMPLATE is being edited without a live example to stand on. */
+      editingWithoutExample: page.kind === 'TEMPLATE' && !templateExample[page.key],
     }
   })
 

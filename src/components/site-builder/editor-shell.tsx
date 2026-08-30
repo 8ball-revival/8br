@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { EditorProvider, useEditor } from './editor-store'
+import { EditorProvider, useEditor, type EditorTarget } from './editor-store'
 import { CanvasOverlay } from './canvas-overlay'
 import { Inspector } from './inspector'
 import { ModuleLibrary, ReplaceDialog, Dialog } from './palette'
@@ -40,12 +40,19 @@ import { ModuleTree, useSelectionPath } from './module-tree'
 import { CommandPalette, type PaletteAction } from './command-palette'
 import { GuidedTour } from './guided-tour'
 
-export function SiteBuilderEditor({ pageKey, document, version, pageTitle, manifest }: {
+export function SiteBuilderEditor({ pageKey, document, version, pageTitle, manifest, target }: {
   pageKey: string
   document: LayoutDocument
   version: number
   pageTitle: string
   manifest: ModuleManifestEntry[]
+  /**
+   * Omitted for a page, which is nearly every mount.
+   *
+   * A template supplies one: it saves directly and has no publish step, so the toolbar drops
+   * Publish and the palette drops the commands that only make sense for a live page.
+   */
+  target?: EditorTarget
 }) {
   /*
     Hydrated during render, not in an effect.
@@ -58,7 +65,7 @@ export function SiteBuilderEditor({ pageKey, document, version, pageTitle, manif
   hydrateRegistry(manifest)
 
   return (
-    <EditorProvider pageKey={pageKey} initialDocument={document} initialVersion={version}>
+    <EditorProvider pageKey={pageKey} initialDocument={document} initialVersion={version} target={target}>
       <Shell pageTitle={pageTitle} />
     </EditorProvider>
   )
@@ -141,7 +148,7 @@ function Shell({ pageTitle }: { pageTitle: string }) {
     <>
       <Toolbar
         pageTitle={pageTitle}
-        onPublish={() => setPublishOpen(true)}
+        onPublish={editor.target.publish ? () => setPublishOpen(true) : undefined}
         onPalette={() => setPaletteOpen(true)}
       />
 
@@ -230,7 +237,10 @@ function useCommands({
   return useCallback((): PaletteAction[] => {
     const list: PaletteAction[] = [
       { id: 'save', label: 'Save draft', icon: 'Save', run: () => { onClose(); void editor.saveNow() } },
-      { id: 'publish', label: 'Publish this page', hint: 'Makes the draft live for everyone', icon: 'Send', run: onPublish },
+      // Only when there is something to publish; a template saves directly.
+      ...(editor.target.publish
+        ? [{ id: 'publish', label: 'Publish this page', hint: 'Makes the draft live for everyone', icon: 'Send', run: onPublish }]
+        : []),
       { id: 'undo', label: 'Undo', icon: 'Undo2', run: () => { onClose(); editor.undo() } },
       { id: 'redo', label: 'Redo', icon: 'Redo2', run: () => { onClose(); editor.redo() } },
       { id: 'preview', label: editor.previewing ? 'Leave preview' : 'Preview', icon: 'Eye', run: () => { onClose(); editor.setPreviewing(!editor.previewing) } },
@@ -256,7 +266,8 @@ function useCommands({
 // ── Toolbar ─────────────────────────────────────────────────────────────────────────────────────
 
 function Toolbar({ pageTitle, onPublish, onPalette }: {
-  pageTitle: string; onPublish: () => void; onPalette: () => void
+  /** Absent when the thing being edited has no publish step — a template saves as you work. */
+  pageTitle: string; onPublish?: () => void; onPalette: () => void
 }) {
   const editor = useEditor()
   const router = useRouter()
@@ -329,20 +340,32 @@ function Toolbar({ pageTitle, onPublish, onPalette }: {
 
         <span className="mx-1 h-4 w-px bg-[var(--line-strong)]" aria-hidden />
 
+        {/*
+          "Save draft" on a page; "Save" on a template, which has no draft and no publish step —
+          what you save IS the template. Naming it "draft" there would promise a review stage that
+          does not exist.
+        */}
         <button
           type="button"
           onClick={() => void editor.saveNow()}
-          className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-foreground hover:border-[var(--hot-red)]"
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em]',
+            onPublish
+              ? 'border border-border text-foreground hover:border-[var(--hot-red)]'
+              : 'bg-[var(--hot-red)] text-white hover:brightness-110',
+          )}
         >
-          <Save className="size-3.5" aria-hidden /> Save draft
+          <Save className="size-3.5" aria-hidden /> {onPublish ? 'Save draft' : 'Save'}
         </button>
-        <button
-          type="button"
-          onClick={onPublish}
-          className="flex items-center gap-1.5 bg-[var(--hot-red)] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:brightness-110"
-        >
-          <Send className="size-3.5" aria-hidden /> Publish
-        </button>
+        {onPublish && (
+          <button
+            type="button"
+            onClick={onPublish}
+            className="flex items-center gap-1.5 bg-[var(--hot-red)] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:brightness-110"
+          >
+            <Send className="size-3.5" aria-hidden /> Publish
+          </button>
+        )}
         <ToolButton label="Exit Edit Mode" onClick={exit}><X className="size-3.5" /></ToolButton>
       </div>
     </div>

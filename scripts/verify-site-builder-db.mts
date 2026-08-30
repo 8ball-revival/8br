@@ -398,6 +398,185 @@ check(
 )
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Templates as first-class things')
+
+/*
+  A template used to be write-only: savable, insertable, and unreachable afterwards. Everything
+  below is the lifecycle that was missing — and the case that mattered most is the first one, a
+  template with nothing in it and nothing built from it, which previously could not be opened at all.
+*/
+const {
+  createTemplate, getTemplate, updateTemplate, getTemplateRevisions, rollbackTemplate,
+  duplicateTemplate, setTemplateArchived, deleteTemplate, getTemplateUsage, listTemplates,
+  blankDocument,
+} = await import('../src/lib/site-builder/templates')
+
+// ── A blank template, created from nothing ──────────────────────────────────────────────────────
+const blank = await createTemplate({ name: 'Blank probe', scope: 'section', description: 'Made empty' }, actor)
+const blankDetail = (await getTemplate(blank.id))!
+check('a template can be created with no layout to copy', !!blankDetail)
+eq('it is a section template', blankDetail.scope, 'section')
+eq('it keeps its description', blankDetail.description, 'Made empty')
+eq('it opens on one empty section rather than on nothing', blankDetail.sectionCount, 1)
+eq('with no modules in it', blankDetail.moduleCount, 0)
+eq('and revision 1 exists from the moment it is created', blankDetail.revisionCount, 1)
+check('a blank template appears in the listing', (await listTemplates()).some((t) => t.id === blank.id))
+
+// A zero-instance template is exactly the case that used to be unreachable.
+const zeroUsage = await getTemplateUsage(blank.id)
+eq('nothing links to it', zeroUsage.linkedReusables.length, 0)
+eq('and nothing was built from it', zeroUsage.likelyStartedFrom.length, 0)
+check('it is still fully readable', (await getTemplate(blank.id))!.document.sections.length === 1)
+
+// ── Editing it directly ─────────────────────────────────────────────────────────────────────────
+const templateEdit = structuredClone(blankDetail.document)
+templateEdit.sections[0].name = 'Standings block'
+templateEdit.sections[0].modules = [createInstance('content.heading', { id: 'tpl-heading' })]
+const save1 = await updateTemplate(blank.id, { document: templateEdit }, actor, 'Added a heading')
+eq('saving writes a revision', save1.revisionNumber, 2)
+const afterTemplateEdit = (await getTemplate(blank.id))!
+eq('the layout is stored', afterTemplateEdit.moduleCount, 1)
+eq('and the section keeps its name', afterTemplateEdit.document.sections[0].name, 'Standings block')
+
+// Renaming and rescoping are part of the same history.
+await updateTemplate(blank.id, { name: 'Standings starter', scope: 'page', description: null }, actor, 'Renamed')
+const renamed = (await getTemplate(blank.id))!
+eq('a template can be renamed', renamed.name, 'Standings starter')
+eq('and rescoped', renamed.scope, 'page')
+eq('a cleared description is null rather than empty', renamed.description, null)
+
+// ── History and rollback ────────────────────────────────────────────────────────────────────────
+const revisions = await getTemplateRevisions(blank.id)
+eq('every save is in the history', revisions.length, 3)
+eq('the newest is first', revisions[0].number, 3)
+check('the current one is marked', revisions.some((r) => r.isCurrent))
+check('each carries what it was called at the time',
+  revisions.some((r) => r.name === 'Blank probe') && revisions.some((r) => r.name === 'Standings starter'))
+
+const rolled = await rollbackTemplate(blank.id, 1, actor)
+eq('a rollback appends rather than truncating', rolled.revisionNumber, 4)
+const afterTemplateRollback = (await getTemplate(blank.id))!
+eq('it restores the name too, not only the layout', afterTemplateRollback.name, 'Blank probe')
+eq('and the layout', afterTemplateRollback.moduleCount, 0)
+eq('the revisions it rolled past still exist', (await getTemplateRevisions(blank.id)).length, 4)
+
+// The rollback is itself rollback-able, which is the point of appending.
+await rollbackTemplate(blank.id, 3, actor)
+eq('rolling the rollback back returns to where it was', (await getTemplate(blank.id))!.name, 'Standings starter')
+
+// ── Duplicate, archive, restore ─────────────────────────────────────────────────────────────────
+const copy = await duplicateTemplate(blank.id, actor)
+const copyDetail = (await getTemplate(copy.id))!
+check('a duplicate is a separate template', copy.id !== blank.id)
+eq('named as a copy', copyDetail.name, 'Standings starter copy')
+eq('with its own history starting at 1', copyDetail.revisionCount, 1)
+
+await setTemplateArchived(copy.id, true, actor)
+check('an archived template is out of the ordinary listing', !(await listTemplates()).some((t) => t.id === copy.id))
+check('but is still there when asked for', (await listTemplates({ includeArchived: true })).some((t) => t.id === copy.id))
+check('and keeps its history', (await getTemplateRevisions(copy.id)).length === 1)
+await setTemplateArchived(copy.id, false, actor)
+check('restoring brings it back', (await listTemplates()).some((t) => t.id === copy.id))
+
+// ── Usage, and the impact warning ───────────────────────────────────────────────────────────────
+const plantedSource = await prisma.siteReusableModule.create({
+  data: {
+    name: 'Planted announcement', category: 'content', moduleType: 'content.announcement',
+    config: { title: 'Planted' } as never, createdByUsername: actor.username,
+  },
+})
+const withLinked = structuredClone((await getTemplate(blank.id))!.document)
+withLinked.sections[0].modules = [
+  createInstance('content.announcement', { id: 'tpl-linked', reusableId: plantedSource.id }),
+]
+await updateTemplate(blank.id, { document: withLinked }, actor, 'Planted a linked module')
+
+const usageBefore = await getTemplateUsage(blank.id)
+eq('the template reports the linked module it plants', usageBefore.linkedReusables.length, 1)
+eq('by name', usageBefore.linkedReusables[0].name, 'Planted announcement')
+eq('and says it is on no page yet', usageBefore.linkedReusables[0].onPages.length, 0)
+
+// Put an instance of that module on a real page, and the warning becomes a real warning.
+const homeDraft = (await getDraft(KEY))!
+await saveDraft(KEY, insertModule(
+  homeDraft.document,
+  homeDraft.document.sections[0].id,
+  createInstance('content.announcement', { id: 'live-linked', reusableId: plantedSource.id }),
+), homeDraft.version, actor)
+
+const usageAfter = await getTemplateUsage(blank.id)
+check('once a page carries one, the template says which page', usageAfter.linkedReusables[0].onPages.length > 0,
+  JSON.stringify(usageAfter.linkedReusables[0].onPages))
+
+/*
+  Deleting is refused while something depends on it.
+
+  Not because the template is referenced — inserting one copies it, so no page ever points back —
+  but because of the LINKED modules it plants, which do reach live pages.
+*/
+let deleteRefused = false
+let refusalMessage = ''
+try {
+  await deleteTemplate(blank.id, actor)
+} catch (err) {
+  deleteRefused = true
+  refusalMessage = err instanceof Error ? err.message : ''
+}
+check('deleting a template whose linked modules are live is refused', deleteRefused)
+check('and the refusal says what to do instead', /archive/i.test(refusalMessage), refusalMessage)
+check('the template is still there', !!(await getTemplate(blank.id)))
+
+// A template nothing depends on deletes cleanly, and takes its revisions with it.
+const disposable = await createTemplate({ name: 'Disposable', scope: 'section' }, actor)
+await updateTemplate(disposable.id, { name: 'Disposable, edited' }, actor)
+eq('it has history before deletion', (await getTemplateRevisions(disposable.id)).length, 2)
+await deleteTemplate(disposable.id, actor)
+check('an unused template deletes', !(await getTemplate(disposable.id)))
+eq('and its revisions go with it', await prisma.siteTemplateRevision.count({ where: { templateId: disposable.id } }), 0)
+
+// ── Editing a template publishes nothing, anywhere ──────────────────────────────────────────────
+const publishedBeforeTemplateWork = await prisma.sitePage.findMany({
+  select: { key: true, publishedRevisionId: true }, orderBy: { key: 'asc' },
+})
+await updateTemplate(blank.id, { name: 'Renamed once more' }, actor, 'A change with no consequences')
+eq('editing a template publishes nothing on any page',
+  await prisma.sitePage.findMany({ select: { key: true, publishedRevisionId: true }, orderBy: { key: 'asc' } }),
+  publishedBeforeTemplateWork)
+
+// ── Validation is applied on the way in ─────────────────────────────────────────────────────────
+let invalidRefused = false
+try {
+  await updateTemplate(blank.id, {
+    document: {
+      version: 1,
+      sections: [{
+        id: 'bad', name: 'Bad', width: 'wide', columns: { desktop: [1] }, style: {}, visibility: {},
+        modules: [{
+          id: 'bad-button', type: 'content.button', configVersion: 1,
+          config: { label: 'x', href: 'javascript:alert(1)', variant: 'primary', newTab: false, align: 'left' },
+          layout: { desktop: { span: 1 } }, style: {}, visibility: {}, reusableId: null,
+        }],
+      }],
+    },
+  }, actor)
+} catch {
+  invalidRefused = true
+}
+check('a template cannot be saved with a setting the validator rejects', invalidRefused)
+let unnamedRefused = false
+try {
+  await createTemplate({ name: '   ', scope: 'page' }, actor)
+} catch {
+  unnamedRefused = true
+}
+check('and cannot be created without a name', unnamedRefused)
+
+// A blank document is a real document, not a special case downstream.
+const blankDoc = blankDocument('page')
+eq('a blank template document has one section', blankDoc.sections.length, 1)
+check('and it validates', validateDocument(blankDoc).ok)
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
 section('Trash')
 
 const trashed = await prisma.siteTrashItem.create({

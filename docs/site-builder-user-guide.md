@@ -234,12 +234,24 @@ it, so "the third module in row two" never means hunting for the third module in
 
 ## Scheduling
 
-In a module's **Visibility** section, **Show between** takes a start and an end. Leave either side
-empty for an open-ended window.
+Two different things, and they are worth keeping apart.
 
-Use it to prepare an announcement now and have it appear by itself when a season opens, or to have
-one stop showing when registration closes. The panel writes the rule back to you in plain English so
-you can check it, and warns you if a combination could never be true.
+**A module appearing and disappearing.** In a module's **Visibility** section, **Show between** takes
+a start and an end. Leave either side empty for an open-ended window. Use it to prepare an
+announcement now and have it appear by itself when a season opens. The panel writes the rule back to
+you in plain English so you can check it, and warns you if a combination could never be true.
+
+**A whole page publishing itself.** **Publish → Schedule** freezes the page as it stands and
+publishes it at a time you choose. It happens on its own — you do not have to be there.
+
+- What is scheduled is the page **as it was when you scheduled it**. Carry on editing afterwards;
+  the draft and the scheduled version go their separate ways.
+- **Admin → Site Builder → Schedule** shows everything: waiting, overdue, published, failed and
+  cancelled, with every time in **your** time zone and the zone named.
+- You can **Move** a pending publication to a different time, or **Cancel** it.
+- If something says **Overdue** and you would rather not wait, **Run the schedule now**.
+- If something says **Failed**, the reason is on the row and the page kept what it was already
+  showing — nothing is broken, and there is no hurry.
 
 ---
 
@@ -280,19 +292,59 @@ stops following the original.
 
 A template is a saved **layout** — a starting point, never a link.
 
-**Save as template** offers two scopes when a section is selected:
+### Making one
 
-- **This whole page** — every section, to start another page from.
-- **Just this section** — the row you have selected. This is the one you will use most: a standings
-  block with its heading and spacing, a sponsor row, a call to action.
+Two ways:
 
-Templates appear under **Add → Templates**. Inserting a **section** template drops its sections in
-after whatever you have selected. Inserting a **page** template replaces the page's layout, and asks
-first.
+- **Admin → Site Builder → Templates → New template.** It opens **empty** and you build it there,
+  the same way you build a page. You do not need an existing layout to copy first.
+- **Save as template** in Edit Mode, which offers two scopes when a section is selected:
+  **This whole page**, or **Just this section** — the row you have selected. The second is the one
+  you will use most: a standings block with its heading and spacing, a sponsor row, a call to action.
+
+### Using one
+
+Templates appear under **Add → Templates** in the editor. Inserting a **section** template drops its
+sections in after whatever you have selected. Inserting a **page** template replaces the page's
+layout, and asks first.
 
 Either way it goes into the **draft**, so it is undoable and visitors see nothing until you publish.
-Everything a template brings in is a fresh copy: renaming or editing the template later changes
-nothing on any page that started from it.
+
+### Managing them
+
+**Admin → Site Builder → Templates** lists every template, including ones with nothing in them and
+ones nothing has been built from. For each you can:
+
+| | |
+| --- | --- |
+| **Edit** | Opens the template in the full editor — canvas, inspector, palette, undo, the lot |
+| **Where it is used** | Linked modules it plants, and pages that look like they started from it |
+| **Rename** | Its name, its description, and whether it is a page or a section template |
+| **Pin** | Keeps it at the top of the list |
+| **Duplicate** | A separate copy with its own history |
+| **Archive / Restore** | Out of the way without losing it. This is the ordinary way to retire one |
+| **Delete** | Permanent, and refused while a linked module it plants is live on a page |
+| **History** | Every save, with a Restore on each — inside the template editor |
+
+Editing a template **saves as you work**. There is no publish step, because there is nothing to
+publish: a template is not on the site.
+
+> **Editing a template never changes a page.** Inserting one copies its sections with fresh
+> identifiers and no link back, so renaming or restructuring a template later has no effect on
+> anything already built from it. That is the opposite of a **reusable module**, which stays linked
+> on purpose — and it is the single most important thing to keep straight about the two.
+>
+> The one exception is a template that contains a *linked reusable module*. Inserting it plants a
+> module that does stay synced, and **Where it is used** tells you which pages are carrying one
+> before you change anything. Even then, each of those pages still needs publishing before a
+> visitor sees the change.
+
+### Dynamic page templates are different
+
+**Season**, **Tournament**, **Article** and **Player profile** under **Pages → Dynamic templates**
+are not saved layouts — they govern every page of that kind, live. Editing one is a publish like any
+other. They open on a real example so the live data is visible; if nothing of that kind exists yet,
+they open on their own and are marked **No example**.
 
 ---
 

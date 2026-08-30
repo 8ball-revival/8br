@@ -12,8 +12,8 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  AlertTriangle, CalendarClock, Check, Clock, ExternalLink, FileStack, History, Loader2, PenLine,
-  RotateCcw, Trash2, Undo2,
+  AlertTriangle, Archive, CalendarClock, Check, Clock, Copy, ExternalLink, FileStack, History, Info,
+  Loader2, Pencil, PenLine, Plus, RotateCcw, Star, Trash2, Undo2,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -23,6 +23,12 @@ import {
   rollbackAction, runSchedulesNowAction,
 } from '@/lib/site-builder/actions'
 import { getRevisionsAction, listSchedulesAction } from '@/lib/site-builder/overview-actions'
+import {
+  createTemplateAction, deleteTemplateAction, duplicateTemplateAction, listTemplatesDetailAction,
+  setTemplateArchivedAction, updateTemplateAction,
+} from '@/lib/site-builder/template-actions'
+import type { TemplateDetail, TemplateScope } from '@/lib/site-builder/templates'
+import { TemplateUsageDialog } from './template-editor'
 import type { ScheduleEntry, ScheduleState } from '@/lib/site-builder/scheduler'
 import { Dialog } from './palette'
 
@@ -88,7 +94,7 @@ export function SiteBuilderControlCentre({ overview }: { overview: BuilderOvervi
       {tab === 'pages' && <PagesTab overview={overview} />}
       {tab === 'schedule' && <ScheduleTab />}
       {tab === 'reusables' && <ReusablesTab overview={overview} />}
-      {tab === 'templates' && <TemplatesTab overview={overview} />}
+      {tab === 'templates' && <TemplatesTab />}
       {tab === 'trash' && <TrashTab overview={overview} />}
       {tab === 'health' && <HealthTab overview={overview} />}
       {tab === 'help' && <HelpTab />}
@@ -430,6 +436,14 @@ function PageRow({ page }: { page: PageOverview }) {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-1">
+          {page.editingWithoutExample && (
+            <span
+              className="border border-[var(--gold)] px-1.5 py-1 text-[9px] uppercase text-[var(--gold)]"
+              title="Nothing of this kind exists yet, so there is no live data to preview against. The structure is still editable."
+            >
+              No example
+            </span>
+          )}
           {page.editHref ? (
             <Link
               href={page.editHref}
@@ -438,21 +452,16 @@ function PageRow({ page }: { page: PageOverview }) {
                 because a template edited against a placeholder shows none of the live data the
                 layout is actually arranging. The title says so, so the destination is not a surprise.
               */
-              title={page.kind === 'TEMPLATE'
-                ? `Edit this template on a real page (${page.editHref.replace('?edit=1', '')})`
-                : `Edit ${page.title}`}
+              title={page.kind !== 'TEMPLATE'
+                ? `Edit ${page.title}`
+                : page.editingWithoutExample
+                  ? 'No page of this kind exists yet, so this opens the template on its own. The structure is editable; the live data has nothing to draw until one exists.'
+                  : `Edit this template on a real page (${page.editHref.replace('?edit=1', '')})`}
               className="flex items-center gap-1.5 bg-[var(--hot-red)] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:brightness-110"
             >
               <PenLine className="size-3" aria-hidden /> Edit
             </Link>
-          ) : (
-            <span
-              className="px-2 text-[10px] uppercase text-muted-foreground"
-              title="This template governs pages that do not exist yet. Publish one and the Edit button appears."
-            >
-              No example yet
-            </span>
-          )}
+          ) : null}
           {page.key.startsWith('/') && (
             <Link
               href={page.key}
@@ -582,21 +591,386 @@ function ReusablesTab({ overview }: { overview: BuilderOverview }) {
   )
 }
 
-function TemplatesTab({ overview }: { overview: BuilderOverview }) {
-  if (!overview.templates.length) {
-    return <EmptyPanel icon={<FileStack className="size-5" />} title="No saved templates" body="Save a section or a whole page as a template from Edit Mode to reuse its structure." />
+/**
+ * Templates, managed rather than merely listed.
+ *
+ * ── What this replaces ──────────────────────────────────────────────────────────────────────────
+ * A read-only list with no way to open anything. A template was write-only: you could save one and
+ * insert it, and if you had made a mistake in it, that was that. Every control here exists because
+ * its absence made a template something you could create and then never touch again.
+ *
+ * ── The one thing to keep straight ──────────────────────────────────────────────────────────────
+ * A template is a STARTING POINT, not a link. Editing one changes nothing on any page that already
+ * used it — the opposite of a reusable module, which stays synced on purpose. The panel says so, in
+ * those words, because the two are easy to confuse and the consequences of confusing them run in
+ * opposite directions.
+ */
+function TemplatesTab() {
+  const [rows, setRows] = useState<TemplateDetail[] | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [renaming, setRenaming] = useState<TemplateDetail | null>(null)
+  const [usageFor, setUsageFor] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const [pending, start] = useTransition()
+
+  const load = (archived = showArchived) => {
+    void listTemplatesDetailAction(archived).then((r) => setRows(r.ok ? r.data : []))
   }
+  if (rows === null) load()
+
+  const act = (fn: () => Promise<{ ok: boolean; error?: string }>) => start(async () => {
+    setError(null)
+    const result = await fn()
+    if (!result.ok) setError(result.error ?? 'That could not be completed.')
+    load(); router.refresh()
+  })
+
+  const live = (rows ?? []).filter((t) => !t.archivedAt)
+  const archived = (rows ?? []).filter((t) => t.archivedAt)
+
   return (
-    <ul className="flex flex-col gap-1.5">
-      {overview.templates.map((t) => (
-        <li key={t.id} className="flex items-center justify-between gap-3 border border-border px-3 py-2">
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-foreground">{t.name}</span>
-            <span className="block text-[11px] text-muted-foreground">{t.scope} · updated {formatWhen(t.updatedAt)}</span>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border border-border p-3">
+        <p className="min-w-0 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+          A template is a layout you start from. Inserting one copies its sections onto a page with
+          fresh identifiers and <strong className="text-foreground">no link back</strong>, so editing a template here never
+          changes a page that already used it. Reusable <em>modules</em> are the ones that stay
+          linked — they are on the tab before this one.
+        </p>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => setCreating(true)}
+          className="flex shrink-0 items-center gap-1.5 bg-[var(--hot-red)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:brightness-110 disabled:opacity-50"
+        >
+          <Plus className="size-3" aria-hidden /> New template
+        </button>
+      </div>
+
+      {error && <p className="border-l-2 border-[var(--hot-red)] pl-2 text-[11px] text-[var(--hot-red)]">{error}</p>}
+
+      {rows === null && <p className="text-[11px] text-muted-foreground">Loading…</p>}
+
+      {rows !== null && live.length === 0 && (
+        <EmptyPanel
+          icon={<FileStack className="size-5" />}
+          title="No templates yet"
+          body="Create a blank one and build it here, or save a section or a whole page as a template from Edit Mode."
+        />
+      )}
+
+      {live.length > 0 && (
+        <ul className="flex flex-col gap-1.5">
+          {live.map((t) => (
+            <TemplateRow
+              key={t.id}
+              template={t}
+              busy={pending}
+              onOpen={() => router.push(`/staff/site-builder/templates/${t.id}`)}
+              onRename={() => setRenaming(t)}
+              onUsage={() => setUsageFor(t.id)}
+              onDuplicate={() => act(() => duplicateTemplateAction(t.id))}
+              onArchive={() => act(() => setTemplateArchivedAction(t.id, true))}
+              onDelete={() => {
+                if (!window.confirm(`Delete "${t.name}" permanently? Archiving keeps it and its history; deleting does not.`)) return
+                act(() => deleteTemplateAction(t.id))
+              }}
+              onFavorite={() => act(() => updateTemplateAction(t.id, { favorite: !t.favorite }, t.favorite ? 'Unpinned' : 'Pinned'))}
+            />
+          ))}
+        </ul>
+      )}
+
+      <div>
+        <button
+          type="button"
+          onClick={() => { const next = !showArchived; setShowArchived(next); setRows(null); load(next) }}
+          className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          {showArchived ? 'Hide archived' : `Show archived${archived.length ? ` (${archived.length})` : ''}`}
+        </button>
+      </div>
+
+      {showArchived && archived.length > 0 && (
+        <ul className="flex flex-col gap-1.5 opacity-70">
+          {archived.map((t) => (
+            <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 border border-dashed border-border px-3 py-2">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-foreground">{t.name}</span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Archived {formatWhen(t.archivedAt)} · {t.scope} · {t.sectionCount} section{t.sectionCount === 1 ? '' : 's'}
+                </span>
+              </span>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => act(() => setTemplateArchivedAction(t.id, false))}
+                  className="border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  Restore
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    if (!window.confirm(`Delete "${t.name}" permanently? This cannot be undone.`)) return
+                    act(() => deleteTemplateAction(t.id))
+                  }}
+                  className="border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:border-[var(--hot-red)] hover:text-foreground disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {creating && (
+        <NewTemplateDialog
+          onClose={() => setCreating(false)}
+          onCreated={(id) => { setCreating(false); router.push(`/staff/site-builder/templates/${id}`) }}
+        />
+      )}
+      {renaming && (
+        <RenameTemplateDialog
+          template={renaming}
+          onClose={() => setRenaming(null)}
+          onSaved={() => { setRenaming(null); load(); router.refresh() }}
+        />
+      )}
+      {usageFor && <TemplateUsageDialog templateId={usageFor} onClose={() => setUsageFor(null)} />}
+    </div>
+  )
+}
+
+function TemplateRow({ template, busy, onOpen, onRename, onUsage, onDuplicate, onArchive, onDelete, onFavorite }: {
+  template: TemplateDetail
+  busy: boolean
+  onOpen: () => void
+  onRename: () => void
+  onUsage: () => void
+  onDuplicate: () => void
+  onArchive: () => void
+  onDelete: () => void
+  onFavorite: () => void
+}) {
+  const t = template
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 border border-border px-3 py-2">
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:underline">{t.name}</span>
+          {t.favorite && <Star className="size-3 shrink-0 text-[var(--gold)]" aria-label="Pinned" />}
+          <span className="shrink-0 border border-[var(--line-strong)] px-1 text-[9px] uppercase text-muted-foreground">
+            {t.scope === 'page' ? 'Whole page' : 'Section'}
           </span>
-        </li>
-      ))}
-    </ul>
+          {t.sectionCount === 0 && (
+            <span className="shrink-0 border border-[var(--gold)] px-1 text-[9px] uppercase text-[var(--gold)]">Empty</span>
+          )}
+        </span>
+        <span className="block truncate text-[11px] text-muted-foreground">
+          {t.description ? `${t.description} · ` : ''}
+          {t.sectionCount} section{t.sectionCount === 1 ? '' : 's'}, {t.moduleCount} module{t.moduleCount === 1 ? '' : 's'}
+          {' · '}{t.revisionCount} revision{t.revisionCount === 1 ? '' : 's'}
+          {' · '}updated {formatWhen(t.updatedAt)}
+        </span>
+        {t.unknownTypes.length > 0 && (
+          <span className="block text-[11px] text-[var(--gold)]">
+            Uses module types this build does not have: {t.unknownTypes.join(', ')}
+          </span>
+        )}
+      </button>
+      <div className="flex shrink-0 flex-wrap items-center gap-1">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex items-center gap-1.5 bg-[var(--hot-red)] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:brightness-110"
+        >
+          <PenLine className="size-3" aria-hidden /> Edit
+        </button>
+        <IconAction label="Where it is used" onClick={onUsage} busy={busy}><Info className="size-3" /></IconAction>
+        <IconAction label="Rename and describe" onClick={onRename} busy={busy}><Pencil className="size-3" /></IconAction>
+        <IconAction label={t.favorite ? 'Unpin' : 'Pin to the top'} onClick={onFavorite} busy={busy}><Star className="size-3" /></IconAction>
+        <IconAction label="Duplicate" onClick={onDuplicate} busy={busy}><Copy className="size-3" /></IconAction>
+        <IconAction label="Archive" onClick={onArchive} busy={busy}><Archive className="size-3" /></IconAction>
+        <IconAction label="Delete permanently" onClick={onDelete} busy={busy}><Trash2 className="size-3" /></IconAction>
+      </div>
+    </li>
+  )
+}
+
+function IconAction({ label, onClick, busy, children }: {
+  label: string; onClick: () => void; busy: boolean; children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={busy}
+      onClick={onClick}
+      className="border border-border p-1.5 text-muted-foreground hover:border-[var(--hot-red)] hover:text-foreground disabled:opacity-50"
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * A new template starts blank and opens straight into the editor.
+ *
+ * Blank rather than "choose something to copy": needing an existing layout before you can make a
+ * template is what made the feature feel unavailable. A blank one arrives with a single empty
+ * section, which is a page you can start building in.
+ */
+function NewTemplateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [scope, setScope] = useState<TemplateScope>('section')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Dialog title="New template" onClose={onClose}>
+      <p className="text-xs text-muted-foreground">
+        It opens empty, and you build it here. Nothing about it is public — a template is only ever a
+        starting point for a page.
+      </p>
+      <div className="flex border border-border" role="radiogroup" aria-label="What kind of template">
+        {([['section', 'A section'], ['page', 'A whole page']] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={scope === value}
+            onClick={() => setScope(value)}
+            className={cn(
+              'flex-1 px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] transition',
+              scope === value ? 'bg-[var(--hot-red)] text-white' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Name</span>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={scope === 'section' ? 'Standings block' : 'Competition landing page'}
+          className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">What it is for (optional)</span>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="The heading, standings table and spacing we use at the top of a Season."
+          className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        />
+      </label>
+      {error && <p className="border-l-2 border-[var(--hot-red)] pl-2 text-[11px] text-[var(--hot-red)]">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onClose} className="border border-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground">Cancel</button>
+        <button
+          type="button"
+          disabled={busy || !name.trim()}
+          onClick={async () => {
+            setBusy(true); setError(null)
+            const result = await createTemplateAction({ name, scope, description: description || undefined })
+            setBusy(false)
+            if (result.ok) onCreated(result.data.id); else setError(result.error)
+          }}
+          className="flex items-center gap-1.5 bg-[var(--hot-red)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white disabled:opacity-40"
+        >
+          {busy && <Loader2 className="size-3 animate-spin" aria-hidden />}
+          Create and open
+        </button>
+      </div>
+    </Dialog>
+  )
+}
+
+function RenameTemplateDialog({ template, onClose, onSaved }: {
+  template: TemplateDetail; onClose: () => void; onSaved: () => void
+}) {
+  const [name, setName] = useState(template.name)
+  const [description, setDescription] = useState(template.description ?? '')
+  const [scope, setScope] = useState<TemplateScope>(template.scope)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Dialog title={`Rename "${template.name}"`} onClose={onClose}>
+      <p className="text-xs text-muted-foreground">
+        This is kept in the template&rsquo;s history like any other change, and can be rolled back.
+      </p>
+      <div className="flex border border-border" role="radiogroup" aria-label="What kind of template">
+        {([['section', 'A section'], ['page', 'A whole page']] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={scope === value}
+            onClick={() => setScope(value)}
+            className={cn(
+              'flex-1 px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] transition',
+              scope === value ? 'bg-[var(--hot-red)] text-white' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Name</span>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">What it is for</span>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground focus:border-[var(--hot-red)] focus:outline-none"
+        />
+      </label>
+      {error && <p className="border-l-2 border-[var(--hot-red)] pl-2 text-[11px] text-[var(--hot-red)]">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onClose} className="border border-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground">Cancel</button>
+        <button
+          type="button"
+          disabled={busy || !name.trim()}
+          onClick={async () => {
+            setBusy(true); setError(null)
+            const result = await updateTemplateAction(
+              template.id,
+              { name, description: description || null, scope },
+              'Renamed',
+            )
+            setBusy(false)
+            if (result.ok) onSaved(); else setError(result.error)
+          }}
+          className="flex items-center gap-1.5 bg-[var(--hot-red)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white disabled:opacity-40"
+        >
+          {busy && <Loader2 className="size-3 animate-spin" aria-hidden />}
+          Save
+        </button>
+      </div>
+    </Dialog>
   )
 }
 
