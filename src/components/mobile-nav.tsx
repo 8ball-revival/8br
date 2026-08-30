@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LogOut, Menu, X } from 'lucide-react'
@@ -51,8 +51,8 @@ export function MobileNav({ entries, className, isSignedIn = false, extraItems =
             {[...entries, ...extraItems].map((entry) => {
               const active = isActive(pathname, entry.href)
               return (
+                <Fragment key={entry.href}>
                 <Link
-                  key={entry.href}
                   href={entry.href}
                   onClick={() => setOpen(false)}
                   className={cn(
@@ -67,8 +67,33 @@ export function MobileNav({ entries, className, isSignedIn = false, extraItems =
                       : 'border-l-2 border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >
-                  {entry.label}
+                  {entry.mobileLabel || entry.label}
                 </Link>
+                {/*
+                  Nested items are indented, never collapsed.
+
+                  A drawer is already a vertical list with room to spare, so a disclosure control
+                  here would only add a tap between somebody and a link they can see. Indentation and
+                  a lighter weight say "inside that" without hiding anything.
+                */}
+                {entry.children?.map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    target={child.newTab ? '_blank' : undefined}
+                    rel={child.newTab ? 'noopener noreferrer' : undefined}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      'border-l-2 border-transparent py-2.5 pl-8 pr-3 text-sm font-semibold tracking-wide transition-colors',
+                      isActive(pathname, child.href)
+                        ? 'text-[var(--acid)]'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
+                  >
+                    {child.mobileLabel || child.label}
+                  </Link>
+                ))}
+                </Fragment>
               )
             })}
             <Link

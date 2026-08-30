@@ -1135,9 +1135,30 @@ function EmptyPanel({ icon, title, body }: { icon: React.ReactNode; title: strin
  * The zone is not decoration. Everything here is stored in UTC and read by somebody who is not in
  * UTC, and "publishes at 3:00" without a zone is the sentence that gets an announcement published
  * in the middle of somebody's night.
+ *
+ * ── Why the zone is fetched separately ───────────────────────────────────────────────────────────
+ * `Intl.DateTimeFormat` REFUSES `timeZoneName` alongside `dateStyle`/`timeStyle` — it throws
+ * `TypeError: Invalid option : option` rather than ignoring it. Asking for all three at once looks
+ * entirely reasonable and takes down every component that renders a time, which is how this arrived
+ * as a control centre showing "Try again" and a 200 status.
+ *
+ * So the date and time come from the styles, the zone comes from a second formatter, and the two
+ * are joined here.
  */
 function formatWhen(iso: string | null): string {
   if (!iso) return 'never'
   const d = new Date(iso)
-  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZoneName: 'short' })
+  const when = d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  const zone = zoneNameFor(d)
+  return zone ? `${when} ${zone}` : when
+}
+
+/** The short zone name for an instant, or nothing if this environment will not give one. */
+function zoneNameFor(d: Date): string {
+  try {
+    const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(d)
+    return parts.find((p) => p.type === 'timeZoneName')?.value ?? ''
+  } catch {
+    return ''
+  }
 }

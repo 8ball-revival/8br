@@ -38,9 +38,8 @@ export function MainNav({
     <nav aria-label="Primary" className={cn('items-center gap-1', className)}>
       {all.map((entry) => {
         const active = isActive(pathname, entry.href)
-        return (
+        const link = (
           <Link
-            key={entry.href}
             href={entry.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
@@ -59,6 +58,47 @@ export function MainNav({
               />
             )}
           </Link>
+        )
+
+        if (!entry.children?.length) return <span key={entry.href}>{link}</span>
+
+        /*
+          A dropdown, with no JavaScript in it.
+
+          ── Why CSS rather than state ─────────────────────────────────────────────────────────────
+          `group-hover` opens it for a pointer and `focus-within` opens it for a keyboard, which
+          between them cover everybody without a click handler, without an open/closed state to get
+          stuck, and without the menu being absent from the markup until something runs. That last
+          part matters beyond tidiness: a menu that only exists after hydration is a menu a crawler,
+          a reader-mode view and a browser with a slow connection never see.
+
+          The children are therefore always in the DOM and only ever hidden visually — which is also
+          what lets the integration suite assert that a published nested menu genuinely renders.
+        */
+        return (
+          <span key={entry.href} className="group relative inline-flex">
+            {link}
+            <span className="pointer-events-none absolute left-0 top-full z-50 hidden min-w-[12rem] pt-1 group-hover:block group-focus-within:block">
+              <span className="pointer-events-auto block border border-[var(--line-strong)] bg-[var(--graphite)] py-1 shadow-lg">
+                {entry.children.map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    target={child.newTab ? '_blank' : undefined}
+                    rel={child.newTab ? 'noopener noreferrer' : undefined}
+                    className={cn(
+                      'block px-3 py-1.5 text-sm font-semibold tracking-wide transition-colors',
+                      isActive(pathname, child.href)
+                        ? 'text-[var(--hot-red)]'
+                        : 'text-muted-foreground hover:bg-[var(--selected-surface)] hover:text-foreground',
+                    )}
+                  >
+                    {child.label}
+                  </Link>
+                ))}
+              </span>
+            </span>
+          </span>
         )
       })}
     </nav>

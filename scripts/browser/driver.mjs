@@ -231,6 +231,8 @@ export function reporter(title) {
       console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}${!ok && detail ? `  (${detail})` : ''}`)
     },
     section(name) { console.log(`\n── ${name} ${'─'.repeat(Math.max(0, 62 - name.length))}`) },
+    /** How many have failed so far, for a caller that wants to keep diagnostics only on failure. */
+    failures() { return failures.length },
     finish() {
       console.log(`\n${'═'.repeat(70)}`)
       if (failures.length) {
