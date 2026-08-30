@@ -67,14 +67,36 @@ function homepage(): LayoutDocument {
       section('home-marquee', 'Competition marquee', [1], [
         mod('home-marquee-module', 'competitions.marquee'),
       ]),
-      // Row 3 — 55/45. The feature beside the disclaimer.
-      section('home-editorial', 'The Break & archive notice', [55, 45], [
-        mod('home-break', 'editorial.breakFeature'),
-        mod('home-archive-notice', 'content.archiveNotice'),
+      /*
+        Row 3 — 58/42. The record beside the editorial column.
+
+        The record feature takes the larger share because it contains a video, and a 16:9 frame in
+        the smaller column would be the size of a thumbnail. The right column is a STACK rather than
+        a third section: the article card and the accuracy strip belong together and move together,
+        and stacking them inside one column keeps the row two columns wide at every width.
+      */
+      section('home-record', 'Record & editorial', [58, 42], [
+        // The play label names the holder and the time: "Play" alone tells a screen-reader user
+        // that something will play and nothing whatsoever about what.
+        mod('home-record-feature', 'competitions.recordFeature', {
+          playLabel: "Play Kevin's 58.7-second record run",
+        }),
+        {
+          ...mod('home-editorial-stack', 'layout.stack', { gap: 3 }),
+          children: [
+            mod('home-break', 'editorial.breakFeature', { variant: 'card' }),
+            mod('home-archive-notice', 'content.archiveNotice', { variant: 'compact' }),
+          ],
+        },
       ]),
-      // Row 4 — full width. A diversion, deliberately below the competition data.
+      /*
+        Row 4 — full width. A diversion, deliberately below the competition data.
+
+        Dark, so the light cards inside it are separated from the section rather than sharing its
+        colour. On the acid surface an acid card had only a hairline to distinguish it.
+      */
       section('home-achievements', 'Achievements', [1], [
-        mod('home-achievements-module', 'rankings.achievements'),
+        mod('home-achievements-module', 'rankings.achievements', { surface: 'dark' }),
       ]),
       // Row 5 — full width. The totals.
       section('home-status', 'Status rail', [1], [

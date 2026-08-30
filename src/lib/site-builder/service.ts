@@ -454,6 +454,45 @@ export async function revalidateForKey(key: string): Promise<void> {
  * creates only that one. This is what makes it safe to ship as a startup step rather than a
  * one-time script somebody has to remember not to run twice.
  */
+/**
+ * Turn the identities a factory layout NAMES into the references it should hold.
+ *
+ * ── Why this is not in the factory ──────────────────────────────────────────────────────────────
+ * `factory.document()` is a pure function with no database — that is what lets the fallback chain
+ * call it during a render when everything else has failed. But a module that should point at a
+ * canonical player cannot resolve one without a query, so the lookup happens here, once, as the page
+ * is created.
+ *
+ * ── Why it is a fallback rather than a requirement ──────────────────────────────────────────────
+ * If the player has not been imported yet — a fresh database, a partial restore — the reference is
+ * simply left empty and the module renders the display text it was configured with. A bootstrap that
+ * refused to run because a name was missing would be a bootstrap nobody could use on a new site.
+ *
+ * ── Idempotence ─────────────────────────────────────────────────────────────────────────────────
+ * This only ever runs on a page being CREATED. `bootstrap` skips pages that already exist, so an
+ * Owner who has since changed the record holder keeps their change: nothing here can reach a page
+ * that is already in the database.
+ */
+async function resolveFactoryReferences(doc: LayoutDocument): Promise<LayoutDocument> {
+  const modules = doc.sections.flatMap(function collect(section): { config: Record<string, unknown> }[] {
+    const walk = (list: typeof section.modules): { config: Record<string, unknown> }[] =>
+      list.flatMap((m) => [m as { config: Record<string, unknown> }, ...walk(m.children ?? [])])
+    return walk(section.modules)
+  })
+
+  for (const m of modules) {
+    // Only where a handle is configured and no reference has been set.
+    const handle = typeof m.config.holderCueverseId === 'string' ? m.config.holderCueverseId : ''
+    const existing = typeof m.config.holderPlayerId === 'string' ? m.config.holderPlayerId : ''
+    if (!handle || existing) continue
+    const { findPlayerIdByCueverseId } = await import('@/lib/home/record-holder')
+    const id = await findPlayerIdByCueverseId(handle)
+    if (id) m.config.holderPlayerId = id
+  }
+
+  return doc
+}
+
 export async function bootstrap(actor: Actor): Promise<{ created: string[]; skipped: string[] }> {
   const created: string[] = []
   const skipped: string[] = []
@@ -465,7 +504,7 @@ export async function bootstrap(actor: Actor): Promise<{ created: string[]; skip
       continue
     }
 
-    const doc = factory.document()
+    const doc = await resolveFactoryReferences(factory.document())
     const check = validateDocument(doc)
     if (!check.ok) {
       // A factory layout that does not validate is a programming error in this repository, not

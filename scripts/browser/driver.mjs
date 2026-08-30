@@ -139,9 +139,19 @@ export async function launch({ port = 9500 + Math.floor(Math.random() * 400) } =
         modifier has text at all; everything else is a `rawKeyDown`, which is what Chrome dispatches
         for a key that produces no character.
       */
-      const printable = key.length === 1 && !ctrl && !meta
-      await cdp.send('Input.dispatchKeyEvent', printable
-        ? { type: 'keyDown', ...common, text: key }
+      /*
+        Enter carries a carriage return, and without it nothing is activated.
+
+        Chrome generates a control's default action from the TEXT of an Enter press, not from its key
+        code — so a `rawKeyDown` with no text focuses a button, presses it, and does nothing. That is
+        indistinguishable from a button whose keyboard handling is broken, which is exactly the thing
+        a keyboard-activation check is meant to detect.
+      */
+      const text = key === 'Enter' ? String.fromCharCode(13)
+        : key.length === 1 && !ctrl && !meta ? key
+          : null
+      await cdp.send('Input.dispatchKeyEvent', text !== null
+        ? { type: 'keyDown', ...common, text }
         : { type: 'rawKeyDown', ...common })
       await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...common })
       await sleep(200)

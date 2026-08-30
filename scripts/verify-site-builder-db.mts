@@ -86,7 +86,15 @@ eq('published source is the revision', published0.source, 'published')
 eq('five sections captured', published0.document.sections.length, 5)
 eq('module order captured', published0.document.sections.flatMap((s) => s.modules.map((m) => m.type)), [
   'competitions.history', 'rankings.live', 'competitions.marquee',
-  'editorial.breakFeature', 'content.archiveNotice', 'rankings.achievements', 'rankings.statusRail',
+  'competitions.recordFeature', 'layout.stack', 'rankings.achievements', 'rankings.statusRail',
+])
+// The editorial column is a STACK now, so its two cards are children rather than top-level modules.
+// Checked separately: a flat list of module types would not notice if they went missing.
+eq('the editorial column holds the two cards', published0.document.sections
+  .flatMap((s) => s.modules)
+  .filter((m) => m.type === 'layout.stack')
+  .flatMap((m) => (m.children ?? []).map((c) => c.type)), [
+  'editorial.breakFeature', 'content.archiveNotice',
 ])
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════

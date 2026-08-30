@@ -27,6 +27,7 @@
  */
 
 import { isSafeUrl } from './urls'
+import { youtubeVideoId } from '@/lib/media/youtube'
 
 // ── Descriptors ─────────────────────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,20 @@ export type Field =
   | (Base & { kind: 'multiSelect'; default: string[]; options: { value: string; label: string }[] })
   | (Base & { kind: 'color'; default: string })
   | (Base & { kind: 'media'; default: number | null })
-  | (Base & { kind: 'url'; default: string; internalOnly?: boolean })
+  | (Base & {
+    kind: 'url'
+    default: string
+    internalOnly?: boolean
+    /**
+     * Narrow the field to one video provider.
+     *
+     * `youtube` accepts a watch, share, embed, Shorts or live link, or a bare id — and STORES the
+     * eleven-character id, not the URL. That is what makes an embed built from this field safe by
+     * construction rather than by review: the player is assembled from a validated id, so there is
+     * no value a field could hold that becomes arbitrary markup.
+     */
+    video?: 'youtube'
+  })
   | (Base & { kind: 'list'; default: unknown[]; of: FieldSet; max?: number; itemLabel?: string })
 
 export type FieldSet = Record<string, Field>
@@ -222,6 +236,20 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
     case 'url': {
       const v = String(raw).trim()
       if (v === '') return { ok: true, value: '', issues: [] }
+
+      /*
+        A video field is narrowed to its provider AND normalised to an id.
+
+        Storing the id rather than whatever was pasted is the point: two people pasting the same
+        video in three different URL shapes store the same eleven characters, the embed is built from
+        those characters, and nothing downstream has to trust a string somebody typed.
+      */
+      if (f.video === 'youtube') {
+        const id = youtubeVideoId(v)
+        if (!id) return fail('That is not a YouTube video link.')
+        return { ok: true, value: id, issues: [] }
+      }
+
       if (!isSafeUrl(v, { internalOnly: f.internalOnly })) {
         return fail(f.internalOnly ? 'Expected a path on this site.' : 'That link is not allowed.')
       }

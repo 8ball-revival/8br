@@ -34,6 +34,9 @@ import { LiveRankings } from '@/components/home/live-rankings'
 import { AchievementsCarousel } from '@/components/home/achievements-carousel'
 import { BreakFeature } from '@/components/home/break-feature'
 import { ArchiveNotice } from '@/components/home/archive-notice'
+import { RecordFeature } from '@/components/home/record-feature'
+import { resolveRecordHolder } from '@/lib/home/record-holder'
+import { youtubeVideoId } from '@/lib/media/youtube'
 import { SeasonResults } from '@/components/home/season-results'
 import { StatusRail } from '@/components/cyber/status-rail'
 
@@ -138,10 +141,27 @@ registerModule({
   configVersion: 1,
   dataDriven: true,
   a11y: { landmark: true, headingLevel: 2 },
-  fields: {},
-  Render: async function BreakFeatureModule() {
+  fields: {
+    variant: {
+      kind: 'select', label: 'Shape', default: 'panel',
+      options: [
+        { value: 'panel', label: 'Wide panel — with the latest headlines beside it' },
+        { value: 'card', label: 'Editorial card — one article, for a narrow column' },
+      ],
+      help: 'The card is what stands beside the record feature. Both read the same article.',
+    },
+  },
+  /*
+    The DATA is the same in both shapes.
+
+    `getHomeNews` chooses the article, applies its visibility rules and supplies the byline; the
+    variant decides only how much room the result is given. A second module would have been a second
+    place for those rules to drift — and the shape somebody wants is a layout decision, which is
+    exactly the kind of thing a field is for.
+  */
+  Render: async function BreakFeatureModule({ config }: ModuleRenderProps<{ variant: 'panel' | 'card' }>) {
     const news = await getHomeNews()
-    return <BreakFeature news={news} />
+    return <BreakFeature news={news} variant={config.variant} />
   } as never,
 })
 
@@ -161,13 +181,26 @@ registerModule({
       kind: 'boolean', label: 'Rotate the order', default: true,
       help: 'Off shows them in the order they are configured, which is useful when a specific few should lead.',
     },
+    surface: {
+      kind: 'select', label: 'Section background', default: 'acid',
+      options: [
+        { value: 'acid', label: 'Acid — the yellow strip' },
+        { value: 'dark', label: 'Dark — charcoal, with light cards' },
+      ],
+      help: 'Only the section behind the cards changes. The cards stay light either way, so they are always separated from what is behind them.',
+    },
   },
-  Render: async function AchievementsModule({ config }: ModuleRenderProps<{ shuffle: boolean }>) {
+  Render: async function AchievementsModule({ config }: ModuleRenderProps<{ shuffle: boolean; surface: 'acid' | 'dark' }>) {
     const achievements = await getPublicAchievements()
     if (!achievements.length) {
       return <ModulePlaceholder label="Achievements" hint="No active achievements are configured." />
     }
-    return <AchievementsCarousel achievements={config.shuffle ? shuffleAchievements(achievements) : achievements} />
+    return (
+      <AchievementsCarousel
+        achievements={config.shuffle ? shuffleAchievements(achievements) : achievements}
+        surface={config.surface}
+      />
+    )
   } as never,
 })
 
@@ -181,9 +214,115 @@ registerModule({
   description: 'The standing note about how the historical Seasons were reconstructed.',
   configVersion: 1,
   a11y: { landmark: true },
-  fields: {},
-  Render: function ArchiveNoticeModule() {
-    return <ArchiveNotice />
+  fields: {
+    variant: {
+      kind: 'select', label: 'How much to show', default: 'full',
+      options: [
+        { value: 'full', label: 'The full disclaimer' },
+        { value: 'compact', label: 'A one-line strip with the report link' },
+      ],
+      help: 'Both link to the same place and start the same report. The full text belongs wherever somebody is about to read reconstructed data.',
+    },
+  },
+  Render: function ArchiveNoticeModule({ config }: ModuleRenderProps<{ variant: 'full' | 'compact' }>) {
+    return <ArchiveNotice variant={config.variant} />
+  } as never,
+})
+
+// ── The record feature ──────────────────────────────────────────────────────────────────────────
+
+registerModule({
+  type: 'competitions.recordFeature',
+  name: 'Record feature',
+  category: 'competitions',
+  icon: 'Timer',
+  description: 'A headline record — the time, who holds it, and the run on video.',
+  configVersion: 1,
+  dataDriven: true,
+  a11y: { landmark: true, headingLevel: 2 },
+  layoutDefaults: { span: 7 },
+  fields: {
+    eyebrowLead: {
+      kind: 'text', label: 'Eyebrow', group: 'The record', default: 'Table Clear', maxLength: 40,
+      help: 'The first half, in cyan.',
+    },
+    eyebrowTrail: {
+      kind: 'text', label: 'Eyebrow, second half', group: 'The record', default: 'Challenge', maxLength: 40,
+      help: 'Rendered in red, so the eyebrow carries both accents.',
+    },
+    time: {
+      kind: 'text', label: 'The figure', group: 'The record', default: '58.7', maxLength: 12,
+      help: 'Shown as large as the panel allows. Kept short: this is the number people remember.',
+    },
+    unit: { kind: 'text', label: 'Unit', group: 'The record', default: 'Seconds', maxLength: 24 },
+    status: {
+      kind: 'text', label: 'Status', group: 'The record', default: 'Current world record', maxLength: 60,
+      help: 'The red line beneath the figure.',
+    },
+    description: {
+      kind: 'text', label: 'A sentence about it (optional)', group: 'The record', default: '',
+      maxLength: 200, multiline: true,
+    },
+
+    holderLabel: {
+      kind: 'text', label: 'Label above the holder', group: 'Who holds it', default: 'Record holder', maxLength: 40,
+    },
+    holderPlayerId: {
+      kind: 'text', label: 'Player', group: 'Who holds it', default: '', maxLength: 40,
+      help: 'The canonical player id. When it is set, the name shown follows that player — so a CueVerse ID change reaches this panel like it reaches everything else.',
+    },
+    holderCueverseId: {
+      kind: 'text', label: 'CueVerse ID (fallback)', group: 'Who holds it', default: 'sixohtwo', maxLength: 60,
+      help: 'Used when no player is linked, or if that player is ever removed.',
+    },
+    holderDisplayName: {
+      kind: 'text', label: 'Display name (fallback)', group: 'Who holds it', default: 'Kevin', maxLength: 60,
+    },
+
+    videoUrl: {
+      kind: 'url', label: 'YouTube link', group: 'The video', video: 'youtube',
+      // Stored as the id: the validator normalises whatever shape was pasted.
+      default: 'xpUXNXdEhBI',
+      help: 'A watch, share, embed or Shorts link — or the id on its own. Only YouTube is accepted, and only the video id is ever stored or rendered.',
+    },
+    playLabel: {
+      kind: 'text', label: 'Play button label', group: 'The video',
+      default: 'Play the record run', maxLength: 120,
+      help: 'Read aloud instead of "play". Say whose run and how long: "Play Kevin\u2019s 58.7-second record run".',
+    },
+  },
+  /*
+    The video is a facade, not an embed.
+
+    Nothing from YouTube loads until somebody presses Play — see `YoutubeFacade`. And what is stored
+    is the video ID, extracted and validated here: there is no path by which a pasted value becomes
+    an arbitrary iframe, because the embed URL is built from eleven validated characters rather than
+    from anything a field contained.
+  */
+  Render: async function RecordFeatureModule({ config }: ModuleRenderProps<{
+    eyebrowLead: string; eyebrowTrail: string; time: string; unit: string; status: string
+    description: string; holderLabel: string; holderPlayerId: string
+    holderCueverseId: string; holderDisplayName: string; videoUrl: string; playLabel: string
+  }>) {
+    const holder = await resolveRecordHolder({
+      playerId: config.holderPlayerId || null,
+      fallbackCueverseId: config.holderCueverseId,
+      fallbackDisplayName: config.holderDisplayName,
+    })
+    return (
+      <RecordFeature
+        eyebrowLead={config.eyebrowLead}
+        eyebrowTrail={config.eyebrowTrail}
+        time={config.time}
+        unit={config.unit}
+        status={config.status}
+        description={config.description || undefined}
+        holderLabel={config.holderLabel}
+        holder={holder}
+        videoId={youtubeVideoId(config.videoUrl)}
+        playLabel={config.playLabel}
+      />
+    )
   } as never,
 })
 

@@ -40,7 +40,8 @@
     "test:site-builder:security": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-security.mts",
     "test:site-builder:scheduler": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-scheduler.mts",
     "test:site-builder:integration": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-integration.mts",
-    "cleanup:verification-sessions": "tsx --tsconfig tsconfig.scripts.json scripts/cleanup-verification-sessions.mts"
+    "cleanup:verification-sessions": "tsx --tsconfig tsconfig.scripts.json scripts/cleanup-verification-sessions.mts",
+    "apply:homepage-record": "tsx --tsconfig tsconfig.scripts.json scripts/apply-homepage-record-row.mts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",

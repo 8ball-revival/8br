@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowRight } from 'lucide-react'
 
 /**
  * The archive accuracy notice.
@@ -12,7 +12,20 @@ import { AlertTriangle } from 'lucide-react'
  *
  * The copy is the Owner's, used verbatim.
  */
-export function ArchiveNotice() {
+/**
+ * How much of the notice to show.
+ *
+ * `full` is the standing disclaimer: how the archive was reconstructed, and that it is certainly
+ * imperfect. It belongs wherever somebody is about to read reconstructed data.
+ *
+ * `compact` is the homepage strip — the commitment and the way to report a mistake, in one line.
+ * The full text is NOT deleted anywhere it is contextually required; this is a presentation choice
+ * for a front page that has already said what the site is.
+ */
+export type ArchiveNoticeVariant = 'full' | 'compact'
+
+export function ArchiveNotice({ variant = 'full' }: { variant?: ArchiveNoticeVariant } = {}) {
+  if (variant === 'compact') return <ArchiveNoticeStrip />
   return (
     <section
       aria-labelledby="archive-notice-heading"
@@ -42,6 +55,39 @@ export function ArchiveNotice() {
           Submit ticket
         </Link>
       </p>
+    </section>
+  )
+}
+
+/**
+ * The compact strip.
+ *
+ * Same destination, same workflow — `/contact` is where a report goes, and that has not changed.
+ * What changes is how much of the front page it occupies: a full paragraph of caveat under a record
+ * video reads as an apology for the site rather than as a commitment to fixing it.
+ */
+function ArchiveNoticeStrip() {
+  return (
+    <section
+      aria-labelledby="archive-strip-heading"
+      className="dl-surface cyber-clip relative border border-[var(--line-strong)] bg-[var(--graphite)] px-4 py-3"
+    >
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 size-2.5 border-l-2 border-t-2 border-[var(--hot-red)]" />
+      <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 size-2.5 border-b-2 border-r-2 border-[var(--hot-red)]" />
+
+      <h2 id="archive-strip-heading" className="sr-only">Archive accuracy</h2>
+
+      <p className="text-[0.82rem] leading-snug text-foreground">
+        We&rsquo;re committed to accuracy. Help us keep the archive correct.
+      </p>
+
+      <Link
+        href="/contact"
+        className="mt-1.5 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-wider text-[var(--neon-cyan)] underline-offset-4 transition-colors hover:text-[var(--clean-white)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      >
+        Report an archive error
+        <ArrowRight className="size-3.5" aria-hidden />
+      </Link>
     </section>
   )
 }

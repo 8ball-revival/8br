@@ -36,7 +36,22 @@ const MIN_CARD_PX = 210
 const MAX_VISIBLE = 5
 const GAP_PX = 12
 
-export function AchievementsCarousel({ achievements }: { achievements: Achievement[] }) {
+/**
+ * Which ground the strip sits on.
+ *
+ * `acid` is the yellow surface it has always had. `dark` is the charcoal section: the same cards,
+ * the same behaviour, on a ground that separates them instead of hiding them — on acid, an acid card
+ * has only a hairline to distinguish it from the panel behind it.
+ *
+ * Only the SECTION changes. The cards stay light in both, because a dark card on a dark ground would
+ * be the same problem again in the other direction.
+ */
+export type AchievementsSurface = 'acid' | 'dark'
+
+export function AchievementsCarousel({ achievements, surface = 'acid' }: {
+  achievements: Achievement[]
+  surface?: AchievementsSurface
+}) {
   const trackRef = useRef<HTMLDivElement>(null)
   /*
    * Null until measured, and CSS handles the layout in the meantime.
@@ -88,6 +103,9 @@ export function AchievementsCarousel({ achievements }: { achievements: Achieveme
 
   if (total === 0) return null
 
+  const dark = surface === 'dark'
+  const ink = dark ? 'text-[var(--clean-white)]' : 'text-[var(--acid-ink)]'
+
   const start = safePage * windowSize
   const shown = achievements.slice(start, start + windowSize)
   const atStart = safePage === 0
@@ -96,41 +114,65 @@ export function AchievementsCarousel({ achievements }: { achievements: Achieveme
   return (
     <section
       aria-labelledby="achievements-heading"
-      className="dl-surface dl-on-light cyber-clip relative border border-[var(--acid-dim)] bg-[var(--acid)] p-4 text-[var(--acid-ink)]"
+      className={cn(
+        'dl-surface cyber-clip relative p-4',
+        dark
+          ? 'border border-[var(--neon-cyan)]/25 bg-[var(--void)] text-[var(--clean-white)]'
+          : 'dl-on-light border border-[var(--acid-dim)] bg-[var(--acid)] text-[var(--acid-ink)]',
+      )}
     >
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+      {/* The same scanline treatment the record panel uses, so the two dark surfaces are one family. */}
+      {dark && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.16]"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(0deg, rgba(0,229,255,0.10) 0 1px, transparent 1px 3px),'
+              + 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),'
+              + 'linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            backgroundSize: '100% 3px, 44px 44px, 44px 44px',
+          }}
+        />
+      )}
+      <div className="relative z-[1] mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="flex flex-wrap items-baseline gap-3">
           <h2
             id="achievements-heading"
-            className="font-display text-sm font-bold uppercase tracking-[0.14em] text-[var(--acid-ink)]"
+            className={cn('font-display text-sm font-bold uppercase tracking-[0.14em]', ink)}
           >
             Achievements
           </h2>
-          <p className="text-xs text-[var(--acid-ink)]/70">
+          <p className={cn('text-xs', dark ? 'text-[var(--clean-white)]/70' : 'text-[var(--acid-ink)]/70')}>
             Celebrating the shots that make us question everything.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/achievements"
-            className="text-[0.68rem] font-bold uppercase tracking-wider text-[var(--acid-ink)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]"
+            className={cn(
+              'text-[0.68rem] font-bold uppercase tracking-wider underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2',
+              dark
+                ? 'text-[var(--neon-cyan)] focus-visible:ring-[var(--ring)] hover:text-[var(--clean-white)]'
+                : 'text-[var(--acid-ink)] focus-visible:ring-[var(--void)]',
+            )}
           >
             View all achievements
           </Link>
           {pages > 1 && (
             <div className="flex items-center gap-1">
-              <Arrow dir="left" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={atStart} />
+              <Arrow dark={dark} dir="left" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={atStart} />
               {/* Position, so somebody paging a long list knows where they are. */}
               <span className="tabular px-1 text-[0.65rem] font-bold text-[var(--acid-ink)]/70" aria-hidden>
                 {safePage + 1}/{pages}
               </span>
-              <Arrow dir="right" onClick={() => setPage(Math.min(pages - 1, safePage + 1))} disabled={atEnd} />
+              <Arrow dark={dark} dir="right" onClick={() => setPage(Math.min(pages - 1, safePage + 1))} disabled={atEnd} />
             </div>
           )}
         </div>
       </div>
 
-      <div ref={trackRef}>
+      <div ref={trackRef} className="relative z-[1]">
         {/*
           `auto-fit` with a minimum card width is what makes the count fall 5 → 4 → 3 → 2 → 1.
           The browser fits as many whole 210px-or-wider cards as the space allows and no more, so a
@@ -144,7 +186,7 @@ export function AchievementsCarousel({ achievements }: { achievements: Achieveme
         >
           {shown.map((a) => (
             <li key={a.id}>
-              <AchievementCard achievement={a} />
+              <AchievementCard achievement={a} surface={surface} />
             </li>
           ))}
         </ul>
@@ -157,7 +199,9 @@ export function AchievementsCarousel({ achievements }: { achievements: Achieveme
   )
 }
 
-function Arrow({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClick: () => void; disabled: boolean }) {
+function Arrow({ dir, onClick, disabled, dark = false }: {
+  dir: 'left' | 'right'; onClick: () => void; disabled: boolean; dark?: boolean
+}) {
   const Icon = dir === 'left' ? ChevronLeft : ChevronRight
   return (
     <button
@@ -166,11 +210,16 @@ function Arrow({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClick: () 
       disabled={disabled}
       aria-label={dir === 'left' ? 'Previous achievements' : 'Next achievements'}
       className={cn(
-        'cyber-clip-sm inline-flex size-7 items-center justify-center border border-[var(--acid-ink)]/40 transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]',
+        'cyber-clip-sm inline-flex size-7 items-center justify-center border transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2',
+        dark
+          ? 'border-[var(--neon-cyan)]/40 text-[var(--clean-white)] focus-visible:ring-[var(--ring)]'
+          : 'border-[var(--acid-ink)]/40 focus-visible:ring-[var(--void)]',
         disabled
           ? 'cursor-not-allowed opacity-30'
-          : 'hover:border-[var(--acid-ink)] hover:bg-[var(--acid-ink)] hover:text-[var(--acid)]',
+          : dark
+            ? 'hover:border-[var(--neon-cyan)] hover:bg-[var(--neon-cyan)] hover:text-[var(--void)]'
+            : 'hover:border-[var(--acid-ink)] hover:bg-[var(--acid-ink)] hover:text-[var(--acid)]',
       )}
     >
       <Icon className="size-4" aria-hidden />
@@ -185,9 +234,23 @@ function Arrow({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClick: () 
  * site-wide award has no player, so it renders the fact where the name would be rather than leaving
  * a gap the eye reads as a missing value.
  */
-export function AchievementCard({ achievement: a }: { achievement: Achievement }) {
+export function AchievementCard({ achievement: a, surface = 'acid' }: {
+  achievement: Achievement
+  /*
+    The card is LIGHT on both surfaces, and only its ground changes: acid inside the acid section,
+    off-white inside the dark one. It is never dark — a dark card on the dark section would be the
+    separation problem the dark section was introduced to fix, in the other direction.
+  */
+  surface?: AchievementsSurface
+}) {
+  const onDark = surface === 'dark'
   return (
-    <article className="flex h-full flex-col border border-[var(--acid-ink)]/25 bg-[var(--acid)] p-3">
+    <article className={cn(
+      'flex h-full flex-col border p-3',
+      onDark
+        ? 'border-[var(--void)]/15 bg-[#f2f2ef]'
+        : 'border-[var(--acid-ink)]/25 bg-[var(--acid)]',
+    )}>
       <h3 className="font-display text-[0.78rem] font-bold uppercase leading-tight tracking-wide text-[var(--acid-ink)]">
         {a.title}
       </h3>

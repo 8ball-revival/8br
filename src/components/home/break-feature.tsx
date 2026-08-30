@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 import type { HomeNews } from '@/lib/home/news'
+import { cn } from '@/lib/utils'
 
 /**
  * The Break feature: the acid panel that opens the homepage.
@@ -19,9 +20,21 @@ import type { HomeNews } from '@/lib/home/news'
  * This is what carries the yellow to its intended share of the viewport. It also puts the editorial
  * voice first, which is the point of leading with The Break rather than with a table.
  */
-export function BreakFeature({ news }: { news: HomeNews }) {
+/**
+ * Which shape this panel takes.
+ *
+ * `panel` is the wide acid surface that has always opened the homepage. `card` is the narrow white
+ * editorial card that stands beside the record feature — the same article, the same service, the
+ * same links, in the proportions a 42% column can hold. A second component would have been a second
+ * place for the data rules to drift.
+ */
+export type BreakVariant = 'panel' | 'card'
+
+export function BreakFeature({ news, variant = 'panel' }: { news: HomeNews; variant?: BreakVariant }) {
   const { featured, latest, second } = news
-  if (!featured) return <BreakFallback />
+  if (!featured) return <BreakFallback variant={variant} />
+
+  if (variant === 'card') return <BreakCard news={news} />
 
   const others = [latest, second].filter(
     (a): a is NonNullable<typeof a> => a != null && a.id !== featured.id,
@@ -105,9 +118,80 @@ export function BreakFeature({ news }: { news: HomeNews }) {
  * Keeps the panel's shape so the page does not reflow around an absence, and says plainly that there
  * is nothing rather than inventing something to fill it.
  */
-function BreakFallback() {
+/**
+ * The card.
+ *
+ * ── Why white, on a site that is otherwise dark ─────────────────────────────────────────────────
+ * It is an article, and it is the only editorial thing in this row. A light card beside a black
+ * record panel reads as a different KIND of content rather than as another statistic, which is
+ * exactly what it is. The red button is the same red the rest of the site uses for its one call to
+ * action per surface.
+ *
+ * ── Why there is no "latest news" list here ─────────────────────────────────────────────────────
+ * The wide panel has room for a second column; a 42% card does not, and three headlines crushed into
+ * it would be worse than one read properly. The Break's own page is one click away and is where
+ * somebody goes to browse.
+ */
+function BreakCard({ news }: { news: HomeNews }) {
+  const { featured } = news
+  if (!featured) return <BreakFallback variant="card" />
+
   return (
-    <section className="dl-surface dl-on-light cyber-clip border border-[var(--acid-dim)] bg-[var(--acid)] p-5 text-[var(--acid-ink)]">
+    <section
+      aria-labelledby="break-card-heading"
+      className="dl-surface dl-on-light cyber-clip flex h-full min-w-0 flex-col border border-[var(--line)] bg-[var(--clean-white)] p-5 text-[var(--void)] sm:p-6"
+    >
+      <p className="eyebrow text-[var(--void)]/60">The Break</p>
+
+      <h2
+        id="break-card-heading"
+        className="mt-2 font-display text-xl font-bold uppercase leading-[1.08] tracking-tight sm:text-2xl"
+      >
+        <Link
+          href={`/the-break/${featured.slug}`}
+          className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]"
+        >
+          {featured.title}
+        </Link>
+      </h2>
+
+      {featured.excerpt && (
+        <p className="mt-3 text-sm leading-relaxed text-[var(--void)]/75">{featured.excerpt}</p>
+      )}
+
+      <p className="mt-4 text-[0.66rem] font-semibold uppercase tracking-wider text-[var(--void)]/55">
+        {featured.author}
+        {` · ${featured.readingMinutes} min read`}
+      </p>
+
+      {/* Pinned to the bottom, so two cards of different text length still line their buttons up. */}
+      <Link
+        href={`/the-break/${featured.slug}`}
+        className="cyber-clip-sm mt-auto inline-flex w-fit items-center gap-2 self-start bg-[var(--hot-red)] px-4 py-2.5 pt-4 text-xs font-bold uppercase tracking-wider text-[var(--clean-white)] transition-colors hover:bg-[var(--hot-red-dim)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--void)]"
+        style={{ marginTop: 'auto' }}
+      >
+        Read The Break
+        <ArrowRight className="size-4" aria-hidden />
+      </Link>
+    </section>
+  )
+}
+
+/**
+ * Nothing published yet.
+ *
+ * It takes the variant too: an empty state that ignored it would put a wide acid panel where a
+ * narrow white card belongs, and the row would jump the moment an article was published.
+ */
+function BreakFallback({ variant = 'panel' }: { variant?: BreakVariant } = {}) {
+  const card = variant === 'card'
+  return (
+    <section className={cn(
+      'dl-surface dl-on-light cyber-clip p-5',
+      card
+        ? 'flex h-full flex-col border border-[var(--line)] bg-[var(--clean-white)] text-[var(--void)]'
+        : 'border border-[var(--acid-dim)] bg-[var(--acid)] text-[var(--acid-ink)]',
+    )}>
       <p className="eyebrow text-[var(--acid-ink)]/70">The Break</p>
       <h2 className="mt-2 font-display text-2xl font-bold uppercase tracking-tight">
         Nothing published yet
