@@ -189,12 +189,29 @@ export function duplicateModule(doc: LayoutDocument, moduleId: string): LayoutDo
 }
 
 /** Give a module and everything inside it new ids. */
-function reidentify(m: ModuleInstance): ModuleInstance {
+export function reidentify(m: ModuleInstance): ModuleInstance {
   return {
     ...m,
     id: newId(),
     children: m.children?.map(reidentify),
   }
+}
+
+/**
+ * A fresh copy of a section, ids and all, optionally detached from any reusable source.
+ *
+ * Used by duplicate and by inserting a template. Both need the same guarantee: a document may never
+ * contain two things answering to one id, because selection, drag targets and the layer tree all
+ * resolve by id and would act on whichever they found first.
+ */
+export function reidentifySection(section: Section, { detach = false } = {}): Section {
+  const copy = clone(section)
+  copy.id = newId('s')
+  copy.modules = copy.modules.map((m) => {
+    const fresh = reidentify(m)
+    return detach ? { ...fresh, reusableId: null } : fresh
+  })
+  return copy
 }
 
 /**
@@ -397,11 +414,10 @@ export function moveSection(doc: LayoutDocument, sectionId: string, toIndex: num
 export function duplicateSection(doc: LayoutDocument, sectionId: string): LayoutDocument {
   const found = findSection(doc, sectionId)
   if (!found) return doc
-  const copy = clone(found.section)
-  copy.id = newId('s')
-  copy.name = `${copy.name} copy`
-  // Every module inside needs a fresh id too, for the same reason the module itself does.
-  copy.modules = copy.modules.map((m) => ({ ...m, id: newId(), reusableId: null }))
+  // Every module inside needs a fresh id too — and so does everything nested inside those, which
+  // is why this goes through `reidentifySection` rather than mapping the top level only.
+  const copy = reidentifySection(found.section, { detach: true })
+  copy.name = `${found.section.name} copy`
   return insertSection(doc, copy, found.index + 1)
 }
 

@@ -15,8 +15,8 @@ import * as Icons from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEditor } from './editor-store'
 import { modulesByCategory, getModule, replacementsFor, sharedFields, type ModuleDefinition } from '@/lib/site-builder/registry'
-import { createInstance, createSection, findModule, findSection, insertModule, insertSection, replaceModule } from '@/lib/site-builder/operations'
-import { listReusablesAction, listTemplatesAction, type ReusableSummary } from '@/lib/site-builder/reusable-actions'
+import { createInstance, createSection, findModule, findSection, insertModule, insertSection, reidentifySection, replaceModule } from '@/lib/site-builder/operations'
+import { listReusablesAction, listTemplatesAction, type ReusableSummary, type TemplateSummary } from '@/lib/site-builder/reusable-actions'
 
 /**
  * Resolve a lucide icon by name.
@@ -34,16 +34,24 @@ function Icon({ name, className }: { name: string; className?: string }) {
 export function ModuleLibrary() {
   const editor = useEditor()
   const [query, setQuery] = useState('')
-  const [mode, setMode] = useState<'modules' | 'reusable'>('modules')
+  const [mode, setMode] = useState<'modules' | 'reusable' | 'templates'>('modules')
   const [reusables, setReusables] = useState<ReusableSummary[] | null>(null)
+  const [templates, setTemplates] = useState<TemplateSummary[] | null>(null)
 
-  // Loaded on demand, once. Most sessions never open this tab.
+  // Loaded on demand, once each. Most sessions never open either tab.
   useEffect(() => {
     if (mode !== 'reusable' || reusables !== null) return
     let alive = true
     void listReusablesAction().then((r) => { if (alive) setReusables(r.ok ? r.data : []) })
     return () => { alive = false }
   }, [mode, reusables])
+
+  useEffect(() => {
+    if (mode !== 'templates' || templates !== null) return
+    let alive = true
+    void listTemplatesAction().then((r) => { if (alive) setTemplates(r.ok ? r.data : []) })
+    return () => { alive = false }
+  }, [mode, templates])
 
   const groups = useMemo(() => {
     const all = modulesByCategory()
@@ -116,10 +124,47 @@ export function ModuleLibrary() {
     editor.select({ kind: 'module', id: instance.id })
   }
 
+  /**
+   * Insert a template.
+   *
+   * A SECTION template appends its sections after the selected one. A PAGE template replaces the
+   * whole layout, which is destructive enough to confirm first — and which goes through `apply` like
+   * any other edit, so it lands in the draft, is undoable, and publishes only when the administrator
+   * says so. A template is a starting point, never a link: everything it brings in gets fresh ids
+   * and stops tracking the template the moment it is inserted.
+   */
+  const addTemplate = (t: TemplateSummary) => {
+    const sections = t.document.sections.map((sec) => reidentifySection(sec, { detach: true }))
+    if (!sections.length) return
+    if (t.scope === 'page') {
+      const ok = window.confirm(
+        `Replace this page's layout with "${t.name}"?
+
+`
+        + 'Everything currently on the page is replaced. This goes into the draft, so it is undoable '
+        + 'and nothing changes for visitors until you publish.',
+      )
+      if (!ok) return
+      editor.apply((doc) => ({ ...doc, sections }), { structural: true })
+      editor.select({ kind: 'section', id: sections[0].id })
+      return
+    }
+    const selection = editor.selection
+    editor.apply((doc) => {
+      const at = selection?.kind === 'section' ? (findSection(doc, selection.id)?.index ?? -1) + 1 : doc.sections.length
+      const next = { ...doc, sections: [...doc.sections] }
+      next.sections.splice(at, 0, ...sections)
+      return next
+    }, { structural: true })
+    editor.select({ kind: 'section', id: sections[0].id })
+  }
+
+  const TAB_LABELS = { modules: 'Modules', reusable: 'Saved', templates: 'Templates' } as const
+
   return (
     <div className="flex h-full flex-col gap-3">
       <div className="flex border border-border" role="tablist" aria-label="What to add">
-        {(['modules', 'reusable'] as const).map((m) => (
+        {(['modules', 'reusable', 'templates'] as const).map((m) => (
           <button
             key={m}
             role="tab"
@@ -130,10 +175,44 @@ export function ModuleLibrary() {
               mode === m ? 'bg-[var(--hot-red)] text-white' : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            {m === 'modules' ? 'Modules' : 'Saved'}
+            {TAB_LABELS[m]}
           </button>
         ))}
       </div>
+
+      {mode === 'templates' && (
+        <div className="flex-1 overflow-y-auto">
+          {templates === null && <p className="p-2 text-[11px] text-muted-foreground">Loading…</p>}
+          {templates?.length === 0 && (
+            <p className="p-2 text-[11px] leading-relaxed text-muted-foreground">
+              No templates yet. Choose <strong className="text-foreground">Save as template</strong> on a section — or on the
+              page — to keep its layout as a starting point for another page.
+            </p>
+          )}
+          <ul className="flex flex-col gap-1">
+            {(templates ?? []).map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  onClick={() => addTemplate(t)}
+                  className="flex w-full items-start gap-2 border border-transparent px-2 py-1.5 text-left hover:border-border hover:bg-[var(--graphite)]"
+                >
+                  <Icons.LayoutTemplate className="mt-0.5 size-3.5 shrink-0 text-[var(--brcam-teal)]" aria-hidden />
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold text-foreground">{t.name}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {t.scope === 'page' ? 'Whole page' : 'Section'}
+                      {' · '}
+                      {t.document.sections.length} section{t.document.sections.length === 1 ? '' : 's'}
+                      {t.scope === 'page' ? ' · replaces this page' : ''}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {mode === 'reusable' && (
         <div className="flex-1 overflow-y-auto">

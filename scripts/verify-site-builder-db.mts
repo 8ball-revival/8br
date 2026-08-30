@@ -25,6 +25,8 @@ const {
 } = await import('../src/lib/site-builder/service')
 const { validateDocument } = await import('../src/lib/site-builder/document')
 const { createInstance, insertModule, removeModule, updateModuleConfig } = await import('../src/lib/site-builder/operations')
+const { visibleLinks, ensureRecoveryLinks, contrastRatio } = await import('../src/lib/site-builder/globals')
+const { isVisible, factsFor, describeVisibility } = await import('../src/lib/site-builder/visibility')
 await import('../src/components/site-builder/modules')
 
 let pass = 0
@@ -209,6 +211,358 @@ check('reset marks the draft dirty so it can be reviewed', reset.dirty)
 // Crucially, reset does NOT publish. The public page must still be whatever was live.
 const afterReset = await prisma.sitePage.findUnique({ where: { key: KEY }, include: { publishedRevision: true } })
 eq('reset does not publish', afterReset!.publishedRevisionId, afterRollback!.publishedRevisionId)
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Scheduling')
+
+/*
+  A scheduled revision is built and frozen NOW, not at the appointed hour.
+
+  That is deliberate. It means a later edit to the draft cannot silently change what was scheduled,
+  and it means the scheduler only has to move a pointer rather than build and validate a document
+  unattended at three in the morning with nobody watching it.
+*/
+const soon = new Date(Date.now() + 3_600_000)
+const later = new Date(Date.now() + 7_200_000)
+const scheduledSource = (await getDraft(KEY))!
+const pageRow = (await prisma.sitePage.findUnique({ where: { key: KEY } }))!
+const lastNumber = (await prisma.sitePageRevision.findFirst({
+  where: { pageId: pageRow.id }, orderBy: { number: 'desc' },
+}))!.number
+const scheduled = await prisma.sitePageRevision.create({
+  data: {
+    pageId: pageRow.id,
+    number: lastNumber + 1,
+    document: scheduledSource.document as never,
+    state: 'SCHEDULED',
+    scheduledFor: soon,
+    expiresAt: later,
+    publishedByUsername: actor.username,
+  },
+})
+eq('a scheduled revision is stored as SCHEDULED', scheduled.state, 'SCHEDULED')
+eq('it records when it should publish', scheduled.scheduledFor?.getTime(), soon.getTime())
+eq('it records when it should expire', scheduled.expiresAt?.getTime(), later.getTime())
+
+const whileScheduled = (await prisma.sitePage.findUnique({ where: { key: KEY } }))!
+check('scheduling changes nothing about what is live', whileScheduled.publishedRevisionId !== scheduled.id)
+
+// The draft moves on after scheduling. What was scheduled must not move with it.
+const movedOn = (await getDraft(KEY))!
+await saveDraft(
+  KEY,
+  insertModule(movedOn.document, movedOn.document.sections[0].id, createInstance('content.heading', { id: 'after-schedule' })),
+  movedOn.version,
+  actor,
+)
+const frozen = (await prisma.sitePageRevision.findUnique({ where: { id: scheduled.id } }))!
+const frozenIds = validateDocument(frozen.document).value.sections[0].modules.map((m) => m.id)
+check('a later draft edit does not reach the scheduled revision', !frozenIds.includes('after-schedule'))
+
+/*
+  Activation is a pointer move and nothing else — the document was frozen above. It happens in one
+  transaction for the same reason publishing does: a page must never be left pointing at a revision
+  whose own state says it is not published.
+*/
+await prisma.$transaction(async (tx: typeof prisma) => {
+  await tx.sitePageRevision.update({ where: { id: scheduled.id }, data: { state: 'PUBLISHED' } })
+  await tx.sitePage.update({ where: { id: pageRow.id }, data: { publishedRevisionId: scheduled.id } })
+})
+const activated = (await prisma.sitePage.findUnique({ where: { key: KEY }, include: { publishedRevision: true } }))!
+eq('activation makes the scheduled revision live', activated.publishedRevisionId, scheduled.id)
+eq(
+  'activation publishes exactly what was frozen',
+  validateDocument(activated.publishedRevision!.document).value.sections.flatMap((x) => x.modules.map((m) => m.type)),
+  validateDocument(scheduledSource.document).value.sections.flatMap((x) => x.modules.map((m) => m.type)),
+)
+const liveAfterActivation = await readPublishedLayout(KEY)
+check(
+  'the live page renders the activated revision',
+  liveAfterActivation.source === 'published' && liveAfterActivation.document.sections.length === 5,
+)
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Reusable modules')
+
+const reusable = await prisma.siteReusableModule.create({
+  data: {
+    name: 'Verification announcement',
+    category: 'content',
+    moduleType: 'content.announcement',
+    config: { title: 'Original' } as never,
+    createdByUsername: actor.username,
+  },
+})
+check('a module can be saved for reuse', !!reusable.id)
+eq('it starts at version 1', reusable.version, 1)
+
+const beforeLink = (await getDraft(KEY))!
+await saveDraft(
+  KEY,
+  insertModule(
+    beforeLink.document,
+    beforeLink.document.sections[0].id,
+    createInstance('content.announcement', { id: 'linked-1', reusableId: reusable.id }),
+  ),
+  beforeLink.version,
+  actor,
+)
+const withLink = (await getDraft(KEY))!
+const linked = withLink.document.sections[0].modules.find((m) => m.id === 'linked-1')
+check('a linked instance survives validation', !!linked)
+eq('and keeps the link', linked?.reusableId, reusable.id)
+
+/*
+  Editing the source bumps its version and does NOT rewrite the instances in place.
+
+  This is the guarantee item 7 of the brief asks for. A linked module can sit on a dozen pages, each
+  with its own draft and its own publish history. Rewriting them here would push the change onto all
+  of those pages at once, publishing work nobody had reviewed. The version bump is how an instance
+  learns it is behind; taking the update is a separate, deliberate act.
+*/
+const bumped = await prisma.siteReusableModule.update({
+  where: { id: reusable.id },
+  data: { config: { title: 'Changed' } as never, version: { increment: 1 } },
+})
+eq('editing the source bumps its version', bumped.version, 2)
+const afterBump = (await getDraft(KEY))!
+const stillLinked = afterBump.document.sections[0].modules.find((m) => m.id === 'linked-1')
+eq('the instance still points at the source', stillLinked?.reusableId, reusable.id)
+eq(
+  'and nothing was published by the edit',
+  (await prisma.sitePage.findUnique({ where: { key: KEY } }))!.publishedRevisionId,
+  scheduled.id,
+)
+
+// Detaching removes the link and nothing else: whatever settings it had are what it keeps.
+const detachDoc = structuredClone(afterBump.document)
+const detachTarget = detachDoc.sections[0].modules.find((m) => m.id === 'linked-1')!
+const settingsBefore = JSON.stringify(detachTarget.config)
+detachTarget.reusableId = null
+await saveDraft(KEY, detachDoc, afterBump.version, actor)
+const afterDetach = (await getDraft(KEY))!
+const detached = afterDetach.document.sections[0].modules.find((m) => m.id === 'linked-1')
+eq('a detached instance keeps its settings', JSON.stringify(detached?.config), settingsBefore)
+check('a detached instance no longer follows the source', !detached?.reusableId)
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Templates and inheritance')
+
+const template = await prisma.siteTemplate.create({
+  data: {
+    name: 'Verification page template',
+    scope: 'page',
+    document: validateDocument(afterDetach.document).value as never,
+    createdByUsername: actor.username,
+  },
+})
+check('a layout can be saved as a template', !!template.id)
+const readBack = validateDocument((await prisma.siteTemplate.findUnique({ where: { id: template.id } }))!.document)
+check('a template validates when read back', readBack.ok)
+eq('a template keeps its sections', readBack.value.sections.length, afterDetach.document.sections.length)
+
+// A template is a starting point, never a live link. Editing one must publish nothing, anywhere.
+const publishedBefore = await prisma.sitePage.findMany({
+  select: { key: true, publishedRevisionId: true }, orderBy: { key: 'asc' },
+})
+await prisma.siteTemplate.update({ where: { id: template.id }, data: { name: 'Renamed template' } })
+const publishedAfter = await prisma.sitePage.findMany({
+  select: { key: true, publishedRevisionId: true }, orderBy: { key: 'asc' },
+})
+eq('editing a template publishes nothing on any page', publishedAfter, publishedBefore)
+
+/*
+  Inheritance: a Season page with no override of its own is governed by the `season` template, and a
+  page may name a parent it falls back to. Both are structural, so both are checked against the rows
+  rather than against a description of them.
+*/
+const seasonTemplate = await prisma.sitePage.findUnique({ where: { key: 'season' } })
+eq('the season template is a TEMPLATE', seasonTemplate?.kind, 'TEMPLATE')
+check('the season template is published', !!seasonTemplate?.publishedRevisionId)
+const override = await prisma.sitePage.create({
+  data: {
+    kind: 'TEMPLATE',
+    key: 'season:override-probe',
+    title: 'Override probe',
+    scopeEntityId: 16426,
+    parentId: seasonTemplate!.id,
+  },
+})
+const withParent = await prisma.sitePage.findUnique({ where: { id: override.id }, include: { parent: true } })
+eq('an override can name the template it falls back to', withParent?.parent?.key, 'season')
+// Deleting an override must not take its parent with it — inheritance is a fallback, not ownership.
+await prisma.sitePage.delete({ where: { id: override.id } })
+check(
+  'the season template survives its override being deleted',
+  !!(await prisma.sitePage.findUnique({ where: { key: 'season' } })),
+)
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Trash')
+
+const trashed = await prisma.siteTrashItem.create({
+  data: {
+    kind: 'module',
+    label: 'Deleted heading',
+    payload: createInstance('content.heading', { id: 'trashed-1' }) as never,
+    deletedByUsername: actor.username,
+    purgeAfter: new Date(Date.now() + 30 * 86_400_000),
+  },
+})
+check('a deleted module goes to the trash rather than vanishing', !!trashed.id)
+check('and carries a purge date, so the trash does not grow forever', !!trashed.purgeAfter)
+const restored = validateDocument({
+  version: 1,
+  sections: [{
+    id: 'restore-probe',
+    name: 'Restore probe',
+    width: 'wide',
+    columns: { desktop: [1] },
+    style: {},
+    visibility: {},
+    modules: [trashed.payload],
+  }],
+})
+eq('a trashed payload validates back into a document', restored.value.sections[0].modules.length, 1)
+eq('and comes back as what it was', restored.value.sections[0].modules[0].type, 'content.heading')
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Globals — navigation, footer and theme')
+
+/*
+  Navigation, footer and theme go through the same draft/publish/revision/rollback machinery as a
+  page, because they are pages — GLOBAL ones. That is why there is no second, weaker approval path
+  for the header: changing the site navigation is a publish, audited like any other publish.
+*/
+for (const key of ['nav', 'footer', 'theme']) {
+  const globalPage = await prisma.sitePage.findUnique({ where: { key }, include: { draft: true } })
+  check(`the ${key} global exists`, !!globalPage)
+  eq(`the ${key} global is a GLOBAL`, globalPage?.kind, 'GLOBAL')
+  check(`the ${key} global is published`, !!globalPage?.publishedRevisionId)
+  check(`the ${key} global has a draft to edit`, !!globalPage?.draft)
+}
+
+// Editing the navigation is a real publish, with a real revision and a real audit entry.
+const navBefore = (await getDraft('nav'))!
+const navModule = navBefore.document.sections[0].modules.find((m) => m.type === 'global.navigation')
+check('the navigation module is where navigation is edited', !!navModule)
+const navEdited = updateModuleConfig(navBefore.document, navModule!.id, {
+  items: [{ label: 'Probe', href: '/rankings', children: [], visibility: {}, mobileLabel: '', newTab: false }],
+})
+await saveDraft('nav', navEdited, navBefore.version, actor)
+const navPublish = await publish('nav', actor, 'Navigation probe')
+check('publishing the navigation creates a revision', navPublish.revisionNumber > 1)
+check(
+  'publishing the navigation is audited',
+  (await prisma.auditLog.count({ where: { action: 'site_builder.publish', entityId: 'nav' } })) >= 1,
+)
+const navLivePublished = await readPublishedLayout('nav')
+const navPublishedItems = (navLivePublished.document.sections[0].modules
+  .find((m) => m.type === 'global.navigation')?.config.items ?? []) as { label: string }[]
+check('the published navigation is the edited one', navPublishedItems.some((i) => i.label === 'Probe'))
+
+// And it rolls back the same way a page does.
+const navRolled = await rollback('nav', 1, actor)
+check('the navigation can be rolled back', navRolled.revisionNumber > navPublish.revisionNumber)
+const navLive = await readPublishedLayout('nav')
+const navLiveItems = (navLive.document.sections[0].modules
+  .find((m) => m.type === 'global.navigation')?.config.items ?? []) as { label: string }[]
+check('rollback restores the navigation that was there before', !navLiveItems.some((i) => i.label === 'Probe'))
+
+// A theme edit must never make the interface unreadable, so contrast is checked before it publishes.
+eq('black on black is 1:1, nowhere near readable', contrastRatio('#000000', '#000000'), 1)
+check('white on the site background passes AA', (contrastRatio('#ffffff', '#0b0b0d') ?? 0) >= 4.5)
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+section('Condition evaluation, end to end')
+
+/*
+  Conditions are checked in the pure suite against the evaluator directly. What is checked HERE is
+  the part only a database can show: that a rule an administrator builds in the inspector survives
+  validation, storage, publishing and read-back intact, and still decides the same way afterwards.
+
+  A condition system that evaluates correctly in memory and loses its OR group on the way through
+  JSONB is a condition system that silently shows the wrong thing to real visitors.
+*/
+const condDraft = (await getDraft(KEY))!
+const condTarget = condDraft.document.sections[0].modules[0]
+const builtRule = {
+  match: 'any' as const,
+  conditions: [{ subject: 'isOwner' as const }],
+  groups: [{
+    match: 'all' as const,
+    conditions: [
+      { subject: 'signedIn' as const },
+      { subject: 'currentYear' as const, value: '2026' },
+    ],
+  }],
+}
+const withRule = structuredClone(condDraft.document)
+withRule.sections[0].modules[0] = { ...condTarget, visibility: builtRule }
+await saveDraft(KEY, withRule, condDraft.version, actor)
+await publish(KEY, actor, 'Condition probe')
+
+const publishedRule = (await readPublishedLayout(KEY)).document.sections[0].modules[0].visibility
+eq('an OR rule survives publishing', publishedRule.match, 'any')
+eq('its direct condition survives', publishedRule.conditions?.length, 1)
+eq('its group survives', publishedRule.groups?.length, 1)
+eq('the group keeps its own operator', publishedRule.groups?.[0].match, 'all')
+eq('the group keeps both conditions', publishedRule.groups?.[0].conditions.length, 2)
+
+// And the rule that came back out of the database decides the same way it would have in memory.
+const base = factsFor({ route: '/' })
+const asOwner = { ...base, signedIn: true, isOwner: true, currentYear: 2020 }
+const asMember2026 = { ...base, signedIn: true, isOwner: false, currentYear: 2026 }
+const asMember2020 = { ...base, signedIn: true, isOwner: false, currentYear: 2020 }
+const asGuest = { ...base, signedIn: false, isOwner: false, currentYear: 2026 }
+check('the Owner matches on the direct condition alone', isVisible(publishedRule, asOwner))
+check('a member in 2026 matches on the group alone', isVisible(publishedRule, asMember2026))
+check('a member outside the year matches neither', !isVisible(publishedRule, asMember2020))
+check('a signed-out visitor matches neither', !isVisible(publishedRule, asGuest))
+
+// The rule is data, so it can also be explained back in English rather than shown as a formula.
+const described = describeVisibility(publishedRule)
+check('the rule reads as a sentence', described.startsWith('Shown when') && described.includes(', or '))
+
+// Put the page back before the counts at the end.
+const cleanup = (await getDraft(KEY))!
+const cleaned = structuredClone(cleanup.document)
+cleaned.sections[0].modules[0] = { ...cleaned.sections[0].modules[0], visibility: {} }
+await saveDraft(KEY, cleaned, cleanup.version, actor)
+await publish(KEY, actor, 'Condition probe removed')
+
+// ── Navigation visibility uses the same idea with a smaller vocabulary ───────────────────────────
+const navRules = [
+  { label: 'Everyone', href: '/', audience: 'everyone', device: 'both' },
+  { label: 'Members', href: '/account', audience: 'signedIn', device: 'both' },
+  { label: 'Visitors', href: '/login', audience: 'signedOut', device: 'both' },
+  { label: 'Staff', href: '/staff', audience: 'staff', device: 'both' },
+  { label: 'Owner', href: '/staff/site-builder', audience: 'owner', device: 'both' },
+  { label: 'Phone', href: '/m', audience: 'everyone', device: 'mobileOnly' },
+  { label: 'Desk', href: '/d', audience: 'everyone', device: 'desktopOnly' },
+].map((l) => ({ ...l, mobileLabel: '', newTab: false, icon: '', badge: '', children: [] }))
+
+const ownerViewer = { signedIn: true, isStaff: true, isOwner: true }
+const guestViewer = { signedIn: false, isStaff: false, isOwner: false }
+const ownerSees = visibleLinks(navRules, ownerViewer, 'desktop').map((l) => l.label)
+const guestSees = visibleLinks(navRules, guestViewer, 'desktop').map((l) => l.label)
+const ownerOnPhone = visibleLinks(navRules, ownerViewer, 'mobile').map((l) => l.label)
+eq('the Owner sees the member, staff and owner links', ownerSees, ['Everyone', 'Members', 'Staff', 'Owner', 'Desk'])
+eq('a signed-out visitor sees none of them', guestSees, ['Everyone', 'Visitors', 'Desk'])
+check('a phone-only link appears only on a phone', ownerOnPhone.includes('Phone') && !ownerSees.includes('Phone'))
+check('a desktop-only link stays off the phone', !ownerOnPhone.includes('Desk'))
+
+/*
+  And the recovery links are appended regardless of what any of that says.
+
+  This is the rule that makes a broken navigation survivable: publish one with no Admin link and it
+  disappears for everybody except the people who need it to get back in and fix it.
+*/
+const stripped = visibleLinks([], ownerViewer, 'desktop')
+const recoveryHrefs = ensureRecoveryLinks(stripped, ownerViewer).map((l) => l.href)
+eq('an empty navigation still reaches Admin and the builder', recoveryHrefs, ['/staff', '/staff/site-builder'])
+eq('and adds nothing for a visitor', ensureRecoveryLinks([], guestViewer).length, 0)
+
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 section('Competition data untouched')

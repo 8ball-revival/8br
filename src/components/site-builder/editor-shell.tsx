@@ -31,7 +31,7 @@ import { Inspector } from './inspector'
 import { ModuleLibrary, ReplaceDialog, Dialog } from './palette'
 import { BREAKPOINT_WIDTHS, type LayoutDocument } from '@/lib/site-builder/document'
 import { hydrateRegistry, type ModuleManifestEntry } from '@/lib/site-builder/registry'
-import { duplicateModule, findModule, removeModule } from '@/lib/site-builder/operations'
+import { duplicateModule, findModule, findSection, removeModule } from '@/lib/site-builder/operations'
 import { saveReusableAction, saveTemplateAction, trashAction } from '@/lib/site-builder/actions'
 import { getModule } from '@/lib/site-builder/registry'
 import { validateDocument } from '@/lib/site-builder/document'
@@ -713,26 +713,60 @@ function DeleteDialog({ moduleId, onClose }: { moduleId: string; onClose: () => 
   )
 }
 
-/** Save the whole page layout as a template to start other pages from. */
+/**
+ * Save a layout as a template to start other pages from.
+ *
+ * Two scopes, one dialog. Whole page, or just the selected section — the second is what actually
+ * gets reused day to day (a standings block with its heading and spacing, a sponsor row), and having
+ * to save an entire page to reuse one section is the sort of gap that stops people using templates
+ * at all. The scope control only appears when there is a section selected to offer.
+ */
 function SaveTemplateDialog({ onClose }: { onClose: () => void }) {
   const editor = useEditor()
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const selectedSection = editor.selection?.kind === 'section'
+    ? findSection(editor.document, editor.selection.id)?.section
+    : editor.selection?.kind === 'module'
+      ? findModule(editor.document, editor.selection.id)?.section
+      : undefined
+  const [scope, setScope] = useState<'page' | 'section'>('page')
+  const effectiveScope = selectedSection ? scope : 'page'
+
   return (
-    <Dialog title="Save this page as a template" onClose={onClose}>
+    <Dialog title="Save as a template" onClose={onClose}>
       <p className="text-xs text-muted-foreground">
-        Keeps this page&rsquo;s structure — its sections, modules and settings — so another page can
-        start from it. It does not link the two: a template is a starting point, not a live copy.
+        Keeps the structure — sections, modules and settings — so another page can start from it. It
+        does not link the two: a template is a starting point, not a live copy.
       </p>
+      {selectedSection && (
+        <div className="flex border border-border" role="radiogroup" aria-label="What to save">
+          {([['page', 'This whole page'], ['section', `Just “${selectedSection.name}”`]] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={effectiveScope === value}
+              onClick={() => setScope(value)}
+              className={cn(
+                'flex-1 truncate px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] transition',
+                effectiveScope === value ? 'bg-[var(--hot-red)] text-white' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <label className="flex flex-col gap-1">
         <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Name</span>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Competition landing page"
+          placeholder={effectiveScope === 'section' ? 'Standings block' : 'Competition landing page'}
           className="w-full border border-border bg-transparent px-2 py-1.5 text-xs text-foreground focus:border-[var(--hot-red)] focus:outline-none"
         />
       </label>
@@ -744,7 +778,10 @@ function SaveTemplateDialog({ onClose }: { onClose: () => void }) {
           disabled={busy || !name.trim()}
           onClick={async () => {
             setBusy(true); setError(null)
-            const result = await saveTemplateAction(name, 'page', editor.document)
+            const document = effectiveScope === 'section' && selectedSection
+              ? { ...editor.document, sections: [selectedSection] }
+              : editor.document
+            const result = await saveTemplateAction(name, effectiveScope, document)
             setBusy(false)
             if (result.ok) onClose(); else setError(result.error)
           }}
