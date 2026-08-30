@@ -1397,3 +1397,124 @@
   .marquee-wcc { padding-bottom: 3rem; }
   .marquee-half { min-height: 17rem; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════
+   SITE BUILDER
+   ------------------------------------------------------------------------------------------------
+   Everything a builder-composed page needs that a utility class cannot express. Kept in one block
+   so it is obvious what the builder adds, and so removing the feature is removing one block.
+
+   Nothing here is loaded conditionally: a published page is ordinary server-rendered HTML and must
+   look right before any JavaScript arrives. The EDITOR's own chrome is further down and is scoped
+   under [data-sb-editing], so a public visitor's page never matches any of it.
+   ════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Section grid ────────────────────────────────────────────────────────────────────────────────
+   Arbitrary column ratios (58fr/42fr and the like) cannot be a Tailwind class, so the ratio arrives
+   as a custom property and this rule applies it at the right breakpoint. One column below the
+   breakpoint, which is what the hand-written pages already did with `lg:grid-cols-[...]`. */
+.sb-grid {
+  grid-template-columns: var(--sb-cols-mobile, minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+  .sb-grid {
+    grid-template-columns: var(--sb-cols-tablet, var(--sb-cols-mobile, minmax(0, 1fr)));
+  }
+}
+@media (min-width: 1024px) {
+  .sb-grid {
+    grid-template-columns: var(--sb-cols-desktop, minmax(0, 1fr));
+  }
+}
+
+/* ── Rich text ───────────────────────────────────────────────────────────────────────────────────
+   Only the tags the sanitiser allows. Anything else cannot be stored, so styling it would be
+   describing markup that can never arrive. */
+.sb-prose > * + * { margin-top: 0.75em; }
+.sb-prose a { color: var(--hot-red); text-decoration: underline; text-underline-offset: 4px; }
+.sb-prose strong { font-weight: 700; }
+.sb-prose em { font-style: italic; }
+.sb-prose ul, .sb-prose ol { padding-left: 1.35em; }
+.sb-prose ul { list-style: disc; }
+.sb-prose ol { list-style: decimal; }
+.sb-prose li + li { margin-top: 0.25em; }
+.sb-prose h3 { font-family: var(--font-space-grotesk), sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; font-size: 1.1rem; }
+.sb-prose h4 { font-weight: 700; font-size: 0.95rem; }
+.sb-prose blockquote { border-left: 2px solid var(--hot-red); padding-left: 1em; color: var(--muted-foreground); }
+.sb-prose code { font-family: var(--font-jetbrains), monospace; font-size: 0.9em; }
+
+/* ── Marquee panels, for any panel count ─────────────────────────────────────────────────────────
+   The original CSS hard-coded the two-panel geometry, including inside its phone media query. The
+   builder's panels take their geometry from custom properties instead, which is the whole point:
+   an inline clip-path would beat every media query and the stacked layout could never clear the
+   diagonal. Here the wide layout consumes the properties and the stacked layout simply ignores
+   them. */
+.sb-marquee-panel {
+  grid-area: split;
+  clip-path: var(--sb-clip);
+  padding-left: max(clamp(1.25rem, 3vw, 3rem), var(--sb-pad-start, 0%));
+  padding-right: max(clamp(1.25rem, 3vw, 3rem), var(--sb-pad-end, 0%));
+}
+.sb-marquee-wcc {
+  background:
+    radial-gradient(120% 140% at 12% 0%, rgba(224, 19, 38, 0.28) 0%, transparent 55%),
+    linear-gradient(115deg, #14070a 0%, #0a0508 45%, var(--marquee-ink) 100%);
+}
+.sb-marquee-brcam {
+  background:
+    radial-gradient(120% 140% at 88% 100%, rgba(123, 47, 247, 0.34) 0%, transparent 58%),
+    linear-gradient(115deg, #04121a 0%, #071226 48%, #0b0620 100%);
+  align-items: flex-start;
+}
+.sb-marquee-neutral {
+  background: linear-gradient(115deg, #0d0f14 0%, var(--marquee-ink) 100%);
+}
+.marquee-cta--neutral { color: var(--gold); }
+
+/* The hairline where two panels meet, drawn on every panel but the first. */
+.sb-marquee-panel:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 0 calc(50% - 1px), rgba(215, 221, 227, 0.55) 50%, transparent calc(50% + 1px) 100%);
+  opacity: 0.55;
+}
+
+.marquee-logo { object-fit: contain; }
+
+/* Stacking. The clip and the seam padding are dropped so each panel takes the full width, and the
+   panels are laid out in rows in their configured order. */
+.marquee-stack-md .marquee-stage,
+.marquee-stack-lg .marquee-stage,
+.marquee-stack-sm .marquee-stage {
+  min-height: var(--marquee-min-h, clamp(360px, 30vw, 440px));
+}
+@media (max-width: 767px) {
+  .marquee-stack-md .marquee-stage { grid-template-areas: none; display: flex; flex-direction: column; min-height: 0; }
+  .marquee-stack-md .sb-marquee-panel {
+    grid-area: auto; clip-path: none;
+    padding: 1.5rem 1.25rem; min-height: 15.5rem;
+    order: var(--sb-order, 0);
+  }
+  .marquee-stack-md .sb-marquee-panel:not(:first-child)::before {
+    background: linear-gradient(96deg, transparent 0%, rgba(215, 221, 227, 0.45) 50%, transparent 100%);
+    inset: 0 0 auto 0; height: 2px; opacity: 0.8;
+  }
+}
+@media (max-width: 1023px) {
+  .marquee-stack-lg .marquee-stage { grid-template-areas: none; display: flex; flex-direction: column; min-height: 0; }
+  .marquee-stack-lg .sb-marquee-panel {
+    grid-area: auto; clip-path: none;
+    padding: 1.5rem 1.25rem; min-height: 15.5rem;
+    order: var(--sb-order, 0);
+  }
+}
+@media (max-width: 640px) {
+  .marquee-stack-sm .marquee-stage { grid-template-areas: none; display: flex; flex-direction: column; min-height: 0; }
+  .marquee-stack-sm .sb-marquee-panel {
+    grid-area: auto; clip-path: none;
+    padding: 1.5rem 1.25rem; min-height: 15.5rem;
+    order: var(--sb-order, 0);
+  }
+}

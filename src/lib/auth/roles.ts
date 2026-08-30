@@ -89,6 +89,7 @@ export type Capability =
   | 'override_eligibility' // override any competition eligibility decision — OWNER only
   | 'purge_account' // permanent (hard) account deletion — OWNER only
   | 'transfer_ownership' // transfer the single Owner designation — OWNER only
+  | 'manage_site_builder' // edit, publish and roll back the public site layout — OWNER only
 
 // NOTE: `manage_admins` (create/promote/demote/remove Administrators + set Head Admin) is
 // NOT a pure-role capability — it also requires the Head Administrator DESIGNATION (or Owner),
@@ -106,6 +107,16 @@ const CAPABILITY_RULES: Record<Capability, (roles: string[]) => boolean> = {
   override_eligibility: isOwner,
   purge_account: isOwner,
   transfer_ownership: isOwner,
+  /*
+   * Owner only, deliberately, and one line away from being wider.
+   *
+   * The site builder can rewrite every public page and the navigation that reaches them, which is a
+   * broader blast radius than `manage_competitions` — a bad competition edit is visible to the
+   * people in that competition, a bad layout publish is visible to everyone and can hide the way
+   * back. Widening this to `isAdmin` later is a one-word change; discovering after the fact that it
+   * was too wide is not. Every action it guards is audited regardless.
+   */
+  manage_site_builder: isOwner,
 }
 
 /** True if the given roles grant the capability. */
