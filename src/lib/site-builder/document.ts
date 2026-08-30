@@ -139,6 +139,19 @@ export interface ModuleInstance {
   visibility: VisibilityRule
   /** Set when this instance is synced to a reusable module; cleared when detached. */
   reusableId?: string | null
+  /**
+   * Modules nested inside this one.
+   *
+   * Only container modules — a grid, a stack, a split panel, a set of tabs — have children, and a
+   * container declares itself in the registry rather than being recognised by name here. Everything
+   * that walks the document recurses through this, which is why `findModule` returns a PATH rather
+   * than an index: "the third module" stops being a location once a module can be inside another.
+   *
+   * Depth is capped at four during validation. Nothing about the layouts this site needs goes deeper
+   * than a grid inside a split inside a section, and an uncapped tree is a stack overflow waiting
+   * for an imported document to find it.
+   */
+  children?: ModuleInstance[]
 }
 
 export type SectionWidth = 'full' | 'wide' | 'narrow'
@@ -167,6 +180,9 @@ export interface LayoutDocument {
 
 /** Bumped only when the document shape itself changes; module configs version independently. */
 export const DOCUMENT_VERSION = 1
+
+/** How deep containers may nest. See the note on `ModuleInstance.children`. */
+export const MAX_NESTING_DEPTH = 4
 
 export function emptyDocument(): LayoutDocument {
   return { version: DOCUMENT_VERSION, sections: [] }
@@ -208,12 +224,29 @@ export function validateDocument(input: unknown): DocumentValidation {
     const id = uniqueId(String(s.id ?? ''), seenIds, `section-${si}`)
     const modulesIn = Array.isArray(s.modules) ? s.modules : []
 
-    const modules: ModuleInstance[] = modulesIn.map((rawModule, mi) => {
+    const validateModule = (rawModule: unknown, mi: number, path: string, depth: number): ModuleInstance => {
       const m = (rawModule && typeof rawModule === 'object') ? rawModule as Partial<ModuleInstance> : {}
       const mPath = `${path}.modules.${mi}`
       const type = String(m.type ?? '')
       const def = getModule(type)
       const mid = uniqueId(String(m.id ?? ''), seenIds, `module-${si}-${mi}`)
+
+      /*
+        Children are validated first, at one greater depth.
+
+        Past the cap they are DROPPED rather than the module being rejected: a document that nested
+        too deeply is a document somebody built or imported, and losing the deepest layer is far
+        kinder than losing the page. The drop is reported as an issue so it is not silent.
+      */
+      const rawChildren = Array.isArray(m.children) ? m.children : []
+      let children: ModuleInstance[] | undefined
+      if (rawChildren.length) {
+        if (depth >= MAX_NESTING_DEPTH) {
+          issues.push({ path: `${mPath}.children`, message: `Nested deeper than ${MAX_NESTING_DEPTH} levels; the inner modules were dropped.` })
+        } else {
+          children = rawChildren.map((c, ci) => validateModule(c, ci, `${mPath}.children`, depth + 1))
+        }
+      }
 
       if (!def) {
         // Preserved verbatim. Dropping it here would silently delete an administrator's module the
@@ -229,6 +262,7 @@ export function validateDocument(input: unknown): DocumentValidation {
           style: normaliseStyle(m.style),
           visibility: normaliseVisibility(m.visibility),
           reusableId: m.reusableId ?? null,
+          children,
         }
       }
 
@@ -259,8 +293,13 @@ export function validateDocument(input: unknown): DocumentValidation {
         style: normaliseStyle(m.style),
         visibility: normaliseVisibility(m.visibility),
         reusableId: m.reusableId ?? null,
+        // Only a container keeps children. A non-container that somehow carried them would render
+        // nothing for them, so they are dropped rather than kept as invisible data.
+        children: def.container ? children : undefined,
       }
-    })
+    }
+
+    const modules: ModuleInstance[] = modulesIn.map((raw, mi) => validateModule(raw, mi, path, 0))
 
     return {
       id,

@@ -185,9 +185,51 @@ function SafeModule({ instance, editing, context }: { instance: ModuleInstance; 
   }
 
   const Render = def.Render as React.ComponentType<{
-    config: unknown; instance: ModuleInstance; editing: boolean; context: RenderContext
+    config: unknown
+    instance: ModuleInstance
+    editing: boolean
+    context: RenderContext
+    Slot?: React.ComponentType<{ index?: number; className?: string }>
   }>
-  return <Render config={result.value} instance={instance} editing={editing} context={context} />
+
+  /*
+    A container is handed a Slot and decides WHERE its children go.
+
+    `index` picks one child — a split panel asks for 0 and 1, a set of tabs asks for one per tab.
+    With no index the Slot renders every child in order, which is what a stack or a grid wants.
+    Building the children here rather than inside each container means nesting, visibility and the
+    per-module error handling below apply identically at every depth.
+  */
+  const Slot = def.container
+    ? function ContainerSlot({ index, className }: { index?: number; className?: string }) {
+      const kids = instance.children ?? []
+      const chosen = index === undefined ? kids : (kids[index] ? [kids[index]] : [])
+      if (!chosen.length) {
+        return editing
+          ? <div className={cn('min-h-[48px] border border-dashed border-border', className)} data-sb-dropzone={instance.id} />
+          : null
+      }
+      return (
+        <>
+          {chosen.map((child) => (
+            <div
+              key={child.id}
+              data-sb-module={child.id}
+              data-sb-module-type={child.type}
+              data-sb-module-name={getModule(child.type)?.name ?? child.type}
+              data-sb-parent={instance.id}
+              className={cn('min-w-0', styleClasses(child.style), visibilityClasses(child.visibility.hideOn), className)}
+              style={styleVars(child.style)}
+            >
+              <SafeModule instance={child} editing={editing} context={context} />
+            </div>
+          ))}
+        </>
+      )
+    }
+    : undefined
+
+  return <Render config={result.value} instance={instance} editing={editing} context={context} Slot={Slot} />
 }
 
 /** Shown in the canvas only. Deliberately not styled as a site surface — it is editor chrome. */

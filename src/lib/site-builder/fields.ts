@@ -200,8 +200,12 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
 
     case 'color': {
       const v = String(raw).trim()
-      // Hex, or a reference to an existing design token. Anything else — a raw rgb(), a gradient, a
-      // url() — is a place arbitrary CSS could be smuggled in, so the allowed shapes are explicit.
+      // Empty means "no colour", which the inspector offers as its first swatch and several modules
+      // default to. Rejecting it made a module whose background is optional fail its own schema.
+      if (v === '') return { ok: true, value: '', issues: [] }
+      // Otherwise hex, or a reference to an existing design token. Anything else — a raw rgb(), a
+      // gradient, a url() — is a place arbitrary CSS could be smuggled in, so the allowed shapes
+      // are explicit.
       if (!/^#[0-9a-fA-F]{3,8}$/.test(v) && !/^var\(--[a-z0-9-]+\)$/.test(v)) {
         return fail('Expected a hex colour or a design token.')
       }

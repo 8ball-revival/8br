@@ -44,21 +44,65 @@ const clone = <T,>(v: T): T => structuredClone(v)
 
 export interface ModuleLocation {
   sectionIndex: number
+  /** Index within its immediate list — the section's modules, or a container's children. */
   moduleIndex: number
   section: Section
   module: ModuleInstance
+  /** The container it sits in, or null when it sits directly in the section. */
+  parent: ModuleInstance | null
+  /** The list it actually belongs to, so callers can splice without re-deriving it. */
+  siblings: ModuleInstance[]
+  /** Ids from the outermost container down to this module's parent. */
+  ancestors: string[]
 }
 
+/**
+ * Find a module anywhere in the document, including inside containers.
+ *
+ * Returns the LIST it belongs to rather than only an index, because once a module can be inside
+ * another "the third module of section two" stops being a location. Every operation below splices
+ * `siblings`, so none of them needs to know how deep it was.
+ */
 export function findModule(doc: LayoutDocument, moduleId: string): ModuleLocation | null {
   for (let s = 0; s < doc.sections.length; s++) {
     const section = doc.sections[s]
-    for (let m = 0; m < section.modules.length; m++) {
-      if (section.modules[m].id === moduleId) {
-        return { sectionIndex: s, moduleIndex: m, section, module: section.modules[m] }
-      }
-    }
+    const found = search(section.modules, null, [])
+    if (found) return { ...found, sectionIndex: s, section }
   }
   return null
+
+  function search(
+    list: ModuleInstance[],
+    parent: ModuleInstance | null,
+    ancestors: string[],
+  ): Omit<ModuleLocation, 'sectionIndex' | 'section'> | null {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].id === moduleId) {
+        return { moduleIndex: i, module: list[i], parent, siblings: list, ancestors }
+      }
+      const kids = list[i].children
+      if (kids?.length) {
+        const deeper = search(kids, list[i], [...ancestors, list[i].id])
+        if (deeper) return deeper
+      }
+    }
+    return null
+  }
+}
+
+/** Every module in the document, outermost first, with the depth it sits at. */
+export function walkModules(doc: LayoutDocument): { module: ModuleInstance; sectionId: string; depth: number; parentId: string | null }[] {
+  const out: { module: ModuleInstance; sectionId: string; depth: number; parentId: string | null }[] = []
+  for (const section of doc.sections) {
+    const visit = (list: ModuleInstance[], depth: number, parentId: string | null) => {
+      for (const m of list) {
+        out.push({ module: m, sectionId: section.id, depth, parentId })
+        if (m.children?.length) visit(m.children, depth + 1, m.id)
+      }
+    }
+    visit(section.modules, 0, null)
+  }
+  return out
 }
 
 export function findSection(doc: LayoutDocument, sectionId: string): { index: number; section: Section } | null {
@@ -83,10 +127,30 @@ export function createInstance(type: string, overrides: Partial<ModuleInstance> 
   }
 }
 
+/**
+ * Insert a module into a section, or into a container inside one.
+ *
+ * `intoModuleId` names a container to nest inside. It is checked against the document rather than
+ * trusted: dropping a module into something that is not a container would create children nothing
+ * renders, which is invisible until somebody wonders where their module went.
+ */
 export function insertModule(
-  doc: LayoutDocument, sectionId: string, instance: ModuleInstance, at?: number,
+  doc: LayoutDocument, sectionId: string, instance: ModuleInstance, at?: number, intoModuleId?: string,
 ): LayoutDocument {
   const next = clone(doc)
+
+  if (intoModuleId) {
+    const host = findModule(next, intoModuleId)
+    if (!host) return doc
+    const def = getModule(host.module.type)
+    if (!def?.container) return doc
+    host.module.children = host.module.children ?? []
+    if (def.maxChildren !== undefined && host.module.children.length >= def.maxChildren) return doc
+    const index = at ?? host.module.children.length
+    host.module.children.splice(Math.max(0, Math.min(index, host.module.children.length)), 0, instance)
+    return next
+  }
+
   const found = findSection(next, sectionId)
   if (!found) return doc
   const index = at ?? found.section.modules.length
@@ -99,8 +163,9 @@ export function removeModule(doc: LayoutDocument, moduleId: string): LayoutDocum
   const next = clone(doc)
   const found = findModule(next, moduleId)
   if (!found) return doc
-  next.sections[found.sectionIndex].modules.splice(found.moduleIndex, 1)
-  syncColumns(next.sections[found.sectionIndex])
+  found.siblings.splice(found.moduleIndex, 1)
+  // Column syncing only applies to a section's own row of modules; a container manages its own.
+  if (!found.parent) syncColumns(next.sections[found.sectionIndex])
   return next
 }
 
@@ -116,8 +181,20 @@ export function removeModule(doc: LayoutDocument, moduleId: string): LayoutDocum
 export function duplicateModule(doc: LayoutDocument, moduleId: string): LayoutDocument {
   const found = findModule(doc, moduleId)
   if (!found) return doc
-  const copy: ModuleInstance = { ...clone(found.module), id: newId(), reusableId: null }
-  return insertModule(doc, found.section.id, copy, found.moduleIndex + 1)
+  // Fresh ids all the way down. A duplicated container whose children kept their ids would give the
+  // document two modules answering to one id, and selection would act on whichever it found first.
+  const copy = reidentify(clone(found.module))
+  copy.reusableId = null
+  return insertModule(doc, found.section.id, copy, found.moduleIndex + 1, found.parent?.id)
+}
+
+/** Give a module and everything inside it new ids. */
+function reidentify(m: ModuleInstance): ModuleInstance {
+  return {
+    ...m,
+    id: newId(),
+    children: m.children?.map(reidentify),
+  }
 }
 
 /**
@@ -128,16 +205,39 @@ export function duplicateModule(doc: LayoutDocument, moduleId: string): LayoutDo
  * lands the module back where it started, and the button looks broken.
  */
 export function moveModule(
-  doc: LayoutDocument, moduleId: string, toSectionId: string, toIndex: number,
+  doc: LayoutDocument, moduleId: string, toSectionId: string, toIndex: number, intoModuleId?: string,
 ): LayoutDocument {
   const next = clone(doc)
   const found = findModule(next, moduleId)
   if (!found) return doc
-  const [instance] = next.sections[found.sectionIndex].modules.splice(found.moduleIndex, 1)
+
+  // A container cannot be moved inside itself or its own descendants. Without this check the moved
+  // subtree is spliced out and then re-inserted into a list that no longer exists in the document,
+  // and the module disappears.
+  if (intoModuleId) {
+    if (intoModuleId === moduleId) return doc
+    const target = findModule(next, intoModuleId)
+    if (!target) return doc
+    if (target.ancestors.includes(moduleId)) return doc
+    const def = getModule(target.module.type)
+    if (!def?.container) return doc
+  }
+
+  const [instance] = found.siblings.splice(found.moduleIndex, 1)
+
+  if (intoModuleId) {
+    const host = findModule(next, intoModuleId)
+    if (!host) return doc
+    host.module.children = host.module.children ?? []
+    host.module.children.splice(Math.max(0, Math.min(toIndex, host.module.children.length)), 0, instance)
+    if (!found.parent) syncColumns(next.sections[found.sectionIndex])
+    return next
+  }
+
   const target = findSection(next, toSectionId)
   if (!target) return doc
   target.section.modules.splice(Math.max(0, Math.min(toIndex, target.section.modules.length)), 0, instance)
-  syncColumns(next.sections[found.sectionIndex])
+  if (!found.parent) syncColumns(next.sections[found.sectionIndex])
   if (target.section.id !== found.section.id) syncColumns(target.section)
   return next
 }
@@ -147,6 +247,14 @@ export function nudgeModule(doc: LayoutDocument, moduleId: string, delta: -1 | 1
   const found = findModule(doc, moduleId)
   if (!found) return doc
   const target = found.moduleIndex + delta
+
+  // Inside a container, nudging moves within that container and stops at its edges. Stepping out of
+  // one by pressing an arrow key would be a surprise; "move out" is its own action.
+  if (found.parent) {
+    if (target < 0 || target >= found.siblings.length) return doc
+    return moveModule(doc, moduleId, found.section.id, target, found.parent.id)
+  }
+
   if (target < 0 || target >= found.section.modules.length) {
     // Past the end of a section, move into the neighbouring one. Without this, keyboard users can
     // reorder within a section but can never move a module out of it.
@@ -230,7 +338,10 @@ export function replaceModule(doc: LayoutDocument, moduleId: string, toType: str
   const next = clone(doc)
   const target = findModule(next, moduleId)
   if (!target) return doc
-  next.sections[target.sectionIndex].modules[target.moduleIndex] = {
+  // Children survive only when the replacement can hold them. Carrying them into a non-container
+  // would keep them as data nothing renders.
+  const keptChildren = def.container ? clone(found.module.children) : undefined
+  target.siblings[target.moduleIndex] = {
     // A NEW id: the old module is a different thing, and keeping the id would make undo and the
     // trash entry ambiguous about which of the two they refer to.
     id: newId(),
@@ -241,6 +352,7 @@ export function replaceModule(doc: LayoutDocument, moduleId: string, toType: str
     style: clone(found.module.style),
     visibility: clone(found.module.visibility),
     reusableId: null,
+    children: keptChildren,
   }
   return next
 }

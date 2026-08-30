@@ -18,5 +18,8 @@ import './registry-data'
 import './marquee'
 import './global'
 import './system'
+import './layout'
+import './content-extra'
+import './competitions'
 
 export { }

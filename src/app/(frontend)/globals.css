@@ -1518,3 +1518,44 @@
     order: var(--sb-order, 0);
   }
 }
+
+/* ── Builder layout containers ───────────────────────────────────────────────────────────────────
+   Tabs and the split panel need real CSS; everything else the layout modules do is utility classes.
+
+   The tabs are radio inputs and sibling selectors rather than a client component. A server-rendered
+   page does not need JavaScript to switch panels, and doing it this way means the tabs work before
+   hydration and keep working if it never happens — which matters on a page whose whole point is
+   that it renders on the server. The browser also handles the keyboard for free. */
+.sb-tabs .sb-tab-panels > .sb-tab-panel { display: none; }
+.sb-tabs .sb-tab-label:has(input:checked) {
+  color: var(--foreground);
+  box-shadow: inset 0 -2px 0 0 var(--hot-red);
+}
+.sb-tabs .sb-tab-label:has(input:focus-visible) {
+  outline: 2px solid var(--hot-red);
+  outline-offset: -2px;
+}
+/* The nth tab's radio selects the nth panel. Written out because :has() cannot count for us. */
+.sb-tabs > div:first-child > .sb-tab-label:nth-child(1):has(input:checked) ~ * { /* no-op anchor */ }
+.sb-tabs:has(.sb-tab-label:nth-child(1) input:checked) .sb-tab-panel:nth-child(1),
+.sb-tabs:has(.sb-tab-label:nth-child(2) input:checked) .sb-tab-panel:nth-child(2),
+.sb-tabs:has(.sb-tab-label:nth-child(3) input:checked) .sb-tab-panel:nth-child(3),
+.sb-tabs:has(.sb-tab-label:nth-child(4) input:checked) .sb-tab-panel:nth-child(4),
+.sb-tabs:has(.sb-tab-label:nth-child(5) input:checked) .sb-tab-panel:nth-child(5),
+.sb-tabs:has(.sb-tab-label:nth-child(6) input:checked) .sb-tab-panel:nth-child(6) { display: block; }
+
+/* The split panel: both halves share one grid cell, and each clip decides where one ends. */
+.sb-split-stage { grid-template-areas: 'split'; min-height: inherit; }
+.sb-split-stage > * { grid-area: split; }
+.sb-split-panel { padding-block: clamp(1.5rem, 3vw, 2.5rem); padding-inline: clamp(1.25rem, 3vw, 3rem); }
+
+/* Stacked below the large breakpoint: the clip is dropped so each panel takes the full width. */
+@media (max-width: 767px) {
+  .sb-split-stage { grid-template-areas: none; display: flex; flex-direction: column; }
+  .sb-split-panel {
+    grid-area: auto;
+    clip-path: none !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+}

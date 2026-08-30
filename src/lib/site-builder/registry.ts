@@ -56,6 +56,14 @@ export interface ModuleRenderProps<C = Record<string, unknown>> {
   editing: boolean
   /** Route context, so a module on a dynamic template knows which entity it is rendering for. */
   context: RenderContext
+  /**
+   * Where this container's children go. Only passed to modules that declare `container: true`.
+   *
+   * `<Slot />` renders every child in order; `<Slot index={0} />` renders one. A container decides
+   * the arrangement and the renderer decides everything else — nesting, visibility, and the
+   * per-module error handling that keeps one bad child from costing the page.
+   */
+  Slot?: React.ComponentType<{ index?: number; className?: string }>
 }
 
 export interface RenderContext {
@@ -123,6 +131,19 @@ export interface ModuleDefinition<F extends FieldSet = FieldSet> {
 
   /** True when this module legitimately owns an internal scroll area (a long table, a bracket). */
   ownsScroll?: boolean
+
+  /**
+   * This module holds other modules.
+   *
+   * A container's `Render` is given a `Slot` component and decides WHERE its children go — a split
+   * panel puts them either side of its seam, a set of tabs puts one per panel. Declaring it here
+   * rather than recognising container types by name means the validator, the editor's module tree
+   * and the drop logic all agree without a shared list to keep in step.
+   */
+  container?: boolean
+
+  /** How many children a container accepts. Undefined means no limit beyond the nesting cap. */
+  maxChildren?: number
 
   /**
    * A module that IS the page.
@@ -256,6 +277,8 @@ export interface ModuleManifestEntry {
   ownsScroll?: boolean
   essential?: string
   urlDriven?: boolean
+  container?: boolean
+  maxChildren?: number
   a11y: ModuleDefinition['a11y']
 }
 
@@ -273,6 +296,8 @@ export function serialiseRegistry(): ModuleManifestEntry[] {
     ownsScroll: m.ownsScroll,
     essential: m.essential,
     urlDriven: m.urlDriven,
+    container: m.container,
+    maxChildren: m.maxChildren,
     a11y: m.a11y,
   }))
 }
