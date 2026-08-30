@@ -51,15 +51,15 @@ export async function SiteHeader() {
     is gated on a capability rather than on a choice — an administrator should not have to remember
     to add it, and should not be able to remove it from somebody who has the capability.
 
-    `ensureRecoveryLinks` then adds Admin and Site Builder for anyone who can reach them, whatever
-    the published navigation says. That is what makes a broken navigation recoverable from the
-    browser: publishing one with no Admin link hides it from everybody else, never from the Owner.
+    Admin and Site Builder are NOT here. They are in the account menu below and in the mobile menu,
+    both of which are reachable at every width and neither of which the published navigation can
+    remove. That is what makes a broken navigation recoverable from the browser.
   */
   const viewer = { signedIn: !!user, isStaff: staff, isOwner: mayEditSite }
   // Filter for this viewer first, then guarantee the recovery routes, then map to the shape the two
   // nav components take. Doing it in that order means the recovery links cannot be filtered out by
   // an audience rule they were never given.
-  const navEntries: NavItem[] = ensureRecoveryLinks(visibleLinks(nav.items, viewer, 'desktop'), viewer)
+  const navEntries: NavItem[] = visibleLinks(nav.items, viewer, 'desktop')
     .map((l) => ({
       label: l.label,
       href: l.href,
@@ -166,6 +166,29 @@ export async function SiteHeader() {
                 <Link href="/account" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
                   Account Settings
                 </Link>
+                {/*
+                  Admin and Site Builder live here rather than in the main navigation.
+
+                  Appending them to the nav pushed the header past the viewport at exactly 1280px:
+                  seven published links plus Creator plus two administrative ones is wider than the
+                  bar, and the account menu was the first thing off the edge -- so the control that
+                  signs you out became unreachable at a common laptop width.
+
+                  The account menu is the better home for them regardless. It is where administrative
+                  controls already are, it is reachable at every width, and nothing the published
+                  navigation says can remove it. That last part is the point: this is the Owner's
+                  route back when a published navigation is wrong.
+                */}
+                {staff && (
+                  <Link href="/staff" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
+                    Admin
+                  </Link>
+                )}
+                {mayEditSite && (
+                  <Link href="/staff/site-builder" className="block rounded-sm px-3 py-2 text-sm hover:bg-accent">
+                    Site Builder
+                  </Link>
+                )}
                 <div className="my-1 h-px bg-border" role="separator" aria-hidden />
                 <form action={signOut}>
                   <button
@@ -187,7 +210,13 @@ export async function SiteHeader() {
             </Link>
           )}
 
-          <MobileNav entries={navEntries} className="xl:hidden" isSignedIn={Boolean(user)} extraItems={staffItems} />
+          {/* The mobile menu is a vertical list, so the two administrative links cost nothing there. */}
+          <MobileNav
+            entries={navEntries}
+            className="xl:hidden"
+            isSignedIn={Boolean(user)}
+            extraItems={ensureRecoveryLinks([], viewer).map((l) => ({ label: l.label, href: l.href }))}
+          />
         </div>
       </Wide>
     </header>

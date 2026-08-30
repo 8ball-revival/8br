@@ -197,7 +197,7 @@ export function YahooWorkspace({
           </p>
         </div>
 
-        <div role="tablist" aria-label="Archive view" className="flex gap-px bg-[var(--line-strong)]">
+        <div role="tablist" aria-label="Archive view" className="flex max-w-full gap-px bg-[var(--line-strong)]">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -216,7 +216,17 @@ export function YahooWorkspace({
                 go({ view: nextTab.id === 'home' ? null : nextTab.id })
               }}
               className={cn(
-                'min-w-[7rem] px-5 py-2 text-[0.72rem] font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
+                /*
+                  The 7rem floor is dropped on a narrow phone.
+
+                  Three tabs at 112px each plus their gaps come to 338px, which a 320px screen cannot
+                  show -- the strip pushed the page sideways and Playoffs sat past the edge. The floor
+                  exists so the three tabs are evenly weighted, which is worth keeping everywhere it
+                  fits; below 380px an even strip that does not fit is worth less than three tabs you
+                  can reach, so they share the width instead.
+                */
+                'px-5 py-2 text-[0.72rem] font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
+                'min-[380px]:min-w-[7rem] max-[380px]:flex-1 max-[380px]:px-2',
                 view === t.id ? 'bg-brand text-primary-foreground' : 'bg-[var(--void)] text-muted-foreground hover:text-foreground',
               )}
             >

@@ -107,10 +107,21 @@ export function SegmentedSwitch<T extends string>({
       <span className="mb-1 block text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70">
         {label}
       </span>
+      {/*
+        Wraps below 360px, and only there.
+
+        Four segments at their natural width come to 330px, which a 320px phone cannot show -- so the
+        page scrolled sideways and the last segment, Tournaments, sat off the edge entirely.
+        `inline-flex` with no wrap had nowhere else to put it.
+
+        Wrapping rather than shrinking, because the labels ARE the control: "Group Play" truncated to
+        "Group P" is not a choice anybody can make confidently. The clipped corner is dropped when it
+        wraps, since a two-row group with one cut corner reads as a rendering fault.
+      */}
       <div
         role="radiogroup"
         aria-label={label}
-        className="cyber-clip-sm inline-flex overflow-hidden border border-[var(--acid-ink)]/30"
+        className="cyber-clip-sm inline-flex max-w-full flex-wrap overflow-hidden border border-[var(--acid-ink)]/30 max-[360px]:[clip-path:none]"
       >
         {options.map((o) => {
           const active = o.value === value

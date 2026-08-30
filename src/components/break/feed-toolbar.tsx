@@ -64,7 +64,9 @@ export function FeedToolbar({
   return (
     <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur sm:mx-0 sm:cyber-clip sm:border sm:px-3">
       <div className="flex flex-wrap items-center gap-2">
-        <nav aria-label="Sort the feed" className="flex items-center gap-1">
+        {/* Wraps: Hot / New / Top / Rising come to 316px, which a 320px phone cannot hold beside
+              its own padding. */}
+          <nav aria-label="Sort the feed" className="flex flex-wrap items-center gap-1">
           {SORTS.map(({ key, label, Icon }) => {
             const active = sort === key
             return (
@@ -103,14 +105,24 @@ export function FeedToolbar({
 
         <form
           role="search"
-          className="ml-auto flex min-w-0 flex-1 items-center gap-2 sm:flex-none"
+          /*
+              Its own line below `sm`.
+
+              Sharing a row with the sort tabs left the field 34px wide at 390 -- narrower than
+              its own minimum, so it pushed the page 8px sideways instead of shrinking. There is
+              no width at which both fit on one line on a phone, so it wraps rather than
+              competing.
+            */
+            className="flex w-full min-w-0 items-center gap-2 sm:ml-auto sm:w-auto sm:flex-none"
           onSubmit={(e) => {
             e.preventDefault()
             const value = new FormData(e.currentTarget).get('q')
             router.push(withParams({ q: typeof value === 'string' && value.trim() ? value.trim() : null }))
           }}
         >
-          <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+          {/* `max-w-full` as well as `min-w-0`: the form around this is a flex row, and without an
+                upper bound the field kept its intrinsic width and pushed the page 8px wide at 390. */}
+            <div className="relative min-w-0 max-w-full flex-1 sm:w-56 sm:flex-none">
             <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input
               name="q"
