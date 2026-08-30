@@ -37,11 +37,21 @@ export async function canEditSite(): Promise<boolean> {
  * appear to have been lost until publish.
  */
 export async function BuilderPage({
-  pageKey, pageTitle, searchParams,
+  pageKey, pageTitle, searchParams, routeParams, entityId,
 }: {
   pageKey: string
   pageTitle: string
   searchParams?: Promise<Record<string, string | string[] | undefined>>
+  /**
+   * The dynamic route's own params, handed to the system module that renders the entity.
+   *
+   * A template governs every Season page, so the module that draws one has to be told WHICH Season
+   * — and it must be the same promise the route received, not a re-derived value, or the module
+   * would be reading a different request's params.
+   */
+  routeParams?: Promise<Record<string, string>>
+  /** The entity this page is about, for visibility conditions and the editor's page label. */
+  entityId?: number
 }) {
   const params = searchParams ? await searchParams : {}
   const wantsEdit = params.edit === '1' || params.edit === 'true'
@@ -50,8 +60,15 @@ export async function BuilderPage({
   const mayEdit = access.status === 'ok' && access.actor.can('manage_site_builder')
   const editing = wantsEdit && mayEdit
 
+  const resolvedRouteParams = routeParams ? await routeParams : undefined
   const context: RenderContext = {
     route: pageKey,
+    routeParams: resolvedRouteParams,
+    seasonId: pageKey === 'season' ? entityId : undefined,
+    tournamentId: pageKey === 'tournament' ? entityId : undefined,
+    // Everything except the editor's own flag. `edit` is the editor's, not the page's, and a system
+    // module that saw it would be reacting to being edited.
+    searchParams: Object.fromEntries(Object.entries(params).filter(([k]) => k !== 'edit')),
     viewer: {
       signedIn: access.status === 'ok',
       isAdmin: access.status === 'ok' && access.actor.isAdmin,

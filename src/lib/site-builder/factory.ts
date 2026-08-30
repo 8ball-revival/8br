@@ -87,21 +87,45 @@ function homepage(): LayoutDocument {
 // ── Other pages ─────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Pages whose body is still a code-owned route.
+ * A page built around its real functional surface.
  *
- * These get a layout with editable content ABOVE and BELOW the existing page body rather than a
- * transcription of it. That is deliberate: /rankings, a Season page and a bracket are functional
- * surfaces with their own filters, state and URL contract, and turning them into arbitrary module
- * trees would mean an administrator could publish a rankings page with no rankings on it. What is
- * editable is what surrounds them — an announcement, an explanation, a call to action.
+ * The earlier version of this gave such pages editable regions ABOVE and BELOW an untouchable body,
+ * which was a limitation rather than a design: the body could not be moved, restyled, spaced or
+ * placed beside anything. Now the surface is a MODULE like any other — selectable, movable,
+ * styleable, and able to have content placed around it in any arrangement.
+ *
+ * What stops an administrator publishing a rankings page with no rankings on it is not that the
+ * module is unmovable; it is that the module is marked `essential`, so hiding or deleting one
+ * requires a typed confirmation and the publish validator reports it. A guardrail rather than a
+ * prohibition.
  */
-function surround(intro: string): LayoutDocument {
+function aroundSystem(systemType: string, label: string): LayoutDocument {
   return {
     version: DOCUMENT_VERSION,
     sections: [
-      { ...section('page-intro', 'Above the page', [1], []), style: {}, visibility: { hidden: false } },
-      { ...section('page-outro', 'Below the page', [1], []) },
-    ].map((s, i) => (i === 0 ? { ...s, name: intro } : s)),
+      section('page-intro', 'Above the page', [1], []),
+      section('page-body', label, [1], [mod(`page-${systemType.replace(/\W/g, '-')}`, systemType, {}, 12)]),
+      section('page-outro', 'Below the page', [1], []),
+    ],
+  }
+}
+
+/**
+ * A dynamic template's default shape.
+ *
+ * The entity's own body — a Season's group tables, a bracket, an article — is rendered by its route
+ * and is not a module, because those routes carry per-entity state the builder has no business
+ * reinterpreting. What a template governs is everything AROUND that body, applied to every entity of
+ * its kind at once.
+ */
+function templateShell(label: string, systemType: string): LayoutDocument {
+  return {
+    version: DOCUMENT_VERSION,
+    sections: [
+      section('template-intro', `Above the ${label}`, [1], []),
+      section('template-body', label, [1], [mod(`template-${systemType.replace(/\W/g, '-')}`, systemType, {}, 12)]),
+      section('template-outro', `Below the ${label}`, [1], []),
+    ],
   }
 }
 
@@ -131,71 +155,64 @@ export const FACTORY_PAGES: FactoryPage[] = [
     key: '/rankings',
     title: 'Rankings',
     kind: 'STATIC',
-    description: 'Editable content around the rankings explorer, which stays code-owned.',
-    document: () => surround('Above the rankings'),
-  },
-  {
-    key: '/seasons',
-    title: 'Seasons listing',
-    kind: 'STATIC',
-    description: 'Editable content around the seasons browser.',
-    document: () => surround('Above the seasons list'),
+    description: 'The rankings explorer, placed as a module, with editable content around it.',
+    document: () => aroundSystem('system.rankings', 'Rankings'),
   },
   {
     key: '/tournaments',
     title: 'Tournaments listing',
     kind: 'STATIC',
-    description: 'Editable content around the tournaments browser.',
-    document: () => surround('Above the tournaments list'),
+    description: 'The tournaments browser, placed as a module, with editable content around it.',
+    document: () => aroundSystem('system.tournaments', 'Tournaments'),
   },
   {
     key: '/yahoo',
     title: 'Yahoo archive',
     kind: 'STATIC',
-    description: 'Editable content around the Yahoo workspace.',
-    document: () => surround('Above the Yahoo archive'),
+    description: 'The Yahoo workspace, placed as a module, with editable content around it.',
+    document: () => aroundSystem('system.yahoo', 'Yahoo archive'),
   },
   {
     key: '/achievements',
     title: 'Achievements',
     kind: 'STATIC',
-    description: 'Editable content around the achievements grid.',
-    document: () => surround('Above the achievements'),
+    description: 'The achievements grid, placed as a module, with editable content around it.',
+    document: () => aroundSystem('system.achievements', 'Achievements'),
   },
   {
     key: '/the-break',
     title: 'The Break',
     kind: 'STATIC',
-    description: 'Editable content around the editorial index.',
-    document: () => surround('Above The Break'),
+    description: 'The Break feed, placed as a module, with editable content around it.',
+    document: () => aroundSystem('system.theBreak', 'The Break'),
   },
   {
     key: 'season',
     title: 'Season template',
     kind: 'TEMPLATE',
     description: 'Governs every Season page that has no override of its own.',
-    document: () => surround('Above the Season'),
+    document: () => templateShell('Season', 'system.seasonDetail'),
   },
   {
     key: 'tournament',
     title: 'Tournament template',
     kind: 'TEMPLATE',
     description: 'Governs every Tournament page that has no override of its own.',
-    document: () => surround('Above the Tournament'),
+    document: () => templateShell('Tournament', 'system.tournamentDetail'),
   },
   {
     key: 'article',
     title: 'Article template',
     kind: 'TEMPLATE',
     description: 'Governs every Break article page.',
-    document: () => surround('Above the article'),
+    document: () => templateShell('Article', 'system.articleDetail'),
   },
   {
     key: 'player',
     title: 'Player profile template',
     kind: 'TEMPLATE',
     description: 'Governs every player profile.',
-    document: () => surround('Above the profile'),
+    document: () => templateShell('Player profile', 'system.playerDetail'),
   },
 ]
 

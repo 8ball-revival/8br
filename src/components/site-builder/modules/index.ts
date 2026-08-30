@@ -17,5 +17,6 @@ import './content'
 import './registry-data'
 import './marquee'
 import './global'
+import './system'
 
 export { }

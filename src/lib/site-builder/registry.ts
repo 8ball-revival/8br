@@ -64,6 +64,18 @@ export interface RenderContext {
   tournamentId?: number
   articleSlug?: string
   playerSlug?: string
+  /**
+   * The page's query string.
+   *
+   * System modules wrap the real functional surfaces — the rankings explorer, a bracket, the Yahoo
+   * workspace — and every one of those keeps its entire state in the URL. Without this they would
+   * have to be given a second, parallel state mechanism, and a filtered table would stop being
+   * linkable. Passing the query through means the wrapped component behaves exactly as it did when
+   * the page owned it.
+   */
+  searchParams?: Record<string, string | string[] | undefined>
+  /** The dynamic route's params, so a system module knows which entity it is drawing. */
+  routeParams?: Record<string, string>
   /** Signed-in viewer, for visibility conditions only — never for authorization. */
   viewer?: { signedIn: boolean; isAdmin: boolean }
 }
@@ -99,13 +111,39 @@ export interface ModuleDefinition<F extends FieldSet = FieldSet> {
    * Accessibility contract. Enforced by the verification suite rather than by convention: a module
    * that renders a region must name it, and one that renders a heading must say what level it is.
    */
-  a11y: { landmark?: boolean; headingLevel?: 2 | 3 | 4; requiresLabel?: boolean }
+  /*
+    Level 1 is included because a system module that renders a whole page body legitimately owns the
+    page's h1 — the Season page's title is the Season. Content modules stay at 2 and below, so a
+    document with two h1s remains something the verification suite can flag.
+  */
+  a11y: { landmark?: boolean; headingLevel?: 1 | 2 | 3 | 4; requiresLabel?: boolean }
 
   /** Rendered on the public site and in the canvas alike. */
   Render: ComponentType<ModuleRenderProps<never>>
 
   /** True when this module legitimately owns an internal scroll area (a long table, a bracket). */
   ownsScroll?: boolean
+
+  /**
+   * A module that IS the page.
+   *
+   * The rankings table on /rankings, the bracket on a Season's playoff view. An administrator may
+   * move one, restyle it, or put content around it — but hiding or deleting one publishes a page
+   * that no longer does its job, so the editor demands a typed confirmation first and the publish
+   * validator reports it. The flag is what makes that possible without hard-coding a list of module
+   * types into the editor.
+   *
+   * The string is what the warning says, in the administrator's terms.
+   */
+  essential?: string
+
+  /**
+   * Whether this module reads the query string.
+   *
+   * Only used to explain, in the palette, why a module cannot simply be dropped onto a different
+   * page and behave the same way.
+   */
+  urlDriven?: boolean
 }
 
 // ── The registry ────────────────────────────────────────────────────────────────────────────────
@@ -216,6 +254,8 @@ export interface ModuleManifestEntry {
   layoutDefaults?: Partial<LayoutAtBreakpoint>
   dataDriven?: boolean
   ownsScroll?: boolean
+  essential?: string
+  urlDriven?: boolean
   a11y: ModuleDefinition['a11y']
 }
 
@@ -231,6 +271,8 @@ export function serialiseRegistry(): ModuleManifestEntry[] {
     layoutDefaults: m.layoutDefaults,
     dataDriven: m.dataDriven,
     ownsScroll: m.ownsScroll,
+    essential: m.essential,
+    urlDriven: m.urlDriven,
     a11y: m.a11y,
   }))
 }
