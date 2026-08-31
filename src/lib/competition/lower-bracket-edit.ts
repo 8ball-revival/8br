@@ -458,3 +458,84 @@ function findCycle(matches: readonly RoutableMatch[]): string | null {
 export function isEditableDoubleElim(matches: readonly RoutableMatch[]): boolean {
   return matches.some((m) => m.section === LOWER)
 }
+
+/**
+ * A losers-bracket slot that nothing will ever fill.
+ *
+ * ── How a bracket ends up with one ──────────────────────────────────────────────────────────────
+ * `planDoubleElim` propagates byes when it builds the draw: a winners match with one real player
+ * and one bye has no loser, so the losers slot that loser would have fed is marked a bye there and
+ * then. That is correct, and it is also only true at the moment of generation. Arranging the draw
+ * by hand afterwards moves players — and byes — between winners matches, and nothing re-propagates.
+ * The losers slots keep the markers computed for the ORIGINAL bye positions.
+ *
+ * What that leaves is a match waiting forever: its opponent's seat is fed by a winners match that
+ * is a walkover, so no loser will ever drop into it, and the seated player is stranded. On the 602
+ * Invitational that stranded ArsH_, adambuddy and Luke_44.
+ *
+ * This finds those seats. It answers a question about the bracket as it stands, not about how it
+ * was drawn, so it is correct however the draw was rearranged.
+ */
+export interface StrandedSlot {
+  /** The losers match holding a player who cannot get an opponent. */
+  matchId: number
+  /** The seat nothing will fill. */
+  emptySlot: number
+  /** The player waiting in the other seat. */
+  waiting: Occupant
+  /** The winners match whose (non-existent) loser was supposed to fill it. */
+  feederId: number
+  reason: string
+}
+
+/** Whether a match is a walkover: one real player, one permanently empty seat. */
+export function isWalkover(m: RoutableMatch): boolean {
+  const homeReal = m.homeRegistrationId !== null
+  const awayReal = m.awayRegistrationId !== null
+  const homeBye = m.homeRegistrationId === null && m.homeUsername === 'Bye'
+  const awayBye = m.awayRegistrationId === null && m.awayUsername === 'Bye'
+  return (homeReal && awayBye) || (awayReal && homeBye)
+}
+
+/**
+ * Every losers-bracket seat that is waiting on a loser that cannot exist.
+ *
+ * Deliberately narrow. It reports ONLY seats fed by a winners walkover — a seat still waiting on a
+ * match that has not been played yet is not stranded, it is just early, and treating those the same
+ * would hand players free passage through a bracket that is still being contested.
+ */
+export function strandedLowerSlots(matches: readonly RoutableMatch[]): StrandedSlot[] {
+  const byId = new Map(matches.map((m) => [m.id, m]))
+  const routes = routesByTarget(matches)
+  const out: StrandedSlot[] = []
+
+  for (const m of matches) {
+    if (m.section !== LOWER || isLocked(m)) continue
+    for (const slot of [0, 1]) {
+      const here = slot === 0
+        ? { registrationId: m.homeRegistrationId, username: m.homeUsername, seed: m.homeSeed }
+        : { registrationId: m.awayRegistrationId, username: m.awayUsername, seed: m.awaySeed }
+      // Only an EMPTY seat can be stranded, and a seat already marked Bye is already handled.
+      if (here.registrationId !== null || here.username === 'Bye') continue
+
+      const other = slot === 0
+        ? { registrationId: m.awayRegistrationId, username: m.awayUsername, seed: m.awaySeed }
+        : { registrationId: m.homeRegistrationId, username: m.homeUsername, seed: m.homeSeed }
+      if (other.registrationId === null) continue // nobody is waiting; not stranded, just empty
+
+      const route = routes.get(slotKey({ matchId: m.id, slot }))
+      if (!route || route.kind !== 'LOSER') continue
+      const feeder = byId.get(route.sourceMatchId)
+      if (!feeder || !isWalkover(feeder)) continue
+
+      out.push({
+        matchId: m.id,
+        emptySlot: slot,
+        waiting: other,
+        feederId: feeder.id,
+        reason: `${matchName(feeder)} is a walkover, so it has no loser to send to ${matchName(m)}.`,
+      })
+    }
+  }
+  return out
+}

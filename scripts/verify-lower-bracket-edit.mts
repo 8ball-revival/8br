@@ -11,10 +11,12 @@ import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { planDoubleElim } from '../src/lib/competition/bracket-de.ts'
 import {
-  isLocked, lowerBracketView, matchName, routesByTarget, slotKey, sourceLabel,
-  swapLowerSlots, validateRouting, type RoutableMatch,
+  isLocked, isWalkover, lowerBracketView, matchName, routesByTarget, slotKey, sourceLabel,
+  strandedLowerSlots, swapLowerSlots, validateRouting, type RoutableMatch,
 } from '../src/lib/competition/lower-bracket-edit.ts'
-import { saveLowerBracketRouting } from '../src/lib/competition/lower-bracket-service.ts'
+import {
+  resolveStrandedLowerSlots, saveLowerBracketRouting,
+} from '../src/lib/competition/lower-bracket-service.ts'
 import { verifyPlayoffMatch } from '../src/lib/competition/service.ts'
 
 assertLocalDatabase()
@@ -359,6 +361,92 @@ try {
     const gf = find(await read(tid), 'GF', 1, 0)
     const gfSwap = swapLowerSlots(await read(tid), { matchId: gf.id, slot: 0 }, { matchId: gf.id, slot: 1 })
     check('the grand final cannot be edited', !gfSwap.ok, gfSwap.ok ? 'allowed' : gfSwap.error)
+  }
+
+  // ── Seats waiting on a loser that cannot exist ────────────────────────────────────────────────
+  section('A losers seat fed by a winners walkover is settled, not left waiting')
+  {
+    const { tid: t2 } = await buildBracket()
+    let b = await read(t2)
+
+    // Make Winners R1 M1 a walkover: its away seat becomes a permanent Bye.
+    const w1 = find(b, 'WB', 1, 0)
+    await prisma.playoffMatch.update({
+      where: { id: w1.id },
+      data: { awayRegistrationId: null, awayUsername: 'Bye' },
+    })
+    // Its loser would have fed a losers seat; drop a real player into the other side of that match.
+    b = await read(t2)
+    const wo = b.find((m) => m.id === w1.id)!
+    const target = b.find((m) => m.id === wo.loserFeedsMatchId)!
+    const other = wo.loserFeedsSlot === 0 ? 1 : 0
+    await prisma.playoffMatch.update({
+      where: { id: target.id },
+      data: other === 0
+        ? { homeRegistrationId: 999_001, homeUsername: 'stranded' }
+        : { awayRegistrationId: 999_001, awayUsername: 'stranded' },
+    })
+
+    b = await read(t2)
+    check('the walkover is recognised', isWalkover(b.find((m) => m.id === w1.id)!))
+    const found = strandedLowerSlots(b)
+    check('the stranded seat is found', found.length === 1, `${found.length}`)
+    check('...naming the player left waiting', found[0]?.waiting.username === 'stranded')
+    check('...and why', /walkover/i.test(found[0]?.reason ?? ''))
+
+    const settled = await resolveStrandedLowerSlots(ACTOR, t2)
+    check('settling succeeds', settled.ok, settled.error ?? '')
+    check('one seat was settled', settled.settled === 1, String(settled.settled))
+
+    const after = await read(t2)
+    const done = after.find((m) => m.id === target.id)!
+    check('the dead seat now reads as a Bye',
+      (wo.loserFeedsSlot === 0 ? done.homeUsername : done.awayUsername) === 'Bye')
+    check('the waiting player won the walkover', done.winnerRegistrationId === 999_001)
+    check('...with no fabricated score', done.homeGames === null && done.awayGames === null)
+    check('...and no forfeit recorded', done.forfeitRegistrationId === null)
+    const nextUp = after.find((m) => m.id === done.feedsMatchId)
+    check('the player advanced by the saved routing',
+      nextUp != null
+      && (done.feedsSlot === 0 ? nextUp.homeRegistrationId : nextUp.awayRegistrationId) === 999_001)
+
+    check('running it again settles nothing', (await resolveStrandedLowerSlots(ACTOR, t2)).settled === 0)
+    check('...and nothing is left stranded', strandedLowerSlots(await read(t2)).length === 0)
+    await cleanup()
+  }
+
+  section('Settling never touches a match that already has a result')
+  {
+    const { tid: t3 } = await buildBracket()
+    let b = await read(t3)
+    const w1 = find(b, 'WB', 1, 0)
+    await prisma.playoffMatch.update({
+      where: { id: w1.id }, data: { awayRegistrationId: null, awayUsername: 'Bye' },
+    })
+    b = await read(t3)
+    const wo = b.find((m) => m.id === w1.id)!
+    const target = b.find((m) => m.id === wo.loserFeedsMatchId)!
+    const other = wo.loserFeedsSlot === 0 ? 1 : 0
+    await prisma.playoffMatch.update({
+      where: { id: target.id },
+      data: other === 0
+        ? { homeRegistrationId: 999_002, homeUsername: 'held' }
+        : { awayRegistrationId: 999_002, awayUsername: 'held' },
+    })
+
+    // A hand-entered FORFEIT on that very match must be left exactly as it is.
+    await prisma.playoffMatch.update({
+      where: { id: target.id },
+      data: { status: 'FORFEIT', forfeitRegistrationId: 999_002, winnerRegistrationId: null },
+    })
+    const guarded = strandedLowerSlots(await read(t3))
+    check('a match holding a result is not reported as stranded', guarded.length === 0, `${guarded.length}`)
+    const r3 = await resolveStrandedLowerSlots(ACTOR, t3)
+    check('...and settling leaves it alone', r3.settled === 0, String(r3.settled))
+    const kept = (await read(t3)).find((m) => m.id === target.id)!
+    check('the hand-entered forfeit survives untouched',
+      kept.status === 'FORFEIT' && kept.forfeitRegistrationId === 999_002)
+    await cleanup()
   }
 
   void sourceLabel

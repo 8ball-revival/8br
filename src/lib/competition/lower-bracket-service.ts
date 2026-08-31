@@ -19,7 +19,7 @@ import type { Prisma } from '@prisma/client'
 import { recordAudit } from './audit'
 import { assertCompetitionUnlocked } from './service'
 import {
-  isLocked, lowerBracketView, matchName, swapLowerSlots,
+  isLocked, lowerBracketView, matchName, strandedLowerSlots, swapLowerSlots,
   type LowerRoundView, type RoutableMatch, type SlotRef,
 } from './lower-bracket-edit'
 
@@ -168,4 +168,88 @@ function routeSnapshot(ms: readonly RoutableMatch[]) {
       winnerTo: m.feedsMatchId == null ? null : `${m.feedsMatchId}:${m.feedsSlot}`,
       loserTo: m.loserFeedsMatchId == null ? null : `${m.loserFeedsMatchId}:${m.loserFeedsSlot}`,
     }))
+}
+
+/**
+ * Settle losers-bracket seats that are waiting on a loser that cannot exist.
+ *
+ * See `strandedLowerSlots` for how a bracket acquires one. The repair is the one the draw would
+ * have made for itself had the byes been where they are now: mark the dead seat a Bye, and let the
+ * waiting player walk over.
+ *
+ * ── Why it advances by hand rather than calling verifyPlayoffMatch ──────────────────────────────
+ * A walkover has no result. `verifyPlayoffMatch` refuses a match with no winner recorded, and
+ * recording a fabricated score to satisfy it would put a scoreline in the record for a match nobody
+ * played. So the match is marked a walkover directly — no games, no forfeit, a winner and a
+ * completion — and the winner is advanced through the SAME routing columns everything else uses.
+ *
+ * Idempotent: a seat already marked Bye, or a match already holding a result, is skipped. Running
+ * it twice changes nothing the second time.
+ */
+export async function resolveStrandedLowerSlots(
+  actor: Actor,
+  tournamentId: number,
+): Promise<{ ok: boolean; error?: string; settled: number; detail: string[] }> {
+  await assertCompetitionUnlocked(prisma, tournamentId)
+
+  return prisma.$transaction(async (tx) => {
+    const before = await readBracket(tx, tournamentId)
+    const stranded = strandedLowerSlots(before)
+    if (stranded.length === 0) return { ok: true, settled: 0, detail: [] }
+
+    const detail: string[] = []
+    for (const s of stranded) {
+      const m = before.find((x) => x.id === s.matchId)!
+      // Re-checked inside the transaction: a result may have landed since the read above.
+      const live = await tx.playoffMatch.findUniqueOrThrow({ where: { id: s.matchId }, select: ROUTE_SELECT })
+      if (isLocked({ ...live, status: String(live.status) })) continue
+
+      const byeSeat = s.emptySlot === 0
+        ? { homeRegistrationId: null, homeUsername: 'Bye', homeSeed: null }
+        : { awayRegistrationId: null, awayUsername: 'Bye', awaySeed: null }
+
+      await tx.playoffMatch.update({
+        where: { id: s.matchId },
+        data: {
+          ...byeSeat,
+          status: 'COMPLETED',
+          winnerRegistrationId: s.waiting.registrationId,
+          completedAt: new Date(),
+        },
+      })
+
+      /*
+        Advance the walkover winner exactly where this match's own routing sends its winner - but
+        never into a match that has already been played.
+
+        Results are being entered by hand while this runs. Seating somebody into a match that
+        already holds a score would rewrite a played match, which is the one thing no repair is
+        allowed to do; if the downstream seat is already settled the walkover is recorded and the
+        advancement is left alone for a human to look at.
+      */
+      if (m.feedsMatchId != null && m.feedsSlot != null) {
+        const down = await tx.playoffMatch.findUnique({ where: { id: m.feedsMatchId }, select: ROUTE_SELECT })
+        if (down && isLocked({ ...down, status: String(down.status) })) {
+          detail.push(`${matchName(m)}: walkover recorded, but ${matchName({ ...down, status: String(down.status) })} already has a result — advancement left for review.`)
+          continue
+        }
+        const seat = m.feedsSlot === 0
+          ? { homeRegistrationId: s.waiting.registrationId, homeUsername: s.waiting.username, homeSeed: s.waiting.seed }
+          : { awayRegistrationId: s.waiting.registrationId, awayUsername: s.waiting.username, awaySeed: s.waiting.seed }
+        await tx.playoffMatch.update({ where: { id: m.feedsMatchId }, data: seat })
+      }
+
+      detail.push(`${matchName(m)}: ${s.waiting.username ?? 'player'} advances — ${s.reason}`)
+    }
+
+    await recordAudit(actor, {
+      action: 'tournament.playoff.resolve_walkovers',
+      entity: 'tournament',
+      entityId: tournamentId,
+      newValue: { settled: detail.length, matches: detail },
+      reason: 'Losers-bracket seats fed by a winners walkover settled as byes',
+    }, tx)
+
+    return { ok: true, settled: detail.length, detail }
+  })
 }

@@ -26,9 +26,9 @@ import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
-import { saveLowerBracketAction } from '@/lib/creator/lower-bracket-actions'
+import { resolveWalkoversAction, saveLowerBracketAction } from '@/lib/creator/lower-bracket-actions'
 import {
-  lowerBracketView, slotKey, swapLowerSlots,
+  lowerBracketView, slotKey, strandedLowerSlots, swapLowerSlots,
   type LowerSlotView, type RoutableMatch, type SlotRef,
 } from '@/lib/competition/lower-bracket-edit'
 
@@ -44,7 +44,9 @@ export function LowerBracketEditor({
   const [swaps, setSwaps] = useState<[SlotRef, SlotRef][]>([])
   const [picked, setPicked] = useState<SlotRef | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
   const [saving, startSave] = useTransition()
+  const [settling, startSettle] = useTransition()
 
   /** The bracket as it would read after the pending swaps — the preview the Owner is deciding on. */
   const working = useMemo(() => {
@@ -60,6 +62,14 @@ export function LowerBracketEditor({
   const rounds = useMemo(() => lowerBracketView(working), [working])
   const dirty = swaps.length > 0
 
+  /*
+    Seats waiting on a loser that cannot exist.
+
+    Surfaced whether or not the editor is open, because a stranded seat stops the bracket dead and
+    the reader needs to know why before they start rearranging routes around it.
+  */
+  const stranded = useMemo(() => strandedLowerSlots(matches), [matches])
+
   const reset = () => { setSwaps([]); setPicked(null); setError(null) }
 
   /** Nominate a slot. The second nomination performs the swap. */
@@ -72,6 +82,16 @@ export function LowerBracketEditor({
     setSwaps((s) => [...s, [picked, ref]])
     setPicked(null)
   }
+
+  const settle = () => startSettle(async () => {
+    setError(null); setNote(null)
+    const res = await resolveWalkoversAction(tournamentId)
+    if (!res.ok) { setError(res.error ?? 'That could not be settled.'); return }
+    setNote(res.settled === 0
+      ? 'Nothing to settle.'
+      : `${res.settled} walkover${res.settled === 1 ? '' : 's'} settled.`)
+    router.refresh()
+  })
 
   const save = () => startSave(async () => {
     setError(null)
@@ -126,6 +146,27 @@ export function LowerBracketEditor({
           until you press Save.
         </p>
       )}
+
+      {stranded.length > 0 && (
+        <div className="mt-3 max-w-3xl cyber-clip border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2.5">
+          <p className="text-sm font-semibold text-foreground">
+            {stranded.length} match{stranded.length === 1 ? '' : 'es'} cannot start
+          </p>
+          <ul className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+            {stranded.map((s) => <li key={`${s.matchId}:${s.emptySlot}`}>{s.reason}</li>)}
+          </ul>
+          <button
+            type="button"
+            onClick={settle}
+            disabled={settling}
+            className="mt-2 cyber-clip border border-[var(--gold)]/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider hover:bg-white/[0.06] disabled:opacity-40"
+          >
+            {settling ? 'Settling…' : 'Settle walkovers'}
+          </button>
+        </div>
+      )}
+
+      {note && <p className="mt-2 text-sm text-[var(--neon-cyan)]">{note}</p>}
 
       {error && (
         <p role="alert" className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

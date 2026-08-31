@@ -18,7 +18,8 @@ import { revalidatePath } from 'next/cache'
 
 import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import {
-  getLowerBracket, saveLowerBracketRouting, type SaveResult, type SwapPair,
+  getLowerBracket, resolveStrandedLowerSlots, saveLowerBracketRouting,
+  type SaveResult, type SwapPair,
 } from '@/lib/competition/lower-bracket-service'
 import type { LowerRoundView } from '@/lib/competition/lower-bracket-edit'
 
@@ -58,4 +59,25 @@ export async function saveLowerBracketAction(
     revalidatePath(`/tournaments/${tournamentId}`)
   }
   return result
+}
+
+/**
+ * Settle losers-bracket seats waiting on a loser that cannot exist.
+ *
+ * Owner-only for the same reason the routing editor is: it writes completions into a published
+ * bracket. It is safe to press twice — the work is idempotent — and it never touches a match that
+ * already holds a result.
+ */
+export async function resolveWalkoversAction(
+  tournamentId: number,
+): Promise<{ ok: boolean; error?: string; settled?: number; detail?: string[] }> {
+  const gate = await owner()
+  if (!gate.ok) return { ok: false, error: gate.error }
+
+  const r = await resolveStrandedLowerSlots(gate.actor, tournamentId)
+  if (r.ok) {
+    revalidatePath(`/creator/tournaments/${tournamentId}/playoffs`)
+    revalidatePath(`/tournaments/${tournamentId}`)
+  }
+  return r
 }
