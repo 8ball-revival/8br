@@ -1,7 +1,7 @@
 import 'server-only'
 import { RANKING_ELIGIBLE_SEASON, RANKING_ELIGIBLE_TOURNAMENT } from './eligibility'
 import type { Prisma, CompetitionPlatform } from '@prisma/client'
-import { ELO_START, expectedScore, matchDeltas } from './elo'
+import { ELO_START, expectedScore, isRatingNeutral, matchDeltas } from './elo'
 
 /**
  * RATING LEDGER PROCESSING — turns completed tournament matches into per-match Elo events (the
@@ -156,21 +156,6 @@ async function collectSeasonMatchups(tx: Tx, seasonId: number, fallbackDate: Dat
     out.push({ matchKey: `season-playoff:${m.id}`, stage: 'PLAYOFF', roundLabel: m.label ?? `Round ${m.round}`, completedAt: m.completedAt ?? fallbackDate, home, away, outcome: m.winnerEntrantId === m.homeEntrantId ? 'HOME' : 'AWAY', forfeit: false, isTeam: false })
   }
   return out
-}
-
-/**
- * A Yahoo Tournament is recorded, but it does not move a rating.
- *
- * The Yahoo ladder is a Season ladder. Its Tournaments were one-off side events run under their own
- * conditions, and letting a handful of them move a rating built from ninety-odd Seasons lets a single
- * afternoon outweigh a career. The result is still written — the row, the win, the loss and the
- * trophy all survive, and the Tournament columns keep reading them — but the rating change is zero,
- * exactly as it is for a forfeit.
- *
- * Scoped to Yahoo on purpose: CueVerse Tournaments are part of that ladder and keep counting.
- */
-function isRatingNeutral(platform: CompetitionPlatform, tournamentId?: number): boolean {
-  return platform === 'YAHOO' && tournamentId != null
 }
 
 /** Full deterministic rebuild of the entire rating ledger from every COMPLETED Tournament AND Season,

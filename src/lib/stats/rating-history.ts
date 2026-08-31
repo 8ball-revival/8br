@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { ELO_START, ELO_K, expectedScore } from '@/lib/stats/elo'
+import { ELO_START, isRatingNeutral, matchDeltas } from '@/lib/stats/elo'
 
 /**
  * One rating replay, for every surface that shows a rating.
@@ -9,20 +9,24 @@ import { ELO_START, ELO_K, expectedScore } from '@/lib/stats/elo'
  * Two readers computed the Current ladder from the same ledger and disagreed by a point for three
  * players. Neither was "wrong" in isolation; they rounded at different moments.
  *
- * The ledger writer keeps a FRACTIONAL running rating and rounds only when it stores a row
- * (`postRating: Math.round(pre + delta)`), so the fraction carries forward into the next match. The
- * ladder replayed the window with an INTEGER running rating, rounding each delta before adding it.
- * Over a few hundred matches those two accumulate differently, and the difference surfaces as ±1 on
- * whoever happens to sit near a rounding boundary.
- *
  * A tolerance would have hidden it. Picking a reader would have made the other one wrong. The only
  * answer that stays true is one replay, used by both — so this module is the single definition of
  * "what is this player's rating", and `getLadder` and the Rankings table both call it.
  *
  * ── The rule it implements ───────────────────────────────────────────────────────────────────────
- * Carry the running rating unrounded, exactly as the ledger writer does, and round once at the end
- * for display. That way the replay reproduces the stored `postRating` values instead of drifting
- * away from them, and All-Time read from storage and Current read by replay agree by construction.
+ * Score every match through the SAME functions the ledger writer uses — `matchDeltas` for a
+ * head-to-head, the fixed team step for a roster, zero for a forfeit or a rating-neutral result —
+ * and round once at the end for display.
+ *
+ * This is stronger than "round the same way", and the earlier version of this comment described a
+ * writer that no longer exists. The writer rounds each delta to a whole number and mirrors it so a
+ * match is exactly zero-sum; the replay used to keep the fraction, so on identical matches in an
+ * identical order the two still landed 1–2 points apart. Reported as: switching the Rankings tab
+ * from All to 8BRCAM moved every rating slightly, when nothing about the results had changed.
+ *
+ * Sharing the function rather than the arithmetic is what makes that unrepeatable. A future change
+ * to how a match is scored lands in one place and both readers follow it.
+ * `verify-rating-replay` asserts a full replay reproduces every stored `postRating` exactly.
  */
 
 export interface RatingRow {
@@ -39,6 +43,8 @@ export interface RatingRow {
   isForfeit: boolean
   isTeamMatch: boolean
   teamName: string | null
+  /** Needed because whether a result counts at all is a function of it. See `isRatingNeutral`. */
+  platform: string
   ratingChange: number
   postRating: number
 }
@@ -70,7 +76,13 @@ export function replayRatings(rows: readonly RatingRow[]): Map<string, RatingPoi
   }
   const matches = [...byMatch.values()].sort((a, b) => a[0].sequence - b[0].sequence)
 
-  /** Unrounded, exactly as the ledger writer carries it. Rounded once, at the end. */
+  /*
+    Carried exactly as the ledger writer carries it: a running total of whole-number deltas.
+
+    `matchDeltas` rounds each change and mirrors it, so a match is zero-sum and the running figure
+    stays an integer. The final `Math.round` below is therefore a no-op for a head-to-head ladder;
+    it is kept because a team step or a future half-point rule need not be.
+  */
   const rating = new Map<string, number>()
   const peak = new Map<string, number>()
   const cur = (id: string) => rating.get(id) ?? ELO_START
@@ -87,15 +99,17 @@ export function replayRatings(rows: readonly RatingRow[]): Map<string, RatingPoi
     const actualA = A[0].actual
 
     /*
-     * A forfeit moves nobody. A team match moves everyone on a roster by the same fixed amount.
-     * Anything else is Elo over the two sides' current ratings, unrounded.
+     * A forfeit moves nobody. A Yahoo Tournament moves nobody. A team match moves everyone on a
+     * roster by the same fixed amount. Anything else goes through `matchDeltas`, which is the same
+     * function the ledger writer calls — so the replay produces the same number, not a number of
+     * its own that happens to be close.
      */
     let dA: number
-    if (forfeit) dA = 0
+    if (forfeit || isRatingNeutral(m[0].platform, m[0].tournamentId)) dA = 0
     else if (isTeam) dA = actualA === 1 ? TEAM_DELTA : -TEAM_DELTA
     else {
       const avg = (side: RatingRow[]) => side.reduce((s, r) => s + cur(r.playerId), 0) / side.length
-      dA = ELO_K * (actualA - expectedScore(avg(A), avg(B)))
+      dA = matchDeltas(avg(A), avg(B), actualA).home.delta
     }
 
     const apply = (side: RatingRow[], delta: number) => {

@@ -44,6 +44,29 @@ export function matchDeltas(
 }
 
 /**
+ * A result that is recorded but does not move a rating.
+ *
+ * ── Why a Yahoo Tournament does not count ────────────────────────────────────────────────────────
+ * The Yahoo ladder is a Season ladder. Its Tournaments were one-off side events run under their own
+ * conditions, and letting a handful of them move a rating built from ninety-odd Seasons lets a single
+ * afternoon outweigh a career. The result is still written — the row, the win, the loss and the
+ * trophy all survive, and the Tournament columns keep reading them — but the rating change is zero,
+ * exactly as it is for a forfeit. Scoped to Yahoo on purpose: CueVerse Tournaments are part of that
+ * ladder and keep counting.
+ *
+ * ── Why it lives here rather than in the ledger writer ───────────────────────────────────────────
+ * It was a private rule in the writer, which meant the REPLAY did not know about it: replaying a
+ * Yahoo tournament match invented an Elo movement for a result the ledger had deliberately scored
+ * as zero. Any view that replays — Current, a bounded All-Time, every filtered scope — therefore
+ * disagreed with the stored ladder about players who had ever entered one.
+ *
+ * One definition, imported by both, is the only arrangement where they cannot drift apart.
+ */
+export function isRatingNeutral(platform: string, tournamentId?: number | null): boolean {
+  return platform === 'YAHOO' && tournamentId != null
+}
+
+/**
  * The championship step: a title lifts a rating by a fixed amount, once.
  *
  * ── Why a step and not a per-title bonus ─────────────────────────────────────────────────────────

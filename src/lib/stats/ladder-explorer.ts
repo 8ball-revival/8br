@@ -140,6 +140,8 @@ async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, filter
       seasonId: true,
       completedAt: true, actual: true, result: true, isForfeit: true, isTeamMatch: true,
       teamName: true, ratingChange: true, postRating: true,
+      // The replay needs it: a Yahoo Tournament result is recorded but rating-neutral.
+      platform: true,
     },
   })
 
