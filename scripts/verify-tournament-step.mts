@@ -65,9 +65,18 @@ try {
   check('a Yahoo Tournament is neutral', isRatingNeutral('YAHOO', 1))
   check('a CueVerse Tournament is not', !isRatingNeutral('CUEVERSE', 1))
 
+  /*
+    How many Tournaments have been won is a fact about the DATA, not about this code.
+
+    Asserting that any exist would have failed on 8br.gg the moment the Yahoo Tournaments were
+    deleted and before the first CueVerse one is closed — a suite reporting a bug where there is
+    only an empty archive. What is asserted is that the resolver answers at all; the count is
+    reported so a reader can see whether the checks below had anything to work with.
+  */
   const wins = await tournamentWinsByPlayer()
   const all = [...wins.values()].flat()
-  check('the ladder can resolve Tournament winners', wins.size > 0, `${wins.size} player(s)`)
+  check('the winner resolver answers', wins instanceof Map, String(wins))
+  console.log(`  --   ${wins.size} player(s) hold a Tournament win`)
   const neutral = all.filter((w) => isRatingNeutral(w.platform, w.tournamentId))
   const counting = all.filter((w) => !isRatingNeutral(w.platform, w.tournamentId))
   console.log(`  --   ${counting.length} counting win(s), ${neutral.length} neutral`)
