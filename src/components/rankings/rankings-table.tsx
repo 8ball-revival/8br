@@ -36,7 +36,15 @@ import { Tip } from './tooltip'
  * Row separators come from per-cell `border-b`, so nothing is lost by separating them.
  */
 
-export const PLAYER_COL_WIDTH = 'clamp(11rem, 20vw, 300px)'
+/*
+  The player column gives width back as the window narrows.
+
+  A fifth of the viewport up to 300px is generous on a wide screen and the single biggest cell
+  everywhere else: at 1440 it was still claiming 288px while the record columns beside it were
+  being pushed off the end. Two names in this table need that much room; the rest are a handle and
+  a first name, and the cell truncates when one does not fit.
+*/
+export const PLAYER_COL_WIDTH = 'clamp(10rem, 16vw, 260px)'
 
 /**
  * The Player column on the Yahoo archive, which carries one statistic column more.
@@ -439,7 +447,7 @@ function Row({
             <td
               key={c.key}
               className={cn(
-                'border-b border-border/60 px-2.5 py-1.5',
+                'border-b border-border/60 px-2 py-1.5',
                 c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
                 c.key !== 'player' && 'whitespace-nowrap',
                 sticky && cn('sticky z-10', bg),

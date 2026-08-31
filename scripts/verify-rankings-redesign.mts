@@ -20,7 +20,8 @@ import {
   defaultState, encodeRankingsState, decodeRankingsState, clampYear, activeChips, removeChip,
   hasAnyFilter, activeFilterGroups, visibleColumnKeys, aggregateFilters,
   MIN_YEAR, maxYear, OPTIONAL_COLUMN_KEYS, PERMANENT_COLUMN_KEYS, OBSOLETE_PARAMS,
-  COLUMN_BY_KEY, filterRows, sortRows, optionalColumnKeys, championshipsOf, championshipsLabel,
+  COLUMN_BY_KEY, filterRows, sortRows, optionalColumnKeys, defaultVisibleColumns,
+  championshipsOf, championshipsLabel,
 } from '../src/lib/stats/rankings-columns.ts'
 import { RATING_BANDS, ratingTier } from '../src/lib/stats/rating-tier.ts'
 import { computeExplorer } from '../src/lib/stats/ladder-explorer.ts'
@@ -129,13 +130,34 @@ section('The page defaults to the whole archive with every optional column')
   check('no division filter', d.division === null)
   check('no minimum matches', d.rowFilters.minMatches === 0)
   check('no achievement filter', !d.rowFilters.seasonChampionsOnly && !d.rowFilters.cupChampionsOnly)
-  check('every optional column is on', d.visibleColumns.length === OPTIONAL_COLUMN_KEYS.length)
+  /*
+    The live ladder opens with the columns that FIT, not with every column it offers.
+
+    All nine at once ran the table past the right edge of a maximised window, so the group and
+    playoff splits start unticked - each is a breakdown of the overall record sitting beside it, so
+    nothing the table says is lost by holding them back. They are asserted as still offered,
+    because the failure that mattered was not hiding them but removing them: dropped from the
+    offered set they vanish from More Filters and every saved link that names one stops resolving.
+  */
+  check('the live ladder opens with the columns that fit',
+    d.visibleColumns.join(',') === 'record,matchWinPct,currentStreak,seasonTitles,tournamentTitles,cupRecord,seasonsPlayed',
+    d.visibleColumns.join(','))
+  check('...and the two it holds back are still OFFERED',
+    ['groupRecord', 'playoffRecord'].every((k) => (OPTIONAL_COLUMN_KEYS as readonly string[]).includes(k)))
+  check('...so a reader can tick either one back on',
+    optionalColumnKeys('rankings').length === d.visibleColumns.length + 2)
   check('the default table has no active filter groups', activeFilterGroups(d, NOW).length === 0)
   check('...and produces an empty query string', encodeRankingsState(d, NOW) === '')
 
   const keys = visibleColumnKeys(d)
+  /*
+    Honours read beside the record that produced them.
+
+    They used to sit at the far right, past two record splits, which put the answer to "who is
+    actually winning things" in the column most likely to be off the edge of the screen.
+  */
   check('the default column order is the specified one',
-    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonsPlayed,groupRecord,playoffRecord,cupRecord,seasonTitles,tournamentTitles',
+    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonTitles,tournamentTitles,cupRecord,seasonsPlayed',
     keys.join(','))
   check('Rank is first', keys[0] === 'rank')
   check('Player is second', keys[1] === 'player')
@@ -371,8 +393,17 @@ section('Applied filters appear as chips; defaults do not')
   check('the minimum is a chip', labels.includes('Minimum Matches: 10'))
   check('the achievement is a chip', labels.includes('Season Champions'))
   check('hidden columns are ONE chip', labels.filter((l) => l.startsWith('Columns:')).length === 1)
+  /*
+    Counted against the set the table opened with, not against every column that exists.
+
+    Measured against the offered set, a ladder nobody had touched would report its two held-back
+    columns as hidden and light the More badge on an unfiltered table.
+  */
+  const dfltCols = defaultVisibleColumns(filtered.profile ?? 'rankings')
   check('...that counts them',
-    labels.includes(`Columns: ${OPTIONAL_COLUMN_KEYS.length - 1} hidden`), labels.join(' | '))
+    labels.includes(`Columns: ${dfltCols.length - 1} hidden`), labels.join(' | '))
+  check('an untouched table reports no column filter at all',
+    !activeChips(d, {}, NOW).some((c) => c.label.startsWith('Columns:')))
 
   // A single year reads as a year, not as a range from itself to itself.
   check('one year reads as one year',
@@ -394,8 +425,10 @@ section('Applied filters appear as chips; defaults do not')
     removeChip(withSeason, 'comp', NOW).seasonId === null)
 
   const afterCols = removeChip(filtered, 'cols', NOW)
-  check('removing the columns chip restores every optional column',
-    afterCols.visibleColumns.length === OPTIONAL_COLUMN_KEYS.length)
+  // Clearing a filter restores the DEFAULT, which for columns is the opening set - not all of them.
+  check('removing the columns chip restores the default columns',
+    afterCols.visibleColumns.join(',') === defaultVisibleColumns(filtered.profile ?? 'rankings').join(','),
+    afterCols.visibleColumns.join(','))
 }
 
 section('The More Filters badge counts groups, not individual choices')

@@ -194,7 +194,7 @@ export function RankingsExplorer({
       did nothing. `visibleColumnKeys` is documented as "the keys actually rendered, in canonical
       order"; this now honours that rather than approximating it.
     */
-    const forView = new Map(columnsForView(recordScope).map((c) => [c.key, c]))
+    const forView = new Map(columnsForView(recordScope, applied.profile ?? 'rankings').map((c) => [c.key, c]))
     return visibleColumnKeys({ ...applied, sort })
       .map((key) => forView.get(key))
       .filter((c): c is NonNullable<typeof c> => c != null)

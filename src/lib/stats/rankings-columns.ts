@@ -299,8 +299,28 @@ export const COLUMN_BY_KEY: Record<string, ColumnDef> =
   Object.fromEntries(COLUMNS.map((c) => [c.key, c]))
 
 /** Columns that carry meaning in a given record view. */
-export function columnsForView(view: RecordView): ColumnDef[] {
-  return COLUMNS.filter((c) => !c.views || c.views.includes(view))
+export function columnsForView(view: RecordView, profile: TableProfile = 'archive'): ColumnDef[] {
+  const cols = COLUMNS.filter((c) => !c.views || c.views.includes(view))
+  if (profile !== 'rankings') return cols
+  return cols.map((c) => (LIVE_HEADERS[c.key] ? { ...c, short: LIVE_HEADERS[c.key] } : c))
+}
+
+/*
+  Shorter headings on the live ladder, and only there.
+
+  "Season Championships" and "Tournament Titles" are two of the widest headings on a table whose
+  cells are a single number under a crown or a trophy — between them they were what still pushed
+  the ladder past a maximised window. The full name stays in the tooltip and in the spoken label,
+  so nothing is lost but the width.
+
+  The archive is deliberately untouched: it is a different table with its own column list, and it
+  reads the same today as it did before any of this.
+*/
+const LIVE_HEADERS: Record<string, string> = {
+  seasonTitles: 'Titles',
+  tournamentTitles: 'Trophies',
+  seasonsPlayed: 'Seasons',
+  cupRecord: 'Cups',
 }
 
 /**
@@ -564,12 +584,39 @@ export interface YearBounds { min: number; max: number }
  * Optional columns, in the order they appear. Rank, Player and Rating are absent on purpose: they
  * are permanent, and a list that could express hiding them would eventually be asked to.
  */
+/*
+  Every column the live ladder OFFERS, in the order it draws them.
+
+  Offered is not the same as on: `DEFAULT_VISIBLE_COLUMN_KEYS` below decides which of them start
+  ticked. Conflating the two dropped the group and playoff splits out of More Filters altogether
+  and broke saved links that named them - a column somebody deliberately chose has to stay
+  choosable.
+
+  Honours sit beside the record they came from rather than at the far right, because the question a
+  reader arrives with is "who is winning" and a trophy answers it.
+
+  The archive has its own list - see `optionalColumnKeys` - and is not affected by this order.
+*/
 export const OPTIONAL_COLUMN_KEYS = [
   'record', 'matchWinPct', 'currentStreak',
-  'seasonsPlayed',
-  'groupRecord', 'playoffRecord', 'cupRecord',
   'seasonTitles', 'tournamentTitles',
+  'cupRecord', 'seasonsPlayed',
+  'groupRecord', 'playoffRecord',
 ] as const
+
+/*
+  Which of them start ticked on the live ladder.
+
+  All nine at once is what pushed the table past a maximised window and produced the horizontal
+  scrollbar. The group and playoff splits are the two withheld: each is a breakdown of the overall
+  record standing beside it, so the table says the same thing without them, and either is one tick
+  away under More Filters for a reader who wants the split.
+*/
+export const DEFAULT_VISIBLE_COLUMN_KEYS: readonly string[] = [
+  'record', 'matchWinPct', 'currentStreak',
+  'seasonTitles', 'tournamentTitles',
+  'cupRecord', 'seasonsPlayed',
+]
 
 /**
  * Which table this state describes.
@@ -644,6 +691,24 @@ export function optionalColumnKeys(profile: TableProfile): readonly string[] {
   ]
 }
 
+/**
+ * The columns this profile starts with ticked.
+ *
+ * Separate from `optionalColumnKeys` so "is this table filtered" can be asked against the opening
+ * position rather than against every column that exists. Measured against the full offered set, a
+ * ladder nobody had touched would report two hidden columns and light up the More badge - the same
+ * phantom filter the year control used to report, which is what teaches a reader to ignore both.
+ */
+export function defaultVisibleColumns(profile: TableProfile): readonly string[] {
+  return profile === 'archive' ? optionalColumnKeys('archive') : DEFAULT_VISIBLE_COLUMN_KEYS
+}
+
+/** Whether a column choice is still the one the table opened with. */
+function isDefaultColumns(s: RankingsState): boolean {
+  const want = defaultVisibleColumns(s.profile ?? 'rankings')
+  return s.visibleColumns.length === want.length && want.every((k) => s.visibleColumns.includes(k))
+}
+
 /** Always rendered, never offered as a checkbox. */
 export const PERMANENT_COLUMN_KEYS = ['rank', 'player', 'rating'] as const
 
@@ -652,7 +717,11 @@ export function defaultState(now: Date = new Date(), options: StateOptions = {})
   return {
     scope: DEFAULT_SCOPE,
     sort: [],
-    visibleColumns: [...optionalColumnKeys(options.profile ?? 'rankings')],
+    /*
+      The archive opens with everything it offers; the live ladder opens with the set that fits.
+      Both stay fully adjustable - this is the opening position, not the menu.
+    */
+    visibleColumns: [...defaultVisibleColumns(options.profile ?? 'rankings')],
     rowFilters: { ...EMPTY_ROW_FILTERS },
     competitionSeriesId: null,
     seasonId: null,
@@ -788,12 +857,19 @@ export function encodeRankingsState(s: RankingsState, now: Date = new Date(), pr
   if (s.rowFilters.cupChampionsOnly) p.set(K('tc'), '1')
   if (s.rowFilters.minMatches > 0) p.set(K('min'), String(s.rowFilters.minMatches))
 
-  // Only written when it differs from "all optional columns", so the common case adds nothing.
-  // Against THIS table's column set: the archive's is not the live ladder's, and comparing the two
-  // encoded a "columns hidden" parameter into a URL where nothing was hidden.
-  const allCols = optionalColumnKeys(s.profile ?? 'rankings')
-  const cols = allCols.filter((k) => s.visibleColumns.includes(k))
-  if (cols.length !== allCols.length) p.set(K('cols'), cols.join(','))
+  /*
+    Only written when the choice differs from the one the table opened with, so the common case
+    adds nothing to the URL.
+
+    Against THIS table's DEFAULT set - not against every column it offers. The archive's set is not
+    the live ladder's, and the live ladder no longer starts with all of them, so either mismatch
+    writes a cols= parameter into a URL where the reader changed nothing.
+  */
+  const dfltCols = defaultVisibleColumns(s.profile ?? 'rankings')
+  const offered = optionalColumnKeys(s.profile ?? 'rankings')
+  const cols = offered.filter((k) => s.visibleColumns.includes(k))
+  const isDflt = cols.length === dfltCols.length && dfltCols.every((k) => cols.includes(k))
+  if (!isDflt) p.set(K('cols'), cols.join(','))
 
   if (s.sort.length) p.set(K('sort'), s.sort.map((x) => `${x.key}:${x.dir}`).join(','))
   if (s.expanded) p.set(K('expand'), s.expanded)
@@ -922,7 +998,7 @@ export function activeFilterGroups(s: RankingsState, now: Date = new Date()): st
   if (s.rowFilters.minMatches > 0) groups.push('minMatches')
   // Hiding columns is ONE change however many columns it hides — a badge reading "4" because
   // somebody unchecked four boxes would overstate how filtered the table is.
-  if (optionalColumnKeys(s.profile ?? 'rankings').some((k) => !s.visibleColumns.includes(k))) groups.push('columns')
+  if (!isDefaultColumns(s)) groups.push('columns')
   return groups
 }
 
@@ -1051,9 +1127,18 @@ export function activeChips(
     chips.push({ key: 'min', label: `Minimum Matches: ${s.rowFilters.minMatches}` })
   }
 
-  // One chip for the whole column choice, however many boxes were unchecked.
-  const hidden = optionalColumnKeys(s.profile ?? 'rankings').filter((k) => !s.visibleColumns.includes(k)).length
-  if (hidden > 0) chips.push({ key: 'cols', label: `Columns: ${hidden} hidden` })
+  /*
+    One chip for the whole column choice, however many boxes moved.
+
+    Counted against the columns the table opened with, not against every column that exists: a
+    reader who turns the playoff split back ON has changed the table but hidden nothing, and
+    "Columns: 1 hidden" would be a straightforwardly false description of what they did.
+  */
+  if (!isDefaultColumns(s)) {
+    const dflt = defaultVisibleColumns(s.profile ?? 'rankings')
+    const hidden = dflt.filter((k) => !s.visibleColumns.includes(k)).length
+    chips.push({ key: 'cols', label: hidden > 0 ? `Columns: ${hidden} hidden` : 'Columns: changed' })
+  }
 
   return chips
 }
@@ -1087,7 +1172,8 @@ export function removeChip(
     case 'sc': next.rowFilters.seasonChampionsOnly = false; break
     case 'tc': next.rowFilters.cupChampionsOnly = false; break
     case 'min': next.rowFilters.minMatches = 0; break
-    case 'cols': next.visibleColumns = [...optionalColumnKeys(s.profile ?? 'rankings')]; break
+    // Clearing a filter restores the default, which for columns is the opening set - not all of them.
+    case 'cols': next.visibleColumns = [...defaultVisibleColumns(s.profile ?? 'rankings')]; break
     default: break
   }
   return next
