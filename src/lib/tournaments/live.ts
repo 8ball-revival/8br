@@ -155,6 +155,14 @@ export function playoffToBracketRounds(
 
 export interface TournamentEntrantView {
   registrationId: number
+  /**
+   * The canonical Player behind this registration, when there is one.
+   *
+   * Needed to correct an identity from the entrant list — the fix writes the Player and propagates,
+   * so it is the same correction the member editor makes rather than a relabelling of this one
+   * Tournament. Null for a roster member of a drawn team, who has no registration of their own.
+   */
+  playerId: string | null
   name: string
   handle: string | null
   slug: string | null
@@ -442,6 +450,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
     const ratings = await ratingsByPlayerId(regs.map((r) => r.playerId))
     entrants = regs.map((r) => ({
       registrationId: r.id,
+      playerId: r.playerId,
       name: idn.get(r.id)?.displayName ?? r.username,
       handle: idn.get(r.id)?.cueverseId ?? r.cueverseId ?? null,
       slug: idn.get(r.id)?.slug ?? null,
@@ -468,6 +477,7 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       const ratings = await ratingsByPlayerId(solos.map((r) => r.playerId))
       entrants = solos.map((r) => ({
         registrationId: r.id,
+        playerId: r.playerId,
         name: r.displayName?.trim() || r.username,
         handle: r.cueverseId ?? null,
         slug: r.cueverseId ?? null,
@@ -484,6 +494,9 @@ export async function getTournamentWorkspace(number: number): Promise<Tournament
       })
       entrants = members.map((m) => ({
         registrationId: m.id,
+        // A drawn roster member is a team row, not a registration, so there is no Player to correct
+        // from here — the entrant list is read-only once the draw has happened.
+        playerId: null,
         name: m.name,
         handle: m.handle ?? null,
         slug: m.handle ?? null,

@@ -146,7 +146,18 @@ export async function SiteHeader() {
             whether the publishing controls are DRAWN. Every action behind them re-checks
             independently — the panel is a shortcut to a capability, never the capability itself.
           */}
-          <DisplayLab className="mr-2" canPublish={mayEditSite} />
+          {/*
+            Passed only when it is TRUE, never as `canPublish={false}`.
+
+            This is a client component, so every prop it receives is serialised into the payload of
+            whatever page rendered it — and the header is on every page. Sending the flag to people
+            it does not apply to put the word "publish" into the markup of the public Tournament
+            page, where `verify-creator-tournaments` asserts no management control appears; it was
+            a false positive, but the test was right that a visitor should not be receiving it.
+
+            Omitting it lets the default take over, which is the same `false` without shipping it.
+          */}
+          <DisplayLab className="mr-2" {...(mayEditSite ? { canPublish: true } : {})} />
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
           {user ? (
             <details className="group relative ml-1">

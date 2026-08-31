@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { CreatorShell } from '@/components/creator/creator-shell'
 import { CreatorSettings } from '@/components/creator/settings-panel'
 import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
+import { TournamentEntrantsBoard } from '@/components/creator/tournament-entrants-board'
 import { loadTournamentStage } from '@/lib/creator/tournament-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
 import { updateTournamentDetailsAction } from '@/lib/creator/record-details'
@@ -103,7 +104,32 @@ export default async function CreatorTournamentStagePage({
         </Link>
       }
     >
-      {ws ? (
+      {/*
+        ── Entrants is its own screen, shared with Seasons ──────────────────────────────────────
+        Every other stage is a tab of the workspace, which is why this page maps stages onto tabs.
+        Entrants is not: filling a list is the same job for both records, so it is the same board —
+        compact rows, the handle in gold, the rating on the right, one count at the bottom — rather
+        than a second version of it living inside the Tournament workspace.
+
+        A drawn-team Tournament is excluded: its entrants are roster members with no registration of
+        their own, so there is nothing on this screen for a person to add or remove.
+      */}
+      {ws && stage === 'entrants' && !ctx.isTeam ? (
+        <TournamentEntrantsBoard
+          tournamentId={ctx.id}
+          format={String(ws.tournament.tournamentFormat ?? 'SINGLE_ELIM')}
+          entrants={ws.entrants
+            .filter((e) => !e.withdrawn)
+            .map((e) => ({
+              entrantId: e.registrationId,
+              playerId: e.playerId,
+              name: e.name,
+              cueverseId: e.handle,
+              rating: e.rating,
+            }))}
+          isOpen={ws.tournament.lifecycleState === 'REGISTRATION_OPEN'}
+        />
+      ) : ws ? (
         <TournamentWorkspace
           data={ws}
           canManage={canManage}
