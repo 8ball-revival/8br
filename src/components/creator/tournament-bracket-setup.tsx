@@ -40,12 +40,20 @@ export interface SetupEntrant {
 }
 
 export function TournamentBracketSetup({
-  tournamentId, topology, entrants, isDoubleElim, canStart,
+  tournamentId, topology, entrants, isDoubleElim, canStart, canRedraw = true,
 }: {
   tournamentId: number
   topology: TournamentTopology
   entrants: SetupEntrant[]
   isDoubleElim: boolean
+  /**
+   * Whether the draw is this screen's to make.
+   *
+   * False for Groups + Playoffs, whose bracket comes from confirming the qualifiers: redrawing it
+   * here would throw away the group stage's answer about who goes through and reseed from the
+   * entrant list instead. The positions stay arrangeable either way — only the redraw is withheld.
+   */
+  canRedraw?: boolean
   /** False once the bracket is published — the draw is settled and this screen is a record of it. */
   canStart: boolean
 }) {
@@ -126,14 +134,16 @@ export function TournamentBracketSetup({
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => draftTournamentBracketAction(tournamentId))}
-          className="cyber-clip-sm border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-        >
-          {hasDraft ? 'Redraw the bracket' : 'Generate the bracket'}
-        </button>
+        {canRedraw && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(() => draftTournamentBracketAction(tournamentId))}
+            className="cyber-clip-sm border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+          >
+            {hasDraft ? 'Redraw the bracket' : 'Generate the bracket'}
+          </button>
+        )}
         {hasDraft && canStart && (
           <button
             type="button"
@@ -160,7 +170,9 @@ export function TournamentBracketSetup({
           picked={picked}
           dragging={dragging}
           hasDraft={hasDraft}
-          emptyHint="Generate the bracket to lay out the draw, then arrange the first round by hand."
+          emptyHint={canRedraw
+            ? 'Generate the bracket to lay out the draw, then arrange the first round by hand.'
+            : 'The draw appears here once the qualifiers are confirmed on the Groups stage.'}
           onPick={(target) => {
             if (!picked) { setPicked(target); return }
             if (sameSlot(picked, target)) { setPicked(null); return }

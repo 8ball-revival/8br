@@ -51,28 +51,22 @@ const TAB_FOR: Record<string, 'overview' | 'roster' | 'groups' | 'swiss' | 'brac
 
 const STAGE_IDS = new Set(['setup', 'entrants', 'teams', 'groups', 'swiss', 'playoffs', 'complete'])
 
-/** States in which the draw is still a private draft that can be arranged by hand. */
-const PRIVATE_SETUP = new Set(['REGISTRATION_CLOSED'])
-
 /**
- * Stages the live scoring board serves.
+ * Which screen a bracket stage shows, decided by the BRACKET rather than by the lifecycle state.
  *
- * `complete` too: a finished Tournament is the same board with the champion named and every cell
- * locked, which is a better record of what happened than a flat list of scores.
+ * An elimination Tournament draws its bracket once registration closes. A Groups + Playoffs one
+ * gets it from confirming the qualifiers, while the record is still GROUPS_IN_PROGRESS. Keying on
+ * the state meant enumerating those combinations, and the second one was missing — its playoffs
+ * stage fell through to the workspace. Asking whether the draw has been PUBLISHED is the same
+ * question asked once, and it is the question that actually decides:
+ *
+ *   no matches, or none published  →  the private setup board, still arrangeable
+ *   any match published            →  the live scoring board
+ *
+ * Swiss keeps the workspace: it has no bracket, its rounds are paired as it goes.
  */
-const LIVE_BOARD_STAGES = new Set(['playoffs', 'complete'])
-
-/**
- * Formats whose scoring has moved to the shared board.
- *
- * Groups + Playoffs and Swiss still score through the workspace: their surfaces have not been
- * migrated, and the flat Results screen the brief asks to remove is still the only one they have.
- * Removing it now would leave them unable to record a result.
- *
- * Team elimination Tournaments DO use the board — a team seats its own registration, so one
- * combined score per matchup is what the board already records.
- */
-const ELIMINATION = new Set(['SINGLE_ELIM', 'DOUBLE_ELIM'])
+const BRACKET_STAGES = new Set(['playoffs', 'complete'])
+const HAS_A_BRACKET = (format: string) => format !== 'SWISS'
 
 export default async function CreatorTournamentStagePage({
   params,
@@ -157,7 +151,9 @@ export default async function CreatorTournamentStagePage({
             }))}
           isOpen={ws.tournament.lifecycleState === 'REGISTRATION_OPEN'}
         />
-      ) : ws && stage === 'playoffs' && PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
+      ) : ws && stage === 'playoffs'
+        && HAS_A_BRACKET(String(ws.tournament.tournamentFormat))
+        && !ws.matches.some((m) => m.published) ? (
         /*
           ── The draw is arranged before it exists publicly ─────────────────────────────────────
           Only while the bracket is still a draft. Once it is published the Tournament is a live
@@ -194,11 +190,16 @@ export default async function CreatorTournamentStagePage({
                 seed: e.seed,
               }))}
           isDoubleElim={String(ws.tournament.tournamentFormat) === 'DOUBLE_ELIM'}
+          /*
+            A Groups + Playoffs draw is produced by confirming the qualifiers, not drawn here.
+            Offering to redraw would discard the group stage's answer about who goes through.
+          */
+          canRedraw={String(ws.tournament.tournamentFormat) !== 'GROUPS_PLAYOFFS'}
           canStart
         />
-      ) : ws && LIVE_BOARD_STAGES.has(stage)
-        && ELIMINATION.has(String(ws.tournament.tournamentFormat ?? 'SINGLE_ELIM'))
-        && !PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
+      ) : ws && BRACKET_STAGES.has(stage)
+        && HAS_A_BRACKET(String(ws.tournament.tournamentFormat))
+        && ws.matches.some((m) => m.published) ? (
         /*
           ── Once it has started, the board IS the screen ────────────────────────────────────────
           The same scoring board a Season uses: scores in the cells, FF in the forfeiting player's
