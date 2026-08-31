@@ -258,6 +258,65 @@ try {
   check('...and the panel invites a search again',
     /search for a player/i.test(String(await b.eval(inspectorText))))
 
+  // ══ Selecting one NAMED player, by id ══════════════════════════
+  section('Choosing Derrick stores Derrick')
+  /*
+    Named rather than "whoever is not currently linked".
+
+    The lifecycle checks above deliberately move to whichever player is NOT stored, so they prove
+    the mechanism without ever pinning an id. This one pins it: the id that ends up in the document
+    has to be Derrick's exact cuid, and the panel has to show something a person would recognise as
+    Derrick rather than that string.
+  */
+  const DERRICK = 'cmt1nybgb001i6r0cm0deq7al'
+  await b.eval(`(function () {
+    var a = ${ASIDE};
+    var btn = a.querySelector('button[aria-haspopup="listbox"]');
+    if (btn) btn.click();
+    return !!btn;
+  })()`)
+  await sleep(600)
+  await b.eval(typeInSearch('derrick'))
+  await sleep(2000)
+  const derrickPicked = await b.eval(`(function () {
+    var a = ${ASIDE};
+    var opt = [].slice.call(a.querySelectorAll('[role="option"]')).filter(function (o) {
+      return /derrick/i.test(o.textContent || '');
+    })[0];
+    if (!opt) return 'not-listed';
+    opt.click();
+    return 'ok';
+  })()`)
+  check('Derrick is listed and selectable', derrickPicked === 'ok', String(derrickPicked))
+  await sleep(2600)
+
+  check('the document stores his canonical id', (await storedHolder()) === DERRICK, await storedHolder())
+  const derrickText = String(await b.eval(inspectorText))
+  check('the panel shows his name', /Derrick/.test(derrickText))
+  check('...and his CueVerse ID', derrickText.includes('💎'), derrickText.slice(0, 200))
+  check('...and not the raw id', !derrickText.includes(DERRICK))
+
+  // ══ A reference whose player is gone ═════════════════════════════
+  section('A stale reference says so rather than looking empty')
+  /*
+    Written straight into the draft, because the picker cannot produce one -- which is the point.
+    A player deleted or merged away after the fact is the only way a config gets here, and the
+    editor has to be able to tell that apart from "nobody has been chosen yet".
+  */
+  const staleDraft = await getDraft(HOME)
+  const staleDoc = structuredClone(staleDraft!.document) as unknown as Doc
+  recordModules(staleDoc)[0]!.config.holderPlayerId = 'cstaleplayeridnobodyhas00'
+  await saveDraft(HOME, staleDoc as never, staleDraft!.version, ACTOR)
+  await b.goto('/?edit=1', 16000)
+  const staleSel = await b.eval(selectModule(MODULE)) as { ok: boolean }
+  check('the module still opens with a broken reference', staleSel.ok === true)
+  await sleep(2800)
+  const staleText = String(await b.eval(inspectorText))
+  check('the editor is told the player no longer exists',
+    /no longer exists/i.test(staleText), staleText.slice(0, 220))
+  check('...and told the fallbacks are what visitors get',
+    /fallback name and CueVerse ID below are what visitors see/i.test(staleText))
+
   // ══ Mobile ════════════════════════════════════════════════════════════════════════════════════
   section('The control fits a narrow editor')
   await b.viewport(390, 780, true)
