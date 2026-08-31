@@ -149,6 +149,63 @@ added later silently breaking every preset written before it.
 
 ## Scope
 
-Display Lab is a preference held by **one browser**. It changes what a reader sees; it never changes
-what the site records. A Season's standings and a player's rating are identical whatever is set here,
-and a second visitor sees the published site — checked by `test:theme`.
+Display Lab never changes what the site **records**. A Season's standings and a player's rating are
+identical whatever is set here. What it can change is what people *see*, and that comes in three
+separate strengths — see below.
+
+---
+
+## The three states a palette can be in
+
+A colour picker that takes effect immediately and a colour picker that repaints the site for every
+visitor cannot be the same control. They are three, and only the last one asks:
+
+| State | Where it lives | Who sees it | How it ends |
+| --- | --- | --- | --- |
+| **Personal preview** | `localStorage` in one browser | Only that browser | Cleared, or reset |
+| **Saved draft** | The theme page's `SitePageDraft` | Only an Owner previewing it | Published, or replaced |
+| **Published theme** | The theme page's published `SitePageRevision` | Every visitor, on first paint | Rolled back, or republished |
+
+Selecting a preset, moving a picker and pressing **Save draft** all leave the public site exactly as
+it was. **Publish site-wide** is the only control that changes it, and it stops for a confirmation
+that names the consequence rather than asking whether you are sure.
+
+### It is not a second theme system
+
+There is no theme table, no theme revision table and no theme scheduler. The palette is the config of
+the `global.theme` module on the `theme` GLOBAL page, so the draft, the revision, the publish, the
+rollback, the audit entry and the cache invalidation are the site builder's, unchanged — the ones
+already in use for every other page. Display Lab is a different *interface* onto that page. No
+migration was needed to add publishing, and a second copy of that lifecycle would only be a second
+thing to get out of step.
+
+### Who may publish
+
+Every action in `src/lib/theme/actions.ts` begins with `requireCapability('manage_site_builder')`,
+which is Owner-only. A server action is a public HTTP endpoint with a generated name, so that line —
+not the absence of a button — is what stands between it and an anonymous request. An administrator
+without the Owner designation reaches exactly as far as a signed-out visitor.
+`test:theme:permissions` calls all five actions directly, unauthenticated, and requires a refusal.
+
+### The contrast gate applies at publish, not only in the panel
+
+`publishThemeAction` re-evaluates the **complete resolved cascade** server-side and refuses a palette
+that would make essential text unreadable, naming the combinations that failed. It re-checks
+everything rather than the tokens that changed, because a token nobody touched can fail against a
+ground somebody did.
+
+### Reset to graphite vs Back to published
+
+These are different controls and must stay different. "Back to published" shows what visitors are
+being served. "Reset to graphite" shows the **built-in** theme — which, once a non-graphite palette
+has been published, is not the same thing. Clearing the personal overrides would reveal the published
+palette, so when something is published the reset writes the registry's built-in values explicitly.
+
+### Verifying it
+
+- `test:theme:publish` — the lifecycle through the service: private preview, durable draft, published
+  revision, rollback, validation, the contrast gate, and optimistic concurrency.
+- `test:theme:lifecycle` — the same three states driven through the actual controls in a browser,
+  signed in as the Owner. Every assertion ends at the database or at the HTML a signed-out visitor is
+  served, never at React state. It publishes for real, then restores the theme and **proves** it did.
+- `test:theme:permissions` — who is refused, and what a visitor is served instead.
