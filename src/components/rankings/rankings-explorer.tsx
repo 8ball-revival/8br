@@ -210,11 +210,36 @@ export function RankingsExplorer({
     ? { min: Math.min(...facets.years), max: Math.max(...facets.years) }
     : undefined), [facets.years])
 
+  /*
+    A year filter is only a question where there is more than one year to choose between.
+
+    With a single year of results every setting returns the same rows, so the control is withheld
+    and — because it cannot be set — the state's year bounds are never a narrowing. Comparing them
+    against the data's single year would report a filter nobody applied: a "Years: 2005–2026" chip
+    and a "More 1" badge on an untouched ladder, which is what taught readers to ignore both.
+  */
+  /*
+    The archive opens a panel under the row; the live ladder links the name to a profile.
+
+    Handed to the table as an expander or not at all, so the table never has to interpret which
+    kind of ladder it is drawing. Yahoo behaves exactly as it did.
+  */
+  const isArchive = applied.profile === 'archive'
+
+  /*
+    The archive always offers it; the live ladder only once there is a second year to choose.
+
+    Keyed on the profile rather than on the facet count, because the archive does not always report
+    year facets and the count alone withdrew a control Yahoo has always had.
+  */
+  const spansMultipleYears = isArchive || facets.years.length > 1
+  const narrowingBounds = spansMultipleYears ? yearBounds : undefined
+
   const chips = useMemo(() => activeChips(applied, {
     competition: facets.competitions.find((c) => c.id === applied.competitionSeriesId)?.name,
     season: facets.seasons.find((s) => s.id === applied.seasonId)?.label,
     cup: facets.tournaments.find((t) => t.id === applied.tournamentId)?.label,
-  }, now, yearBounds), [applied, facets, now, yearBounds])
+  }, now, narrowingBounds), [applied, facets, now, narrowingBounds])
 
   const groupCount = activeFilterGroups(applied, now).length
 
@@ -367,6 +392,14 @@ export function RankingsExplorer({
         </FilterField>
         )}
 
+        {/*
+          ── Offered on the archive, withheld on the live ladder ─────────────────────────────
+          The Yahoo archive spans 2005 to 2014, so narrowing it by year is a real question. The
+          live ladder holds one year of results and will until the next one begins: every setting
+          of this control returns the same table, and the only thing it can do is make an
+          unfiltered ladder look filtered. It comes back when there is a second year to choose.
+        */}
+        {spansMultipleYears && (
         <FilterField label="Time range" htmlFor="rk-years" className="w-[9.5rem]">
           {/*
             Presets rather than two year pickers. The bar has room for one control, and "since 2020"
@@ -395,6 +428,7 @@ export function RankingsExplorer({
             <option value="10">Last 10 years</option>
           </select>
         </FilterField>
+        )}
 
         {!scopePinsCompetition(applied.scope) && (
         <FilterField label="Record type" htmlFor="rk-event" className="w-[9.5rem]">
@@ -483,9 +517,7 @@ export function RankingsExplorer({
             columns={columns}
             sort={sort}
             onSort={onSort}
-            expanded={expanded}
-            onToggleExpand={onToggleExpand}
-            details={details}
+            {...(isArchive ? { expanded, onToggleExpand, details } : {})}
             minMatches={applied.rowFilters.minMatches}
             topOffset={topOffset}
             /*

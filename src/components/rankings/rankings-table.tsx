@@ -1,10 +1,10 @@
 'use client'
 
 import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import type { PlayerDetail } from '@/lib/stats/rankings-detail'
 import { ArrowDown, ArrowUp, Crown, Flame, Snowflake, Trophy } from 'lucide-react'
 
 import type { ExplorerRow } from '@/lib/stats/ladder-explorer'
-import type { PlayerDetail } from '@/lib/stats/rankings-detail'
 import {
   COLUMN_BY_KEY, isQualified,
   type ColumnDef, type SortSpec,
@@ -156,20 +156,34 @@ function StreakCell({ streak }: { streak: number }) {
  * A championship count.
  *
  * Season Championships wear the gold diamond the rest of the site uses for a Season title;
- * Tournament Titles wear the trophy. Clicking opens the player's expanded row, where the
- * exact competitions behind the number are listed and linked — a count nobody can trace is a count
- * nobody should have to take on trust.
+ * Tournament Titles wear the trophy. It reads rather than clicks: the competitions behind the
+ * number are on the player's profile, which the name beside it now goes to directly.
  */
 function TitleCell({ n, kind, onOpen, playerName }: {
   n: number
   kind: 'season' | 'cup'
-  onOpen: () => void
+  /** Absent on the live ladder, where the evidence is on the profile the name links to. */
+  onOpen?: () => void
   playerName: string
 }) {
   // A dash is the whole answer for nobody. An icon beside it would decorate an absence.
   if (n === 0) return <span className="text-muted-foreground">—</span>
   const Icon = kind === 'season' ? Crown : Trophy
   const what = kind === 'season' ? 'Season Championship' : 'Tournament Title'
+  const face = (
+    <>
+      <Icon className="size-3.5" style={{ color: 'var(--gold)' }} aria-hidden />
+      <span className="font-semibold">{n}</span>
+    </>
+  )
+  if (!onOpen) {
+    return (
+      <span className="inline-flex items-center gap-1" title={`${n} ${what}${n === 1 ? '' : 's'}`}>
+        {face}
+        <span className="sr-only">{what}{n === 1 ? '' : 's'}</span>
+      </span>
+    )
+  }
   return (
     <button
       type="button"
@@ -177,15 +191,15 @@ function TitleCell({ n, kind, onOpen, playerName }: {
       aria-label={`${playerName}: ${n} ${what}${n === 1 ? '' : 's'}. Show the competitions behind this.`}
       className="inline-flex items-center gap-1 rounded px-1 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
     >
-      <Icon className="size-3.5" style={{ color: 'var(--gold)' }} aria-hidden />
-      <span className="font-semibold">{n}</span>
+      {face}
     </button>
   )
 }
 
-/** A count that can be traced, rendered as a control that opens the evidence. */
-function EvidenceCell({ n, onOpen, label }: { n: number; onOpen: () => void; label: string }) {
+/** A count, traceable where a panel exists to trace it into. */
+function EvidenceCell({ n, onOpen, label }: { n: number; onOpen?: () => void; label: string }) {
   if (n === 0) return <span className="text-muted-foreground">—</span>
+  if (!onOpen) return <>{n}</>
   return (
     <button
       type="button"
@@ -234,9 +248,19 @@ export interface RankingsTableProps {
   columns: ColumnDef[]
   sort: SortSpec[]
   onSort: (key: string, additive: boolean) => void
-  expanded: string | null
-  onToggleExpand: (row: ExplorerRow) => void
-  details: Record<string, PlayerDetail | 'loading'>
+  /*
+    An expander, if this table has one.
+
+    The Yahoo archive opens a panel under the row: its players have no live profile to send anybody
+    to, and the panel is where the career behind an archived name lives. The live ladder does have
+    profiles, so its names are links and no panel is drawn.
+
+    Supplying the handler is what turns the behaviour on, rather than a profile string the table
+    would have to interpret — a table given no expander cannot accidentally render half of one.
+  */
+  expanded?: string | null
+  onToggleExpand?: (row: ExplorerRow) => void
+  details?: Record<string, PlayerDetail | 'loading'>
   minMatches: number
   /** Sticky offset for the pane, measured from the real rendered site header. */
   topOffset: number
@@ -385,10 +409,11 @@ function Row({
   /** The highest rating on the whole table, so a row can tell whether it holds it. */
   highestRating?: number | null
 } & RankingsTableProps) {
-  const isOpen = expanded === row.playerId
   const qualified = isQualified(row, minMatches)
   const name = row.preferredName || row.cueverseId || 'Unknown player'
-  const open = () => { if (!isOpen) onToggleExpand(row) }
+  const canExpand = !!onToggleExpand
+  const isOpen = canExpand && expanded === row.playerId
+  const open = () => { if (!isOpen) onToggleExpand?.(row) }
 
   // Neutral lifts, never a gold wash: gold over charcoal goes brown.
   const bg = isOpen ? 'bg-white/[0.06]' : 'bg-card'
@@ -441,34 +466,49 @@ function Row({
                 </span>
               ) : c.key === 'player' ? (
                 /*
-                  The NAME is the control that opens a player's history. There is no chevron and no
-                  checkbox beside it: a row with three separate affordances made the reader choose
-                  which one meant "tell me more", and the obvious thing to click was always the name.
-                  The profile link moved into the expanded panel, where it reads as one of several
-                  places to go next rather than as a trap on the row itself.
+                  The name goes where the name promises.
+
+                  On the live ladder that is the player's profile. It used to open a panel under the
+                  row instead, which put the career one click away and the profile two — behind a
+                  link inside the panel — so the obvious thing to click did not do the obvious
+                  thing, and the row grew and pushed the table about while you were reading it.
+
+                  The archive keeps the panel: its names have no live profile to go to.
                 */
-                <button
-                  type="button"
-                  onClick={() => onToggleExpand(row)}
-                  aria-expanded={isOpen}
-                  aria-label={`${isOpen ? 'Hide' : 'Show'} career detail for ${name}`}
-                  className="block w-full min-w-0 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
-                >
+                canExpand ? (
+                  <button
+                    type="button"
+                    onClick={() => onToggleExpand?.(row)}
+                    aria-expanded={isOpen}
+                    aria-label={`${isOpen ? 'Hide' : 'Show'} career detail for ${name}`}
+                    className="block w-full min-w-0 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+                  >
+                    <IdentityCell
+                      identity={{ preferredName: row.preferredName, cueverseId: row.cueverseId }}
+                      className="min-w-0"
+                    />
+                  </button>
+                ) : (
+                  /*
+                    The slug is the whole change: IdentityCell already renders a link when it is
+                    given one, with the title, the hover and the focus ring the rest of the site
+                    uses. Wrapping it in a second link would nest one anchor inside another.
+                  */
                   <IdentityCell
-                    identity={{ preferredName: row.preferredName, cueverseId: row.cueverseId }}
+                    identity={{ preferredName: row.preferredName, cueverseId: row.cueverseId, slug: row.slug }}
                     className="min-w-0"
                   />
-                </button>
+                )
               ) : c.key === 'rating' ? (
                 <RatingCell rating={row.rating} highest={highestRating} />
               ) : c.key === 'currentStreak' ? (
                 <StreakCell streak={row.currentStreak} />
               ) : c.key === 'seasonTitles' ? (
-                <TitleCell n={row.seasonTitles} kind="season" onOpen={open} playerName={name} />
+                <TitleCell n={row.seasonTitles} kind="season" onOpen={canExpand ? open : undefined} playerName={name} />
               ) : c.key === 'tournamentTitles' ? (
-                <TitleCell n={row.tournamentTitles} kind="cup" onOpen={open} playerName={name} />
+                <TitleCell n={row.tournamentTitles} kind="cup" onOpen={canExpand ? open : undefined} playerName={name} />
               ) : c.key === 'finalsAppearances' ? (
-                <EvidenceCell n={row.finalsAppearances} onOpen={open} label={`${name}: ${row.finalsAppearances} finals reached`} />
+                <EvidenceCell n={row.finalsAppearances} onOpen={canExpand ? open : undefined} label={`${name}: ${row.finalsAppearances} finals reached`} />
               ) : (
                 (c.format ?? ((r) => String(COLUMN_BY_KEY[c.key]?.value(r) ?? '—')))(row)
               )}
@@ -477,7 +517,7 @@ function Row({
         })}
       </tr>
 
-      {isOpen && (
+      {isOpen && details && (
         <tr>
           <td colSpan={columns.length} className="border-b border-border bg-card/60 px-4 py-4">
             <ExpandedRow row={row} detail={details[row.playerId]} />
