@@ -61,7 +61,7 @@ export function NewsPlaques({
                   <span className="block text-sm font-semibold leading-snug text-[var(--text-primary)] transition-colors group-hover:text-[var(--signal)]">
                     {a.title}
                   </span>
-                  <span className="mt-1.5 block font-condensed text-[0.66rem] font-medium uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  <span className="mt-1.5 block font-condensed text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
                     <PublishedOn at={a.publishAt} />
                   </span>
                 </span>
@@ -105,7 +105,7 @@ function Thumbnail({ art }: { art: ArticleArt | null }) {
               'repeating-linear-gradient(125deg, color-mix(in oklab, var(--steel-dim) 22%, transparent) 0 1px, transparent 1px 9px)',
           }}
         />
-        <span className="absolute inset-0 flex items-center justify-center font-condensed text-[0.6rem] font-bold uppercase tracking-[0.22em] text-[var(--steel)]">
+        <span className="absolute inset-0 flex items-center justify-center font-condensed text-[0.66rem] font-bold uppercase tracking-[0.22em] text-[var(--steel)]">
           8BR
         </span>
       </span>

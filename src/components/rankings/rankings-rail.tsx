@@ -96,7 +96,7 @@ function RailPanel({ title, note, children }: { title: string; note?: string; ch
           {title}
         </h2>
         {note && (
-          <p className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground">{note}</p>
+          <p className="text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground">{note}</p>
         )}
       </div>
       <div className="divide-y divide-[var(--line)]">{children}</div>
@@ -137,10 +137,10 @@ function LeaderRow({
         )}
         aria-hidden
       >
-        {icon ?? <span className="text-[0.6rem] font-bold">#</span>}
+        {icon ?? <span className="text-[0.66rem] font-bold">#</span>}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.6rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="block text-[0.66rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           {label}
         </span>
         <Identity row={row} />

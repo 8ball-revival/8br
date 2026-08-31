@@ -117,7 +117,7 @@ export function TeamName({
         className={cn(
           'rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--bracket-focus)]',
           variant === 'details'
-            ? 'inline-flex size-[0.95rem] shrink-0 items-center justify-center border border-[var(--bracket-outline)] rounded-full text-[0.55rem] leading-none text-[var(--bracket-text-neutral)] hover:text-[var(--bracket-text)]'
+            ? 'inline-flex size-[0.95rem] shrink-0 items-center justify-center border border-[var(--bracket-outline)] rounded-full text-[0.66rem] leading-none text-[var(--bracket-text-neutral)] hover:text-[var(--bracket-text)]'
             : cn(
               'block max-w-full truncate text-[1.02rem] leading-snug tracking-tight',
               won ? 'font-bold text-foreground' : dim ? 'bracket-loser-name font-bold italic' : 'font-medium text-foreground',
@@ -152,7 +152,7 @@ export function TeamName({
             {avg != null && (
               <div className="shrink-0 text-right">
                 <div className="text-base font-bold tabular-nums text-brand">{avg}</div>
-                <div className="text-[0.6rem] uppercase tracking-wide text-muted-foreground">Avg</div>
+                <div className="text-[0.66rem] uppercase tracking-wide text-muted-foreground">Avg</div>
               </div>
             )}
           </div>

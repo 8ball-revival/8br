@@ -101,7 +101,7 @@ export function GroupCrossTable({ group }: { group: PublicGroupView }) {
                       {identityLines(c.identity).primary}
                     </span>
                     {identityLines(c.identity).secondary && (
-                      <span className="block max-w-16 truncate text-[0.6rem] leading-tight text-foreground/70">
+                      <span className="block max-w-16 truncate text-[0.66rem] leading-tight text-foreground/70">
                         {identityLines(c.identity).secondary}
                       </span>
                     )}

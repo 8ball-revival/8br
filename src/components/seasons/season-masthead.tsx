@@ -190,7 +190,7 @@ function Champion({
     <div className="flex h-full items-center justify-center gap-3 border-t-2 border-[var(--gold)] bg-[var(--selected-surface)] px-4 py-3.5">
       <div className="flex shrink-0 flex-col items-center gap-1">
         <ChampionTrophy />
-        <p className="whitespace-nowrap text-[0.55rem] font-extrabold uppercase tracking-[0.16em] text-[var(--gold)]">
+        <p className="whitespace-nowrap text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-[var(--gold)]">
           Season Champion
         </p>
       </div>
@@ -265,7 +265,7 @@ function InProgress({ state }: { state: SeasonState }) {
     <div className="flex h-full items-center justify-center gap-4 px-4 py-3.5">
       <div className="flex shrink-0 flex-col items-center gap-1">
         <Trophy aria-hidden strokeWidth={1.5} className="size-11 text-[var(--gold-dim)]/60" />
-        <p className="whitespace-nowrap text-[0.55rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="whitespace-nowrap text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
           Season In Progress
         </p>
       </div>
@@ -293,7 +293,7 @@ function Glance({ glance }: { glance: SeasonGlance }) {
   ]
   return (
     <div className="flex h-full flex-col justify-center gap-2 px-4 py-3.5">
-      <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
         Season at a Glance
       </p>
       {/* One row of four equal cells. A 2x2 grid was most of the masthead's height and made no
@@ -304,7 +304,7 @@ function Glance({ glance }: { glance: SeasonGlance }) {
             key={label}
             className="flex min-w-0 flex-col gap-1 rounded-none border border-border bg-surface px-2.5 py-2"
           >
-            <span className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-[0.66rem] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
               <Icon className="size-3.5 shrink-0 text-[var(--gold-dim)]" aria-hidden />
               {/* The label wraps to a second line rather than truncating: "Games per Match" is not
                   guessable from "Games per…", and the tile has the height to spare. */}

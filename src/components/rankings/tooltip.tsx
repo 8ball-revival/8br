@@ -75,7 +75,7 @@ export function Tip({
 export function InfoTip({ text, label }: { text: string; label: string }) {
   return (
     <Tip text={text}>
-      <span aria-label={label} className="grid size-4 place-items-center rounded-full border border-border text-[0.6rem] font-bold text-muted-foreground">
+      <span aria-label={label} className="grid size-4 place-items-center rounded-full border border-border text-[0.66rem] font-bold text-muted-foreground">
         i
       </span>
     </Tip>

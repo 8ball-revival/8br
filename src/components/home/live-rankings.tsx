@@ -48,7 +48,7 @@ export function LiveRankings({
             {platform === 'CUEVERSE' ? 'CueVerse' : 'Yahoo Archive'}
           </span>
         </h2>
-        <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="text-[0.66rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           Rating
         </p>
       </div>
@@ -100,7 +100,7 @@ function LeaderCard({ row }: { row: LeaderRow }) {
         )}
       </span>
       <span className="shrink-0 text-right">
-        <span className="block text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70">
+        <span className="block text-[0.66rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70">
           Rating
         </span>
         <span className="tabular block text-2xl font-bold leading-none text-[var(--acid-ink)]">

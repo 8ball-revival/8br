@@ -27,7 +27,7 @@ export function PlatformBadge({
     <span
       className={cn(
         'inline-flex shrink-0 items-center rounded border px-1.5 py-0.5',
-        'text-[0.6rem] font-semibold uppercase tracking-[0.1em] leading-none',
+        'text-[0.66rem] font-semibold uppercase tracking-[0.1em] leading-none',
         'border-border text-muted-foreground',
         className,
       )}
@@ -50,7 +50,7 @@ export function UnrankedBadge({ className }: { className?: string }) {
     <span
       className={cn(
         'inline-flex shrink-0 items-center rounded border px-1.5 py-0.5',
-        'text-[0.6rem] font-semibold uppercase tracking-[0.1em] leading-none',
+        'text-[0.66rem] font-semibold uppercase tracking-[0.1em] leading-none',
         'border-[var(--warning)]/40 text-[var(--warning)]',
         className,
       )}

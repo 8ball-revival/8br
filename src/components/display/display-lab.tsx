@@ -248,7 +248,7 @@ export function DisplayLab({ className }: { className?: string }) {
             <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-2.5">
               <div className="min-w-0">
                 <h2 id={titleId} className="font-display text-sm font-bold uppercase tracking-[0.16em]">Display Lab</h2>
-                <p className="text-[0.62rem] text-muted-foreground">Stored in this browser only</p>
+                <p className="text-[0.66rem] text-muted-foreground">Stored in this browser only</p>
               </div>
               <button
                 type="button" onClick={close} aria-label="Close Display Lab"
@@ -275,7 +275,7 @@ export function DisplayLab({ className }: { className?: string }) {
                   aria-controls={`dl-panel-${key}`}
                   onClick={() => setTab(key)}
                   className={cn(
-                    'flex flex-1 flex-col items-center gap-0.5 border-b-2 px-1 py-2 text-[0.6rem] font-semibold uppercase tracking-wider transition-colors',
+                    'flex flex-1 flex-col items-center gap-0.5 border-b-2 px-1 py-2 text-[0.66rem] font-semibold uppercase tracking-wider transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
                     tab === key
                       ? 'border-[var(--acid)] text-[var(--acid)]'
@@ -310,7 +310,7 @@ export function DisplayLab({ className }: { className?: string }) {
 
             {/* ── Fixed footer ──────────────────────────────────────────────────────────────── */}
             <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-[var(--line)] px-4 py-2.5">
-              <p className="min-w-0 truncate text-[0.62rem] text-muted-foreground">
+              <p className="min-w-0 truncate text-[0.66rem] text-muted-foreground">
                 {justReset ? 'Back to the site defaults.' : 'Changes apply as you make them.'}
               </p>
               <button
@@ -576,7 +576,7 @@ function EffectsTab({ settings, edit }: {
                 className="block h-6 w-full border border-[var(--acid)]"
                 style={{ boxShadow: 'var(--glow-yellow)' }}
               />
-              <span className={cn('mt-0.5 block text-center text-[0.55rem] tabular', settings.glow === n ? 'text-[var(--acid)]' : 'text-muted-foreground')}>{n}</span>
+              <span className={cn('mt-0.5 block text-center text-[0.66rem] tabular', settings.glow === n ? 'text-[var(--acid)]' : 'text-muted-foreground')}>{n}</span>
             </span>
           ))}
         </div>
@@ -752,7 +752,7 @@ function Thumbs<T extends string>({ options, value, onChange, render }: {
           )}
         >
           {render(key)}
-          <span className={cn('truncate text-[0.58rem] font-semibold uppercase tracking-wider', value === key ? 'text-[var(--acid)]' : 'text-muted-foreground')}>
+          <span className={cn('truncate text-[0.66rem] font-semibold uppercase tracking-wider', value === key ? 'text-[var(--acid)]' : 'text-muted-foreground')}>
             {label}
           </span>
         </button>

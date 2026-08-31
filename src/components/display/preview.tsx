@@ -68,7 +68,7 @@ export function DisplayPreview({ settings, mode, compact = false }: {
           compact ? 'p-2' : 'p-3 sm:grid-cols-[minmax(0,60fr)_minmax(0,40fr)]',
         )}>
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">
+            <p className="flex items-center gap-1.5 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">
               Welcome to 8 Ball Registry
               <span aria-hidden className="text-[var(--hot-red)]">{'//'}</span>
             </p>
@@ -82,14 +82,14 @@ export function DisplayPreview({ settings, mode, compact = false }: {
                 Explore seasons, tournaments, champions, and results.
               </p>
             )}
-            <span className="cyber-clip-sm mt-3 inline-flex bg-[var(--hot-red)] px-3 py-1.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[var(--clean-white)]">
+            <span className="cyber-clip-sm mt-3 inline-flex bg-[var(--hot-red)] px-3 py-1.5 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-[var(--clean-white)]">
               Rankings
             </span>
           </div>
           {/* The news column is the first thing to go when the strip has to share a drawer. */}
           {!compact && (
             <div className="min-w-0 border-t border-[var(--acid-ink)]/25 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
-              <p className="text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">Latest News</p>
+              <p className="text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--acid-ink)]/70">Latest News</p>
               <ul className="mt-2 space-y-1.5">
                 {['Season 9 groups are drawn', 'Playoff bracket published'].map((t) => (
                   <li key={t} className="flex gap-1.5 border-b border-[var(--acid-ink)]/15 pb-1.5 last:border-b-0 last:pb-0">
@@ -110,7 +110,7 @@ export function DisplayPreview({ settings, mode, compact = false }: {
           promised for tables: whatever the frame is doing to panels, it is not doing it to rows.
         */}
         <div className="dl-surface cyber-clip bg-[var(--card)] p-3">
-          <p className="text-[0.55rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">Live Rankings</p>
+          <p className="text-[0.66rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">Live Rankings</p>
           <ul className="mt-2 space-y-1">
             {/*
               Neutral sample names, deliberately.
@@ -134,7 +134,7 @@ export function DisplayPreview({ settings, mode, compact = false }: {
       {mode === 'page' && (
         <p className={cn(
           'relative z-[1] mt-2 border border-dashed border-[var(--acid)]/50 px-2 py-1.5',
-          'text-[0.62rem] font-semibold uppercase tracking-wider text-[var(--acid)]',
+          'text-[0.66rem] font-semibold uppercase tracking-wider text-[var(--acid)]',
         )}>
           Previewing the whole page — scroll behind this panel to see it
         </p>

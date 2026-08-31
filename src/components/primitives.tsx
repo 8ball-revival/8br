@@ -68,7 +68,7 @@ export function Panel({
         <div className="flex items-center gap-2">
           <h2 className="eyebrow text-foreground">{title}</h2>
           {live && (
-            <span className="inline-flex items-center gap-1 cyber-clip-sm bg-destructive/15 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-destructive">
+            <span className="inline-flex items-center gap-1 cyber-clip-sm bg-destructive/15 px-1.5 py-0.5 text-[0.66rem] font-semibold uppercase tracking-wider text-destructive">
               <span className="relative flex size-1.5">
                 <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-destructive/70" aria-hidden />
                 <span className="relative inline-flex size-1.5 rounded-full bg-destructive" aria-hidden />
@@ -108,7 +108,7 @@ export function Flag({ code, className }: { code: string; className?: string }) 
     <span
       title={FLAG_LABELS[code] ?? code}
       className={cn(
-        'inline-flex h-3.5 w-5 items-center justify-center rounded-[2px] border border-border bg-gradient-to-b from-muted to-secondary text-[0.55rem] font-bold leading-none text-muted-foreground',
+        'inline-flex h-3.5 w-5 items-center justify-center rounded-[2px] border border-border bg-gradient-to-b from-muted to-secondary text-[0.66rem] font-bold leading-none text-muted-foreground',
         className,
       )}
       aria-label={FLAG_LABELS[code] ?? code}
@@ -154,7 +154,7 @@ export function PlayerAvatar({
   className?: string
 }) {
   const sizes = {
-    sm: 'size-7 text-[0.6rem]',
+    sm: 'size-7 text-[0.66rem]',
     md: 'size-9 text-xs',
     lg: 'size-14 text-base',
     xl: 'size-20 text-xl',

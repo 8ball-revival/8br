@@ -63,7 +63,7 @@ export function FilterField({
     <div className={cn('min-w-0', className)}>
       <label
         htmlFor={htmlFor}
-        className="mb-1 block text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70"
+        className="mb-1 block text-[0.66rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70"
       >
         {label}
       </label>
@@ -104,7 +104,7 @@ export function SegmentedSwitch<T extends string>({
 }) {
   return (
     <div className={cn('min-w-0', className)}>
-      <span className="mb-1 block text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70">
+      <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-[0.12em] text-[var(--acid-ink)]/70">
         {label}
       </span>
       {/*

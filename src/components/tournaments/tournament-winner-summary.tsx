@@ -40,7 +40,7 @@ export function TournamentWinnerSummary({
         <div className="flex items-center gap-3">
           <PlayerAvatar name={champion.name} size="md" />
           <div>
-            <p className="eyebrow text-[0.55rem] text-brand">Champion</p>
+            <p className="eyebrow text-[0.66rem] text-brand">Champion</p>
             <PublicPlayerIdentity preferredName={champion.name} cueverseId={champion.cueverseId} slug={champion.slug} className="text-base" />
           </div>
         </div>
@@ -49,7 +49,7 @@ export function TournamentWinnerSummary({
           <div className="flex items-center gap-3">
             <PlayerAvatar name={runnerUp.name} size="sm" />
             <div>
-              <p className="eyebrow text-[0.55rem] text-muted-foreground">Runner-up</p>
+              <p className="eyebrow text-[0.66rem] text-muted-foreground">Runner-up</p>
               <PublicPlayerIdentity preferredName={runnerUp.name} cueverseId={runnerUp.cueverseId} slug={runnerUp.slug} muted />
             </div>
           </div>
@@ -57,7 +57,7 @@ export function TournamentWinnerSummary({
 
         {finalScore && (
           <div>
-            <p className="eyebrow text-[0.55rem] text-muted-foreground">Final</p>
+            <p className="eyebrow text-[0.66rem] text-muted-foreground">Final</p>
             <p className="tabular text-base font-semibold text-foreground">{finalScore}</p>
           </div>
         )}

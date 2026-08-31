@@ -201,7 +201,7 @@ export function SwatchChoice<T extends string>({ label, value, onChange, options
             {renderSwatch(v)}
             <span
               className={cn(
-                'text-[0.62rem] font-semibold uppercase tracking-wider',
+                'text-[0.66rem] font-semibold uppercase tracking-wider',
                 value === v ? 'text-[var(--acid)]' : 'text-muted-foreground',
               )}
             >

@@ -45,7 +45,8 @@
     "apply:graphite-homepage": "tsx --tsconfig tsconfig.scripts.json scripts/apply-graphite-homepage.mts",
     "test:homepage": "tsx --tsconfig tsconfig.scripts.json scripts/verify-homepage-graphite.mts",
     "test:homepage:edit": "tsx --tsconfig tsconfig.scripts.json scripts/verify-homepage-editmode.mts",
-    "test:theme": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-system.mts"
+    "test:theme": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-system.mts",
+    "test:typography": "tsx --tsconfig tsconfig.scripts.json scripts/verify-typography.mts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",

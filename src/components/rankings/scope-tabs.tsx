@@ -88,7 +88,7 @@ export function ScopeEmpty({ scope }: { scope: RankingScope }) {
   const def = SCOPE_DEFINITIONS[scope]
   return (
     <div className="border border-dashed border-[var(--line-strong)] bg-card px-6 py-14 text-center">
-      <p className="font-display text-lg font-black text-foreground">{def.emptyTitle}</p>
+      <p className="font-display text-lg font-bold text-foreground">{def.emptyTitle}</p>
       <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">{def.emptyBody}</p>
     </div>
   )

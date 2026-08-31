@@ -251,7 +251,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
                   <DiscordIcon name={p.cueverseId ?? p.username} discord={p.discord} />
                 </th>
               ))}
-              <th scope="col" className={`${th} sticky top-[calc(2.25rem)] z-20 border-l-2 border-l-border bg-surface text-[0.65rem] uppercase text-muted-foreground`}>
+              <th scope="col" className={`${th} sticky top-[calc(2.25rem)] z-20 border-l-2 border-l-border bg-surface text-[0.66rem] font-semibold uppercase text-muted-foreground`}>
                 <span className="inline-flex items-center gap-1">Pts
                   <span className="group/tip relative inline-flex">
                     <button type="button" aria-describedby={tipId} className="inline-flex text-muted-foreground hover:text-foreground"><Info className="size-3" aria-hidden /><span className="sr-only">How standings are sorted</span></button>
@@ -261,8 +261,8 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
                   </span>
                 </span>
               </th>
-              <th scope="col" className={`${th} sticky top-[calc(2.25rem)] z-20 bg-surface text-[0.65rem] uppercase text-muted-foreground`}>W-L-D</th>
-              <th scope="col" className={`${th} sticky top-[calc(2.25rem)] z-20 bg-surface text-[0.65rem] uppercase text-muted-foreground`}>Win %</th>
+              <th scope="col" className={`${th} sticky top-[calc(2.25rem)] z-20 bg-surface text-[0.66rem] font-semibold uppercase text-muted-foreground`}>W-L-D</th>
+              <th scope="col" className={`${th} sticky top-[calc(2.25rem)] z-20 bg-surface text-[0.66rem] font-semibold uppercase text-muted-foreground`}>Win %</th>
             </tr>
           </thead>
           <tbody>
@@ -279,7 +279,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
                         className="text-foreground"
                       />
                     </span>
-                    {row.kickedOut && <span className="text-[0.6rem] font-bold text-destructive">KO</span>}
+                    {row.kickedOut && <span className="text-[0.66rem] font-bold text-destructive">KO</span>}
                   </th>
                   {rows.map((col) => (
                     <ResultCell key={col.entrantId} row={row} col={col} matchOf={matchOf} draft={draft} dirty={dirty} rowBg={rowBg} canManage={canManage} setCell={setCell} />

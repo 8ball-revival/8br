@@ -83,7 +83,7 @@ export function PaletteTab({
               <PresetSwatches preset={p.values} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[0.72rem] font-semibold text-foreground">{p.name}</span>
-                <span className="mt-0.5 block text-[0.64rem] leading-snug text-muted-foreground">{p.blurb}</span>
+                <span className="mt-0.5 block text-[0.66rem] leading-snug text-muted-foreground">{p.blurb}</span>
               </span>
               {settings.preset === p.id && <Check className="mt-0.5 size-3.5 shrink-0 text-[var(--acid)]" aria-hidden />}
             </button>
@@ -109,7 +109,7 @@ export function PaletteTab({
                 <button
                   type="button"
                   onClick={() => resetGroup(group.id)}
-                  className="inline-flex items-center gap-1 text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  className="inline-flex items-center gap-1 text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                 >
                   <RotateCcw className="size-3" aria-hidden />
                   Reset this section
@@ -141,7 +141,7 @@ export function PaletteTab({
         </button>
       )}
 
-      <p className="pt-1 text-[0.62rem] leading-relaxed text-muted-foreground">
+      <p className="pt-1 text-[0.66rem] leading-relaxed text-muted-foreground">
         Stored in this browser only. It changes what you see, never what the site records — a
         Season&rsquo;s standings and a player&rsquo;s rating are the same whatever is set here.
       </p>
@@ -191,10 +191,10 @@ function TokenRow({
           <span className="flex items-center gap-1.5">
             <span className="truncate text-[0.72rem] font-semibold text-foreground">{token.label}</span>
             {overridden
-              ? <span className="shrink-0 rounded-sm bg-[var(--accent)] px-1 text-[0.55rem] font-bold uppercase tracking-wider text-[var(--acid)]">set</span>
-              : <span className="shrink-0 text-[0.55rem] font-medium uppercase tracking-wider text-muted-foreground">inherited</span>}
+              ? <span className="shrink-0 rounded-sm bg-[var(--accent)] px-1 text-[0.66rem] font-bold uppercase tracking-wider text-[var(--acid)]">set</span>
+              : <span className="shrink-0 text-[0.66rem] font-medium uppercase tracking-wider text-muted-foreground">inherited</span>}
           </span>
-          <code className="mt-0.5 block truncate text-[0.58rem] text-muted-foreground">{token.css}</code>
+          <code className="mt-0.5 block truncate text-[0.66rem] text-muted-foreground">{token.css}</code>
         </span>
 
         <input
@@ -211,7 +211,7 @@ function TokenRow({
           aria-label={`${token.label} hex value`}
           aria-invalid={typed != null && typed !== '' && !isValidTokenValue(typed)}
           className={cn(
-            'w-[5.6rem] shrink-0 border bg-[var(--void)] px-1.5 py-1 font-mono text-[0.64rem] text-foreground',
+            'w-[5.6rem] shrink-0 border bg-[var(--void)] px-1.5 py-1 font-mono text-[0.66rem] text-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
             typed != null && typed !== '' && !isValidTokenValue(typed)
               ? 'border-[var(--hot-red)]'
@@ -231,10 +231,10 @@ function TokenRow({
         )}
       </div>
 
-      <p className="mt-1.5 text-[0.62rem] leading-snug text-muted-foreground">{token.effect}</p>
+      <p className="mt-1.5 text-[0.66rem] leading-snug text-muted-foreground">{token.effect}</p>
 
       {token.cascadesTo && token.cascadesTo.length > 0 && (
-        <p className="mt-1 text-[0.58rem] text-muted-foreground/80">
+        <p className="mt-1 text-[0.66rem] text-muted-foreground/80">
           {token.cascadesTo.length} other {token.cascadesTo.length === 1 ? 'role follows' : 'roles follow'} this.
         </p>
       )}
@@ -242,7 +242,7 @@ function TokenRow({
       {failing.length > 0 && (
         <ul className="mt-1.5 space-y-1">
           {failing.map((f) => (
-            <li key={f.id} className={cn('text-[0.6rem]', f.verdict === 'block' ? 'text-[var(--hot-red)]' : 'text-[var(--warning)]')}>
+            <li key={f.id} className={cn('text-[0.66rem]', f.verdict === 'block' ? 'text-[var(--hot-red)]' : 'text-[var(--warning)]')}>
               {f.where}: {f.ratio}:1, needs {f.needed}:1
             </li>
           ))}
@@ -281,11 +281,11 @@ function ContrastReport({ verdict, onFix }: { verdict: ReturnType<typeof verdict
             </>
           )}
         </p>
-        <p className="mt-1 text-[0.62rem] text-muted-foreground">
+        <p className="mt-1 text-[0.66rem] text-muted-foreground">
           {passing} pass · {warnings.length} advisory · {blocking.length} blocking
         </p>
         {blocking.length > 0 && (
-          <p className="mt-1 text-[0.62rem] text-muted-foreground">
+          <p className="mt-1 text-[0.66rem] text-muted-foreground">
             A palette cannot be published while any of these fail.
           </p>
         )}
@@ -301,7 +301,7 @@ function ContrastReport({ verdict, onFix }: { verdict: ReturnType<typeof verdict
                 : <TriangleAlert className="mt-px size-3 shrink-0 text-[var(--warning)]" aria-hidden />}
               {r.where}
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-[0.62rem] text-muted-foreground">
+            <p className="mt-1 flex items-center gap-1.5 text-[0.66rem] text-muted-foreground">
               <span className="inline-block size-3 border border-[var(--line-strong)]" style={{ background: r.bgHex }} aria-hidden />
               <span className="inline-block size-3 border border-[var(--line-strong)]" style={{ background: r.fgHex }} aria-hidden />
               {r.ratio}:1 — needs {r.needed}:1
@@ -311,14 +311,14 @@ function ContrastReport({ verdict, onFix }: { verdict: ReturnType<typeof verdict
               <button
                 type="button"
                 onClick={() => onFix(r)}
-                className="mt-1.5 inline-flex items-center gap-1.5 border border-[var(--line-strong)] px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wider text-foreground transition-colors hover:border-[var(--acid)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                className="mt-1.5 inline-flex items-center gap-1.5 border border-[var(--line-strong)] px-2 py-1 text-[0.66rem] font-semibold uppercase tracking-wider text-foreground transition-colors hover:border-[var(--acid)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
               >
                 <span className="inline-block size-2.5 border border-[var(--line-strong)]" style={{ background: suggestion }} aria-hidden />
                 Use the nearest readable shade
               </button>
             )}
             {!suggestion && (
-              <p className="mt-1 text-[0.6rem] text-muted-foreground">
+              <p className="mt-1 text-[0.66rem] text-muted-foreground">
                 No shade of this colour clears it — the surface behind it has to move instead.
               </p>
             )}

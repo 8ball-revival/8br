@@ -204,7 +204,7 @@ export function ChampionHero({
                     >
                       {a.title}
                     </Link>
-                    <p className="mt-1 font-condensed text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[var(--text-on-media-dim)]">
+                    <p className="mt-1 font-condensed text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--text-on-media-dim)]">
                       <PublishedOn at={a.publishAt} />
                     </p>
                   </div>

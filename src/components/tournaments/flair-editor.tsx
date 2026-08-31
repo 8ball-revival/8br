@@ -59,7 +59,7 @@ export function FlairPreview({ value, name }: { value: FlairValue; name: string 
       <div className="p-4">
         <div className="flex items-center gap-2">
           {badge && <span className="text-lg" aria-hidden>{badge.emoji}</span>}
-          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-brand">Tournament</span>
+          <span className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-brand">Tournament</span>
         </div>
         <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground">{name.trim() || 'Untitled Tournament'}</h4>
         {value.description && <p className="mt-1.5 whitespace-pre-wrap text-xs text-muted-foreground">{value.description}</p>}

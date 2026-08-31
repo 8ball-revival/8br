@@ -190,7 +190,7 @@ export function YahooWorkspace({
       <header className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[var(--cyan)]">Historical Archive</p>
-          <h1 className="font-display text-3xl font-black tracking-tight text-foreground sm:text-4xl">Yahoo Pool Archive</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Yahoo Pool Archive</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             The original Yahoo era of 8BRCAM, kept as it survived. Ratings here are a separate legacy
             ladder — they are not part of the current CueVerse rankings.

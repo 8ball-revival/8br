@@ -245,7 +245,7 @@ export function ColorPicker({ value, recents, swatches, onChange, onCommit }: {
           aria-hidden
         />
         <label htmlFor={hexId} className="min-w-0 flex-1">
-          <span className="mb-0.5 block text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">Hex</span>
+          <span className="mb-0.5 block text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground">Hex</span>
           <input
             id={hexId} type="text" value={typed} spellCheck={false} maxLength={7}
             onChange={(e) => { setTyped(e.target.value); applyHex(e.target.value) }}
@@ -255,7 +255,7 @@ export function ColorPicker({ value, recents, swatches, onChange, onCommit }: {
         </label>
         {(['R', 'G', 'B'] as const).map((label, i) => (
           <label key={label} className="w-14 shrink-0">
-            <span className="mb-0.5 block text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+            <span className="mb-0.5 block text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
             <input
               type="number" min={0} max={255} value={rgb[i]}
               onChange={(e) => setChannel(i, e.target.value)}
@@ -308,7 +308,7 @@ function Swatches({ label, colors, current, onPick }: {
 }) {
   return (
     <div>
-      <p className="mb-1 text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mb-1 text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {colors.map(([hex, name]) => (
           <button

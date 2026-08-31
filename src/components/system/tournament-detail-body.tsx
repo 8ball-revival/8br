@@ -497,7 +497,7 @@ export async function TournamentDetailBody({ params, searchParams }: { params: P
               <p className="text-xs text-muted-foreground">{identityLines(fromNameHandle(cup.champion)).secondary}</p>
             )}
           </div>
-          <span className="eyebrow ml-2 text-[0.55rem] text-brand">Champion</span>
+          <span className="eyebrow ml-2 text-[0.66rem] text-brand">Champion</span>
         </div>
       )}
 

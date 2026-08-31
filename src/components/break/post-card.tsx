@@ -132,7 +132,7 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
                 </span>
               )}
               {card.mediaCount > 1 && (
-                <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[0.6rem] font-semibold text-white">
+                <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[0.66rem] font-semibold text-white">
                   {card.mediaCount}
                 </span>
               )}

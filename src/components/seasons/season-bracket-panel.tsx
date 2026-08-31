@@ -229,7 +229,7 @@ export function SeasonBracketPanel({
                   ri < rounds.length - 1 && 'bp-lane-divider',
                 )}
               >
-                <p className="bp-lane-head sticky top-0 z-20 whitespace-nowrap px-3 pb-3 pt-3 text-center text-[0.6rem] font-extrabold uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="bp-lane-head sticky top-0 z-20 whitespace-nowrap px-3 pb-3 pt-3 text-center text-[0.66rem] font-extrabold uppercase tracking-[0.14em] text-muted-foreground">
                   {round.name}
                   <span className="text-[var(--gold-dim)]">
                     {' · '}{round.matches.length} match{round.matches.length === 1 ? '' : 'es'}
@@ -267,7 +267,7 @@ export function SeasonBracketPanel({
 
       {note && (
         <footer className="flex items-start gap-2 border-t border-border px-4 py-2.5 text-[0.7rem] leading-relaxed text-muted-foreground">
-          <span aria-hidden className="mt-[3px] flex size-3.5 shrink-0 items-center justify-center rounded-full border border-[var(--gold-dim)] text-[0.55rem] text-[var(--gold-dim)]">i</span>
+          <span aria-hidden className="mt-[3px] flex size-3.5 shrink-0 items-center justify-center rounded-full border border-[var(--gold-dim)] text-[0.66rem] text-[var(--gold-dim)]">i</span>
           <span>{note}</span>
         </footer>
       )}

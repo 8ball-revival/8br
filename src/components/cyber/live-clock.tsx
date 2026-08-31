@@ -55,7 +55,7 @@ export function LiveClock({ className }: { className?: string }) {
 
   return (
     <div className={className}>
-      <span className="cyber-clip-sm inline-flex items-center gap-1.5 border border-[var(--hot-red)] bg-[var(--void)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[var(--hot-red)]">
+      <span className="cyber-clip-sm inline-flex items-center gap-1.5 border border-[var(--hot-red)] bg-[var(--void)] px-2 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[var(--hot-red)]">
         <span className="size-1.5 shrink-0 rounded-full bg-[var(--hot-red)] motion-safe:animate-pulse" aria-hidden />
         Live
       </span>

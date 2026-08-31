@@ -104,7 +104,7 @@ export function YahooFilterPanel({
         Filters
         {active > 0 && (
           <span
-            className="grid min-w-4 place-items-center bg-[var(--gold)] px-1 text-[0.6rem] font-bold text-[var(--void)]"
+            className="grid min-w-4 place-items-center bg-[var(--gold)] px-1 text-[0.66rem] font-bold text-[var(--void)]"
             aria-label={`${active} filter${active === 1 ? '' : 's'} applied`}
           >
             {active}
@@ -279,7 +279,7 @@ const FIELD = 'w-full rounded-none border border-border bg-[var(--void)] px-2 py
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="mb-3 block">
-      <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+      <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-[0.66rem] text-muted-foreground">{hint}</span>}
     </label>

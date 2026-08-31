@@ -1250,7 +1250,7 @@ function GroupsTab({ data, run, canEditResults, canManage }: { data: TournamentW
                         {s.username}
                         {/* Only shown when a person disagreed with the points — otherwise it is noise. */}
                         {overridden && (
-                          <span className="ml-1.5 rounded bg-[var(--selected-surface)] px-1 py-px text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--gold)]" title="Set by an administrator, not by the standings">
+                          <span className="ml-1.5 rounded bg-[var(--selected-surface)] px-1 py-px text-[0.66rem] font-semibold uppercase tracking-wide text-[var(--gold)]" title="Set by an administrator, not by the standings">
                             set
                           </span>
                         )}

@@ -83,7 +83,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                   <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-none border border-border/60 bg-background/40 px-3 py-1.5 text-sm">
                     {m.captain && <Crown className="size-3.5 text-brand" aria-label="Captain" />}
                     <PlayerName identity={fromNameHandle(m)} size="sm" className="text-foreground" />
-                    {m.captain && <span className="text-[0.6rem] uppercase tracking-wide text-brand">Captain</span>}
+                    {m.captain && <span className="text-[0.66rem] uppercase tracking-wide text-brand">Captain</span>}
                     <div className="ml-auto flex items-center gap-1.5">
                       {m.userId != null && (
                         <select className={cn(sel, 'py-1 text-xs')} defaultValue="" disabled={pending} onChange={(e) => { const nv = Number(e.target.value); if (nv) run(() => adminReplaceTeamMemberAction(tournamentId, team.id, m.userId!, nv)) }}>

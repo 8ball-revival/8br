@@ -466,7 +466,7 @@ function DraftBracket({
                 <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
                   Round 1 · {c === 0 ? 'Top half' : 'Bottom half'}
                 </span>
-                <span className="tabular shrink-0 text-[0.62rem] text-[var(--gold)]/70">
+                <span className="tabular shrink-0 text-[0.66rem] text-[var(--gold)]/70">
                   M{c === 0 ? 1 : half + 1}–M{c === 0 ? half : ties.length}
                 </span>
               </p>
@@ -577,7 +577,7 @@ function SlotButton({
               none of them is gold. */}
           <span className="truncate font-semibold text-[var(--bracket-text)]">{lines.primary}</span>
           {lines.secondary && (
-            <span className="truncate text-[0.62rem] text-foreground/60">{lines.secondary}</span>
+            <span className="truncate text-[0.66rem] text-foreground/60">{lines.secondary}</span>
           )}
         </span>
       )}

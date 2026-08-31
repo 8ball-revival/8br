@@ -227,7 +227,7 @@ export function StatCell({
 }) {
   return (
     <div className={cn('min-w-0', className)}>
-      <div className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {icon}
         <span className="truncate">{label}</span>
       </div>
@@ -296,7 +296,7 @@ export function TableHead({ className, children }: { className?: string; childre
   return (
     <thead
       className={cn(
-        'border-b border-[var(--line-strong)] text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground',
+        'border-b border-[var(--line-strong)] text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground',
         className,
       )}
     >

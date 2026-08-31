@@ -85,7 +85,7 @@ export function ResetPasswordPanel() {
                       <span className="font-medium text-foreground">{a.preferredName || a.cueverseId || `User ${a.userId}`}</span>
                       <span className="ml-1.5 text-xs text-muted-foreground">{a.cueverseId ? `@${a.cueverseId}` : '—'}{a.email ? ` · ${a.email}` : ''} · #{a.userId}</span>
                     </span>
-                    <span className={cn('shrink-0 cyber-clip-sm px-1.5 py-0.5 text-[0.6rem] font-semibold', a.tier === 'headAdmin' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : a.tier === 'admin' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[a.tier]}</span>
+                    <span className={cn('shrink-0 cyber-clip-sm px-1.5 py-0.5 text-[0.66rem] font-semibold', a.tier === 'headAdmin' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : a.tier === 'admin' ? 'bg-[var(--selected-surface)] text-brand' : 'bg-muted text-muted-foreground')}>{TIER_LABEL[a.tier]}</span>
                   </button>
                 </li>
               ))}

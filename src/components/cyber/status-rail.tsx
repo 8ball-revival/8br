@@ -54,7 +54,7 @@ export function StatusRail({
           )}
           aria-hidden
         />
-        <span className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Registry data
         </span>
         {/*
@@ -63,7 +63,7 @@ export function StatusRail({
         */}
         <span
           className={cn(
-            'text-[0.62rem] font-bold uppercase tracking-[0.12em]',
+            'text-[0.66rem] font-bold uppercase tracking-[0.12em]',
             reachable ? 'text-[var(--success)]' : 'text-[var(--hot-red)]',
           )}
         >
@@ -77,7 +77,7 @@ export function StatusRail({
 function RailFigure({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-baseline gap-2">
-      <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <dt className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </dt>
       <dd className="tabular text-sm font-bold text-foreground">{value.toLocaleString()}</dd>

@@ -215,7 +215,7 @@ export function YoutubeFacade({
           'absolute bottom-2 right-2 z-10 border px-2 py-1',
           'border-[color-mix(in_oklab,var(--text-on-media)_25%,transparent)]',
           'bg-[color-mix(in_oklab,var(--scrim-tint)_72%,transparent)]',
-          'font-condensed text-[0.62rem] font-bold uppercase tracking-wider text-[var(--text-on-media)] backdrop-blur-sm transition',
+          'font-condensed text-[0.66rem] font-bold uppercase tracking-wider text-[var(--text-on-media)] backdrop-blur-sm transition',
           'hover:border-[color-mix(in_oklab,var(--text-on-media)_60%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
         )}
       >
@@ -240,7 +240,7 @@ function Scoreboard({ text }: { text: string }) {
       className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 border-b border-[color-mix(in_oklab,var(--accent-on-media)_45%,transparent)] bg-[color-mix(in_oklab,var(--scrim-tint)_78%,transparent)] px-3 py-1.5 backdrop-blur-[2px]"
     >
       <Marks />
-      <span className="min-w-0 flex-1 truncate text-center font-condensed text-[0.62rem] font-bold uppercase tracking-[0.3em] text-[var(--text-on-media)] sm:text-[0.7rem]">
+      <span className="min-w-0 flex-1 truncate text-center font-condensed text-[0.66rem] font-bold uppercase tracking-[0.3em] text-[var(--text-on-media)] sm:text-[0.7rem]">
         {text}
       </span>
       <Marks />

@@ -166,9 +166,9 @@ export function MatchBox({ match, edit, swap }: { match: BracketMatch; edit?: Br
       </BracketCard>
       {canEdit && (dirty || err) && (
         <div className="mt-1 flex items-center justify-between gap-2">
-          {err ? <span className="text-[0.6rem] text-[var(--bracket-review)]">{err}</span> : <span />}
+          {err ? <span className="text-[0.66rem] text-[var(--bracket-review)]">{err}</span> : <span />}
           {dirty && (
-            <button type="button" onClick={() => edit!.save(matchId!)} disabled={saving} aria-label="Save result" className="inline-flex items-center gap-1 rounded bg-[var(--bracket-winner)] px-1.5 py-0.5 text-[0.6rem] font-semibold text-black hover:opacity-90 disabled:opacity-50">
+            <button type="button" onClick={() => edit!.save(matchId!)} disabled={saving} aria-label="Save result" className="inline-flex items-center gap-1 rounded bg-[var(--bracket-winner)] px-1.5 py-0.5 text-[0.66rem] font-semibold text-black hover:opacity-90 disabled:opacity-50">
               {saving ? <span className="size-2.5 animate-spin rounded-full border border-white/40 border-t-white" aria-hidden /> : <Check className="size-3" aria-hidden />} Save
             </button>
           )}

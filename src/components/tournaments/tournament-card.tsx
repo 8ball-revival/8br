@@ -51,7 +51,7 @@ export function TournamentCard({ cup }: { cup: TournamentView }) {
                 </p>
                 {cup.champion.handle && <p className="truncate text-xs text-muted-foreground">{cup.champion.handle}</p>}
               </div>
-              <span className="eyebrow ml-auto shrink-0 text-[0.55rem] text-brand">Champion</span>
+              <span className="eyebrow ml-auto shrink-0 text-[0.66rem] text-brand">Champion</span>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Champion pending</p>

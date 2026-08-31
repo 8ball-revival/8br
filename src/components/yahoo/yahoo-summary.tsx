@@ -32,8 +32,8 @@ export function YahooSummary({ summary }: { summary: Summary }) {
     <dl className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3">
       {cells.map((c) => (
         <div key={c.label} className="bg-card px-3 py-2.5" title={c.hint}>
-          <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{c.label}</dt>
-          <dd className="tabular mt-0.5 font-display text-xl font-black text-foreground">{c.value}</dd>
+          <dt className="text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{c.label}</dt>
+          <dd className="tabular mt-0.5 font-display text-xl font-bold text-foreground">{c.value}</dd>
         </div>
       ))}
     </dl>

@@ -329,7 +329,7 @@ export function RankingsExplorer({
               More
               {groupCount > 0 && (
                 <span
-                  className="grid min-w-4 place-items-center bg-[var(--acid)] px-1 text-[0.62rem] font-bold text-[var(--acid-ink)]"
+                  className="grid min-w-4 place-items-center bg-[var(--acid)] px-1 text-[0.66rem] font-bold text-[var(--acid-ink)]"
                   aria-label={`${groupCount} filter ${groupCount === 1 ? 'group' : 'groups'} applied`}
                 >
                   {groupCount}

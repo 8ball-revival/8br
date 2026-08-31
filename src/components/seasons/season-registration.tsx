@@ -140,7 +140,7 @@ export function SeasonRegistration({
 
       {/* Numbered entrant list: # · Preferred Name + CueVerse ID · Rating */}
       <div className="overflow-hidden rounded-none border border-border">
-        <div className="flex items-center gap-3 border-b border-border bg-card/50 px-3 py-1.5 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+        <div className="flex items-center gap-3 border-b border-border bg-card/50 px-3 py-1.5 text-[0.66rem] font-semibold uppercase tracking-wide text-muted-foreground">
           <span className="w-8 shrink-0 text-right">#</span>
           <span className="min-w-0 flex-1">Entrant</span>
           <span className="w-16 shrink-0 text-right">Rating</span>

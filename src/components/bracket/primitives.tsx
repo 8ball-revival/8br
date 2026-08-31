@@ -70,7 +70,7 @@ export function BracketSeed({ seed, className }: { seed?: number | null; classNa
       aria-hidden
       className={cn(
         'tabular inline-flex size-[1.15rem] shrink-0 items-center justify-center rounded-full',
-        'border border-[var(--bracket-outline)] text-[0.6rem] font-medium leading-none',
+        'border border-[var(--bracket-outline)] text-[0.66rem] font-medium leading-none',
         'text-[var(--bracket-text-neutral)]',
         className,
       )}
@@ -335,7 +335,7 @@ export function BracketDraftBadge({ className }: { className?: string }) {
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded border border-[var(--bracket-outline)]',
-        'bg-[var(--bracket-surface)] px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.14em]',
+        'bg-[var(--bracket-surface)] px-2 py-0.5 text-[0.66rem] font-semibold uppercase tracking-[0.14em]',
         'text-[var(--bracket-text-neutral)]',
         className,
       )}
@@ -363,7 +363,7 @@ export function BracketNote({
   return (
     <span
       className={cn(
-        'text-[0.55rem] uppercase tracking-wide',
+        'text-[0.66rem] uppercase tracking-wide',
         tone === 'review' ? 'text-[var(--bracket-review)]' : 'text-[var(--bracket-text-muted)]',
       )}
     >

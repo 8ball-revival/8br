@@ -85,7 +85,7 @@ export function YahooLadderCompact({
   return (
     <section aria-labelledby="ya-ladder" className="flex min-h-0 min-w-0 flex-col lg:h-full">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
-        <h2 id="ya-ladder" className="font-display text-sm font-extrabold uppercase tracking-[0.16em] text-[var(--gold)]">
+        <h2 id="ya-ladder" className="font-display text-sm font-bold uppercase tracking-[0.16em] text-[var(--gold)]">
           Yahoo Legacy Rankings
         </h2>
         <div className="flex items-center gap-2">
@@ -148,7 +148,7 @@ export function YahooLadderCompact({
             onClick={() => setRecord(v.id)}
             title={v.hint}
             className={cn(
-              'flex-1 px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
+              'flex-1 px-2 py-1 text-[0.66rem] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]',
               record === v.id ? 'bg-brand text-primary-foreground' : 'bg-[var(--void)] text-muted-foreground hover:text-foreground',
             )}
           >
@@ -211,7 +211,7 @@ export function YahooLadderCompact({
               <col className="w-[12%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-border bg-card text-[0.6rem] uppercase tracking-[0.1em] text-muted-foreground">
+              <tr className="border-b border-border bg-card text-[0.66rem] uppercase tracking-[0.1em] text-muted-foreground">
                 <th scope="col" className="bg-card px-1.5 py-2 text-center" title="Championships">
                   <Crown className="mx-auto size-3.5" style={{ color: 'var(--gold)' }} aria-hidden />
                   <span className="sr-only">Championships</span>

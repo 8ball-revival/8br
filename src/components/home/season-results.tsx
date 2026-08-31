@@ -112,7 +112,7 @@ export function SeasonResults({
           className={`scrollbar-themed ${frameClassName} w-full overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]`}
         >
           <table className="w-full min-w-[34rem] border-collapse text-sm">
-            <thead className="sticky top-0 z-10 bg-[var(--graphite)] text-[0.6rem] uppercase tracking-[0.12em] text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-[var(--graphite)] text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
               <tr className="border-b border-[var(--line-strong)]">
                 <th scope="col" className="bg-[var(--graphite)] px-4 py-2 text-left font-bold">Season</th>
                 <th scope="col" className="bg-[var(--graphite)] px-2 py-2 text-left font-bold">Winner</th>

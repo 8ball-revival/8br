@@ -33,7 +33,7 @@ export function Top10Table({ rows, platform }: { rows: LeaderRow[]; platform: 'C
             Rankings Top 10
           </span>
           {/* Which ladder this is. Stated rather than assumed, because the homepage falls back. */}
-          <span className="text-[0.6rem] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[0.66rem] font-bold uppercase tracking-wider text-muted-foreground">
             {platform === 'CUEVERSE' ? 'CueVerse' : 'Yahoo Archive'}
           </span>
         </h2>
@@ -52,7 +52,7 @@ export function Top10Table({ rows, platform }: { rows: LeaderRow[]; platform: 'C
          */
         <DataTableFrame label="Top ten ranked players" className="max-h-[22rem] flex-1 overflow-auto">
           <table className="w-full min-w-[36rem] border-collapse text-sm">
-            <thead className="sticky top-0 z-10 bg-[var(--graphite)] text-[0.6rem] uppercase tracking-[0.12em] text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-[var(--graphite)] text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
               <tr className="border-b border-[var(--line-strong)]">
                 <th scope="col" className="bg-[var(--graphite)] px-3 py-2 text-left font-bold">#</th>
                 <th scope="col" className="bg-[var(--graphite)] px-2 py-2 text-left font-bold">Player</th>

@@ -91,7 +91,7 @@ export function SeasonStandingsMatrix({
                     <PlayerCell slug={c.slug} label={full} className="season-head-id">
                       {identityLines({ cueverseId: c.cueverseId ?? c.username, preferredName: c.preferredName }).primary}
                       {identityLines({ cueverseId: c.cueverseId ?? c.username, preferredName: c.preferredName }).secondary && (
-                        <span className="block truncate text-[0.6rem] font-normal leading-tight text-foreground/70">
+                        <span className="block truncate text-[0.66rem] font-normal leading-tight text-foreground/70">
                           {identityLines({ cueverseId: c.cueverseId ?? c.username, preferredName: c.preferredName }).secondary}
                         </span>
                       )}

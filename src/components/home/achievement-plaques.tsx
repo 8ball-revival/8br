@@ -50,7 +50,7 @@ export function AchievementPlaques({
       </ul>
 
       {caption && (
-        <p className="border-t border-[var(--border)] px-4 py-2.5 text-center font-condensed text-[0.66rem] font-medium uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        <p className="border-t border-[var(--border)] px-4 py-2.5 text-center font-condensed text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           {caption}
         </p>
       )}

@@ -80,7 +80,7 @@ export function Logo({
         */}
         <span className="font-sans text-lg font-black tracking-tight text-[var(--nav-foreground)] sm:text-xl">{siteName}</span>
         {showTagline && (
-          <span className="eyebrow mt-1 text-[0.6rem] text-[var(--nav-inactive)]">{brandTagline}</span>
+          <span className="eyebrow mt-1 text-[0.66rem] text-[var(--nav-inactive)]">{brandTagline}</span>
         )}
       </span>
     </span>
