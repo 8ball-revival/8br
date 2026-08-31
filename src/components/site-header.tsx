@@ -141,7 +141,12 @@ export async function SiteHeader() {
             shortcut, never the permission. Every builder action re-checks independently.
           */}
           {mayEditSite && <EditModeButton editable={builderRoutes.length > 0} />}
-          <DisplayLab className="mr-2" />
+          {/*
+            `mayEditSite` is the SERVER's answer, resolved from the session, and it decides only
+            whether the publishing controls are DRAWN. Every action behind them re-checks
+            independently — the panel is a shortcut to a capability, never the capability itself.
+          */}
+          <DisplayLab className="mr-2" canPublish={mayEditSite} />
           {/* Light / dark theme toggle, beside the account button / Sign In. */}
           {user ? (
             <details className="group relative ml-1">

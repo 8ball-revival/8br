@@ -8,6 +8,7 @@ import { THEME_GROUPS, THEME_TOKEN_REGISTRY, TOKEN_BY_KEY, type ThemeToken } fro
 import { THEME_PRESETS, normaliseTokens, isValidTokenValue } from '@/lib/theme/presets'
 import { verdictFor, suggestFor, resolveToken, type PairingResult } from '@/lib/theme/contrast'
 import { Disclosure, Section } from './controls'
+import { ThemePublishPanel } from './theme-publish'
 import { cn } from '@/lib/utils'
 
 /**
@@ -26,10 +27,18 @@ import { cn } from '@/lib/utils'
  * is closed while an essential pairing fails. That is the difference between a check and a guard.
  */
 export function PaletteTab({
-  settings, edit,
+  settings, edit, canPublish = false,
 }: {
   settings: DisplaySettings
   edit: (patch: Partial<DisplaySettings>) => void
+  /**
+   * Whether to draw the publishing controls.
+   *
+   * Resolved on the server from the session and passed down. It gates what is DRAWN only: every
+   * action behind these controls calls `requireCapability('manage_site_builder')` on its first
+   * line, so a reader who forges this prop reaches a refusal rather than a theme.
+   */
+  canPublish?: boolean
 }) {
   const tokens = useMemo(() => normaliseTokens(settings.tokens), [settings.tokens])
   const verdict = useMemo(() => verdictFor(tokens), [tokens])
@@ -63,6 +72,16 @@ export function PaletteTab({
 
   return (
     <div className="space-y-3">
+      {/* ── Where this palette stands: preview, draft or published ──────────────────────── */}
+      {canPublish && <ThemePublishPanel settings={settings} edit={edit} />}
+
+      {!canPublish && (
+        <p className="border border-[var(--line)] p-2 text-[0.64rem] leading-relaxed text-muted-foreground">
+          These colours are yours alone — they are kept in this browser and change nothing for anyone
+          else.
+        </p>
+      )}
+
       {/* ── Presets ────────────────────────────────────────────────────────────────────────── */}
       <Section title="Starting point" hint="Every preset sets the same tokens. Pick one, then change anything.">
         <div className="grid gap-1.5">

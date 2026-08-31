@@ -108,7 +108,11 @@ const POSITIONS: readonly (readonly [BackgroundPosition, string])[] = [
   ['bottom-left', '↙'], ['bottom', '↓'], ['bottom-right', '↘'],
 ]
 
-export function DisplayLab({ className }: { className?: string }) {
+export function DisplayLab({ className, canPublish = false }: {
+  className?: string
+  /** Server-resolved: whether this viewer may publish a palette site-wide. Gates drawing only. */
+  canPublish?: boolean
+}) {
   const [settings, save, resetStored] = useDisplaySettings()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<TabKey>('presets')
@@ -296,7 +300,7 @@ export function DisplayLab({ className }: { className?: string }) {
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3"
             >
               {tab === 'presets' && <PresetsTab settings={settings} save={save} edit={edit} />}
-              {tab === 'palette' && <PaletteTab settings={settings} edit={edit} />}
+              {tab === 'palette' && <PaletteTab settings={settings} edit={edit} canPublish={canPublish} />}
               {tab === 'style' && <StyleTab settings={settings} edit={edit} onColour={rememberColour} />}
               {tab === 'effects' && <EffectsTab settings={settings} edit={edit} />}
               {tab === 'background' && (
