@@ -122,7 +122,14 @@ section('Every management action is recorded')
 // ── 12-13. The controls, and the page around them ────────────────────────────────────────────────
 section('The public page is otherwise identical')
 {
-  const page = readFileSync('src/app/(frontend)/the-break/[slug]/page.tsx', 'utf8')
+  /*
+   * The post page's body moved into a component when the site was rebuilt on the Site Builder.
+   *
+   * The route file is now a thin wrapper, so reading it for the manage gate found nothing and
+   * reported that the menu was drawn unconditionally — the opposite of the truth. The gate is the
+   * same expression it always was; it just lives with the markup it guards.
+   */
+  const page = readFileSync('src/components/system/article-detail-body.tsx', 'utf8')
   check('the menu is drawn only when the viewer may manage the post',
     /manageBasis\(actor, post\.authorPlayerId\) && \(/.test(page))
   check('it is a compact menu, not an admin banner',

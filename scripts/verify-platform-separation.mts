@@ -2,8 +2,17 @@
  * Yahoo and CueVerse are two ranking universes, and Division B is in neither.
  *
  * The claims worth protecting here are the ones that would be invisible if they broke: a rating
- * quietly continuing across platforms, a Division B match nudging somebody's rank, or an empty
- * CueVerse ladder silently showing the archive instead of saying it is empty.
+ * quietly continuing across platforms, a Division B match nudging somebody's rank, or one platform
+ * silently showing the other's Seasons.
+ *
+ * ── Two things changed under this suite, and it was asserting neither ────────────────────────────
+ * Division B was PURGED from the site data — all 44 of its Seasons deleted, deliberately. And
+ * CueVerse is no longer empty: it has live Seasons of its own. This suite still described the
+ * moment of the cutover, so it failed eleven checks against a database that is exactly right.
+ *
+ * The rules it exists to protect have not changed, so they are asserted against what is true now: a
+ * surviving pre-cutover Season is Yahoo, Division B ranks nothing BECAUSE none of it is left, and
+ * each platform's listing holds only its own Seasons rather than falling through to the other.
  */
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
@@ -26,8 +35,18 @@ const CUTOVER = JSON.parse(readFileSync('reports/platform-cutover.json', 'utf8')
 // ── 1. Classification ────────────────────────────────────────────────────────────────────────────
 section('Everything that existed at the cutover is Yahoo; anything new is CueVerse')
 {
+  /*
+   * Asserted over the Seasons that SURVIVE, not over the whole cutover list.
+   *
+   * That list is a frozen record of what existed on the day, and 44 of its 92 Seasons have since
+   * been deleted — the Division B purge. Requiring all 92 to still be present made this check fail
+   * whenever the site legitimately removed something, which says nothing about platform separation.
+   * What still matters is that nothing which survived changed universe.
+   */
+  const preSurviving = await prisma.season.count({ where: { id: { in: CUTOVER.seasonIds } } })
   const preYahoo = await prisma.season.count({ where: { id: { in: CUTOVER.seasonIds }, platform: 'YAHOO' } })
-  check('every pre-cutover Season is Yahoo', preYahoo === CUTOVER.seasonIds.length, `${preYahoo}/${CUTOVER.seasonIds.length}`)
+  check('every pre-cutover Season that still exists is Yahoo', preYahoo === preSurviving,
+    `${preYahoo}/${preSurviving} surviving, of ${CUTOVER.seasonIds.length} at the cutover`)
 
   const preYahooT = await prisma.tournament.count({ where: { id: { in: CUTOVER.tournamentIds }, platform: 'YAHOO' } })
   check('every pre-cutover Tournament is Yahoo', preYahooT === CUTOVER.tournamentIds.length, `${preYahooT}/${CUTOVER.tournamentIds.length}`)
@@ -47,37 +66,28 @@ section('Everything that existed at the cutover is Yahoo; anything new is CueVer
 }
 
 // ── 2. Division B ────────────────────────────────────────────────────────────────────────────────
-section('Division B belongs to 8BRCAM, is visible, and ranks nothing')
+section('Division B was purged, and nothing is left that could rank')
 {
-  const canonical = await prisma.competitionSeries.findUnique({ where: { slug: '8brcam' }, select: { id: true } })
-  const divB = await prisma.season.findMany({ where: { division: 'B' }, select: { id: true, competitionSeriesId: true, countsTowardRankings: true } })
-  check('Division B Seasons exist and were preserved', divB.length > 0, `${divB.length}`)
-  check('all of them sit under the canonical 8BRCAM Competition',
-    divB.every((s) => s.competitionSeriesId === canonical?.id))
-  check('none of them counts toward rankings', divB.every((s) => !s.countsTowardRankings))
+  /*
+   * This section used to assert that Division B Seasons were PRESERVED — visible, readable, and
+   * ranking nothing. They were subsequently deleted from the site data on purpose, so those
+   * assertions described a database nobody wanted any more.
+   *
+   * The rule underneath them has not changed: no Division B result may reach a rating. Absence
+   * satisfies it more completely than preservation did, so that is what is checked — together with
+   * the surfaces that used to offer Division B, because a filter still advertising an empty
+   * division is the visible half of an incomplete purge.
+   */
+  const divB = await prisma.season.count({ where: { division: 'B' } })
+  check('no Season carries Division B any more', divB === 0, String(divB))
 
   const separate = await prisma.competitionSeries.findUnique({ where: { slug: '8br-div-b' }, select: { _count: { select: { seasons: true } } } })
   check('the separate Division B Competition holds nothing', (separate?._count.seasons ?? 0) === 0)
 
-  /*
-   * Visible means the records are still there and still readable, not that they hold results.
-   *
-   * In this database the Division B Seasons are shells: the archive reconstruction that would have
-   * filled them was rolled back, so they have no entrants or matches to preserve. Asserting entrants
-   * would test the dataset rather than the migration. What the migration must not have done is lose
-   * a row, a number, a year or a slug — so that is what is checked, along with the counts being
-   * whatever they were rather than zeroed by the reclassification.
-   */
-  const bDetail = await prisma.season.findMany({
-    where: { division: 'B' },
-    select: { id: true, number: true, competitionYear: true, lifecycleState: true },
-  })
-  check('every Division B Season row survives', bDetail.length === divB.length)
-  check('each keeps its number and year', bDetail.every((s) => s.number > 0 && s.competitionYear > 1900))
   const bEntrants = await prisma.seasonEntrant.count({ where: { season: { division: 'B' } } })
   const bMatches = await prisma.seasonMatch.count({ where: { season: { division: 'B' } } })
-  console.log(`    (Division B holds ${bEntrants} entrant(s) and ${bMatches} match(es); shells in this database)`)
-  check('whatever data they hold is reachable through the ordinary relations', bEntrants >= 0 && bMatches >= 0)
+  check('no entrant or match is still attached to one', bEntrants === 0 && bMatches === 0,
+    `${bEntrants} entrant(s), ${bMatches} match(es)`)
 
   const bLedger = await prisma.$queryRawUnsafe<{ n: bigint }[]>(
     `select count(*)::bigint as n from "rating_ledger" rl join "season" s on s.id = rl."seasonId" where s.division = 'B'`,
@@ -138,19 +148,44 @@ section('Seasons filter by platform and division')
 
   check('Yahoo lists the archive', yahooAll.seasons.length > 0, `${yahooAll.seasons.length}`)
   check('every Season it lists is Yahoo', yahooAll.seasons.every((s) => s.platform === 'YAHOO'))
-  check('CueVerse lists nothing yet, rather than the archive', cueverse.seasons.length === 0, `${cueverse.seasons.length}`)
-  check('both divisions are offered', yahooAll.divisions.includes('A') && yahooAll.divisions.includes('B'))
-  check('Division B narrows to Division B', yahooB.seasons.length > 0 && yahooB.seasons.every((s) => s.division === 'B'))
-  check('and every one of them reads as unranked', yahooB.seasons.every((s) => !s.ranked))
+  /*
+   * CueVerse has Seasons of its own now, so "lists nothing" is no longer the interesting claim.
+   *
+   * The claim that mattered was never emptiness — it was that one platform's listing must not fall
+   * through to the other's. That is asserted directly instead, which keeps working whichever
+   * platform happens to be empty on any given day.
+   */
+  check('CueVerse lists only CueVerse Seasons', cueverse.seasons.every((s) => s.platform === 'CUEVERSE'),
+    `${cueverse.seasons.length} Season(s)`)
+  check('...and no part of the archive leaks into it',
+    !cueverse.seasons.some((s) => yahooAll.seasons.some((y) => y.id === s.id)))
+
+  // Division B is purged, so the filter must stop offering it: an empty division left in a picker
+  // is the visible half of an incomplete removal.
+  check('Division A is offered', yahooAll.divisions.includes('A'))
+  check('...and Division B is not', !yahooAll.divisions.includes('B'))
+  check('asking for Division B anyway returns nothing', yahooB.seasons.length === 0, `${yahooB.seasons.length}`)
   check('Division A narrows to Division A', yahooA.seasons.length > 0 && yahooA.seasons.every((s) => s.division === 'A'))
   check('and every one of them is ranked', yahooA.seasons.every((s) => s.ranked))
-  check('the two divisions together are the whole archive',
-    yahooA.seasons.length + yahooB.seasons.length === yahooAll.seasons.length)
+  check('Division A alone is now the whole archive',
+    yahooA.seasons.length === yahooAll.seasons.length, `${yahooA.seasons.length}/${yahooAll.seasons.length}`)
 
-  // The landing page must not fall back to the other platform when one is empty.
-  check('an empty CueVerse registry resolves to no Season', (await newestSeasonId('8brcam', 'CUEVERSE')) === null)
-  check('Yahoo resolves to a real Season', (await newestSeasonId('8brcam', 'YAHOO')) !== null)
-  check('Division B resolves within its own scope', (await newestSeasonId('8brcam', 'YAHOO', 'B')) !== null)
+  /*
+   * The landing page must not fall back to the other platform.
+   *
+   * This used to be checked by asserting CueVerse resolved to null, which only held while CueVerse
+   * was empty — it was testing the calendar, not the code. Now that both platforms have Seasons the
+   * stronger form is available: each resolves, and each resolves to a Season ON ITS OWN PLATFORM.
+   */
+  const newestCv = await newestSeasonId('8brcam', 'CUEVERSE')
+  const newestY = await newestSeasonId('8brcam', 'YAHOO')
+  check('CueVerse resolves to a real Season', newestCv !== null)
+  check('Yahoo resolves to a real Season', newestY !== null)
+  check('...and neither resolves into the other universe',
+    newestCv !== newestY
+    && (await prisma.season.findUnique({ where: { id: newestCv! }, select: { platform: true } }))?.platform === 'CUEVERSE'
+    && (await prisma.season.findUnique({ where: { id: newestY! }, select: { platform: true } }))?.platform === 'YAHOO')
+  check('a purged division resolves to nothing at all', (await newestSeasonId('8brcam', 'YAHOO', 'B')) === null)
 }
 
 // -- 6-7. The surfaces that read the classification -----------------------------------------------
@@ -181,7 +216,14 @@ section('Creator, Tournaments, profiles and the homepage read the same classific
   check('and an empty CueVerse list names the archive rather than showing it',
     list.includes('No Tournaments have been played on CueVerse yet'))
 
-  const profile = readFileSync('src/app/(frontend)/players/[cueverse]/page.tsx', 'utf8')
+  /*
+   * The profile's three headings moved out of the route and into the component that draws them.
+   *
+   * This was reading the page file, found none of them, and reported that a profile no longer
+   * separates the two careers — which was never true. The body component is where they live now, so
+   * that is what is read.
+   */
+  const profile = readFileSync('src/components/system/player-detail-body.tsx', 'utf8')
   check('a profile separates the two ranked careers',
     profile.includes('CueVerse Career') && profile.includes('Yahoo Archive'))
   check('and shows unranked history under its own heading', profile.includes('Unranked History'))
@@ -200,10 +242,20 @@ section('Creator, Tournaments, profiles and the homepage read the same classific
   const seasonResults = readFileSync('src/lib/home/season-results.ts', 'utf8')
   check('the homepage champions list is scoped to a platform',
     /platform,/.test(seasonResults) && seasonResults.includes("CompetitionPlatform = 'CUEVERSE'"))
-  const homepage = readFileSync('src/app/(frontend)/page.tsx', 'utf8')
-  check('...and the homepage results follow one resolved era',
-    homepage.includes('const platform = leaderboard.platform')
-    && homepage.includes('getSeasonResults(platform)'))
+  /*
+   * The homepage is a Site Builder page now, so it no longer resolves a platform itself.
+   *
+   * It used to read one from the leaderboard and pass it down. Each competition module now carries
+   * its own platform in its saved config, which is stricter rather than looser: a panel is pinned
+   * to the universe it was configured for instead of inheriting whichever the homepage happened to
+   * resolve. The rule is unchanged — no surface may call the service unscoped — so that is what is
+   * checked, at the seam where the call is now made.
+   */
+  const modules = readFileSync('src/components/site-builder/modules/competitions.tsx', 'utf8')
+  check('...and every homepage results panel names the platform it is showing',
+    modules.includes('getSeasonResults(config.platform'))
+  check('...with no unscoped call left anywhere',
+    !/getSeasonResults\(\s*\)/.test(modules))
 
   /*
    * Achievements moved to their own platform field, so the homepage no longer passes one.

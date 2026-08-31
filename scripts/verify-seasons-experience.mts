@@ -16,6 +16,17 @@ import {
 } from '../src/lib/seasons/browse.ts'
 import { transitionSeasonState } from '../src/lib/seasons/lifecycle.ts'
 
+/*
+ * The Season page's markup lives in a body component, not in the route.
+ *
+ * The Site Builder rebuild left `/seasons/[seasonId]/page.tsx` a thin wrapper and moved what it
+ * used to render into `season-detail-body.tsx`. This suite has several checks about what "the
+ * Season page" draws; reading only the route found none of it and reported that the page had
+ * stopped reading its own URL, which was never true. So the body is read once here and appended
+ * wherever a check means the rendered page, and an assertion holds wherever the code lives.
+ */
+const seasonBody = readFileSync('src/components/system/season-detail-body.tsx', 'utf8')
+
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
   if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.log('  ✗ ' + n + (d ? ` — ${d}` : '')) }
@@ -333,7 +344,8 @@ try {
 
     console.log('')
     console.log('--- The URL carries the view and the filter ---')
-    const page = files[5][1]
+    // The route plus the body it delegates to - see the note on `seasonBody` at the top.
+    const page = files[5][1] + seasonBody
     check('the view is read from the URL', page.includes("sp.view === 'playoffs'"))
     check('an absent or unknown view defaults to Groups', page.includes("? 'playoffs' : 'groups'"))
     check('the Competition filter is read from the URL', page.includes('sp.competition'))
@@ -397,7 +409,8 @@ try {
   console.log('--- The masthead, and the header it clamps to ---')
   {
     const mast = readFileSync('src/components/seasons/season-masthead.tsx', 'utf8')
-    const page = readFileSync('src/app/(frontend)/seasons/[seasonId]/page.tsx', 'utf8')
+    // The route plus the body it delegates to — see the note on the first `page` above.
+    const page = readFileSync('src/app/(frontend)/seasons/[seasonId]/page.tsx', 'utf8') + seasonBody
     const controls = readFileSync('src/components/seasons/season-controls.tsx', 'utf8')
     const header = readFileSync('src/components/site-header.tsx', 'utf8')
     const css = readFileSync('src/app/(frontend)/globals.css', 'utf8')

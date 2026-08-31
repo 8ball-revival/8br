@@ -439,8 +439,24 @@ section('No glow, and none creeping back')
   check('a class exists for every band',
     (['gold', 'purple', 'blue', 'green', 'grey'] as const)
       .every((t) => css.includes(`.rating-primary--${t}`)))
+  /*
+   * Every band has a colour in every palette that defines any of them.
+   *
+   * This used to require exactly ONE definition of each, which held while there was one palette. A
+   * light-ground palette was then added on purpose — the five bands were picked for a near-black
+   * ground and measure 1.3:1 to 2.6:1 on paper, so a light theme gets darker variants of the same
+   * hues. Counting definitions therefore stopped measuring anything except how many themes exist.
+   *
+   * What must not happen is a palette defining four of the five: the legend would still show all
+   * five while one band fell back to whatever the previous theme left behind. So the tiers are
+   * required to be defined the SAME number of times as each other, which catches exactly that and
+   * stays true however many themes are added.
+   */
+  const TIERS = ['gold', 'purple', 'blue', 'green', 'grey'] as const
+  const defs = TIERS.map((t) => (css.match(new RegExp(`--tier-${t}:`, 'g')) ?? []).length)
   check('every band has a colour',
-    (css.match(/--tier-gold:/g) ?? []).length === 1 && (css.match(/--tier-grey:/g) ?? []).length === 1)
+    defs[0] > 0 && defs.every((n) => n === defs[0]),
+    TIERS.map((t, i) => `${t}:${defs[i]}`).join(' '))
   /*
    * The top band leads the eye. That is the rule; "brighter than --gold" was only ever a way of
    * saying it.

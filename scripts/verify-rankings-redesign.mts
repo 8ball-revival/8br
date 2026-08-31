@@ -601,9 +601,18 @@ async function main() {
   check('the first row holds the highest rating',
     all.every((r) => r.rating <= all[0].rating), `top ${all[0]?.rating}`)
 
-  const page = readFileSync('src/app/(frontend)/rankings/page.tsx', 'utf8')
+  /*
+   * `/rankings` is a builder-managed route now: the route file places a body module and nothing
+   * else, so the service call it was being searched for moved to `rankings-body`.
+   *
+   * The claim is unchanged — the page asks for the official ladder and does not quietly request a
+   * different scope — so it is asserted where the request is actually made.
+   */
+  const page = readFileSync('src/components/system/rankings-body.tsx', 'utf8')
   check('the page asks for all-time overall and nothing else',
     page.includes("getExplorer('all-time', 'overall'"))
+  check('...and the route itself asks for no ladder of its own',
+    !readFileSync('src/app/(frontend)/rankings/page.tsx', 'utf8').includes('getExplorer('))
 
   section('Sorting never renumbers the official rank')
   const byWinPct = sortRows(all, [{ key: 'matchWinPct', dir: 'desc' }])

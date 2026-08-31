@@ -338,14 +338,31 @@ section('Every migrated article is intact')
   // The compatibility period: the source is still there to compare against.
   check('the article tables are untouched', articles.length === 3, String(articles.length))
 
-  // Published posts carry the author's real +1, not a fabricated score.
+  /*
+   * Published posts carry real votes, not a fabricated score.
+   *
+   * The second check used to read `p.score === 1` — the author's own +1 and nobody else's. That is
+   * a statement about how freshly seeded the database is, not about the score, and it started
+   * failing the moment two posts picked up a genuine second vote from a reader.
+   *
+   * The label was always the right claim, so it is now the assertion: a post's score is the sum of
+   * the votes actually cast on it. That catches a fabricated or drifted score, which is the thing
+   * worth catching, and it does not care how many people have voted.
+   */
   for (const p of posts.filter((x) => x.state === 'PUBLISHED' && x.authorPlayerId)) {
     const vote = await prisma.breakPostVote.findUnique({
       where: { postId_playerId: { postId: p.id, playerId: p.authorPlayerId! } },
       select: { value: true },
     })
     check(`#${p.legacyArticleId} has a real author vote`, vote?.value === 1)
-    check(`#${p.legacyArticleId} score matches its votes`, p.score === 1, String(p.score))
+
+    const tally = await prisma.breakPostVote.aggregate({
+      where: { postId: p.id },
+      _sum: { value: true },
+    })
+    const cast = tally._sum.value ?? 0
+    check(`#${p.legacyArticleId} score matches its votes`, p.score === cast,
+      `score ${p.score}, votes sum to ${cast}`)
   }
 }
 
