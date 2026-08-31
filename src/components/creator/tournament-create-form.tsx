@@ -99,6 +99,17 @@ export function TournamentCreateForm({
         scheduledStartAt: scheduleForLater ? scheduledStartAt || null : null,
         description: description.trim() || null,
       })
+      /*
+        A warning means the Tournament EXISTS but did not arrive as asked, so it stays on this page
+        with the reason and a link. Navigating would carry the reader to a screen whose state they
+        did not choose, with nothing on it to say why.
+      */
+      if (r.ok && r.warning && r.href) {
+        submitted.current = false
+        setError(r.warning)
+        setExistingHref(r.href)
+        return
+      }
       if (r.ok && r.href) { router.push(r.href); return }
       submitted.current = false
       setError(r.error ?? 'The Tournament could not be created.')

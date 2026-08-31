@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { creatorActor } from './access'
 import { createTournament, type CreateTournamentConfig } from '@/lib/competition/tournament-create'
+import { transitionTournamentState } from '@/lib/competition/tournament-lifecycle'
 import { currentStage } from './workflow'
 
 export interface CreateTournamentFormResult {
@@ -13,6 +14,14 @@ export interface CreateTournamentFormResult {
   href?: string
   /** Set when a Tournament of the same identity already exists, so the form can offer to open it. */
   existingHref?: string
+  /**
+   * The Tournament was created, but something after it was not.
+   *
+   * Distinct from `error`, which means nothing was created. This is the case where the record
+   * exists and is usable but arrived in a state the form did not intend — worth saying, not worth
+   * throwing away the Tournament over.
+   */
+  warning?: string
 }
 
 export interface TournamentFormInput {
@@ -98,6 +107,35 @@ export async function createTournamentAction(input: TournamentFormInput): Promis
       where: { id: created.id },
       data: { description: input.description.trim() },
     })
+  }
+
+  /*
+    ── Created open, not created and then opened ─────────────────────────────────────────────────
+    `createTournament` lands in DRAFT and leaves opening registration to its caller, which is right
+    for a scheduled Tournament and wrong for every other one. Nothing here opened it, so a brand new
+    Tournament arrived at the Entrants stage it could not reach and was bounced back to Setup — an
+    extra click whose only purpose was to undo the state it had just been created in.
+
+    A Tournament started now opens now. One that was deliberately SCHEDULED keeps its DRAFT and its
+    `registrationOpensAt`, because a start date somebody chose is not an accident to correct.
+
+    Opening is not the same as inviting: whether members may enter is the site-wide registration
+    policy's business. An admin who wants a closed list closes it on the Entrants screen, which is
+    one click from here and reversible, unlike being unable to reach the screen at all.
+  */
+  if (!cfg.scheduleForLater) {
+    const opened = await transitionTournamentState(gate.actor, created.id, 'REGISTRATION_OPEN', {
+      reason: 'Registration opened on creation',
+    })
+    // A refusal is reported rather than swallowed: the Tournament exists either way, and landing on
+    // Setup with no explanation is the confusing half of the behaviour this replaces.
+    if (!opened.ok) {
+      return {
+        ok: true,
+        href: `/creator/tournaments/${created.id}/setup`,
+        warning: `The Tournament was created, but registration could not be opened: ${opened.error}`,
+      }
+    }
   }
 
   revalidatePath('/tournaments')
