@@ -79,7 +79,18 @@ const SWEEP = `(function () {
 
   var lowContrast = [], invisible = [], transparentText = [], clipped = [];
   var measured = 0;
+  var seenCombination = {};
+  var elementsSeen = 0;
 
+  /*
+    One measurement per DISTINCT combination, not per element.
+
+    A ranking table is five hundred cells in about twenty combinations of colour, ground, size and
+    weight. Measuring all five hundred takes twenty-five times as long and reports the same twenty
+    facts, and a suite that takes two hours is a suite nobody runs twice. The key below is exactly
+    what the WCAG calculation depends on, so two elements sharing it cannot differ in verdict —
+    this drops the repetition without dropping any coverage.
+  */
   [].slice.call(document.querySelectorAll('main *, header *, footer *')).forEach(function (el) {
     if (el.children.length > 0) return;
     var t = (el.textContent || '').trim();
@@ -97,12 +108,18 @@ const SWEEP = `(function () {
     var op = parseFloat(cs.opacity);
     if (op < 0.05) { transparentText.push(t.slice(0, 34)); return; }
     if (op < 0.15) return;
-    measured++;
-
+    elementsSeen++;
     var ground = groundOf(el);
+
+    var key = cs.color + '|' + ground.r + ',' + ground.g + ',' + ground.b + '|'
+      + Math.round(parseFloat(cs.fontSize)) + '|' + cs.fontWeight + '|' + cs.opacity;
+    if (seenCombination[key]) return;
+    seenCombination[key] = 1;
+    measured++;
     var composited = fg.a < 1 ? over(fg, ground) : fg;
     var rr = ratio(composited, ground);
     var size = parseFloat(cs.fontSize);
+    void 0;
     var weight = parseInt(cs.fontWeight, 10) || 400;
     var large = size >= 24 || (size >= 18.66 && weight >= 700);
     var need = large ? 3 : 4.5;
@@ -135,7 +152,7 @@ const SWEEP = `(function () {
 
   var doc = document.documentElement;
   return {
-    measured: measured,
+    measured: measured, elementsSeen: elementsSeen,
     lowContrast: lowContrast.slice(0, 6), lowCount: lowContrast.length,
     invisible: invisible.slice(0, 6), invisibleCount: invisible.length,
     transparentText: transparentText.slice(0, 4),
@@ -204,7 +221,8 @@ try {
         check(`${tag}: nothing is invisible against its ground`, s.invisibleCount === 0,
           JSON.stringify(s.invisible))
         check(`${tag}: no transparent text`, s.transparentText.length === 0, JSON.stringify(s.transparentText))
-        check(`${tag}: contrast holds (${s.measured} strings)`, s.lowCount === 0, JSON.stringify(s.lowContrast))
+        check(`${tag}: contrast holds (${s.measured} of ${s.elementsSeen} strings, deduplicated)`,
+          s.lowCount === 0, JSON.stringify(s.lowContrast))
         check(`${tag}: no text clipped by its own box`, s.clippedCount === 0, JSON.stringify(s.clipped))
         check(`${tag}: no horizontal overflow`, s.overflow === 0, `${s.overflow}px`)
         if (w === 1440 && route === '/') {

@@ -164,8 +164,16 @@ export function YoutubeFacade({
           >
             <span
               className={cn(
+                /*
+                  The red here is YouTube's, and it is deliberately NOT a token.
+
+                  It is the mark of the service the video is hosted on, and a reader recognises it
+                  before they read anything. Recolouring it to match a theme would be claiming
+                  somebody else's affordance for this site. An intentional exception, recorded in
+                  docs/theme-tokens.md alongside the WCC and 8BRCAM palettes.
+                */
                 'flex h-12 w-[4.6rem] items-center justify-center rounded-[0.7rem] bg-[#ff0033] text-white',
-                'shadow-[0_6px_24px_rgba(0,0,0,0.55)]',
+                'shadow-[0_6px_24px_color-mix(in_oklab,var(--shadow-color)_55%,transparent)]',
                 'transition-transform duration-150 group-hover:scale-105 group-hover:bg-[#ff1a47]',
                 /*
                   Reduced motion removes the transform, not the feedback: the colour change stays,
@@ -197,9 +205,16 @@ export function YoutubeFacade({
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          'absolute bottom-2 right-2 z-10 border border-white/25 bg-black/65 px-2 py-1',
-          'font-condensed text-[0.62rem] font-bold uppercase tracking-wider text-white/85 backdrop-blur-sm transition',
-          'hover:border-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+          /*
+            This sits over a PHOTOGRAPH, so it is treated as text on media rather than as text on a
+            surface. A light theme must not make it dark: what is behind it is still a photograph,
+            and the theme has no idea what colour that photograph is.
+          */
+          'absolute bottom-2 right-2 z-10 border px-2 py-1',
+          'border-[color-mix(in_oklab,var(--text-on-media)_25%,transparent)]',
+          'bg-[color-mix(in_oklab,var(--scrim-tint)_72%,transparent)]',
+          'font-condensed text-[0.62rem] font-bold uppercase tracking-wider text-[var(--text-on-media)] backdrop-blur-sm transition',
+          'hover:border-[color-mix(in_oklab,var(--text-on-media)_60%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
         )}
       >
         Watch on YouTube

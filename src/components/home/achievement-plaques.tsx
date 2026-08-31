@@ -190,7 +190,7 @@ function Medallion() {
     <svg
       aria-hidden
       viewBox="0 0 44 44"
-      className="-mt-4 size-11 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]"
+      className="-mt-4 size-11 shrink-0 drop-shadow-[0_2px_6px_color-mix(in_oklab,var(--shadow-color)_55%,transparent)]"
       focusable="false"
     >
       <defs>

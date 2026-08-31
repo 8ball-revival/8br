@@ -265,6 +265,16 @@
   /* The footer, which was painting itself from --graphite directly. */
   --footer-bg: var(--graphite);
 
+
+  /*
+   * What a shadow is made of.
+   *
+   * Black at partial alpha is right on a near-black page and wrong on a light one, where it reads
+   * as grey smudge rather than depth. Naming it means a light theme can shadow with a warm dark
+   * instead, and the medallions and play controls follow without being touched.
+   */
+  --shadow-color: #000000;
+
   --nav-bg: var(--void);
   --nav-foreground: var(--clean-white);
   --nav-border: var(--signal);
@@ -329,6 +339,18 @@
      gold, and on the red accent it collided with the colour reserved for first
      place. A band name is a promise about a colour; the accent does not get to
      change it. This is the value it has always rendered as. */
+  /*
+   * ── The rating bands, and the one thing that may change about them ───────────────────────────
+   *
+   * The HUE carries the meaning: gold is 1600+, purple 1500+, blue 1400+, green 1300+, grey below.
+   * A reader learns that on the Rankings page and has to find it true on a profile, which is why
+   * these are literals and why Display Lab does not offer them as controls.
+   *
+   * Their LIGHTNESS is not part of the meaning. These five were picked for a near-black ground and
+   * measure between 1.3:1 and 2.6:1 on paper — the band a reader is meant to recognise instantly
+   * becomes the hardest thing on the page to read. So a light ground gets darker variants of the
+   * same hues, below. Same meaning, same legend, readable either way.
+   */
   --tier-gold: #d8dc2f;
   --tier-purple: #c07af0;
   --tier-blue: #6fb6e8;
@@ -513,6 +535,22 @@
   ascent-override: 105%;
   descent-override: 26%;
   line-gap-override: 0%;
+}
+
+/*
+  A light page ground, and the handful of colours that have to answer to it.
+
+  `data-dl-ground` is written by `displayDom` from the resolved page colour rather than from a theme
+  NAME, so it is correct for a preset, for a hand-picked palette, and for anything an Owner invents
+  later. Only values whose lightness was chosen for a dark ground are restated here; everything else
+  already resolves through a token that the palette moved.
+*/
+[data-dl-ground='light'] {
+  --tier-gold: #6f7300;
+  --tier-purple: #6b2f9c;
+  --tier-blue: #1f5f8f;
+  --tier-green: #1c6b41;
+  --tier-grey: #55595e;
 }
 
 @layer base {

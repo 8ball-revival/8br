@@ -60,7 +60,9 @@ export function RecordFeature({
     <section
       aria-labelledby="record-feature-heading"
       className={cn(
-        'dl-surface cyber-clip relative overflow-hidden border border-[var(--line-strong)] bg-[var(--void)]',
+        // The video half of this panel carries a photograph, and the strip over it is on-media
+        // text — so the panel grounds itself on the scrim tint for the same reason the hero does.
+        'dl-surface cyber-clip relative overflow-hidden border border-[var(--line-strong)] bg-[var(--scrim-tint)]',
         /*
           Fills the row rather than sitting at its own height.
 
@@ -92,8 +94,8 @@ export function RecordFeature({
         style={{
           backgroundImage:
             'repeating-linear-gradient(0deg, color-mix(in oklab, var(--steel-dim) 26%, transparent) 0 1px, transparent 1px 3px),'
-            + 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),'
-            + 'linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            + 'linear-gradient(color-mix(in oklab, var(--steel-dim) 14%, transparent) 1px, transparent 1px),'
+            + 'linear-gradient(90deg, color-mix(in oklab, var(--steel-dim) 14%, transparent) 1px, transparent 1px)',
           backgroundSize: '100% 3px, 44px 44px, 44px 44px',
         }}
       />
@@ -206,7 +208,7 @@ export function RecordFeature({
             No video configured. The panel still says what the record is rather than collapsing:
             the number is the point and it does not depend on the footage existing.
           */
-          <div className="flex aspect-video w-full items-center justify-center border-l border-[var(--line-strong)] bg-black/60 p-6 text-center">
+          <div className="flex aspect-video w-full items-center justify-center border-l border-[var(--line-strong)] bg-[var(--surface-inset)] p-6 text-center">
             <p className="text-sm text-[var(--text-muted)]">
               No video is set for this record yet.
             </p>

@@ -122,6 +122,7 @@ export const PAIRINGS: Pairing[] = [
   P('border-on-page', 'A panel edge', 'lineStrong', 'void', 'decorative', 'nontext'),
   P('rule-on-panel', 'A table rule', 'line', 'graphite', 'decorative', 'nontext'),
   P('divider', 'Hairlines and grid marks', 'steelDim', 'void', 'decorative', 'nontext'),
+  P('shadow-on-page', 'Depth under a panel', 'shadow', 'void', 'decorative', 'nontext'),
 
   // ── Homepage ──────────────────────────────────────────────────────────────────────────────────
   P('hero-heading', 'The hero heading over the photograph', 'heroInk', 'scrim', 'essential', 'large'),
@@ -225,13 +226,17 @@ export function evaluate(overrides: Record<string, string>): PairingResult[] {
     const passes = ratio >= needed
 
     /*
-      Near-identical is called out separately from merely low.
+      Near-identical is called out separately from merely low — but only where it means something.
 
-      A ratio of 1.05 is not "a bit under" — it is text the same colour as its background, and it is
-      worth saying so plainly whatever the pairing's weight. White on white and black on black both
-      land here.
+      A ratio of 1.05 between TEXT and its ground is not "a bit under", it is text the same colour as
+      its background, and it blocks whatever the pairing's weight. White on white and black on black
+      both land here.
+
+      For non-text decoration it means the opposite. A shadow on a near-black page measures about
+      1.04:1 BY DESIGN — that is what a shadow is on a dark ground, and demanding otherwise would ask
+      for a halo. So the rule is scoped to things somebody reads.
     */
-    const invisible = ratio < 1.25
+    const invisible = ratio < 1.25 && p.size !== 'nontext'
     const verdict: PairingResult['verdict'] = passes
       ? 'pass'
       : (p.weight === 'essential' || invisible) ? 'block' : 'warn'

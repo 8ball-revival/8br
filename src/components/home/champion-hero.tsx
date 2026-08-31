@@ -73,7 +73,16 @@ export function ChampionHero({
   return (
     <section
       aria-labelledby="home-hero-heading"
-      className="relative isolate overflow-hidden border-b border-[var(--line-strong)] bg-[var(--void)]"
+      /*
+        The fallback ground is the SCRIM, not the page.
+
+        Everything written here sits on a darkened photograph, so the copy is `--text-on-media` —
+        light, always. If this section fell back to the page colour, a light theme would put that
+        light copy on light paper for as long as the image took to arrive, and permanently if it
+        never did. Falling back to the same colour the scrim darkens with means the ground under the
+        text is the same whether the photograph is there or not.
+      */
+      className="relative isolate overflow-hidden border-b border-[var(--line-strong)] bg-[var(--scrim-tint)]"
     >
       {image ? (
         <picture>
@@ -111,7 +120,7 @@ export function ChampionHero({
         */
         <span
           aria-hidden
-          className="absolute inset-0 bg-[var(--void)]"
+          className="absolute inset-0 bg-[var(--scrim-tint)]"
           style={{
             backgroundImage:
               'radial-gradient(120% 90% at 82% 46%, color-mix(in oklab, var(--surface-plaque) 90%, transparent), transparent 62%),'

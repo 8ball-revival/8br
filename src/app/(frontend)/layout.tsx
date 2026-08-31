@@ -123,6 +123,12 @@ for(var w in S.onWhenPositive)e.dataset[w]=Number(v(S.onWhenPositive[w]))>0?'on'
 for(var n in S.nums)e.style.setProperty(n,String(Number(v(S.nums[n][0]))/S.nums[n][1]));
 for(var p in S.px)e.style.setProperty(p,Number(v(S.px[p][0]))+S.px[p][1]);
 var T=s.tokens;
+var gv=(T&&typeof T==='object'&&typeof T.void==='string')?T.void:'#050607';
+try{var gm=/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(gv.trim());
+if(gm){var gh=gm[1].length===3?gm[1].replace(/./g,function(c){return c+c}):gm[1];
+var ch=function(x){x/=255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4)};
+var gl=0.2126*ch(parseInt(gh.slice(0,2),16))+0.7152*ch(parseInt(gh.slice(2,4),16))+0.0722*ch(parseInt(gh.slice(4,6),16));
+e.dataset.dlGround=gl>0.4?'light':'dark';}else{e.dataset.dlGround='dark';}}catch(g){e.dataset.dlGround='dark';}
 if(T&&typeof T==='object'&&!Array.isArray(T)){for(var t in S.tokens){var tv=T[t];
 if(typeof tv==='string'&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(tv))e.style.setProperty(S.tokens[t],tv);}}
 if(v('accentMode')==='custom'){e.style.setProperty('--dl-accent',String(v('accentHex')));e.style.setProperty('--dl-accent-ink',String(v('accentInk')));}

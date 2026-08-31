@@ -509,6 +509,26 @@ export const DOM_SPEC = {
   tokens: Object.fromEntries(THEME_TOKEN_REGISTRY.map((t) => [t.key, t.css])) as Record<string, string>,
 } as const
 
+/**
+ * WCAG relative luminance for a hex colour, or 0 when it cannot be read.
+ *
+ * A small local copy rather than an import: this module is deliberately close to dependency-free,
+ * and the alternative pulls the display colour module into the pre-paint path for one formula.
+ */
+function relativeLuminance(hex: string): number {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim())
+  if (!m) return 0
+  const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1]
+  const channel = (v: number) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  }
+  const r = channel(parseInt(h.slice(0, 2), 16))
+  const g = channel(parseInt(h.slice(2, 4), 16))
+  const b = channel(parseInt(h.slice(4, 6), 16))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
 export interface DisplayDom {
   attrs: Record<string, string>
   vars: Record<string, string>
@@ -538,7 +558,21 @@ export function displayDom(s: DisplaySettings): DisplayDom {
     inline into a style attribute -- there is no value it can emit that closes a declaration and
     opens another.
   */
-  for (const [prop, value] of Object.entries(tokenVars(s.tokens ?? {}))) vars[prop] = value
+  const palette = tokenVars(s.tokens ?? {})
+  for (const [prop, value] of Object.entries(palette)) vars[prop] = value
+
+  /*
+    Is this a light page or a dark one?
+
+    Decided from the RESOLVED page colour, not from a preset name, so it is right for a palette
+    somebody typed by hand. A handful of values in the stylesheet — the rating bands — were picked
+    for a dark ground and need darker variants on a light one; this attribute is what selects them.
+
+    Relative luminance rather than a lightness channel, because that is what contrast is actually
+    computed from, and 0.4 is comfortably clear of both the graphite grounds and the paper ones.
+  */
+  const ground = palette['--void'] ?? '#050607'
+  attrs.dlGround = relativeLuminance(ground) > 0.4 ? 'light' : 'dark'
 
   for (const [key, field] of Object.entries(DOM_SPEC.attrs)) attrs[key] = String(s[field as keyof DisplaySettings])
   for (const [key, field] of Object.entries(DOM_SPEC.bools)) attrs[key] = s[field as keyof DisplaySettings] ? 'on' : 'off'

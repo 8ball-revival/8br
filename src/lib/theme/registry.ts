@@ -160,6 +160,10 @@ export const THEME_TOKEN_REGISTRY: ThemeToken[] = [
     key: 'ring', css: '--ring', label: 'Focus ring', group: 'borders', fallback: '#13d8e8',
     effect: 'The outline around whatever the keyboard is on. It has to stand out from every surface it can land on.',
   },
+  {
+    key: 'shadow', css: '--shadow-color', label: 'Shadow colour', group: 'borders', fallback: '#000000',
+    effect: 'What depth is made of, under panels, medallions and the play control. Black is right on a dark page and reads as grey smudge on a light one.',
+  },
 
   // ── Brand accents ─────────────────────────────────────────────────────────────────────────────
   {
