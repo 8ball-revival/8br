@@ -298,14 +298,45 @@ async function loadIdentities(playerIds: string[]): Promise<Map<string, Identity
   return map
 }
 
+/**
+ * Every Tournament win, by the player who holds it.
+ *
+ * ── Why this is exported ────────────────────────────────────────────────────────────────────────
+ * Two readers award the Tournament step — this ladder and the Rankings explorer — and resolving a
+ * champion is the part with the judgement in it: the deepest decided playoff match, falling back to
+ * the top Swiss standing, and a team win belonging to every member of the roster. A second copy of
+ * that is a second chance to disagree about who won, which is precisely the fault that put the two
+ * readers a point apart before.
+ *
+ * The competition year and series travel with each win so a caller filtering a period can apply the
+ * same bounds it applies to Season titles, rather than guessing from a date.
+ */
+export interface TournamentWin {
+  tournamentId: number
+  competitionYear: number | null
+  competitionSeriesId: number | null
+  platform: string
+}
+
+export async function tournamentWinsByPlayer(): Promise<Map<string, TournamentWin[]>> {
+  const wins = new Map<string, TournamentWin[]>()
+  for (const [playerId, entries] of await computeTrophiesWithMeta()) wins.set(playerId, entries.map((e) => e.meta))
+  return wins
+}
+
+type TrophyWithMeta = { entry: TrophyEntry; meta: TournamentWin }
+
 /** Champion player(s) per completed tournament → trophies. Team win = a trophy for every roster member. */
-async function computeTrophies(): Promise<Map<string, TrophyEntry[]>> {
+async function computeTrophiesWithMeta(): Promise<Map<string, TrophyWithMeta[]>> {
   const tournaments = await prisma.tournament.findMany({
     where: { lifecycleState: 'COMPLETED' },
-    select: { id: true, number: true, name: true, ladderAppliedAt: true, participantFormat: true },
+    select: {
+      id: true, number: true, name: true, ladderAppliedAt: true, participantFormat: true,
+      competitionYear: true, competitionSeriesId: true, platform: true,
+    },
   })
-  const out = new Map<string, TrophyEntry[]>()
-  const add = (pid: string, e: TrophyEntry) => (out.get(pid) ?? out.set(pid, []).get(pid)!).push(e)
+  const out = new Map<string, TrophyWithMeta[]>()
+  const add = (pid: string, e: TrophyWithMeta) => (out.get(pid) ?? out.set(pid, []).get(pid)!).push(e)
 
   for (const t of tournaments) {
     // Champion registration = winner of the deepest decided playoff match; else top Swiss standing.
@@ -322,7 +353,15 @@ async function computeTrophies(): Promise<Map<string, TrophyEntry[]>> {
     }
     if (championRegId == null) continue
 
-    const entry: TrophyEntry = { tournamentId: t.id, number: t.number, name: t.name, date: t.ladderAppliedAt?.toISOString() ?? null, slug: `/tournaments/${t.number}` }
+    const entry: TrophyWithMeta = {
+      entry: { tournamentId: t.id, number: t.number, name: t.name, date: t.ladderAppliedAt?.toISOString() ?? null, slug: `/tournaments/${t.number}` },
+      meta: {
+        tournamentId: t.id,
+        competitionYear: t.competitionYear ?? null,
+        competitionSeriesId: t.competitionSeriesId ?? null,
+        platform: String(t.platform),
+      },
+    }
     if (t.participantFormat === 'TEAM') {
       const team = await prisma.tournamentTeam.findFirst({ where: { tournamentId: t.id, registrationId: championRegId }, include: { members: true } })
       for (const m of team?.members ?? []) if (m.playerId) add(m.playerId, entry)
@@ -331,6 +370,13 @@ async function computeTrophies(): Promise<Map<string, TrophyEntry[]>> {
       if (reg?.playerId) add(reg.playerId, entry)
     }
   }
+  return out
+}
+
+/** The trophy list the ladder renders, without the filtering metadata. */
+async function computeTrophies(): Promise<Map<string, TrophyEntry[]>> {
+  const out = new Map<string, TrophyEntry[]>()
+  for (const [playerId, entries] of await computeTrophiesWithMeta()) out.set(playerId, entries.map((e) => e.entry))
   return out
 }
 
@@ -404,14 +450,21 @@ export async function getLadder(
     const allSeasons = seasonTrophies.get(s.playerId) ?? []
     const viewSeasons = view === 'current' ? allSeasons.filter((tr) => tr.date != null && new Date(tr.date) >= cutoff) : allSeasons
     const latest = allTimeLatest.get(s.playerId) ?? null
+    // A Yahoo Tournament is recorded but rating-neutral, so it earns no step. See `isRatingNeutral`.
+    const steppedTrophies = isRatingNeutral(platform, 1) ? [] : viewTrophies
     return {
       playerId: s.playerId,
       name: idn?.name ?? s.name,
       cueverseId: idn?.cueverseId ?? null,
       slug: idn?.slug ?? null,
       rank: 0,
-      // The ledger's rating is pure Elo; the championship step is added on top of it here.
-      rating: withChampionStep(Math.round(s.rating), viewSeasons.length),
+      /*
+        The ledger's rating is pure Elo; the honours steps are added on top of it here.
+
+        `steppedTrophies` rather than `viewTrophies`: a rating-neutral Tournament is still SHOWN as
+        a trophy — it was won — but it moves no rating, exactly as its matches move none.
+      */
+      rating: withChampionStep(Math.round(s.rating), viewSeasons.length, steppedTrophies.length),
       wins: s.wins,
       losses: s.losses,
       draws: s.draws,
@@ -421,7 +474,7 @@ export async function getLadder(
       seasonTitles: viewSeasons.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
       highestRank: s.highestRank,
       // Stepped as well, so a champion's peak can never read below their current rating.
-      highestRating: withChampionStep(Math.round(s.highestRating), viewSeasons.length),
+      highestRating: withChampionStep(Math.round(s.highestRating), viewSeasons.length, steppedTrophies.length),
       longestWinStreak: s.longestWinStreak,
       idleDays: latest ? Math.floor((now.getTime() - latest.getTime()) / DAY_MS) : null,
     }

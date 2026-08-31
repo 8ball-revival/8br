@@ -97,7 +97,43 @@ export function isRatingNeutral(platform: string, tournamentId?: number | null):
  */
 export const CHAMPION_STEP = 200
 
-/** A rating with the championship step applied, for a player holding `titles` Season titles. */
-export function withChampionStep(rating: number, titles: number): number {
-  return titles > 0 ? rating + CHAMPION_STEP : rating
+/**
+ * The same idea, worth less: a Tournament win.
+ *
+ * ── Why a step, and not a fraction of Elo ───────────────────────────────────────────────────────
+ * It works exactly as the Season step does, for the reasons above — applied after the ratings are
+ * settled so it cannot punish a winner for winning again, and once rather than per title so five
+ * Tournament wins do not stretch the top of the ladder away from the field.
+ *
+ * ── Why 25 ──────────────────────────────────────────────────────────────────────────────────────
+ * A Tournament is one afternoon; a Season is months of it. The number says so: it is enough that
+ * winning one is visible on the ladder, and small enough that no amount of them approaches a single
+ * Season title. It is deliberately well inside the Season step's headroom — 157 is the smallest
+ * step that keeps every Season champion above every non-champion, and 200 was chosen to leave room
+ * — so lifting a Tournament winner by 25 cannot lift them past a Season champion who has not won
+ * one. `verify-championship-step` is what proves that still holds.
+ *
+ * ── It obeys `isRatingNeutral`, like every other rating movement ────────────────────────────────
+ * A Yahoo Tournament is recorded but moves nobody's rating: its matches are scored at zero because
+ * letting a handful of one-off side events move a rating built from ninety-odd Seasons lets a single
+ * afternoon outweigh a career. Awarding a step for WINNING one would say the opposite through the
+ * back door — the matches worth nothing, the trophy worth 25 — so a neutral Tournament earns no
+ * step either. Measured: it is also what keeps the Yahoo ladder's headroom at 44 rather than 38.
+ */
+export const TOURNAMENT_STEP = 25
+
+/**
+ * A rating with the honours a player holds added on top.
+ *
+ * Both steps apply where both are held: a Season champion who has also won a Tournament stands 225
+ * above their Elo, which is the ordering the two numbers were chosen to produce — a Tournament win
+ * counts, and it never counts like a Season.
+ *
+ * `tournamentWins` defaults to none so an existing caller that only knows about Season titles keeps
+ * behaving exactly as it did.
+ */
+export function withChampionStep(rating: number, titles: number, tournamentWins = 0): number {
+  return rating
+    + (titles > 0 ? CHAMPION_STEP : 0)
+    + (tournamentWins > 0 ? TOURNAMENT_STEP : 0)
 }

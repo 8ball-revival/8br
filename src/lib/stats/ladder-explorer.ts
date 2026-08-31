@@ -3,7 +3,7 @@ import 'server-only'
 import { inWindow, ratingsForScope, replayRatings, windowCutoff } from '@/lib/stats/rating-history'
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { ELO_START, withChampionStep } from '@/lib/stats/elo'
+import { ELO_START, isRatingNeutral, withChampionStep } from '@/lib/stats/elo'
 import { resolvePublicIdentity, slugifyIdentity } from '@/lib/identity/public-identity'
 import { UNASSIGNED_DIVISION, completenessOf, type Completeness } from './rankings-facts'
 
@@ -241,11 +241,41 @@ async function ratingsForScope_(scope: 'current' | 'all-time', now: Date, filter
     _count: { _all: true },
   })
   const titlesOf = new Map(champs.map((c) => [c.championPlayerId!, c._count._all]))
+
+  /*
+    Tournament wins, bounded by the same period the Season titles are.
+
+    Resolved by the ladder's own function rather than re-derived here — who won a Tournament is the
+    part with judgement in it (the deepest decided match, the Swiss fallback, a team win belonging
+    to every member), and two answers to that is how the two readers drift apart.
+
+    A Seasons-only ladder counts none of them, mirroring the `id: -1` above that gives a
+    Tournaments-only ladder no Season titles: a filter that excludes an event type has to exclude
+    the honour that comes from it, or the step would credit a win the table is not showing.
+  */
+  const { tournamentWinsByPlayer } = await import('./ladder')
+  const seasonsOnly = filters.eventType === 'seasons' || filters.seasonId != null || !!filters.division
+  const winsOf = seasonsOnly ? new Map<string, never[]>() : await tournamentWinsByPlayer()
+  const inPeriod = (w: { tournamentId: number; competitionYear: number | null; competitionSeriesId: number | null; platform: string }) => {
+    if (w.platform !== platform) return false
+    // A rating-neutral Tournament moves no rating, so winning one earns no step either.
+    if (isRatingNeutral(w.platform, w.tournamentId)) return false
+    if (filters.competitionSeriesId != null && w.competitionSeriesId !== filters.competitionSeriesId) return false
+    if (filters.tournamentId != null) return true
+    const y = w.competitionYear
+    if (y == null) return true
+    if (filters.year != null) return y === filters.year
+    if (filters.fromYear != null && y < filters.fromYear) return false
+    if (filters.toYear != null && y > filters.toYear) return false
+    return true
+  }
+
   for (const [playerId, v] of ratings) {
     const titles = titlesOf.get(playerId) ?? 0
-    if (titles > 0) {
-      v.rating = withChampionStep(v.rating, titles)
-      v.highestRating = withChampionStep(v.highestRating, titles)
+    const wins = (winsOf.get(playerId) ?? []).filter(inPeriod).length
+    if (titles > 0 || wins > 0) {
+      v.rating = withChampionStep(v.rating, titles, wins)
+      v.highestRating = withChampionStep(v.highestRating, titles, wins)
     }
   }
   return ratings

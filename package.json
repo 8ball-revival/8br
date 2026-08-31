@@ -53,6 +53,7 @@
     "test:player-picker": "tsx --tsconfig tsconfig.scripts.json scripts/verify-player-picker.mts",
     "test:player-picker:ui": "tsx --tsconfig tsconfig.scripts.json scripts/verify-player-picker-ui.mts",
     "test:rating-replay": "tsx --tsconfig tsconfig.scripts.json scripts/verify-rating-replay.mts",
+    "test:tournament-step": "tsx --tsconfig tsconfig.scripts.json scripts/verify-tournament-step.mts",
     "test:typography": "tsx --tsconfig tsconfig.scripts.json scripts/verify-typography.mts"
   },
   "dependencies": {
