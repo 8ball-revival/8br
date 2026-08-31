@@ -140,7 +140,7 @@ section('The page defaults to the whole archive with every optional column')
     offered set they vanish from More Filters and every saved link that names one stops resolving.
   */
   check('the live ladder opens with the columns that fit',
-    d.visibleColumns.join(',') === 'record,matchWinPct,currentStreak,seasonTitles,tournamentTitles,cupRecord,seasonsPlayed',
+    d.visibleColumns.join(',') === 'record,matchWinPct,currentStreak,seasonTitles,tournamentTitles,seasonRecord,cupRecord,seasonsPlayed,tournamentsPlayed',
     d.visibleColumns.join(','))
   check('...and the two it holds back are still OFFERED',
     ['groupRecord', 'playoffRecord'].every((k) => (OPTIONAL_COLUMN_KEYS as readonly string[]).includes(k)))
@@ -151,14 +151,21 @@ section('The page defaults to the whole archive with every optional column')
 
   const keys = visibleColumnKeys(d)
   /*
-    Honours read beside the record that produced them.
+    Honours, then the two records they came out of, then the two counts.
 
-    They used to sit at the far right, past two record splits, which put the answer to "who is
-    actually winning things" in the column most likely to be off the edge of the screen.
+    Honours sit ahead of the records rather than at the far right, which is where they used to be -
+    past two record splits, in the column most likely to be off the edge of the screen. Season and
+    Tournament are then paired at every level: a championship count beside a title count, a Season
+    W-L-D beside a Tournament W-L-D, an S beside a T. Reading across a row answers "how do they do
+    in Seasons, and how do they do in Tournaments" without hunting for the other half of a pair.
   */
   check('the default column order is the specified one',
-    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonTitles,tournamentTitles,cupRecord,seasonsPlayed',
+    keys.join(',') === 'rank,player,rating,record,matchWinPct,currentStreak,seasonTitles,tournamentTitles,seasonRecord,cupRecord,seasonsPlayed,tournamentsPlayed',
     keys.join(','))
+  check('...and Season sits beside Tournament at all three levels',
+    keys.indexOf('tournamentTitles') === keys.indexOf('seasonTitles') + 1
+    && keys.indexOf('cupRecord') === keys.indexOf('seasonRecord') + 1
+    && keys.indexOf('tournamentsPlayed') === keys.indexOf('seasonsPlayed') + 1)
   check('Rank is first', keys[0] === 'rank')
   check('Player is second', keys[1] === 'player')
   check('Rating is third', keys[2] === 'rating')
@@ -255,9 +262,17 @@ section('The page defaults to the whole archive with every optional column')
 
   // Somebody's saved link still names the old key. It should land on the renamed column, not vanish.
   const legacy = decodeRankingsState(new URLSearchParams('cols=seasonRecord&sort=seasonRecord:desc'), NOW)
+  /*
+    `seasonRecord` is a real column again, so an old link naming it lands on the column itself.
+
+    It spent a period as an alias for `groupRecord`, from when that column silently included the
+    playoffs and was renamed on being corrected. A whole-Season record exists again and carries the
+    original name, so the alias is gone and the link resolves to the thing it always meant - which
+    is a better outcome for the bookmark than the redirect was.
+  */
   check('an old link naming seasonRecord still resolves',
-    legacy.visibleColumns?.includes('groupRecord') === true, String(legacy.visibleColumns))
-  check('...and so does an old sort', legacy.sort?.[0]?.key === 'groupRecord', legacy.sort?.[0]?.key)
+    legacy.visibleColumns?.includes('seasonRecord') === true, String(legacy.visibleColumns))
+  check('...and so does an old sort', legacy.sort?.[0]?.key === 'seasonRecord', legacy.sort?.[0]?.key)
 }
 
 section('Permanent columns cannot be hidden; optional ones can')

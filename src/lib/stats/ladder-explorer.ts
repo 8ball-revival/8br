@@ -314,6 +314,8 @@ export interface ExplorerRow {
   competitionsEntered: number
   /** Distinct Seasons entered and not withdrawn from — how many Seasons this player took part in. */
   seasonsPlayed: number
+  /** Distinct Tournaments with an APPROVED registration — how many Tournaments they took part in. */
+  tournamentsPlayed: number
   forfeits: number
   idleDays: number | null
 
@@ -894,6 +896,26 @@ export async function computeExplorer(
         JOIN season_scope ss ON ss."id" = e."seasonId"
        WHERE e."playerId" IS NOT NULL
        GROUP BY e."playerId"
+    ),
+    tourn AS (
+      SELECT r."playerId",
+             /*
+              * Tournaments the player actually took part in - the Tournament twin of seasons_played.
+              *
+              * APPROVED only. A registration that is still PENDING, or was REJECTED, is a request to
+              * take part rather than taking part; counting either would credit people for
+              * Tournaments they never entered. WITHDRAWN is excluded for the same reason the Season
+              * count excludes it.
+              *
+              * DISTINCT on the Tournament for symmetry with the Season count, even though the
+              * (tournamentId, playerId) unique constraint should already make it one row apiece.
+              */
+             count(DISTINCT r."tournamentId") FILTER (WHERE r."status" = 'APPROVED')::int AS tournaments_played
+        FROM "public"."comp_registration" r
+        -- Scoped like everything else: "Tournaments" means Tournaments inside THIS ladder.
+        JOIN tournament_scope ts ON ts."id" = r."tournamentId"
+       WHERE r."playerId" IS NOT NULL
+       GROUP BY r."playerId"
     )
     SELECT
       a.*,
@@ -906,6 +928,7 @@ export async function computeExplorer(
       coalesce(tc.tournament_titles, 0)::int AS tournament_titles,
       g.group_points, g.groups_entered, g.first_places, g.perfect_stages,
       q.qualifications, q.season_entries, q.seasons_played,
+      coalesce(tp.tournaments_played, 0)::int AS tournaments_played,
       coalesce(al.alias_list, ARRAY[]::text[]) AS aliases,
       p."primaryName", p."cueverseId", coalesce(p."active", true) AS active
     FROM agg a
@@ -917,6 +940,7 @@ export async function computeExplorer(
     LEFT JOIN tchamps tc ON tc."playerId" = a."playerId"
     LEFT JOIN grp     g  ON g."playerId"  = a."playerId"
     LEFT JOIN quals   q  ON q."playerId"  = a."playerId"
+    LEFT JOIN tourn   tp ON tp."playerId" = a."playerId"
     LEFT JOIN aliases al ON al."playerId" = a."playerId"
     LEFT JOIN "public"."Player" p ON p."id" = a."playerId"
   `
@@ -998,6 +1022,7 @@ export async function computeExplorer(
       longestStreak: num(r.longest_win_run),
       competitionsEntered: num(r.competitions),
       seasonsPlayed: num(r.seasons_played),
+      tournamentsPlayed: num(r.tournaments_played),
       forfeits: num(r.forfeits),
       idleDays: lastPlayed
         ? Math.max(0, Math.floor((now.getTime() - lastPlayed.getTime()) / 86_400_000))

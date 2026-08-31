@@ -44,7 +44,7 @@ import { Tip } from './tooltip'
   being pushed off the end. Two names in this table need that much room; the rest are a handle and
   a first name, and the cell truncates when one does not fit.
 */
-export const PLAYER_COL_WIDTH = 'clamp(10rem, 16vw, 260px)'
+export const PLAYER_COL_WIDTH = 'clamp(9rem, 14vw, 210px)'
 
 /**
  * The Player column on the Yahoo archive, which carries one statistic column more.
@@ -363,15 +363,15 @@ function HeaderCell({ col, sort, onSort, playerColumnWidth = PLAYER_COL_WIDTH }:
       data-col={col.key}
       aria-sort={s ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={cn(
-        'sticky top-0 z-30 border-b border-[var(--neon-line)] bg-[var(--surface)] px-2.5 py-2 align-bottom text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground',
+        'sticky top-0 z-30 border-b border-[var(--neon-line)] bg-[var(--surface)] px-2 py-2 align-bottom text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground',
         // Most headers are short and read best on one line. The honours headers are not: forcing
         // "Season Championships 👑" onto one line drags the whole column to its width and pushes
         // everything else off screen. Those wrap instead, and the row aligns on its baseline so a
         // two-line header sits level with the one-line ones beside it.
         // A header carrying an explicit line break stacks exactly where it says, and nowhere else.
         // `whitespace-pre-line` honours the newline and still collapses ordinary runs of spaces.
-        stacked ? 'w-[6.5rem] whitespace-pre-line leading-tight'
-          : col.group === 'titles' ? 'w-[7.5rem] whitespace-normal leading-tight' : 'whitespace-nowrap',
+        stacked ? 'w-[6rem] whitespace-pre-line leading-tight'
+          : col.group === 'titles' ? 'w-[6rem] whitespace-normal leading-tight' : 'whitespace-nowrap',
         col.align === 'right' ? 'text-right' : 'text-left',
         sticky && 'z-40',
         // The active sort is marked with a neutral lift and gold TEXT. A translucent gold wash over

@@ -119,6 +119,33 @@ export const COLUMNS: ColumnDef[] = [
     format: (r) => dash(r.seasonsPlayed),
   },
   {
+    /*
+      The whole Season record: group stage and playoffs together.
+
+      Its two halves are `groupRecord` and `playoffRecord`, which stay available for a reader who
+      wants the split. This is the figure most people mean by "how did they do in Seasons" - the
+      question the two halves answer between them but neither answers alone - and it reads directly
+      against the Tournament record beside it.
+
+      The key was previously an alias for `groupRecord`, from a period when that column silently
+      included the playoffs. It is a real column again, and it means what its name says.
+    */
+    key: 'seasonRecord', label: 'Season Record', short: 'Season W–L–D', group: 'match', align: 'right',
+    tooltip: 'Every match inside completed, archived Seasons — group stage and playoffs together. The two halves are available separately as Group Record and Playoffs Record. Sorts by wins.',
+    value: (r) => r.groupWins + r.playoffWins,
+    format: (r) => record3(
+      r.groupWins + r.playoffWins,
+      r.groupLosses + r.playoffLosses,
+      r.groupDraws + r.playoffDraws,
+    ),
+  },
+  {
+    key: 'tournamentsPlayed', label: 'Tournaments Played', short: 'Tournaments Played', group: 'match', align: 'right',
+    tooltip: 'How many Tournaments this player took part in, counting an approved registration. A pending or rejected entry is a request to take part rather than taking part, so neither counts.',
+    value: (r) => r.tournamentsPlayed,
+    format: (r) => dash(r.tournamentsPlayed),
+  },
+  {
     key: 'groupRecord', label: 'Group Record', short: 'Groups W–L–D', group: 'match', align: 'right',
     /*
      * GROUP PLAY ONLY.
@@ -140,13 +167,17 @@ export const COLUMNS: ColumnDef[] = [
   },
   {
     key: 'cupRecord', label: 'Tournament Record', short: 'Tournament W–L', group: 'match', align: 'right',
-    tooltip: 'Eligible matches from completed, archived Tournaments only. Draws are counted where a Tournament format genuinely allows one and are shown as a third number when any exist. Sorts by wins.',
+    tooltip: 'Eligible matches from completed, archived Tournaments only. Draws are possible where a Tournament format allows one, so the record is shown as W–L–D. Sorts by wins.',
     value: (r) => r.tournamentWins,
-    // A Tournament draw is possible in a group or round-robin format. The third number appears only
-    // when there IS one, rather than a permanent "–0" that says nothing about most Tournaments.
-    format: (r) => (r.tournamentDraws > 0
-      ? record3(r.tournamentWins, r.tournamentLosses, r.tournamentDraws)
-      : record2(r.tournamentWins, r.tournamentLosses)),
+    /*
+      Always three numbers, to read against the Season record beside it.
+
+      It used to drop the draw unless there was one, on the reasoning that a permanent "–0" says
+      nothing about most Tournaments. True on its own; but this column now sits directly beside a
+      Season W–L–D, and a 2-4 next to an 8-1-0 reads as a different KIND of figure rather than the
+      same figure for a different competition. Matching them is worth one predictable zero.
+    */
+    format: (r) => record3(r.tournamentWins, r.tournamentLosses, r.tournamentDraws),
   },
   {
     /*
@@ -308,19 +339,23 @@ export function columnsForView(view: RecordView, profile: TableProfile = 'archiv
 /*
   Shorter headings on the live ladder, and only there.
 
-  "Season Championships" and "Tournament Titles" are two of the widest headings on a table whose
-  cells are a single number under a crown or a trophy — between them they were what still pushed
-  the ladder past a maximised window. The full name stays in the tooltip and in the spoken label,
-  so nothing is lost but the width.
+  Abbreviating is spent where it costs least. The two counts are a bare number in a narrow column
+  and their headings were the widest thing in them, so they become initials; the honours and record
+  columns keep their names, because "Trophies" and "Cups" side by side do not tell a reader which
+  is a count of wins and which is a win-loss record, and that pair genuinely confused the table.
 
-  The archive is deliberately untouched: it is a different table with its own column list, and it
+  Nothing is lost but the width: the full name stays in the tooltip and in the spoken label.
+
+  The archive is deliberately untouched - it is a different table with its own column list, and it
   reads the same today as it did before any of this.
 */
 const LIVE_HEADERS: Record<string, string> = {
-  seasonTitles: 'Titles',
-  tournamentTitles: 'Trophies',
-  seasonsPlayed: 'Seasons',
-  cupRecord: 'Cups',
+  // Stacked onto two lines: a header carrying a newline sets its own width from the longer HALF,
+  // so "Tournament W–L–D" stops being the widest thing on the table without losing a word of it.
+  seasonRecord: 'Season\nW–L–D',
+  cupRecord: 'Tournament\nW–L–D',
+  seasonsPlayed: 'S',
+  tournamentsPlayed: 'T',
 }
 
 /**
@@ -332,8 +367,6 @@ const LIVE_HEADERS: Record<string, string> = {
 export const LEGACY_COLUMN_KEYS: Record<string, string> = {
   titles: 'seasonTitles',
   draws: 'record',
-  // Renamed when it stopped double-counting the playoffs: it was never a whole-Season record.
-  seasonRecord: 'groupRecord',
 }
 
 // --------------------------------------------------------------------------- sorting
@@ -600,7 +633,8 @@ export interface YearBounds { min: number; max: number }
 export const OPTIONAL_COLUMN_KEYS = [
   'record', 'matchWinPct', 'currentStreak',
   'seasonTitles', 'tournamentTitles',
-  'cupRecord', 'seasonsPlayed',
+  'seasonRecord', 'cupRecord',
+  'seasonsPlayed', 'tournamentsPlayed',
   'groupRecord', 'playoffRecord',
 ] as const
 
@@ -615,7 +649,8 @@ export const OPTIONAL_COLUMN_KEYS = [
 export const DEFAULT_VISIBLE_COLUMN_KEYS: readonly string[] = [
   'record', 'matchWinPct', 'currentStreak',
   'seasonTitles', 'tournamentTitles',
-  'cupRecord', 'seasonsPlayed',
+  'seasonRecord', 'cupRecord',
+  'seasonsPlayed', 'tournamentsPlayed',
 ]
 
 /**
