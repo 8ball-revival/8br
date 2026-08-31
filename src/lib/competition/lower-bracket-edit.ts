@@ -396,10 +396,21 @@ export function validateRouting(
     return 'That edit would add or remove a feed, which would leave a player with nowhere to go.'
   }
 
-  // ── Nobody may sit in two live seats at once ─────────────────────────────────────────────────
+  /*
+    ── Nobody may sit in two LIVE seats at once ──────────────────────────────────────────────────
+    A walkover is not a live seat. A winners bye holds its player forever - it has no result to
+    record, so it never locks - and that player goes on to appear in the losers bracket entirely
+    legitimately once they drop. Counting the bye as a live seat reported them in two places and
+    refused a swap that was perfectly legal: it rejected the 602 Invitational's losers reroute with
+    "Sid would be waiting in both Winners R1 M9 and Losers R102 M5".
+
+    So a match that is decided - by a result OR by being a walkover - is passed over here. What the
+    check is for is a player scheduled to play two matches at once, and neither of those is that.
+  */
+  const afterRoutes = routesByTarget(after)
   const seats = new Map<number, RoutableMatch>()
   for (const m of after) {
-    if (isLocked(m)) continue
+    if (isLocked(m) || isWalkover(m, afterRoutes)) continue
     for (const slot of [0, 1]) {
       const o = occupantOf(m, slot)
       if (o.registrationId == null) continue

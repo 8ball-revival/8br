@@ -415,6 +415,32 @@ try {
     await cleanup()
   }
 
+  section('A player parked in a walkover is not "in two places at once"')
+  {
+    /*
+      A winners bye never locks - there is no result to record - so its player sits in it forever
+      while also, correctly, appearing in the losers bracket after they later drop. Treating that
+      bye as a live seat refused a legal reroute on the 602 Invitational.
+    */
+    const { tid: t5 } = await buildBracket()
+    let b = await read(t5)
+    const wb = find(b, 'WB', 1, 0)
+    const parked = wb.homeRegistrationId!
+    await prisma.playoffMatch.update({
+      where: { id: wb.id }, data: { awayRegistrationId: null, awayUsername: 'Bye' },
+    })
+    // The same player also seated in a losers match, as happens once they drop.
+    const lb = find(b, 'LB', 1, 1)
+    await prisma.playoffMatch.update({
+      where: { id: lb.id },
+      data: { homeRegistrationId: parked, homeUsername: 'parked' },
+    })
+    b = await read(t5)
+    check('the bye is not treated as a live seat', validateRouting(b, b) === null,
+      String(validateRouting(b, b)))
+    await cleanup()
+  }
+
   section('A bye stored as an unfed empty seat is recognised too')
   {
     /*
