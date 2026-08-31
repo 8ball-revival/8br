@@ -1,7 +1,7 @@
 import type { CompetitionPlatform } from '@prisma/client'
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import { ELO_START, ELO_K, expectedScore, withChampionStep } from './elo'
+import { ELO_START, isRatingNeutral, matchDeltas, withChampionStep } from './elo'
 import { TEAM_DELTA } from './rating-history'
 import type { SeasonTrophyEntry } from '@/lib/seasons/trophies'
 
@@ -51,6 +51,8 @@ export interface LadderRow {
 interface Row {
   tournamentId: number
   seasonId: number | null
+  /** Needed to know whether a result counts at all — see `isRatingNeutral`. */
+  platform: string
   matchKey: string
   stage: string
   roundLabel: string | null
@@ -231,17 +233,19 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
     const actualA = A[0].actual
     const forfeit = m[0].isForfeit
     /*
-     * Unrounded, and a fixed step for a team match.
+     * The same functions the ledger writer and the replay call — not the same arithmetic re-typed.
      *
-     * This used to be `Math.round(...)`, which made the running rating an integer at every step
-     * while the ledger writer carries a fraction and rounds only when it stores a row. Over a few
-     * hundred matches the two accumulate differently, and the difference surfaced as a one-point
-     * disagreement between this ladder and the Rankings table for whoever sat near a boundary.
-     *
-     * See lib/stats/rating-history for the canonical rule; the arithmetic here is kept identical to
-     * it deliberately, and `verify-rating-history` proves the two agree.
+     * This was a hand-written copy of the formula, kept in step with `rating-history` by a comment
+     * asking the next person to remember. They did not: correcting the rounding in the replay left
+     * this reader on the old formula, and the ladder and the Rankings table disagreed by up to three
+     * points until `verify-rankings-data` caught it. `matchDeltas` and `isRatingNeutral` are now the
+     * single definition, so the two cannot drift again without both moving together.
      */
-    const dA = forfeit ? 0 : isTeam ? (actualA === 1 ? TEAM_DELTA : -TEAM_DELTA) : ELO_K * (actualA - expectedScore(rA, rB))
+    const dA = forfeit || isRatingNeutral(m[0].platform, m[0].tournamentId)
+      ? 0
+      : isTeam
+        ? (actualA === 1 ? TEAM_DELTA : -TEAM_DELTA)
+        : matchDeltas(rA, rB, actualA).home.delta
     const apply = (side: Row[], delta: number) => {
       for (const r of side) {
         name.set(r.playerId, r.playerName)
@@ -260,7 +264,8 @@ function computeCurrent(rows: Row[], cutoff: Date): Map<string, PlayerStats> {
 
   const stats = new Map<string, PlayerStats>()
   for (const [pid, results] of perPlayerResults) {
-    // The running figures are fractional until here; presentation is the only place they round.
+    // Whole numbers throughout, now that every change comes from `matchDeltas`; the rounding below
+    // is left in place because a future scoring rule need not be integral.
     const wins = results.filter((r) => r === 'WIN').length
     const losses = results.filter((r) => r === 'LOSS').length
     const draws = results.filter((r) => r === 'DRAW').length

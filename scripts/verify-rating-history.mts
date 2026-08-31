@@ -29,7 +29,7 @@ import {
   replayRatings, storedRatings, ratingsForScope, windowCutoff, inWindow,
   WINDOW_DAYS, TEAM_DELTA, type RatingRow,
 } from '../src/lib/stats/rating-history.ts'
-import { ELO_START } from '../src/lib/stats/elo.ts'
+import { ELO_START, matchDeltas } from '../src/lib/stats/elo.ts'
 
 let pass = 0
 let fail = 0
@@ -45,6 +45,8 @@ const row = (o: Partial<RatingRow> & { playerId: string; matchKey: string; actua
   playerName: o.playerId,
   sequence: o.sequence ?? ++seq,
   tournamentId: o.tournamentId ?? 1,
+  // CueVerse by default, so a synthetic row counts; the neutrality tests opt into YAHOO.
+  platform: o.platform ?? 'CUEVERSE',
   completedAt: o.completedAt ?? new Date('2026-06-01T00:00:00Z'),
   result: o.actual === 1 ? 'WIN' : 'LOSS',
   isForfeit: o.isForfeit ?? false,
@@ -98,27 +100,49 @@ try {
   check('...for every player involved',
     ['P', 'Q', 'R', 'S'].every((id) => once.get(id)?.rating === shuffled.get(id)?.rating))
 
-  section('The running rating is carried unrounded — the actual cause')
+  section('Every reader scores a match with the same function')
   /*
-   * A long chain of wins against a fixed opponent. Each Elo delta has a fraction; rounding it every
-   * step accumulates a different total from carrying it and rounding once. This is exactly what put
-   * the ladder a point away from the table.
-   */
+    This section used to assert the OPPOSITE, and was right at the time.
+
+    The rule was "carry the running rating unrounded and round once at the end", which the replay
+    followed and a naive round-every-step reader did not — so the test proved the two disagreed.
+    Meanwhile the ledger WRITER moved to `matchDeltas`, which rounds each change and mirrors it so a
+    match is exactly zero-sum, and nothing updated this. The stored ladder and every replayed view
+    then disagreed by a point or two, which is what an owner eventually noticed when switching the
+    Rankings tab from All to 8BRCAM.
+
+    So the invariant is no longer about WHERE rounding happens. It is that there is one function,
+    and every reader calls it.
+  */
   seq = 200
   const chain: RatingRow[] = []
   for (let i = 0; i < 40; i++) chain.push(...match(`chain-${i}`, 'X', `Y${i}`))
   const carried = replayRatings(chain).get('X')!.rating
 
-  // The old behaviour, reproduced: round each delta before applying it.
-  let naive = ELO_START
-  for (let i = 0; i < 40; i++) {
-    const expected = 1 / (1 + Math.pow(10, (ELO_START - naive) / 400))
-    naive += Math.round(32 * (1 - expected))
-  }
+  // The writer's arithmetic, applied by hand: this is what the ledger would have stored.
+  let asWritten = ELO_START
+  for (let i = 0; i < 40; i++) asWritten += matchDeltas(asWritten, ELO_START, 1).home.delta
+
   check('forty wins produce a rating', carried > ELO_START, String(carried))
-  check('...and rounding every step gives a DIFFERENT answer',
-    Math.round(naive) !== carried, `naive ${Math.round(naive)} vs canonical ${carried}`)
-  check('...the canonical one rounds exactly once, at the end', Number.isInteger(carried))
+  check('...and the replay lands exactly where the writer would have',
+    asWritten === carried, `writer ${asWritten} vs replay ${carried}`)
+  check('...on a whole number, because every change is one', Number.isInteger(carried))
+
+  section('A result the ledger scores as neutral moves nobody')
+  /*
+    A Yahoo Tournament is recorded but must not move a rating. The rule lived privately in the
+    writer, so the replay invented Elo for results the ledger had deliberately scored as zero.
+  */
+  seq = 250
+  const neutral = match('yahoo-cup-1', 'N1', 'N2', { platform: 'YAHOO', tournamentId: 7 })
+  const neutralRatings = replayRatings(neutral)
+  check('a Yahoo Tournament moves neither player',
+    neutralRatings.get('N1')?.rating === ELO_START && neutralRatings.get('N2')?.rating === ELO_START,
+    `${neutralRatings.get('N1')?.rating} / ${neutralRatings.get('N2')?.rating}`)
+  // `tournamentId: null` is what makes it a Season row — the helper defaults it to a tournament.
+  const yahooSeason = match('yahoo-season-1', 'N3', 'N4', { platform: 'YAHOO', tournamentId: null, seasonId: 5 })
+  check('...but a Yahoo Season still counts',
+    (replayRatings(yahooSeason).get('N3')?.rating ?? 0) > ELO_START)
 
   section('Results that must move nothing')
   seq = 300
