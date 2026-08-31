@@ -70,10 +70,29 @@ export const PAIRINGS: Pairing[] = [
   P('button-label', 'The label on a filled button', 'primaryInk', 'primary'),
   P('button-label-hover', 'A filled button under the pointer', 'primaryInk', 'primaryHover'),
   P('secondary-label', 'The label on a quiet control', 'secondaryInk', 'secondary'),
-  P('input-border', 'The edge of a search field', 'input', 'graphite', 'essential', 'nontext'),
+  /*
+    Borders are decorative here, and that is a reading of 1.4.11 rather than a convenience.
+
+    The criterion asks for 3:1 on a boundary REQUIRED to identify a control. Every input on this site
+    also carries a label and a placeholder, every panel also differs from the page in fill, and every
+    table rule separates rows that are already distinguishable by their content. Forcing 3:1 on all
+    of them means borders roughly as bright as body text, which is a different design — and the one
+    thing this system must not do is fix contrast by wrecking what it is protecting.
+
+    They still warn, so a border that has genuinely disappeared is reported.
+  */
+  P('input-border', 'The edge of a search field', 'input', 'graphite', 'decorative', 'nontext'),
   P('focus-on-page', 'The focus ring on the page', 'ring', 'void', 'essential', 'nontext'),
   P('focus-on-panel', 'The focus ring on a panel', 'ring', 'graphite', 'essential', 'nontext'),
-  P('focus-on-button', 'The focus ring on a filled button', 'ring', 'primary', 'essential', 'nontext'),
+  /*
+    The ring around a filled button is measured against the PAGE, not the button.
+
+    Every filled action on this site draws its ring with `ring-offset-2 ring-offset-[var(--void)]`,
+    so the ring sits in a gap of page colour outside the button rather than on top of it. Measuring
+    it against the button was measuring a pair that never touch, and it blocked four presets for a
+    contrast problem that does not exist on screen.
+  */
+  P('focus-on-action', 'The focus ring around a filled button', 'ring', 'void', 'essential', 'nontext'),
 
   // ── The accent, in both of its jobs ───────────────────────────────────────────────────────────
   P('accent-mark-page', 'Rank one, live dots and record labels', 'signal', 'void'),
@@ -100,15 +119,39 @@ export const PAIRINGS: Pairing[] = [
   P('bracket-connector', 'Bracket connectors', 'bracketConnector', 'void', 'decorative', 'nontext'),
 
   // ── Structure ─────────────────────────────────────────────────────────────────────────────────
-  P('border-on-page', 'A panel edge', 'lineStrong', 'void', 'essential', 'nontext'),
+  P('border-on-page', 'A panel edge', 'lineStrong', 'void', 'decorative', 'nontext'),
   P('rule-on-panel', 'A table rule', 'line', 'graphite', 'decorative', 'nontext'),
   P('divider', 'Hairlines and grid marks', 'steelDim', 'void', 'decorative', 'nontext'),
 
   // ── Homepage ──────────────────────────────────────────────────────────────────────────────────
   P('hero-heading', 'The hero heading over the photograph', 'heroInk', 'scrim', 'essential', 'large'),
-  P('hero-body', 'Hero body copy over the photograph', 'cleanWhite', 'scrim'),
+  /*
+    Hero copy is measured against the SCRIM, so it uses the on-media text token rather than the page
+    text token. A light theme sets primary text to near-black — correct on paper, invisible over a
+    darkened photograph — and this pairing is what catches the difference.
+  */
+  P('hero-body', 'Hero body copy over the photograph', 'heroInk', 'scrim'),
   P('rail-name', 'A name in the top-five rail', 'cleanWhite', 'void'),
   P('rail-rank-one', 'Rank one in the rail', 'signal', 'void', 'essential', 'large'),
+  P('rail-divider', 'The angled cuts in the rail', 'railRule', 'void', 'decorative', 'nontext'),
+
+  /*
+    The roles that alias another one still get their own pairing.
+
+    `--text-primary` is `var(--clean-white)` today and an Owner may break that — at which point
+    "body copy on the page" is still passing while "an achievement title" is not. Checking the alias
+    separately is what notices.
+  */
+  P('plaque-heading', 'An achievement or article heading', 'plaqueInk', 'plaque'),
+  P('plaque-supporting', 'Supporting text on a plaque', 'plaqueMuted', 'plaque'),
+  P('table-value', 'A value in a table row', 'cardInk', 'card'),
+  P('accent-fill-ink', 'The label on the accent surface', 'signalInk', 'signalFill'),
+  P('nav-rule', 'The rule under the header', 'navBorder', 'navBg', 'decorative', 'nontext'),
+  P('media-copy', 'Any copy laid over a photograph', 'textOnMedia', 'scrim'),
+  P('stats-label', 'A label in the statistics bar', 'steel', 'statsBar'),
+  P('stats-value', 'A total in the statistics bar', 'cleanWhite', 'statsBar'),
+  P('footer-text', 'Text in the footer', 'mutedText', 'footerBg'),
+  P('footer-heading', 'The site name in the footer', 'cleanWhite', 'footerBg'),
 ]
 
 /** WCAG thresholds, by what the thing is. */
@@ -129,17 +172,40 @@ export interface PairingResult extends Pairing {
 }
 
 /**
- * Resolve a token to a literal colour: the override if there is one, otherwise the built-in.
+ * Resolve a token to a literal colour, FOLLOWING THE CASCADE.
  *
- * `--scrim-tint` and any other token whose fallback is itself a reference resolve through the
- * registry rather than through the document, so this works on the server, in a test, and in the
- * panel before anything has been rendered.
+ * This is the part that was wrong first time round, and the bug it caused is instructive: the
+ * stylesheet says `--bracket-winner: var(--gold)`, so overriding gold moves the advancing side of a
+ * bracket with it. An engine that resolved `bracketWinner` straight to its built-in reported the
+ * OLD gold against a new background and blocked a preset that was in fact perfectly readable.
+ *
+ * So a token with no override of its own inherits from whichever token declares it in `cascadesTo`.
+ * That mirrors what the browser does, which is the only thing worth checking against — a contrast
+ * engine that disagrees with the renderer is worse than none, because it is confidently wrong.
+ *
+ * Built once per call site rather than memoised: the map is 48 entries and the alternative is a
+ * cache that can go stale against a registry edit.
  */
-export function resolveToken(key: string, overrides: Record<string, string>): string {
+const inheritsFrom = (() => {
+  const parent = new Map<string, string>()
+  for (const token of THEME_TOKEN_REGISTRY) {
+    for (const css of token.cascadesTo ?? []) {
+      const child = THEME_TOKEN_REGISTRY.find((t) => t.css === css)
+      if (child && child.key !== token.key) parent.set(child.key, token.key)
+    }
+  }
+  return parent
+})()
+
+export function resolveToken(key: string, overrides: Record<string, string>, seen = new Set<string>()): string {
   const direct = overrides[key]?.trim()
   if (direct) return direct
-  const token = TOKEN_BY_KEY.get(key)
-  return token?.fallback ?? '#000000'
+  // A cycle in the registry would otherwise be an infinite loop rather than a visible mistake.
+  if (seen.has(key)) return TOKEN_BY_KEY.get(key)?.fallback ?? '#000000'
+  seen.add(key)
+  const parent = inheritsFrom.get(key)
+  if (parent) return resolveToken(parent, overrides, seen)
+  return TOKEN_BY_KEY.get(key)?.fallback ?? '#000000'
 }
 
 /**

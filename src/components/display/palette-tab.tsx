@@ -33,7 +33,6 @@ export function PaletteTab({
 }) {
   const tokens = useMemo(() => normaliseTokens(settings.tokens), [settings.tokens])
   const verdict = useMemo(() => verdictFor(tokens), [tokens])
-  const [openGroup, setOpenGroup] = useState<string | null>('foundations')
 
   const setToken = (key: string, value: string) => {
     const next = { ...tokens }

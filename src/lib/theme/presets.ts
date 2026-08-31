@@ -41,8 +41,10 @@ export const THEME_PRESETS: ThemePreset[] = [
       steelBright: '#b0aca4',
       navActive: '#faf8f5',
       navBorder: '#2a2d31',
-      line: '#1e2124',
-      lineStrong: '#33373c',
+      // Raised from #1e2124, which measured 1.23:1 against this preset's darker panel: a rule
+      // that close to its ground is not subtle, it is absent.
+      line: '#31363c',
+      lineStrong: '#474d54',
       steelDim: '#4a4e53',
     },
   },
@@ -70,6 +72,19 @@ export const THEME_PRESETS: ThemePreset[] = [
       steelDim: '#9b958a',
       acid: '#121316',
       acidInk: '#f5f2ec',
+      /*
+        Red and gold are DARKER in this preset, and that is the whole difficulty of a light theme.
+
+        The same #ff2a2a that measures 5.3:1 on near-black measures 3.35:1 on paper -- a mark that
+        was the most legible thing on the page becomes the least. Both accents are therefore
+        re-picked for the ground they land on rather than carried over, and the navigation keeps a
+        bright red because its bar stays dark.
+      */
+      signal: '#c8102e',
+      signalFill: '#a80d26',
+      navActive: '#ff5a5a',
+      navBorder: '#c8102e',
+      gold: '#7a5c0f',
       playerName: '#0b6b78',
       info: '#0b6b78',
       ring: '#0b6b78',
@@ -85,7 +100,6 @@ export const THEME_PRESETS: ThemePreset[] = [
       secondaryInk: '#121316',
       success: '#1a7a49',
       warning: '#8a5a00',
-      gold: '#8a6a12',
     },
   },
   {

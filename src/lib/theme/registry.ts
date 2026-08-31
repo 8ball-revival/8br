@@ -207,7 +207,7 @@ export const THEME_TOKEN_REGISTRY: ThemeToken[] = [
 
   // ── Tables & rankings ─────────────────────────────────────────────────────────────────────────
   { key: 'card', css: '--card', label: 'Table header & rows', group: 'tables', fallback: '#14191d', effect: 'The sticky header of a ranking table, and a hovered row.' },
-  { key: 'cardInk', css: '--card-foreground', label: 'Table text', group: 'tables', fallback: '#f5f7f8', effect: 'Values inside a table.' },
+  { key: 'cardInk', css: '--card-foreground', label: 'Table text', group: 'tables', fallback: '#f5f7f8', effect: 'Values inside a ranking or standings table, and the identities beside them.' },
   {
     key: 'acid', css: '--acid', label: 'Filter bar surface', group: 'tables', fallback: '#f5f4f1',
     effect: 'The structural surface behind filter bars and season controls. It carries black text by rule.',
