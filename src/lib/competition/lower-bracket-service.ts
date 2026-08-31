@@ -126,19 +126,34 @@ export async function saveLowerBracketRouting(
     }
 
     /*
-      A last guard against the engine and the database disagreeing.
+      A last guard against the engine and the database disagreeing — on SEATS only.
 
-      The engine refuses to touch a played match, but it was handed a snapshot. Between the read and
-      this write a result could have landed, so the rows being written are re-read here, inside the
-      transaction, and any that now hold a result abort the save.
+      The engine was handed a snapshot; between that read and this write a result could have landed,
+      so the rows about to be written are re-read here, inside the transaction.
+
+      But only the ones whose PLAYERS are being moved. A completed match having its outgoing route
+      changed is the entire point of this feature - "the loser of Winners R2 M1 now goes somewhere
+      else" does not touch that match's result, its players or its score, and refusing it made the
+      tool useless exactly where it was needed: every reroute of a played round was rejected with
+      "Winners R2 M1 has a result now". Its own engine allows it, and this contradicted the engine.
+
+      Writing a SEAT into a played match is a different thing entirely, and still refused.
     */
-    const touched = writes.map((w) => w.id)
-    const nowLocked = (await tx.playoffMatch.findMany({
-      where: { id: { in: touched } },
-      select: ROUTE_SELECT,
-    })).map((r) => ({ ...r, status: String(r.status) })).filter(isLocked)
-    if (nowLocked.length > 0) {
-      return { ok: false, error: `${matchName(nowLocked[0])} has a result now, so the bracket was not changed.` }
+    const SEAT_COLUMNS = [
+      'homeRegistrationId', 'homeUsername', 'homeSeed',
+      'awayRegistrationId', 'awayUsername', 'awaySeed',
+    ]
+    const reseated = writes
+      .filter((w) => Object.keys(w.data).some((k) => SEAT_COLUMNS.includes(k)))
+      .map((w) => w.id)
+    if (reseated.length > 0) {
+      const nowLocked = (await tx.playoffMatch.findMany({
+        where: { id: { in: reseated } },
+        select: ROUTE_SELECT,
+      })).map((r) => ({ ...r, status: String(r.status) })).filter(isLocked)
+      if (nowLocked.length > 0) {
+        return { ok: false, error: `${matchName(nowLocked[0])} has a result now, so the bracket was not changed.` }
+      }
     }
 
     for (const w of writes) {

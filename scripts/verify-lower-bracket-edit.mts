@@ -514,6 +514,44 @@ try {
     await cleanup()
   }
 
+  section('A played round can be rerouted through the save path')
+  {
+    /*
+      The reroute that matters is of a round already contested: "the loser of Winners R2 M1 now goes
+      somewhere else". That rewrites a COMPLETED match's outgoing route and nothing else about it.
+      A guard here once refused every such save with "Winners R2 M1 has a result now", which made
+      the tool useless precisely where it was needed.
+    */
+    const { tid: t6 } = await buildBracket()
+    let b6 = await read(t6)
+    const w1 = find(b6, 'WB', 1, 0)
+    const w2 = find(b6, 'WB', 1, 1)
+    for (const w of [w1, w2]) {
+      await prisma.playoffMatch.update({
+        where: { id: w.id },
+        data: { homeGames: 7, awayGames: 2, status: 'COMPLETED', winnerRegistrationId: w.homeRegistrationId, completedAt: new Date() },
+      })
+      await verifyPlayoffMatch(ACTOR, w.id)
+    }
+    b6 = await read(t6)
+    const s1 = b6.find((m) => m.id === w1.id)!
+    const s2 = b6.find((m) => m.id === w2.id)!
+    const a = { matchId: s1.loserFeedsMatchId!, slot: s1.loserFeedsSlot! }
+    const bb = { matchId: s2.loserFeedsMatchId!, slot: s2.loserFeedsSlot! }
+
+    const res6 = await saveLowerBracketRouting(ACTOR, t6, [[a, bb]])
+    check('a completed match can have its loser rerouted', res6.ok, res6.error ?? '')
+
+    const after6 = await read(t6)
+    const r6 = routesByTarget(after6)
+    check('the routes actually exchanged',
+      r6.get(slotKey(a))?.sourceMatchId === w2.id && r6.get(slotKey(bb))?.sourceMatchId === w1.id)
+    check('and both results are untouched',
+      after6.find((m) => m.id === w1.id)!.winnerRegistrationId === w1.homeRegistrationId
+      && after6.find((m) => m.id === w2.id)!.winnerRegistrationId === w2.homeRegistrationId)
+    await cleanup()
+  }
+
   void sourceLabel
 } finally {
   await cleanup()
