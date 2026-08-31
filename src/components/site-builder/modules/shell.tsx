@@ -17,6 +17,7 @@
 
 import { registerModule, type ModuleRenderProps } from '@/lib/site-builder/registry'
 import { THEME_TOKENS } from '@/lib/site-builder/theme-tokens'
+import { THEME_TOKEN_REGISTRY, THEME_GROUPS } from '@/lib/theme/registry'
 import { ModulePlaceholder } from './content'
 
 // ── Navigation ──────────────────────────────────────────────────────────────────────────────────
@@ -244,10 +245,28 @@ registerModule({
   configVersion: 1,
   a11y: {},
   layoutDefaults: { span: 12 },
+  /*
+    ── One registry, edited from two places ───────────────────────────────────────────────────────
+
+    These fields are generated from THEME_TOKEN_REGISTRY — the same 49 roles Display Lab's Palette
+    tab edits. That is the point: Display Lab is not a second theme system with its own storage, it
+    is a different interface onto THIS module's config. Saving a draft there writes the draft of
+    this page; publishing there publishes this page's revision.
+
+    Generating the fields rather than listing them means a token added to the registry is editable
+    in the inspector, storable in a revision and publishable on the same day it is added, without
+    anybody remembering to come here.
+  */
   fields: {
-    ...Object.fromEntries(THEME_TOKENS.map((t) => [
+    ...Object.fromEntries(THEME_TOKEN_REGISTRY.map((t) => [
       t.key,
-      { kind: 'color' as const, label: t.label, group: t.group, default: '', help: `Leave empty to keep the built-in ${t.label.toLowerCase()}.` },
+      {
+        kind: 'color' as const,
+        label: t.label,
+        group: THEME_GROUPS.find((g) => g.id === t.group)?.label ?? 'Colour',
+        default: '',
+        help: t.effect,
+      },
     ])),
     fontDisplay: {
       kind: 'select', label: 'Display font', group: 'Type', default: 'space-grotesk',

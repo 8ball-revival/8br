@@ -263,15 +263,38 @@ export interface ThemeConfig {
 
 export async function getTheme(): Promise<ThemeConfig> {
   const { THEME_TOKENS } = await import('@/components/site-builder/modules/shell')
+  const { tokenVars } = await import('@/lib/theme/presets')
+  const { TOKEN_BY_KEY } = await import('@/lib/theme/registry')
   const raw = await readGlobal<Record<string, unknown>>(THEME_PAGE_KEY, 'global.theme')
   if (!raw) return { vars: {}, fontDisplay: 'space-grotesk' }
 
-  const vars: Record<string, string> = {}
-  for (const token of THEME_TOKENS) {
-    const value = raw[token.key]
-    // An empty token means "keep the built-in value", which is what lets a theme override two
-    // colours without having to restate the other eight.
-    if (typeof value === 'string' && value.trim()) vars[token.css] = value.trim()
+  /*
+    The palette, through the same validator the browser preview uses.
+
+    `tokenVars` drops any key the registry does not declare and any value that is not a plain hex
+    colour — so a config hand-edited in the database, or written by a version of this code that
+    allowed something looser, cannot put an arbitrary declaration into a style block that reaches
+    every visitor. It is applied on the way OUT as well as in, deliberately.
+  */
+  const vars: Record<string, string> = tokenVars(raw as Record<string, string>)
+
+  /*
+    And the keys an older theme used.
+
+    The first version of this module had ten tokens with different names — `accent` for what is now
+    `signal`, `foreground` for what is now `cleanWhite`. A site that published one of those has it
+    stored under the old key, and the registry lookup above skips it. Rather than migrate the rows,
+    the old names are read as aliases: nothing has to be rewritten, and a theme published a year ago
+    keeps rendering exactly as it did. A new key always wins, so re-saving in Display Lab quietly
+    completes the move.
+  */
+  for (const legacy of THEME_TOKENS) {
+    const value = raw[legacy.key]
+    if (typeof value !== 'string' || !value.trim()) continue
+    if (!/^#[0-9a-f]{3,8}$/i.test(value.trim())) continue
+    // Only when the new registry has not already spoken for that custom property.
+    const claimed = [...TOKEN_BY_KEY.values()].some((t) => t.css === legacy.css && vars[t.css])
+    if (!claimed) vars[legacy.css] = value.trim().toLowerCase()
   }
   const radius = Number(raw.radius)
   if (Number.isFinite(radius) && radius > 0) vars['--radius'] = `${radius}px`
