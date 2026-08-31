@@ -6,9 +6,6 @@ import { AlertTriangle, Crown, Minus, Plus, Trophy } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { identityLines, identityText, NO_IDENTITY } from '@/lib/identity/display'
-import {
-  recordSeasonPlayoffResultAction, recordSeasonPlayoffForfeitAction,
-} from '@/lib/seasons/actions'
 
 /**
  * The administrative playoff bracket: every tie on one screen, scored in place.
@@ -69,9 +66,35 @@ export interface ScoringRound {
 
 type Draft = { home: string; away: string }
 
-// The match ids carry the Season, so the id itself is not read here — it stays in the signature
-// because every other Creator board takes one and a caller should not have to remember which does.
-export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: number; rounds: ScoringRound[] }) {
+/**
+ * What a result is recorded THROUGH.
+ *
+ * A Season and a Tournament score a playoff identically — the same cells, the same FF, the same
+ * refusal of a tie — but they write to different tables under different gates, and a Season also
+ * offers to rebuild everything downstream when a completed result changes. A Tournament's action
+ * has no such warning, so it simply never returns one and the dialog never opens.
+ */
+export interface ScoringApi {
+  record(matchId: number, home: number, away: number, opts: ScoringOpts): Promise<ScoringResult>
+  forfeit(matchId: number, forfeiter: 'home' | 'away', opts: ScoringOpts): Promise<ScoringResult>
+}
+
+export interface ScoringOpts {
+  confirmRebuild?: boolean
+  note?: string | null
+  expectedUpdatedAt?: string
+}
+
+export interface ScoringResult {
+  ok?: boolean
+  error?: string
+  message?: string
+  conflict?: boolean
+  /** Present only where changing a settled result would clear matches that followed from it. */
+  warning?: { affected: { id: number; label: string }[] }
+}
+
+export function PlayoffScoring({ rounds, api }: { rounds: ScoringRound[]; api: ScoringApi }) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -151,9 +174,7 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
       }
       const forfeiter = h === 'FF' ? 'home' : 'away'
       start(async () => {
-        const r = await recordSeasonPlayoffForfeitAction(m.id, forfeiter, {
-          expectedUpdatedAt: m.updatedAt, ...opts,
-        })
+        const r = await api.forfeit(m.id, forfeiter, { expectedUpdatedAt: m.updatedAt, ...opts })
         if (r.warning) { setConfirm({ matchId: m.id, labels: r.warning.affected.map((x) => x.label), apply: () => save(m, { confirmRebuild: true }) }); return }
         if (r.error) { setErr(m.id, r.error); return }
         setMsg({ ok: true, text: r.message ?? 'Saved.' })
@@ -171,7 +192,7 @@ export function PlayoffScoring({ seasonId: _seasonId, rounds }: { seasonId: numb
     if (hn === an) { setErr(m.id, 'A playoff tie needs a winner — equal scores are refused.'); return }
 
     start(async () => {
-      const r = await recordSeasonPlayoffResultAction(m.id, hn, an, { expectedUpdatedAt: m.updatedAt, ...opts })
+      const r = await api.record(m.id, hn, an, { expectedUpdatedAt: m.updatedAt, ...opts })
       if (r.warning) { setConfirm({ matchId: m.id, labels: r.warning.affected.map((x) => x.label), apply: () => save(m, { confirmRebuild: true }) }); return }
       if (r.error) { setErr(m.id, r.error); return }
       setMsg({ ok: true, text: r.message ?? 'Saved.' })
