@@ -295,8 +295,16 @@ try {
   eq('the poster is decorative, the record being stated beside it', p.record.posterAlt, '')
   check('the scoreboard strip is drawn as text', p.record.scoreboard, 'strip missing')
   check('the play control names the run', /58\.7/.test(p.record.playLabel ?? ''), String(p.record.playLabel))
+  /*
+    The SHAPE of the holder line, not who currently holds the record.
+
+    This named "sixohtwo / Kevin" and failed the moment the record was legitimately reassigned —
+    reporting a content edit as a layout regression. What the design fixes is the composition:
+    handle, a separator, then the name in the secondary style. Who that is belongs to the editor.
+  */
   check('the holder is one line: handle, slash, name',
-    /sixohtwo\s*\/\s*Kevin/.test(p.record.holderLine), p.record.holderLine.slice(0, 120))
+    /\S+\s*\/\s*\S+/.test(p.record.holderLine.split(/record holder/i)[1] ?? ''),
+    p.record.holderLine.slice(0, 120))
   eq('the figure appears exactly once on the page', p.figureCount, 1)
 
   section('Article thumbnails')

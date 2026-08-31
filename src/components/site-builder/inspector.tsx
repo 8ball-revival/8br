@@ -33,6 +33,7 @@ import {
 import { describeVisibility, impossibleCombinations } from '@/lib/site-builder/visibility'
 import type { LayoutDocument as Doc } from '@/lib/site-builder/document'
 import { MediaPicker } from './media-picker'
+import { PlayerPicker } from './player-picker'
 import { themeContrastPairs } from '@/lib/site-builder/contrast'
 import { THEME_TOKENS } from '@/lib/site-builder/theme-tokens'
 
@@ -421,6 +422,12 @@ function FieldControl({ name, field, value, siblings, onChange }: {
       return (
         <Labelled label={field.label} help={field.help}>
           <MediaPicker value={value as number | null} onChange={onChange} />
+        </Labelled>
+      )
+    case 'player':
+      return (
+        <Labelled label={field.label} help={field.help}>
+          <PlayerPicker value={String(value ?? '')} onChange={onChange} />
         </Labelled>
       )
     case 'url':

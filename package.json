@@ -49,6 +49,9 @@
     "test:theme:publish": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-publish.mts",
     "test:theme:permissions": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-permissions.mts",
     "test:theme:lifecycle": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-lifecycle-ui.mts",
+    "player:find": "tsx --tsconfig tsconfig.scripts.json scripts/player-find.mts",
+    "test:player-picker": "tsx --tsconfig tsconfig.scripts.json scripts/verify-player-picker.mts",
+    "test:player-picker:ui": "tsx --tsconfig tsconfig.scripts.json scripts/verify-player-picker-ui.mts",
     "test:typography": "tsx --tsconfig tsconfig.scripts.json scripts/verify-typography.mts"
   },
   "dependencies": {

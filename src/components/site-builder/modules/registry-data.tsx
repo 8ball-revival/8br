@@ -268,15 +268,16 @@ registerModule({
       kind: 'text', label: 'Label above the holder', group: 'Who holds it', default: 'Record holder', maxLength: 40,
     },
     holderPlayerId: {
-      kind: 'text', label: 'Player', group: 'Who holds it', default: '', maxLength: 40,
-      help: 'The canonical player id. When it is set, the name shown follows that player — so a CueVerse ID change reaches this panel like it reaches everything else.',
+      kind: 'player', label: 'Player', group: 'Who holds it', default: '',
+      help: 'Search by name, CueVerse ID or an old handle. While a player is linked, the two fields below are ignored — the name and CueVerse ID shown follow the player, so a change to their identity reaches this panel like it reaches everything else.',
     },
     holderCueverseId: {
       kind: 'text', label: 'CueVerse ID (fallback)', group: 'Who holds it', default: 'sixohtwo', maxLength: 60,
-      help: 'Used when no player is linked, or if that player is ever removed.',
+      help: 'Ignored while a player is linked above. Used only when nobody is linked, or if that player is ever removed.',
     },
     holderDisplayName: {
       kind: 'text', label: 'Display name (fallback)', group: 'Who holds it', default: 'Kevin', maxLength: 60,
+      help: 'Ignored while a player is linked above.',
     },
 
     videoUrl: {

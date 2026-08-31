@@ -51,6 +51,20 @@ export type Field =
   | (Base & { kind: 'multiSelect'; default: string[]; options: { value: string; label: string }[] })
   | (Base & { kind: 'color'; default: string })
   | (Base & { kind: 'media'; default: number | null })
+  /**
+   * A reference to a player, stored as the canonical player id.
+   *
+   * The inspector draws a search box, not a text box: the id is 25 characters of cuid that appears
+   * nowhere on the site, so a plain text field made "choose a player" a database question. What is
+   * STORED is unchanged from the raw text field this replaces, which is what lets an existing
+   * config keep working without being rewritten.
+   *
+   * Validation here is shape only, deliberately. Whether the player still EXISTS is a database
+   * question and this kernel is pure; asking it here would also mean a player deleted elsewhere
+   * silently blanked the reference on the next save, which is precisely how a reference is lost.
+   * Existence is checked at save time instead, and reported rather than enforced by deletion.
+   */
+  | (Base & { kind: 'player'; default: string })
   | (Base & {
     kind: 'url'
     default: string
@@ -73,7 +87,7 @@ export type FieldSet = Record<string, Field>
 export type Infer<F extends FieldSet> = { [K in keyof F]: InferField<F[K]> }
 
 type InferField<F extends Field> =
-  F extends { kind: 'text' | 'richText' | 'select' | 'color' | 'url' } ? string
+  F extends { kind: 'text' | 'richText' | 'select' | 'color' | 'url' | 'player' } ? string
   : F extends { kind: 'number' } ? number
   : F extends { kind: 'boolean' } ? boolean
   : F extends { kind: 'multiSelect' } ? string[]
@@ -223,6 +237,21 @@ function validateField(f: Field, raw: unknown, path: string): ValidationResult<u
       if (!/^#[0-9a-fA-F]{3,8}$/.test(v) && !/^var\(--[a-z0-9-]+\)$/.test(v)) {
         return fail('Expected a hex colour or a design token.')
       }
+      return { ok: true, value: v, issues: [] }
+    }
+
+    case 'player': {
+      const v = String(raw).trim()
+      // Empty is "nobody linked", which is what makes the fallback name fields apply.
+      if (v === '') return { ok: true, value: '', issues: [] }
+      /*
+        Shape only, and a narrow shape: a cuid as Prisma issues them.
+
+        This is not a check that the player exists -- see the descriptor. It is a check that the
+        value could only have come from a picker or from a config that already held one, which is
+        what stops the field being a free-text box that happens to be drawn differently.
+      */
+      if (!/^c[a-z0-9]{20,30}$/.test(v)) return fail('Expected a player chosen from the list.')
       return { ok: true, value: v, issues: [] }
     }
 

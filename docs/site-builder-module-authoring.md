@@ -48,11 +48,52 @@ field, which is what stops the editor offering a value the server rejects.
 | `multiSelect` | Toggle chips | `string[]`, filtered to `options` |
 | `color` | Token swatches plus a hex box | a token reference or a hex value |
 | `media` | Library picker | media id, or `null` |
+| `player` | Search box over the player roster | the canonical player id, or `''` |
 | `url` | Text box | a validated URL; `internalOnly: true` restricts it to a path |
 | `list` | Repeating group with add, remove and reorder | array of the sub-fieldset |
 
 Every kind also takes `label`, `help`, `group` (an inspector heading) and `showWhen` (hide unless
 another field holds one of the listed values).
+
+## Referring to a player
+
+Use `kind: 'player'` for any field that identifies a competitor. Never a `text` field holding an id:
+the id is 25 characters of cuid that appears nowhere on the site, so a text box makes "put Derrick in
+this record" a database question, and it accepts a typo, a season id or a sentence just as readily.
+
+```ts
+holderPlayerId: {
+  kind: 'player', label: 'Player', group: 'Who holds it', default: '',
+  help: 'Search by name, CueVerse ID or an old handle.',
+},
+```
+
+The editor searches the current name, the current CueVerse ID, every recorded alias, and identities
+that were merged into another account — because the person editing is usually working from an old
+bracket or a video title, and the handle they remember is often one the player has since changed. A
+merged-away identity resolves to the account that absorbed it and is never offered as itself.
+
+What reaches the browser is public identity only: name, CueVerse ID, past handles, whether the player
+is archived. The search is an Owner-gated server action, so it is no more reachable than any other
+Site Builder action.
+
+**Validation is in two places, deliberately.** The kernel checks the SHAPE — empty, or a cuid — and
+nothing more, because it is pure and because a field that rejected an unknown id would blank the
+reference on the next save. Whether the player EXISTS is checked when the draft is saved, and only
+for references the save introduces: a page is stored as one document, so failing the whole save over
+a player deleted last week would block every unrelated edit on that page, including the one that
+would fix it. A reference that has gone stale is flagged in the picker instead.
+
+Fields that store a **CueVerse handle** rather than an id — `rankings.playerSpotlight`,
+`home.championHero` — are left as text on purpose. They look up by handle by design, so converting
+them would change what is stored and what the render path resolves, which is a data migration rather
+than a change of control.
+
+To find an id by hand — for a script, or to identify one already stored:
+
+```bash
+npm run player:find -- derrick
+```
 
 ```ts
 fields: {

@@ -25,6 +25,9 @@ import {
 } from './service'
 import { validateDocument } from './document'
 import type { LayoutDocument } from './document'
+import { playerRefsIn } from './player-refs'
+import { danglingPlayerIds } from '@/lib/players/picker-search'
+import { getModule } from './registry'
 
 export type ActionResult<T = undefined> =
   | ({ ok: true } & (T extends undefined ? { data?: undefined } : { data: T }))
@@ -57,9 +60,44 @@ export async function saveDraftAction(
 ): Promise<ActionResult<{ version: number; issues: number }>> {
   return guarded(async () => {
     const actor = await requireCapability('manage_site_builder')
+    const unknownPlayer = await newlyBrokenPlayerRef(key, document)
+    if (unknownPlayer) return fail(unknownPlayer)
     const result = await saveDraft(key, document, expectedVersion, actor)
     return { ok: true, data: result }
   })
+}
+
+/**
+ * A player reference this save INTRODUCES that names nobody, described for the editor.
+ *
+ * ── Why only the new ones ───────────────────────────────────────────────────────────────────────
+ * Checking every reference would mean a player deleted last week wedges the whole page: the
+ * document is saved as one object, so one stale id in one module would block every unrelated edit
+ * on the page, including the edit that would have fixed it. And a config written before this field
+ * existed must keep working untouched, which is the compatibility promise.
+ *
+ * So the rule is narrower and enforceable: whatever is already stored is left alone and flagged in
+ * the picker, while a reference that was not there a moment ago has to name a real player. The
+ * picker cannot produce a bad one, so this is the guard for everything that does not come from the
+ * picker — a crafted request, a pasted document, an import.
+ *
+ * Costs one keyed query, and only when the incoming document mentions a player at all.
+ */
+async function newlyBrokenPlayerRef(key: string, document: LayoutDocument): Promise<string | null> {
+  const incoming = playerRefsIn(document)
+  if (incoming.length === 0) return null
+
+  const stored = await getDraft(key)
+  const before = new Set(stored ? playerRefsIn(stored.document).map((r) => r.playerId) : [])
+  const added = [...new Set(incoming.map((r) => r.playerId))].filter((id) => !before.has(id))
+  if (added.length === 0) return null
+
+  const missing = new Set(await danglingPlayerIds(added))
+  if (missing.size === 0) return null
+
+  const ref = incoming.find((r) => missing.has(r.playerId))
+  const where = ref ? getModule(ref.moduleType)?.name ?? ref.moduleType : 'a module'
+  return `${where} refers to a player who does not exist. Choose one from the search instead.`
 }
 
 export async function publishAction(key: string, summary?: string): Promise<ActionResult<{ revisionNumber: number }>> {
