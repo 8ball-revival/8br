@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Minus, Plus, Plus as Search } from 'lucide-react'
 
@@ -32,7 +32,7 @@ export function SeasonControls({
   competitionSlug,
   view,
   neighbours,
-  searchPlayers,
+  searchPlayers,
 }: {
   competitions: CompetitionOption[]
   seasons: SeasonOption[]
@@ -49,7 +49,7 @@ export function SeasonControls({
   view: 'groups' | 'playoffs'
   neighbours: { prev: number | null; next: number | null }
   searchPlayers: (q: string) => Promise<SeasonPlayerHit[]>
-  /** Admin only. Null for everyone else, which is what keeps these out of a member's toolbar. */
+  /** Admin only. Null for everyone else, which is what keeps these out of a member's toolbar. */
 }) {
   const router = useRouter()
   const params = useSearchParams()

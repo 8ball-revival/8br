@@ -1,0 +1,27 @@
+# ── Line endings ────────────────────────────────────────────────────────────────────────────────
+# Source is LF, in the repository and in the working tree, on every platform.
+#
+# Without this an editor or script on Windows can save a file back as CRLF, which turns a one-line
+# change into a whole-file diff and buries the actual edit. That happened to
+# src/lib/stats/rankings-columns.ts on 2026-08-31: a four-line change arrived as 2,405.
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.mts    text eol=lf
+*.mjs    text eol=lf
+*.js     text eol=lf
+*.jsx    text eol=lf
+*.css    text eol=lf
+*.json   text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.sql    text eol=lf
+*.prisma text eol=lf
+
+# ── Captured data is not source ─────────────────────────────────────────────────────────────────
+# The archive is scraped Wayback material and the verification fixtures are recorded output. Both
+# are evidence of what something WAS, so they are left byte-for-byte as captured rather than
+# rewritten to match a house style they were never written in.
+archive/**              -text
+verification/**         -text
+deploy-artifacts/**     -text
