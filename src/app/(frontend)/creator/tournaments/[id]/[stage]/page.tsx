@@ -6,6 +6,8 @@ import { CreatorShell } from '@/components/creator/creator-shell'
 import { CreatorSettings } from '@/components/creator/settings-panel'
 import { TournamentWorkspace } from '@/components/tournaments/tournament-workspace'
 import { TournamentEntrantsBoard } from '@/components/creator/tournament-entrants-board'
+import { TournamentBracketSetup } from '@/components/creator/tournament-bracket-setup'
+import { tournamentTopology } from '@/lib/tournaments/bracket-topology'
 import { loadTournamentStage } from '@/lib/creator/tournament-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
 import { updateTournamentDetailsAction } from '@/lib/creator/record-details'
@@ -45,6 +47,9 @@ const TAB_FOR: Record<string, 'overview' | 'roster' | 'groups' | 'swiss' | 'brac
 }
 
 const STAGE_IDS = new Set(['setup', 'entrants', 'teams', 'groups', 'swiss', 'playoffs', 'complete'])
+
+/** States in which the draw is still a private draft that can be arranged by hand. */
+const PRIVATE_SETUP = new Set(['REGISTRATION_CLOSED'])
 
 export default async function CreatorTournamentStagePage({
   params,
@@ -128,6 +133,28 @@ export default async function CreatorTournamentStagePage({
               rating: e.rating,
             }))}
           isOpen={ws.tournament.lifecycleState === 'REGISTRATION_OPEN'}
+        />
+      ) : ws && stage === 'playoffs' && ws.tournament.participantFormat !== 'TEAM' && PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
+        /*
+          ── The draw is arranged before it exists publicly ─────────────────────────────────────
+          Only while the bracket is still a draft. Once it is published the Tournament is a live
+          record and the workspace's bracket tab is the right surface — this screen would offer to
+          rearrange positions the server would refuse, which is worse than not offering it.
+        */
+        <TournamentBracketSetup
+          tournamentId={ctx.id}
+          topology={tournamentTopology(ws.matches)}
+          entrants={ws.entrants
+            .filter((e) => !e.withdrawn)
+            .map((e) => ({
+              registrationId: e.registrationId,
+              name: e.name,
+              handle: e.handle,
+              rating: e.rating,
+              seed: e.seed,
+            }))}
+          isDoubleElim={String(ws.tournament.tournamentFormat) === 'DOUBLE_ELIM'}
+          canStart
         />
       ) : ws ? (
         <TournamentWorkspace

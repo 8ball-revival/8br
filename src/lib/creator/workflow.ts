@@ -143,6 +143,22 @@ const READY_TO_ADVANCE: Partial<Record<RecordKind, Record<string, StageId>>> = {
 }
 
 /**
+ * States whose stage is FINISHED, so the one after it is the way forward.
+ *
+ * A Tournament with registration closed still belongs to Entrants — the list is the thing to look
+ * at, and reopening is still possible. But the work left is the draw, which lives in the next
+ * stage, and that stage is built to receive exactly this state. Treating it as `locked` sent
+ * anybody opening it straight back to Entrants, so closing registration led nowhere.
+ *
+ * Expressed as "the next stage" rather than a named one because which stage that is depends on the
+ * format: groups for Groups + Playoffs, swiss for Swiss, the bracket for either elimination. Naming
+ * one would be a third place that has to agree with `stagesFor`.
+ */
+const FINISHED_STAGE: Partial<Record<RecordKind, Set<string>>> = {
+  tournament: new Set(['REGISTRATION_CLOSED']),
+}
+
+/**
  * The workflow bar.
  *
  * Everything before the current stage is `done` and remains reachable, because correcting an earlier
@@ -161,7 +177,8 @@ export function workflowFor(
   const current = currentStage(kind, lifecycleState, format)
   const currentIndex = Math.max(0, stages.findIndex((s) => s.id === current))
 
-  const nextOpen = READY_TO_ADVANCE[kind]?.[lifecycleState] ?? null
+  const nextOpen = READY_TO_ADVANCE[kind]?.[lifecycleState]
+    ?? (FINISHED_STAGE[kind]?.has(lifecycleState) ? stages[currentIndex + 1]?.id ?? null : null)
 
   return stages.map((s, i) => ({
     ...s,
