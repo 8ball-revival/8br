@@ -8,6 +8,9 @@ import { TournamentWorkspace } from '@/components/tournaments/tournament-workspa
 import { TournamentEntrantsBoard } from '@/components/creator/tournament-entrants-board'
 import { TournamentBracketSetup } from '@/components/creator/tournament-bracket-setup'
 import { tournamentTopology } from '@/lib/tournaments/bracket-topology'
+import { TournamentLiveBracket } from '@/components/creator/tournament-live-bracket'
+import { tournamentScoringRounds } from '@/lib/tournaments/scoring-view'
+import { championOfTournament } from '@/lib/tournaments/champion'
 import { loadTournamentStage } from '@/lib/creator/tournament-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
 import { updateTournamentDetailsAction } from '@/lib/creator/record-details'
@@ -50,6 +53,23 @@ const STAGE_IDS = new Set(['setup', 'entrants', 'teams', 'groups', 'swiss', 'pla
 
 /** States in which the draw is still a private draft that can be arranged by hand. */
 const PRIVATE_SETUP = new Set(['REGISTRATION_CLOSED'])
+
+/**
+ * Stages the live scoring board serves.
+ *
+ * `complete` too: a finished Tournament is the same board with the champion named and every cell
+ * locked, which is a better record of what happened than a flat list of scores.
+ */
+const LIVE_BOARD_STAGES = new Set(['playoffs', 'complete'])
+
+/**
+ * Formats whose scoring has moved to the shared board.
+ *
+ * Groups + Playoffs and Swiss still score through the workspace, and so do team Tournaments —
+ * their surfaces have not been migrated yet, and the flat Results screen the brief asks to remove
+ * is still the only one they have. Removing it now would leave them unable to record a result.
+ */
+const ELIMINATION = new Set(['SINGLE_ELIM', 'DOUBLE_ELIM'])
 
 export default async function CreatorTournamentStagePage({
   params,
@@ -155,6 +175,23 @@ export default async function CreatorTournamentStagePage({
             }))}
           isDoubleElim={String(ws.tournament.tournamentFormat) === 'DOUBLE_ELIM'}
           canStart
+        />
+      ) : ws && LIVE_BOARD_STAGES.has(stage)
+        && ws.tournament.participantFormat !== 'TEAM'
+        && ELIMINATION.has(String(ws.tournament.tournamentFormat ?? 'SINGLE_ELIM'))
+        && !PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
+        /*
+          ── Once it has started, the board IS the screen ────────────────────────────────────────
+          The same scoring board a Season uses: scores in the cells, FF in the forfeiting player's
+          own cell, a tie refused, the winner advanced, and a match still waiting told what it is
+          waiting for. There is no separate flat list of results any more — it showed the same
+          matches in a shape that could not say what a bye was.
+        */
+        <TournamentLiveBracket
+          tournamentId={ctx.id}
+          rounds={await tournamentScoringRounds(ctx.id)}
+          champion={await championOfTournament(ctx.id)}
+          isCompleted={String(ws.tournament.lifecycleState) === 'COMPLETED'}
         />
       ) : ws ? (
         <TournamentWorkspace

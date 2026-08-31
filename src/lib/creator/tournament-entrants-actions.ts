@@ -198,6 +198,19 @@ export async function startTournamentAction(
   const pub = await svc.publishPlayoff(gate.actor, tournamentId)
   if (!pub.ok) return { error: pub.error }
 
+  /*
+    Through BRACKET_GENERATED, not straight to live.
+
+    The state machine refuses IN_PROGRESS from REGISTRATION_CLOSED — "generate the bracket before
+    the tournament goes live" — because a published draw and a tournament being played are two
+    different things, and the step between them is what a scheduled Tournament sits in. Publishing
+    the rows is not the same as recording that the draw exists, so both are said.
+  */
+  const generated = await transitionTournamentState(gate.actor, tournamentId, 'BRACKET_GENERATED', {
+    reason: 'Bracket published from setup',
+  })
+  if (!generated.ok) return { error: generated.error }
+
   const moved = await transitionTournamentState(gate.actor, tournamentId, 'IN_PROGRESS', {
     reason: 'Tournament started from bracket setup',
   })
