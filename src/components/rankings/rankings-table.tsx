@@ -397,7 +397,20 @@ function HeaderCell({ col, sort, onSort, playerColumnWidth = PLAYER_COL_WIDTH }:
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSort(col.key, e.shiftKey) }
           }}
-          className={cn('inline-flex items-center gap-1', s && 'text-[var(--gold)]')}
+          /*
+            A wrapped heading follows its column, not the middle of its own box.
+
+            The sort control is `[role="button"]`, which the button reset centres. On a one-line
+            heading that is invisible - the box shrinks to the text. On a heading that wraps or
+            stacks it is not: the label fills the column and each line centres inside it, leaving
+            "Season Championships" sitting a few pixels left of the crowns underneath it. Matching
+            the column's own alignment puts every line back on the same edge as its values.
+          */
+          className={cn(
+            'inline-flex items-center gap-1',
+            col.align === 'right' ? 'justify-end text-right' : 'justify-start text-left',
+            s && 'text-[var(--gold)]',
+          )}
         >
           <span aria-hidden>{label}</span>
           <span className="sr-only">{fullLabel}</span>
