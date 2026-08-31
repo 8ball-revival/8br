@@ -5,11 +5,8 @@ import { CreatorShell } from '@/components/creator/creator-shell'
 import { CreatorSettings } from '@/components/creator/settings-panel'
 import { PlayoffWorkspace } from '@/components/creator/playoff-workspace'
 import { EnterPlayoffsButton } from '@/components/seasons/enter-playoffs-button'
-import { PlayoffScoring, ChampionBanner, NoBracketYet, ReviewWarning } from '@/components/creator/playoff-scoring'
-import { seasonScoringApi } from '@/components/creator/season-scoring-api'
-
-/** The Season's playoff actions, as the scoring screen's api. Unchanged behaviour. */
-const SEASON_SCORING = seasonScoringApi()
+import { ChampionBanner, NoBracketYet, ReviewWarning } from '@/components/creator/playoff-scoring'
+import { SeasonPlayoffScoring } from '@/components/creator/season-playoff-scoring'
 import { SeasonCompletion } from '@/components/creator/season-completion'
 import { loadSeasonStage } from '@/lib/creator/season-stage'
 import { updateRecordDisplayAction } from '@/lib/creator/settings-actions'
@@ -135,7 +132,7 @@ export default async function SeasonPlayoffsPage({ params }: { params: Promise<{
             the correction workflow.
           </p>
         )}
-        {rounds.length === 0 ? <NoBracketYet /> : <PlayoffScoring rounds={rounds} api={SEASON_SCORING} />}
+        {rounds.length === 0 ? <NoBracketYet /> : <SeasonPlayoffScoring rounds={rounds} />}
       </div>,
     )
   }
