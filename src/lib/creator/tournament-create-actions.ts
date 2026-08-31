@@ -104,5 +104,12 @@ export async function createTournamentAction(input: TournamentFormInput): Promis
   revalidatePath('/creator')
   revalidatePath('/creator/tournaments')
 
-  return { ok: true, href: `/creator/tournaments/${created.id}/entrants` }
+  /*
+    Straight to the work that comes next, which is not the same screen for both kinds.
+
+    A team Tournament has no entrant list to fill in — its first job is building rosters, and the
+    Teams screen is where that happens. Landing it on Entrants offered a page that could only say
+    the list was managed elsewhere.
+  */
+  return { ok: true, href: `/creator/tournaments/${created.id}/${isTeam ? 'teams' : 'entrants'}` }
 }

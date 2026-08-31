@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trophy, Users, GitBranch, ListChecks, Settings2, History, Plus, X, ChevronUp, ChevronDown, GripVertical, RotateCcw, ShieldAlert } from 'lucide-react'
 
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Bracket } from '@/components/tournaments/bracket'
+import { PlayerSearch, type PlayerSearchResult } from '@/components/players/player-search'
 import { PlayoffDisclaimer } from '@/components/competition/playoff-disclaimer'
 import { interpretForfeit, FORFEIT_LABEL } from '@/lib/competition/forfeit'
 import { PlayerName } from '@/components/identity/player-name'
@@ -279,56 +280,41 @@ function Overview({ data }: { data: TournamentWorkspaceData }) {
  * deleted and banned profiles are excluded server-side. An empty query lists eligible players so the
  * control is browsable.
  */
+/**
+ * Add an entrant, through the shared player search.
+ *
+ * ── Why the search action stays the tournament's own ────────────────────────────────────────────
+ * The control is shared; the QUESTION is not. `searchTournamentPlayersAction` already excludes
+ * people who are entered, management-only accounts and anyone banned or deleted, and it is gated on
+ * `manage_competitions` — the capability an entrant list actually needs. Swapping in the Site
+ * Builder's search would have widened who is offered and narrowed who may look.
+ */
 function AddPlayer({ tournamentId, run }: { tournamentId: number; run: Run }) {
-  const [q, setQ] = useState('')
-  const [open, setOpen] = useState(false)
-  const [candidates, setCandidates] = useState<A.EntrantCandidate[]>([])
-  const [searching, startSearch] = useTransition()
-
-  const load = (value: string) => {
-    setQ(value)
-    startSearch(async () => setCandidates(await A.searchTournamentPlayersAction(tournamentId, value.trim())))
-  }
-
-  // Open the dropdown and (re)load the list when there's nothing to show. Bound to BOTH focus and
-  // click: after selecting a player the input keeps focus (the option suppresses blur), so a plain
-  // focus handler wouldn't fire on the next click — click re-opens it without needing to click away.
-  const openList = () => { setOpen(true); if (candidates.length === 0) load('') }
+  const search = useCallback(
+    async (term: string): Promise<PlayerSearchResult[]> => {
+      const rows = await A.searchTournamentPlayersAction(tournamentId, term)
+      return rows.map((c) => ({
+        id: c.playerId,
+        name: c.primaryName,
+        cueverseId: c.cueverseId ?? '',
+      }))
+    },
+    [tournamentId],
+  )
 
   return (
     <div className="max-w-md">
       <label className="eyebrow text-muted-foreground">Add Player</label>
-      <div className="relative mt-1">
-        <input
-          value={q}
-          onChange={(e) => load(e.target.value)}
-          onFocus={openList}
-          onClick={openList}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="Search registered players by name, CueVerse ID, or User ID…"
-          className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm"
-          aria-label="Search registered players"
-        />
-        {open && (
-          <ul className="absolute z-10 mt-1 max-h-64 w-full space-y-1 overflow-y-auto rounded-none border border-border bg-background p-1 shadow-lg">
-            {searching && <li className="px-2 py-1.5 text-xs text-muted-foreground">Searching…</li>}
-            {!searching && candidates.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No eligible players found. Create the account first, then add them here.</li>}
-            {candidates.map((c) => (
-              <li key={c.playerId}>
-                <button
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => run(async () => { const r = await A.addTournamentEntrantsAction(tournamentId, [c.playerId]); setQ(''); setCandidates([]); setOpen(false); return r })}
-                  className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                >
-                  <PlayerName identity={{ cueverseId: c.cueverseId, preferredName: c.primaryName }} inline />
-                  <Plus className="size-3.5 text-muted-foreground" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">Only registered accounts can be added. No account? Create it first, then it appears here.</p>
+      <PlayerSearch
+        className="mt-1"
+        search={search}
+        onPick={(r) => run(() => A.addTournamentEntrantsAction(tournamentId, [r.id]))}
+        placeholder="Search by name, CueVerse ID or an old handle…"
+        label="Search registered players"
+      />
+      <p className="mt-1 text-xs text-muted-foreground">
+        Only registered accounts can be added. No account? Create it first, then it appears here.
+      </p>
     </div>
   )
 }

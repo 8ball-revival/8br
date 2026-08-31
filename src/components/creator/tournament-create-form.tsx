@@ -44,7 +44,16 @@ export function TournamentCreateForm({
   const submitted = useRef(false)
 
   const [name, setName] = useState('')
-  const [competitionSeriesId, setCompetition] = useState(competitions[0]?.id ?? 0)
+  /*
+    CueVerse by NAME, not "whichever competition is listed first".
+
+    Position is not a default anybody chose: reordering the list, or adding one, silently changes
+    what every new Tournament belongs to. Naming it means the fallback only applies when there is no
+    CueVerse to find.
+  */
+  const [competitionSeriesId, setCompetition] = useState(
+    competitions.find((c) => c.name.trim().toLowerCase() === 'cueverse')?.id ?? competitions[0]?.id ?? 0,
+  )
   const [competitionYear, setYear] = useState(defaultYear)
   const [format, setFormat] = useState<Format>('SINGLE_ELIM')
   const [isTeam, setIsTeam] = useState(false)
@@ -116,17 +125,6 @@ export function TournamentCreateForm({
         <Field label="Tournament Title">
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Spring Invitational" />
         </Field>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Competition">
-            <select value={competitionSeriesId} onChange={(e) => setCompetition(Number(e.target.value))} className={inputCls}>
-              {competitions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Competition Year">
-            <input type="number" value={competitionYear} onChange={(e) => setYear(Number(e.target.value) || defaultYear)} className={inputCls} />
-          </Field>
-        </div>
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-foreground">Format</legend>
@@ -213,6 +211,30 @@ export function TournamentCreateForm({
             <input type="datetime-local" value={scheduledStartAt} onChange={(e) => setScheduledStartAt(e.target.value)} className={inputCls} />
           </Field>
         )}
+
+        {/*
+          ── Filed under details, because they are details ─────────────────────────────────────
+          Competition and Year sat directly under the title, ahead of the format and the entrants —
+          the two decisions that actually shape a Tournament. They are almost always CueVerse and
+          this year, so asking them first made every Tournament begin with two questions whose
+          answer was already correct. They stay editable, and the values are shown rather than
+          hidden behind a control, so nobody has to open anything to check them.
+        */}
+        <details className="cyber-clip border border-border bg-card/30">
+          <summary className="cursor-pointer px-3 py-2 text-xs text-muted-foreground marker:text-muted-foreground hover:text-foreground">
+            Details — {competitionName} · {competitionYear}
+          </summary>
+          <div className="grid gap-4 border-t border-border p-3 sm:grid-cols-2">
+            <Field label="Competition">
+              <select value={competitionSeriesId} onChange={(e) => setCompetition(Number(e.target.value))} className={inputCls}>
+                {competitions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Competition Year">
+              <input type="number" value={competitionYear} onChange={(e) => setYear(Number(e.target.value) || defaultYear)} className={inputCls} />
+            </Field>
+          </div>
+        </details>
 
         <Field label="Description or announcement" hint="Optional.">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={cn(inputCls, 'resize-y')} />
