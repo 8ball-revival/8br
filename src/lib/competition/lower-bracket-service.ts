@@ -1,0 +1,171 @@
+import 'server-only'
+
+/**
+ * Persisting a lower-bracket routing edit.
+ *
+ * The decisions all live in `lower-bracket-edit.ts`, which is pure. This module reads the bracket,
+ * asks that engine what a proposed edit would do, and writes the answer — once, atomically, with an
+ * audit entry in the same transaction.
+ *
+ * ── What this deliberately does NOT do ──────────────────────────────────────────────────────────
+ * It does not regenerate the bracket, clear a score, reopen a match, recompute a winner or touch the
+ * rating ledger. A routing edit changes where players GO; every result already recorded stays
+ * exactly as it was, and that is re-checked against the stored rows inside the transaction rather
+ * than assumed from the engine's answer.
+ */
+
+import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import { recordAudit } from './audit'
+import { assertCompetitionUnlocked } from './service'
+import {
+  isLocked, lowerBracketView, matchName, swapLowerSlots,
+  type LowerRoundView, type RoutableMatch, type SlotRef,
+} from './lower-bracket-edit'
+
+export interface Actor { userId: number; username: string }
+
+/** Columns the engine needs, and nothing else. */
+const ROUTE_SELECT = {
+  id: true, section: true, round: true, slot: true, label: true,
+  homeRegistrationId: true, awayRegistrationId: true,
+  homeUsername: true, awayUsername: true, homeSeed: true, awaySeed: true,
+  homeGames: true, awayGames: true, status: true,
+  winnerRegistrationId: true, forfeitRegistrationId: true,
+  feedsMatchId: true, feedsSlot: true, loserFeedsMatchId: true, loserFeedsSlot: true,
+} as const
+
+async function readBracket(
+  client: Prisma.TransactionClient | typeof prisma,
+  tournamentId: number,
+): Promise<RoutableMatch[]> {
+  const rows = await client.playoffMatch.findMany({
+    where: { tournamentId },
+    select: ROUTE_SELECT,
+    orderBy: [{ round: 'asc' }, { slot: 'asc' }],
+  })
+  return rows.map((r) => ({ ...r, status: String(r.status) }))
+}
+
+/** The losers bracket, ready to draw. */
+export async function getLowerBracket(tournamentId: number): Promise<LowerRoundView[]> {
+  return lowerBracketView(await readBracket(prisma, tournamentId))
+}
+
+/**
+ * The WHOLE bracket, for the editor.
+ *
+ * More than the losers bracket, because a losers slot is described by the winners-bracket match
+ * that feeds it — an editor holding only the LB rows could not name a single source, and could not
+ * preview a swap without asking the server between every click.
+ *
+ * Returns an empty array for a bracket with no losers section, which is how a single-elimination
+ * Tournament ends up rendering no editor at all rather than an empty one.
+ */
+export async function getRoutableBracket(tournamentId: number): Promise<RoutableMatch[]> {
+  const all = await readBracket(prisma, tournamentId)
+  return all.some((m) => m.section === 'LB') ? all : []
+}
+
+export type SwapPair = [SlotRef, SlotRef]
+
+export interface SaveResult {
+  ok: boolean
+  error?: string
+  /** How many matches had a field rewritten. */
+  changed?: number
+}
+
+/**
+ * Apply a list of same-round losers-bracket swaps in one transaction.
+ *
+ * Applied in order against a running copy, so a second swap sees the first one's result and the
+ * whole list is validated as a single outcome rather than as independent edits that happen to be
+ * legal alone. Any refusal aborts everything — a partially applied routing is a broken bracket.
+ */
+export async function saveLowerBracketRouting(
+  actor: Actor,
+  tournamentId: number,
+  swaps: readonly SwapPair[],
+  reason?: string,
+): Promise<SaveResult> {
+  if (swaps.length === 0) return { ok: true, changed: 0 }
+  await assertCompetitionUnlocked(prisma, tournamentId)
+
+  return prisma.$transaction(async (tx) => {
+    const before = await readBracket(tx, tournamentId)
+    if (before.length === 0) return { ok: false, error: 'This Tournament has no bracket.' }
+
+    let working = before
+    for (const [a, b] of swaps) {
+      const step = swapLowerSlots(working, a, b)
+      if (!step.ok) return { ok: false, error: step.error }
+      working = step.preview
+    }
+
+    /*
+      Re-derive the writes from before → after rather than concatenating each step's updates.
+
+      Two swaps can touch the same field, and replaying a stale intermediate write would undo the
+      later one. Comparing the two ends of the edit produces exactly the fields that actually differ.
+    */
+    const beforeById = new Map(before.map((m) => [m.id, m]))
+    const writes: { id: number; data: Record<string, number | string | null> }[] = []
+    for (const m of working) {
+      const was = beforeById.get(m.id)
+      if (!was) continue
+      const data: Record<string, number | string | null> = {}
+      const diff = <K extends keyof RoutableMatch>(k: K) => {
+        if (m[k] !== was[k]) data[k as string] = m[k] as number | string | null
+      }
+      diff('feedsMatchId'); diff('feedsSlot')
+      diff('loserFeedsMatchId'); diff('loserFeedsSlot')
+      diff('homeRegistrationId'); diff('homeUsername'); diff('homeSeed')
+      diff('awayRegistrationId'); diff('awayUsername'); diff('awaySeed')
+      if (Object.keys(data).length > 0) writes.push({ id: m.id, data })
+    }
+
+    /*
+      A last guard against the engine and the database disagreeing.
+
+      The engine refuses to touch a played match, but it was handed a snapshot. Between the read and
+      this write a result could have landed, so the rows being written are re-read here, inside the
+      transaction, and any that now hold a result abort the save.
+    */
+    const touched = writes.map((w) => w.id)
+    const nowLocked = (await tx.playoffMatch.findMany({
+      where: { id: { in: touched } },
+      select: ROUTE_SELECT,
+    })).map((r) => ({ ...r, status: String(r.status) })).filter(isLocked)
+    if (nowLocked.length > 0) {
+      return { ok: false, error: `${matchName(nowLocked[0])} has a result now, so the bracket was not changed.` }
+    }
+
+    for (const w of writes) {
+      await tx.playoffMatch.update({ where: { id: w.id }, data: w.data })
+    }
+
+    await recordAudit(actor, {
+      action: 'tournament.playoff.lower_bracket_reroute',
+      entity: 'tournament',
+      entityId: tournamentId,
+      oldValue: { routes: routeSnapshot(before) },
+      newValue: { routes: routeSnapshot(working) },
+      reason: reason ?? 'Lower bracket routing edited to match the original bracket',
+    }, tx)
+
+    return { ok: true, changed: writes.length }
+  })
+}
+
+/** Just the routing, so an audit entry records the change and not the whole bracket. */
+function routeSnapshot(ms: readonly RoutableMatch[]) {
+  return ms
+    .filter((m) => m.feedsMatchId != null || m.loserFeedsMatchId != null)
+    .map((m) => ({
+      match: matchName(m),
+      id: m.id,
+      winnerTo: m.feedsMatchId == null ? null : `${m.feedsMatchId}:${m.feedsSlot}`,
+      loserTo: m.loserFeedsMatchId == null ? null : `${m.loserFeedsMatchId}:${m.loserFeedsSlot}`,
+    }))
+}

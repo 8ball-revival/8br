@@ -9,6 +9,8 @@ import { TournamentEntrantsBoard } from '@/components/creator/tournament-entrant
 import { TournamentBracketSetup } from '@/components/creator/tournament-bracket-setup'
 import { tournamentTopology } from '@/lib/tournaments/bracket-topology'
 import { TournamentLiveBracket } from '@/components/creator/tournament-live-bracket'
+import { LowerBracketEditor } from '@/components/creator/lower-bracket-editor'
+import { getRoutableBracket } from '@/lib/competition/lower-bracket-service'
 import { tournamentScoringRounds } from '@/lib/tournaments/scoring-view'
 import { championOfTournament } from '@/lib/tournaments/champion'
 import { loadTournamentStage } from '@/lib/creator/tournament-stage'
@@ -209,12 +211,24 @@ export default async function CreatorTournamentStagePage({
           waiting for. There is no separate flat list of results any more — it showed the same
           matches in a shape that could not say what a bye was.
         */
-        <TournamentLiveBracket
-          tournamentId={ctx.id}
-          rounds={await tournamentScoringRounds(ctx.id)}
-          champion={await championOfTournament(ctx.id)}
-          isCompleted={String(ws.tournament.lifecycleState) === 'COMPLETED'}
-        />
+        <>
+          <TournamentLiveBracket
+            tournamentId={ctx.id}
+            rounds={await tournamentScoringRounds(ctx.id)}
+            champion={await championOfTournament(ctx.id)}
+            isCompleted={String(ws.tournament.lifecycleState) === 'COMPLETED'}
+          />
+          {/*
+            Owner-only, and only where there IS a losers bracket.
+
+            `getRoutableBracket` returns nothing for a single-elimination or Swiss Tournament, so
+            the editor renders nothing there rather than an empty panel. The gate is repeated in the
+            server action: this one decides what is drawn, not what is allowed.
+          */}
+          {isOwner && (
+            <LowerBracketEditor tournamentId={ctx.id} matches={await getRoutableBracket(ctx.id)} />
+          )}
+        </>
       ) : ws ? (
         <TournamentWorkspace
           data={ws}
