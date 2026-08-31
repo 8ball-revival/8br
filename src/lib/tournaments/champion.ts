@@ -54,8 +54,16 @@ export async function championOfTournament(tournamentId: number): Promise<LiveCh
     select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true },
   })
   const idn = await resolveEntrants(regs)
+
+  // A team Tournament crowns the TEAM. Its registration carries a person underneath, and naming
+  // that person would crown the captain for a title the whole roster won.
+  const { getTeamsForSeason } = await import('@/lib/competition/teams')
+  const teamNameOf = new Map((await getTeamsForSeason(tournamentId)).map((t) => [t.registrationId, t.name]))
+
   const named = (id: number | null) => {
     if (id == null) return { name: null, cueverseId: null }
+    const teamName = teamNameOf.get(id)
+    if (teamName) return { name: teamName, cueverseId: null }
     const r = regs.find((x) => x.id === id)
     return {
       name: idn.get(id)?.displayName ?? r?.username ?? null,

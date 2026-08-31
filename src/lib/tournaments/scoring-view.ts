@@ -51,11 +51,27 @@ export async function tournamentScoringRounds(tournamentId: number): Promise<Sco
     select: { id: true, username: true, displayName: true, cueverseId: true, discord: true, playerId: true },
   })
   const idn = await resolveEntrants(regs)
+
+  /*
+    A team seat is named by the TEAM, not by whoever registered it.
+
+    A team's registration carries a person's identity underneath, so resolving it the ordinary way
+    would put the captain's handle on the bracket and lose which team is playing. The roster is on
+    the popover; the slot has to say the team.
+  */
+  const { getTeamsForSeason } = await import('@/lib/competition/teams')
+  const teams = await getTeamsForSeason(tournamentId)
+  const teamNameOf = new Map(teams.map((t) => [t.registrationId, t.name]))
+
   const identityOf = new Map(
-    regs.map((r) => [r.id, {
-      cueverseId: idn.get(r.id)?.cueverseId ?? r.cueverseId ?? null,
-      preferredName: idn.get(r.id)?.displayName ?? r.username,
-    }]),
+    regs.map((r) => {
+      const teamName = teamNameOf.get(r.id)
+      if (teamName) return [r.id, { cueverseId: null, preferredName: teamName }] as const
+      return [r.id, {
+        cueverseId: idn.get(r.id)?.cueverseId ?? r.cueverseId ?? null,
+        preferredName: idn.get(r.id)?.displayName ?? r.username,
+      }] as const
+    }),
   )
   const sideIdentity = (registrationId: number | null, fallback: string | null) =>
     registrationId != null

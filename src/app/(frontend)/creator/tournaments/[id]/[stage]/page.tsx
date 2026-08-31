@@ -65,9 +65,12 @@ const LIVE_BOARD_STAGES = new Set(['playoffs', 'complete'])
 /**
  * Formats whose scoring has moved to the shared board.
  *
- * Groups + Playoffs and Swiss still score through the workspace, and so do team Tournaments —
- * their surfaces have not been migrated yet, and the flat Results screen the brief asks to remove
- * is still the only one they have. Removing it now would leave them unable to record a result.
+ * Groups + Playoffs and Swiss still score through the workspace: their surfaces have not been
+ * migrated, and the flat Results screen the brief asks to remove is still the only one they have.
+ * Removing it now would leave them unable to record a result.
+ *
+ * Team elimination Tournaments DO use the board — a team seats its own registration, so one
+ * combined score per matchup is what the board already records.
  */
 const ELIMINATION = new Set(['SINGLE_ELIM', 'DOUBLE_ELIM'])
 
@@ -154,7 +157,7 @@ export default async function CreatorTournamentStagePage({
             }))}
           isOpen={ws.tournament.lifecycleState === 'REGISTRATION_OPEN'}
         />
-      ) : ws && stage === 'playoffs' && ws.tournament.participantFormat !== 'TEAM' && PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
+      ) : ws && stage === 'playoffs' && PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
         /*
           ── The draw is arranged before it exists publicly ─────────────────────────────────────
           Only while the bracket is still a draft. Once it is published the Tournament is a live
@@ -164,20 +167,36 @@ export default async function CreatorTournamentStagePage({
         <TournamentBracketSetup
           tournamentId={ctx.id}
           topology={tournamentTopology(ws.matches)}
-          entrants={ws.entrants
-            .filter((e) => !e.withdrawn)
-            .map((e) => ({
-              registrationId: e.registrationId,
-              name: e.name,
-              handle: e.handle,
-              rating: e.rating,
-              seed: e.seed,
-            }))}
+          /*
+            A team is ONE entrant on this board.
+
+            The draw seats a registration either way — a team has one of its own — so the board,
+            the swap and the seeds are unchanged. Only the list differs: a team has a name and a
+            roster rather than a handle and a rating.
+          */
+          entrants={ws.tournament.participantFormat === 'TEAM'
+            ? ws.teams
+              .filter((t) => !t.withdrawn)
+              .map((t) => ({
+                registrationId: t.registrationId,
+                name: `${t.members.length} player${t.members.length === 1 ? '' : 's'}`,
+                handle: t.name,
+                rating: null,
+                seed: t.seed,
+              }))
+            : ws.entrants
+              .filter((e) => !e.withdrawn)
+              .map((e) => ({
+                registrationId: e.registrationId,
+                name: e.name,
+                handle: e.handle,
+                rating: e.rating,
+                seed: e.seed,
+              }))}
           isDoubleElim={String(ws.tournament.tournamentFormat) === 'DOUBLE_ELIM'}
           canStart
         />
       ) : ws && LIVE_BOARD_STAGES.has(stage)
-        && ws.tournament.participantFormat !== 'TEAM'
         && ELIMINATION.has(String(ws.tournament.tournamentFormat ?? 'SINGLE_ELIM'))
         && !PRIVATE_SETUP.has(String(ws.tournament.lifecycleState)) ? (
         /*

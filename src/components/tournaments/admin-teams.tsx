@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { TeamView } from '@/lib/competition/teams'
 import type { EligibleAccount, FreeAgentRow, ClosingPlan } from '@/lib/competition/free-agents'
+import { PlayerSearch, type PlayerSearchResult } from '@/components/players/player-search'
 import {
   listEligibleAccountsAction, listFreeAgentsAction,
   adminCreateTeamWithPlayersAction, adminAddTeamMemberAction, adminRemoveTeamMemberAction, adminReplaceTeamMemberAction,
@@ -19,6 +20,60 @@ import {
 } from '@/lib/competition/tournament-actions'
 
 const sel = 'rounded-none border border-input bg-card px-2 py-1.5 text-sm text-foreground outline-none focus-visible:border-brand'
+
+/**
+ * Choose an account, through the shared player search.
+ *
+ * ── Why the search is local ─────────────────────────────────────────────────────────────────────
+ * Who may join a team is not "any player": `listEligibleAccounts` has already excluded anybody
+ * banned, deleted, unlinked, already on a roster or already waiting as a free agent — which is what
+ * stops one person joining two teams. Searching the server again would be a second answer to that
+ * question and a chance for the two to differ, so the control filters the pool it was given.
+ */
+function AccountPicker({
+  label, options, onPick, disabled,
+}: {
+  label: string
+  options: EligibleAccount[]
+  onPick: (userId: number) => void
+  disabled?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+
+  const search = useCallback(async (term: string): Promise<PlayerSearchResult[]> => {
+    const q = term.trim().toLowerCase()
+    return options
+      .filter((a) => `${a.handle ?? ''} ${a.name}`.toLowerCase().includes(q))
+      .slice(0, 25)
+      .map((a) => ({ id: String(a.userId), name: a.name, cueverseId: a.handle ?? '' }))
+  }, [options])
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className={cn(sel, 'py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50')}
+      >
+        {label}
+      </button>
+    )
+  }
+
+  return (
+    <div className="w-64">
+      <PlayerSearch
+        search={search}
+        onPick={(r) => { setOpen(false); onPick(Number(r.id)) }}
+        onCancel={() => setOpen(false)}
+        autoFocus
+        label={label}
+        placeholder="Name or CueVerse ID…"
+      />
+    </div>
+  )
+}
 
 export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationOpen }: { tournamentId: number; teamSize: number; teams: TeamView[]; registrationOpen: boolean }) {
   const router = useRouter()
@@ -65,12 +120,16 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
       {/* Existing teams — one dropdown slot per position */}
       <div className="space-y-4">
         {active.length === 0 && <p className="text-sm text-muted-foreground">No teams yet. Create one below, or players can start their own.</p>}
-        {active.map((team) => {
+        {active.map((team, teamIndex) => {
           const filled = team.members.length
           const emptySlots = Math.max(0, teamSize - filled)
           return (
             <div key={team.id} className="overflow-hidden rounded-none border border-border">
               <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/40 px-4 py-2">
+                {/* Numbered, so a roster can be referred to by position while it is being built. */}
+                <span className="tabular shrink-0 cyber-clip-sm border border-border px-1.5 py-0.5 text-[0.65rem] font-semibold text-muted-foreground">
+                  {teamIndex + 1}
+                </span>
                 <span className="text-sm font-semibold text-foreground">{team.name}</span>
                 <span className={cn('cyber-clip-sm px-2 py-0.5 text-[0.65rem] font-semibold', filled >= teamSize ? 'bg-success/10 text-success' : 'bg-[var(--attention-surface)] text-[var(--gold)]')}>{filled} of {teamSize}</span>
                 <div className="ml-auto flex gap-1">
@@ -86,10 +145,12 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                     {m.captain && <span className="text-[0.66rem] uppercase tracking-wide text-brand">Captain</span>}
                     <div className="ml-auto flex items-center gap-1.5">
                       {m.userId != null && (
-                        <select className={cn(sel, 'py-1 text-xs')} defaultValue="" disabled={pending} onChange={(e) => { const nv = Number(e.target.value); if (nv) run(() => adminReplaceTeamMemberAction(tournamentId, team.id, m.userId!, nv)) }}>
-                          <option value="">Replace with…</option>
-                          {eligible.map((a) => <option key={a.userId} value={a.userId}>{identityText(fromNameHandle(a))}</option>)}
-                        </select>
+                        <AccountPicker
+                          label="Replace…"
+                          options={eligible}
+                          disabled={pending}
+                          onPick={(uid) => run(() => adminReplaceTeamMemberAction(tournamentId, team.id, m.userId!, uid))}
+                        />
                       )}
                       {m.userId != null && (
                         <button type="button" disabled={pending} onClick={async () => { const res = await confirm({ title: 'Remove player?', message: `Remove ${identityText(fromNameHandle(m))} from ${team.name}?`, confirmLabel: 'Remove', tone: 'danger' }); if (res.confirmed) run(() => adminRemoveTeamMemberAction(tournamentId, team.id, m.userId!)) }} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label="Remove"><X className="size-4" /></button>
@@ -100,10 +161,14 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
                 {Array.from({ length: emptySlots }, (_, i) => (
                   <div key={`empty-${i}`} className="flex items-center gap-2 rounded-md border border-dashed border-border/60 px-3 py-1.5">
                     <span className="text-xs text-muted-foreground">Open slot</span>
-                    <select className={cn(sel, 'ml-auto py-1 text-xs')} defaultValue="" disabled={pending} onChange={(e) => { const uid = Number(e.target.value); if (uid) run(() => adminAddTeamMemberAction(tournamentId, team.id, uid)) }}>
-                      <option value="">Add a player…</option>
-                      {eligible.map((a) => <option key={a.userId} value={a.userId}>{identityText(fromNameHandle(a))}</option>)}
-                    </select>
+                    <span className="ml-auto">
+                      <AccountPicker
+                        label="Add a player…"
+                        options={eligible}
+                        disabled={pending}
+                        onPick={(uid) => run(() => adminAddTeamMemberAction(tournamentId, team.id, uid))}
+                      />
+                    </span>
                   </div>
                 ))}
               </div>
@@ -138,6 +203,7 @@ export function AdminTeamsManager({ tournamentId, teamSize, teams, registrationO
   )
 }
 
+/** A roster built one seat at a time: the captain first, then the rest. */
 function CreateTeam({ tournamentId, teamSize, eligible, pending, run }: { tournamentId: number; teamSize: number; eligible: EligibleAccount[]; pending: boolean; run: (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) => void }) {
   const [name, setName] = useState('')
   const [picks, setPicks] = useState<number[]>([])
@@ -151,15 +217,42 @@ function CreateTeam({ tournamentId, teamSize, eligible, pending, run }: { tourna
           <label className="mb-1 block text-xs text-muted-foreground">Team name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className={cn(sel, 'w-48')} placeholder="Team name" />
         </div>
-        {Array.from({ length: teamSize }, (_, i) => (
-          <div key={i}>
-            <label className="mb-1 block text-xs text-muted-foreground">{i === 0 ? 'Captain' : `Player ${i + 1}`}</label>
-            <select className={cn(sel, 'w-40')} value={picks[i] ?? ''} onChange={(e) => set(i, Number(e.target.value))}>
-              <option value="">—</option>
-              {eligible.filter((a) => !chosen.includes(a.userId) || a.userId === picks[i]).map((a) => <option key={a.userId} value={a.userId}>{identityText(fromNameHandle(a))}</option>)}
-            </select>
-          </div>
-        ))}
+        {Array.from({ length: teamSize }, (_, i) => {
+          const picked = picks[i] ? eligible.find((a) => a.userId === picks[i]) : undefined
+          return (
+            <div key={i}>
+              <label className="mb-1 block text-xs text-muted-foreground">
+                {i === 0 ? 'Captain' : `Player ${i + 1}`}
+              </label>
+              {picked ? (
+                <span className="flex w-44 items-center gap-1.5 rounded-none border border-border bg-background px-2 py-1.5 text-xs">
+                  <span className="min-w-0 flex-1 truncate">
+                    {picked.handle && <span className="font-semibold text-[var(--gold)]">{picked.handle}</span>}
+                    {picked.handle && <span className="text-muted-foreground"> · </span>}
+                    <span className="text-muted-foreground">{picked.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Clear ${i === 0 ? 'captain' : `player ${i + 1}`}`}
+                    onClick={() => set(i, 0)}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="size-3.5" aria-hidden />
+                  </button>
+                </span>
+              ) : (
+                <AccountPicker
+                  label={i === 0 ? 'Choose the captain…' : 'Choose a player…'}
+                  /* Somebody already picked into another slot is not offered again: one person
+                     cannot fill two places on the same roster. */
+                  options={eligible.filter((a) => !chosen.includes(a.userId))}
+                  disabled={pending}
+                  onPick={(uid) => set(i, uid)}
+                />
+              )}
+            </div>
+          )
+        })}
         <Button size="sm" disabled={pending || !name.trim() || chosen.length === 0} onClick={() => run(async () => { const r = await adminCreateTeamWithPlayersAction(tournamentId, name.trim(), chosen); if (!r.error) { setName(''); setPicks([]) } return r })}>
           <Plus className="size-4" /> Create
         </Button>
