@@ -152,6 +152,31 @@ if(v('accentMode')==='custom'){e.style.setProperty('--dl-accent',String(v('accen
 export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
   // Never throws and never blocks: an unreadable theme is no theme, and the site renders as built.
   const theme = await getTheme().catch(() => ({ vars: {}, fontDisplay: 'space-grotesk' }))
+
+  /*
+    ── Why the published theme is a `:root` rule and not a style attribute ────────────────────────
+
+    It used to be an inline style on <body>, which put it BELOW <html> in the tree and therefore
+    above it in the cascade — so a published theme silently beat the Owner's own preview, and the
+    Palette tab appeared to stop working the moment anything was published.
+
+    As a `:root` rule it is a stylesheet declaration, and Display Lab's inline properties on <html>
+    beat it by specificity rather than by nesting. That is the whole layering:
+
+        :root { … }        the published theme, server-rendered, every visitor
+        <html style="…">   the Owner's preview or saved draft, this browser only
+
+    It is rendered into <head> ahead of the pre-paint script, so a public visitor has the published
+    values before the first paint — no flash of the built-in theme, and nothing for React to
+    reconcile, because the markup is identical on the server and the client.
+
+    The values reaching this string have been through `tokenVars`: registry-declared properties with
+    plain hex values, nothing else. That is what makes it safe to inline as CSS text.
+  */
+  const publishedCss = Object.entries(theme.vars)
+    .map(([prop, value]) => `${prop}:${value}`)
+    .join(';')
+
   return (
     <html
       lang="en"
@@ -159,12 +184,15 @@ export default async function FrontendLayout({ children }: { children: React.Rea
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${barlowCondensed.variable}`}
     >
       <head>
+        {publishedCss && (
+          <style
+            data-published-theme=""
+            dangerouslySetInnerHTML={{ __html: `:root{${publishedCss}}` }}
+          />
+        )}
         <script dangerouslySetInnerHTML={{ __html: displayScript }} />
       </head>
-      <body
-        className="flex min-h-screen flex-col bg-transparent text-foreground antialiased"
-        style={Object.keys(theme.vars).length ? (theme.vars as React.CSSProperties) : undefined}
-      >
+      <body className="flex min-h-screen flex-col bg-transparent text-foreground antialiased">
         <DialogProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>
