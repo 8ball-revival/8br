@@ -488,13 +488,35 @@ export interface StrandedSlot {
   reason: string
 }
 
-/** Whether a match is a walkover: one real player, one permanently empty seat. */
-export function isWalkover(m: RoutableMatch): boolean {
+/**
+ * Whether a seat can never hold a player.
+ *
+ * Two representations exist and both are legitimate. `planDoubleElim` writes the word "Bye" into
+ * the seat, which is what `advancePlayerInto` looks for when it decides a walkover. But a seat can
+ * also be permanently empty simply because NOTHING FEEDS IT — no route points at it and no player
+ * was seated — which is the rule `resolveByes` itself uses when it builds the draw, and it is how
+ * the 602 Invitational's winners byes are stored.
+ *
+ * Checking only the word missed the second kind entirely: the repair reported nothing to settle on
+ * a bracket with three matches that could not start. So both are treated as what they are.
+ */
+export function isDeadSeat(
+  m: RoutableMatch,
+  slot: number,
+  routes: Map<string, FeedRef>,
+): boolean {
+  const regId = slot === 0 ? m.homeRegistrationId : m.awayRegistrationId
+  const name = slot === 0 ? m.homeUsername : m.awayUsername
+  if (regId !== null) return false
+  if (name === 'Bye') return true
+  return !routes.has(slotKey({ matchId: m.id, slot }))
+}
+
+/** Whether a match is a walkover: one real player, one seat nothing can ever fill. */
+export function isWalkover(m: RoutableMatch, routes: Map<string, FeedRef>): boolean {
   const homeReal = m.homeRegistrationId !== null
   const awayReal = m.awayRegistrationId !== null
-  const homeBye = m.homeRegistrationId === null && m.homeUsername === 'Bye'
-  const awayBye = m.awayRegistrationId === null && m.awayUsername === 'Bye'
-  return (homeReal && awayBye) || (awayReal && homeBye)
+  return (homeReal && isDeadSeat(m, 1, routes)) || (awayReal && isDeadSeat(m, 0, routes))
 }
 
 /**
@@ -526,7 +548,7 @@ export function strandedLowerSlots(matches: readonly RoutableMatch[]): StrandedS
       const route = routes.get(slotKey({ matchId: m.id, slot }))
       if (!route || route.kind !== 'LOSER') continue
       const feeder = byId.get(route.sourceMatchId)
-      if (!feeder || !isWalkover(feeder)) continue
+      if (!feeder || !isWalkover(feeder, routes)) continue
 
       out.push({
         matchId: m.id,

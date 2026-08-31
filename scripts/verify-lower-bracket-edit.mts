@@ -11,7 +11,7 @@ import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { planDoubleElim } from '../src/lib/competition/bracket-de.ts'
 import {
-  isLocked, isWalkover, lowerBracketView, matchName, routesByTarget, slotKey, sourceLabel,
+  isDeadSeat, isLocked, isWalkover, lowerBracketView, matchName, routesByTarget, slotKey, sourceLabel,
   strandedLowerSlots, swapLowerSlots, validateRouting, type RoutableMatch,
 } from '../src/lib/competition/lower-bracket-edit.ts'
 import {
@@ -388,7 +388,7 @@ try {
     })
 
     b = await read(t2)
-    check('the walkover is recognised', isWalkover(b.find((m) => m.id === w1.id)!))
+    check('the walkover is recognised', isWalkover(b.find((m) => m.id === w1.id)!, routesByTarget(b)))
     const found = strandedLowerSlots(b)
     check('the stranded seat is found', found.length === 1, `${found.length}`)
     check('...naming the player left waiting', found[0]?.waiting.username === 'stranded')
@@ -412,6 +412,45 @@ try {
 
     check('running it again settles nothing', (await resolveStrandedLowerSlots(ACTOR, t2)).settled === 0)
     check('...and nothing is left stranded', strandedLowerSlots(await read(t2)).length === 0)
+    await cleanup()
+  }
+
+  section('A bye stored as an unfed empty seat is recognised too')
+  {
+    /*
+      The 602 Invitational stores its winners byes this way: the seat holds no player and no name,
+      and nothing routes into it. Checking for the word "Bye" alone reported nothing to settle on a
+      bracket with three matches that could not start, which is what this pins.
+    */
+    const { tid: t4 } = await buildBracket()
+    let b = await read(t4)
+    const w1 = find(b, 'WB', 1, 0)
+    // A nameless empty seat, and no route into it.
+    await prisma.playoffMatch.update({
+      where: { id: w1.id }, data: { awayRegistrationId: null, awayUsername: null },
+    })
+    b = await read(t4)
+    const wo = b.find((m) => m.id === w1.id)!
+    const target = b.find((m) => m.id === wo.loserFeedsMatchId)!
+    const other = wo.loserFeedsSlot === 0 ? 1 : 0
+    await prisma.playoffMatch.update({
+      where: { id: target.id },
+      data: other === 0
+        ? { homeRegistrationId: 999_003, homeUsername: 'unfed' }
+        : { awayRegistrationId: 999_003, awayUsername: 'unfed' },
+    })
+
+    b = await read(t4)
+    check('an unfed nameless seat counts as dead',
+      isDeadSeat(b.find((m) => m.id === w1.id)!, 1, routesByTarget(b)))
+    check('...so the match is a walkover', isWalkover(b.find((m) => m.id === w1.id)!, routesByTarget(b)))
+    const found = strandedLowerSlots(b)
+    check('...and the seat behind it is found stranded', found.length === 1, `${found.length}`)
+
+    const r4 = await resolveStrandedLowerSlots(ACTOR, t4)
+    check('it settles', r4.ok && r4.settled === 1, `${r4.settled}`)
+    const done = (await read(t4)).find((m) => m.id === target.id)!
+    check('the waiting player advanced', done.winnerRegistrationId === 999_003)
     await cleanup()
   }
 
