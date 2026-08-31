@@ -63,7 +63,9 @@ const STAGE_IDS = new Set(['setup', 'entrants', 'teams', 'groups', 'swiss', 'pla
  *   no matches, or none published  →  the private setup board, still arrangeable
  *   any match published            →  the live scoring board
  *
- * Swiss keeps the workspace: it has no bracket, its rounds are paired as it goes.
+ * Swiss keeps the workspace, deliberately and finally: it has no bracket — its rounds are paired as
+ * it goes — so there is no board for it to move to, and it is the one format left holding the flat
+ * Results list that every other format has stopped needing.
  */
 const BRACKET_STAGES = new Set(['playoffs', 'complete'])
 const HAS_A_BRACKET = (format: string) => format !== 'SWISS'

@@ -96,7 +96,15 @@ export function TournamentWorkspace({
     ...(!isRandom && data.isGroupStage ? ([{ id: 'groups', label: 'Groups', icon: ListChecks }] as const) : []),
     ...(!isRandom && data.isSwiss ? ([{ id: 'swiss', label: 'Swiss', icon: ListChecks }] as const) : []),
     ...(!isRandom && data.isSwiss ? [] : ([{ id: 'bracket', label: 'Bracket', icon: GitBranch }] as const)),
-    ...(!isRandom && data.isSwiss ? [] : ([{ id: 'results', label: 'Results', icon: ListChecks }] as const)),
+    /*
+      ── The flat Results list, kept only where nothing replaced it ────────────────────────────
+      Every format with a bracket is scored on the shared board now — inside each matchup, where a
+      score belongs — so a second screen listing the same matches as a flat table is a way to enter
+      a result somewhere the bracket cannot show a bye, a feeder or who is waiting on whom.
+
+      Swiss has no bracket and is deliberately unchanged, so it keeps what it has.
+    */
+    ...(data.isSwiss && isRandom ? ([{ id: 'results', label: 'Results', icon: ListChecks }] as const) : []),
     { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ]
