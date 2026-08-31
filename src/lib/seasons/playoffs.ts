@@ -377,7 +377,47 @@ export async function setSeasonBracketSlot(
   // Whoever currently sits where we are putting this player.
   const displaced = side === 'home' ? target.homeEntrantId : target.awayEntrantId
 
+  /*
+   * Already sitting in the OTHER side of this same match?
+   *
+   * The lookup below excludes `matchId`, so swapping the two halves of one match found nowhere to
+   * put the displaced player, vacated nothing, and then wrote the mover into the target side —
+   * leaving the same entrant on both lines and the other gone. The Tournament board had the same
+   * bug and it was reported there; this is the same code shape on the Season board.
+   *
+   * Dropping the exclusion would not fix it: origin and target would be one row, and the two
+   * updates below would run in order with the second overwriting the first. One match needs one
+   * write that sets both sides.
+   */
+  const otherSide = side === 'home' ? 'away' : 'home'
+  const otherEntrantId = otherSide === 'home' ? target.homeEntrantId : target.awayEntrantId
+  const sameMatchSwap = entrantId != null && otherEntrantId === entrantId
+
   await prisma.$transaction(async (tx) => {
+    if (sameMatchSwap) {
+      const movingName = await nameOf(entrantId)
+      const movingSeed = await seedOf(entrantId)
+      const displacedName = await nameOf(displaced)
+      const displacedSeed = await seedOf(displaced)
+      await tx.seasonPlayoffMatch.update({
+        where: { id: matchId },
+        data: side === 'home'
+          ? {
+            homeEntrantId: entrantId, homeUsername: movingName, homeSeed: movingSeed,
+            awayEntrantId: displaced, awayUsername: displacedName, awaySeed: displacedSeed,
+          }
+          : {
+            awayEntrantId: entrantId, awayUsername: movingName, awaySeed: movingSeed,
+            homeEntrantId: displaced, homeUsername: displacedName, homeSeed: displacedSeed,
+          },
+      })
+      await recordAudit(actor, {
+        action: 'season.playoff.slot', entity: 'Season', entityId: seasonId,
+        newValue: { matchId, side, entrantId, displaced, withinMatch: true },
+      }, tx)
+      return
+    }
+
     if (entrantId != null) {
       // Find any other slot this player already occupies and put the displaced player there.
       const elsewhere = await tx.seasonPlayoffMatch.findFirst({

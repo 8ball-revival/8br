@@ -1,129 +1,276 @@
 /**
- * Swapping two bracket positions — the property, not the gesture.
+ * Arranging a draft bracket by hand: swapping two positions must never duplicate a player.
  *
- * ── What actually has to be true ─────────────────────────────────────────────────────────────────
- * A drag and a pair of clicks are two ways to ask for the same thing, and the workspace applies the
- * result before the server has agreed to it. So there are three places the same rule has to hold,
- * and the rule is not "the card moved": it is that the SEED and the POSITION stay with the slot
- * while only the occupant travels.
+ * The reported bug: swapping the two halves of ONE match (M3's IrateMusicfool with lilsparky67)
+ * left the dragged player on both lines and the other gone. It is visible on the 602 Invitational
+ * board, where the same entrant sits on both lines of M2.
  *
- * Bracket seed 1 means "top of the draw". Carrying a player's old seed with them would leave two
- * slots claiming the same number and a bracket that reads as though the draw had been reordered by
- * a placement. That is a statement about data, so it is proven against data rather than inferred
- * from a screenshot.
+ * The cause is in `setTournamentBracketSlot`: the lookup that finds where the mover came from
+ * excludes the target match, so a within-match move found no origin, vacated nothing, and then
+ * wrote the mover into the target seat.
  *
- * The gesture itself is checked in the browser; this is the part a screenshot cannot show.
- *
- * Pure functions only — no database, no fixtures, nothing to clean up.
- *
- * Run: npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-bracket-swap.mts
+ * Run:  npx tsx --tsconfig tsconfig.scripts.json scripts/verify-bracket-swap.mts
  */
-import { applySwap, canPlaceInto, describeSwap, sameSlot } from '../src/lib/seasons/bracket-swap.ts'
-import type { EntrySlot } from '../src/lib/seasons/playoff-topology.ts'
+import { prisma } from '../src/lib/prisma.ts'
+import { assertLocalDatabase } from '../src/lib/db-guard.ts'
+import { setTournamentBracketSlot } from '../src/lib/competition/service.ts'
+import { setSeasonBracketSlot } from '../src/lib/seasons/playoffs.ts'
 
-let pass = 0
-let fail = 0
+assertLocalDatabase()
+
+let pass = 0, fail = 0
 const check = (label: string, ok: boolean, detail?: string) => {
   if (ok) { pass++; console.log(`  ✓ ${label}`) }
   else { fail++; console.log(`  ✗ ${label}${detail ? ` — ${detail}` : ''}`) }
 }
 const section = (t: string) => console.log(`\n--- ${t} ---`)
 
-const slot = (matchId: number, side: 'home' | 'away', seed: number | null, entrantId: number | null, name: string | null): EntrySlot => ({
-  matchId, side, section: null, round: 1, slot: matchId - 100, label: null,
-  entrantId, entrantName: name, seed,
-})
+const MARK = 'zzsw-verify'
+const ACTOR = { userId: 960888, username: MARK }
 
-/** Round one of a bracket of four: seeds 1 and 4 in one tie, 2 and 3 in the other. */
-const board = (): EntrySlot[] => [
-  slot(101, 'home', 1, 11, 'Ada'),
-  slot(101, 'away', 4, 44, 'Dee'),
-  slot(102, 'home', 2, 22, 'Bea'),
-  slot(102, 'away', 3, 33, 'Cal'),
-]
+async function cleanup() {
+  const rows = await prisma.tournament.findMany({ where: { name: { startsWith: MARK } }, select: { id: true } })
+  for (const r of rows) {
+    await prisma.playoffMatch.deleteMany({ where: { tournamentId: r.id } }).catch(() => {})
+    await prisma.registration.deleteMany({ where: { tournamentId: r.id } }).catch(() => {})
+    await prisma.tournament.delete({ where: { id: r.id } }).catch(() => {})
+  }
+  const seasons = await prisma.season.findMany({ where: { slug: { startsWith: MARK } }, select: { id: true } })
+  for (const s2 of seasons) {
+    await prisma.seasonPlayoffMatch.deleteMany({ where: { seasonId: s2.id } }).catch(() => {})
+    await prisma.seasonEntrant.deleteMany({ where: { seasonId: s2.id } }).catch(() => {})
+    await prisma.season.delete({ where: { id: s2.id } }).catch(() => {})
+  }
+  await prisma.auditLog.deleteMany({ where: { actorUsername: MARK } }).catch(() => {})
+}
+await cleanup()
 
-// The two round-one ties are entry positions; the final's two sides are fed by them.
-const entryKeys = new Set(['101:home', '101:away', '102:home', '102:away'])
+/**
+ * A DRAFT first round: two matches of two players, plus one match holding a bye.
+ *
+ * Written directly rather than generated, so the shape under test is exactly the one on the screen
+ * — a handful of round-1 matches, unpublished, with no results.
+ */
+async function build() {
+  const series = await prisma.competitionSeries.findFirstOrThrow({ select: { id: true } })
+  const t = await prisma.tournament.create({
+    data: {
+      name: `${MARK} draw`, slug: `${MARK}-${Date.now() % 1_000_000}`,
+      competitionSeriesId: series.id, competitionYear: 2026,
+      tournamentFormat: 'SINGLE_ELIM', status: 'ACTIVE', playoffsStatus: 'PENDING',
+      publiclyVisible: false,
+    },
+    select: { id: true },
+  })
+  const regs: { id: number; name: string }[] = []
+  for (const name of ['irate', 'sparky', 'jefe', 'luke', 'faisal']) {
+    const r = await prisma.registration.create({
+      data: { tournamentId: t.id, status: 'APPROVED', username: `${MARK}-${name}`, displayName: name },
+      select: { id: true },
+    })
+    regs.push({ id: r.id, name })
+  }
+  const mk = async (slot: number, home: { id: number; name: string } | null, away: { id: number; name: string } | null) =>
+    (await prisma.playoffMatch.create({
+      data: {
+        tournamentId: t.id, round: 1, slot, published: false,
+        homeRegistrationId: home?.id ?? null, homeUsername: home?.name ?? 'Bye', homeSeed: slot * 2 + 1,
+        awayRegistrationId: away?.id ?? null, awayUsername: away?.name ?? 'Bye', awaySeed: slot * 2 + 2,
+      },
+      select: { id: true },
+    })).id
 
-try {
-  section('A swap moves the occupants and nothing else')
-  const before = board()
-  const after = applySwap(before, { matchId: 101, side: 'home' }, { matchId: 102, side: 'away' })
-
-  check('the two players exchanged places',
-    after[0].entrantId === 33 && after[3].entrantId === 11,
-    `${after[0].entrantId} / ${after[3].entrantId}`)
-  check('...and their names travelled with them',
-    after[0].entrantName === 'Cal' && after[3].entrantName === 'Ada')
-
-  check('the seeds stayed with the SLOTS',
-    after[0].seed === 1 && after[3].seed === 3,
-    `${after[0].seed} / ${after[3].seed}`)
-  check('...so no two positions claim the same seed',
-    new Set(after.map((s) => s.seed)).size === after.length,
-    after.map((s) => s.seed).join(','))
-  check('every slot keeps its match and side',
-    after.every((s, i) => s.matchId === before[i].matchId && s.side === before[i].side))
-  check('every slot keeps its round and position',
-    after.every((s, i) => s.round === before[i].round && s.slot === before[i].slot))
-
-  check('nobody was duplicated',
-    new Set(after.map((s) => s.entrantId)).size === after.length,
-    after.map((s) => s.entrantId).join(','))
-  check('nobody was lost',
-    JSON.stringify(after.map((s) => s.entrantId).sort((a, b) => (a ?? 0) - (b ?? 0)))
-    === JSON.stringify(before.map((s) => s.entrantId).sort((a, b) => (a ?? 0) - (b ?? 0))))
-
-  section('The input is left alone, so a refusal can restore it')
-  check('the original array is unchanged',
-    JSON.stringify(before) === JSON.stringify(board()))
-  check('...and a new array came back', after !== before)
-  check('restoring it is exactly the original board',
-    JSON.stringify(before) === JSON.stringify(board()))
-
-  section('Swapping with an empty position carries the emptiness back')
-  const withBye = [...board().slice(0, 3), slot(102, 'away', 3, null, null)]
-  const moved = applySwap(withBye, { matchId: 101, side: 'home' }, { matchId: 102, side: 'away' })
-  check('the player moved into the empty position', moved[3].entrantId === 11)
-  check('...and the position they left is now empty', moved[0].entrantId === null)
-  check('...with its name cleared too', moved[0].entrantName === null)
-  check('...and both seeds unmoved', moved[0].seed === 1 && moved[3].seed === 3)
-
-  section('A swap with itself is a no-op')
-  const same = applySwap(board(), { matchId: 101, side: 'home' }, { matchId: 101, side: 'home' })
-  check('the board is unchanged', JSON.stringify(same) === JSON.stringify(board()))
-  check('sameSlot recognises it', sameSlot({ matchId: 1, side: 'home' }, { matchId: 1, side: 'home' }))
-  check('...and tells two sides of one tie apart',
-    !sameSlot({ matchId: 1, side: 'home' }, { matchId: 1, side: 'away' }))
-
-  section('An unknown position changes nothing')
-  const ghost = applySwap(board(), { matchId: 101, side: 'home' }, { matchId: 999, side: 'home' })
-  check('the board is unchanged', JSON.stringify(ghost) === JSON.stringify(board()))
-
-  section('Only entry positions accept a drop')
-  check('a round-one position accepts', canPlaceInto(entryKeys, { matchId: 101, side: 'home' }))
-  check('the other side of the same tie accepts', canPlaceInto(entryKeys, { matchId: 101, side: 'away' }))
-  check('a winner-fed position refuses', !canPlaceInto(entryKeys, { matchId: 200, side: 'home' }))
-  check('a loser-fed position refuses', !canPlaceInto(entryKeys, { matchId: 300, side: 'away' }))
-  check('a position that does not exist refuses', !canPlaceInto(entryKeys, { matchId: 999, side: 'home' }))
-
-  section('The announcement names both sides of the move')
-  const said = describeSwap(board(), { matchId: 101, side: 'home' }, { matchId: 102, side: 'away' })
-  check('it names the first player', said.includes('Ada'), said)
-  check('...and the second', said.includes('Cal'), said)
-  const withEmpty = describeSwap(
-    [...board().slice(0, 3), slot(102, 'away', 3, null, null)],
-    { matchId: 101, side: 'home' }, { matchId: 102, side: 'away' })
-  check('an empty position is described rather than left blank',
-    /empty position/i.test(withEmpty), withEmpty)
-
-  section('Repeating a swap returns the board to where it started')
-  const there = applySwap(board(), { matchId: 101, side: 'home' }, { matchId: 102, side: 'away' })
-  const back = applySwap(there, { matchId: 101, side: 'home' }, { matchId: 102, side: 'away' })
-  check('two swaps of the same pair undo each other',
-    JSON.stringify(back) === JSON.stringify(board()))
-} finally {
-  console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
+  const m3 = await mk(0, regs[0], regs[1])   // irate vs sparky — the reported case
+  const m4 = await mk(1, regs[2], regs[3])   // jefe vs luke
+  const m1 = await mk(2, regs[4], null)      // faisal vs a bye
+  return { tid: t.id, regs, m3, m4, m1 }
 }
 
-if (fail > 0) process.exitCode = 1
+const readRound1 = (tid: number) => prisma.playoffMatch.findMany({
+  where: { tournamentId: tid, round: 1 },
+  select: {
+    id: true, slot: true,
+    homeRegistrationId: true, awayRegistrationId: true,
+    homeUsername: true, awayUsername: true,
+  },
+  orderBy: { slot: 'asc' },
+})
+
+/** Every seated entrant across round 1. A duplicate here is the bug. */
+function seated(rows: Awaited<ReturnType<typeof readRound1>>): number[] {
+  return rows.flatMap((m) => [m.homeRegistrationId, m.awayRegistrationId]).filter((x): x is number => x != null)
+}
+const dupes = (ids: number[]) => ids.filter((id, i) => ids.indexOf(id) !== i)
+
+try {
+  // ── The reported bug ──────────────────────────────────────────────────────────────────────────
+  section('Swapping the two halves of one match exchanges them')
+  {
+    const { tid, regs, m3 } = await build()
+    const [irate, sparky] = regs
+
+    // What the board does when you drag the home player onto the away line of the same match.
+    const r = await setTournamentBracketSlot(ACTOR, tid, m3, 'away', irate.id)
+    check('the move is accepted', r.ok, r.error ?? '')
+
+    const rows = await readRound1(tid)
+    const m = rows.find((x) => x.id === m3)!
+    check('the dragged player is now on the away line', m.awayRegistrationId === irate.id,
+      `${m.awayUsername}`)
+    check('the other player took the home line', m.homeRegistrationId === sparky.id,
+      `${m.homeUsername}`)
+    check('the names moved with them',
+      m.homeUsername === 'sparky' && m.awayUsername === 'irate',
+      `${m.homeUsername} / ${m.awayUsername}`)
+    check('NEITHER player is duplicated', dupes(seated(rows)).length === 0,
+      `duplicated: ${dupes(seated(rows)).join(',')}`)
+    check('nobody was dropped from the board', seated(rows).length === 5, String(seated(rows).length))
+
+    // And back again, so the swap is not one-directional.
+    await setTournamentBracketSlot(ACTOR, tid, m3, 'home', irate.id)
+    const back = (await readRound1(tid)).find((x) => x.id === m3)!
+    check('swapping back restores the original order',
+      back.homeRegistrationId === irate.id && back.awayRegistrationId === sparky.id)
+    check('...still with no duplicate', dupes(seated(await readRound1(tid))).length === 0)
+    await cleanup()
+  }
+
+  // ── A player and a bye in the same match ──────────────────────────────────────────────────────
+  section('Swapping a player with a bye in the same match')
+  {
+    const { tid, regs, m1 } = await build()
+    const faisal = regs[4]
+
+    const r = await setTournamentBracketSlot(ACTOR, tid, m1, 'away', faisal.id)
+    check('the move is accepted', r.ok, r.error ?? '')
+
+    const rows = await readRound1(tid)
+    const m = rows.find((x) => x.id === m1)!
+    check('the player is on the away line', m.awayRegistrationId === faisal.id)
+    check('the bye took the home line', m.homeRegistrationId === null, String(m.homeRegistrationId))
+    check('...and still reads as a bye rather than blank', m.homeUsername === 'Bye', String(m.homeUsername))
+    check('the player is not duplicated', dupes(seated(rows)).length === 0)
+    check('nobody was dropped', seated(rows).length === 5, String(seated(rows).length))
+    await cleanup()
+  }
+
+  // ── The case that already worked must keep working ────────────────────────────────────────────
+  section('Swapping across two different matches still works')
+  {
+    const { tid, regs, m3, m4 } = await build()
+    const [irate, , jefe] = regs
+
+    // Drag jefe (in M4 home) onto M3's home line: irate should land where jefe was.
+    const r = await setTournamentBracketSlot(ACTOR, tid, m3, 'home', jefe.id)
+    check('the move is accepted', r.ok, r.error ?? '')
+
+    const rows = await readRound1(tid)
+    const a = rows.find((x) => x.id === m3)!
+    const b = rows.find((x) => x.id === m4)!
+    check('the dragged player took the target seat', a.homeRegistrationId === jefe.id)
+    check('the displaced player took the seat it came from', b.homeRegistrationId === irate.id)
+    check('no duplicate across the board', dupes(seated(rows)).length === 0,
+      `duplicated: ${dupes(seated(rows)).join(',')}`)
+    check('nobody was dropped', seated(rows).length === 5, String(seated(rows).length))
+    await cleanup()
+  }
+
+  // ── Seeds must not be lost in a within-match swap ─────────────────────────────────────────────
+  section('A within-match swap keeps both seat numbers')
+  {
+    const { tid, regs, m3 } = await build()
+    const before = (await readRound1(tid)).find((x) => x.id === m3)!
+    await setTournamentBracketSlot(ACTOR, tid, m3, 'away', regs[0].id)
+    const after = await prisma.playoffMatch.findUniqueOrThrow({
+      where: { id: m3 }, select: { homeSeed: true, awaySeed: true },
+    })
+    check('both seat numbers are still set',
+      after.homeSeed != null && after.awaySeed != null, `${after.homeSeed} / ${after.awaySeed}`)
+    check('the two seats did not collapse onto one number',
+      after.homeSeed !== after.awaySeed, `${after.homeSeed} / ${after.awaySeed}`)
+    void before
+    await cleanup()
+  }
+
+  // ── The guard rails around it are untouched ───────────────────────────────────────────────────
+  section('The existing refusals still hold')
+  {
+    const { tid, regs, m3 } = await build()
+    await prisma.playoffMatch.updateMany({ where: { tournamentId: tid }, data: { published: true } })
+    const pub = await setTournamentBracketSlot(ACTOR, tid, m3, 'away', regs[0].id)
+    check('a published bracket refuses hand arrangement', !pub.ok, pub.error ?? 'allowed')
+
+    await prisma.playoffMatch.updateMany({ where: { tournamentId: tid }, data: { published: false } })
+    await prisma.playoffMatch.update({ where: { id: m3 }, data: { winnerRegistrationId: regs[0].id } })
+    const done = await setTournamentBracketSlot(ACTOR, tid, m3, 'away', regs[1].id)
+    check('a match with a result refuses it too', !done.ok, done.error ?? 'allowed')
+    await cleanup()
+  }
+
+  // ── The Season board, which had the same bug ──────────────────────────────────────────────────
+  section('The Season playoff board swaps within a match too')
+  {
+    const series = await prisma.competitionSeries.findFirstOrThrow({ select: { id: true } })
+    const season = await prisma.season.create({
+      data: {
+        competitionSeriesId: series.id, number: 970900, competitionYear: 2097,
+        slug: `${MARK}-season`, lifecycleState: 'PLAYOFF_SETUP', lounge: 'Social', accessMode: 'OPEN',
+        groupStageGames: 10, earlyRaceTo: 7, semifinalRaceTo: 9, finalRaceTo: 9,
+      },
+      select: { id: true },
+    })
+    const ent = async (name: string) => (await prisma.seasonEntrant.create({
+      data: { seasonId: season.id, username: `${MARK}-${name}`, displayName: name, status: 'APPROVED' },
+      select: { id: true },
+    })).id
+    const e1 = await ent('alpha')
+    const e2 = await ent('beta')
+    const m = await prisma.seasonPlayoffMatch.create({
+      data: {
+        seasonId: season.id, round: 1, slot: 0,
+        homeEntrantId: e1, homeUsername: 'alpha',
+        awayEntrantId: e2, awayUsername: 'beta',
+      },
+      select: { id: true },
+    })
+
+    const r = await setSeasonBracketSlot(ACTOR, season.id, m.id, 'away', e1)
+    check('the Season move is accepted', r.ok, r.error ?? '')
+    const after = await prisma.seasonPlayoffMatch.findUniqueOrThrow({
+      where: { id: m.id },
+      select: { homeEntrantId: true, awayEntrantId: true, homeUsername: true, awayUsername: true },
+    })
+    check('the two entrants exchanged sides',
+      after.awayEntrantId === e1 && after.homeEntrantId === e2,
+      `${after.homeUsername} / ${after.awayUsername}`)
+    check('neither is duplicated', after.homeEntrantId !== after.awayEntrantId,
+      `${after.homeEntrantId} / ${after.awayEntrantId}`)
+    check('the names followed them',
+      after.homeUsername === 'beta' && after.awayUsername === 'alpha',
+      `${after.homeUsername} / ${after.awayUsername}`)
+
+    await prisma.seasonPlayoffMatch.deleteMany({ where: { seasonId: season.id } })
+    await prisma.seasonEntrant.deleteMany({ where: { seasonId: season.id } })
+    await prisma.season.delete({ where: { id: season.id } })
+  }
+
+  // ── The audit still records what happened ─────────────────────────────────────────────────────
+  section('A within-match swap is audited like any other move')
+  {
+    const { tid, regs, m3 } = await build()
+    await setTournamentBracketSlot(ACTOR, tid, m3, 'away', regs[0].id)
+    const entry = await prisma.auditLog.findFirst({
+      where: { actorUsername: MARK, action: 'playoff.slot' }, orderBy: { id: 'desc' },
+    })
+    check('the move was audited', !!entry)
+    check('...and is marked as a within-match swap',
+      JSON.stringify(entry?.newValue ?? {}).includes('withinMatch'))
+    await cleanup()
+  }
+} finally {
+  await cleanup()
+  await prisma.$disconnect()
+}
+
+console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
+process.exit(fail === 0 ? 0 : 1)

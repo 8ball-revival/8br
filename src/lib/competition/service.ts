@@ -1501,9 +1501,17 @@ export async function setTournamentBracketSlot(
     moving = { id: reg.id, name: idn.get(reg.id)?.displayName ?? reg.username }
   }
 
-  const displacedId = side === 'home' ? target.homeRegistrationId : target.awayRegistrationId
-  const displaced = displacedId == null ? null : {
-    id: displacedId,
+  /*
+   * Whoever is being displaced — including a bye.
+   *
+   * This used to collapse to null whenever the seat held no registration, which threw away the
+   * LABEL along with the id. A bye reads "Bye" on the board; displacing one wrote null into the
+   * seat it moved to, so the line went blank and the draw showed a gap where it should have shown a
+   * walkover. The id and the name are now carried separately, because a seat can legitimately have
+   * a name and no player.
+   */
+  const displaced = {
+    id: side === 'home' ? target.homeRegistrationId : target.awayRegistrationId,
     name: side === 'home' ? target.homeUsername : target.awayUsername,
   }
 
@@ -1525,7 +1533,45 @@ export async function setTournamentBracketSlot(
   })()
   const seatSeed = (side === 'home' ? target.homeSeed : target.awaySeed) ?? positionSeed
 
+  /*
+   * Is the player already sitting in the OTHER side of this same match?
+   *
+   * Swapping the two halves of one match is the case that used to duplicate a player. The origin
+   * lookup below excludes `matchId`, so a within-match move found no origin, wrote nobody into the
+   * seat being vacated, and then wrote the mover into the target seat — leaving them in both. It is
+   * what put the same entrant on both lines of M2 on the 602 Invitational board.
+   *
+   * It cannot be fixed by dropping that exclusion: origin and target would then be the same row, and
+   * the two updates below would run in order, the second overwriting the first. One match needs one
+   * write that sets both sides, so it is handled here on its own.
+   */
+  const otherSide = side === 'home' ? 'away' : 'home'
+  const otherOccupantId = otherSide === 'home' ? target.homeRegistrationId : target.awayRegistrationId
+  const sameMatchSwap = moving != null && otherOccupantId === moving.id
+
   await prisma.$transaction(async (tx) => {
+    if (sameMatchSwap) {
+      // One update, both sides: the mover takes the target seat and the displaced one takes theirs.
+      const otherSeed = (otherSide === 'home' ? target.homeSeed : target.awaySeed)
+      await tx.playoffMatch.update({
+        where: { id: matchId },
+        data: side === 'home'
+          ? {
+            homeRegistrationId: moving!.id, homeUsername: moving!.name, homeSeed: seatSeed,
+            awayRegistrationId: displaced.id, awayUsername: displaced.name, awaySeed: otherSeed,
+          }
+          : {
+            awayRegistrationId: moving!.id, awayUsername: moving!.name, awaySeed: seatSeed,
+            homeRegistrationId: displaced.id, homeUsername: displaced.name, homeSeed: otherSeed,
+          },
+      })
+      await recordAudit(actor, {
+        action: 'playoff.slot', entity: 'Tournament', entityId: tournamentId,
+        newValue: { matchId, side, registrationId, displaced: displaced.id, withinMatch: true },
+      }, tx)
+      return
+    }
+
     if (moving) {
       // Wherever this player currently sits, the displaced one takes that position — a straight swap.
       const origin = await tx.playoffMatch.findFirst({
@@ -1539,8 +1585,8 @@ export async function setTournamentBracketSlot(
         await tx.playoffMatch.update({
           where: { id: origin.id },
           data: wasHome
-            ? { homeRegistrationId: displaced?.id ?? null, homeUsername: displaced?.name ?? null }
-            : { awayRegistrationId: displaced?.id ?? null, awayUsername: displaced?.name ?? null },
+            ? { homeRegistrationId: displaced.id, homeUsername: displaced.name }
+            : { awayRegistrationId: displaced.id, awayUsername: displaced.name },
         })
       }
     }
@@ -1552,7 +1598,7 @@ export async function setTournamentBracketSlot(
     })
     await recordAudit(actor, {
       action: 'playoff.slot', entity: 'Tournament', entityId: tournamentId,
-      newValue: { matchId, side, registrationId, displaced: displaced?.id ?? null },
+      newValue: { matchId, side, registrationId, displaced: displaced.id },
     }, tx)
   })
   return { ok: true }
