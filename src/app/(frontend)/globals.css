@@ -213,8 +213,17 @@
    * repeated at four different opacities. `--scrim-copy` is what guarantees the contrast measured
    * in the hero; `--scrim-veil` is the lighter pass used where nothing sits on top.
    */
-  --scrim-copy: color-mix(in oklab, var(--void) 82%, transparent);
-  --scrim-veil: color-mix(in oklab, var(--void) 45%, transparent);
+  /*
+   * The colour photography is darkened WITH, as its own token.
+   *
+   * The two scrims below were mixed from --void directly, which meant the only way to change how a
+   * photograph is treated was to change the page colour. They are mixed from this instead, so an
+   * Owner can warm or cool the darkening over the hero without moving the ground the whole site
+   * stands on. It defaults to the page colour, so nothing looks different until somebody changes it.
+   */
+  --scrim-tint: var(--void);
+  --scrim-copy: color-mix(in oklab, var(--scrim-tint) 82%, transparent);
+  --scrim-veil: color-mix(in oklab, var(--scrim-tint) 45%, transparent);
 
   /* Bracket match rows: winner gets a subtly raised neutral fill, loser stays transparent
      so only the advancing side is emphasised. */
@@ -253,6 +262,9 @@
    * This is what makes the yellow reach its share of the viewport, and it is why --nav-foreground is
    * black: white on acid fails contrast badly, and verify-acid-contrast forbids it outright.
    */
+  /* The footer, which was painting itself from --graphite directly. */
+  --footer-bg: var(--graphite);
+
   --nav-bg: var(--void);
   --nav-foreground: var(--clean-white);
   --nav-border: var(--signal);

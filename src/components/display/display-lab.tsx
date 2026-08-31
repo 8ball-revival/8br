@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import {
   AlertTriangle, Check, Image as ImageIcon, Palette, RotateCcw, Sliders,
-  SlidersHorizontal, Sparkles, Trash2, Upload, X,
-} from 'lucide-react'
+  SlidersHorizontal, Sparkles, SwatchBook, Trash2, Upload, X } from 'lucide-react'
 
 import { LiveClock } from '@/components/cyber/live-clock'
 import { ColorPicker } from '@/components/display/color-picker'
@@ -22,6 +21,7 @@ import {
 } from '@/lib/display/settings'
 import { useDisplaySettings } from '@/lib/display/store'
 import { cn } from '@/lib/utils'
+import { PaletteTab } from './palette-tab'
 
 /**
  * Display Lab — every appearance control, in four tabs that each fit on a screen.
@@ -51,6 +51,9 @@ import { cn } from '@/lib/utils'
 
 const TABS = [
   { key: 'presets', label: 'Presets', icon: Sparkles },
+  // The palette sits second, before Style: it is the tab that changes the whole site rather than
+  // one surface of it, and it is the answer to "why did nothing change when I moved that".
+  { key: 'palette', label: 'Palette', icon: SwatchBook },
   { key: 'style', label: 'Style', icon: Palette },
   { key: 'effects', label: 'Effects', icon: Sliders },
   { key: 'background', label: 'Background', icon: ImageIcon },
@@ -293,6 +296,7 @@ export function DisplayLab({ className }: { className?: string }) {
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3"
             >
               {tab === 'presets' && <PresetsTab settings={settings} save={save} edit={edit} />}
+              {tab === 'palette' && <PaletteTab settings={settings} edit={edit} />}
               {tab === 'style' && <StyleTab settings={settings} edit={edit} onColour={rememberColour} />}
               {tab === 'effects' && <EffectsTab settings={settings} edit={edit} />}
               {tab === 'background' && (

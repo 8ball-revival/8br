@@ -135,12 +135,12 @@ export function ChampionHero({
             className="absolute inset-0"
             style={{
               backgroundImage:
-                `linear-gradient(90deg, color-mix(in oklab, var(--void) ${image.overlay}%, transparent) 0%,`
-                + ` color-mix(in oklab, var(--void) ${Math.round(image.overlay * 0.82)}%, transparent) 48%,`
+                `linear-gradient(90deg, color-mix(in oklab, var(--scrim-tint) ${image.overlay}%, transparent) 0%,`
+                + ` color-mix(in oklab, var(--scrim-tint) ${Math.round(image.overlay * 0.82)}%, transparent) 48%,`
                 + ' transparent 100%)',
             }}
           />
-          <span aria-hidden className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--void)] to-transparent" />
+          <span aria-hidden className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--scrim-tint)] to-transparent" />
         </>
       )}
 

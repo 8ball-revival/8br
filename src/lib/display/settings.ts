@@ -20,7 +20,15 @@
  * has never opened this panel, and one who opens it and presses Reset, must both see the official
  * appearance — so `standard`, `minimal`, `flat`, `none` and the default accent are not neutral
  * placeholders, they are the current design expressed as settings.
+ *
+ * ── The one dependency ───────────────────────────────────────────────────────────────────────────
+ * `lib/theme` — pure data and pure functions, no React, no server, no database. It is imported so
+ * that the list of writable custom properties has exactly one definition, shared by this module,
+ * the panel, the contrast engine and the pre-paint script. A second copy of that list is how a
+ * property ends up writable in one place and rejected in another.
  */
+import { THEME_TOKEN_REGISTRY } from '@/lib/theme/registry'
+import { tokenVars } from '@/lib/theme/presets'
 
 /* ────────────────────────────────────────────────────────────────────── the settings ──────────── */
 
@@ -96,6 +104,19 @@ export interface DisplaySettings {
   bgBlur: number    // 0–40 px
   bgDarken: number  // 0–90 %
 
+  /* ── The semantic palette ─────────────────────────────────────────────────────────────────────
+   * Overrides for the tokens declared in `lib/theme/registry.ts`, keyed by registry key rather than
+   * by custom property — so a token can be renamed in CSS without orphaning everything an Owner has
+   * already chosen.
+   *
+   * SPARSE on purpose. A key that is absent means "use the built-in value", which is what lets the
+   * panel distinguish inherited from overridden, lets a reset be a delete rather than a re-guess,
+   * and lets a token added next year arrive with its default already correct in every stored theme.
+   */
+  tokens: Record<string, string>
+  /** The preset last applied, or 'custom' once anything has been changed by hand. */
+  preset: string
+
   /* ── Effects ─────────────────────────────────────────────────────────────────────────────────── */
   depth: number     // 0–200 %, drop shadow under panels
   motion: Motion
@@ -111,6 +132,8 @@ export interface DisplaySettings {
  * panel — this object IS the site's design, not a starting point for it.
  */
 export const DISPLAY_DEFAULTS: DisplaySettings = {
+  tokens: {},
+  preset: 'graphite-signal',
   intensity: 'standard',
   glow: 100,
   bloom: 100,
@@ -476,6 +499,14 @@ export const DOM_SPEC = {
   px: {
     '--dl-bg-blur': ['bgBlur', 'px'],
   },
+  /*
+    Registry key → custom property, for the palette.
+
+    Derived from the registry rather than written out, so a token cannot exist in the panel and be
+    missing from the pre-paint script — which would show one colour before hydration and another
+    after, the exact flash this script exists to prevent.
+  */
+  tokens: Object.fromEntries(THEME_TOKEN_REGISTRY.map((t) => [t.key, t.css])) as Record<string, string>,
 } as const
 
 export interface DisplayDom {
@@ -494,6 +525,20 @@ export interface DisplayDom {
 export function displayDom(s: DisplaySettings): DisplayDom {
   const attrs: Record<string, string> = {}
   const vars: Record<string, string> = {}
+
+  /*
+    The palette goes out as custom properties, and it goes out FIRST.
+
+    First because everything below may legitimately overwrite it -- a custom accent still repoints
+    the acid family, and it should win over a palette value for the same property rather than lose
+    to it by ordering accident.
+
+    `tokenVars` is the only thing that decides which properties may be written: it drops any key not
+    in the registry and any value that is not a plain hex colour. That is what makes this safe to
+    inline into a style attribute -- there is no value it can emit that closes a declaration and
+    opens another.
+  */
+  for (const [prop, value] of Object.entries(tokenVars(s.tokens ?? {}))) vars[prop] = value
 
   for (const [key, field] of Object.entries(DOM_SPEC.attrs)) attrs[key] = String(s[field as keyof DisplaySettings])
   for (const [key, field] of Object.entries(DOM_SPEC.bools)) attrs[key] = s[field as keyof DisplaySettings] ? 'on' : 'off'

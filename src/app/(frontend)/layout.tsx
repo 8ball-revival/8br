@@ -89,6 +89,14 @@ export const viewport: Viewport = {
  * precisely the flash the setting was chosen to avoid.
  *
  * ── Why it is an interpreter rather than a transcription ─────────────────────────────────────────
+ * The palette is validated again here rather than trusted.
+ *
+ * This reads localStorage, which is under the reader's control and survives across versions of this
+ * code. `tokenVars` cannot run in the pre-paint script -- it is a module, and this is a string
+ * inlined before any module loads -- so the same hex rule is restated as a literal regular
+ * expression. Anything else is skipped rather than written, so a hand-edited storage entry cannot
+ * put an arbitrary declaration into the style attribute of <html>.
+ *
  * It walks DOM_SPEC, the same object `displayDom()` walks. A hand-written copy of "intensity becomes
  * data-dl-intensity, glow becomes --dl-glow over a hundred" is a copy, and a copy drifts the first
  * time a control is added — silently, because the only symptom is a flash on load that nobody
@@ -114,6 +122,9 @@ for(var b in S.bools)e.dataset[b]=v(S.bools[b])?'on':'off';
 for(var w in S.onWhenPositive)e.dataset[w]=Number(v(S.onWhenPositive[w]))>0?'on':'off';
 for(var n in S.nums)e.style.setProperty(n,String(Number(v(S.nums[n][0]))/S.nums[n][1]));
 for(var p in S.px)e.style.setProperty(p,Number(v(S.px[p][0]))+S.px[p][1]);
+var T=s.tokens;
+if(T&&typeof T==='object'&&!Array.isArray(T)){for(var t in S.tokens){var tv=T[t];
+if(typeof tv==='string'&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(tv))e.style.setProperty(S.tokens[t],tv);}}
 if(v('accentMode')==='custom'){e.style.setProperty('--dl-accent',String(v('accentHex')));e.style.setProperty('--dl-accent-ink',String(v('accentInk')));}
 }catch(err){}`
 
