@@ -27,6 +27,7 @@ import { registerModule, type ModuleRenderProps } from '@/lib/site-builder/regis
 import { mediaUrl } from '@/lib/site-builder/media'
 import { isExternalUrl } from '@/lib/site-builder/urls'
 import { ModulePlaceholder } from './content'
+import { BodyCopy } from '../body-copy'
 
 /**
  * The palettes a panel may use.
@@ -309,7 +310,14 @@ registerModule({
                     {panel.kicker && <p className={cn('marquee-kicker', theme.kicker)}>{panel.kicker}</p>}
                     {panel.title && <p className="marquee-title text-white">{panel.title}</p>}
                     {panel.status && <p className={cn('marquee-status', theme.status)}>{panel.status}</p>}
-                    {panel.body && <p className="marquee-body">{panel.body}</p>}
+                    {/*
+                      Body copy, with any complete http(s) URL in it turned into its own link.
+
+                      Rendered from SEGMENTS, never from HTML — see `BodyCopy` and `linkify`. The
+                      field is author-editable, so anything that parsed it as markup would be an
+                      injection point; nothing here ever does.
+                    */}
+                    {panel.body && <BodyCopy text={panel.body} className="marquee-body" />}
                     {panel.ctaLabel && (
                       <span className={cn('marquee-cta', theme.cta)}>
                         {panel.ctaLabel}
@@ -327,8 +335,7 @@ registerModule({
               'marquee-half sb-marquee-panel group relative flex flex-col justify-center gap-1 focus-visible:outline-none',
               theme.className,
             )
-            // One link per panel, wrapping the whole half. Nested links inside it would be invalid
-            // markup and unreachable by keyboard, so a panel's copy is never itself a link.
+            // The panel is a positioning context for its stretched link, not a link itself.
             const style = {
               ['--sb-clip' as string]: `polygon(${clip})`,
               ['--sb-pad-start' as string]: `${padStart}%`,
@@ -336,21 +343,31 @@ registerModule({
               ['--sb-order' as string]: String(i),
             } as React.CSSProperties
 
-            return external ? (
-              <a
-                key={i}
-                href={panel.ctaHref}
-                target={panel.newTab ? '_blank' : undefined}
-                rel="noopener noreferrer"
-                className={className}
-                style={style}
-              >
+            /*
+              ── The panel is a div; its link is a stretched child ─────────────────────────────────
+              The whole half used to BE the anchor, which made a second link inside it impossible:
+              an `<a>` within an `<a>` is invalid markup that browsers silently un-nest, so a
+              body-copy link would have worked only by accident.
+
+              So the link is now one absolutely-positioned anchor covering the panel, rendered as a
+              DIRECT child of it — an overlay stretched from inside the text column would resolve
+              against the nearest positioned ancestor, which is the inner row, and cover only part
+              of the panel. Clicking anywhere on the half still follows it, exactly as before.
+
+              The body copy's links sit above this overlay (z-index) and so are clickable and
+              focusable in their own right. Both are real anchors: two links, one panel, no nesting.
+            */
+            return (
+              <div key={i} className={className} style={style}>
                 {inner}
-              </a>
-            ) : (
-              <a key={i} href={panel.ctaHref || '/'} className={className} style={style}>
-                {inner}
-              </a>
+                <a
+                  href={external ? panel.ctaHref : (panel.ctaHref || '/')}
+                  target={external && panel.newTab ? '_blank' : undefined}
+                  rel={external ? 'noopener noreferrer' : undefined}
+                  aria-label={panel.ctaLabel || [panel.kicker, panel.title].filter(Boolean).join(' ') || 'Open'}
+                  className="sb-panel-link"
+                />
+              </div>
             )
           })}
         </div>

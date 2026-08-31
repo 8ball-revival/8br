@@ -1685,20 +1685,84 @@
   padding-right: max(clamp(1.25rem, 3vw, 3rem), var(--sb-pad-end, 0%));
 }
 .sb-marquee-wcc {
+  --sb-accent: var(--wcc-red);
   background:
     radial-gradient(120% 140% at 12% 0%, rgba(224, 19, 38, 0.28) 0%, transparent 55%),
     linear-gradient(115deg, #14070a 0%, #0a0508 45%, var(--marquee-ink) 100%);
 }
 .sb-marquee-brcam {
+  --sb-accent: var(--brcam-teal);
   background:
     radial-gradient(120% 140% at 88% 100%, rgba(123, 47, 247, 0.34) 0%, transparent 58%),
     linear-gradient(115deg, #04121a 0%, #071226 48%, #0b0620 100%);
   align-items: flex-start;
 }
 .sb-marquee-neutral {
+  --sb-accent: var(--gold);
   background: linear-gradient(115deg, #0d0f14 0%, var(--marquee-ink) 100%);
 }
 .marquee-cta--neutral { color: var(--gold); }
+
+/*
+  ── The panel's link, stretched back over the panel ───────────────────────────────────────────
+  The whole marquee half used to BE the anchor. It cannot be any more: a link in the body copy
+  would then be an `<a>` inside an `<a>`, which is invalid and which browsers silently un-nest,
+  so the inner link would work only by accident.
+
+  The anchor now sits inside the panel and this pseudo-element covers the panel with it, so the
+  click target is unchanged. `z-index: 0` keeps the overlay BELOW anything the body copy raises,
+  which is what lets a body link be clicked on its own.
+*/
+.sb-panel-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+  /*
+    Below anything the body copy raises. The overlay is a sibling that comes after the text in the
+    DOM, so without an explicit order it would paint on top of a body link and swallow its clicks.
+  */
+  z-index: 0;
+}
+/*
+  The focus ring moved with the anchor.
+
+  It used to land on the panel, which was the link. Now the button is, so the ring is drawn on the
+  button — a keyboard reader must still be able to see where they are.
+*/
+.sb-panel-link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/*
+  ── A link inside body copy ───────────────────────────────────────────────────────────────────
+  Raised above the panel-wide overlay so it is clickable in its own right, and marked as a link by
+  more than colour: underlined, because a colour difference alone is not something every reader can
+  see, and this sits on six different panel backgrounds.
+*/
+.marquee-body .sb-body-link,
+.sb-body-link {
+  position: relative;
+  z-index: 1;
+  /* The panel's own accent where there is one; the site's gold anywhere else this is used. */
+  color: var(--sb-accent, var(--gold));
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  transition: color 150ms ease, text-decoration-color 150ms ease;
+}
+.sb-body-link:hover {
+  /* Brighter, not a different colour: the hover must not read as a different KIND of link. */
+  color: color-mix(in srgb, var(--sb-accent, var(--gold)) 70%, #ffffff);
+  text-decoration-thickness: 2px;
+}
+.sb-body-link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 
 /* The hairline where two panels meet, drawn on every panel but the first. */
 .sb-marquee-panel:not(:first-child)::before {
