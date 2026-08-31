@@ -57,12 +57,31 @@ const migrateUrl =
   runtimeUrl
 const env = { ...process.env, DATABASE_URL: migrateUrl }
 
-function run(label, cmd, { closeStdin = false } = {}) {
+function run(label, cmd, { answer = null } = {}) {
   console.log(`\n▶ ${label}`)
-  // closeStdin: give the child an EOF on stdin so an unexpected interactive prompt (e.g. Payload's
-  // "you've run in dev mode" reconciliation prompt) fails fast instead of hanging the build forever.
-  execSync(cmd, { stdio: [closeStdin ? 'ignore' : 'inherit', 'inherit', 'inherit'], env })
+  /*
+    `answer`: text fed to the child stdin, for a command that may stop and ask something.
+
+    Payload migrate notices the database has had a dev-mode schema push at some point and asks
+    whether to proceed anyway. This used to be given stdio "ignore" on the reasoning that
+    /dev/null is an immediate EOF and the prompt would give up - it does not. On 2026-08-31 a
+    production build sat on that question for 31 minutes with no further output and had to be
+    cancelled by hand; the prompt waits whether or not anything can ever answer it.
+
+    So it is answered. "n" is the prompt default and the same outcome every previous successful
+    deploy reached: do not reconcile the schema. The alternative, --force-accept-warning,
+    answers YES - it would let a build rewrite the production payload schema unattended, which
+    is the one thing this script exists to avoid.
+
+    Harmless when nothing asks: the child gets one unread line and then EOF.
+  */
+  execSync(cmd, {
+    stdio: [answer == null ? 'inherit' : 'pipe', 'inherit', 'inherit'],
+    ...(answer == null ? {} : { input: answer }),
+    env,
+  })
 }
+
 
 /**
  * The Payload migrate CLI `require()`s the config, which uses top-level await, so it must load
@@ -86,7 +105,7 @@ function withEsmPackage(fn) {
 
 try {
   run('Prisma: applying migrations (public schema)', 'npx prisma migrate deploy')
-  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { closeStdin: true }))
+  withEsmPackage(() => run('Payload: applying migrations (payload schema)', 'npx payload migrate', { answer: 'n\n' }))
   console.log('\n✓ Database ready: Prisma migrations applied + Payload migrations applied.')
 } catch (err) {
   console.error('\n✗ Database preparation failed. Aborting build.')
