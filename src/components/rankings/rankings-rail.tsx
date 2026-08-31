@@ -131,7 +131,9 @@ function LeaderRow({
       <span
         className={cn(
           'cyber-clip-sm flex size-7 shrink-0 items-center justify-center',
-          tone === 'gold' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : 'bg-[var(--selected-surface)] text-[var(--cyan)]',
+          // Both tones sit on the selected surface, which follows the theme; the marks are the
+          // championship gold and the interactive colour, which follow it too.
+          tone === 'gold' ? 'bg-[var(--selected-surface)] text-[var(--gold)]' : 'bg-[var(--selected-surface)] text-[var(--foreground)]',
         )}
         aria-hidden
       >

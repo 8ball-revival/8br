@@ -149,6 +149,7 @@ export const PAIRINGS: Pairing[] = [
   P('accent-fill-ink', 'The label on the accent surface', 'signalInk', 'signalFill'),
   P('nav-rule', 'The rule under the header', 'navBorder', 'navBg', 'decorative', 'nontext'),
   P('media-copy', 'Any copy laid over a photograph', 'textOnMedia', 'scrim'),
+  P('media-accent', 'A label or mark over a photograph', 'accentOnMedia', 'scrim'),
   P('stats-label', 'A label in the statistics bar', 'steel', 'statsBar'),
   P('stats-value', 'A total in the statistics bar', 'cleanWhite', 'statsBar'),
   P('footer-text', 'Text in the footer', 'mutedText', 'footerBg'),

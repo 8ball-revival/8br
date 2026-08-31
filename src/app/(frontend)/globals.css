@@ -204,7 +204,20 @@
   --text-primary: var(--clean-white);
   --text-secondary: var(--muted-text);
   --text-muted: var(--steel);
+  /*
+   * ── Text on a photograph answers to the SCRIM, not to the page ────────────────────────────────
+   *
+   * A panel carrying a photograph is dark whatever the theme is, because the scrim is what makes
+   * the copy on it readable. So its text cannot come from the page family: a light theme sets
+   * primary text to near-black, which is right on paper and invisible over a darkened photograph.
+   *
+   * `--text-on-media-dim` mixes toward the scrim rather than using alpha, because alpha over a
+   * photograph is a contrast ratio nobody can compute. `--accent-on-media` exists for the same
+   * reason the text does — a dark red chosen for paper disappears on the same scrim.
+   */
   --text-on-media: #ffffff;
+  --text-on-media-dim: color-mix(in oklab, var(--text-on-media) 68%, var(--scrim-tint));
+  --accent-on-media: var(--signal);
 
   /*
    * ── Scrims ────────────────────────────────────────────────────────────────────────────────────
@@ -378,8 +391,15 @@
    * longer the brand: the brand is acid, and gold has been narrowed back to meaning a title.
    */
   --gold: var(--champ-gold);
-  --gold-soft: #f3ce74;
-  --gold-dim: #b98f33;
+  /*
+   * The two gold shades, mixed rather than fixed.
+   *
+   * They were literals picked to sit either side of #e9b949 on a dark ground. A theme that darkens
+   * gold for a light page moved gold and left these behind, so a status pill kept a pale gold that
+   * measured 1.51:1 on paper. Mixing them from the token means they travel with it.
+   */
+  --gold-soft: color-mix(in oklab, var(--gold) 78%, var(--foreground));
+  --gold-dim: color-mix(in oklab, var(--gold) 74%, var(--background));
 
   /*
    * Semantic surfaces — the reason nothing here is a tinted gold.
@@ -391,7 +411,8 @@
    *
    * Red keeps its meaning: danger, forfeits and destructive confirmations, nothing else.
    */
-  --selected-surface: #1c2023;   /* chosen / active row */
+  /* Chosen / active row. Follows the hover surface, so a light theme selects with a light step. */
+  --selected-surface: var(--accent);
   --selected-border: var(--acid);
   --drop-surface: #1a1e20;       /* a legal drag target */
   --attention-surface: #1a1e20;  /* needs review, unsaved, pending */
@@ -546,6 +567,9 @@
   already resolves through a token that the palette moved.
 */
 [data-dl-ground='light'] {
+  /* The scrim stays dark on a light page, so the accent laid over it has to stay bright. */
+  --accent-on-media: #ff5a5a;
+
   --tier-gold: #6f7300;
   --tier-purple: #6b2f9c;
   --tier-blue: #1f5f8f;

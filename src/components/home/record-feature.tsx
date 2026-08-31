@@ -101,13 +101,13 @@ export function RecordFeature({
       />
 
       {/* Angular corner details, matching the marquee above. */}
-      <span aria-hidden className="pointer-events-none absolute left-0 top-0 z-10 size-4 border-l-2 border-t-2 border-[var(--signal)]" />
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 z-10 size-4 border-l-2 border-t-2 border-[var(--accent-on-media)]" />
       <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 z-10 size-4 border-b-2 border-r-2 border-[var(--steel-dim)]" />
 
       <div className="relative z-[1] flex min-w-0 flex-col justify-center gap-1 p-5 sm:p-6 lg:p-7">
-        <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-[var(--steel-bright)]">
+        <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-[var(--text-on-media-dim)]">
           {eyebrowLead}{' '}
-          <span className="text-[var(--signal)]">{eyebrowTrail}</span>
+          <span className="text-[var(--accent-on-media)]">{eyebrowTrail}</span>
         </p>
 
         <h2 id="record-feature-heading" className="sr-only">
@@ -129,29 +129,29 @@ export function RecordFeature({
           written once, in HTML, where it can be edited, selected, translated and read aloud.
         */}
         <p
-          className="font-condensed font-extrabold leading-[0.84] tracking-[-0.01em] text-[var(--text-primary)] [font-variant-numeric:tabular-nums]"
+          className="font-condensed font-extrabold leading-[0.84] tracking-[-0.01em] text-[var(--text-on-media)] [font-variant-numeric:tabular-nums]"
           style={{ fontSize: 'clamp(3.5rem, 8.5vw, 7rem)' }}
         >
           {time}
         </p>
         <p
-          className="font-condensed font-bold uppercase leading-none tracking-[0.02em] text-[var(--text-primary)]"
+          className="font-condensed font-bold uppercase leading-none tracking-[0.02em] text-[var(--text-on-media)]"
           style={{ fontSize: 'clamp(1.4rem, 3vw, 2.5rem)' }}
         >
           {unit}
         </p>
 
-        <p className="mt-3 font-condensed text-sm font-bold uppercase tracking-[0.2em] text-[var(--signal)] sm:text-base">
+        <p className="mt-3 font-condensed text-sm font-bold uppercase tracking-[0.2em] text-[var(--accent-on-media)] sm:text-base">
           {status}
         </p>
 
         {description && (
-          <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">{description}</p>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--text-on-media-dim)]">{description}</p>
         )}
 
         {holder && (
           <div className="mt-5 min-w-0">
-            <p className="font-condensed text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-[var(--steel-bright)]">
+            <p className="font-condensed text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-[var(--text-on-media-dim)]">
               {holderLabel}
             </p>
             {/*
@@ -166,21 +166,21 @@ export function RecordFeature({
               {holder.href ? (
                 <Link
                   href={holder.href}
-                  className="min-w-0 truncate text-[var(--text-primary)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  className="min-w-0 truncate text-[var(--text-on-media)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                   title={holder.primary}
                 >
                   {holder.primary}
                 </Link>
               ) : (
-                <span className="min-w-0 truncate text-[var(--text-primary)]" title={holder.primary}>
+                <span className="min-w-0 truncate text-[var(--text-on-media)]" title={holder.primary}>
                   {holder.primary}
                 </span>
               )}
               {holder.secondary && (
                 <>
                   {/* --steel, not --steel-dim: this is a glyph somebody reads, not a rule. */}
-                  <span aria-hidden className="shrink-0 text-[var(--steel)]">/</span>
-                  <span className="min-w-0 truncate font-medium italic text-[var(--steel-bright)]" title={holder.secondary}>
+                  <span aria-hidden className="shrink-0 text-[var(--text-on-media-dim)]">/</span>
+                  <span className="min-w-0 truncate font-medium italic text-[var(--text-on-media-dim)]" title={holder.secondary}>
                     {holder.secondary}
                   </span>
                 </>
@@ -209,7 +209,7 @@ export function RecordFeature({
             the number is the point and it does not depend on the footage existing.
           */
           <div className="flex aspect-video w-full items-center justify-center border-l border-[var(--line-strong)] bg-[var(--surface-inset)] p-6 text-center">
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className="text-sm text-[var(--text-on-media-dim)]">
               No video is set for this record yet.
             </p>
           </div>

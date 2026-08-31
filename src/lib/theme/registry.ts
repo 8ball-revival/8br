@@ -136,6 +136,11 @@ export const THEME_TOKEN_REGISTRY: ThemeToken[] = [
   {
     key: 'textOnMedia', css: '--text-on-media', label: 'Text on photography', group: 'typography', fallback: '#ffffff',
     effect: 'Copy laid over a photograph, which needs to be brighter than text on a flat ground.',
+    cascadesTo: ['--text-on-media-dim'],
+  },
+  {
+    key: 'accentOnMedia', css: '--accent-on-media', label: 'Accent on photography', group: 'typography', fallback: '#ff2a2a',
+    effect: 'Labels and marks over a photograph — the record status, the champion tag. Separate from the page accent because the scrim under it is dark whatever the page is.',
   },
   {
     key: 'playerName', css: '--player-name', label: 'Player identity', group: 'typography', fallback: '#13d8e8',

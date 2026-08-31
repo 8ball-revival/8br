@@ -143,7 +143,15 @@ export function FeedToolbar({
         ) : (
           <Link
             href={canPost ? '/the-break/submit' : '/login?next=%2Fthe-break%2Fsubmit'}
-            className="inline-flex shrink-0 items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+            /*
+              The ink on gold is the PAGE colour, not black.
+
+              Gold is always chosen to stand out from the page, so the page colour is always the
+              thing furthest from it — near-black under a bright gold, paper under a dark one. A
+              fixed black worked until a light theme darkened gold, at which point the label
+              measured 3.37:1 on its own button.
+            */
+            className="inline-flex shrink-0 items-center gap-1.5 cyber-clip-sm bg-[var(--gold)] px-3 py-1.5 text-sm font-semibold text-[var(--background)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <PenSquare className="size-4" aria-hidden />
             <span className="hidden sm:inline">Create Post</span>

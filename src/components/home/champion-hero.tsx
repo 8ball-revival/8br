@@ -156,8 +156,8 @@ export function ChampionHero({
       <div className="relative mx-auto grid w-full max-w-[var(--sb-container-width,96rem)] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,34fr)_minmax(0,26fr)_minmax(0,30fr)] lg:gap-10 lg:px-8 lg:py-14">
         {/* ── The registry, in a sentence ─────────────────────────────────────────────────────── */}
         <div className="min-w-0">
-          <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-[var(--steel-bright)]">
-            {eyebrow} <span className="text-[var(--signal)]">{'//'}</span>
+          <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-[var(--text-on-media-dim)]">
+            {eyebrow} <span className="text-[var(--accent-on-media)]">{'//'}</span>
           </p>
           <h1
             id="home-hero-heading"
@@ -166,9 +166,9 @@ export function ChampionHero({
           >
             {heading}
           </h1>
-          <p className="mt-5 max-w-md text-[0.98rem] leading-relaxed text-[var(--text-primary)]">{body}</p>
+          <p className="mt-5 max-w-md text-[0.98rem] leading-relaxed text-[var(--text-on-media)]">{body}</p>
           {tagline && (
-            <p className="mt-3 max-w-md text-sm italic leading-relaxed text-[var(--text-muted)]">{tagline}</p>
+            <p className="mt-3 max-w-md text-sm italic leading-relaxed text-[var(--text-on-media-dim)]">{tagline}</p>
           )}
           <Link
             href={ctaHref}
@@ -186,25 +186,25 @@ export function ChampionHero({
 
         {/* ── The same three articles, as headlines ───────────────────────────────────────────── */}
         <div className="min-w-0 lg:border-l lg:border-[color-mix(in_oklab,var(--steel-dim)_55%,transparent)] lg:pl-8">
-          <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-[var(--steel-bright)]">
+          <p className="font-condensed text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-[var(--text-on-media-dim)]">
             {newsLabel}
           </p>
           {articles.length === 0 ? (
-            <p className="mt-4 text-sm text-[var(--text-muted)]">Nothing published yet.</p>
+            <p className="mt-4 text-sm text-[var(--text-on-media-dim)]">Nothing published yet.</p>
           ) : (
             <ul className="mt-4 space-y-4">
               {articles.map((a) => (
                 <li key={a.id} className="flex gap-2.5">
-                  <span aria-hidden className="mt-[0.5rem] size-1.5 shrink-0 rounded-full bg-[var(--signal)]" />
+                  <span aria-hidden className="mt-[0.5rem] size-1.5 shrink-0 rounded-full bg-[var(--accent-on-media)]" />
                   <div className="min-w-0">
                     {/* `py-1` is target size, not spacing: a bare headline link is 19px tall. */}
                     <Link
                       href={`${newsHref}/${a.slug}`}
-                      className="block py-1 text-sm font-semibold leading-snug text-[var(--text-on-media)] underline-offset-4 transition-colors hover:text-[var(--signal)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                      className="block py-1 text-sm font-semibold leading-snug text-[var(--text-on-media)] underline-offset-4 transition-colors hover:text-[var(--accent-on-media)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                     >
                       {a.title}
                     </Link>
-                    <p className="mt-1 font-condensed text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    <p className="mt-1 font-condensed text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[var(--text-on-media-dim)]">
                       <PublishedOn at={a.publishAt} />
                     </p>
                   </div>
@@ -218,13 +218,13 @@ export function ChampionHero({
         <div className="min-w-0 lg:justify-self-end lg:text-right">
           {champion ? (
             <>
-              <p className="inline-flex items-center border border-[var(--signal)] px-3 py-1 font-condensed text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[var(--signal)]">
+              <p className="inline-flex items-center border border-[var(--accent-on-media)] px-3 py-1 font-condensed text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[var(--accent-on-media)]">
                 {championLabel}
               </p>
               <div className="mt-4 flex items-start gap-3 lg:justify-end">
                 <span
                   aria-hidden
-                  className="font-condensed font-extrabold leading-[0.8] text-[var(--signal)]"
+                  className="font-condensed font-extrabold leading-[0.8] text-[var(--accent-on-media)]"
                   style={{ fontSize: 'clamp(2.75rem, 5vw, 4.75rem)' }}
                 >
                   {champion.rank}
@@ -240,7 +240,7 @@ export function ChampionHero({
               </div>
 
               <div className="mt-5 lg:flex lg:flex-col lg:items-end">
-                <p className="flex items-center gap-3 font-condensed text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-[var(--steel-bright)]">
+                <p className="flex items-center gap-3 font-condensed text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-[var(--text-on-media-dim)]">
                   <span aria-hidden className="hidden h-px w-10 bg-[color-mix(in_oklab,var(--steel-dim)_75%,transparent)] lg:block" />
                   {ratingLabel}
                 </p>
@@ -253,7 +253,7 @@ export function ChampionHero({
               </div>
             </>
           ) : (
-            <p className="text-sm text-[var(--text-muted)]">No rated players yet.</p>
+            <p className="text-sm text-[var(--text-on-media-dim)]">No rated players yet.</p>
           )}
         </div>
       </div>
@@ -281,7 +281,7 @@ function ChampionName({ champion }: { champion: ChampionHeroPlayer }) {
         {primary}
       </span>
       {secondary && (
-        <span className="mt-1 block font-condensed text-xl font-medium italic leading-tight text-[var(--steel-bright)] sm:text-2xl">
+        <span className="mt-1 block font-condensed text-xl font-medium italic leading-tight text-[var(--text-on-media-dim)] sm:text-2xl">
           {secondary}
         </span>
       )}

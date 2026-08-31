@@ -77,7 +77,9 @@ export function YoutubeFacade({
           the panel beside it is taller. The poster is `object-cover`, so filling crops rather than
           distorts.
         */
-        'relative w-full overflow-hidden bg-[var(--surface-inset)]',
+        // This frame holds a photograph, so it grounds on the scrim rather than on a page
+        // surface -- everything drawn over it is on-media text, which is light whatever the theme.
+        'relative w-full overflow-hidden bg-[var(--scrim-tint)]',
         fill ? 'aspect-video lg:aspect-auto lg:h-full' : 'aspect-video',
         className,
       )}
@@ -235,7 +237,7 @@ function Scoreboard({ text }: { text: string }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 border-b border-[color-mix(in_oklab,var(--signal)_45%,transparent)] bg-[color-mix(in_oklab,var(--void)_78%,transparent)] px-3 py-1.5 backdrop-blur-[2px]"
+      className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 border-b border-[color-mix(in_oklab,var(--accent-on-media)_45%,transparent)] bg-[color-mix(in_oklab,var(--scrim-tint)_78%,transparent)] px-3 py-1.5 backdrop-blur-[2px]"
     >
       <Marks />
       <span className="min-w-0 flex-1 truncate text-center font-condensed text-[0.62rem] font-bold uppercase tracking-[0.3em] text-[var(--text-on-media)] sm:text-[0.7rem]">
@@ -248,7 +250,7 @@ function Scoreboard({ text }: { text: string }) {
 
 function Marks() {
   return (
-    <span className="flex shrink-0 items-center gap-1 text-[var(--signal)]">
+    <span className="flex shrink-0 items-center gap-1 text-[var(--accent-on-media)]">
       {[0, 1, 2].map((i) => (
         <svg key={i} viewBox="0 0 10 10" className="size-2" focusable="false">
           <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />

@@ -206,7 +206,16 @@ export function SeasonControls({
                   className={cn(
                     'px-4 py-1.5 text-sm font-semibold capitalize transition-colors',
                     view === v
-                      ? 'bg-[var(--surface-plaque)] text-[var(--nav-foreground)]'
+                      ? /*
+                        Inverted rather than tinted.
+
+                        This was a plaque fill with navigation ink on it, which on a light theme is
+                        light on light — the tab vanished while remaining perfectly clickable. Using
+                        the navigation pair the other way round means it contrasts by exactly the
+                        ratio the system already guarantees for the bar itself, whatever that bar
+                        becomes.
+                      */
+                      'bg-[var(--nav-foreground)] text-[var(--nav-bg)]'
                       : 'text-[var(--nav-inactive)] hover:bg-[color-mix(in_oklab,var(--nav-foreground)_12%,transparent)] hover:text-[var(--nav-foreground)]',
                   )}
                 >
