@@ -46,6 +46,9 @@
     "test:homepage": "tsx --tsconfig tsconfig.scripts.json scripts/verify-homepage-graphite.mts",
     "test:homepage:edit": "tsx --tsconfig tsconfig.scripts.json scripts/verify-homepage-editmode.mts",
     "test:theme": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-system.mts",
+    "test:theme:publish": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-publish.mts",
+    "test:theme:permissions": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-permissions.mts",
+    "test:theme:lifecycle": "tsx --tsconfig tsconfig.scripts.json scripts/verify-theme-lifecycle-ui.mts",
     "test:typography": "tsx --tsconfig tsconfig.scripts.json scripts/verify-typography.mts"
   },
   "dependencies": {
