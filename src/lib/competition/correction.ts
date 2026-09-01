@@ -8,6 +8,7 @@ import { recordAudit, type Actor } from './audit'
 import { transitionSeasonState } from '@/lib/seasons/lifecycle'
 import { seasonChampion } from '@/lib/seasons/playoffs'
 import { seasonCloseSummary } from '@/lib/seasons/close'
+import { LEDGER_TX_OPTIONS } from '@/lib/stats/ledger'
 
 /**
  * Correcting a completed competition.
@@ -330,7 +331,7 @@ async function reopenTournament(actor: Actor, id: number, reason?: string): Prom
     }, tx)
     const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
     await rebuildRatingLedger(tx)
-  }).catch((e) => {
+  }, LEDGER_TX_OPTIONS).catch((e) => {
     if (e instanceof AlreadyDone) return
     throw e
   })
@@ -381,7 +382,7 @@ export async function recomplete(
       }, tx)
       const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
       await rebuildRatingLedger(tx)
-    }).catch((e) => { if (!(e instanceof AlreadyDone)) throw e })
+    }, LEDGER_TX_OPTIONS).catch((e) => { if (!(e instanceof AlreadyDone)) throw e })
     invalidate(id, 'tournament')
     return { ok: true }
   }
@@ -441,7 +442,7 @@ export async function recomplete(
     // Reapplies the corrected contribution — the same replay the original completion ran.
     const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
     await rebuildRatingLedger(tx)
-  }).catch((e) => { if (!(e instanceof AlreadyDone)) throw e })
+  }, LEDGER_TX_OPTIONS).catch((e) => { if (!(e instanceof AlreadyDone)) throw e })
 
   invalidate(id, 'season')
   return { ok: true }

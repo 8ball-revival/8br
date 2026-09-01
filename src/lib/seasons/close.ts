@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { transitionSeasonState } from './lifecycle'
 import { seasonChampion } from './playoffs'
+import { LEDGER_TX_OPTIONS } from '@/lib/stats/ledger'
 
 export interface SeasonCloseSummary {
   seasonTitle: string
@@ -169,7 +170,7 @@ export async function closeSeason(actor: Actor, seasonId: number): Promise<{ ok:
     // Apply rankings through the established pipeline (deterministic full rebuild across all completed comps).
     const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
     await rebuildRatingLedger(tx)
-  })
+  }, LEDGER_TX_OPTIONS)
   if (refusal) return { ok: false, error: refusal }
   return { ok: true }
 }

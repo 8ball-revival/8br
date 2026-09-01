@@ -15,6 +15,14 @@ import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import { templateStatus } from '@/lib/archive/manifest'
 
 export const dynamic = 'force-dynamic'
+
+/*
+  Closing a competition replays the entire rating ledger inside one transaction — about five seconds
+  today and growing with the archive. The Prisma timeout was raised to match (LEDGER_TX_OPTIONS);
+  this raises the FUNCTION's limit so the lambda cannot be cut off first and leave the close half
+  done. Two limits guard the same operation and both have to be big enough.
+*/
+export const maxDuration = 60
 export const metadata: Metadata = { title: 'Season · Creator', robots: { index: false } }
 
 /**

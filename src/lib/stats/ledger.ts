@@ -160,6 +160,30 @@ async function collectSeasonMatchups(tx: Tx, seasonId: number, fallbackDate: Dat
 
 /** Full deterministic rebuild of the entire rating ledger from every COMPLETED Tournament AND Season,
  *  interleaved in close order. Idempotent: safe to call on every close, retry, or correction. */
+/**
+ * Transaction options for anything that calls `rebuildRatingLedger`.
+ *
+ * The rebuild wipes the ledger and replays EVERY eligible season and tournament, which is currently
+ * 16,000-odd rows across fifty-odd competitions. Prisma's default interactive-transaction timeout is
+ * five seconds; that replay takes about 2.5s against a local database and just over 5s against Neon
+ * from a serverless function. So closing a competition failed with P2028 - and did it right on the
+ * line, which is why the same close could fail once and succeed on a retry:
+ *
+ *   Transaction already closed ... timeout was 5000 ms, however 5049 ms passed
+ *
+ * It cannot be moved out of the transaction: the rebuild is a `deleteMany` followed by a
+ * `createMany`, so a failure between them outside a transaction leaves the site with NO ratings at
+ * all. The work has to stay atomic, so the window has to be big enough to hold it.
+ *
+ * Exported as one constant rather than a number typed at each call site, because there are eight of
+ * them - closing a tournament, closing a season, four correction paths, permanent deletion and a
+ * settings change - and only one had remembered to raise it.
+ *
+ * This is headroom, not a target. The replay grows with the archive, and the durable fix is to stop
+ * re-reading every competition one at a time; see the note on the read loop below.
+ */
+export const LEDGER_TX_OPTIONS = { timeout: 180_000, maxWait: 20_000 } as const
+
 export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; seasons: number; entries: number }> {
   /*
    * Only records that currently satisfy the eligibility rule.

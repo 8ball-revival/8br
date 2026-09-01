@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { rebuildRatingLedger } from '@/lib/stats/ledger'
+import { LEDGER_TX_OPTIONS } from '@/lib/stats/ledger'
 
 /**
  * Deleting a competition so completely that it never happened.
@@ -268,7 +269,7 @@ export async function deleteWithHooks(
       await rebuildRatingLedger(tx)
 
       await hooks.afterWrites?.(tx)
-    })
+    }, LEDGER_TX_OPTIONS)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'The deletion failed.'
     return { ok: false, error: `${msg} Nothing was removed.` }

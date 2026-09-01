@@ -3,6 +3,7 @@ import type { TournamentLifecycleState, Tournament, Prisma } from '@prisma/clien
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from './audit'
 import { validateRandomCount } from './random-teams'
+import { LEDGER_TX_OPTIONS } from '@/lib/stats/ledger'
 
 /**
  * RANDOM close gate: a random-draw tournament may only close registration when its solo entrant
@@ -266,7 +267,7 @@ export async function transitionTournamentState(
       const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
       await rebuildRatingLedger(tx)
     }
-  })
+  }, LEDGER_TX_OPTIONS)
 
   // Reflect the final bracket/champion into the derived snapshot (rankings/records/list).
   const { syncLiveTournamentToSnapshot } = await import('./tournament-sync')

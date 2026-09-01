@@ -2,6 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { canTransition, SEASON_STATE_LABEL, type SeasonState } from './shared'
+import { LEDGER_TX_OPTIONS } from '@/lib/stats/ledger'
 
 /**
  * SEASON LIFECYCLE (server) — the DB-bound, server-enforced transitions for a Season, built on the
@@ -74,7 +75,9 @@ export async function transitionSeasonState(
     }
   }
   if (opts.tx) await run(opts.tx)
-  else await prisma.$transaction(run)
+  // `run` rebuilds the whole ledger when a Season is reopened, so it needs the same window as every
+  // other rebuild — the default five seconds is not enough and fails with P2028 mid-write.
+  else await prisma.$transaction(run, LEDGER_TX_OPTIONS)
   return { ok: true, from, to }
 }
 
@@ -106,6 +109,6 @@ export async function syncSeasonRankingContribution(
   if (s?.lifecycleState !== 'COMPLETED') return { rebuilt: false }
   const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
   if (tx) await rebuildRatingLedger(tx)
-  else await prisma.$transaction(async (t) => { await rebuildRatingLedger(t) })
+  else await prisma.$transaction(async (t) => { await rebuildRatingLedger(t) }, LEDGER_TX_OPTIONS)
   return { rebuilt: true }
 }

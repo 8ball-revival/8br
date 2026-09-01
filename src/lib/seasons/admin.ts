@@ -1,6 +1,7 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
+import { LEDGER_TX_OPTIONS } from '@/lib/stats/ledger'
 
 /**
  * The exact title a Season is known by, computed in ONE place.
@@ -95,6 +96,6 @@ export async function deleteSeason(actor: Actor, seasonId: number, isHeadAdmin: 
       const { rebuildRatingLedger } = await import('@/lib/stats/ledger')
       await rebuildRatingLedger(tx)
     }
-  })
+  }, LEDGER_TX_OPTIONS)
   return { ok: true }
 }
