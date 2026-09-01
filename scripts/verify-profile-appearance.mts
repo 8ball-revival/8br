@@ -98,6 +98,53 @@ section('A saved theme has to be readable')
   check('contrast maths is right (black on white)', Math.round(contrast('#000000', '#ffffff')) === 21)
 }
 
+section('The default theme is the house palette')
+{
+  /*
+    The default is the site's own colours — the red the header and brand marks already use, on the
+    two dark surfaces everything else sits on. A profile therefore looks like part of 8 Ball Registry
+    before anybody customises it.
+  */
+  check('the accent is the brand red', DEFAULT_THEME.accent === '#ff2a2a')
+  check('the surfaces are the site own dark greys',
+    DEFAULT_THEME.surface === '#050607' && DEFAULT_THEME.panelSurface === '#07080a')
+  check('the default itself passes the readability rules', validateTheme(DEFAULT_THEME).ok === true)
+
+  // The stylesheet's fallbacks must not drift from the source of truth above.
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+  for (const [name, value] of [
+    ['--pf-accent', DEFAULT_THEME.accent],
+    ['--pf-surface', DEFAULT_THEME.surface],
+    ['--pf-panel', DEFAULT_THEME.panelSurface],
+    ['--pf-text', DEFAULT_THEME.textPrimary],
+  ] as const) {
+    check(`the CSS fallback for ${name} matches the default`, css.includes(`${name}: ${value};`))
+  }
+
+  /*
+    The accent is spent on PLACE and on actions, not on every large number. Asserted because it is
+    the difference between one figure standing out and eight competing.
+  */
+  const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
+  check('rank carries the accent', /label="Rank"[^/]*accent/.test(view))
+  check('...and rating does not', /label="Rating" value=\{current \? String\(current\.rating\) : '—'\} \/>/.test(view))
+  const headingRule = css.slice(css.indexOf('.pf-heading {'), css.indexOf('.pf-heading {') + 200)
+  check('section headings sit in the text colour, not the accent',
+    headingRule.includes('color: var(--pf-text)'))
+}
+
+section('A player can put their profile back to the default in one press')
+{
+  const header = readFileSync('src/components/players/profile/identity-header.tsx', 'utf8')
+  check('the control exists', header.includes('Default Colours'))
+  check('...beneath Edit Profile, for the same people', /canEdit && \(\s*<button[\s\S]{0,400}Default Colours/.test(header))
+  check('...and calls the reset action', header.includes('resetProfileThemeAction(identity.playerId)'))
+  check('...which re-establishes the right to do it server-side',
+    readFileSync('src/lib/players/appearance-actions.ts', 'utf8')
+      .includes('export async function resetProfileThemeAction'))
+  check('a visitor never sees it', !/Default Colours/.test(header.replace(/canEdit && \([\s\S]*?\)\}/g, '')))
+}
+
 section('The theme reaches CSS only as scoped variables')
 {
   const vars = themeVars(DEFAULT_THEME)

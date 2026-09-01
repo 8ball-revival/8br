@@ -57,14 +57,21 @@ export function PlayerProfileView({
     <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
       <section className="pf-panel md:col-span-6">
         <h3 className="pf-heading">Current (Last 365 Days)</h3>
+        {/*
+          Rank is the accented figure, not rating.
+
+          The approved design uses the accent for PLACE — where somebody stands — and leaves the
+          ratings, records and streaks in plain text. With one loud colour on the page, spending it
+          on every large number would make none of them stand out.
+        */}
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-          <Figure label="Rank" value={current ? `#${current.rank}` : '—'} />
-          <Figure label="Rating" value={current ? String(current.rating) : '—'} accent />
+          <Figure label="Rank" value={current ? `#${current.rank}` : '—'} accent />
+          <Figure label="Rating" value={current ? String(current.rating) : '—'} />
           <Figure label="Record" value={recordText(career.record)} />
           <Figure label="Win %" value={`${career.winPct.toFixed(1)}%`} />
         </dl>
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-          <Figure label="Streak" value={streakText(career.currentStreak)} accent />
+          <Figure label="Streak" value={streakText(career.currentStreak)} />
           <Figure
             label="Longest Win Streak"
             value={career.longestWinStreak > 0 ? `W${career.longestWinStreak}` : '—'}
@@ -81,9 +88,9 @@ export function PlayerProfileView({
       <section className="pf-panel md:col-span-6">
         <h3 className="pf-heading">All-Time</h3>
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-          <Figure label="Rank" value={allTime ? `#${allTime.rank}` : '—'} />
-          <Figure label="Rating" value={allTime ? String(allTime.rating) : '—'} accent />
-          <Figure label="Highest Rank" value={allTime?.highestRank ? `#${allTime.highestRank}` : '—'} />
+          <Figure label="Rank" value={allTime ? `#${allTime.rank}` : '—'} accent />
+          <Figure label="Rating" value={allTime ? String(allTime.rating) : '—'} />
+          <Figure label="Highest Rank" value={allTime?.highestRank ? `#${allTime.highestRank}` : '—'} accent />
           <Figure label="Highest Rating" value={allTime?.highestRating ? String(allTime.highestRating) : '—'} />
         </dl>
       </section>
@@ -283,7 +290,8 @@ function AchievementsPreview({ data }: { data: PlayerProfilePage }) {
       <ul className="mt-2 space-y-1">
         {top.map((a) => (
           <li key={a.id} className="truncate text-xs">
-            <span className="font-semibold" style={{ color: 'var(--pf-accent)' }}>{a.title}</span>
+            {/* The award's name reads as a name; the accent is spent on rank and on actions. */}
+            <span className="font-semibold" style={{ color: 'var(--pf-text)' }}>{a.title}</span>
             <span style={{ color: 'var(--pf-muted)' }}> — {a.caption}</span>
           </li>
         ))}

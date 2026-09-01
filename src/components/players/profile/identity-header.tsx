@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, ExternalLink, Pencil, Share2 } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Check, ExternalLink, Pencil, RotateCcw, Share2 } from 'lucide-react'
 import { ProfileAvatar } from './profile-avatar'
+import { resetProfileThemeAction } from '@/lib/players/appearance-actions'
+import { DEFAULT_THEME, themeVars } from '@/lib/players/theme'
 import type { ProfileIdentity } from '@/lib/players/profile'
 
 /**
@@ -23,6 +25,30 @@ export function IdentityHeader({
   onEdit: () => void
 }) {
   const [shared, setShared] = useState<string | null>(null)
+  const [resetting, startReset] = useTransition()
+  const [resetMessage, setResetMessage] = useState<string | null>(null)
+
+  /**
+   * Put this profile back to the house colours.
+   *
+   * Offered beside Edit Profile so somebody who has customised themselves into a corner can undo it
+   * in one press, without opening the editor to find the same control. It is drawn only for people
+   * the server has already cleared to edit — a visitor never sees it — and the action re-establishes
+   * that right for itself before deleting anything.
+   *
+   * The variables are repainted here as well as on the server so the change is immediate; the row is
+   * gone either way, and the next render agrees with what is already on screen.
+   */
+  const resetColours = () => {
+    startReset(async () => {
+      const r = await resetProfileThemeAction(identity.playerId)
+      if (r.error) { setResetMessage(r.error); return }
+      const root = document.querySelector<HTMLElement>('.pf-root')
+      if (root) for (const [k, v] of Object.entries(themeVars(DEFAULT_THEME))) root.style.setProperty(k, v)
+      setResetMessage('Colours reset to the default.')
+      window.setTimeout(() => setResetMessage(null), 3200)
+    })
+  }
 
   /**
    * Share, the way the device does it.
@@ -71,8 +97,9 @@ export function IdentityHeader({
             <h1 className="truncate font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl lg:text-4xl" style={{ color: 'var(--pf-text)' }}>
               {identity.name}
             </h1>
+            {/* The name behind the handle sits quiet beneath it, not in the accent. */}
             {identity.displayName && (
-              <p className="truncate text-sm" style={{ color: 'var(--pf-accent)' }}>{identity.displayName}</p>
+              <p className="truncate text-sm" style={{ color: 'var(--pf-muted)' }}>{identity.displayName}</p>
             )}
           </div>
         </div>
@@ -113,11 +140,23 @@ export function IdentityHeader({
               </button>
             )}
           </div>
+          {/* Under Edit Profile, and only for those who may edit. */}
+          {canEdit && (
+            <button
+              type="button"
+              onClick={resetColours}
+              disabled={resetting}
+              className="pf-btn inline-flex w-fit items-center gap-1.5 px-3 py-1.5 disabled:opacity-60"
+            >
+              <RotateCcw className="size-3.5" aria-hidden />
+              {resetting ? 'Resetting…' : 'Default Colours'}
+            </button>
+          )}
           <p aria-live="polite" className="min-h-[1rem] text-[0.68rem]" style={{ color: 'var(--pf-muted)' }}>
-            {shared && (
+            {(shared || resetMessage) && (
               <span className="inline-flex items-center gap-1">
                 <Check className="size-3" aria-hidden />
-                {shared}
+                {shared ?? resetMessage}
               </span>
             )}
           </p>
@@ -127,11 +166,12 @@ export function IdentityHeader({
         <dl className="ml-auto flex shrink-0 gap-6 lg:gap-10">
           <div className="lg:border-l lg:pl-6" style={{ borderColor: 'var(--pf-border)' }}>
             <dt className="pf-label">Current Rank</dt>
-            <dd className="pf-figure mt-1 text-3xl lg:text-4xl">{rank != null ? `#${rank}` : '—'}</dd>
+            {/* Rank carries the accent; the rating sits plain beside it. See the note in profile-view. */}
+            <dd className="pf-figure pf-figure-accent mt-1 text-3xl lg:text-4xl">{rank != null ? `#${rank}` : '—'}</dd>
           </div>
           <div className="lg:border-l lg:pl-6" style={{ borderColor: 'var(--pf-border)' }}>
             <dt className="pf-label">Current Rating</dt>
-            <dd className="pf-figure pf-figure-accent mt-1 text-3xl lg:text-4xl">{rating != null ? rating : '—'}</dd>
+            <dd className="pf-figure mt-1 text-3xl lg:text-4xl">{rating != null ? rating : '—'}</dd>
           </div>
         </dl>
       </div>

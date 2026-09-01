@@ -13,17 +13,20 @@
 */
 
 .pf-root {
-  /* Fallbacks so a profile still renders sensibly if the inline vars are ever absent. */
-  --pf-accent: #22d3ee;
-  --pf-accent-2: #38bdf8;
-  --pf-surface: #080c14;
-  --pf-panel: #0d1420;
-  --pf-border: #1e2a3a;
-  --pf-text: #e6edf5;
-  --pf-muted: #8b9bb0;
-  --pf-accent-soft: #22d3ee22;
-  --pf-accent-line: #22d3ee55;
-  --pf-rail-tint: #1e2a3acc;
+  /*
+    Fallbacks, matching DEFAULT_THEME, so a profile still renders sensibly if the inline vars are
+    ever absent. Kept in step with `lib/players/theme.ts` — that file is the source of truth.
+  */
+  --pf-accent: #ff2a2a;
+  --pf-accent-2: #c21f1f;
+  --pf-surface: #050607;
+  --pf-panel: #07080a;
+  --pf-border: #232b31;
+  --pf-text: #f2f5f7;
+  --pf-muted: #8b97a1;
+  --pf-accent-soft: #ff2a2a22;
+  --pf-accent-line: #ff2a2a55;
+  --pf-rail-tint: #232b31cc;
 
   color: var(--pf-text);
 }
@@ -265,18 +268,20 @@
   inset: 0;
 }
 
+/*
+  Section headings sit in the primary text colour, not the accent.
+
+  With a red accent, accent-coloured headings put eight loud red labels on a page whose job is to
+  present numbers — the approved design reserves the accent for the figures, actions, links and the
+  active tab, and lets the headings recede. They still follow the theme, through `--pf-text`, so a
+  player who changes their text colour changes these too.
+*/
 .pf-heading {
-  color: var(--pf-accent);
+  color: var(--pf-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-}
-/* The site's own `//` motif, in the secondary accent. */
-.pf-heading::after {
-  content: ' //';
-  color: var(--pf-accent-2);
-  opacity: 0.6;
 }
 
 .pf-label {

@@ -107,7 +107,7 @@ async function CueverseCard({ cueverseId }: { cueverseId: string | null }) {
   return (
     <div>
       <dl className="grid grid-cols-2 gap-3">
-        <Cell label="CueVerse rating" value={String(r.rating)} accent />
+        <Cell label="CueVerse rating" value={String(r.rating)} />
         <Cell label="Record" value={`${r.wins}–${r.losses}${r.draws ? `–${r.draws}` : ''}`} />
         <Cell label="Games" value={String(r.total)} />
         <Cell label="Streak" value={result.profile.streakLabel} />

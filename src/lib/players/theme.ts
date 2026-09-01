@@ -43,15 +43,33 @@ export const THEME_KEYS = [
 ] as const
 export type ThemeKey = (typeof THEME_KEYS)[number]
 
-/** What every profile looks like until its owner decides otherwise. */
+/**
+ * What every profile looks like until its owner decides otherwise.
+ *
+ * The site's own palette rather than a colour invented for this page: `--hot-red` is the accent the
+ * header, the rules and the brand marks already use, and `--void` / `--graphite` are the two dark
+ * surfaces everything else on the site sits on. A profile therefore looks like part of 8 Ball
+ * Registry before anybody customises it, and a player choosing their own colours is departing from
+ * the house style rather than replacing an unrelated one.
+ *
+ * Kept as literal hex rather than `var(--hot-red)`: these values are validated, stored per player
+ * and compared for contrast, and a CSS reference is none of those things.
+ */
 export const DEFAULT_THEME: ProfileTheme = {
-  accent: '#22d3ee',
-  accentSecondary: '#38bdf8',
-  surface: '#080c14',
-  panelSurface: '#0d1420',
-  border: '#1e2a3a',
-  textPrimary: '#e6edf5',
-  textMuted: '#8b9bb0',
+  accent: '#ff2a2a',          // --hot-red
+  accentSecondary: '#c21f1f', // --hot-red-dim
+  surface: '#050607',         // --void
+  /*
+    The tiles sit only a hair above the page, not a step above it.
+
+    `--graphite` (#0b0f12) made each rectangle read as a raised card; the approved design wants them
+    to look cut into one dark surface, with the border doing the separating rather than a change in
+    brightness.
+  */
+  panelSurface: '#07080a',
+  border: '#232b31',          // --line
+  textPrimary: '#f2f5f7',
+  textMuted: '#8b97a1',
 }
 
 /** Human labels and one line of purpose each, for the editor. */
@@ -137,7 +155,7 @@ export function validateTheme(input: Partial<Record<ThemeKey, unknown>>): ThemeV
   for (const key of THEME_KEYS) {
     const hex = parseHex(input[key])
     if (!hex) {
-      errors[key] = 'Enter a colour as a hex value, for example #22d3ee.'
+      errors[key] = 'Enter a colour as a hex value, for example #ff2a2a.'
       continue
     }
     parsed[key] = hex
