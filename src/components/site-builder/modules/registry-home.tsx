@@ -24,7 +24,8 @@ import { getHomeNews, type HomeArticle } from '@/lib/home/news'
 import { getHomeLeaderboard } from '@/lib/home/leaderboard'
 import { getPublicAchievements } from '@/lib/achievements/service'
 import { getRegistryStats } from '@/lib/stats/registry-stats'
-import { artFor, DEFAULT_ARTICLE_ART, type ArticleArt } from '@/lib/home/article-art'
+import { artFor, pictureFor, DEFAULT_ARTICLE_ART, type ArticleArt } from '@/lib/home/article-art'
+import { latestBreakPosts, type HomePost } from '@/lib/home/break-news'
 import { championImageDecision } from '@/lib/home/champion-image'
 
 import { ChampionHero } from '@/components/home/champion-hero'
@@ -42,16 +43,15 @@ import { RegistryStatsBar } from '@/components/home/registry-stats-bar'
  * guarantees they cannot disagree about which article is newest.
  */
 async function homeArticles(): Promise<HomeArticle[]> {
-  const news = await getHomeNews()
-  const ordered = [news.latest, news.second, news.featured]
-  const seen = new Set<number>()
-  const out: HomeArticle[] = []
-  for (const a of ordered) {
-    if (!a || seen.has(a.id)) continue
-    seen.add(a.id)
-    out.push(a)
-  }
-  return out.slice(0, 3)
+  /*
+    The Break, newest first - not the legacy `Article` table.
+
+    `getHomeNews` reads `Article`, which has held the same three rows since The Break replaced it.
+    Everything published since lives in `BreakPost`, so this surface could never show a new post no
+    matter what was written. Ordering is now simply "newest", with no hourly rotation: the panel is
+    labelled Latest News and a reader who publishes something expects to see it at the top.
+  */
+  return latestBreakPosts(3)
 }
 
 /** The art list as an Owner has it configured, falling back to the seeded mapping. */
@@ -233,9 +233,11 @@ registerModule({
   a11y: { landmark: true, headingLevel: 2 },
   fields: {
     label: { kind: 'text', label: 'Panel label', default: 'Latest news', maxLength: 40 },
-    basePath: { kind: 'url', label: 'Article base path', default: '/news', internalOnly: true },
+    // The Break is where these posts live. `/news` still resolves - it 308s here - but sending a
+    // reader through a redirect on every headline is a redirect nobody needs.
+    basePath: { kind: 'url', label: 'Article base path', default: '/the-break', internalOnly: true },
     viewAllLabel: { kind: 'text', label: 'Link label', default: 'View all news', maxLength: 40 },
-    viewAllHref: { kind: 'url', label: 'Link destination', default: '/news', internalOnly: true },
+    viewAllHref: { kind: 'url', label: 'Link destination', default: '/the-break', internalOnly: true },
     /*
       ── Thumbnails, keyed by article slug ───────────────────────────────────────────────────────
 
@@ -263,13 +265,13 @@ registerModule({
   Render: async function NewsPlaquesModule({ config }: ModuleRenderProps<{
     label: string; basePath: string; viewAllLabel: string; viewAllHref: string; art: unknown
   }>) {
-    const articles = await homeArticles()
+    const posts = await latestBreakPosts(3)
     const art = resolveArt(config.art)
     return (
       <NewsPlaques
         label={config.label}
-        articles={articles}
-        art={articles.map((a) => artFor(a, art))}
+        articles={posts}
+        art={posts.map((p, i) => pictureFor(p, art, i))}
         viewAllLabel={config.viewAllLabel}
         viewAllHref={config.viewAllHref}
         basePath={config.basePath}

@@ -23,6 +23,7 @@ import { registerModule, type ModuleRenderProps } from '@/lib/site-builder/regis
 import { ModulePlaceholder } from './content'
 
 import { getHomeNews } from '@/lib/home/news'
+import { latestBreakPosts } from '@/lib/home/break-news'
 import { getHomeLeaderboard } from '@/lib/home/leaderboard'
 import { getPublicAchievements } from '@/lib/achievements/service'
 import { shuffleAchievements } from '@/lib/achievements/shuffle'
@@ -160,8 +161,28 @@ registerModule({
     exactly the kind of thing a field is for.
   */
   Render: async function BreakFeatureModule({ config }: ModuleRenderProps<{ variant: 'panel' | 'card' }>) {
-    const news = await getHomeNews()
-    return <BreakFeature news={news} variant={config.variant} />
+    /*
+      Also The Break rather than `getHomeNews`, for the same reason the plaques changed: that service
+      reads the frozen legacy `Article` table. This card led with a June post while five newer ones
+      existed. `featured` is simply the newest here - there is no separate featured flag on a Break
+      post, and inventing a rotation for a single card would only make the homepage disagree with
+      itself about what is newest.
+    */
+    const posts = await latestBreakPosts(3)
+    const [featured, latest, second] = posts
+    return (
+      <BreakFeature
+        news={{
+          featured: featured ?? null,
+          latest: latest ?? null,
+          second: second ?? null,
+          eligibleCount: posts.length,
+          // Nothing is reused: these are three distinct posts taken newest-first.
+          reusedForFeatured: false,
+        }}
+        variant={config.variant}
+      />
+    )
   } as never,
 })
 

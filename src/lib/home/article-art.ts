@@ -70,3 +70,38 @@ export function artFor(article: Pick<HomeArticle, 'slug'>, art: ArticleArt[]): A
   const hit = art.find((a) => key(a.slug) === want)
   return hit && hit.src.trim() ? hit : null
 }
+
+/**
+ * The picture beside a post: its own, then one assigned to it, then the panel's own art.
+ *
+ * ── Why there is a positional fallback at all ───────────────────────────────────────────────────
+ * The configured art is keyed by slug, which is right for a picture chosen FOR a post. But the panel
+ * now follows The Break, so the posts in it change, and a post nobody has assigned art to would show
+ * the branded grey plaque. Three of those in a row is what the homepage looked like when this was
+ * reported.
+ *
+ * So the configured images double as the panel's decoration: whatever is in slot 1 gets the first
+ * picture, slot 2 the second, and so on, cycling if there are fewer pictures than rows. It is art
+ * direction rather than illustration - the picture is not *about* that post - which is why anything
+ * more specific wins over it:
+ *
+ *   1. the post's OWN image, if it has one     - genuinely about the post
+ *   2. art assigned to that post by slug        - chosen for the post by an Owner
+ *   3. the configured art by position           - decoration, so the row is never bare
+ *
+ * As posts get their own images, (1) takes over on its own and the decoration quietly stops being
+ * used. Nothing has to be re-edited for that to happen.
+ */
+export function pictureFor(
+  post: { slug: string; imageUrl: string | null; imageAlt: string | null },
+  art: ArticleArt[],
+  index: number,
+): ArticleArt | null {
+  if (post.imageUrl) {
+    return { slug: post.slug, src: post.imageUrl, alt: post.imageAlt ?? '', focal: '50% 50%' }
+  }
+  const assigned = artFor(post, art)
+  if (assigned) return assigned
+  const usable = art.filter((a) => a.src.trim())
+  return usable.length ? usable[index % usable.length] : null
+}
