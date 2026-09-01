@@ -1,111 +1,163 @@
 import 'server-only'
 
 /**
- * Player profile -- the real page body, extracted so the site builder can place it.
+ * Player profile — the real page body, placed by the site builder as a system module.
  *
- * Moved here VERBATIM from the route: the same imports, the same reads, the same markup, the same
- * notFound() and access checks. The builder wraps this as a system module inside the `player`
- * template, so every Player profile page runs the genuine surface while an administrator can put content
- * above and below it, restyle its frame and reorder it.
+ * The route (`/players/[cueverse]`) stays a shell that keeps `generateMetadata`, which Next only
+ * reads from a route file. Everything the page renders is here, so an administrator can put content
+ * above and below the profile and restyle its frame without touching what it says.
  *
- * The route is now a shell that keeps generateMetadata -- which Next only reads from a route file --
- * and hands the page to the builder.
+ * ── What loads when ─────────────────────────────────────────────────────────────────────────────
+ * The 8 Ball Registry record comes from our own database and is awaited: it is the page. CueVerse is
+ * a third party, so its card and window stream in their own Suspense boundaries — a slow or down
+ * CueVerse delays two panels, not somebody's career.
  */
 
-import Link from 'next/link'
+import { Suspense } from 'react'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 
 import { Container } from '@/components/ui/container'
-import { getPlayerProfile, getUnrankedHistory } from '@/lib/stats/ladder'
-import { UnrankedBadge, divisionLabel } from '@/components/platform/platform-badge'
-import { PlayerProfile } from '@/components/rankings/player-profile'
-
-
+import { getPlayerProfilePage } from '@/lib/players/profile'
+import { getCueverseProfile } from '@/lib/cueverse/profile'
+import { cueverseProfileUrl } from '@/lib/cueverse/links'
+import { canEditProfileAction } from '@/lib/players/profile-actions'
+import { PlayerProfileView } from '@/components/players/profile/profile-view'
+import { CueverseWindow } from '@/components/players/profile/cueverse-window'
+import { SITE_URL } from '@/lib/site'
 
 type Params = Promise<{ cueverse: string }>
 
 export async function PlayerDetailBody({
-  params, searchParams,
+  params,
 }: {
   params: Params
-  searchParams: Promise<{ platform?: string }>
+  searchParams?: Promise<{ platform?: string }>
 }) {
   const { cueverse } = await params
-  const sp = await searchParams
-  /*
-   * One identity, three records.
-   *
-   * CueVerse Career is the default and the most prominent, because it is the present. Yahoo Archive
-   * is the ranked history from the old platform, replayed separately. Unranked History is Division
-   * B: real matches, real champions, and no contribution to either ladder.
-   */
-  const platform = sp.platform?.toUpperCase() === 'YAHOO' ? 'YAHOO' : 'CUEVERSE'
-  const id = decodeURIComponent(cueverse)
-  const [profile, unranked] = await Promise.all([
-    getPlayerProfile(id, new Date(), platform),
-    getUnrankedHistory(id),
-  ])
-  if (!profile) notFound()
+  const param = decodeURIComponent(cueverse)
 
-  // A merged secondary has no independent public profile — send visitors to the primary it now
-  // belongs to, so old links and bookmarks keep working.
+  /*
+    Both careers, together.
+
+    The old page split the profile into a CueVerse tab and a Yahoo Archive tab, each holding its own
+    rating. That was right when the question was "what is this player's rating", because a rating
+    from two platforms is a rating from neither. It is wrong for a career page: somebody's record is
+    their record, and the platform is a property of each Season rather than a separate life. So the
+    ledger is read whole, and every Season and Tournament says which platform it was played on.
+  */
+  const data = await getPlayerProfilePage(param)
+  if (!data) notFound()
+
+  // A merged secondary has no independent profile — old links land on the identity that absorbed it.
   const { primaryOfMergedPlayer } = await import('@/lib/players/merge')
-  const primary = await primaryOfMergedPlayer(profile.playerId)
+  const primary = await primaryOfMergedPlayer(data.identity.playerId)
   if (primary) redirect(`/players/${encodeURIComponent(primary.cueverseId ?? primary.playerId)}`)
 
+  // Decided on the server. The action that actually writes re-establishes the same right.
+  const canEdit = await canEditProfileAction(data.identity.playerId)
+
+  /*
+    The canonical, absolute URL — what Share hands to another device or another person.
+
+    Built from the site's own configured origin rather than from the request, so a link shared from
+    a preview deployment or through a proxy still points at the real profile.
+  */
+  const shareUrl = `${SITE_URL.replace(/\/$/, '')}/players/${encodeURIComponent(data.identity.slug)}`
+  const cvId = data.identity.cueverseId
+
   return (
-    <Container className="py-8">
-      <Link href="/rankings" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeft className="size-4" /> Rankings
-      </Link>
-      {/* The career being read. Two tabs, not a merge: a combined rating would be neither. */}
-      <div role="group" aria-label="Career" className="mb-4 inline-flex overflow-hidden rounded-none border border-border">
-        {(['CUEVERSE', 'YAHOO'] as const).map((pf) => (
-          <Link
-            key={pf}
-            href={`/players/${encodeURIComponent(cueverse)}${pf === 'YAHOO' ? '?platform=yahoo' : ''}`}
-            aria-current={platform === pf ? 'page' : undefined}
-            className={
-              'px-3 py-1.5 text-sm transition-colors '
-              + (platform === pf ? 'bg-[var(--gold)] font-semibold text-black' : 'text-muted-foreground hover:text-foreground')
-            }
+    <Container className="py-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <Link href="/rankings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
+          <ArrowLeft className="size-4" aria-hidden /> Rankings
+        </Link>
+        {/* The CueVerse mark, opening the player's own CueVerse profile in a new tab. */}
+        {cueverseProfileUrl(cvId) && (
+          <a
+            href={cueverseProfileUrl(cvId) as string}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand"
           >
-            {pf === 'CUEVERSE' ? 'CueVerse Career' : 'Yahoo Archive'}
-          </Link>
-        ))}
+            CueVerse profile
+            <ExternalLink className="size-3.5" aria-hidden />
+          </a>
+        )}
       </div>
 
-      <PlayerProfile profile={profile} />
-
-      {unranked.length > 0 && (
-        /*
-         * Below both ranked careers, and clearly labelled. These Seasons are real and worth showing
-         * — somebody played them and somebody won them — but nothing here reaches a rating, and the
-         * heading says so rather than leaving it to be inferred from an absent number.
-         */
-        <section className="mt-8" aria-labelledby="unranked-history">
-          <div className="mb-2 flex flex-wrap items-baseline gap-2">
-            <h2 id="unranked-history" className="font-display text-lg font-bold text-foreground">Unranked History</h2>
-            <UnrankedBadge />
-            <p className="text-xs text-muted-foreground">
-              Recorded in full. Contributes to no rating, rank, streak or ranked appearance.
-            </p>
-          </div>
-          <ul className="divide-y divide-border overflow-hidden rounded-none border border-border">
-            {unranked.map((u) => (
-              <li key={u.seasonId} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
-                <Link href={`/seasons/${u.seasonId}`} className="font-medium text-foreground hover:text-[var(--gold)]">
-                  {u.competitionYear} Season {u.number}
-                </Link>
-                {u.division && <span className="text-xs text-muted-foreground">{divisionLabel(u.division)}</span>}
-                <span className="text-xs text-muted-foreground">{u.lifecycleState}</span>
-                {u.isChampion && <span className="text-xs font-semibold text-[var(--gold)]">Champion</span>}
-              </li>
-            ))}
-          </ul>
-        </section>
+      {data.identity.aliases.length > 0 && (
+        <p className="mb-3 text-xs text-muted-foreground">
+          Also known as {data.identity.aliases.join(', ')}
+        </p>
       )}
+
+      <PlayerProfileView
+        data={data}
+        shareUrl={shareUrl}
+        canEdit={canEdit}
+        cueverseCard={
+          <Suspense fallback={<CueversePlaceholder line="Loading CueVerse record…" />}>
+            <CueverseCard cueverseId={cvId} />
+          </Suspense>
+        }
+        cueverseWindow={
+          <Suspense fallback={<div className="p-4"><CueversePlaceholder line="Loading the latest 100 CueVerse games…" /></div>}>
+            <CueverseWindowLoader cueverseId={cvId} />
+          </Suspense>
+        }
+      />
     </Container>
+  )
+}
+
+/** The Overview card face: CueVerse's headline figures, clearly labelled as theirs. */
+async function CueverseCard({ cueverseId }: { cueverseId: string | null }) {
+  const result = await getCueverseProfile(cueverseId ?? '')
+  if (result.status !== 'ok') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {result.status === 'no-id' ? 'No CueVerse ID recorded for this player.'
+          : result.status === 'not-found' ? 'CueVerse has no profile for this ID.'
+            : result.reason}
+      </p>
+    )
+  }
+  const r = result.profile.record
+  return (
+    <div>
+      <dl className="grid grid-cols-2 gap-3">
+        <Cell label="CueVerse rating" value={String(r.rating)} accent />
+        <Cell label="Record" value={`${r.wins}–${r.losses}${r.draws ? `–${r.draws}` : ''}`} />
+        <Cell label="Games" value={String(r.total)} />
+        <Cell label="Streak" value={result.profile.streakLabel} />
+      </dl>
+      <p className="mt-2 text-xs text-muted-foreground">
+        CueVerse figures. Separate from the 8 Ball Registry record above.
+      </p>
+    </div>
+  )
+}
+
+async function CueverseWindowLoader({ cueverseId }: { cueverseId: string | null }) {
+  const result = await getCueverseProfile(cueverseId ?? '')
+  return <CueverseWindow result={result} cueverseId={cueverseId} />
+}
+
+function CueversePlaceholder({ line }: { line: string }) {
+  return (
+    <p className="text-sm text-muted-foreground" role="status">
+      {line}
+    </p>
+  )
+}
+
+function Cell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[0.62rem] uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className={`font-display text-lg font-bold ${accent ? 'text-[var(--gold)]' : 'text-foreground'}`}>{value}</dd>
+    </div>
   )
 }

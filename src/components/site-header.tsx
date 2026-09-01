@@ -4,6 +4,7 @@ import { ChevronDown, LogOut } from 'lucide-react'
 
 import { Logo } from '@/components/brand'
 import { MainNav } from '@/components/main-nav'
+import { NavPlayerSearch } from '@/components/players/nav-player-search'
 import { DisplayLab } from '@/components/display/display-lab'
 import { MobileNav } from '@/components/mobile-nav'
 import { getCurrentUser } from '@/lib/account/auth'
@@ -121,6 +122,15 @@ export async function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1">
+          {/*
+            Find a player from any page.
+
+            It sits before the decorative rule rather than in the navigation itself: the nav was
+            already at the edge of the bar at 1280px (see the note on the account menu below), and a
+            text field in that row would push the account control off the screen again. Here it
+            collapses to an icon below `md` and takes the space the decoration gives up.
+          */}
+          <NavPlayerSearch className="mr-1" />
           <span aria-hidden className="mr-3 hidden items-center gap-1 lg:flex">
             <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)] opacity-60" />
             <span className="block h-6 w-[3px] -skew-x-[20deg] bg-[var(--hot-red)]" />
