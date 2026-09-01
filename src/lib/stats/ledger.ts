@@ -184,6 +184,26 @@ async function collectSeasonMatchups(tx: Tx, seasonId: number, fallbackDate: Dat
  */
 export const LEDGER_TX_OPTIONS = { timeout: 180_000, maxWait: 20_000 } as const
 
+/**
+ * When a match was played, as opposed to when it was recorded.
+ *
+ * The year always comes from the competition. The day survives only where the recorded timestamp
+ * already falls in that year, which is exactly the case where a result was entered in the year it
+ * was played. Everything else is year-precision, and nothing here manufactures a date.
+ */
+function occurrence(recordedAt: Date, competitionYear: number): {
+  occurredOn: Date | null
+  occurredYear: number
+  datePrecision: 'DAY' | 'YEAR'
+} {
+  const sameYear = recordedAt.getUTCFullYear() === competitionYear
+  return {
+    occurredOn: sameYear ? recordedAt : null,
+    occurredYear: competitionYear,
+    datePrecision: sameYear ? 'DAY' : 'YEAR',
+  }
+}
+
 export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number; seasons: number; entries: number }> {
   /*
    * Only records that currently satisfy the eligibility rule.
@@ -302,7 +322,26 @@ export async function rebuildRatingLedger(tx: Tx): Promise<{ tournaments: number
             isTeamMatch: mu.isTeam, teamName: self.teamName, opponentTeamName: opp.teamName,
             result, isForfeit: mu.forfeit, actual: selfActual,
             preRating: Math.round(pre), expected: info.expected, ratingChange: info.delta, postRating: Math.round(post),
-            sequence, completedAt: mu.completedAt,
+            sequence,
+            /*
+              Two dates, and they are not the same question.
+
+              `completedAt` is when the result was entered here — an audit stamp. For a live
+              competition it is also when the match was played; for the archive it is when somebody
+              typed a twenty-year-old result into this application.
+
+              `occurredYear` is when it was actually played, taken from the competition's own
+              `competitionYear`, which is the dedicated historical source and is already what this
+              function sorts the whole timeline by. The day is kept only when the stamp's year
+              agrees with it — otherwise the day is not known, and `datePrecision` says so instead
+              of a month and a day being invented to fill the column.
+
+              Set here rather than only in a migration because this function DELETES and rewrites
+              every row on each rebuild: a backfill alone would survive until the next tournament
+              closed.
+            */
+            completedAt: mu.completedAt,
+            ...occurrence(mu.completedAt, c.year),
             platform: c.platform,
           })
           mapFor(c.platform).set(p.id, post)

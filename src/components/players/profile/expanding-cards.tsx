@@ -41,12 +41,31 @@ export interface ExpandingCard {
   disabled?: boolean
   /** Replaces "View All" when another word fits better. */
   actionLabel?: string
+  /**
+   * Tailwind column span within the twelve-column Overview grid.
+   *
+   * The reference gives each row a deliberate weighting — Career wider than Seasons and
+   * Tournaments, CueVerse wider than Achievements — so the span belongs to the card rather than to
+   * a rule about position that would break the moment a card was reordered.
+   */
+  span?: string
 }
 
 const MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 const DURATION = 260
 
-export function ExpandingCards({ cards, className }: { cards: ExpandingCard[]; className?: string }) {
+export function ExpandingCards({ cards, before, className }: {
+  cards: ExpandingCard[]
+  /**
+   * Static content above the cards — the rows that have no window of their own.
+   *
+   * It lives inside this component rather than beside it so that an expanded window covers the
+   * WHOLE Overview area, which is what makes the window feel like the profile opening up rather
+   * than a panel appearing in its lower half.
+   */
+  before?: React.ReactNode
+  className?: string
+}) {
   const [openKey, setOpenKey] = useState<string | null>(null)
   /** 'entering' runs the grow, 'open' is settled, 'leaving' runs the shrink before unmount. */
   const [phase, setPhase] = useState<'closed' | 'entering' | 'open' | 'leaving'>('closed')
@@ -94,8 +113,17 @@ export function ExpandingCards({ cards, className }: { cards: ExpandingCard[]; c
       const c = card.getBoundingClientRect()
       const p = parent.getBoundingClientRect()
       originRef.current = { x: c.left - p.left, y: c.top - p.top, w: c.width, h: c.height }
-      // Hold the grid's height so the page does not jump as the cards are replaced.
-      setMinHeight(parent.getBoundingClientRect().height)
+      /*
+        The container holds the window's height, and the window fills the container.
+
+        Two things have to be true at once: the page must not jump as the cards are replaced, and the
+        window must be tall enough to read. So the container takes whichever is larger — the height
+        the cards already occupied, or a comfortable reading height — and the frame grows with it
+        rather than the window spilling out of the bottom of the table.
+      */
+      const cardsHeight = parent.getBoundingClientRect().height
+      const comfortable = Math.min(window.innerHeight * 0.7, 704)
+      setMinHeight(Math.round(Math.max(cardsHeight, comfortable)))
     } else {
       originRef.current = null
     }
@@ -178,36 +206,45 @@ export function ExpandingCards({ cards, className }: { cards: ExpandingCard[]; c
       */}
       <div
         className={cn(
-          'grid gap-4 transition-opacity duration-200 sm:grid-cols-2 xl:grid-cols-3',
+          'transition-opacity duration-200',
           openKey ? 'pointer-events-none opacity-0' : 'opacity-100',
         )}
         {...(openKey ? { inert: '' as unknown as boolean } : {})}
         aria-hidden={openKey ? true : undefined}
       >
-        {cards.map((card) => (
-          <div
-            key={card.key}
-            ref={(el) => { cardRefs.current.set(card.key, el) }}
-            className="dl-surface flex flex-col border border-border bg-card"
-          >
-            <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <h3 className="eyebrow text-foreground">{card.title}</h3>
-              {!card.disabled && (
-                <button
-                  type="button"
-                  ref={(el) => { triggerRefs.current.set(card.key, el) }}
-                  onClick={() => open(card.key)}
-                  aria-expanded={openKey === card.key}
-                  aria-controls={`${baseId}-window`}
-                  className="inline-flex items-center gap-1 text-[0.7rem] font-medium uppercase tracking-wide text-brand transition-colors hover:text-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                >
-                  {card.actionLabel ?? 'View All'}
-                </button>
-              )}
-            </header>
-            <div className="flex-1 p-4">{card.preview}</div>
-          </div>
-        ))}
+        {before}
+        {/*
+          Twelve columns, so each row can be weighted the way the reference weights it while every
+          rectangle still shares one gap and one alignment. Below `md` it is a single column: the
+          weighting is a desktop idea, and three narrow boxes side by side is not a hierarchy.
+        */}
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-12">
+          {cards.map((card) => (
+            <div
+              key={card.key}
+              ref={(el) => { cardRefs.current.set(card.key, el) }}
+              className={cn('pf-panel flex flex-col', card.span ?? 'md:col-span-4')}
+            >
+              <header className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="pf-heading">{card.title}</h3>
+                {!card.disabled && (
+                  <button
+                    type="button"
+                    ref={(el) => { triggerRefs.current.set(card.key, el) }}
+                    onClick={() => open(card.key)}
+                    aria-expanded={openKey === card.key}
+                    aria-controls={`${baseId}-window`}
+                    className="pf-action inline-flex items-center gap-1 transition-colors"
+                  >
+                    {card.actionLabel ?? 'View All'}
+                    <span aria-hidden>→</span>
+                  </button>
+                )}
+              </header>
+              <div className="flex-1">{card.preview}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {active && (
@@ -216,31 +253,22 @@ export function ExpandingCards({ cards, className }: { cards: ExpandingCard[]; c
           id={`${baseId}-window`}
           role="region"
           aria-label={active.title}
-          className={cn(
-            'dl-surface absolute inset-0 z-30 flex flex-col overflow-hidden border border-[var(--line-strong)] bg-card shadow-2xl',
-            // A window is worth reading at length; on a phone it takes the height it needs.
-            'min-h-[70vh]',
-          )}
+          className="pf-panel pf-window z-30 flex flex-col overflow-hidden p-0"
         >
-          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--surface-plaque,transparent)] px-4 py-3">
-            <h3
-              ref={headingRef}
-              tabIndex={-1}
-              className="font-display text-base font-bold text-foreground outline-none sm:text-lg"
-            >
+          <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 pf-rule" style={{ borderBottomWidth: 1 }}>
+            <h3 ref={headingRef} tabIndex={-1} className="pf-heading outline-none">
               {active.title}
             </h3>
-            <button
-              type="button"
-              onClick={close}
-              className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:border-[var(--line-strong)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            >
+            <button type="button" onClick={close} className="pf-btn inline-flex items-center gap-1.5 px-2.5 py-1.5">
               <X className="size-3.5" aria-hidden />
               Close
             </button>
           </header>
-          {/* The window scrolls inside itself; the page behind it does not move. */}
-          <div className="min-h-0 flex-1 overflow-auto">{active.window}</div>
+          {/*
+            The window scrolls inside itself; the page behind it does not move, which is what keeps
+            the profile from ending up with a scrollbar inside a scrollbar.
+          */}
+          <div className="pf-scroll min-h-0 flex-1 overflow-auto">{active.window}</div>
         </div>
       )}
     </div>

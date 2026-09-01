@@ -230,10 +230,11 @@ export function Th({ children, className }: { children: React.ReactNode; classNa
   )
 }
 
-export function Td({ children, className, colSpan }: {
+export function Td({ children, className, colSpan, style }: {
   children: React.ReactNode
   className?: string
   colSpan?: number
+  style?: React.CSSProperties
 }) {
-  return <td colSpan={colSpan} className={cn('px-3 py-2 align-top', className)}>{children}</td>
+  return <td colSpan={colSpan} style={style} className={cn('px-3 py-2 align-top', className)}>{children}</td>
 }

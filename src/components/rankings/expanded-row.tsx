@@ -108,6 +108,20 @@ function RatingSpark({ points }: { points: RatingPoint[] }) {
   )
 }
 
+/**
+ * A match date as it should be read aloud.
+ *
+ * `at` is now only as precise as the record allows: a full ISO date for a live match, or a bare year
+ * like "2005" for an archive match whose day was never recorded. Handing a bare year to `new Date()`
+ * would produce "1 January 2005" — a day nobody recorded, announced as fact — so a year is spoken as
+ * a year.
+ */
+function spokenDate(at: string): string {
+  if (/^\d{4}$/.test(at)) return at
+  const d = new Date(at)
+  return Number.isNaN(d.getTime()) ? at : d.toLocaleDateString()
+}
+
 export function ExpandedRow({
   row, detail,
 }: {
@@ -281,7 +295,7 @@ export function ExpandedRow({
             {detail.recentForm.map((f, i) => {
               const label = `${f.result === 'W' ? 'Win' : f.result === 'L' ? 'Loss' : 'Draw'} against ${f.opponent}`
                 + `${f.score ? `, ${f.score}` : f.isForfeit ? ', by forfeit' : ', game score not recorded'}`
-                + `, ${f.competition}${f.at ? `, ${new Date(f.at).toLocaleDateString()}` : ''}`
+                + `, ${f.competition}${f.at ? `, ${spokenDate(f.at)}` : ''}`
               const square = (
                 <span
                   className={cn(

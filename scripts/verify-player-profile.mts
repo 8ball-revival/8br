@@ -326,8 +326,16 @@ section('Only the verified owner and player-management staff may edit')
     actions.includes("can('manage_players')"))
 
   // The button's visibility must not BE the permission.
-  const sidebar = readFileSync('src/components/players/profile/profile-sidebar.tsx', 'utf8')
-  check('the client only receives a flag, never a capability', !/manage_players|linkStatus/.test(sidebar))
+  /*
+    The identity header replaced the sidebar in the framed layout, and it is where Edit Profile now
+    lives. What matters is unchanged: the client is handed a boolean the server decided, never a
+    capability or a link status it could reason about for itself.
+  */
+  const header = readFileSync('src/components/players/profile/identity-header.tsx', 'utf8')
+  check('the client only receives a flag, never a capability', !/manage_players|linkStatus/.test(header))
+  const editor = readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8')
+  check('...and the appearance editor does not decide permission either',
+    !/manage_players|linkStatus/.test(editor))
 }
 
 section('The profile is one route, and nothing inside it navigates')
@@ -347,6 +355,8 @@ section('The profile is one route, and nothing inside it navigates')
   check('one system serves every card', /cards\.map/.test(expanding))
 
   const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
+  check('the profile is wrapped in the table frame, not a page of loose cards',
+    view.includes('<TableFrame>'))
   for (const key of ['seasons', 'tournaments', 'achievements', 'cueverse']) {
     check(`${key} is a card in that one system`, view.includes(`key: '${key}'`))
   }

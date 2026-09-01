@@ -15,13 +15,9 @@ import 'server-only'
 
 import { Suspense } from 'react'
 import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
-
-import { Container } from '@/components/ui/container'
+import { Wide } from '@/components/primitives'
 import { getPlayerProfilePage } from '@/lib/players/profile'
 import { getCueverseProfile } from '@/lib/cueverse/profile'
-import { cueverseProfileUrl } from '@/lib/cueverse/links'
 import { canEditProfileAction } from '@/lib/players/profile-actions'
 import { PlayerProfileView } from '@/components/players/profile/profile-view'
 import { CueverseWindow } from '@/components/players/profile/cueverse-window'
@@ -68,31 +64,14 @@ export async function PlayerDetailBody({
   const cvId = data.identity.cueverseId
 
   return (
-    <Container className="py-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Link href="/rankings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
-          <ArrowLeft className="size-4" aria-hidden /> Rankings
-        </Link>
-        {/* The CueVerse mark, opening the player's own CueVerse profile in a new tab. */}
-        {cueverseProfileUrl(cvId) && (
-          <a
-            href={cueverseProfileUrl(cvId) as string}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand"
-          >
-            CueVerse profile
-            <ExternalLink className="size-3.5" aria-hidden />
-          </a>
-        )}
-      </div>
+    /*
+      The profile takes the usable width between the site header and footer.
 
-      {data.identity.aliases.length > 0 && (
-        <p className="mb-3 text-xs text-muted-foreground">
-          Also known as {data.identity.aliases.join(', ')}
-        </p>
-      )}
-
+      `Wide` rather than the narrower `Container` the page used before: the reference is one full
+      window with a frame around it, and a 72rem column inside a 96rem shell left the frame floating
+      in the middle of the page rather than being the page.
+    */
+    <Wide className="py-4 sm:py-6">
       <PlayerProfileView
         data={data}
         shareUrl={shareUrl}
@@ -108,7 +87,7 @@ export async function PlayerDetailBody({
           </Suspense>
         }
       />
-    </Container>
+    </Wide>
   )
 }
 
@@ -133,7 +112,7 @@ async function CueverseCard({ cueverseId }: { cueverseId: string | null }) {
         <Cell label="Games" value={String(r.total)} />
         <Cell label="Streak" value={result.profile.streakLabel} />
       </dl>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 text-xs" style={{ color: 'var(--pf-muted)' }}>
         CueVerse figures. Separate from the 8 Ball Registry record above.
       </p>
     </div>
@@ -156,8 +135,9 @@ function CueversePlaceholder({ line }: { line: string }) {
 function Cell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="truncate text-[0.62rem] uppercase tracking-wider text-muted-foreground">{label}</dt>
-      <dd className={`font-display text-lg font-bold ${accent ? 'text-[var(--gold)]' : 'text-foreground'}`}>{value}</dd>
+      <dt className="pf-label truncate">{label}</dt>
+      {/* The profile's accent, not the site's — this card sits inside a themed profile. */}
+      <dd className={`pf-figure ${accent ? 'pf-figure-accent' : ''}`}>{value}</dd>
     </div>
   )
 }

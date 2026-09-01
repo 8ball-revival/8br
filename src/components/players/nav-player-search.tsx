@@ -133,18 +133,18 @@ export function NavPlayerSearch({ className }: { className?: string }) {
         onClick={() => { setExpanded(true); requestAnimationFrame(() => inputRef.current?.focus()) }}
         aria-label="Search players"
         className={cn(
-          'inline-flex size-9 items-center justify-center text-[var(--nav-foreground)] transition-colors hover:bg-[var(--acid-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+          'inline-flex size-7 items-center justify-center rounded-[2px] border border-white/10 bg-black/60 text-[var(--nav-foreground)] transition-colors hover:border-[var(--accent,var(--gold))]/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent,var(--gold))]',
           expanded ? 'hidden' : 'md:hidden',
         )}
       >
-        <Search className="size-4" aria-hidden />
+        <Search className="size-3.5" aria-hidden />
       </button>
 
       <div className={cn('items-center', expanded ? 'flex' : 'hidden md:flex')}>
         <label htmlFor={`${listId}-input`} className="sr-only">Search players by CueVerse ID, name or alias</label>
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-[var(--nav-inactive)]"
+            className="pointer-events-none absolute left-1.5 top-1/2 size-3 -translate-y-1/2 text-[var(--nav-inactive)]"
             aria-hidden
           />
           <input
@@ -163,16 +163,24 @@ export function NavPlayerSearch({ className }: { className?: string }) {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => { if (shown.length > 0) setOpen(true) }}
             onKeyDown={onKeyDown}
-            className="w-40 border border-[var(--line-strong)] bg-[var(--surface-plaque,transparent)] py-1.5 pl-7 pr-7 text-sm text-[var(--nav-foreground)] placeholder:text-[var(--nav-inactive)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] lg:w-56"
+            /*
+              A discreet utility, not the loudest control in the bar.
+
+              Near-black rather than the header's own surface, a hairline border, small text and
+              tight padding, so it reads as a tool sitting beside the account button rather than a
+              field competing with the navigation. The accent appears only on hover and focus, as a
+              border — a glow at this size would put it right back where it was.
+            */
+            className="h-7 w-36 rounded-[2px] border border-white/10 bg-black/60 py-0 pl-6 pr-6 text-xs text-[var(--nav-foreground)] transition-colors placeholder:text-[var(--nav-inactive)]/70 hover:border-[var(--accent,var(--gold))]/50 focus:border-[var(--accent,var(--gold))] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent,var(--gold))]/60 lg:w-44"
           />
           {(query || expanded) && (
             <button
               type="button"
               onClick={() => { setQuery(''); setResults([]); setOpen(false); setExpanded(false) }}
               aria-label="Clear player search"
-              className="absolute right-1 top-1/2 inline-flex size-6 -translate-y-1/2 items-center justify-center text-[var(--nav-inactive)] transition-colors hover:text-[var(--nav-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="absolute right-0.5 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-[var(--nav-inactive)] transition-colors hover:text-[var(--nav-foreground)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent,var(--gold))]"
             >
-              <X className="size-3.5" aria-hidden />
+              <X className="size-3" aria-hidden />
             </button>
           )}
         </div>
@@ -187,13 +195,13 @@ export function NavPlayerSearch({ className }: { className?: string }) {
       </span>
 
       {open && (shown.length > 0 || showEmpty) && (
-        <div className="absolute right-0 z-50 mt-1 w-[19rem] border border-[var(--line-strong)] bg-popover text-foreground shadow-lg">
+        <div className="absolute right-0 z-50 mt-1 w-[17rem] rounded-[2px] border border-white/10 bg-[#05070b] text-foreground shadow-xl">
           {showEmpty ? (
-            <p className="px-3 py-3 text-sm text-muted-foreground">
+            <p className="px-2.5 py-2.5 text-xs text-muted-foreground">
               No player matches “{term}”.
             </p>
           ) : (
-            <ul id={listId} role="listbox" aria-label="Player results" className="max-h-80 overflow-auto py-1">
+            <ul id={listId} role="listbox" aria-label="Player results" className="max-h-72 overflow-auto py-0.5">
               {shown.map((option, i) => (
                 <li
                   key={option.id}
@@ -204,31 +212,31 @@ export function NavPlayerSearch({ className }: { className?: string }) {
                   // Chosen on mousedown so the click is not lost to the blur that closes the list.
                   onMouseDown={(e) => { e.preventDefault(); go(option) }}
                   className={cn(
-                    'cursor-pointer px-3 py-2 text-sm',
-                    i === active ? 'bg-accent text-accent-foreground' : 'text-foreground',
+                    'cursor-pointer px-2.5 py-1.5 text-xs',
+                    i === active ? 'bg-white/10 text-foreground' : 'text-foreground/90',
                   )}
                 >
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate font-semibold">{option.cueverseId || option.name}</span>
+                    <span className="truncate text-[0.8rem] font-semibold">{option.cueverseId || option.name}</span>
                     {!option.active && (
                       <span className="shrink-0 text-[0.65rem] uppercase tracking-wide text-muted-foreground">Archived</span>
                     )}
                   </span>
                   {/* The name behind the handle, when it says something different. */}
                   {option.name && option.name.toLowerCase() !== (option.cueverseId || '').toLowerCase() && (
-                    <span className="block truncate text-xs text-muted-foreground">{option.name}</span>
+                    <span className="block truncate text-[0.7rem] text-muted-foreground">{option.name}</span>
                   )}
                   {/*
                     Why this result is here, when the reason is not visible above: somebody who
                     searched an old handle needs to see the old handle to trust the match.
                   */}
                   {option.matchedOn === 'alias' && option.matchedValue && (
-                    <span className="block truncate text-xs text-muted-foreground">
+                    <span className="block truncate text-[0.7rem] text-muted-foreground">
                       also known as {option.matchedValue}
                     </span>
                   )}
                   {option.matchedOn === 'merged' && option.matchedValue && (
-                    <span className="block truncate text-xs text-muted-foreground">
+                    <span className="block truncate text-[0.7rem] text-muted-foreground">
                       formerly {option.matchedValue}
                     </span>
                   )}

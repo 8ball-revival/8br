@@ -74,7 +74,13 @@ export interface FormEntry {
   isForfeit: boolean
   competition: string
   href: string | null
-  /** ISO date of the match, from the stored completion time. */
+  /**
+   * When the match was played, as precisely as the record supports.
+   *
+   * "2005" for an archive match whose day was never recorded, a full ISO date for one played since
+   * the site went live. NOT the import timestamp, which for the archive is an August 2026 stamp and
+   * was previously read aloud as the match date.
+   */
   at: string
 }
 
@@ -170,6 +176,22 @@ export const EMPTY_DETAIL = (playerId: string): PlayerDetail => ({
  * record over a single match, which says nothing about a season. Three is the smallest number that
  * requires a run rather than a result, and it is stated in the tooltip so a reader can judge it.
  */
+/**
+ * A ledger row's date, only as precise as it is known.
+ *
+ * `completedAt` is when the result was entered here; for the imported archive that is August 2026,
+ * which is not when any of those matches were played. The ledger stores the occurrence separately,
+ * so this reads that and returns the year alone when the day is not known — rather than a date that
+ * would be read aloud, sorted and filtered as though it were fact.
+ */
+function occurrenceLabel(r: Record<string, unknown>): string {
+  const precision = String(r.datePrecision ?? 'DAY')
+  if (precision !== 'YEAR' && r.occurredOn) return new Date(r.occurredOn as string).toISOString()
+  if (r.occurredYear != null) return String(r.occurredYear)
+  // Neither recorded: say nothing rather than fall back to the import stamp.
+  return ''
+}
+
 export const BEST_SEASON_MIN_MATCHES = 3
 
 /**
@@ -299,6 +321,7 @@ export async function computePlayerDetail(
     mine AS (SELECT l.* FROM ledger l WHERE l."playerId" = $1 ${scopeClause})
     SELECT m."result", m."opponentName", m."isForfeit", m.has_game_data,
            m.games_for, m.games_against, m."completedAt", m."seasonId", m."tournamentId",
+           m."occurredOn", m."occurredYear", m."datePrecision",
            CASE WHEN m.kind = 'season'
              THEN cs."name" || ' Season ' || se."number" || ' — ' || se."competitionYear"
              ELSE t."name" END AS label
@@ -323,6 +346,7 @@ export async function computePlayerDetail(
    */
   const strongestWinSql = `
     SELECT opp."playerName" AS opponent, opp."preRating" AS opponent_pre, me."completedAt",
+           me."occurredOn", me."occurredYear", me."datePrecision",
            me."seasonId", me."tournamentId",
            CASE WHEN me."seasonId" IS NOT NULL
              THEN cs."name" || ' Season ' || se."number" || ' — ' || se."competitionYear"
@@ -427,7 +451,7 @@ export async function computePlayerDetail(
     isForfeit: r.isForfeit === true,
     competition: (r.label as string) || 'Unknown competition',
     href: href(r),
-    at: r.completedAt ? new Date(r.completedAt as string).toISOString() : '',
+    at: occurrenceLabel(r),
   }))
 
   // ── per-stage records
@@ -518,7 +542,7 @@ export async function computePlayerDetail(
         opponentRatingBefore: n(sw.opponent_pre),
         competition: (sw.label as string) || 'Unknown competition',
         href: href(sw),
-        at: sw.completedAt ? new Date(sw.completedAt as string).toISOString() : '',
+        at: occurrenceLabel(sw),
       }
     : null
 

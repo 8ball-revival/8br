@@ -2,6 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import type { CompetitionPlatform } from '@prisma/client'
 import { getLadder, type LadderRow } from '@/lib/stats/ladder'
+import { themeFromRow, type ProfileTheme } from './theme'
 
 /**
  * Everything one player's profile shows, read from the records that already exist.
@@ -41,14 +42,32 @@ export interface ProfileIdentity {
   slug: string
   /** Payload user id of the account that owns this profile, when one is linked and confirmed. */
   ownerUserId: string | null
+  /** The uploaded avatar, or null to fall back to the generated monogram. */
+  avatarUrl: string | null
+  /** How the avatar is framed: `object-position` percentages and a zoom over `cover`. */
+  avatarFocalX: number
+  avatarFocalY: number
+  avatarZoom: number
+  /** This profile's colours. The shared default when its owner has not chosen any. */
+  theme: ProfileTheme
 }
 
 export interface StageRecord { wins: number; losses: number; draws: number }
 
 export interface ProfileMatchRow {
-  /** Ledger sequence — the deterministic all-time order. */
+  /** Ledger sequence — the deterministic all-time order, by competition year then number. */
   sequence: number
-  at: string
+  /**
+   * When the match was played, written as precisely as it is actually known.
+   *
+   * "2005" for an archive match whose day was never recorded; "2026-08-29" for one played since the
+   * site went live. Never a fabricated month or day — see `datePrecision` on the ledger.
+   */
+  dateLabel: string
+  /** The day, when it is known. Null for a year-precision row. */
+  occurredOn: string | null
+  occurredYear: number | null
+  datePrecision: 'DAY' | 'YEAR'
   competitionLabel: string
   competitionHref: string | null
   kind: 'season' | 'tournament'
@@ -214,7 +233,11 @@ function longestWinRun(results: string[]): number {
 export async function getProfileIdentity(param: string): Promise<ProfileIdentity | null> {
   const player = await prisma.player.findFirst({
     where: { OR: [{ id: param }, { cueverseId: { equals: param, mode: 'insensitive' } }] },
-    select: { id: true, primaryName: true, cueverseId: true, linkedUserId: true, linkStatus: true },
+    select: {
+      id: true, primaryName: true, cueverseId: true, linkedUserId: true, linkStatus: true,
+      avatarFilename: true, avatarFocalX: true, avatarFocalY: true, avatarZoom: true, avatarUpdatedAt: true,
+      profileTheme: true,
+    },
   })
   if (!player) return null
 
@@ -258,6 +281,20 @@ export async function getProfileIdentity(param: string): Promise<ProfileIdentity
     // VERIFIED is the only status that proves ownership. PENDING is a claim, not a link, and
     // REJECTED and REVOKED are the site saying no — none of them may unlock an edit control.
     ownerUserId: player.linkStatus === 'VERIFIED' && player.linkedUserId ? player.linkedUserId : null,
+    /*
+      The avatar URL carries the update time as a cache-buster.
+
+      Payload serves a replaced file under a NEW name, so this is belt-and-braces — but a profile
+      that keeps showing somebody's old picture after they changed it is the kind of thing people
+      report as "it didn't save".
+    */
+    avatarUrl: player.avatarFilename
+      ? `/api/media/file/${player.avatarFilename}${player.avatarUpdatedAt ? `?v=${player.avatarUpdatedAt.getTime()}` : ''}`
+      : null,
+    avatarFocalX: player.avatarFocalX,
+    avatarFocalY: player.avatarFocalY,
+    avatarZoom: player.avatarZoom,
+    theme: themeFromRow(player.profileTheme),
   }
 }
 
@@ -272,6 +309,7 @@ async function ledgerRows(playerIds: string[], platform: CompetitionPlatform | u
       isTeamMatch: true, teamName: true, opponentTeamName: true,
       result: true, isForfeit: true, ratingChange: true, preRating: true, postRating: true,
       completedAt: true, platform: true,
+      occurredOn: true, occurredYear: true, datePrecision: true,
     },
   })
 }
@@ -334,6 +372,44 @@ function scoreString(games: [number, number] | undefined, result: string, isForf
 }
 
 type LedgerRow = Awaited<ReturnType<typeof ledgerRows>>[number]
+
+/**
+ * A match's date, said only as precisely as the record supports it.
+ *
+ * ── The fault this exists to close ──────────────────────────────────────────────────────────────
+ * The profile used to print `completedAt`, which is when a result was ENTERED HERE. For the live
+ * season that is also when it was played. For the imported archive it is when somebody typed a
+ * twenty-year-old result into this application, so a 2005 match displayed as `2026-08-20` — a date
+ * that is not merely imprecise but false, and which sorted and filtered as if it were last week.
+ *
+ * The ledger now carries the occurrence separately. Where the day is genuinely known it is shown;
+ * where only the year is, only the year is shown. Nothing here supplies a month or a day to make
+ * the column look uniform.
+ */
+function matchDate(r: {
+  completedAt: Date
+  occurredOn: Date | null
+  occurredYear: number | null
+  datePrecision: string
+}): Pick<ProfileMatchRow, 'dateLabel' | 'occurredOn' | 'occurredYear' | 'datePrecision'> {
+  const precision = r.datePrecision === 'YEAR' ? 'YEAR' as const : 'DAY' as const
+  if (precision === 'YEAR' || !r.occurredOn) {
+    return {
+      // The year alone. A row with neither is left blank rather than falling back to the import
+      // stamp, which is the very value this function exists to keep off the page.
+      dateLabel: r.occurredYear != null ? String(r.occurredYear) : '—',
+      occurredOn: null,
+      occurredYear: r.occurredYear,
+      datePrecision: 'YEAR',
+    }
+  }
+  return {
+    dateLabel: r.occurredOn.toISOString().slice(0, 10),
+    occurredOn: r.occurredOn.toISOString(),
+    occurredYear: r.occurredYear ?? r.occurredOn.getUTCFullYear(),
+    datePrecision: 'DAY',
+  }
+}
 
 /**
  * The whole profile, in one pass over the ledger.
@@ -419,7 +495,7 @@ export async function getPlayerProfilePage(
         : null
     return {
       sequence: r.sequence,
-      at: r.completedAt.toISOString(),
+      ...matchDate(r),
       competitionLabel: label,
       competitionHref: href,
       kind: r.seasonId != null ? 'season' : 'tournament',
@@ -639,7 +715,7 @@ export async function getPlayerProfilePage(
       opponentId: r.opponentId ?? null,
       opponentName: r.opponentName,
       wins: 0, losses: 0, draws: 0, played: 0, winPct: 0,
-      lastMet: r.completedAt.toISOString(),
+      lastMet: matchDate(r).dateLabel,
       lastCompetition: '',
     }
     if (r.result === 'WIN') row.wins += 1
@@ -647,7 +723,7 @@ export async function getPlayerProfilePage(
     else if (r.result === 'DRAW') row.draws += 1
     row.played += 1
     // Rows arrive oldest first, so the last one seen is the most recent meeting.
-    row.lastMet = r.completedAt.toISOString()
+    row.lastMet = matchDate(r).dateLabel
     const season = r.seasonId != null ? seasonById.get(r.seasonId) : undefined
     const tournament = r.tournamentId != null ? tournamentById.get(r.tournamentId) : undefined
     row.lastCompetition = season ? `${seasonLabel(season)} · ${season.competitionYear}` : (tournament?.name ?? '')

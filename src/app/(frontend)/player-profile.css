@@ -1,0 +1,444 @@
+/*
+  The player profile: the pool-table frame, and everything that reads a player's own colours.
+
+  ── Everything here is scoped ────────────────────────────────────────────────────────────────────
+  Every rule below is nested under `.pf-root`, which exists on exactly one element: the profile's own
+  wrapper. The colours come from `--pf-*` custom properties set inline on that element from the
+  player's stored theme, so a profile styles itself and nothing else. There is no global selector in
+  this file, and nothing a player can type reaches a rule — only the seven validated hex values.
+
+  ── The frame ────────────────────────────────────────────────────────────────────────────────────
+  Rails are CSS; pockets are the supplied artwork. See `table-frame.tsx` for why that split. The
+  artwork ships neutral and is tinted here, so one set of files serves every theme.
+*/
+
+.pf-root {
+  /* Fallbacks so a profile still renders sensibly if the inline vars are ever absent. */
+  --pf-accent: #22d3ee;
+  --pf-accent-2: #38bdf8;
+  --pf-surface: #080c14;
+  --pf-panel: #0d1420;
+  --pf-border: #1e2a3a;
+  --pf-text: #e6edf5;
+  --pf-muted: #8b9bb0;
+  --pf-accent-soft: #22d3ee22;
+  --pf-accent-line: #22d3ee55;
+  --pf-rail-tint: #1e2a3acc;
+
+  color: var(--pf-text);
+}
+
+/* ── The table ───────────────────────────────────────────────────────────────────────────────── */
+
+.pf-table {
+  --pf-rail: clamp(18px, 2.1vw, 32px);
+  border-radius: 6px;
+  /*
+    The rail thickness is the table's PADDING, not the bed's margin.
+
+    It was a margin, and vertical margins collapse through a parent that has no padding or border of
+    its own — so the bed's 23px top margin escaped upward, moved the whole table down, and left the
+    bed sitting directly on the top and bottom rails, covering them. The left and right rails were
+    visible the whole time because horizontal margins do not collapse. Padding here cannot collapse,
+    and the inset is then the same on all four sides by construction.
+  */
+  padding: var(--pf-rail);
+  /*
+    The whole table sits on the profile surface. One background beneath everything, per the brief —
+    the panels are lighter rectangles ON it rather than cards floating over the page.
+  */
+  background: var(--pf-surface);
+}
+
+/*
+  The rails.
+
+  Top and bottom are the supplied artwork, stretched to the width. A rail is a uniform extrusion
+  with no horizontal detail, so stretching it is invisible where tiling would show a seam. The two
+  short rails are a gradient built from that same artwork's vertical colour profile — sampled from
+  the file, so the four sides match at the corners.
+
+  The whole ring is painted BEHIND the bed, which is opaque. That is why no mask is needed to cut
+  the middle out: the bed covers it.
+*/
+.pf-rail { position: absolute; }
+
+.pf-rail-top,
+.pf-rail-bottom {
+  left: 0;
+  right: 0;
+  height: var(--pf-rail);
+  background-image: image-set(
+    url('/assets/table/rail.webp') type('image/webp'),
+    url('/assets/table/rail.png') type('image/png')
+  );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  /* Neutral, whatever the file contains — the tint below is the only source of colour. */
+  filter: saturate(0) brightness(1.12);
+}
+.pf-rail-top { top: 0; }
+.pf-rail-bottom { bottom: 0; transform: scaleY(-1); }
+
+.pf-rail-left,
+.pf-rail-right {
+  top: 0;
+  bottom: 0;
+  width: var(--pf-rail);
+  /* The rail artwork's own profile, read across its height: dark edge, bright highlight, dark
+     trough, lighter lip. Reproduced sideways so a corner joins without a step. */
+  background-image: linear-gradient(
+    90deg,
+    #0b0d0e 0%,
+    #292c2e 9%,
+    #666c70 18%,
+    #383c40 27%,
+    #222626 36%,
+    #181c1b 45%,
+    #121516 55%,
+    #121314 64%,
+    #1f2120 73%,
+    #363637 82%,
+    #393a3a 91%,
+    #0b0d0e 100%
+  );
+}
+.pf-rail-left { left: 0; }
+.pf-rail-right { right: 0; transform: scaleX(-1); }
+
+/*
+  The theme's tint over the whole neutral frame.
+
+  One layer across the table rather than one per rail; the opaque bed sits above it, so only the
+  rails and pockets receive the colour. `color` blending keeps the moulding's light and shade and
+  changes only its hue, which is what lets one set of files serve every player's theme.
+*/
+.pf-rails::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: var(--pf-rail-tint);
+  mix-blend-mode: color;
+  opacity: 0.4;
+}
+
+/* The bed: the surface the sections sit on, inset by the table's own padding. */
+.pf-bed {
+  border-radius: 3px;
+  background: var(--pf-surface);
+  /* The cushion: a hairline plus a soft inner shadow, so the bed sits BELOW the rail rather than
+     beside it. Without it the frame reads as a border drawn around a flat rectangle. */
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--pf-border) 90%, transparent),
+    inset 0 6px 18px rgb(0 0 0 / 55%);
+}
+
+/* ── Pockets ─────────────────────────────────────────────────────────────────────────────────── */
+
+.pf-pocket,
+.pf-pocket-side {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  /*
+    The artwork is neutral grey. `saturate(0)` guarantees that even if a future file carries a cast,
+    and the brightness keeps the pocket from out-shouting the data it frames.
+  */
+  /*
+    The artwork ships neutral grey; `saturate(0)` guarantees it stays that way whatever a future file
+    contains, so the rail tint above is the only thing giving the frame its colour.
+  */
+  filter: saturate(0) brightness(1.05) contrast(1.05);
+}
+
+.pf-pocket {
+  /* Sized so the moulded pocket mouth reads at a glance without crowding the corner. */
+  width: calc(var(--pf-rail) * 3.4);
+  height: calc(var(--pf-rail) * 3.4);
+  background-image: image-set(
+    url('/assets/table/pocket-corner.webp') type('image/webp'),
+    url('/assets/table/pocket-corner.png') type('image/png')
+  );
+}
+
+/* One file, rotated, so the moulding runs the right way at each corner. */
+.pf-pocket-tl { top: 0; left: 0; }
+.pf-pocket-tr { top: 0; right: 0; transform: scaleX(-1); }
+.pf-pocket-bl { bottom: 0; left: 0; transform: scaleY(-1); }
+.pf-pocket-br { bottom: 0; right: 0; transform: scale(-1, -1); }
+
+/* The side pockets, at the midpoint of the long rails — the fifth and sixth. */
+.pf-pocket-side {
+  left: 50%;
+  width: calc(var(--pf-rail) * 6.5);
+  height: calc(var(--pf-rail) * 1.85);
+  background-image: image-set(
+    url('/assets/table/pocket-side.webp') type('image/webp'),
+    url('/assets/table/pocket-side.png') type('image/png')
+  );
+}
+.pf-pocket-top { top: 0; transform: translateX(-50%); }
+.pf-pocket-bottom { bottom: 0; transform: translateX(-50%) scaleY(-1); }
+
+/*
+  ── Rail sights ─────────────────────────────────────────────────────────────────────────────────
+  The diamonds a table carries along its rails. Drawn from the accent, spaced with a repeating
+  gradient so the count adapts to the width instead of being a fixed row of elements that crowd.
+*/
+.pf-sights::before,
+.pf-sights::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--pf-rail) * 4);
+  right: calc(var(--pf-rail) * 4);
+  height: 3px;
+  background-image: radial-gradient(circle, var(--pf-accent) 0 1.5px, transparent 1.6px);
+  background-size: 8.5% 100%;
+  background-position: center;
+  opacity: 0.35;
+}
+.pf-sights::before { top: calc(var(--pf-rail) / 2 - 1.5px); }
+.pf-sights::after { bottom: calc(var(--pf-rail) / 2 - 1.5px); }
+
+/*
+  Below `lg` the decoration goes before the layout does.
+
+  A pocket sized for a 1440px table cannot shrink to 380px without either overlapping the content or
+  being squashed out of shape, so the rail becomes a plain themed border instead.
+*/
+@media (max-width: 1023px) {
+  .pf-table { --pf-rail: 6px; }
+  .pf-rail { display: none; }
+  .pf-pockets, .pf-sights { display: none; }
+  .pf-rails {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pf-border) 85%, transparent);
+    border-radius: 4px;
+  }
+  .pf-rails::after { display: none; }
+}
+
+/* ── Information sections ────────────────────────────────────────────────────────────────────── */
+
+/*
+  One rectangle. Complete border, one corner treatment, one padding — the brief's list, in one place
+  so every section is identical by construction rather than by being written the same way six times.
+*/
+.pf-panel {
+  border: 1px solid var(--pf-panel-edge, var(--pf-border));
+  border-radius: 2px;
+  background: var(--pf-panel);
+  padding: clamp(0.75rem, 1vw, 1.15rem);
+  min-width: 0;
+}
+
+/* The accented top-left tick the reference puts on each rectangle. Quiet, and purely decorative. */
+.pf-panel {
+  position: relative;
+}
+.pf-panel::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 14px;
+  height: 14px;
+  border-top: 1px solid var(--pf-accent);
+  border-left: 1px solid var(--pf-accent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/*
+  The expanded window.
+
+  A separate class, and it must come AFTER `.pf-panel` in this file.
+
+  `.pf-panel` sets `position: relative` for its corner tick, and this stylesheet is imported after
+  Tailwind — so `.pf-panel` and Tailwind's `.absolute` have equal specificity and `.pf-panel` won.
+  The expanded window silently became `relative`, dropped out of its overlay position and rendered
+  in normal flow BELOW the cards, leaving a tall empty gap where it should have been. Naming the
+  position explicitly here is what keeps that from happening again.
+*/
+.pf-window {
+  position: absolute;
+  inset: 0;
+}
+
+.pf-heading {
+  color: var(--pf-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* The site's own `//` motif, in the secondary accent. */
+.pf-heading::after {
+  content: ' //';
+  color: var(--pf-accent-2);
+  opacity: 0.6;
+}
+
+.pf-label {
+  color: var(--pf-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pf-figure {
+  color: var(--pf-text);
+  font-weight: 800;
+  line-height: 1.05;
+  font-size: clamp(1.25rem, 1.6vw, 1.75rem);
+}
+/* The numbers that matter — rating, and anything the reference prints in the accent. */
+.pf-figure-accent { color: var(--pf-accent); }
+
+.pf-action {
+  color: var(--pf-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pf-action:hover { color: var(--pf-accent-2); }
+
+.pf-link { color: var(--pf-accent); }
+.pf-link:hover { color: var(--pf-accent-2); }
+
+.pf-btn {
+  border: 1px solid var(--pf-accent-line);
+  background: var(--pf-accent-soft);
+  color: var(--pf-accent);
+  border-radius: 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.pf-btn:hover { border-color: var(--pf-accent); }
+
+/*
+  Tabs. The active one carries the accent, which is one of the places the theme must reach.
+
+  On a narrow screen the three of them are tightened rather than allowed to wrap: a tab strip that
+  breaks onto a second line reads as two groups, and the underline of the active tab then sits above
+  a row it does not belong to.
+*/
+@media (max-width: 480px) {
+  .pf-tab {
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+}
+
+.pf-tab {
+  color: var(--pf-muted);
+  border-bottom: 2px solid transparent;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+.pf-tab:hover { color: var(--pf-text); }
+.pf-tab[aria-selected='true'] {
+  color: var(--pf-accent);
+  border-bottom-color: var(--pf-accent);
+}
+
+/* One focus treatment for everything inside the profile, in the player's own accent. */
+.pf-root :focus-visible {
+  outline: 2px solid var(--pf-accent);
+  outline-offset: 2px;
+}
+
+/* Table rules inside expanded windows, themed rather than inheriting the site's greys. */
+.pf-root .pf-rule { border-color: color-mix(in srgb, var(--pf-border) 80%, transparent); }
+
+/*
+  One internal scroller, themed, for the expanded windows that genuinely need it.
+
+  Declared here rather than per-window so there is exactly one scrollbar treatment in the profile and
+  no chance of a second, differently-styled one appearing inside a nested panel.
+*/
+.pf-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--pf-accent) 45%, transparent) transparent;
+}
+.pf-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.pf-scroll::-webkit-scrollbar-track { background: transparent; }
+.pf-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--pf-accent) 35%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.pf-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--pf-accent) 60%, transparent);
+  background-clip: content-box;
+}
+
+/*
+  ── The site's own tokens, remapped inside the profile ──────────────────────────────────────────
+
+  The expanded windows, the match tables and the CueVerse panel were written against the site's
+  palette — `text-muted-foreground`, `border-border`, `text-brand` and so on. Inside a profile those
+  must follow the PLAYER's colours instead, or the theme stops at the edge of a window and a
+  customised profile shows site-gold links inside a purple panel.
+
+  Remapped here, once, rather than by rewriting every class in six components: each selector is
+  `.pf-root` plus the utility, so it outranks the plain utility by specificity and applies only
+  inside a profile. The rest of the site keeps its own palette untouched.
+*/
+.pf-root .text-muted-foreground { color: var(--pf-muted); }
+.pf-root .text-foreground { color: var(--pf-text); }
+.pf-root .text-brand { color: var(--pf-accent); }
+.pf-root .hover\:text-brand-soft:hover { color: var(--pf-accent-2); }
+.pf-root .text-\[var\(--gold\)\] { color: var(--pf-accent); }
+.pf-root .border-border { border-color: var(--pf-border); }
+.pf-root .border-border\/60 { border-color: color-mix(in srgb, var(--pf-border) 60%, transparent); }
+.pf-root .border-border\/50 { border-color: color-mix(in srgb, var(--pf-border) 50%, transparent); }
+.pf-root .border-\[var\(--gold\)\] { border-color: var(--pf-accent); }
+.pf-root .bg-card { background-color: var(--pf-panel); }
+.pf-root .bg-background { background-color: var(--pf-surface); }
+/* The one exception: win and loss keep the site's semantics. A result is not a matter of taste. */
+
+/* ── Avatar ──────────────────────────────────────────────────────────────────────────────────── */
+
+.pf-avatar {
+  border-radius: 999px;
+  border: 2px solid var(--pf-accent-line);
+  background: color-mix(in srgb, var(--pf-panel) 80%, black);
+  overflow: hidden;
+}
+.pf-avatar img {
+  width: 100%;
+  height: 100%;
+  /*
+    `cover` plus `object-position` IS the crop.
+
+    Cropping the file server-side would flatten an animated GIF or WebP to its first frame, so the
+    original is stored untouched and the framing is applied here, where it costs nothing and can be
+    changed later without re-uploading.
+  */
+  object-fit: cover;
+  display: block;
+}
+
+/*
+  Reduced motion: show an animated avatar as a still.
+
+  There is no CSS that pauses an animated GIF, so the component swaps in a single rendered frame when
+  the preference is set — see `profile-avatar.tsx`. This rule is the belt to that braces, keeping any
+  CSS-driven motion in the slot off as well.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .pf-root * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

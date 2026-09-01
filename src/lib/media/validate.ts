@@ -16,8 +16,13 @@ import sharp from 'sharp'
  * what the author pasted.
  */
 
-/** The formats an author may paste. SVG is absent on purpose: it can carry script. */
-export const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const
+/**
+ * The formats that may be uploaded. SVG is absent on purpose: it can carry script.
+ *
+ * AVIF joined the list for profile avatars — it is a still-image format modern phones export and
+ * sharp decodes it, so refusing it only pushed people to convert files by hand.
+ */
+export const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'] as const
 export type AllowedType = (typeof ALLOWED_TYPES)[number]
 
 /** Ceilings. Generous for a screenshot or a photo, small enough that one paste cannot fill a disk. */
@@ -72,6 +77,18 @@ export function sniffImageType(buffer: Buffer): AllowedType | null {
     return 'image/webp'
   }
 
+  /*
+    AVIF: an ISO-BMFF file whose `ftyp` brand is `avif` (still) or `avis` (sequence).
+
+    The box length occupies the first four bytes, so the brand is read at offset 8 rather than from
+    the very start. Checked here rather than left to the decoder because the whole point of this
+    function is that the TYPE is decided by the bytes, not by what the upload claimed.
+  */
+  if (buffer.subarray(4, 8).toString('latin1') === 'ftyp') {
+    const brand = buffer.subarray(8, 12).toString('latin1')
+    if (brand === 'avif' || brand === 'avis') return 'image/avif'
+  }
+
   return null
 }
 
@@ -92,7 +109,11 @@ const EXTENSIONS: Record<AllowedType, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'image/avif': 'avif',
 }
+
+/** Formats that can carry more than one frame, and so must never be re-encoded blindly. */
+const CAN_ANIMATE = new Set<AllowedType>(['image/gif', 'image/webp', 'image/avif'])
 
 // --------------------------------------------------------------------------- filenames
 
@@ -146,15 +167,16 @@ export async function validateImage(input: Buffer): Promise<ValidatedMedia> {
   if (!input || input.length === 0) throw new MediaError('That file was empty.')
 
   if (looksLikeMarkup(input)) {
-    throw new MediaError('SVG and HTML files are not accepted. Paste a JPG, PNG, WebP or GIF.')
+    throw new MediaError('SVG and HTML files are not accepted. Use a JPG, PNG, WebP, AVIF or GIF.')
   }
 
   const mimeType = sniffImageType(input)
   if (!mimeType) {
-    throw new MediaError('That file is not a JPG, PNG, WebP or GIF.')
+    throw new MediaError('That file is not a JPG, PNG, WebP, AVIF or GIF.')
   }
 
-  const ceiling = mimeType === 'image/gif' ? MAX_GIF_BYTES : MAX_BYTES
+  // Animation-capable formats get the higher ceiling; a filmstrip is legitimately larger.
+  const ceiling = CAN_ANIMATE.has(mimeType) ? MAX_GIF_BYTES : MAX_BYTES
   if (input.length > ceiling) {
     throw new MediaError(`That image is larger than ${Math.round(ceiling / (1024 * 1024))}MB.`)
   }
@@ -177,7 +199,14 @@ export async function validateImage(input: Buffer): Promise<ValidatedMedia> {
   }
   if (!width || !height) throw new MediaError('That image has no readable dimensions.')
 
-  const animated = mimeType === 'image/gif' && pages > 1
+  /*
+    Animation is a property of the FILE, not of the format.
+
+    This used to ask only whether a GIF had more than one page, so an animated WebP was treated as a
+    still and re-encoded — which silently flattened it to its first frame. `pages > 1` is the real
+    question, asked of every format that can carry frames.
+  */
+  const animated = CAN_ANIMATE.has(mimeType) && pages > 1
 
   if (animated) {
     // Passed through as-is. Re-encoding is what would flatten the animation, and the file has already
@@ -195,7 +224,9 @@ export async function validateImage(input: Buffer): Promise<ValidatedMedia> {
       ? await pipeline.png({ compressionLevel: 9 }).toBuffer()
       : mimeType === 'image/webp'
         ? await pipeline.webp({ quality: 88 }).toBuffer()
-        : await pipeline.jpeg({ quality: 88, mozjpeg: true }).toBuffer()
+        : mimeType === 'image/avif'
+          ? await pipeline.avif({ quality: 60 }).toBuffer()
+          : await pipeline.jpeg({ quality: 88, mozjpeg: true }).toBuffer()
 
     // A single-frame GIF is stored as a GIF so the reference and extension stay consistent.
     if (mimeType === 'image/gif') {

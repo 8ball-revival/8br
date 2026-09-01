@@ -308,6 +308,23 @@ model Player {
   linkedUserId              String?          @unique
   linkStatus                PlayerLinkStatus @default(UNLINKED)
 
+  // ── Profile avatar ────────────────────────────────────────────────────────────────────────────
+  /// Payload media filename, served through `/api/media/file/<name>`. Null = show the monogram.
+  ///
+  /// The FILE is stored unmodified, which is what keeps an animated GIF or WebP animated: cropping
+  /// server-side would flatten it to a first frame. The crop below is presentation only.
+  avatarFilename  String?
+  /// Where the crop sits, as CSS `object-position` percentages. 50/50 is centred.
+  avatarFocalX    Int       @default(50)
+  avatarFocalY    Int       @default(50)
+  /// Zoom, as a percentage of `cover`. 100 = fill the slot exactly; higher crops in further.
+  avatarZoom      Int       @default(100)
+  /// Kept so the served URL can be cache-busted when a player replaces their picture.
+  avatarUpdatedAt DateTime?
+
+  /// Per-profile colour theme. Absent = the shared default; deleting the row IS "reset to default".
+  profileTheme PlayerProfileTheme?
+
   /// Editorial back-relations. All optional and all SetNull/Cascade on the owning side, so an
   /// archived author never takes published history down with them.
   authoredArticles Article[]         @relation("ArticleAuthor")
@@ -356,6 +373,42 @@ model Player {
 /// NOT globally unique: the same raw handle can map to different canonical people
 /// over time (see PlayerSplit). Uniqueness is only per (player, alias, type) to
 /// prevent duplicate rows for the same player.
+/// One player's chosen profile colours.
+///
+/// ── Why a row per player and not a column bag on Player ─────────────────────────────────────────
+/// A theme is optional, it is edited as a unit, and "reset to default" should be one delete rather
+/// than seven nullings. Separating it also means the common read — a profile with no theme — costs
+/// nothing but a missing join, and the default lives in one place in code instead of in seven column
+/// defaults that would drift.
+///
+/// Every value is a CSS colour validated SERVER-SIDE before it is stored (see `lib/players/theme`).
+/// Nothing here is interpolated into a stylesheet without passing that check, because a colour field
+/// that reaches CSS unvalidated is a style-injection hole.
+model PlayerProfileTheme {
+  playerId String @id
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  /// Headline accent: active tab, key numbers, links, focus rings.
+  accent          String
+  /// Supporting accent: secondary emphasis and subtle frame details.
+  accentSecondary String
+  /// The profile's own background, beneath everything inside the frame.
+  surface         String
+  /// The surface of each information rectangle.
+  panelSurface    String
+  /// Section borders and the tint applied to the neutral pool-table rails.
+  border          String
+  /// Body text.
+  textPrimary     String
+  /// Labels and secondary text.
+  textMuted       String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("player_profile_theme")
+}
+
 model PlayerAlias {
   id           String     @id @default(cuid())
   playerId     String
@@ -1375,7 +1428,28 @@ model RatingLedger {
   /// universe without joining back through Season and Tournament on every read.
   platform         CompetitionPlatform @default(CUEVERSE)
   sequence         Int // global deterministic order across the whole all-time timeline
+  /// WHEN THE RECORD WAS ENTERED HERE. An audit stamp, never a match date.
+  ///
+  /// For a live competition this is the moment the match was completed and it is the truth. For the
+  /// imported archive it is the moment somebody typed a twenty-year-old result into this
+  /// application, which is why 16,038 of 16,482 rows carried an August 2026 stamp for matches
+  /// played between 2005 and 2014. Read `occurredOn` / `occurredYear` instead.
   completedAt      DateTime
+  /// The day the match was actually played, when that is genuinely known.
+  ///
+  /// Null when it is not. Deliberately nullable rather than defaulted: a null says "we do not know
+  /// the day", and any placeholder here would be a fabricated date that later reads as fact.
+  occurredOn       DateTime?
+  /// The year the match was played, from the competition it belongs to.
+  ///
+  /// Always known, because every Season and Tournament carries `competitionYear` — that field is the
+  /// dedicated historical source, and it was already correct while the timestamps were not.
+  occurredYear     Int?
+  /// How precisely the date above is known: 'DAY' or 'YEAR'.
+  ///
+  /// The display follows this rather than guessing from a null. A YEAR row renders "2005" and never
+  /// a month or a day, because inventing one would turn an honest gap into a false record.
+  datePrecision    String              @default("DAY")
   createdAt        DateTime            @default(now())
 
   @@unique([matchKey, playerId])
@@ -1383,6 +1457,7 @@ model RatingLedger {
   @@index([tournamentId])
   @@index([seasonId])
   @@index([completedAt])
+  @@index([occurredYear])
   @@index([platform], map: "rating_ledger_platform_idx")
   @@map("rating_ledger")
 }
@@ -2105,6 +2180,7 @@ model Season {
   /// undivided Seasons still cannot share a number — Prisma cannot express that, which is why the
   /// real constraint lives in 20260820_030000_season_number_per_division.
   /**
+   * /**
    * /**
    * /*
    * Season numbering is unique per series, year and division — but the real index is

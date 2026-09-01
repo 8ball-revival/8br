@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import type { HeadToHeadRow, ProfileAchievement, ProfileMatchRow } from '@/lib/players/profile'
+import type { ProfileAchievement, ProfileMatchRow } from '@/lib/players/profile'
 import { ResultPill, Td, Th } from './window-parts'
 import { cn } from '@/lib/utils'
 
@@ -74,7 +74,8 @@ export function MatchHistoryPanel({ matches }: { matches: ProfileMatchRow[] }) {
           <tbody>
             {visible.map((m) => (
               <tr key={m.sequence} className="border-b border-border/50 last:border-b-0">
-                <Td className="whitespace-nowrap text-muted-foreground">{m.at.slice(0, 10)}</Td>
+                {/* As precise as the record allows: "2005" for the archive, a full date for a live match. */}
+                <Td className="whitespace-nowrap text-muted-foreground">{m.dateLabel}</Td>
                 <Td>
                   {m.competitionHref ? (
                     <Link href={m.competitionHref} className="text-brand hover:text-brand-soft">{m.competitionLabel}</Link>
@@ -119,86 +120,12 @@ export function MatchHistoryPanel({ matches }: { matches: ProfileMatchRow[] }) {
   )
 }
 
-/** Every opponent this player has a recorded meeting with. */
-export function HeadToHeadPanel({ rows }: { rows: HeadToHeadRow[] }) {
-  const [query, setQuery] = useState('')
-  const term = query.trim().toLowerCase()
-  const filtered = term ? rows.filter((r) => r.opponentName.toLowerCase().includes(term)) : rows
+/*
+  The old Head to Head table used to live here: every opponent, always rendered.
 
-  if (rows.length === 0) {
-    return (
-      <p className="border border-dashed border-border p-4 text-sm text-muted-foreground">
-        No head-to-head records yet. These are built from completed matches, so a player with no
-        recorded matches has none.
-      </p>
-    )
-  }
-
-  return (
-    <section aria-label="Head to head" className="dl-surface border border-border bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <h3 className="eyebrow text-foreground">{rows.length} opponents</h3>
-        <div>
-          <label htmlFor="h2h-filter" className="sr-only">Filter opponents by name</label>
-          <input
-            id="h2h-filter"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter opponents"
-            className="border border-border bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          />
-        </div>
-      </header>
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[40rem] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left">
-              <Th>Opponent</Th>
-              <Th className="text-right">Played</Th>
-              <Th className="text-right">W–L–D</Th>
-              <Th className="text-right">Win %</Th>
-              <Th>Last met</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((r) => (
-              <tr key={r.opponentId ?? r.opponentName} className="border-b border-border/50 last:border-b-0">
-                <Td className="text-foreground">
-                  {r.opponentId ? (
-                    <Link href={`/players/${encodeURIComponent(r.opponentId)}`} className="text-brand hover:text-brand-soft">
-                      {r.opponentName}
-                    </Link>
-                  ) : (
-                    /* An archive handle nobody has matched to a profile. Shown, not linked to a 404. */
-                    r.opponentName
-                  )}
-                </Td>
-                <Td className="text-right tabular-nums text-muted-foreground">{r.played}</Td>
-                <Td className="text-right tabular-nums text-foreground">
-                  {r.wins}–{r.losses}{r.draws > 0 ? `–${r.draws}` : ''}
-                </Td>
-                <Td className={cn(
-                  'text-right tabular-nums font-semibold',
-                  r.winPct >= 50 ? 'text-[var(--win,inherit)]' : 'text-[var(--loss,inherit)]',
-                )}>
-                  {r.winPct.toFixed(1)}%
-                </Td>
-                <Td className="text-muted-foreground">
-                  {r.lastMet.slice(0, 10)}
-                  {r.lastCompetition && <span className="block text-xs">{r.lastCompetition}</span>}
-                </Td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr><Td className="text-muted-foreground" colSpan={5}>No opponent matches “{query}”.</Td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )
-}
+  It moved to `head-to-head-panel.tsx` and now starts empty behind a player picker — 112 rows of
+  one-match rivalries from 2007 was not a comparison, it was a wall.
+*/
 
 /**
  * The achievements this player holds.

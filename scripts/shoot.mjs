@@ -128,7 +128,8 @@ if (clickArg) {
   */
   const expr = `(() => {
     const wanted = ${JSON.stringify(clickArg)};
-    const el = [...document.querySelectorAll('button, a')].find((b) => b.textContent.trim() === wanted);
+    // Substring, not equality: a label may carry an arrow or an icon's text beside it.
+    const el = [...document.querySelectorAll('button, a')].find((b) => b.textContent.trim().includes(wanted));
     if (!el) return 'not-found';
     el.click();
     return 'clicked';
@@ -143,9 +144,23 @@ if (measure) {
     const de = document.documentElement;
     const vw = de.clientWidth;
     const out = [];
+    /*
+      An element wider than the viewport only matters if something can actually SEE it stick out.
+
+      A span inside a truncating list item is clipped by its parent and causes no overflow at all;
+      reporting it as one made this tool cry wolf about a layout that was fine. So an element whose
+      ancestor clips it is skipped, and what is left is the set that genuinely widens the page.
+    */
+    const clipped = (el) => {
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const o = getComputedStyle(p);
+        if (o.overflowX === 'hidden' || o.overflowX === 'clip' || o.overflowX === 'auto' || o.overflowX === 'scroll') return true;
+      }
+      return false;
+    };
     for (const el of document.querySelectorAll('main *')) {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.right > vw + 1) {
+      if (r.width > 0 && r.right > vw + 1 && !clipped(el)) {
         out.push({ tag: el.tagName, cls: String(el.className).slice(0, 70), right: Math.round(r.right), w: Math.round(r.width) });
       }
     }

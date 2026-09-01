@@ -53,7 +53,8 @@ export function ProfileTabs({ tabs, className }: { tabs: ProfileTab[]; className
       <div
         role="tablist"
         aria-label="Profile sections"
-        className="flex flex-wrap gap-1 border-b border-border"
+        className="flex flex-wrap gap-1 border-b"
+        style={{ borderColor: 'var(--pf-border)' }}
       >
         {tabs.map((tab) => {
           const selected = tab.key === activeKey
@@ -69,12 +70,12 @@ export function ProfileTabs({ tabs, className }: { tabs: ProfileTab[]; className
               tabIndex={selected ? 0 : -1}
               onClick={() => setActiveKey(tab.key)}
               onKeyDown={onKeyDown}
-              className={cn(
-                '-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] sm:px-4',
-                selected
-                  ? 'border-[var(--gold)] text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )}
+              /*
+                `pf-tab` rather than the site's own tokens: the active tab is one of the places the
+                brief requires a player's accent to reach, and a hard-coded gold underline ignored
+                whatever they had chosen.
+              */
+              className={cn('pf-tab -mb-px px-3 py-2 transition-colors sm:px-4')}
             >
               {tab.label}
             </button>
