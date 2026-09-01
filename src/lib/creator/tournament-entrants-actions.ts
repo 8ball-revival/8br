@@ -16,7 +16,9 @@ import { revalidatePath } from 'next/cache'
 
 import { prisma } from '@/lib/prisma'
 import { creatorActor } from './access'
-import { transitionTournamentState } from '@/lib/competition/tournament-lifecycle'
+import { transitionTournamentState, requireTournamentState, type TournamentState }
+  from '@/lib/competition/tournament-lifecycle'
+import type { EntrySlot } from '@/lib/seasons/playoff-topology'
 import { stageHref, type TournamentFormat } from './workflow'
 
 export interface TournamentClosePreflight {
@@ -85,11 +87,14 @@ export async function closeTournamentRegistrationAction(
  * The board sends a swap because that is what dragging one card onto another means; the service is
  * told to seat A's occupant where B is, which is the same thing said from the other end.
  */
+/** Placement is a DRAFT-only act; the same states `setTournamentBracketSlotAction` allows. */
+const DRAFT_BRACKET_STATES: TournamentState[] = ['REGISTRATION_CLOSED', 'BRACKET_GENERATED']
+
 export async function swapTournamentBracketSlotsAction(
   tournamentId: number,
   a: { matchId: number; side: 'home' | 'away' },
   b: { matchId: number; side: 'home' | 'away' },
-): Promise<{ ok?: boolean; error?: string; message?: string }> {
+): Promise<{ ok?: boolean; error?: string; message?: string; slots?: EntrySlot[] }> {
   const gate = await creatorActor()
   if (!gate.ok) return { error: gate.error }
 
@@ -121,10 +126,42 @@ export async function swapTournamentBracketSlotsAction(
   const moving = fromOccupant ?? toOccupant
   if (moving == null) return { ok: true, message: 'Both positions are byes; nothing moved.' }
 
-  const { setTournamentBracketSlotAction } = await import('@/lib/competition/tournament-actions')
-  const r = await setTournamentBracketSlotAction(tournamentId, target.matchId, target.side, moving)
-  if (r.error) return { error: r.error }
-  return { ok: true, message: 'Swapped.' }
+  const { setTournamentBracketSlot } = await import('@/lib/competition/service')
+  const state = await requireTournamentState(tournamentId, DRAFT_BRACKET_STATES)
+  if (!state.ok) return { error: state.error }
+  const r = await setTournamentBracketSlot(gate.actor, tournamentId, target.matchId, target.side, moving)
+  if (!r.ok) return { error: r.error }
+
+  /*
+    The board is returned rather than the page being rebuilt.
+
+    Every swap used to go through `setTournamentBracketSlotAction`, which revalidates
+    /tournaments, /hall-of-fame, /players, /records and /seasons. None of those show a bracket that
+    has not been published yet, so the work had no reader - and a revalidate inside a Server Action
+    makes the client refetch the whole Creator route as part of the reply, which is what turned
+    eight drags into eight full page loads. The same guard runs here, so nothing is skipped except
+    the cache work.
+
+    What comes back is the arrangement the SERVER now holds, not an echo of what was asked for. It
+    can differ: a swap involving a bye is performed from the other end (above), and the seat's seed
+    stays with the seat. The board adopts this, so it cannot drift away from the record.
+  */
+  return { ok: true, message: 'Swapped.', slots: await tournamentEntrySlots(tournamentId) }
+}
+
+/** The entry positions as they now stand, in the shape the placement board draws. */
+async function tournamentEntrySlots(tournamentId: number): Promise<EntrySlot[]> {
+  const rows = await prisma.playoffMatch.findMany({
+    where: { tournamentId },
+    select: {
+      id: true, round: true, slot: true, label: true, section: true,
+      homeRegistrationId: true, awayRegistrationId: true,
+      homeUsername: true, awayUsername: true,
+      homeSeed: true, awaySeed: true, winnerRegistrationId: true,
+    },
+  })
+  const { tournamentTopology } = await import('@/lib/tournaments/bracket-topology')
+  return tournamentTopology(rows as never).entrySlots
 }
 
 /**

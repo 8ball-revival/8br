@@ -24,8 +24,8 @@ import { useRouter } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 import { DraftBracket } from './draft-bracket'
-import { applySwap, describeSwap, canPlaceInto, sameSlot, type SlotRef } from '@/lib/seasons/bracket-swap'
-import type { EntrySlot } from '@/lib/seasons/playoff-topology'
+import { describeSwap, canPlaceInto, sameSlot, type SlotRef } from '@/lib/seasons/bracket-swap'
+import { usePlacementBoard } from './use-placement-board'
 import type { TournamentTopology } from '@/lib/tournaments/bracket-topology'
 import {
   swapTournamentBracketSlotsAction, draftTournamentBracketAction, startTournamentAction,
@@ -66,22 +66,22 @@ export function TournamentBracketSetup({
   const [announcement, setAnnouncement] = useState('')
 
   /*
-    The slots as drawn, which may be one swap ahead of the server.
+    The slots as drawn, which may be several swaps ahead of the server.
 
-    Applying the exchange immediately makes dragging feel like moving a card rather than submitting
-    a form. A refusal has to put it back, so the pre-swap array is kept and restored on failure —
-    leaving the optimistic state in place would show an arrangement the database does not have.
+    Applying each exchange immediately makes dragging feel like moving a card rather than submitting
+    a form. The saves behind it run strictly in order and the board reconciles with what comes back,
+    without refetching the route — see `usePlacementBoard`, and `createPlacementQueue` for why a
+    single pre-swap snapshot is not enough to undo a refusal correctly.
   */
-  const [slots, setSlots] = useState<EntrySlot[]>(topology.entrySlots)
-
-  // A fresh render from the server is the truth; adopt it whenever the draft really changed. The
-  // signature compares CONTENT, so it changes exactly when a position does rather than every render.
-  const serverSignature = topology.entrySlots.map((x) => `${x.matchId}:${x.side}:${x.entrantId ?? ''}`).join('|')
-  const [signature, setSignature] = useState(serverSignature)
-  if (signature !== serverSignature) {
-    setSignature(serverSignature)
-    setSlots(topology.entrySlots)
-  }
+  const board = usePlacementBoard({
+    server: topology.entrySlots,
+    entryKeys: topology.entryKeys,
+    save: (from, to) => swapTournamentBracketSlotsAction(tournamentId, from, to)
+      .then((r) => ({ ok: !r.error, error: r.error, slots: r.slots })),
+    onError: (text) => setMsg({ ok: false, text }),
+    announce: (shown, from, to) => setAnnouncement(describeSwap(shown, from, to)),
+  })
+  const slots = board.slots
 
   const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
     start(async () => {
@@ -96,15 +96,7 @@ export function TournamentBracketSetup({
       setMsg({ ok: false, text: 'That position is decided by an earlier match.' })
       return
     }
-    const before = slots
-    setSlots(applySwap(slots, from, target))
-    setAnnouncement(describeSwap(slots, from, target))
-    start(async () => {
-      const r = await swapTournamentBracketSlotsAction(tournamentId, from, target)
-      // A refusal puts the board back rather than leaving an arrangement the server does not have.
-      if (r.error) { setSlots(before); setMsg({ ok: false, text: r.error }) }
-      else router.refresh()
-    })
+    board.swap(from, target)
   }
 
   const placed = new Set(slots.map((s) => s.entrantId).filter((id): id is number => id != null))

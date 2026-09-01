@@ -9,8 +9,9 @@ import { AutoAssignPanel } from '@/components/archive/auto-assign-panel'
 import { BracketDraftBadge } from '@/components/bracket/primitives'
 import type { AutoAssignAvailability } from '@/lib/archive/auto-assign'
 import type { SeasonSeedRow } from '@/lib/seasons/playoffs'
-import type { BracketTopology, EntrySlot, StartReadiness } from '@/lib/seasons/playoff-topology'
-import { applySwap, canPlaceInto, describeSwap, sameSlot, type SlotRef } from '@/lib/seasons/bracket-swap'
+import type { BracketTopology, StartReadiness } from '@/lib/seasons/playoff-topology'
+import { canPlaceInto, describeSwap, sameSlot, type SlotRef } from '@/lib/seasons/bracket-swap'
+import { usePlacementBoard } from './use-placement-board'
 import { DraftBracket } from './draft-bracket'
 import {
   setSeasonPlayoffIncludedAction, setSeasonPlayoffFieldAction, setSeasonPlayoffTypeAction,
@@ -56,24 +57,17 @@ export function PlayoffWorkspace({
   /** The card currently under the pointer, so invalid targets can say so before the drop. */
   const [dragging, setDragging] = useState<SlotRef | null>(null)
   /*
-   * The slots as drawn, which may be one swap ahead of the server.
+   * The slots as drawn, which may be several swaps ahead of the server.
    *
-   * Applying the exchange immediately makes dragging feel like moving a card rather than like
-   * submitting a form. The cost is that a refusal has to put it back, so the pre-swap array is kept
-   * and restored on failure — the alternative, leaving the optimistic state in place, would show an
-   * arrangement the database does not have.
+   * Applying each exchange immediately makes dragging feel like moving a card rather than like
+   * submitting a form. The saves run strictly in order behind it, the board reconciles with the
+   * arrangement the server reports, and the route is never refetched — see `usePlacementBoard`.
+   *
+   * A fresh render from the server is still the truth when it arrives and nothing is outstanding;
+   * the hook compares the CONTENT of the board so it adopts one exactly when a position changed,
+   * without the flicker an effect would paint.
    */
-  const [slots, setSlots] = useState<EntrySlot[]>(topology.entrySlots)
   const [announcement, setAnnouncement] = useState('')
-
-  /*
-   * A fresh render from the server is the truth; adopt it whenever the draft really changed.
-   *
-   * Adjusted during render rather than in an effect. `topology.entrySlots` is a new array on every
-   * render, so an identity check would reset forever and an effect would paint the stale board
-   * first and then correct it — a visible flicker on every keystroke elsewhere on the page. The
-   * signature compares the CONTENT, so it changes exactly when a position does.
-   */
   /*
     The board only knows a slot's display name, which is not enough to identify anybody.
 
@@ -83,12 +77,18 @@ export function PlayoffWorkspace({
   */
   const identityByEntrant = new Map(seeding.map((r) => [r.entrantId, { cueverseId: r.cueverseId, name: r.name }]))
 
-  const serverSignature = topology.entrySlots.map((x) => `${x.matchId}:${x.side}:${x.entrantId ?? ''}`).join('|')
-  const [signature, setSignature] = useState(serverSignature)
-  if (signature !== serverSignature) {
-    setSignature(serverSignature)
-    setSlots(topology.entrySlots)
-  }
+  const board = usePlacementBoard({
+    server: topology.entrySlots,
+    entryKeys: topology.entryKeys,
+    save: (from, to) => swapSeasonBracketSlotsAction(seasonId, from, to)
+      .then((r) => ({ ok: !r.error, error: r.error, slots: r.slots })),
+    onError: (text) => {
+      setAnnouncement('The move was refused and has been undone.')
+      setMsg({ ok: false, text })
+    },
+    announce: (shown, from, to) => setAnnouncement(describeSwap(shown, from, to)),
+  })
+  const slots = board.slots
 
   const hasDraft = topology.matches > 0
   const selectable = seeding.filter((r) => r.qualification !== 'KICKED_OUT')
@@ -114,21 +114,7 @@ export function PlayoffWorkspace({
       setMsg({ ok: false, text: 'That position is decided by an earlier match — it cannot be set by hand.' })
       return
     }
-    const before = slots
-    setSlots(applySwap(slots, from, target))
-    setAnnouncement(describeSwap(slots, from, target))
-    start(async () => {
-      const r = await swapSeasonBracketSlotsAction(seasonId, from, target)
-      if (r.error) {
-        // Put the board back exactly as it was: an optimistic arrangement the database refused is
-        // worse than no move at all, because it looks saved.
-        setSlots(before)
-        setAnnouncement('The move was refused and has been undone.')
-        setMsg({ ok: false, text: r.error })
-        return
-      }
-      router.refresh()
-    })
+    board.swap(from, target)
   }
 
   const swap = (target: SlotRef) => {

@@ -268,15 +268,35 @@ export async function setSeasonPlayoffDisclaimerAction(seasonId: number, text: s
   revalidateSeason(seasonId)
   return { ok: true, message: text?.trim() ? 'Note saved.' : 'Note removed.' }
 }
+/**
+ * Arrange one pair of players in a bracket that has not been published.
+ *
+ * ── Why this does not revalidate ────────────────────────────────────────────────────────────────
+ * `swapSeasonBracketSlots` refuses unless the Season is in PLAYOFF_SETUP, so the board being moved
+ * is a draft: /seasons and the Season's public page do not show it, and rankings cannot have moved.
+ * Revalidating them per drag was work with no reader.
+ *
+ * It was not free, either. A revalidate inside a Server Action tells the client its route is stale,
+ * so the reply carries a fresh render of the whole Creator page — on top of the `router.refresh()`
+ * the board then called itself. Arranging a sixteen-player draw meant dozens of full page loads for
+ * a board that had already drawn the answer.
+ *
+ * ── Why it returns the board ────────────────────────────────────────────────────────────────────
+ * So the client can reconcile without refetching anything. This is the arrangement the SERVER holds
+ * after the write, which is not always the swap that was asked for — seeds belong to positions, not
+ * to people — so adopting it keeps the board honest.
+ */
 export async function swapSeasonBracketSlotsAction(
   seasonId: number,
   a: { matchId: number; side: 'home' | 'away' },
   b: { matchId: number; side: 'home' | 'away' },
-): Promise<SeasonActionResult> {
+): Promise<SeasonActionResult & { slots?: import('./playoff-topology').EntrySlot[] }> {
   const actor = await requireCapability('manage_competitions')
   const r = await po.swapSeasonBracketSlots(actor, seasonId, a, b)
   if (!r.ok) return { error: r.error }
-  revalidateSeason(seasonId); return { ok: true, message: 'Swapped.' }
+  const { bracketTopology } = await import('./playoff-topology')
+  const topo = await bracketTopology(seasonId)
+  return { ok: true, message: 'Swapped.', slots: topo.entrySlots }
 }
 export async function setSeasonBracketSlotAction(seasonId: number, matchId: number, side: 'home' | 'away', entrantId: number | null): Promise<SeasonActionResult> {
   const actor = await requireCapability('manage_competitions')
