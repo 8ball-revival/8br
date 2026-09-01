@@ -41,7 +41,7 @@ interface Acc {
 /**
  * Compute ranked standings for one group.
  * - `roster` seeds a row for every player so 0-game players still appear.
- * - Points: Win = 2, Draw = 1, +1 for completing every scheduled set in the group.
+ * - Points: Win = 3, Draw = 1, +1 for completing every scheduled set in the group.
  * - Tiebreakers (deterministic): Points ↓, then head-to-head result between the tied pair,
  *   then win percentage ↓, then username ↑.
  * - `qualifiersPerGroup` marks the top N as qualified.
@@ -129,8 +129,18 @@ export function computeStandings(
     gamesWon: r.gamesWon,
     gamesLost: r.gamesLost,
     gameDiff: r.gamesWon - r.gamesLost,
-    // Points: Win = 2, Draw = 1, plus 1 for completing every scheduled set in the group.
-    points: r.wins * 2 + r.draws + (fullSlate > 0 && r.played >= fullSlate ? 1 : 0),
+    /*
+      Points: Win = 3, Draw = 1, plus 1 for completing every scheduled set in the group.
+
+      A win was worth 2 until 2026-08-31. Three widens the gap between winning and drawing, which is
+      the point of the change: at 2 a draw was worth half a win, and a player who drew everything
+      finished level with one who won half their sets and lost the rest.
+
+      This is the only place the scale is written. The stored `Standing.points` rows carry whatever
+      the rule was when they were computed, so a season closed under the old scale keeps its old
+      totals until something recomputes it - see the note in the release for which seasons that is.
+    */
+    points: r.wins * 3 + r.draws + (fullSlate > 0 && r.played >= fullSlate ? 1 : 0),
     rank: 0,
     qualified: false,
   }))

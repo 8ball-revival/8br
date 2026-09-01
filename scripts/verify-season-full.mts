@@ -108,7 +108,7 @@ try {
   ])
   check('batch save numbers + draw ok', r.ok, JSON.stringify(r))
   const st0 = await prisma.seasonStanding.findMany({ where: { groupId: gA.id } })
-  check('a win awards 2 points somewhere', st0.some((x) => x.points >= 2))
+  check('a win awards 3 points somewhere', st0.some((x) => x.points >= 3))
   check('a draw awards 1 point to two players', st0.filter((x) => x.draws >= 1).length === 2)
 
   // version conflict on a stale save.

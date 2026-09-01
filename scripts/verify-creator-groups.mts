@@ -255,7 +255,7 @@ try {
   section('Standings use the confirmed scoring')
   const winnerRow = await prisma.seasonStanding.findFirstOrThrow({ where: { seasonId: s1, entrantId: m0.homeEntrantId } })
   const drawRow = await prisma.seasonStanding.findFirstOrThrow({ where: { seasonId: s1, entrantId: m1.homeEntrantId } })
-  check('a win is worth 2 points', winnerRow.wins === 1 && winnerRow.points === 2, `w=${winnerRow.wins} p=${winnerRow.points}`)
+  check('a win is worth 3 points', winnerRow.wins === 1 && winnerRow.points === 3, `w=${winnerRow.wins} p=${winnerRow.points}`)
   check('a draw is worth 1', drawRow.draws === 1 && drawRow.points === 1, `d=${drawRow.draws} p=${drawRow.points}`)
   check('games are counted', winnerRow.gamesWon === 7 && winnerRow.gamesLost === 3)
 

@@ -1,6 +1,6 @@
 /**
  * Verifies the SINGLE centralized standings comparator (computeStandings) — the one order used by the
- * public crosstable, admin views, previews, and playoff seeding. Points: Win = 2, Draw = 1, +1 for
+ * public crosstable, admin views, previews, and playoff seeding. Points: Win = 3, Draw = 1, +1 for
  * completing all scheduled sets. Tiebreakers: Points, then head-to-head, then win percentage, then
  * name. Pure — no DB.
  *
@@ -25,13 +25,13 @@ function D(roster: { registrationId: number; username: string }[], p1: string, p
 const order = (rows: ReturnType<typeof computeStandings>) => rows.map((r) => r.username)
 const row = (rows: ReturnType<typeof computeStandings>, u: string) => rows.find((x) => x.username === u)!
 
-console.log('Points formula — Win = 2, +1 completion')
+console.log('Points formula — Win = 3, +1 completion')
 {
   const r = P(['b', 'a', 'c']) // not alphabetical / not seed order
   const rows = computeStandings(r, [M(r, 'a', 'b', 7, 3), M(r, 'a', 'c', 7, 1), M(r, 'b', 'c', 7, 4)], 2)
   check('order by points: a, b, c', order(rows).join(',') === 'a,b,c')
-  check('a (2 wins, completed) = 2·2 + 1 = 5 pts', row(rows, 'a').points === 5)
-  check('b (1 win, completed) = 2 + 1 = 3 pts', row(rows, 'b').points === 3)
+  check('a (2 wins, completed) = 2·3 + 1 = 7 pts', row(rows, 'a').points === 7)
+  check('b (1 win, completed) = 3 + 1 = 4 pts', row(rows, 'b').points === 4)
   check('c (0 wins, completed) = 0 + 1 = 1 pt', row(rows, 'c').points === 1)
   check('ranks 1..n', rows.map((x) => x.rank).join(',') === '1,2,3')
   check('top-N flagged qualified', rows[0].qualified && rows[1].qualified && !rows[2].qualified)
@@ -42,7 +42,7 @@ console.log('\nDraw = 1 point')
   const r = P(['a', 'b', 'c'])
   // a drew b (5–5); a beat c; b lost to c. All completed.
   const rows = computeStandings(r, [D(r, 'a', 'b', 5), M(r, 'a', 'c', 7, 2), M(r, 'c', 'b', 7, 3)], 2)
-  check('a: draw(1) + win(2) + completion(1) = 4', row(rows, 'a').points === 4)
+  check('a: draw(1) + win(3) + completion(1) = 5', row(rows, 'a').points === 5)
   check('b: draw(1) + loss(0) + completion(1) = 2', row(rows, 'b').points === 2)
   check('draw is recorded (a has 1 draw)', row(rows, 'a').draws === 1)
 }
@@ -53,8 +53,8 @@ console.log('\nCompletion bonus — completing all sets adds a point')
   // a beat b (a played only 1 of 2 → incomplete). b beat c (b played both → completed).
   const rows = computeStandings(r, [M(r, 'a', 'b', 7, 5), M(r, 'b', 'c', 7, 5)], 2)
   const a = row(rows, 'a'), b = row(rows, 'b')
-  check('a: 1 win, incomplete (played 1 of 2) → 2 pts', a.points === 2)
-  check('b: 1 win, completed all sets → 2 + 1 = 3 pts', b.points === 3)
+  check('a: 1 win, incomplete (played 1 of 2) → 3 pts', a.points === 3)
+  check('b: 1 win, completed all sets → 3 + 1 = 4 pts', b.points === 4)
   check('completed b ranks above equal-wins-but-incomplete a', b.rank < a.rank)
 }
 

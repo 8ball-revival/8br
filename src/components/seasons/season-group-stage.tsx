@@ -256,7 +256,7 @@ function GroupTable({ seasonId, group, groupStageGames, canManage }: { seasonId:
                   <span className="group/tip relative inline-flex">
                     <button type="button" aria-describedby={tipId} className="inline-flex text-muted-foreground hover:text-foreground"><Info className="size-3" aria-hidden /><span className="sr-only">How standings are sorted</span></button>
                     <span id={tipId} role="tooltip" className="pointer-events-none absolute right-0 top-5 z-40 hidden w-56 rounded-none border border-border bg-popover p-2 text-left text-[0.7rem] normal-case tracking-normal text-muted-foreground shadow-lg group-hover/tip:block group-focus-within/tip:block">
-                      Points: Win = 2, Draw = 1, plus 1 for completing all your sets. Ties are broken by head-to-head result, then win percentage.
+                      Points: Win = 3, Draw = 1, plus 1 for completing all your sets. Ties are broken by head-to-head result, then win percentage.
                     </span>
                   </span>
                 </span>

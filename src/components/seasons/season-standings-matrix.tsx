@@ -99,7 +99,7 @@ export function SeasonStandingsMatrix({
                   </th>
                 )
               })}
-              <th scope="col" className="season-stat-head" title="Win 2, Draw 1, plus 1 for completing every set">Pts</th>
+              <th scope="col" className="season-stat-head" title="Win 3, Draw 1, plus 1 for completing every set">Pts</th>
               <th scope="col" className="season-stat-head">W–L–D</th>
               <th scope="col" className="season-stat-head" title="Games won and lost">Games</th>
               <th scope="col" className="season-stat-head" title="Games won as a share of games played">Game%</th>
@@ -185,7 +185,7 @@ export function SeasonStandingsMatrix({
       </div>
 
       <footer className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border px-4 py-2.5 text-[0.7rem] text-muted-foreground">
-        <span>Ordered by points — Win 2, Draw 1, plus 1 for completing every set.</span>
+        <span>Ordered by points — Win 3, Draw 1, plus 1 for completing every set.</span>
         <span>Hover or tap a row to pick out that player&apos;s <i className="not-italic text-[var(--gold)]">wins</i></span>
         <span><i className="not-italic text-[var(--gold)]">▮</i> gold edge = reached the playoffs</span>
         <span><i className="not-italic text-[var(--gold)]">·</i> no match recorded</span>

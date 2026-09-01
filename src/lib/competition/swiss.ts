@@ -169,9 +169,11 @@ async function computeStandings(tournamentId: number): Promise<SwissStandingRow[
    * Standings points: a win is 2, a bye is 2, a loss is 0.
    *
    * The scale used to be 1 per win, which ordered players identically but disagreed with every other
-   * table on the site — Season groups have scored Win 2 / Draw 1 for as long as they have existed.
-   * Two tables using the word "points" for different quantities is the kind of difference nobody
-   * notices until they compare them.
+   * table on the site. It was matched to Season groups, which scored Win 2 / Draw 1 at the time.
+   *
+   * Season groups moved to Win 3 on 2026-08-31 and Swiss deliberately did NOT follow. A Swiss round
+   * has no draw to separate from a win, so the gap the 3 was widening does not exist here, and
+   * changing it would renumber every Swiss table to no end. The two are simply different formats.
    *
    * A bye scores the same as a win because that is what a bye IS: an unopposed advance. It produces
    * no other record — no win, no loss, no games, no differential, no streak, no rating — which is
