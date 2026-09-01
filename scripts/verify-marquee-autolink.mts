@@ -64,6 +64,51 @@ section('The surrounding text and line breaks survive')
     links('https://a.example.com, https://b.example.com').every((l) => !l.label.endsWith(',')))
 }
 
+// ── Labelled links ────────────────────────────────────────────────────────────────────────────
+section('A link can carry its own words')
+{
+  const real = 'The official 8BRCAM website: [The official 8BRCAM website](https://8brcam.ai.studio/)'
+  const l = links(real)
+  check('the label becomes the link text', l[0]?.label === 'The official 8BRCAM website', l[0]?.label)
+  check('...pointing at the address in brackets', l[0]?.href === 'https://8brcam.ai.studio/', l[0]?.href)
+  check('the address itself is not shown as well',
+    !linkify(real).some((s) => s.kind === 'text' && s.value.includes('8brcam.ai.studio')))
+  check('the surrounding sentence survives',
+    linkify(real).some((s) => s.kind === 'text' && s.value.includes('The official 8BRCAM website: ')))
+
+  check('a labelled and a bare link can share one paragraph',
+    links('see [here](https://a.example.com) or https://b.example.com').length === 2)
+  check('...the labelled one keeps its words',
+    links('see [here](https://a.example.com) or https://b.example.com')[0]?.label === 'here')
+  check('...and the bare one keeps its address',
+    links('see [here](https://a.example.com) or https://b.example.com')[1]?.label === 'https://b.example.com')
+
+  check('line breaks around a labelled link survive',
+    rebuilt('one\n[two](https://x.example.com)\nthree').includes('\n'))
+  check('a label is plain text, not markup',
+    links('[a <b> c](https://x.example.com)')[0]?.label === 'a <b> c')
+
+  /*
+    A labelled link is where somebody would try to hide a bad address behind friendly words, so an
+    unusable one must not become a link at all - and must not silently swallow the author's text.
+  */
+  check('a javascript: address is refused', links('[click](javascript:alert(1))').length === 0)
+  check('...and the text the author typed is still there',
+    rebuilt('[click](javascript:alert(1))') === '[click](javascript:alert(1))')
+  check('a data: address is refused', links('[x](data:text/html,<script>alert(1)</script>)').length === 0)
+  check('a relative path is refused', links('[x](/seasons)').length === 0)
+  /*
+    An empty label is not a labelled link, and the address inside it is then just a bare URL in the
+    text - which is exactly what the reader sees - so it links as one. The author's brackets stay
+    put rather than being quietly eaten.
+  */
+  check('an empty label falls back to linking the bare address',
+    links('[](https://x.example.com)')[0]?.label === 'https://x.example.com')
+  check('...leaving the brackets the author typed visible',
+    rebuilt('[](https://x.example.com)') === '[](https://x.example.com)')
+  check('an empty address is refused', links('[x]()').length === 0)
+}
+
 // ── What must NOT become a link ───────────────────────────────────────────────────────────────
 section('Only complete http(s) URLs are linked')
 {
@@ -135,8 +180,20 @@ section('The panel button and the body link are independent')
     /ctaLabel: \{ kind: 'text', label: 'Button label', default: 'Find out more', maxLength: 60 \}/.test(mq))
   check('the Button destination field is unchanged',
     /ctaHref: \{ kind: 'url', label: 'Button destination', default: '\/' \}/.test(mq))
-  check('the body-copy field is unchanged',
-    /body: \{ kind: 'text', label: 'Body copy', default: '', maxLength: 300, multiline: true \}/.test(mq))
+  /*
+    The body-copy field keeps its type and its limits.
+
+    Pinned as the parts that decide what an author can store - not the literal line, which now also
+    carries help text explaining the link syntax. A change to `maxLength` or `multiline` would
+    silently alter or truncate copy somebody has already written; a sentence of help cannot.
+  */
+  check('the body-copy field keeps its type and limits',
+    /body: \{[\s\S]{0,400}?kind: 'text'/.test(mq)
+    && /label: 'Body copy'/.test(mq)
+    && /maxLength: 300/.test(mq)
+    && /multiline: true/.test(mq))
+  check('...and tells the author how to write a labelled link',
+    /\[the words\]\(https:\/\/example\.com\)/.test(mq))
 
   // An internal destination must not have gained a new tab or a rel.
   check('an internal button still opens in the same tab',

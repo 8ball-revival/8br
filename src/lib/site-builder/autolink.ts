@@ -83,7 +83,60 @@ export function safeHttpUrl(raw: string): string | null {
  * Every character of the input appears in exactly one segment, in order, so line breaks and the
  * spacing around a link survive untouched — the caller renders whitespace, this does not consume it.
  */
+/*
+  A link that carries its own words: [The official 8BRCAM website](https://8brcam.ai.studio/)
+
+  Bare-URL autolinking can only ever produce a link whose text IS the address, which is fine for a
+  reference and poor for a sentence - "The official 8BRCAM website" reads better than the URL, and
+  the URL then has to be visible for it to be clickable at all.
+
+  Markdown's syntax rather than an invented one: an author who has typed a link anywhere else on the
+  internet already knows it, and it costs nothing to support the shape they will try first.
+
+  Deliberately narrow. The label is plain text and stays plain text - `[` and `]` inside it are not
+  parsed, no nesting, no emphasis, no images. This is a link, not a markup language: everything the
+  label contains is rendered as characters, so it cannot become markup any more than a bare URL can.
+*/
+const LABELLED = /\[([^\]\n]+)\]\((\S+?)\)/g
+
 export function linkify(text: string): Segment[] {
+  if (!text) return []
+  const out: Segment[] = []
+  let cursor = 0
+
+  /*
+    Labelled links are taken first, and the bare-URL pass then runs over the gaps between them.
+
+    Order matters: the URL inside `](...)` is a bare URL too, so scanning for those first would
+    linkify the address and leave the brackets as literal text around it.
+  */
+  const claimed: { start: number; end: number; href: string; label: string }[] = []
+  LABELLED.lastIndex = 0
+  for (let m = LABELLED.exec(text); m; m = LABELLED.exec(text)) {
+    const href = safeHttpUrl(m[2].trim())
+    const label = m[1].trim()
+    // An unusable address leaves the whole thing as the text the author typed, rather than
+    // rendering a link that goes nowhere or dropping their words silently.
+    if (!href || !label) continue
+    claimed.push({ start: m.index, end: m.index + m[0].length, href, label })
+  }
+
+  if (claimed.length > 0) {
+    let at = 0
+    for (const c of claimed) {
+      if (c.start > at) out.push(...linkifyBare(text.slice(at, c.start)))
+      out.push({ kind: 'link', href: c.href, label: c.label })
+      at = c.end
+    }
+    if (at < text.length) out.push(...linkifyBare(text.slice(at)))
+    return out
+  }
+
+  return linkifyBare(text)
+}
+
+/** Bare http(s) URLs, linked with the address as their own text. */
+function linkifyBare(text: string): Segment[] {
   if (!text) return []
   const out: Segment[] = []
   let cursor = 0

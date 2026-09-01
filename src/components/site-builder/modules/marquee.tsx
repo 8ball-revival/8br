@@ -182,7 +182,10 @@ registerModule({
         kicker: { kind: 'text', label: 'Competition label', default: '', maxLength: 80 },
         title: { kind: 'text', label: 'Season label', default: 'Season 1', maxLength: 60 },
         status: { kind: 'text', label: 'Status label', default: 'Coming soon', maxLength: 60 },
-        body: { kind: 'text', label: 'Body copy', default: '', maxLength: 300, multiline: true },
+        body: {
+          kind: 'text', label: 'Body copy', default: '', maxLength: 300, multiline: true,
+          help: 'A full https:// address becomes a link on its own. To give the link words instead, write [the words](https://example.com).',
+        },
         ctaLabel: { kind: 'text', label: 'Button label', default: 'Find out more', maxLength: 60 },
         ctaHref: { kind: 'url', label: 'Button destination', default: '/' },
         newTab: { kind: 'boolean', label: 'Open in a new tab', default: false },
