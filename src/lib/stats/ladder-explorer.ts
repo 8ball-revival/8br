@@ -4,7 +4,7 @@ import { inWindow, ratingsForScope, replayRatings, windowCutoff } from '@/lib/st
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { ELO_START, isRatingNeutral, withChampionStep } from '@/lib/stats/elo'
-import { resolvePublicIdentity, slugifyIdentity } from '@/lib/identity/public-identity'
+import { profileSlug, resolvePublicIdentity } from '@/lib/identity/public-identity'
 import { UNASSIGNED_DIVISION, completenessOf, type Completeness } from './rankings-facts'
 
 // Re-exported so callers that already import the aggregate do not need a second import for the
@@ -1005,7 +1005,11 @@ export async function computeExplorer(
       preferredName: identity.preferredName,
       cueverseId: identity.cueverseId,
       label: identity.label,
-      slug: slugifyIdentity(identity.preferredName, identity.cueverseId),
+      /*
+        Never null here: every explorer row carries a player id, and the route resolves an id as
+        readily as a handle. Spelled out rather than asserted, so the guarantee is visible.
+      */
+      slug: profileSlug(identity.cueverseId, String(r.playerId)) ?? String(r.playerId),
       rank: 0,
       wins,
       losses,

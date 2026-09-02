@@ -26,9 +26,34 @@ export interface PublicIdentity {
   slug: string | null
 }
 
-export function slugifyIdentity(preferredName: string, cueverseId?: string | null): string {
-  const base = (cueverseId || preferredName || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  return base || 'player'
+/**
+ * The route parameter for a player's public profile, or null when there is nothing to link to.
+ *
+ * ── Why this cannot prettify anything ───────────────────────────────────────────────────────────
+ * `/players/[cueverse]` resolves its parameter by looking for a player whose `id` matches it, or
+ * whose `cueverseId` matches it case-insensitively. It does not un-slugify, and there is nothing it
+ * could un-slugify to: a lossy transformation has no inverse.
+ *
+ * So a slug must be a value the lookup will actually find. The previous version lowercased and
+ * replaced every character outside `[a-z0-9]` with a hyphen, which round-trips only for handles
+ * that are pure letters and digits. Everything else pointed at a profile that does not exist:
+ *
+ *     "da_leo"            ->  /players/da-leo          404
+ *     "pool.stick"        ->  /players/pool-stick      404
+ *     "1_exterminate_1"   ->  /players/1-exterminate-1 404
+ *     "🔥 ₲ØĐⱠł₭Ɇ₊⊹"       ->  /players/player          404  (everything stripped, then a fallback)
+ *
+ * On this database that was 388 of 521 players — underscores and full stops are ordinary in a
+ * handle, so the common case was broken and the all-symbol name was only its loudest form. The
+ * `'player'` fallback was the worst part: it invented a destination rather than admitting there
+ * was none.
+ *
+ * The handle is returned as it is stored, and the caller encodes it. Where a player has no handle
+ * the id is used instead — the route accepts that too, so somebody who never set a CueVerse ID
+ * still gets a profile that opens.
+ */
+export function profileSlug(cueverseId?: string | null, playerId?: string | null): string | null {
+  return (cueverseId ?? '').trim() || (playerId ?? '').trim() || null
 }
 
 export function formatIdentityLabel(preferredName: string, cueverseId?: string | null): string {

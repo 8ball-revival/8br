@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { prisma } from '@/lib/prisma'
-import { slugifyIdentity } from '@/lib/identity/public-identity'
+import { profileSlug } from '@/lib/identity/public-identity'
 
 /**
  * Who holds the record, resolved from the canonical player where one is named.
@@ -13,7 +13,7 @@ import { slugifyIdentity } from '@/lib/identity/public-identity'
  * one place on the site still calling them by a name they had stopped using.
  *
  * So the panel stores a player id and reads the identity from the Player row, exactly as the rest of
- * the site does — and builds the profile link with the same `slugifyIdentity` every other link uses,
+ * the site does — and builds the profile link with the same `profileSlug` every other link uses,
  * rather than inventing a second URL shape.
  *
  * ── Why the text fields still exist ─────────────────────────────────────────────────────────────
@@ -31,6 +31,11 @@ export interface RecordHolder {
   href: string | null
   /** True when this came from the Player row rather than from the fallback text. */
   canonical: boolean
+}
+
+/** A profile link, or none at all — never a link to a profile that does not exist. */
+function linkFor(slug: string | null): string | null {
+  return slug === null ? null : `/players/${encodeURIComponent(slug)}`
 }
 
 export async function resolveRecordHolder(input: {
@@ -57,7 +62,7 @@ export async function resolveRecordHolder(input: {
       primary,
       // Only when it adds something. "sixohtwo" over "sixohtwo" is noise.
       secondary: name && name.toLowerCase() !== primary.toLowerCase() ? name : null,
-      href: `/players/${encodeURIComponent(slugifyIdentity(player.primaryName ?? '', player.cueverseId))}`,
+      href: linkFor(profileSlug(player.cueverseId, player.id)),
       canonical: true,
     }
   } catch (err) {

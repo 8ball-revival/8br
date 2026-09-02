@@ -5,10 +5,11 @@
  *
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-identity-display.mts
  */
+import { readFileSync } from 'node:fs'
 import {
   identityLines, identityText, fromNameHandle, fromDisplayName, matchesIdentity, NO_IDENTITY,
 } from '../src/lib/identity/display.ts'
-import { formatIdentityLabel, resolvePublicIdentity } from '../src/lib/identity/public-identity.ts'
+import { formatIdentityLabel, profileSlug, resolvePublicIdentity } from '../src/lib/identity/public-identity.ts'
 
 let pass = 0, fail = 0
 const check = (n: string, c: boolean, d = '') => {
@@ -136,6 +137,57 @@ console.log('--- The CueVerse ID is present everywhere, always ---')
   check('...case-insensitively', identityLines({ cueverseId: 'L3ammy', preferredName: 'l3ammy' }).secondary === null)
 }
 
+
+console.log('')
+console.log('--- A profile slug is something the route can actually find ---')
+{
+  /*
+    Reported from the live site: a player whose name is symbols had a profile link that went to
+    /players/player and 404ed.
+
+    The slug was built by lowercasing and replacing everything outside [a-z0-9] with a hyphen, then
+    falling back to the word "player" when nothing survived. But `/players/[cueverse]` resolves its
+    parameter by matching a player's `id`, or their `cueverseId` case-insensitively. It does not
+    un-slugify, and it could not: a lossy transformation has no inverse. So the slug round-tripped
+    only for handles that are pure letters and digits.
+
+    That made it the COMMON case, not an exotic one — underscores and full stops are ordinary in a
+    handle. On this database 388 of 521 players had a link that could not resolve.
+  */
+  const SYMBOLS = '\u{1F525} ₲ØĐⱢł₮Ɇ₊⊹'
+
+  check('a handle is the slug, exactly as stored', profileSlug('da_leo', 'p1') === 'da_leo')
+  check('...including full stops', profileSlug('pool.stick', 'p1') === 'pool.stick')
+  check('...and underscores at either end', profileSlug('bongman420_', 'p1') === 'bongman420_')
+  check('...and capitals, which the lookup folds itself',
+    profileSlug('AzNBaLLeR357', 'p1') === 'AzNBaLLeR357')
+  check('...and a name made only of symbols', profileSlug(SYMBOLS, 'p1') === SYMBOLS)
+
+  /* No handle is not a dead end: the route accepts an id, so the id is the link. */
+  check('a player without a handle still links, by id', profileSlug(null, 'p123') === 'p123')
+  check('...and whitespace is not a handle', profileSlug('   ', 'p123') === 'p123')
+
+  /*
+    The old fallback invented a destination. Nothing is a better answer than a link to a profile
+    that does not exist.
+  */
+  check('nothing to link to is null, never the word "player"', profileSlug(null, null) === null)
+
+  /* Both call sites must take the id as the fallback, or they reintroduce the dead link. */
+  const holder = readFileSync('src/lib/home/record-holder.ts', 'utf8')
+  check('the homepage record holder passes the id as a fallback',
+    /profileSlug\(player\.cueverseId, player\.id\)/.test(holder))
+  check('...and renders no link at all when there is none', /slug === null \? null/.test(holder))
+  const ladder = readFileSync('src/lib/stats/ladder-explorer.ts', 'utf8')
+  check('the ladder explorer does the same',
+    /profileSlug\(identity\.cueverseId, String\(r\.playerId\)\)/.test(ladder))
+
+  /* And the lossy version must not come back. */
+  for (const f of ['src/lib/identity/public-identity.ts', 'src/lib/home/record-holder.ts', 'src/lib/stats/ladder-explorer.ts']) {
+    check(`${f.split('/').pop()} no longer slugifies an identity`,
+      !readFileSync(f, 'utf8').includes('slugifyIdentity'))
+  }
+}
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 process.exit(fail === 0 ? 0 : 1)
