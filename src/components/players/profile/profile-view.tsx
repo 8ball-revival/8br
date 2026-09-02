@@ -318,14 +318,40 @@ function CareerPreview({ data }: { data: PlayerProfilePage }) {
   )
 }
 
+/*
+  The tile is the CueVerse era; View All is the whole career.
+
+  Seasons run from 2005 on Yahoo through to CueVerse today, and a single figure covering both says
+  very little about a player now — twenty-odd Yahoo seasons swamp the two that are current. So the
+  tile counts only what was played on CueVerse, and the window behind "View All" still lists every
+  Season with its platform named on each one.
+
+  The Yahoo seasons are counted in a line of their own rather than left out silently. A figure that
+  quietly excludes most of somebody's career, with nothing to say so, is worse than the figure it
+  replaced.
+*/
 function SeasonsPreview({ data }: { data: PlayerProfilePage }) {
-  const c = data.career
-  const newest = data.seasons.filter((s) => s.participation === 'verified')[0] ?? null
+  const onCueverse = data.seasons.filter((s) => s.platform !== 'YAHOO')
+  const played = onCueverse.filter((s) => s.participation === 'verified')
+  const rostered = onCueverse.filter((s) => s.participation === 'roster-only').length
+  const earlier = data.seasons.length - onCueverse.length
+  const newest = played[0] ?? null
+
+  /*
+    Titles counted from the Season records rather than from the career total.
+
+    `career.seasonTitles` cannot be scoped — it arrives as a flat list with no Season attached — and
+    it is also wrong: it reads 0 for every archive champion, including one known to hold four. Each
+    Season row already carries `isChampion`, taken from that Season's own `championPlayerId`, which
+    is both attributable and correct.
+  */
+  const titles = onCueverse.filter((s) => s.isChampion).length
+
   return (
     <div>
       <dl className="pf-stat-row">
-        <Figure label="Seasons Played" count={c.seasonsPlayed} />
-        <Figure label="Titles" count={c.seasonTitles} />
+        <Figure label="Seasons Played" count={played.length} />
+        <Figure label="Titles" count={titles} />
       </dl>
       {newest && (
         <p className="pf-note mt-2">
@@ -334,10 +360,15 @@ function SeasonsPreview({ data }: { data: PlayerProfilePage }) {
         </p>
       )}
       {/* Roster-only entries are named separately: being entered is not the same as having a record. */}
-      {c.seasonsRostered > 0 && (
+      {rostered > 0 && (
         <p className="pf-note mt-1">
-          {c.seasonsRostered} further Season{c.seasonsRostered === 1 ? '' : 's'} on the roster with no
+          {rostered} further Season{rostered === 1 ? '' : 's'} on the roster with no
           recorded matches.
+        </p>
+      )}
+      {earlier > 0 && (
+        <p className="pf-note mt-1">
+          {earlier} earlier Season{earlier === 1 ? '' : 's'} on Yahoo — in View All.
         </p>
       )}
     </div>

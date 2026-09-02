@@ -700,7 +700,15 @@ export async function getPlayerProfilePage(
     seasonsPlayed: seasons.filter((s) => s.participation === 'verified').length,
     seasonsRostered: seasons.filter((s) => s.participation === 'roster-only').length,
     tournamentsPlayed: tournaments.length,
-    seasonTitles: (allTime?.seasonTitles ?? []).length,
+    /*
+      Counted from the Season records, not from the ladder's trophy list.
+
+      The ladder list reads 0 for every archive champion — MJ_The_King holds four Season titles and
+      it returned none — and it carries no Season on each entry, so it cannot be attributed or
+      scoped either. `isChampion` comes from that Season's own `championPlayerId`, which is the
+      record of who actually won it.
+    */
+    seasonTitles: seasons.filter((s) => s.isChampion).length,
     tournamentTitles: (allTime?.trophies ?? []).length,
     // The ladder already computes these over the same rows; recomputing would risk a second answer.
     currentStreak: current?.streak ?? allTime?.streak ?? 0,

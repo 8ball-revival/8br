@@ -386,6 +386,49 @@ section('The replay is embedded, one at a time, and unloaded')
     body.includes('overflow-auto') && body.includes('sticky top-0'))
 }
 
+section('The Seasons tile is the CueVerse era; View All is the whole career')
+{
+  /*
+    Asked for after the tile read "24 Seasons" on a player whose CueVerse career is one Season. The
+    archive runs from 2005 on Yahoo, so a combined figure is swamped by it and says very little
+    about a player now. The tile counts CueVerse only; the window behind View All still lists every
+    Season and names the platform on each.
+  */
+  const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
+  check('the tile filters out the Yahoo era', /s\.platform !== 'YAHOO'/.test(view))
+  check('...and says how many it left out, rather than hiding them',
+    /earlier Season\{/.test(view) && /in View All/.test(view))
+  check('the window is not filtered — it is the whole career',
+    !readFileSync('src/components/players/profile/seasons-window.tsx', 'utf8').includes("platform !== 'YAHOO'"))
+
+  /*
+    Titles come from each Season's own championPlayerId.
+
+    The ladder's trophy list returned 0 for every archive champion and carries no Season on an
+    entry, so it can be neither trusted nor scoped.
+  */
+  const mj = await getPlayerProfilePage('MJ_The_King')
+  if (mj) {
+    const fromSeasons = mj.seasons.filter((s) => s.isChampion).length
+    check('a four-time champion is credited with four', mj.career.seasonTitles === 4, String(mj.career.seasonTitles))
+    check('...which is what the Season records say', mj.career.seasonTitles === fromSeasons)
+    check('...and every one of them is a Yahoo-era Season',
+      mj.seasons.filter((s) => s.isChampion).every((s) => s.platform === 'YAHOO'))
+    check('...so the CueVerse-scoped tile shows none of them',
+      mj.seasons.filter((s) => s.platform !== 'YAHOO' && s.isChampion).length === 0)
+  } else {
+    console.log('  – MJ_The_King is not in this database')
+  }
+
+  const six = await getPlayerProfilePage('sixohtwo')
+  if (six) {
+    const cueverse = six.seasons.filter((s) => s.platform !== 'YAHOO')
+    check('a current player has a CueVerse Season to show', cueverse.length >= 1, String(cueverse.length))
+    check('...and the whole career is still there behind it',
+      six.seasons.length > cueverse.length, `${six.seasons.length} vs ${cueverse.length}`)
+  }
+}
+
 await prisma.$disconnect()
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 process.exit(fail === 0 ? 0 : 1)
