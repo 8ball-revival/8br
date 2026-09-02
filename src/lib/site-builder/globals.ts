@@ -122,7 +122,7 @@ export function factoryNav(): NavConfig {
     showSignIn: true,
     items: [
       ['Home', '/'], ['Seasons', '/seasons'], ['Tournaments', '/tournaments'],
-      ['Rankings', '/rankings'], ['Yahoo', '/yahoo'], ['Achievements', '/achievements'], ['The Break', '/the-break'],
+      ['Rankings', '/rankings'], ['Yahoo', '/yahoo'], ['Players', '/players'], ['The Break', '/the-break'],
     ].map(([label, href]) => ({
       label, mobileLabel: label, href, newTab: false, icon: '', badge: '',
       audience: 'everyone', device: 'both', children: [],

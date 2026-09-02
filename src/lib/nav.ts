@@ -52,8 +52,15 @@ export function buildNav(opts: {
    * legacy rating as if it were a current one.
    */
   entries.push({ label: 'Yahoo', href: '/yahoo' })
-  // Achievements is a destination in its own right, not only a link from the homepage strip.
-  entries.push({ label: 'Achievements', href: '/achievements' })
+  /*
+   * Players, where Achievements used to be.
+   *
+   * Achievements is a page about awards — a fine destination, and a strange one to hold a top-level
+   * tab while there was no way to browse the PEOPLE the whole site is about. A profile could only
+   * be reached by finding somebody in a table first. The /achievements route is unchanged and is
+   * still linked from the homepage strip; it simply no longer occupies the tab.
+   */
+  entries.push({ label: 'Players', href: '/players' })
   // The Break — the community. It is named on the tab rather than labelled "News", because it is no
   // longer only news: predictions, history, memes and discussion all live there.
   entries.push({ label: 'The Break', href: '/the-break' })
@@ -69,7 +76,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Rankings', href: '/rankings' },
   { label: 'Yahoo', href: '/yahoo' },
-  { label: 'Achievements', href: '/achievements' },
+  { label: 'Players', href: '/players' },
   { label: 'The Break', href: '/the-break' },
 ]
 /** Slim footer links. */

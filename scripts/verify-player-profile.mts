@@ -15,11 +15,12 @@
  *
  * Run:  npx tsx --tsconfig tsconfig.scripts.json scripts/verify-player-profile.mts
  */
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { getPlayerProfilePage, getProfileIdentity } from '../src/lib/players/profile.ts'
 import { searchPlayers } from '../src/lib/players/picker-search.ts'
+import { listActivePlayers } from '../src/lib/players/directory.ts'
 import { decideEditRights } from '../src/lib/players/edit-rights.ts'
 
 assertLocalDatabase()
@@ -431,6 +432,60 @@ section('The Seasons tile is the CueVerse era; View All is the whole career')
     check('...and the whole career is still there behind it',
       six.seasons.length > cueverse.length, `${six.seasons.length} vs ${cueverse.length}`)
   }
+}
+
+section('The Players directory')
+{
+  /*
+    The nav tab that pointed at Achievements now points at a directory of people. Achievements is a
+    page about awards — a fine destination, and a strange one to hold a top-level tab while there
+    was no way to browse the players the site is about.
+  */
+  const nav = readFileSync('src/lib/site-builder/globals.ts', 'utf8')
+  check('the factory navigation offers Players', /\['Players', '\/players'\]/.test(nav))
+  check('...in place of Achievements', !/\['Achievements', '\/achievements'\]/.test(nav))
+  const shell = readFileSync('src/components/site-builder/modules/shell.tsx', 'utf8')
+  check('...and /players is a destination the site builder will accept',
+    /value: '\/players'/.test(shell))
+  check('the Achievements route itself is untouched',
+    existsSync('src/app/(frontend)/achievements/page.tsx'))
+
+  /* Who belongs in a list of players. */
+  const dir = readFileSync('src/lib/players/directory.ts', 'utf8')
+  check('withdrawn profiles are left out', /active: true/.test(dir))
+  check('...and so is the management-only login', /managementOnly: false/.test(dir))
+
+  const rows = await listActivePlayers()
+  check('the directory returns players', rows.length > 0, String(rows.length))
+  const inactive = await prisma.player.count({ where: { active: false } })
+  const mgmt = await prisma.player.count({ where: { managementOnly: true, active: true } })
+  const all = await prisma.player.count()
+  check('...exactly the active, non-management ones', rows.length === all - inactive - mgmt,
+    `${rows.length} vs ${all} - ${inactive} - ${mgmt}`)
+  check('every row has a slug the route can find',
+    rows.every((r) => r.slug === null || r.slug === r.cueverseId || r.slug.length > 0))
+
+  /*
+    The edit is one implementation behind two doors. A second copy of the sequence — validate,
+    write, keep the login in step, propagate, audit, drop the cached ladder — is how two paths start
+    disagreeing, which is the drift this system already had to be repaired once for.
+  */
+  const shared = readFileSync('src/lib/players/identity-edit.ts', 'utf8')
+  check('the identity edit lives in one place', /export async function applyIdentityPatch/.test(shared))
+  check('...and propagates the new spelling everywhere it was copied',
+    /propagateIdentityChange/.test(shared))
+  for (const caller of ['src/lib/creator/entrant-identity-actions.ts', 'src/lib/players/directory-actions.ts']) {
+    const src = readFileSync(caller, 'utf8')
+    check(`${caller.split('/').pop()} uses it rather than its own copy`,
+      /applyIdentityPatch\(/.test(src) && !/propagateIdentityChange/.test(src))
+  }
+
+  /* The gate is on the action, because a form that is not drawn stops nobody. */
+  const action = readFileSync('src/lib/players/directory-actions.ts', 'utf8')
+  check('the directory edit requires manage_players', /requireCapability\('manage_players'\)/.test(action))
+  const page = readFileSync('src/app/(frontend)/players/page.tsx', 'utf8')
+  check('...and the page only decides whether to DRAW the controls',
+    /can\('manage_players'\)/.test(page) && /canEdit/.test(page))
 }
 
 await prisma.$disconnect()
