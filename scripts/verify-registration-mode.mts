@@ -149,6 +149,21 @@ console.log('\nthe code is not exposed')
       && !/defaultValue=\{[^}]*code/i.test(formSrc))
   check('...so the rendered field starts empty',
     !/name="registrationCode"[\s\S]{0,200}(value|defaultValue)=/.test(formSrc))
+
+  /*
+    A rejected code must not empty the rest of the form.
+
+    `useActionState` re-renders the form when the action returns, and React resets an UNCONTROLLED
+    input at that point — so one wrong invite code wiped the ID, the email and the password too, and
+    all of them had to be typed again to correct one field. Holding the values in client state fixes
+    it without the password ever travelling back down from the server to be restored.
+  */
+  check('what was typed survives a rejected submit',
+    /useState\(\{[\s\S]{0,200}registrationCode: '',[\s\S]{0,200}password: '',/.test(formSrc))
+  check('...on every field', ['registrationCode', 'cueverseId', 'preferredName', 'email', 'password']
+    .every((f) => formSrc.includes(`{...field('${f}')}`)))
+  check('...and the values are held on the client, not echoed by the server',
+    !/state\.(values|submitted|fields)/.test(formSrc))
 }
 
 // ─────────────────────────────────────────────────── permissions

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 
 import { createAccount, type FormResult } from '@/lib/account/actions'
@@ -25,6 +25,25 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
   requireCode?: boolean
 }) {
   const [state, action, pending] = useActionState(createAccount, initial)
+
+  /*
+    What the reader typed survives a rejected submit.
+
+    React resets an UNCONTROLLED input once a form action completes, so a single wrong invite code
+    emptied the whole form - the ID, the email and the password all had to be typed again to fix one
+    field. Holding the values here keeps them exactly where they were.
+
+    Client state rather than values echoed back from the server: the password never has to travel
+    back down to be preserved, because it never left.
+  */
+  const [form, setForm] = useState({
+    registrationCode: '', cueverseId: '', preferredName: '', email: '', password: '',
+  })
+  const field = (key: keyof typeof form) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      setForm((f) => ({ ...f, [key]: e.target.value })),
+  })
   const loginHref = returnTo && returnTo !== '/account' ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
 
   return (
@@ -40,6 +59,7 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
             id="registrationCode"
             name="registrationCode"
             type="text"
+            {...field('registrationCode')}
             required
             autoComplete="off"
             spellCheck={false}
@@ -58,6 +78,7 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
         <Input
           id="cueverseId"
           name="cueverseId"
+          {...field('cueverseId')}
           autoComplete="username"
           required
           placeholder="Starkiller"
@@ -75,6 +96,7 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
         <Input
           id="preferredName"
           name="preferredName"
+          {...field('preferredName')}
           autoComplete="name"
           placeholder="How you'd like to be shown"
           aria-describedby="preferredName-hint"
@@ -92,6 +114,7 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
           id="email"
           name="email"
           type="email"
+          {...field('email')}
           autoComplete="email"
           required
           placeholder="you@example.com"
@@ -110,6 +133,7 @@ export function CreateAccountForm({ returnTo = '/account', requireCode = false }
           id="password"
           name="password"
           type="password"
+          {...field('password')}
           autoComplete="new-password"
           required
           minLength={PASSWORD_MIN}
