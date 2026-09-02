@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 
 import type { DirectoryPlayer } from '@/lib/players/directory'
+import { compareMembersByColumn, compareMembersByName } from '@/lib/staff/member-order'
 import { updatePlayerIdentityAction } from '@/lib/players/directory-actions'
 
 /**
@@ -25,16 +26,41 @@ export function PlayersDirectory({ players, canEdit }: {
 }) {
   const [query, setQuery] = useState('')
   const [rows, setRows] = useState(players)
+  /*
+    Which column the reader picked, if any.
+
+    `null` means the default order the list arrived in — Preferred Name A–Z, blanks last, CueVerse
+    ID breaking ties — which is the same order and the same comparator as /staff/members. Picking a
+    column overrides it; picking the same one again reverses it.
+  */
+  const [sort, setSort] = useState<{ col: SortCol; dir: 'asc' | 'desc' } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [pending, start] = useTransition()
 
+  /*
+    Filter, then sort — in that order.
+
+    Sorting the whole list and filtering afterwards gives the same rows, but sorting only what
+    survived the search is the cheaper half of the same result and, more importantly, means the
+    chosen column still governs a filtered list rather than quietly reverting to the default.
+  */
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((p) =>
-      (p.cueverseId ?? '').toLowerCase().includes(q) || p.preferredName.toLowerCase().includes(q))
-  }, [rows, query])
+    const matched = q
+      ? rows.filter((p) =>
+        (p.cueverseId ?? '').toLowerCase().includes(q) || p.preferredName.toLowerCase().includes(q))
+      : rows
+
+    const as = (p: DirectoryPlayer) => ({ cueverseId: p.cueverseId, preferredName: p.preferredName })
+    return [...matched].sort((a, b) => (sort
+      ? compareMembersByColumn(as(a), as(b), sort.col, sort.dir)
+      : compareMembersByName(as(a), as(b))))
+  }, [rows, query, sort])
+
+  /** Pick a column, or reverse it when it is already the chosen one. */
+  const toggle = (col: SortCol) =>
+    setSort((s) => (s?.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }))
 
   const save = (id: string, cueverseId: string, preferredName: string) => {
     start(async () => {
@@ -99,8 +125,8 @@ export function PlayersDirectory({ players, canEdit }: {
           <thead>
             {/* Sticky, so the columns stay named however far down the list the reader is. */}
             <tr className="sticky top-0 z-10 border-b border-border bg-[var(--surface)] shadow-[0_1px_0_var(--border)]">
-              <th scope="col" className="px-3 py-2 text-left font-semibold">CueVerse ID</th>
-              <th scope="col" className="px-3 py-2 text-left font-semibold">Preferred Name</th>
+              <SortHeader label="CueVerse ID" col="cueverseId" sort={sort} onPick={toggle} />
+              <SortHeader label="Preferred Name" col="preferredName" sort={sort} onPick={toggle} />
               {/*
                 Matches and Account are administrative detail, not what a visitor came for.
 
@@ -149,6 +175,47 @@ export function PlayersDirectory({ players, canEdit }: {
         </table>
       </div>
     </div>
+  )
+}
+
+type SortCol = 'cueverseId' | 'preferredName'
+
+/**
+ * A sortable column heading.
+ *
+ * The same affordance as the staff member list — the label, a caret, and clicking it again
+ * reverses — but driven by state rather than by a URL. That page is a server component and reloads
+ * to re-sort; this one already holds every row in the browser for the search box, so re-sorting is
+ * free and a round trip would be the slower, worse version of the same thing.
+ *
+ * `aria-sort` is on the header cell rather than the button: it describes the COLUMN, and a screen
+ * reader announcing "sorted ascending" belongs to the heading, not to the control that changed it.
+ */
+function SortHeader({ label, col, sort, onPick }: {
+  label: string
+  col: SortCol
+  sort: { col: SortCol; dir: 'asc' | 'desc' } | null
+  onPick: (col: SortCol) => void
+}) {
+  const active = sort?.col === col
+  return (
+    <th
+      scope="col"
+      className="px-3 py-2 text-left font-semibold"
+      aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        onClick={() => onPick(col)}
+        className={`inline-flex items-center gap-1 hover:text-brand ${active ? 'text-brand' : ''}`}
+        title={active ? `Sorted ${sort!.dir === 'asc' ? 'A–Z' : 'Z–A'} — click to reverse` : `Sort by ${label}`}
+      >
+        {label}
+        <span aria-hidden className={active ? '' : 'opacity-30'}>
+          {active ? (sort!.dir === 'asc' ? '▲' : '▼') : '▴'}
+        </span>
+      </button>
+    </th>
   )
 }
 

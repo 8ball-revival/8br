@@ -2,6 +2,7 @@ import 'server-only'
 
 import { prisma } from '@/lib/prisma'
 import { profileSlug } from '@/lib/identity/public-identity'
+import { compareMembersByName } from '@/lib/staff/member-order'
 
 /**
  * The Players directory — everybody who currently counts as a player.
@@ -46,25 +47,23 @@ export async function listActivePlayers(): Promise<DirectoryPlayer[]> {
   const byPlayer = new Map(counts.map((c) => [c.playerId, c._count._all]))
 
   /*
-    Sorted here rather than by the database.
+    Sorted with the same comparator the staff member list uses.
 
-    This database's collation is `C` — raw byte order — so `ORDER BY cueverseId` puts every capital
-    before every lowercase letter: DJBlaster ahead of DeadPoolPrime, GODZERO ahead of Gr4vity,
-    ImThatGood ahead of Im_Not_That_Bad. Every one of those is correct by byte value and none of
-    them is what a reader scanning an alphabetical list expects.
+    Not the database: this database's collation is `C`, raw byte order, so `ORDER BY cueverseId`
+    puts every capital before every lowercase letter — DJBlaster ahead of DeadPoolPrime, ImThatGood
+    ahead of Im_Not_That_Bad. Correct by byte value and wrong by every expectation a reader has.
 
-    Postgres cannot be asked for a case-insensitive order through Prisma's `orderBy` without a
-    `lower()` or a COLLATE clause, and five hundred rows are already being read and mapped, so the
-    comparison happens here where it can simply be the right one.
-
-    `Intl.Collator` with `sensitivity: 'base'` folds case and accents together — "ArsH_" sits with
-    the A's, "José" with the J's — and `numeric` orders digits the way they are read, so player2
-    comes before player10 rather than after it.
+    And not `Intl.Collator` either, which was the first fix here and the wrong one: an unspecified
+    locale asks the runtime what alphabet it is using, exactly as Postgres collation asks the
+    database, and neither is guaranteed to answer the same on this machine as on the deployed one.
+    `compareMembersByName` folds case explicitly and compares codepoints, so the order is the same
+    everywhere by construction — and it is the order the same names already appear in under
+    /staff/members, which is the point of sharing it.
   */
-  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
-  players.sort((a, b) =>
-    collator.compare(a.cueverseId ?? a.primaryName, b.cueverseId ?? b.primaryName)
-    || collator.compare(a.primaryName, b.primaryName))
+  players.sort((a, b) => compareMembersByName(
+    { cueverseId: a.cueverseId, preferredName: a.primaryName },
+    { cueverseId: b.cueverseId, preferredName: b.primaryName },
+  ))
 
   return players.map((p) => ({
     id: p.id,

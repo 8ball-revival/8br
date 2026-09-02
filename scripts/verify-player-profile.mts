@@ -21,6 +21,7 @@ import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { getPlayerProfilePage, getProfileIdentity } from '../src/lib/players/profile.ts'
 import { searchPlayers } from '../src/lib/players/picker-search.ts'
 import { listActivePlayers } from '../src/lib/players/directory.ts'
+import { compareMembersByName } from '../src/lib/staff/member-order.ts'
 import { decideEditRights } from '../src/lib/players/edit-rights.ts'
 
 assertLocalDatabase()
@@ -481,29 +482,49 @@ section('The Players directory')
   }
 
   /*
-    Alphabetical to a reader, not to a byte comparator.
+    Ordered the way /staff/members orders the same people.
 
-    This database's collation is `C`, so `ORDER BY cueverseId` sorts by byte value and every capital
-    lands before every lowercase letter: DJBlaster ahead of DeadPoolPrime, ImThatGood ahead of
-    Im_Not_That_Bad. Correct by byte, wrong by every expectation somebody scanning a list has.
+    Two things were wrong before. The database's collation is `C`, raw byte order, so
+    `ORDER BY cueverseId` put every capital ahead of every lowercase letter — DJBlaster before
+    DeadPoolPrime. The first fix reached for `Intl.Collator`, which is worse in a subtler way: an
+    unspecified locale asks the RUNTIME what alphabet it is using, exactly as collation asks the
+    database, so the list can order differently on a developer's machine than in production.
+
+    `compareMembersByName` folds case explicitly and compares codepoints, so it answers the same
+    everywhere — and it is already the comparator the staff member list uses, which is what makes
+    the two pages agree about the same names.
   */
-  const order = rows.map((r) => r.cueverseId ?? r.preferredName)
-  const folded = [...order].sort((a, b) =>
-    new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }).compare(a, b))
-  check('the directory is in case-insensitive order', JSON.stringify(order) === JSON.stringify(folded))
+  const order = rows.map((r) => ({ cueverseId: r.cueverseId, preferredName: r.preferredName }))
+  const expected = [...order].sort(compareMembersByName)
+  check('the directory uses the shared member order', JSON.stringify(order) === JSON.stringify(expected))
 
-  const idx = (h: string) => rows.findIndex((r) => r.cueverseId === h)
-  for (const [first, second] of [['DeadPoolPrime', 'DJBlaster'], ['Im_Not_That_Bad', 'ImThatGood']]) {
-    const a = idx(first), b = idx(second)
-    if (a >= 0 && b >= 0) {
-      check(`"${first}" comes before "${second}"`, a < b, `${a} vs ${b}`)
-    }
-  }
   const dir2 = readFileSync('src/lib/players/directory.ts', 'utf8')
-  check('...and digits read as numbers, so player2 precedes player10',
-    /numeric: true/.test(dir2))
-  check('the sort is not left to the database collation',
-    !/orderBy: \[\{ cueverseId/.test(dir2))
+  check('...the shared comparator, not a private one', /compareMembersByName/.test(dir2))
+  /* Stripped, not raw: the comment explaining why it is not used names it, and prose is not code. */
+  const dirCode = dir2.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '')
+  check('...not a locale-dependent one', !/Intl\.Collator|localeCompare/.test(dirCode))
+  check('...and not the database collation', !/orderBy: \[\{ cueverseId/.test(dir2))
+
+  /* Case folding is the whole point: a capital must not jump the queue. */
+  const folded = compareMembersByName(
+    { cueverseId: 'DeadPoolPrime', preferredName: 'DeadPoolPrime' },
+    { cueverseId: 'DJBlaster', preferredName: 'DJBlaster' })
+  check('"DeadPoolPrime" sorts before "DJBlaster", which byte order got wrong', folded < 0)
+
+  /* Headers sort, the same affordance the staff list offers. */
+  const table2 = readFileSync('src/components/players/players-directory.tsx', 'utf8')
+  check('the columns can be sorted from their headings', /function SortHeader/.test(table2))
+  check('...using the same comparator as the staff list', /compareMembersByColumn/.test(table2))
+  check('...announcing the direction to a screen reader', /aria-sort=/.test(table2))
+  check('...and clicking the chosen column again reverses it',
+    /s\?\.col === col \? \{ col, dir: s\.dir === 'asc' \? 'desc' : 'asc' \}/.test(table2))
+  /*
+    The chosen column has to survive a search. Comparing file positions would only compare against
+    the import line, so this checks the thing that matters: the sort is applied to what the filter
+    returned, not to the unfiltered list.
+  */
+  check('a search does not discard the chosen column',
+    /\[\.\.\.matched\]\.sort\(/.test(table2))
 
   /*
     A refused handle must leave the record untouched.
