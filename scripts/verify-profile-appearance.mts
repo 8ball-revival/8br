@@ -26,6 +26,9 @@ import {
 import { ALLOWED_TYPES, looksLikeMarkup, safeFilename, sniffImageType, validateImage } from '../src/lib/media/validate.ts'
 import { getPlayerProfilePage } from '../src/lib/players/profile.ts'
 import { monogram } from '../src/components/players/profile/profile-avatar.tsx'
+import {
+  AVATAR_SHAPES, DEFAULT_AVATAR_SHAPE, asAvatarShape, avatarRadius,
+} from '../src/lib/players/avatar-shape.ts'
 
 assertLocalDatabase()
 
@@ -1064,6 +1067,70 @@ section('The horizontal and vertical sliders move the picture')
     /dx = \(side - w\) \* \(framing\.focalX \/ 100\)/.test(avatar)
     && /dy = \(side - h\) \* \(framing\.focalY \/ 100\)/.test(avatar))
   check('...including the zoom', /\* \(framing\.zoom \/ 100\)/.test(avatar))
+}
+
+// -- The frame ------------------------------------------------------------------------------------
+section('A player picks the frame their picture sits in')
+{
+  /*
+    A circle suits a face. It does not suit artwork composed as a rectangle - it crops the corners
+    off and no framing gets them back - so the shape is the player's call, kept beside their colours.
+  */
+  const shapes = code(readFileSync('src/lib/players/avatar-shape.ts', 'utf8'))
+  const avatar = code(readFileSync('src/components/players/profile/profile-avatar.tsx', 'utf8'))
+  const editor = code(readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8'))
+  const actions = code(readFileSync('src/lib/players/appearance-actions.ts', 'utf8'))
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+
+  check('both frames are offered', AVATAR_SHAPES.length === 2 && AVATAR_SHAPES.includes('ROUNDED'))
+  check('the circle is the default, so no existing profile changes',
+    DEFAULT_AVATAR_SHAPE === 'CIRCLE')
+  check('a circle is a circle', avatarRadius('CIRCLE') === '999px')
+  check('...and the rounded corner is proportional, so it holds at every size',
+    avatarRadius('ROUNDED').endsWith('%'), avatarRadius('ROUNDED'))
+
+  /* Stored rubbish must not be able to reach a style. */
+  check('anything unrecognised falls back to the default',
+    asAvatarShape('SQUIRCLE') === DEFAULT_AVATAR_SHAPE
+    && asAvatarShape(null) === DEFAULT_AVATAR_SHAPE
+    && asAvatarShape(undefined) === DEFAULT_AVATAR_SHAPE)
+  check('...and the server narrows it again before writing',
+    /avatarShape: asAvatarShape\(framing\.shape\)/.test(actions))
+
+  /*
+    One property, read by everything. The picture, its clip, the ring and the halo are separate
+    elements that must agree on a corner; four rules each remembering to switch is four chances to
+    disagree.
+  */
+  check('the shape becomes one custom property', /--pf-avatar-radius/.test(avatar))
+  for (const rule of ['.pf-avatar {', '.pf-avatar-slot {', '.pf-avatar-clip {', '.pf-avatar-ring {']) {
+    const body = css.slice(css.indexOf(rule), css.indexOf('}', css.indexOf(rule)))
+    check(`${rule.replace(' {', '')} takes its corner from it`,
+      /border-radius:[^;]*--pf-avatar-radius/.test(body))
+  }
+
+  /*
+    The ring must not rotate. Rotation is invisible on a circle and wrong on anything else: it swung
+    the corners out past the picture, leaving an arc sweeping around outside the frame.
+  */
+  const spin = css.slice(css.indexOf('@keyframes pf-ring-spin'), css.indexOf('}', css.indexOf('@keyframes pf-ring-spin') + 40))
+  check('the ring does not turn', !/transform:\s*rotate/.test(spin), spin.trim())
+  check('...the highlight travels instead', /--pf-ring-angle:\s*1turn/.test(spin))
+  check('...which needs the property registered to animate at all',
+    /@property --pf-ring-angle/.test(css) && /syntax: '<angle>'/.test(css))
+
+  /* The frame is a preference about the slot, not about the file that sits in it. */
+  const upload = actions.slice(actions.indexOf('uploadAvatarAction'), actions.indexOf('setAvatarFramingAction'))
+  check('replacing a picture keeps the frame', !/avatarShape/.test(upload))
+
+  check('the editor offers both', /AVATAR_SHAPES\.map/.test(editor))
+  check('...and announces which is chosen', /aria-pressed=\{framing\.shape === shape\}/.test(editor))
+
+  /* The column has to be addable to a live database without a rewrite. */
+  const sql = readFileSync('prisma/migrations/20260902040000_avatar_shape/migration.sql', 'utf8')
+  check('the column is additive and defaulted',
+    /ADD COLUMN "avatarShape" TEXT NOT NULL DEFAULT 'CIRCLE'/.test(sql))
+  check('...and nothing is dropped to add it', !/DROP|DELETE/i.test(sql))
 }
 
 await prisma.$disconnect()

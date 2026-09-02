@@ -321,6 +321,10 @@ model Player {
   avatarZoom      Int       @default(100)
   /// Kept so the served URL can be cache-busted when a player replaces their picture.
   avatarUpdatedAt DateTime?
+  /// The frame: CIRCLE or ROUNDED. A circle crops the corners off artwork that was composed as a
+  /// rectangle, and no amount of framing gets them back, so the player chooses. Survives a replaced
+  /// picture, being a preference about the frame rather than anything about the file.
+  avatarShape     String    @default("CIRCLE")
 
   /// Per-profile colour theme. Absent = the shared default; deleting the row IS "reset to default".
   profileTheme PlayerProfileTheme?

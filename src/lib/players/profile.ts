@@ -2,6 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import type { CompetitionPlatform } from '@prisma/client'
 import { getLadder, type LadderRow } from '@/lib/stats/ladder'
+import { asAvatarShape, type AvatarShape } from './avatar-shape'
 import { themeFromRow, type ProfileTheme } from './theme'
 
 /**
@@ -48,6 +49,8 @@ export interface ProfileIdentity {
   avatarFocalX: number
   avatarFocalY: number
   avatarZoom: number
+  /** Circle, or a square with rounded corners. The player's choice. */
+  avatarShape: AvatarShape
   /** This profile's colours. The shared default when its owner has not chosen any. */
   theme: ProfileTheme
 }
@@ -236,6 +239,7 @@ export async function getProfileIdentity(param: string): Promise<ProfileIdentity
     select: {
       id: true, primaryName: true, cueverseId: true, linkedUserId: true, linkStatus: true,
       avatarFilename: true, avatarFocalX: true, avatarFocalY: true, avatarZoom: true, avatarUpdatedAt: true,
+      avatarShape: true,
       profileTheme: true,
     },
   })
@@ -294,6 +298,7 @@ export async function getProfileIdentity(param: string): Promise<ProfileIdentity
     avatarFocalX: player.avatarFocalX,
     avatarFocalY: player.avatarFocalY,
     avatarZoom: player.avatarZoom,
+    avatarShape: asAvatarShape(player.avatarShape),
     theme: themeFromRow(player.profileTheme),
   }
 }

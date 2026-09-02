@@ -7,6 +7,7 @@ import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { decideEditRights } from './edit-rights'
 import { DEFAULT_THEME, THEME_KEYS, validateTheme, type ProfileTheme, type ThemeKey } from './theme'
 import { MediaError } from '@/lib/media/validate'
+import { asAvatarShape, type AvatarShape } from './avatar-shape'
 
 /**
  * Changing how a profile looks: its colours, and its avatar.
@@ -141,7 +142,9 @@ export async function uploadAvatarAction(playerId: string, form: FormData): Prom
         avatarFilename: stored.filename,
         avatarUpdatedAt: new Date(),
         // A new picture starts centred and unzoomed; the previous framing described a different image.
-        avatarFocalX: 50, avatarFocalY: 50, avatarZoom: 100,
+        // The crop starts again for a new picture; `avatarShape` is deliberately untouched, being a
+      // preference about the frame rather than anything about the file inside it.
+      avatarFocalX: 50, avatarFocalY: 50, avatarZoom: 100,
       },
     })
 
@@ -166,7 +169,7 @@ export async function uploadAvatarAction(playerId: string, form: FormData): Prom
 /** Where the crop sits, and how far in. Presentation only — the stored file is untouched. */
 export async function setAvatarFramingAction(
   playerId: string,
-  framing: { focalX: number; focalY: number; zoom: number },
+  framing: { focalX: number; focalY: number; zoom: number; shape: AvatarShape },
 ): Promise<AvatarResult> {
   const { verdict } = await rights(playerId)
   if (!verdict.ok) return { error: verdict.error }
@@ -182,6 +185,8 @@ export async function setAvatarFramingAction(
       avatarFocalX: clamp(framing.focalX, 0, 100),
       avatarFocalY: clamp(framing.focalY, 0, 100),
       avatarZoom: clamp(framing.zoom, 100, 300),
+      // Narrowed rather than trusted: this arrives from a client and ends up in a style.
+      avatarShape: asAvatarShape(framing.shape),
     },
   })
   await revalidateProfile(playerId)
@@ -206,6 +211,7 @@ export async function getProfileAppearanceAction(playerId: string): Promise<{
   theme: ProfileTheme
   usingDefault: boolean
   avatarUrl: string | null
+  shape: AvatarShape
   focalX: number
   focalY: number
   zoom: number
@@ -216,7 +222,10 @@ export async function getProfileAppearanceAction(playerId: string): Promise<{
   const [player, theme] = await Promise.all([
     prisma.player.findUnique({
       where: { id: playerId },
-      select: { avatarFilename: true, avatarFocalX: true, avatarFocalY: true, avatarZoom: true, avatarUpdatedAt: true },
+      select: {
+        avatarFilename: true, avatarFocalX: true, avatarFocalY: true, avatarZoom: true,
+        avatarUpdatedAt: true, avatarShape: true,
+      },
     }),
     prisma.playerProfileTheme.findUnique({ where: { playerId } }),
   ])
@@ -232,5 +241,6 @@ export async function getProfileAppearanceAction(playerId: string): Promise<{
     focalX: player.avatarFocalX,
     focalY: player.avatarFocalY,
     zoom: player.avatarZoom,
+    shape: asAvatarShape(player.avatarShape),
   }
 }

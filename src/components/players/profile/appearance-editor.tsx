@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL, describeBytes } from '@/lib/media/limits'
+import {
+  AVATAR_SHAPES, AVATAR_SHAPE_LABELS, avatarRadius, type AvatarShape,
+} from '@/lib/players/avatar-shape'
 import { Trash2, Upload, X } from 'lucide-react'
 import {
   DEFAULT_THEME, THEME_FIELDS, THEME_PRESETS, matchPreset, themeVars, validateTheme,
@@ -44,7 +47,7 @@ export function AppearanceEditor({
   */
   initialTheme: ProfileTheme
   initialAvatarUrl: string | null
-  initialFraming: { focalX: number; focalY: number; zoom: number }
+  initialFraming: { focalX: number; focalY: number; zoom: number; shape: AvatarShape }
 }) {
   const [theme, setTheme] = useState<ProfileTheme>(initialTheme)
   /** What the profile looked like when the editor opened, for Cancel. */
@@ -149,7 +152,8 @@ export function AppearanceEditor({
         const r = await uploadAvatarAction(playerId, form)
         if (r.error) { setMessage({ ok: false, text: r.error }); return }
         setAvatarUrl(r.url ?? null)
-        setFraming({ focalX: 50, focalY: 50, zoom: 100 })
+        // The crop starts again for the new picture; the frame is a preference and stays put.
+        setFraming((f) => ({ ...f, focalX: 50, focalY: 50, zoom: 100 }))
         setMessage({ ok: true, text: 'Avatar updated.' })
       } catch {
         setMessage({ ok: false, text: 'That image could not be uploaded. Try again.' })
@@ -222,6 +226,36 @@ export function AppearanceEditor({
             JPG, PNG, WebP, AVIF or GIF, up to {UPLOAD_MAX_LABEL}. Animated GIFs and WebP keep
             their animation.
           </p>
+
+          {/*
+            The frame, offered whether or not there is a picture.
+
+            It applies to the monogram too — a player with no avatar still has a shape on their
+            profile — so hiding this with the sliders would hide a choice that is doing something.
+          */}
+          <div className="mt-3">
+            <h3 className="pf-label">Frame</h3>
+            <div className="mt-1.5 flex gap-2" role="group" aria-label="Avatar frame">
+              {AVATAR_SHAPES.map((shape) => (
+                <button
+                  key={shape}
+                  type="button"
+                  onClick={() => saveFraming({ ...framing, shape })}
+                  aria-pressed={framing.shape === shape}
+                  disabled={pending}
+                  className="pf-preset pf-press"
+                >
+                  {/* The swatch is the shape itself, which says more than its name does. */}
+                  <span
+                    aria-hidden
+                    className="pf-shape-swatch"
+                    style={{ borderRadius: avatarRadius(shape) }}
+                  />
+                  {AVATAR_SHAPE_LABELS[shape]}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {avatarUrl && (
             <div className="mt-3 space-y-3">

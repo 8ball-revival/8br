@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { avatarRadius, type AvatarShape } from '@/lib/players/avatar-shape'
 import { cn } from '@/lib/utils'
 
 /**
@@ -47,6 +48,8 @@ export interface AvatarFraming {
   focalY: number
   /** Percentage of `cover`. 100 fills the slot; higher crops further in. */
   zoom: number
+  /** The frame the picture sits in. */
+  shape: AvatarShape
 }
 
 export function ProfileAvatar({
@@ -115,9 +118,21 @@ export function ProfileAvatar({
   */
   const ring = <span aria-hidden className="pf-avatar-ring" />
 
+  /*
+    The frame, as one custom property.
+
+    The picture, the clip that holds the zoom, the rotating ring and the halo beneath are four
+    separate elements that must agree on a corner. Setting it once here is what makes them agree —
+    the alternative is four rules each remembering to switch, which is four chances to disagree.
+  */
+  const shapeVar = { ['--pf-avatar-radius' as string]: avatarRadius(framing.shape) }
+
   if (!src) {
     return (
-      <span className={cn('pf-avatar pf-avatar-slot grid place-items-center font-display font-bold', box, className)}>
+      <span
+        style={shapeVar}
+        className={cn('pf-avatar pf-avatar-slot grid place-items-center font-display font-bold', box, className)}
+      >
         {ring}
         <span aria-hidden style={{ color: 'var(--pf-accent)' }}>{monogram(name)}</span>
       </span>
@@ -125,7 +140,7 @@ export function ProfileAvatar({
   }
 
   return (
-    <span className={cn('pf-avatar pf-avatar-slot relative block', box, className)}>
+    <span style={shapeVar} className={cn('pf-avatar pf-avatar-slot relative block', box, className)}>
       {ring}
       {/*
         The clip is a wrapper, not the picture itself.

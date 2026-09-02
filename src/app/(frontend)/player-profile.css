@@ -165,7 +165,7 @@
   /* Overscan, so the rotating square still covers the corners of a wide rectangle. */
   inset: -60%;
   background: conic-gradient(
-    from 0deg,
+    from var(--pf-ring-angle, 0deg),
     transparent 0deg,
     transparent 320deg,
     color-mix(in srgb, var(--pf-accent) 85%, transparent) 350deg,
@@ -773,6 +773,19 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sw-accent) 35%, transparent);
 }
 
+/*
+  The frame swatch: a small solid tile whose own corner is the shape it selects, so the button shows
+  the choice rather than only naming it. The radius is set inline, from the same function the avatar
+  uses, which is what stops the two drifting apart.
+*/
+.pf-shape-swatch {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--pf-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--pf-accent) 30%, transparent);
+}
+
 /* The swatch itself: the preset's two accents over its own panel colour. */
 .pf-preset-swatch {
   width: 1.35rem;
@@ -1007,8 +1020,13 @@
 
 /* ── Avatar ──────────────────────────────────────────────────────────────────────────────────── */
 
+/*
+  `--pf-avatar-radius` is set on the avatar's own element from the player's chosen shape (see
+  src/lib/players/avatar-shape.ts). The fallback is the circle, so anything rendering an avatar
+  without setting it looks exactly as it did before the choice existed.
+*/
 .pf-avatar {
-  border-radius: 999px;
+  border-radius: var(--pf-avatar-radius, 999px);
   border: 2px solid var(--pf-accent-line);
   background: color-mix(in srgb, var(--pf-panel) 80%, black);
   overflow: hidden;
@@ -1017,9 +1035,10 @@
 /*
   The avatar ring.
 
-  A rotating conic sweep in the player accent, drawn on a SIBLING behind the picture rather than as a
-  border on it. Rotating the avatar itself would spin somebody photograph and fight an animated GIF;
-  this way the image never moves and the ring is free to.
+  A travelling conic sweep in the player accent, drawn on a SIBLING behind the picture rather than as
+  a border on it. Putting it on the picture would fight an animated GIF and, once the frame could be
+  a rounded square, would have to move the player's photograph to move at all. Here the image never
+  moves, and what travels is the highlight rather than the ring itself - see `pf-ring-spin`.
 
   It also reacts to the pointer: `--pf-tilt` is written by the identity header hover, so the ring
   leans very slightly toward the cursor. One custom property, no re-render.
@@ -1030,7 +1049,7 @@
   /* The ring and halo sit outside the picture, so the slot itself must not clip them. */
   overflow: visible;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--pf-avatar-radius, 999px);
   background: color-mix(in srgb, var(--pf-panel) 70%, black);
 }
 /*
@@ -1051,7 +1070,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  border-radius: 999px;
+  border-radius: var(--pf-avatar-radius, 999px);
   overflow: hidden;
 }
 .pf-avatar-clip > img,
@@ -1060,10 +1079,15 @@
   width: 100%;
   height: 100%;
 }
+/*
+  The ring follows the frame. A round sweep behind a rounded square reads as a mistake rather than a
+  style — the radius is nudged up because this element sits 6px outside the picture, and a corner
+  drawn at the same percentage on a larger box looks tighter than the one it is tracing.
+*/
 .pf-avatar-ring {
   position: absolute;
   inset: -6px;
-  border-radius: 999px;
+  border-radius: calc(var(--pf-avatar-radius, 999px) + 4px);
   z-index: 0;
   pointer-events: none;
   background: conic-gradient(
@@ -1094,7 +1118,6 @@
 */
 .pf-motion .pf-avatar-ring {
   animation: pf-ring-spin 14s linear infinite;
-  will-change: transform;
 }
 /* A soft halo under the ring, so the avatar sits in its own light. */
 .pf-avatar-slot::after {
@@ -1107,8 +1130,26 @@
   background: radial-gradient(circle, color-mix(in srgb, var(--pf-accent) 22%, transparent) 0%, transparent 68%);
   opacity: 0.75;
 }
+/*
+  The sweep travels; the ring does not turn.
+
+  It used to be `transform: rotate()` on the element, which is free and looks identical on a circle
+  because a circle is the same at every angle. A rounded square is not: rotating it swung its corners
+  out past the picture, so the frame had a red arc sweeping around outside it.
+
+  Animating the gradient's own angle leaves the outline exactly where it is - following whichever
+  radius the player chose - while the highlight still travels around it. Registering the property is
+  what makes it animatable at all; where that is unsupported the angle simply stays put and the ring
+  is a still highlight rather than a broken one.
+*/
+@property --pf-ring-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 @keyframes pf-ring-spin {
-  to { transform: rotate(1turn); }
+  to { --pf-ring-angle: 1turn; }
 }
 
 /* The header leans the avatar a degree or two toward the pointer. Transform only. */

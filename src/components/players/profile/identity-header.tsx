@@ -95,7 +95,12 @@ export function IdentityHeader({
           <ProfileAvatar
             name={identity.name}
             src={identity.avatarUrl}
-            framing={{ focalX: identity.avatarFocalX, focalY: identity.avatarFocalY, zoom: identity.avatarZoom }}
+            framing={{
+              focalX: identity.avatarFocalX,
+              focalY: identity.avatarFocalY,
+              zoom: identity.avatarZoom,
+              shape: identity.avatarShape,
+            }}
             size="xl"
           />
 
