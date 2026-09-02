@@ -516,15 +516,6 @@
   font-variant-numeric: tabular-nums;
 }
 .pf-figure-accent { color: var(--pf-accent); }
-/*
-  The two headline figures inside Current Performance.
-
-  Sized to the column rather than to the page. At 3rem "1866" was wider than the sixth of a panel it
-  had to sit in, and `white-space: nowrap` turned that into figures overlapping their neighbours —
-  the value stayed on one line by running over the divider beside it. This is the largest size that
-  still fits six statistics across the panel at 1280px.
-*/
-.pf-figure-xl { font-size: clamp(1.6rem, 2.1vw, 2.35rem); }
 
 .pf-note {
   color: var(--pf-muted);
@@ -578,22 +569,75 @@
   two figures on one row and four on the next at widths where all six fitted.
 */
 /*
-  Current Performance always shows its six statistics as six columns, proportioned to what each one
-  actually holds.
+  ── Current Performance, in two tiers ───────────────────────────────────────────────────────────
 
-  Six equal columns looked right and was not: "115-48-8" is nearly twice the width of "W8", so an
-  equal share left the record overrunning the divider into the win percentage beside it. The ratios
-  below are the widths of the real values, and the supporting figures step down slightly so the two
-  headline numbers keep their prominence.
+  Six statistics on one line is a list; it reads left to right at a uniform weight and answers
+  nothing in particular. Splitting them says what the section is for: rank and rating ARE "how good
+  are they", and everything else qualifies that answer.
+
+  Tier one gets a row to itself at a size nothing else on the page competes with. Tier two is
+  deliberately compact — present, readable, and clearly subordinate — with a rule between the two so
+  the grouping is structural rather than merely spatial.
+*/
+.pf-tier-1 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1rem;
+}
+.pf-tier-2 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid color-mix(in srgb, var(--pf-border) 70%, transparent);
+}
+
+/*
+  The headline pair.
+
+  Large enough to be the first thing read and still safely inside half of an 8/12 panel: at 1280px
+  that is about 300px of column for a four-digit rating, which `clamp` keeps well under.
+*/
+.pf-figure-hero {
+  font-size: clamp(2.4rem, 3.6vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+/* The qualifying tier. Small, even, and never wrapping mid-number. */
+.pf-figure-sm {
+  font-size: clamp(1.05rem, 1.3vw, 1.4rem);
+  white-space: nowrap;
+}
+
+/* The hero labels sit above much larger figures, so they need no reserved second line. */
+.pf-tier-1 .pf-stat .pf-label { min-height: 0; }
+
+/*
+  All-Time reads as two pairs, not three-and-a-stray.
+
+  At 4/12 the auto-fitting row put three figures on the first line and left "Highest Rating" alone on
+  the second, which reads as an afterthought rather than as the fourth of four. Two columns pairs
+  each figure with its all-time counterpart directly beneath it.
 */
 @media (min-width: 768px) {
-  .pf-panel-current .pf-stat-row {
-    grid-template-columns: 0.8fr 1fr 1.35fr 0.95fr 0.7fr 1fr;
+  .pf-panel-alltime .pf-stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem 0;
   }
-  .pf-panel-current .pf-stat { padding: 0 0.7rem; }
-  .pf-panel-current .pf-figure:not(.pf-figure-xl) {
-    font-size: clamp(1.05rem, 1.35vw, 1.5rem);
-  }
+  .pf-panel-alltime .pf-stat:nth-child(odd) { padding-left: 0; border-left: 0; }
+}
+
+@media (max-width: 640px) {
+  /*
+    Stacking, not shrinking.
+
+    Rank and rating stay side by side — they are a pair and reading one without the other is the
+    thing this layout exists to prevent — and the qualifying tier drops from four columns to two
+    rather than squeezing four numbers into 375px.
+  */
+  .pf-tier-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pf-tier-2 .pf-stat:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .pf-figure-hero { font-size: clamp(2rem, 12vw, 2.8rem); }
 }
 
 /* ── The identity header ─────────────────────────────────────────────────────────────────────── */
@@ -821,9 +865,16 @@
   .pf-tab {
     font-size: 0.66rem;
     letter-spacing: 0.04em;
-    padding-left: 0.35rem;
-    padding-right: 0.35rem;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
   }
+  /*
+    And no gap between them.
+
+    The three tabs measured 272px inside a 275px list and still wrapped, because the 8px of flex gap
+    is not part of a tab's own width. Their padding already separates them.
+  */
+  .pf-tablist { gap: 0; }
   /* Two statistics per row rather than a column of six. */
   .pf-stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pf-stat { padding: 0 0.6rem; }

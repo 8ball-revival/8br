@@ -92,25 +92,34 @@ export function PlayerProfileView({
   */
   const summaryRow = (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
-      <section className="pf-panel pf-panel-current pf-reveal md:col-span-7" style={delay(60)}>
+      <section className="pf-panel pf-panel-current pf-reveal md:col-span-8" style={delay(60)}>
         <h3 className="pf-heading pf-heading-accent">
           <Crosshair className="pf-heading-icon" aria-hidden />
           Current Performance
           <span className="pf-heading-note">(Last 365 days)</span>
         </h3>
+
         {/*
-          Rank and rating are the headline pair and are sized accordingly; the rest are supporting
-          figures at the normal scale. The accent marks PLACE — spending it on every number would
-          make none of them stand out.
+          Two tiers, because six statistics on one line is a list rather than an answer.
+
+          Rank and rating are what "how good are they" means, so they get a row to themselves at a
+          size nothing else on the page competes with. Everything that qualifies those two — the
+          record behind them, the percentage, the form — sits underneath at a compact size, present
+          and clearly subordinate.
+
+          The accent still marks PLACE only. Spending it on every number would make none stand out.
         */}
-        <dl className="pf-stat-row mt-3">
-          <Figure label="Rank" count={current?.rank ?? null} prefix="#" size="xl" accent />
-          <Figure label="Rating" count={current?.rating ?? null} size="xl" />
-          <Figure label="Record" text={recordText(career.record)} />
-          <Figure label="Win %" text={`${career.winPct.toFixed(1)}%`} />
-          <Figure label="Streak" text={streakText(career.currentStreak)} />
-          <Figure label="Longest Win Streak" text={career.longestWinStreak > 0 ? `W${career.longestWinStreak}` : '—'} />
+        <dl className="pf-tier-1 mt-3">
+          <Figure label="Rank" count={current?.rank ?? null} prefix="#" size="hero" accent />
+          <Figure label="Rating" count={current?.rating ?? null} size="hero" />
         </dl>
+        <dl className="pf-tier-2 mt-3">
+          <Figure label="Record" text={recordText(career.record)} size="sm" />
+          <Figure label="Win %" text={`${career.winPct.toFixed(1)}%`} size="sm" />
+          <Figure label="Current Streak" text={streakText(career.currentStreak)} size="sm" />
+          <Figure label="Longest Win Streak" text={career.longestWinStreak > 0 ? `W${career.longestWinStreak}` : '—'} size="sm" />
+        </dl>
+
         {!current && (
           <p className="pf-note mt-2">
             No matches inside the current window, so there is no current rank.
@@ -118,7 +127,7 @@ export function PlayerProfileView({
         )}
       </section>
 
-      <section className="pf-panel pf-reveal md:col-span-5" style={delay(120)}>
+      <section className="pf-panel pf-panel-alltime pf-reveal md:col-span-4" style={delay(120)}>
         <h3 className="pf-heading">
           <Trophy className="pf-heading-icon" aria-hidden />
           All-Time
@@ -373,9 +382,19 @@ function Figure({ label, count, text, prefix, accent, size }: {
   text?: string
   prefix?: string
   accent?: boolean
-  size?: 'xl'
+  /**
+   * `hero` is the top tier of Current Performance — rank and rating, the two figures the whole
+   * profile is built around. `sm` is the qualifying tier beneath them. Everything else takes the
+   * ordinary figure size.
+   */
+  size?: 'hero' | 'sm'
 }) {
-  const cls = cn('pf-figure mt-1', accent && 'pf-figure-accent', size === 'xl' && 'pf-figure-xl')
+  const cls = cn(
+    'pf-figure mt-1',
+    accent && 'pf-figure-accent',
+    size === 'hero' && 'pf-figure-hero',
+    size === 'sm' && 'pf-figure-sm',
+  )
   return (
     <div className="pf-stat min-w-0">
       <dt className="pf-label">{label}</dt>

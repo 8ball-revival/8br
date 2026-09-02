@@ -127,7 +127,8 @@ section('The default theme is the house palette')
   */
   const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
   check('rank carries the accent', /label="Rank"[^/]*accent/.test(view))
-  check('...and rating is not accented', /label="Rating" count=\{current\?\.rating \?\? null\} size="xl" \/>/.test(view))
+  check('...and rating is not accented',
+    /label="Rating" count=\{current\?\.rating \?\? null\} size="hero" \/>/.test(view))
   const headingAt = css.indexOf('\n.pf-heading {')
   const headingRule = css.slice(headingAt, headingAt + 320)
   check('section headings sit in the text colour, not the accent',
@@ -287,15 +288,38 @@ section('The hierarchy the revised design asks for')
   const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
   const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
 
-  check('Current Performance leads, and is wider than All-Time',
-    view.includes('pf-panel-current pf-reveal md:col-span-7') && view.includes('pf-reveal md:col-span-5'))
+  check('Current Performance leads, and is twice the width of All-Time',
+    view.includes('pf-panel-current pf-reveal md:col-span-8')
+    && view.includes('pf-panel-alltime pf-reveal md:col-span-4'))
   check('...and carries the accent border', css.includes('.pf-panel-current {'))
-  check('rank and rating are the headline pair',
-    /label="Rank" count=\{current\?\.rank \?\? null\} prefix="#" size="xl" accent/.test(view)
-    && /label="Rating" count=\{current\?\.rating \?\? null\} size="xl"/.test(view))
-  check('Current Performance shows all six statistics',
-    ['Rank', 'Rating', 'Record', 'Win %', 'Streak', 'Longest Win Streak']
-      .every((l) => view.includes(`label="${l}"`)))
+  /*
+    Two tiers, and the split is the point.
+
+    Rank and rating alone in the first tier at hero size; everything that qualifies them in a
+    compact second tier. Six statistics on one line read as a list — this asserts the structure that
+    replaced it, not merely that the figures are present.
+  */
+  const currentPanel = view.slice(view.indexOf('pf-panel-current'), view.indexOf('pf-panel-alltime'))
+  const tier1 = currentPanel.slice(currentPanel.indexOf('pf-tier-1'), currentPanel.indexOf('pf-tier-2'))
+  const tier2 = currentPanel.slice(currentPanel.indexOf('pf-tier-2'))
+
+  check('the first tier holds rank and rating, and nothing else',
+    /label="Rank"[\s\S]{0,120}size="hero" accent/.test(tier1)
+    && /label="Rating"[\s\S]{0,80}size="hero"/.test(tier1)
+    && (tier1.match(/label="/g) ?? []).length === 2)
+  check('...at a size nothing else on the page uses',
+    css.includes('.pf-figure-hero {') && !view.includes('size="xl"'))
+
+  check('the second tier holds the four qualifying figures',
+    ['Record', 'Win %', 'Current Streak', 'Longest Win Streak']
+      .every((l) => tier2.includes(`label="${l}"`))
+    && (tier2.match(/label="/g) ?? []).length === 4)
+  check('...compactly, and clearly subordinate',
+    (tier2.match(/size="sm"/g) ?? []).length === 4 && css.includes('.pf-figure-sm {'))
+  // Win percentage is a headline statistic in its own right and stays on the overview.
+  check('win percentage is kept', tier2.includes('label="Win %"'))
+  check('the two tiers are separated structurally, not just by space',
+    /\.pf-tier-2 \{[\s\S]{0,240}border-top:/.test(css))
 
   /*
     Career shows what only Career knows. Record and win percentage sit under Current Performance a
@@ -315,6 +339,28 @@ section('The hierarchy the revised design asks for')
     view.includes("tone: 'gold' as const") && view.includes("tone: 'cueverse' as const"))
   check('...through one variable rather than twenty rules',
     css.includes('.pf-panel-gold {') && css.includes('--pf-tone:'))
+}
+
+section('The two tiers survive a narrow screen')
+{
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+  const small = css.slice(css.indexOf('@media (max-width: 640px)'))
+
+  /*
+    Rank and rating stay side by side at every width. They are a pair, and reading one without the
+    other is the thing the tier split exists to prevent — so the qualifying tier is what reflows.
+  */
+  check('the headline pair is never stacked', !/\.pf-tier-1[\s\S]{0,200}grid-template-columns: repeat\(1/.test(small))
+  check('the qualifying tier drops to two columns rather than squeezing four',
+    /\.pf-tier-2 \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/.test(small))
+  check('...and the hero figures scale down with the viewport',
+    /\.pf-figure-hero \{ font-size: clamp\(/.test(small))
+  check('the leading divider is dropped on the wrapped row',
+    small.includes('.pf-tier-2 .pf-stat:nth-child(odd)'))
+
+  // All-Time is half the width it was, so it must not break three-and-a-stray.
+  check('All-Time reads as two pairs at desktop widths',
+    /\.pf-panel-alltime \.pf-stat-row \{[\s\S]{0,120}repeat\(2, minmax\(0, 1fr\)\)/.test(css))
 }
 
 section('The utility controls are secondary, and still work')
