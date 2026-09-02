@@ -101,8 +101,16 @@ export function PlayersDirectory({ players, canEdit }: {
             <tr className="sticky top-0 z-10 border-b border-border bg-[var(--surface)] shadow-[0_1px_0_var(--border)]">
               <th scope="col" className="px-3 py-2 text-left font-semibold">CueVerse ID</th>
               <th scope="col" className="px-3 py-2 text-left font-semibold">Preferred Name</th>
-              <th scope="col" className="px-3 py-2 text-right font-semibold">Matches</th>
-              <th scope="col" className="px-3 py-2 text-left font-semibold">Account</th>
+              {/*
+                Matches and Account are administrative detail, not what a visitor came for.
+
+                A reader looking somebody up wants the name and the way through to their profile;
+                how many matches are on file and whether a login is attached are facts about the
+                RECORD rather than about the player, and they are the two columns an administrator
+                actually needs when deciding whether an identity is safe to correct.
+              */}
+              {canEdit && <th scope="col" className="px-3 py-2 text-right font-semibold">Matches</th>}
+              {canEdit && <th scope="col" className="px-3 py-2 text-left font-semibold">Account</th>}
               {canEdit && <th scope="col" className="px-3 py-2 text-right font-semibold">Edit</th>}
             </tr>
           </thead>
@@ -118,8 +126,8 @@ export function PlayersDirectory({ players, canEdit }: {
                       : (p.cueverseId ?? '—')}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{p.preferredName}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{p.matches || '—'}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{p.hasAccount ? 'Yes' : 'Archive'}</td>
+                  {canEdit && <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{p.matches || '—'}</td>}
+                  {canEdit && <td className="px-3 py-2 text-muted-foreground">{p.hasAccount ? 'Yes' : 'Archive'}</td>}
                   {canEdit && (
                     <td className="px-3 py-2 text-right">
                       <button
@@ -135,7 +143,7 @@ export function PlayersDirectory({ players, canEdit }: {
               )
             ))}
             {shown.length === 0 && (
-              <tr><td colSpan={canEdit ? 5 : 4} className="px-3 py-6 text-center text-muted-foreground">No player matches that.</td></tr>
+              <tr><td colSpan={canEdit ? 5 : 2} className="px-3 py-6 text-center text-muted-foreground">No player matches that.</td></tr>
             )}
           </tbody>
         </table>
@@ -177,6 +185,7 @@ function EditRow({ player, pending, onCancel, onSave }: {
           className="w-40 rounded-none border border-input bg-card px-2 py-1 text-sm outline-none focus-visible:border-brand"
         />
       </td>
+      {/* Only ever rendered for an administrator, so these two always belong here. */}
       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{player.matches || '—'}</td>
       <td className="px-3 py-2 text-muted-foreground">{player.hasAccount ? 'Yes' : 'Archive'}</td>
       <td className="px-3 py-2">

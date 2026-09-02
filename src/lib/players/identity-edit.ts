@@ -36,6 +36,15 @@ export interface IdentityEditResult {
   propagated?: number
 }
 
+/** Cache invalidation that tolerates having no cache — see the note at its only call site. */
+function invalidate(fn: () => void): void {
+  try {
+    fn()
+  } catch {
+    // No request context, so nothing is cached and nothing needs clearing.
+  }
+}
+
 export async function applyIdentityPatch(
   actorRef: { userId: number; username: string },
   playerId: string,
@@ -61,9 +70,18 @@ export async function applyIdentityPatch(
 
   const before = { preferredName: player.primaryName, cueverseId: player.cueverseId }
 
-  if (name && name !== player.primaryName) {
-    await updateProfile(actorRef, player.id, { primaryName: name })
-  }
+  /*
+    The handle first, deliberately — it is the change that can be refused.
+
+    `changeCueverseId` spans two stores (the Player row and the Payload login) and is atomic about
+    it: if the login sync fails it reverts its own write and reports that nothing changed. It can
+    also be refused outright, most commonly because the handle is already taken.
+
+    The preferred name is a single update that all but cannot fail. Doing the name FIRST meant a
+    refused handle returned an error with the name already committed: the operator is told the edit
+    failed while half of it has landed, and the only clue is that the list now disagrees with what
+    they typed. Attempting the fallible half first makes a refusal leave the record untouched.
+  */
   if (handle && handle !== player.cueverseId) {
     /*
       Override, because this is staff correcting a record rather than a member renaming themselves.
@@ -72,6 +90,9 @@ export async function applyIdentityPatch(
     */
     const r = await changeCueverseId(actorRef, player.id, handle, { override: true, reason })
     if (!r.ok) return { error: r.error }
+  }
+  if (name && name !== player.primaryName) {
+    await updateProfile(actorRef, player.id, { primaryName: name })
   }
 
   const after = await prisma.player.findUnique({
@@ -97,11 +118,20 @@ export async function applyIdentityPatch(
       newValue: { preferredName: change.newPreferredName, cueverseId: change.newCueverseId },
       reason,
     })
-    // The ladder carries names too; leaving it cached shows the old spelling next to the new one.
-    invalidateRankings()
-    revalidatePath('/rankings')
-    revalidatePath('/creator')
-    revalidatePath('/players')
+    /*
+      The ladder carries names too; leaving it cached shows the old spelling next to the new one.
+
+      Guarded, because `revalidatePath` throws outside a request context — and this function is
+      deliberately callable from a script and from the verification suite, where there is no cache
+      to clear. Unguarded it threw AFTER the rename had already been written and propagated, which
+      is the worst shape a failure can take: the work is done and the caller is told it failed.
+    */
+    invalidate(() => {
+      invalidateRankings()
+      revalidatePath('/rankings')
+      revalidatePath('/creator')
+      revalidatePath('/players')
+    })
   }
 
   return { ok: true, propagated }

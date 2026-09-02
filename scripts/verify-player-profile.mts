@@ -480,6 +480,36 @@ section('The Players directory')
       /applyIdentityPatch\(/.test(src) && !/propagateIdentityChange/.test(src))
   }
 
+  /*
+    A refused handle must leave the record untouched.
+
+    `changeCueverseId` spans the Player row and the Payload login and is atomic about it — it
+    reverts its own write if the login sync fails — and it can be refused outright, most commonly
+    because the handle is already taken. The preferred name is a single update that all but cannot
+    fail. Writing the name FIRST meant a refused handle returned an error with the name already
+    committed: the operator is told the edit failed while half of it has landed.
+  */
+  const editSrc = readFileSync('src/lib/players/identity-edit.ts', 'utf8')
+  check('the fallible change is attempted first',
+    editSrc.indexOf('changeCueverseId(') < editSrc.indexOf('updateProfile('))
+
+  /*
+    And the cache clear cannot turn a completed write into a reported failure. `revalidatePath`
+    throws outside a request context, which is where a script and the verification suite call from.
+  */
+  check('the cache clear is guarded', /invalidate\(\(\) => \{/.test(editSrc))
+  check('...so a non-request caller still completes', /catch \{\n    \/\/ No request context/.test(editSrc))
+
+  /* Matches and Account are administrative detail, not what a visitor came for. */
+  const table = readFileSync('src/components/players/players-directory.tsx', 'utf8')
+  check('non-admins are not shown the Matches column',
+    /\{canEdit && <th[^>]*>Matches<\/th>\}/.test(table))
+  check('...nor the Account column', /\{canEdit && <th[^>]*>Account<\/th>\}/.test(table))
+  check('...and the rows match the headers',
+    /\{canEdit && <td[^>]*>\{p\.matches \|\| '—'\}<\/td>\}/.test(table))
+  check('...including the empty state, which must span the right number',
+    /colSpan=\{canEdit \? 5 : 2\}/.test(table))
+
   /* The gate is on the action, because a form that is not drawn stops nobody. */
   const action = readFileSync('src/lib/players/directory-actions.ts', 'utf8')
   check('the directory edit requires manage_players', /requireCapability\('manage_players'\)/.test(action))
