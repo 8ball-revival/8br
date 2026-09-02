@@ -150,8 +150,16 @@ section('The CueVerse ID identifies the author')
 {
   const table = readFileSync('src/components/break/manage-posts-table.tsx', 'utf8')
   check('the management list leads with the CueVerse ID', /\{p\.authorHandle \?\? '—'\}/.test(table))
+  /*
+    The name is the SECOND line and never the first. It is now also dropped when it would only
+    repeat the ID above it, which is the common case: Preferred Name is optional, so an account
+    without one had its handle printed twice.
+  */
   check('the preferred name is secondary, never a replacement',
-    /authorName && <span className="block text-xs/.test(table))
+    /\{p\.authorName\}<\/span>/.test(table)
+    && table.indexOf("{p.authorHandle ?? '—'}") < table.indexOf('{p.authorName}'))
+  check('...and is not repeated when it is the same string as the ID',
+    /secondaryHandle\(p\.authorHandle, p\.authorName\)/.test(table))
   check('the ID column is present even when a name exists', /authorHandle/.test(table))
 }
 

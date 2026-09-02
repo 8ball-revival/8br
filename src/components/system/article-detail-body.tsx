@@ -1,4 +1,5 @@
 import 'server-only'
+import { secondaryHandle } from '@/lib/break/byline'
 
 /**
  * Article -- the real page body, extracted so the site builder can place it.
@@ -130,8 +131,15 @@ export async function ArticleDetailBody({
             </div>
 
             <p className="mt-1 text-xs text-muted-foreground">
+              {/*
+                Preferred Name in gold, CueVerse ID in white — but only when the two differ.
+                Preferred Name is optional, so for an account without one this printed the same
+                string twice. See `secondaryHandle`.
+              */}
               <span className="font-medium text-[var(--gold)]">{post.authorNameSnapshot}</span>
-              {post.authorHandleSnapshot && <span className="text-foreground"> {post.authorHandleSnapshot}</span>}
+              {secondaryHandle(post.authorNameSnapshot, post.authorHandleSnapshot) && (
+                <span className="text-foreground"> {secondaryHandle(post.authorNameSnapshot, post.authorHandleSnapshot)}</span>
+              )}
               {post.publishedAt && (
                 <> · <time dateTime={post.publishedAt.toISOString()}>{post.publishedAt.toLocaleDateString()}</time></>
               )}

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { secondaryHandle } from '@/lib/break/byline'
 import { MessageSquare, Lock, Pin, EyeOff, BadgeCheck, Repeat2, Image as ImageIcon, Play, BarChart3, Link2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -92,9 +93,15 @@ export function PostCard({ card, viewerSignedIn }: { card: FeedCard; viewerSigne
             </h2>
 
             <p className="mt-1 text-xs text-muted-foreground">
-              {/* Preferred Name in gold, CueVerse ID in white — the site's identity rule. */}
+              {/*
+                Preferred Name in gold, CueVerse ID in white — the site's identity rule, but only
+                when the two differ. Preferred Name is optional, so for most new accounts they are
+                the same string and this printed it twice. See `secondaryHandle`.
+              */}
               <span className="font-medium text-[var(--gold)]">{card.authorName}</span>
-              {card.authorHandle && <span className="text-foreground"> {card.authorHandle}</span>}
+              {secondaryHandle(card.authorName, card.authorHandle) && (
+                <span className="text-foreground"> {secondaryHandle(card.authorName, card.authorHandle)}</span>
+              )}
               {card.publishedAt && (
                 <>
                   {' · '}

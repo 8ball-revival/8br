@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { secondaryHandle } from '@/lib/break/byline'
 import Link from 'next/link'
 import { MessageSquare, ChevronRight, Minus, BadgeCheck, Pin, Lock } from 'lucide-react'
 
@@ -111,7 +112,10 @@ function Comment({
             <span className={cn('font-medium', gone ? 'text-muted-foreground' : 'text-[var(--gold)]')}>
               {node.authorName}
             </span>
-            {node.authorHandle && <span className="text-foreground">{node.authorHandle}</span>}
+            {/* Only when it is not the same string as the name — see `secondaryHandle`. */}
+            {secondaryHandle(node.authorName, node.authorHandle) && (
+              <span className="text-foreground">{secondaryHandle(node.authorName, node.authorHandle)}</span>
+            )}
 
             {node.distinguished && (
               <span className="inline-flex items-center gap-1 cyber-clip-sm border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--gold)]">

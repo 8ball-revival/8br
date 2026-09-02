@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { secondaryHandle } from '@/lib/break/byline'
 import Link from 'next/link'
 import { Pencil } from 'lucide-react'
 
@@ -93,7 +94,10 @@ export function ManagePostsTable({ posts }: { posts: ManagedPost[] }) {
                 </td>
                 <td className="px-3 py-2">
                   <span className="block font-medium text-foreground">{p.authorHandle ?? '—'}</span>
-                  {p.authorName && <span className="block text-xs text-muted-foreground">{p.authorName}</span>}
+                  {/* The second line is dropped when it would only repeat the first. */}
+                  {secondaryHandle(p.authorHandle, p.authorName) && (
+                    <span className="block text-xs text-muted-foreground">{p.authorName}</span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">{p.type}</td>
                 <td className="px-3 py-2">

@@ -9,6 +9,7 @@
  * Run:  npx tsx --tsconfig scripts/tsconfig.verify.json --env-file=.env scripts/verify-the-break-core.mts
  */
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
@@ -17,6 +18,7 @@ import {
   topWindowStart, HOT_DECAY_SECONDS, RISING_WINDOW_HOURS, TOP_WINDOWS,
 } from '../src/lib/break/ranking.ts'
 import { voteDelta, parseVoteValue } from '../src/lib/break/voting.ts'
+import { secondaryHandle } from '../src/lib/break/byline.ts'
 import { validateForPublish, MAX_GALLERY_ITEMS } from '../src/lib/break/posts.ts'
 import { decideCategory } from '../src/lib/break/legacy-map.ts'
 import { LIMITS, clientHash } from '../src/lib/break/rate-limit.ts'
@@ -389,6 +391,37 @@ section('The Break has not touched the competition data')
   // Karma is a community figure and must never appear as a competition one.
   const karma = await prisma.breakKarma.findMany()
   check('karma lives in its own table, not on the Player', Array.isArray(karma))
+}
+
+// -- The byline ---------------------------------------------------------------------------------
+section('An author is not named twice')
+{
+  /*
+    The identity rule is Preferred Name in gold, CueVerse ID in white beside it. That reads well for
+    somebody who has set a preferred name and badly for somebody who has not, because their name IS
+    their ID and the byline printed it twice: "StressTester99 StressTester99". Preferred Name is
+    optional and never required to sign up, so that is the DEFAULT state of a new account.
+  */
+  check('the handle is dropped when it only repeats the name',
+    secondaryHandle('StressTester99', 'StressTester99') === null)
+  check('...including when only the capitals differ',
+    secondaryHandle('Starkiller', 'starkiller') === null)
+  check('...and when only spacing differs', secondaryHandle('Spaced', '  Spaced  ') === null)
+  check('the handle is kept when it says something the name does not',
+    secondaryHandle('Kevin', 'sixohtwo') === 'sixohtwo')
+  check('...including when there is no name at all', secondaryHandle(null, 'someone') === 'someone')
+  check('no handle is still no handle', secondaryHandle('Only', null) === null)
+
+  /* Every surface that shows a byline has to use the rule, or one of them prints it twice again. */
+  for (const f of [
+    'src/components/break/post-card.tsx',
+    'src/components/break/comment-thread.tsx',
+    'src/components/break/manage-posts-table.tsx',
+    'src/components/system/article-detail-body.tsx',
+  ]) {
+    check(`${f.split('/').pop()} uses the shared rule`,
+      readFileSync(f, 'utf8').includes('secondaryHandle('))
+  }
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
