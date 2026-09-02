@@ -240,6 +240,13 @@ export function PlayerProfileView({
               playerId={identity.playerId}
               playerName={identity.name}
               onClose={() => setEditing(false)}
+              initialTheme={identity.theme}
+              initialAvatarUrl={identity.avatarUrl}
+              initialFraming={{
+                focalX: identity.avatarFocalX,
+                focalY: identity.avatarFocalY,
+                zoom: identity.avatarZoom,
+              }}
             />
           )}
 

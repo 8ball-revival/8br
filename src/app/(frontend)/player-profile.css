@@ -1040,12 +1040,25 @@
   its own two letters — and gave it a rounded box of its own, so the fallback rendered as a small
   clipped rectangle instead of initials centred in a disc.
 */
-.pf-avatar-slot > img,
-.pf-avatar-slot > canvas {
-  position: relative;
+/*
+  The picture's circle, on an element that never scales.
+
+  `overflow: hidden` here is what actually holds the zoom: a `transform` on the picture scales its
+  own border-radius along with it, so a circle drawn on the scaled element is not a clip at all. The
+  slot around this one stays `overflow: visible` so the ring and halo can sit outside the picture.
+*/
+.pf-avatar-clip {
+  position: absolute;
+  inset: 0;
   z-index: 1;
   border-radius: 999px;
   overflow: hidden;
+}
+.pf-avatar-clip > img,
+.pf-avatar-clip > canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 .pf-avatar-ring {
   position: absolute;

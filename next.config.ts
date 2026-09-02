@@ -8,6 +8,21 @@ const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
   /*
+   * How large a Server Action's body may be.
+   *
+   * Unset, Next allows 1 MB and rejects anything larger by throwing INSIDE the framework, which a
+   * component cannot catch: an avatar over 1 MB took the whole page down to the error boundary
+   * rather than returning a message. Avatars arrive through a Server Action, so this is the number
+   * that decides whether an upload is possible at all.
+   *
+   * It matches `UPLOAD_MAX_BYTES` in src/lib/media/limits.ts, which is where the reasoning lives and
+   * which also feeds the validator and the sentence shown to the reader. Not written as an import:
+   * this config is read before the app's module graph exists.
+   */
+  experimental: {
+    serverActions: { bodySizeLimit: '4mb' },
+  },
+  /*
    * Where the build is written, overridable for local verification only.
    *
    * A production build and `next dev` both own `.next`, so building to check a change meant first

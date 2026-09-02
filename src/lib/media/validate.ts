@@ -1,4 +1,5 @@
 import 'server-only'
+import { UPLOAD_MAX_BYTES } from './limits'
 import sharp from 'sharp'
 
 /**
@@ -26,10 +27,22 @@ export const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gi
 export type AllowedType = (typeof ALLOWED_TYPES)[number]
 
 /** Ceilings. Generous for a screenshot or a photo, small enough that one paste cannot fill a disk. */
-export const MAX_BYTES = Number(process.env.MEDIA_MAX_BYTES ?? 12 * 1024 * 1024)
+/*
+  The ceiling, and why it is no longer 12 MB.
+
+  It never was 12 MB in practice. An upload arrives through a Server Action, so the framework's body
+  limit is reached long before this one and refuses the request in a way no component can catch. A
+  validator that promises more than the transport will carry does not protect anything; it just
+  moves the failure somewhere it cannot be explained. `UPLOAD_MAX_BYTES` is the number every layer
+  now uses, and it sits under Vercel's own 4.5 MB cap on a request body.
+
+  Still overridable by environment for a deployment that is not on Vercel, but it cannot be raised
+  above what the transport allows without also raising `serverActions.bodySizeLimit`.
+*/
+export const MAX_BYTES = Number(process.env.MEDIA_MAX_BYTES ?? UPLOAD_MAX_BYTES)
 export const MAX_DIMENSION = Number(process.env.MEDIA_MAX_DIMENSION ?? 6000)
 /** Animated files are larger by nature, so they get their own, higher ceiling. */
-export const MAX_GIF_BYTES = Number(process.env.MEDIA_MAX_GIF_BYTES ?? 20 * 1024 * 1024)
+export const MAX_GIF_BYTES = Number(process.env.MEDIA_MAX_GIF_BYTES ?? UPLOAD_MAX_BYTES)
 
 export class MediaError extends Error {
   constructor(message: string) {

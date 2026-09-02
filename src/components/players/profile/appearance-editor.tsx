@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL, describeBytes } from '@/lib/media/limits'
 import { Trash2, Upload, X } from 'lucide-react'
 import {
   DEFAULT_THEME, THEME_FIELDS, THEME_PRESETS, matchPreset, themeVars, validateTheme,
   type ProfileTheme, type ThemeKey,
 } from '@/lib/players/theme'
 import {
-  getProfileAppearanceAction, removeAvatarAction, resetProfileThemeAction,
+  removeAvatarAction, resetProfileThemeAction,
   saveProfileThemeAction, setAvatarFramingAction, uploadAvatarAction,
 } from '@/lib/players/appearance-actions'
 import { ProfileAvatar } from './profile-avatar'
@@ -27,20 +28,31 @@ import { ProfileAvatar } from './profile-avatar'
  * the profile to keep in step.
  */
 export function AppearanceEditor({
-  playerId, playerName, onClose,
+  playerId, playerName, onClose, initialTheme, initialAvatarUrl, initialFraming,
 }: {
   playerId: string
   playerName: string
   onClose: () => void
+  /*
+    The appearance as the server rendered it.
+
+    The panel used to open empty and then ask the server for these over a Server Action, so opening
+    it meant waiting for a round trip before a single control was usable — on a cold instance, long
+    enough to look broken. Every one of these values is already on the page: the profile behind the
+    panel is drawn from them. Passing them in makes the panel open at once, and they cannot be
+    staler than the page they came from.
+  */
+  initialTheme: ProfileTheme
+  initialAvatarUrl: string | null
+  initialFraming: { focalX: number; focalY: number; zoom: number }
 }) {
-  const [theme, setTheme] = useState<ProfileTheme>(DEFAULT_THEME)
+  const [theme, setTheme] = useState<ProfileTheme>(initialTheme)
   /** What the profile looked like when the editor opened, for Cancel. */
-  const original = useRef<ProfileTheme>(DEFAULT_THEME)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [framing, setFraming] = useState({ focalX: 50, focalY: 50, zoom: 100 })
+  const original = useRef<ProfileTheme>(initialTheme)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
+  const [framing, setFraming] = useState(initialFraming)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ThemeKey, string>>>({})
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
-  const [loaded, setLoaded] = useState(false)
   const [pending, start] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -53,19 +65,6 @@ export function AppearanceEditor({
   */
   const activePreset = matchPreset(theme)
 
-  // Load the stored appearance. The action refuses if the viewer may not edit, so a null is a no.
-  useEffect(() => {
-    let cancelled = false
-    getProfileAppearanceAction(playerId).then((data) => {
-      if (cancelled || !data) return
-      setTheme(data.theme)
-      original.current = data.theme
-      setAvatarUrl(data.avatarUrl)
-      setFraming({ focalX: data.focalX, focalY: data.focalY, zoom: data.zoom })
-      setLoaded(true)
-    })
-    return () => { cancelled = true }
-  }, [playerId])
 
   /*
     Paint the working theme onto the live profile.
@@ -74,12 +73,11 @@ export function AppearanceEditor({
     stored theme onto — the preview IS the profile, not a copy of it.
   */
   useEffect(() => {
-    if (!loaded) return
     const root = document.querySelector<HTMLElement>('.pf-root')
     if (!root) return
     const vars = themeVars(theme)
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
-  }, [theme, loaded])
+  }, [theme])
 
   /** Restore what was there when the editor opened, then close. */
   const cancel = () => {
@@ -124,14 +122,38 @@ export function AppearanceEditor({
   }
 
   const upload = (file: File) => {
+    /*
+      Weighed here, before it is sent.
+
+      Not politeness: a file over the Server Action's body limit is refused by the framework itself,
+      which throws rather than returning — the panel gets no chance to say anything and the whole
+      page falls into the error boundary. That is exactly what a 1.4 MB avatar did. Checking first
+      turns the one failure this panel cannot otherwise report into an ordinary sentence.
+    */
+    if (file.size > UPLOAD_MAX_BYTES) {
+      setMessage({
+        ok: false,
+        text: `That image is ${describeBytes(file.size)}. The most that can be uploaded is ${UPLOAD_MAX_LABEL}.`,
+      })
+      return
+    }
+
     const form = new FormData()
     form.set('file', file)
     start(async () => {
-      const r = await uploadAvatarAction(playerId, form)
-      if (r.error) { setMessage({ ok: false, text: r.error }); return }
-      setAvatarUrl(r.url ?? null)
-      setFraming({ focalX: 50, focalY: 50, zoom: 100 })
-      setMessage({ ok: true, text: 'Avatar updated.' })
+      /*
+        Nothing from here may reach the error boundary. An upload is one control on a panel; if it
+        fails, the panel says so and the profile behind it stays exactly where it was.
+      */
+      try {
+        const r = await uploadAvatarAction(playerId, form)
+        if (r.error) { setMessage({ ok: false, text: r.error }); return }
+        setAvatarUrl(r.url ?? null)
+        setFraming({ focalX: 50, focalY: 50, zoom: 100 })
+        setMessage({ ok: true, text: 'Avatar updated.' })
+      } catch {
+        setMessage({ ok: false, text: 'That image could not be uploaded. Try again.' })
+      }
     })
   }
 
@@ -162,150 +184,154 @@ export function AppearanceEditor({
         </button>
       </div>
 
-      {!loaded ? (
-        <p className="mt-3 text-sm" style={{ color: 'var(--pf-muted)' }}>Loading your settings…</p>
-      ) : (
-        <div className="mt-4 grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          {/* ── Avatar ─────────────────────────────────────────────────────────────────────── */}
-          <div>
-            <h3 className="pf-label">Avatar</h3>
-            <div className="mt-2 flex items-center gap-3">
-              <ProfileAvatar name={playerName} src={avatarUrl} framing={framing} />
-              <div className="flex flex-col gap-2">
-                <button type="button" onClick={() => fileRef.current?.click()} className="pf-btn inline-flex items-center gap-1.5 px-2.5 py-1.5" disabled={pending}>
-                  <Upload className="size-3.5" aria-hidden />
-                  {avatarUrl ? 'Replace' : 'Upload'}
+      {/*
+        No loading state, deliberately.
+
+        The panel used to render "Loading your settings…" until a Server Action returned the values
+        it needed. They arrive as props now, from the same server render that drew the profile, so
+        there is no moment at which this panel exists without them and nothing to wait for.
+      */}
+      <div className="mt-4 grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        {/* ── Avatar ─────────────────────────────────────────────────────────────────────── */}
+        <div>
+          <h3 className="pf-label">Avatar</h3>
+          <div className="mt-2 flex items-center gap-3">
+            <ProfileAvatar name={playerName} src={avatarUrl} framing={framing} />
+            <div className="flex flex-col gap-2">
+              <button type="button" onClick={() => fileRef.current?.click()} className="pf-btn inline-flex items-center gap-1.5 px-2.5 py-1.5" disabled={pending}>
+                <Upload className="size-3.5" aria-hidden />
+                {avatarUrl ? 'Replace' : 'Upload'}
+              </button>
+              {avatarUrl && (
+                <button type="button" onClick={removeAvatar} className="pf-btn inline-flex items-center gap-1.5 px-2.5 py-1.5" disabled={pending}>
+                  <Trash2 className="size-3.5" aria-hidden />
+                  Remove
                 </button>
-                {avatarUrl && (
-                  <button type="button" onClick={removeAvatar} className="pf-btn inline-flex items-center gap-1.5 px-2.5 py-1.5" disabled={pending}>
-                    <Trash2 className="size-3.5" aria-hidden />
-                    Remove
+              )}
+            </div>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            // A hint for the picker only. The server decides the real type from the file's bytes.
+            accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+            className="sr-only"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }}
+          />
+          <p className="mt-2 text-xs" style={{ color: 'var(--pf-muted)' }}>
+            JPG, PNG, WebP, AVIF or GIF, up to {UPLOAD_MAX_LABEL}. Animated GIFs and WebP keep
+            their animation.
+          </p>
+
+          {avatarUrl && (
+            <div className="mt-3 space-y-3">
+              <Slider label="Horizontal" value={framing.focalX} min={0} max={100}
+                onChange={(v) => saveFraming({ ...framing, focalX: v })} />
+              <Slider label="Vertical" value={framing.focalY} min={0} max={100}
+                onChange={(v) => saveFraming({ ...framing, focalY: v })} />
+              <Slider label="Zoom" value={framing.zoom} min={100} max={300} suffix="%"
+                onChange={(v) => saveFraming({ ...framing, zoom: v })} />
+              <p className="text-xs" style={{ color: 'var(--pf-muted)' }}>
+                Repositioning only changes how the picture is framed. The uploaded file is kept as
+                it is, which is what lets an animated avatar stay animated.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Colours ────────────────────────────────────────────────────────────────────── */}
+        <div>
+          <h3 className="pf-label">Colours</h3>
+          <p className="mt-1 text-xs" style={{ color: 'var(--pf-muted)' }}>
+            These apply to this profile only. Changes preview live behind this panel.
+          </p>
+
+          {/*
+            Presets first.
+
+            Setting seven colours by hand is a job; most people want a different profile, not a
+            palette exercise. A preset simply fills the fields below, so it can then be adjusted
+            and is saved by the same path with the same server-side contrast check.
+          */}
+          <div className="mt-3">
+            <p className="pf-label">Presets</p>
+            <div role="group" aria-label="Colour presets" className="mt-1.5 flex flex-wrap gap-2">
+              {THEME_PRESETS.map((preset) => {
+                const active = activePreset === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setTheme(preset.theme)}
+                    aria-pressed={active}
+                    className="pf-preset pf-press"
+                    // The swatch IS the preset, so it is drawn from the preset's own values.
+                    style={{
+                      ['--sw-accent' as string]: preset.theme.accent,
+                      ['--sw-accent-2' as string]: preset.theme.accentSecondary,
+                      ['--sw-panel' as string]: preset.theme.panelSurface,
+                      ['--sw-border' as string]: preset.theme.border,
+                    }}
+                  >
+                    <span aria-hidden className="pf-preset-swatch" />
+                    {preset.name}
                   </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {THEME_FIELDS.map(({ key, label, hint }) => (
+              <div key={key}>
+                <label htmlFor={`theme-${key}`} className="pf-label block">{label}</label>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    id={`theme-${key}`}
+                    type="color"
+                    value={theme[key]}
+                    onChange={(e) => setTheme({ ...theme, [key]: e.target.value })}
+                    className="size-8 cursor-pointer border bg-transparent p-0"
+                    style={{ borderColor: 'var(--pf-border)' }}
+                  />
+                  <input
+                    aria-label={`${label} hex value`}
+                    value={theme[key]}
+                    onChange={(e) => setTheme({ ...theme, [key]: e.target.value })}
+                    spellCheck={false}
+                    className="w-24 border px-2 py-1 font-mono text-xs"
+                    style={{ background: 'var(--pf-surface)', borderColor: 'var(--pf-border)', color: 'var(--pf-text)' }}
+                  />
+                </div>
+                <p className="mt-1 text-[0.68rem]" style={{ color: 'var(--pf-muted)' }}>{hint}</p>
+                {fieldErrors[key] && (
+                  <p className="mt-1 text-[0.68rem] text-destructive">{fieldErrors[key]}</p>
                 )}
               </div>
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              // A hint for the picker only. The server decides the real type from the file's bytes.
-              accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
-              className="sr-only"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }}
-            />
-            <p className="mt-2 text-xs" style={{ color: 'var(--pf-muted)' }}>
-              JPG, PNG, WebP, AVIF or GIF. Animated GIFs and WebP keep their animation.
-            </p>
-
-            {avatarUrl && (
-              <div className="mt-3 space-y-3">
-                <Slider label="Horizontal" value={framing.focalX} min={0} max={100}
-                  onChange={(v) => saveFraming({ ...framing, focalX: v })} />
-                <Slider label="Vertical" value={framing.focalY} min={0} max={100}
-                  onChange={(v) => saveFraming({ ...framing, focalY: v })} />
-                <Slider label="Zoom" value={framing.zoom} min={100} max={300} suffix="%"
-                  onChange={(v) => saveFraming({ ...framing, zoom: v })} />
-                <p className="text-xs" style={{ color: 'var(--pf-muted)' }}>
-                  Repositioning only changes how the picture is framed. The uploaded file is kept as
-                  it is, which is what lets an animated avatar stay animated.
-                </p>
-              </div>
-            )}
+            ))}
           </div>
 
-          {/* ── Colours ────────────────────────────────────────────────────────────────────── */}
-          <div>
-            <h3 className="pf-label">Colours</h3>
-            <p className="mt-1 text-xs" style={{ color: 'var(--pf-muted)' }}>
-              These apply to this profile only. Changes preview live behind this panel.
-            </p>
-
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" onClick={save} disabled={pending} className="pf-btn pf-press px-3 py-1.5">
+              {pending ? 'Saving…' : 'Save'}
+            </button>
+            <button type="button" onClick={cancel} className="pf-btn pf-press px-3 py-1.5">Cancel</button>
             {/*
-              Presets first.
-
-              Setting seven colours by hand is a job; most people want a different profile, not a
-              palette exercise. A preset simply fills the fields below, so it can then be adjusted
-              and is saved by the same path with the same server-side contrast check.
+              The one place colours can be put back. It used to be duplicated as a button on the
+              public profile beside Edit; a control that changes a saved setting belongs in the
+              editor that saves it, not in the header everyone sees.
             */}
-            <div className="mt-3">
-              <p className="pf-label">Presets</p>
-              <div role="group" aria-label="Colour presets" className="mt-1.5 flex flex-wrap gap-2">
-                {THEME_PRESETS.map((preset) => {
-                  const active = activePreset === preset.id
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => setTheme(preset.theme)}
-                      aria-pressed={active}
-                      className="pf-preset pf-press"
-                      // The swatch IS the preset, so it is drawn from the preset's own values.
-                      style={{
-                        ['--sw-accent' as string]: preset.theme.accent,
-                        ['--sw-accent-2' as string]: preset.theme.accentSecondary,
-                        ['--sw-panel' as string]: preset.theme.panelSurface,
-                        ['--sw-border' as string]: preset.theme.border,
-                      }}
-                    >
-                      <span aria-hidden className="pf-preset-swatch" />
-                      {preset.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {THEME_FIELDS.map(({ key, label, hint }) => (
-                <div key={key}>
-                  <label htmlFor={`theme-${key}`} className="pf-label block">{label}</label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      id={`theme-${key}`}
-                      type="color"
-                      value={theme[key]}
-                      onChange={(e) => setTheme({ ...theme, [key]: e.target.value })}
-                      className="size-8 cursor-pointer border bg-transparent p-0"
-                      style={{ borderColor: 'var(--pf-border)' }}
-                    />
-                    <input
-                      aria-label={`${label} hex value`}
-                      value={theme[key]}
-                      onChange={(e) => setTheme({ ...theme, [key]: e.target.value })}
-                      spellCheck={false}
-                      className="w-24 border px-2 py-1 font-mono text-xs"
-                      style={{ background: 'var(--pf-surface)', borderColor: 'var(--pf-border)', color: 'var(--pf-text)' }}
-                    />
-                  </div>
-                  <p className="mt-1 text-[0.68rem]" style={{ color: 'var(--pf-muted)' }}>{hint}</p>
-                  {fieldErrors[key] && (
-                    <p className="mt-1 text-[0.68rem] text-destructive">{fieldErrors[key]}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" onClick={save} disabled={pending} className="pf-btn pf-press px-3 py-1.5">
-                {pending ? 'Saving…' : 'Save'}
-              </button>
-              <button type="button" onClick={cancel} className="pf-btn pf-press px-3 py-1.5">Cancel</button>
-              {/*
-                The one place colours can be put back. It used to be duplicated as a button on the
-                public profile beside Edit; a control that changes a saved setting belongs in the
-                editor that saves it, not in the header everyone sees.
-              */}
-              <button type="button" onClick={reset} disabled={pending} className="pf-btn pf-press px-3 py-1.5">
-                Default Colours
-              </button>
-            </div>
-            {message && (
-              <p aria-live="polite" className="mt-2 text-xs" style={{ color: message.ok ? 'var(--pf-accent)' : undefined }}>
-                <span className={message.ok ? '' : 'text-destructive'}>{message.text}</span>
-              </p>
-            )}
+            <button type="button" onClick={reset} disabled={pending} className="pf-btn pf-press px-3 py-1.5">
+              Default Colours
+            </button>
           </div>
+          {message && (
+            <p aria-live="polite" className="mt-2 text-xs" style={{ color: message.ok ? 'var(--pf-accent)' : undefined }}>
+              <span className={message.ok ? '' : 'text-destructive'}>{message.text}</span>
+            </p>
+          )}
         </div>
-      )}
+      </div>
     </section>
   )
 }

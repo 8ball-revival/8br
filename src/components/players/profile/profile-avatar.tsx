@@ -127,6 +127,19 @@ export function ProfileAvatar({
   return (
     <span className={cn('pf-avatar pf-avatar-slot relative block', box, className)}>
       {ring}
+      {/*
+        The clip is a wrapper, not the picture itself.
+
+        Zoom is a `transform: scale()` on the picture, and a transform scales the element's OWN
+        border-radius with it — so a circle drawn on the scaled element grows with the zoom instead
+        of holding it. At 106% that reads as a slightly large avatar; at 220% the picture escaped its
+        circle entirely and covered the controls beside it.
+
+        This wrapper is never scaled. It holds the circle at a fixed size and clips whatever moves
+        inside it, which is the whole job. It cannot live on `.pf-avatar-slot`, because the ring and
+        the halo are deliberately drawn OUTSIDE the picture and that element must not clip them.
+      */}
+      <span className="pf-avatar-clip">
       {reduced ? (
         <>
           {/* The still. Until it is drawn, the monogram holds the space rather than the animation. */}
@@ -154,6 +167,7 @@ export function ProfileAvatar({
           }}
         />
       )}
+      </span>
     </span>
   )
 }

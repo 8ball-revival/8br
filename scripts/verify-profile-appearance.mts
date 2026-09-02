@@ -923,6 +923,117 @@ section('The frame is decoration, and gives way before the layout does')
   }
 }
 
+// -- Upload ceiling -------------------------------------------------------------------------------
+section('One size ceiling, agreed on by every layer that can refuse an upload')
+{
+  /*
+    From a live failure. Uploading a 1.4 MB avatar on 8br.gg replaced the whole page with "An
+    unexpected error occurred", and the production log said why:
+
+        Error: Body exceeded 1 MB limit ... statusCode: 413
+
+    Three ceilings disagreed. Vercel caps a request body at 4.5 MB, Next caps a Server Action body
+    at 1 MB unless told otherwise (it had not been), and our validator allowed 12 MB. The smallest
+    won, and it won in the worst possible way: a refusal inside the framework is thrown, not
+    returned, so no component could catch it and say so.
+
+    These checks exist to keep the layers agreeing. A validator that promises more than the
+    transport carries does not protect anyone; it relocates the failure somewhere unexplainable.
+  */
+  const limits = code(readFileSync('src/lib/media/limits.ts', 'utf8'))
+  const config = code(readFileSync('next.config.ts', 'utf8'))
+  const validate = code(readFileSync('src/lib/media/validate.ts', 'utf8'))
+  const editor = readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8')
+  const editorCode = code(editor)
+
+  const maxBytes = Number(/UPLOAD_MAX_BYTES = ([0-9 *]+)/.exec(limits)?.[1]
+    ?.split('*').map(Number).reduce((a, b) => a * b, 1))
+  check('the ceiling is a real number of bytes', Number.isFinite(maxBytes) && maxBytes > 0, `${maxBytes}`)
+
+  /* Vercel's own cap on a request body. Nothing in the application can raise this one. */
+  check('...and sits under the platform request-body cap of 4.5 MB',
+    maxBytes < 4.5 * 1024 * 1024, `${maxBytes} bytes`)
+
+  check('the Server Action body limit is configured at all',
+    /bodySizeLimit/.test(config), 'unset means Next allows 1 MB and throws above it')
+
+  const configured = /bodySizeLimit:\s*'([0-9]+)mb'/.exec(config)?.[1]
+  check('...and it matches the stated ceiling',
+    Number(configured) * 1024 * 1024 === maxBytes, `${configured}mb vs ${maxBytes} bytes`)
+
+  check('the validator defers to the same ceiling rather than naming its own',
+    /MEDIA_MAX_BYTES \?\? UPLOAD_MAX_BYTES/.test(validate))
+  check('...including for an animated GIF, which travels the same transport',
+    /MEDIA_MAX_GIF_BYTES \?\? UPLOAD_MAX_BYTES/.test(validate))
+
+  /*
+    The browser has to weigh the file itself. This is the one failure the panel cannot report after
+    the fact: over the limit, the framework refuses the request before the action runs.
+  */
+  check('the browser checks the size before sending',
+    /file\.size > UPLOAD_MAX_BYTES/.test(editorCode))
+  check('...and an upload can never reach the error boundary',
+    /try \{[\s\S]{0,600}uploadAvatarAction[\s\S]{0,600}\} catch/.test(editorCode))
+  check('...and the panel says what it will accept',
+    editor.includes('{UPLOAD_MAX_LABEL}'))
+}
+
+// -- Opening the editor ---------------------------------------------------------------------------
+section('The editor opens with what the page already knows')
+{
+  /*
+    Reported as "the settings menu takes a long time to show". The panel rendered "Loading your
+    settings…" and asked the server for values the page had already rendered with, so opening it
+    cost a Server Action round trip before a single control was usable.
+  */
+  const editor = readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8')
+  const editorCode = code(editor)
+  const view = code(readFileSync('src/components/players/profile/profile-view.tsx', 'utf8'))
+
+  check('the panel takes its values as props', /initialTheme: ProfileTheme/.test(editorCode))
+  check('...and starts from them rather than from a default',
+    /useState<ProfileTheme>\(initialTheme\)/.test(editorCode))
+  check('...for the avatar and its framing too',
+    /useState\(initialFraming\)/.test(editorCode) && /useState<string \| null>\(initialAvatarUrl\)/.test(editorCode))
+  check('the parent hands over the server-rendered appearance',
+    /initialTheme=\{identity\.theme\}/.test(view) && /initialAvatarUrl=\{identity\.avatarUrl\}/.test(view))
+  check('no round trip is made to open the panel',
+    !/getProfileAppearanceAction/.test(editorCode))
+  /* Stripped, not raw: the comment explaining the old behaviour names it, and prose is not code. */
+  check('...so there is no loading state left to show', !editorCode.includes('Loading your settings'))
+}
+
+// -- Zoom -----------------------------------------------------------------------------------------
+section('Zoom crops the picture instead of growing its circle')
+{
+  /*
+    Reported as "avatar zoom is broken", and visible at 220%: the picture escaped its circle and
+    covered the controls beside it.
+
+    The cause is that a `transform: scale()` scales the element's own `border-radius` with it, so a
+    circle drawn on the scaled picture is not a clip at all — it grows with the zoom. The clip has to
+    live on something that does not scale, and it cannot be the slot, because the ring and halo are
+    deliberately drawn outside the picture and that element must not clip them.
+  */
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+  const avatar = code(readFileSync('src/components/players/profile/profile-avatar.tsx', 'utf8'))
+
+  const clip = /\.pf-avatar-clip \{([\s\S]*?)\}/.exec(css)?.[1] ?? ''
+  check('there is a clip around the picture', clip.length > 0)
+  check('...which actually clips', /overflow:\s*hidden/.test(clip))
+  check('...and holds its own size rather than the picture\'s', /inset:\s*0/.test(clip))
+  check('the picture is inside it', /<span className="pf-avatar-clip">/.test(avatar))
+  check('...and the zoom is on the picture, not on the clip',
+    /transform: framing\.zoom !== 100/.test(avatar) && !/transform/.test(clip))
+
+  /*
+    The slot must stay unclipped. Setting `overflow: hidden` there would also "fix" the zoom, by
+    cutting off the ring and the halo that are meant to sit outside the picture.
+  */
+  const slot = /\.pf-avatar-slot \{([\s\S]*?)\}/.exec(css)?.[1] ?? ''
+  check('the slot still lets the ring and halo sit outside', /overflow:\s*visible/.test(slot))
+}
+
 await prisma.$disconnect()
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 process.exitCode = fail === 0 ? 0 : 1
