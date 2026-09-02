@@ -1034,6 +1034,38 @@ section('Zoom crops the picture instead of growing its circle')
   check('the slot still lets the ring and halo sit outside', /overflow:\s*visible/.test(slot))
 }
 
+// -- Repositioning --------------------------------------------------------------------------------
+section('The horizontal and vertical sliders move the picture')
+{
+  /*
+    Reported as "the sliders don't work right". They were moving a picture that had nowhere to go.
+
+    `object-position` can only shift a picture along an axis with something to spare, and `cover`
+    leaves nothing to spare on the axis that already fits. Measured on the two avatars involved: a
+    1036x1024 photograph is square to within 1%, so in a round frame BOTH sliders did nothing at
+    all; a 730x1060 portrait has slack vertically and none horizontally, so only one of them did.
+
+    Zoom did not rescue it either, because scaling about the middle keeps the middle in view no
+    matter where the sliders are. Scaling about the focal point is what gives them somewhere to go.
+  */
+  const avatar = code(readFileSync('src/components/players/profile/profile-avatar.tsx', 'utf8'))
+
+  check('zoom scales about the focal point rather than the middle',
+    /transformOrigin: `\$\{framing\.focalX\}% \$\{framing\.focalY\}%`/.test(avatar))
+  check('...and the cover crop still follows it too',
+    /objectPosition: `\$\{framing\.focalX\}% \$\{framing\.focalY\}%`/.test(avatar))
+
+  /*
+    The reduced-motion still is drawn by hand onto a canvas and has always panned across the
+    overflow the zoom creates. The two paths must agree, or asking for reduced motion would frame
+    the same avatar differently.
+  */
+  check('the still uses the same arithmetic',
+    /dx = \(side - w\) \* \(framing\.focalX \/ 100\)/.test(avatar)
+    && /dy = \(side - h\) \* \(framing\.focalY \/ 100\)/.test(avatar))
+  check('...including the zoom', /\* \(framing\.zoom \/ 100\)/.test(avatar))
+}
+
 await prisma.$disconnect()
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`)
 process.exitCode = fail === 0 ? 0 : 1

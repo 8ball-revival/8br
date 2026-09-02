@@ -163,6 +163,22 @@ export function ProfileAvatar({
           decoding="async"
           style={{
             objectPosition: `${framing.focalX}% ${framing.focalY}%`,
+            /*
+              Zoom scales about the chosen point, not about the middle.
+
+              `object-position` can only move a picture along an axis that has something to spare,
+              and `cover` leaves nothing to spare on the axis that already fits. A square photograph
+              in a round frame therefore ignored both sliders completely, and a portrait one ignored
+              horizontal - which is what "the sliders don't work" was: they were moving a picture
+              that had nowhere to go.
+
+              Scaling about the focal point gives them somewhere to go. Zoomed in, the chosen point
+              is the one held still while the rest grows past the frame, so the sliders choose what
+              stays in view on both axes. At 100% they still do nothing on an axis with no overflow,
+              because at 100% there is genuinely nothing to move - the same arithmetic the canvas
+              path has always used for the reduced-motion still.
+            */
+            transformOrigin: `${framing.focalX}% ${framing.focalY}%`,
             transform: framing.zoom !== 100 ? `scale(${framing.zoom / 100})` : undefined,
           }}
         />
