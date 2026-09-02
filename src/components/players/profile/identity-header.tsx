@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Check, ExternalLink, Settings2, Share2 } from 'lucide-react'
-import { ProfileAvatar } from './profile-avatar'
+import { ProfileAvatar, type AvatarFraming } from './profile-avatar'
 import { CountUp, usePointerTilt, usePrefersReducedMotion } from './motion'
 import type { ProfileIdentity } from '@/lib/players/profile'
 
@@ -21,7 +21,7 @@ import type { ProfileIdentity } from '@/lib/players/profile'
  * labels, their keyboard focus and their behaviour; only their weight changed.
  */
 export function IdentityHeader({
-  identity, rank, rating, shareUrl, canEdit, onEdit,
+  identity, rank, rating, shareUrl, canEdit, onEdit, framing,
 }: {
   identity: ProfileIdentity
   rank: number | null
@@ -29,6 +29,14 @@ export function IdentityHeader({
   shareUrl: string
   canEdit: boolean
   onEdit: () => void
+  /*
+    How to frame the avatar, passed in rather than read from `identity`.
+
+    While the editor is open this is the value being dragged, so the picture up here follows the
+    slider at once. It used to come from the server on every change, which meant the only way to see
+    a slider move was to wait for a round trip - see the editor for what that cost.
+  */
+  framing: AvatarFraming
 }) {
   const [shared, setShared] = useState<string | null>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -95,14 +103,7 @@ export function IdentityHeader({
           <ProfileAvatar
             name={identity.name}
             src={identity.avatarUrl}
-            framing={{
-              focalX: identity.avatarFocalX,
-              focalY: identity.avatarFocalY,
-              zoom: identity.avatarZoom,
-              shape: identity.avatarShape,
-              width: identity.avatarWidth,
-              height: identity.avatarHeight,
-            }}
+            framing={framing}
             size="xl"
           />
 

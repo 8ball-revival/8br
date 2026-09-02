@@ -1,11 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import type { AvatarFraming } from './profile-avatar'
+
+/*
+  How long the framing has to stop moving before it is written.
+
+  Long enough that a drag is one write rather than a hundred; short enough that letting go and
+  immediately closing the panel does not feel like a race. The flush on close means it never is one.
+*/
+const FRAMING_SETTLE_MS = 400
 import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL, describeBytes } from '@/lib/media/limits'
 import { MAX_ZOOM, fitZoom } from '@/lib/players/avatar-fit'
-import {
-  AVATAR_SHAPES, AVATAR_SHAPE_LABELS, avatarRadius, type AvatarShape,
-} from '@/lib/players/avatar-shape'
+import { AVATAR_SHAPES, AVATAR_SHAPE_LABELS, avatarRadius } from '@/lib/players/avatar-shape'
 import { Trash2, Upload, X } from 'lucide-react'
 import {
   DEFAULT_THEME, THEME_FIELDS, THEME_PRESETS, matchPreset, themeVars, validateTheme,
@@ -32,7 +39,7 @@ import { ProfileAvatar } from './profile-avatar'
  * the profile to keep in step.
  */
 export function AppearanceEditor({
-  playerId, playerName, onClose, initialTheme, initialAvatarUrl, initialFraming,
+  playerId, playerName, onClose, initialTheme, initialAvatarUrl, framing, onFramingChange,
 }: {
   playerId: string
   playerName: string
@@ -48,16 +55,18 @@ export function AppearanceEditor({
   */
   initialTheme: ProfileTheme
   initialAvatarUrl: string | null
-  initialFraming: {
-    focalX: number; focalY: number; zoom: number; shape: AvatarShape
-    width: number | null; height: number | null
-  }
+  /*
+    The framing is owned by the profile, not by this panel, so the picture behind it follows a slider
+    without a round trip. This panel decides what is WRITTEN, and when.
+  */
+  framing: AvatarFraming
+  onFramingChange: (next: AvatarFraming) => void
 }) {
   const [theme, setTheme] = useState<ProfileTheme>(initialTheme)
   /** What the profile looked like when the editor opened, for Cancel. */
   const original = useRef<ProfileTheme>(initialTheme)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
-  const [framing, setFraming] = useState(initialFraming)
+
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ThemeKey, string>>>({})
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [pending, start] = useTransition()
@@ -86,8 +95,9 @@ export function AppearanceEditor({
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
   }, [theme])
 
-  /** Restore what was there when the editor opened, then close. */
+  /** Restore what was there when the editor opened, then close. Colours only - see `commitFraming`. */
   const cancel = () => {
+    commitFraming()
     const root = document.querySelector<HTMLElement>('.pf-root')
     if (root) {
       const vars = themeVars(original.current)
@@ -97,6 +107,15 @@ export function AppearanceEditor({
   }
 
   const save = () => {
+    /*
+      Save is for the colours, but nobody reading the panel knows that.
+
+      The framing writes itself once a slider settles, so pressing Save after moving one was already
+      correct - it just looked like nothing had happened. Flushing here makes the button do what it
+      appears to do, and costs nothing when there is nothing waiting.
+    */
+    commitFraming()
+
     // Checked here for an instant message, and again on the server, which is the check that counts.
     const local = validateTheme(theme)
     if (!local.ok) {
@@ -157,11 +176,12 @@ export function AppearanceEditor({
         if (r.error) { setMessage({ ok: false, text: r.error }); return }
         setAvatarUrl(r.url ?? null)
         // The crop starts again for the new picture; the frame is a preference and stays put.
-        setFraming((f) => ({
-          ...f, focalX: 50, focalY: 50, zoom: 100,
+        // Straight through, not debounced: the upload has already written these server-side.
+        onFramingChange({
+          ...framing, focalX: 50, focalY: 50, zoom: 100,
           // The new picture's own proportions, which decide how far it can be zoomed back out.
           width: r.width ?? null, height: r.height ?? null,
-        }))
+        })
         setMessage({ ok: true, text: 'Avatar updated.' })
       } catch {
         setMessage({ ok: false, text: 'That image could not be uploaded. Try again.' })
@@ -169,10 +189,46 @@ export function AppearanceEditor({
     })
   }
 
-  const saveFraming = (next: typeof framing) => {
-    setFraming(next)
+  /*
+    Dragging changes the picture; letting go saves it.
+
+    This used to call the server on every `change` a range input emits, which is one per pixel of
+    travel. Server Actions run one at a time, and each of these also revalidated the profile's whole
+    page, so a single drag queued a hundred round trips that each re-rendered everything. The
+    profile sat still and then caught up all at once, half a minute later.
+
+    Now the drag is local and instant - `onFramingChange` redraws the picture above - and the write
+    is scheduled for when the value stops moving. A drag is one write, whatever its length.
+  */
+  const framingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const framingPending = useRef<AvatarFraming | null>(null)
+
+  const commitFraming = () => {
+    if (framingTimer.current) { clearTimeout(framingTimer.current); framingTimer.current = null }
+    const next = framingPending.current
+    if (!next) return
+    framingPending.current = null
     start(async () => { await setAvatarFramingAction(playerId, next) })
   }
+
+  const saveFraming = (next: AvatarFraming) => {
+    onFramingChange(next)
+    framingPending.current = next
+    if (framingTimer.current) clearTimeout(framingTimer.current)
+    framingTimer.current = setTimeout(commitFraming, FRAMING_SETTLE_MS)
+  }
+
+  /*
+    Nothing may be left unsaved because the panel closed. Whatever is still waiting is written on the
+    way out, and on unmount, so closing, cancelling or navigating all keep what was on screen.
+
+    Through a ref because the effect must run once, on unmount, while still calling the CURRENT
+    commit. Depending on the function directly would tear down and re-run this on every render,
+    which would flush on each one - the opposite of what it is for.
+  */
+  const commitRef = useRef(commitFraming)
+  useEffect(() => { commitRef.current = commitFraming })
+  useEffect(() => () => commitRef.current(), [])
 
   const removeAvatar = () => {
     start(async () => {
@@ -287,6 +343,7 @@ export function AppearanceEditor({
                 onChange={(v) => saveFraming({ ...framing, zoom: v })}
               />
               <p className="text-xs" style={{ color: 'var(--pf-muted)' }}>
+                Framing saves itself a moment after you stop.{' '}
                 {fitZoom(framing.width, framing.height) < 100
                   ? 'At Fit the whole picture shows inside the frame; 100% fills the frame and crops what will not fit.'
                   : 'This picture is square, so it already shows all of itself once it fills the frame.'}{' '}

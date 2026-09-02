@@ -11,6 +11,7 @@ import { AchievementsWindow, MatchHistoryPanel } from './tab-panels'
 import { HeadToHeadPanel } from './head-to-head-panel'
 import { IdentityHeader } from './identity-header'
 import { AppearanceEditor } from './appearance-editor'
+import type { AvatarFraming } from './profile-avatar'
 import { TableFrame } from './table-frame'
 import {
   CountUp, useDecorativeMotion, useEntrance, usePointerSpotlight, usePrefersReducedMotion,
@@ -58,6 +59,24 @@ export function PlayerProfileView({
   const [seasonId, setSeasonId] = useState<number | null>(seasons[0]?.seasonId ?? null)
   const [tournamentId, setTournamentId] = useState<number | null>(tournaments[0]?.tournamentId ?? null)
   const [editing, setEditing] = useState(false)
+
+  /*
+    The avatar's framing lives here, above both the header that shows it and the editor that changes
+    it, so dragging a slider redraws the picture immediately and involves no server at all.
+
+    It used to be read from `identity` by the header and separately by the editor, which meant the
+    only way for a slider to affect the picture was to write to the database and revalidate the page.
+    Every pixel of a drag did that, serially: the profile appeared frozen and then caught up all at
+    once half a minute later. What is saved, and when, is now the editor's business alone.
+  */
+  const [framing, setFraming] = useState<AvatarFraming>({
+    focalX: identity.avatarFocalX,
+    focalY: identity.avatarFocalY,
+    zoom: identity.avatarZoom,
+    shape: identity.avatarShape,
+    width: identity.avatarWidth,
+    height: identity.avatarHeight,
+  })
 
   /*
     Motion, wired once at the root.
@@ -232,6 +251,7 @@ export function PlayerProfileView({
             shareUrl={shareUrl}
             canEdit={canEdit}
             onEdit={() => setEditing((v) => !v)}
+            framing={framing}
           />
 
           {/* Only ever rendered for someone the server has already cleared to edit. */}
@@ -242,14 +262,8 @@ export function PlayerProfileView({
               onClose={() => setEditing(false)}
               initialTheme={identity.theme}
               initialAvatarUrl={identity.avatarUrl}
-              initialFraming={{
-                focalX: identity.avatarFocalX,
-                focalY: identity.avatarFocalY,
-                zoom: identity.avatarZoom,
-                shape: identity.avatarShape,
-                width: identity.avatarWidth,
-                height: identity.avatarHeight,
-              }}
+              framing={framing}
+              onFramingChange={setFraming}
             />
           )}
 

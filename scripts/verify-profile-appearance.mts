@@ -997,8 +997,10 @@ section('The editor opens with what the page already knows')
   check('the panel takes its values as props', /initialTheme: ProfileTheme/.test(editorCode))
   check('...and starts from them rather than from a default',
     /useState<ProfileTheme>\(initialTheme\)/.test(editorCode))
-  check('...for the avatar and its framing too',
-    /useState\(initialFraming\)/.test(editorCode) && /useState<string \| null>\(initialAvatarUrl\)/.test(editorCode))
+  check('...and for the avatar', /useState<string \| null>\(initialAvatarUrl\)/.test(editorCode))
+  /* The framing is not held here at all any more - the profile owns it. See the section on cost. */
+  check('...while the framing comes from the owner, not a copy of it',
+    /framing: AvatarFraming/.test(editorCode) && !/useState\(initialFraming\)/.test(editorCode))
   check('the parent hands over the server-rendered appearance',
     /initialTheme=\{identity\.theme\}/.test(view) && /initialAvatarUrl=\{identity\.avatarUrl\}/.test(view))
   check('no round trip is made to open the panel',
@@ -1216,6 +1218,54 @@ section('The zoom comes back far enough to show the whole picture')
   } else {
     console.log('  – no stored avatar in this database to check the backfill against')
   }
+}
+
+// -- Cost of an adjustment ------------------------------------------------------------------------
+section('Moving a slider costs one write, not one per pixel')
+{
+  /*
+    Reported as "I tried changing the zoom and kept hitting save and nothing happened, maybe 30
+    seconds later the avatar changed".
+
+    The framing was written on every `change` a range input emits, which is one per pixel of travel.
+    Server Actions run one at a time and each of these also revalidated the profile's entire page,
+    so one drag queued a hundred round trips that each re-rendered everything. The profile sat still
+    and then caught up all at once.
+
+    Two things fix it, and both are needed: the picture has to follow the slider without a server at
+    all, and the write has to wait until the value stops moving.
+
+    Measured in the browser afterwards: a 151-step drag produced ONE request, and the avatar above
+    the panel followed the drag immediately.
+  */
+  const editor = code(readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8'))
+  const view = code(readFileSync('src/components/players/profile/profile-view.tsx', 'utf8'))
+  const header = code(readFileSync('src/components/players/profile/identity-header.tsx', 'utf8'))
+
+  /* The picture and the panel read one value, owned above them both. */
+  check('the framing is owned above the panel', /useState<AvatarFraming>\(\{/.test(view))
+  check('...and the header is given it rather than reading the server copy',
+    /framing=\{framing\}/.test(view) && /framing: AvatarFraming/.test(header))
+  check('...so the header no longer frames from the stored row',
+    !/identity\.avatarZoom/.test(header))
+  check('the panel changes it through the owner', /onFramingChange\(next\)/.test(editor))
+
+  /* And the write waits for the value to settle. */
+  check('a change is scheduled rather than sent',
+    /setTimeout\(commitFraming, FRAMING_SETTLE_MS\)/.test(editor))
+  check('...replacing any still waiting, so a drag is one write',
+    /if \(framingTimer\.current\) clearTimeout\(framingTimer\.current\)/.test(editor))
+  const settle = Number(/FRAMING_SETTLE_MS = ([0-9]+)/.exec(editor)?.[1])
+  check('...after a wait that is short but not instant',
+    settle >= 150 && settle <= 1000, `${settle}ms`)
+  check('the action is never called straight from a slider',
+    !/onChange=\{[^}]*setAvatarFramingAction/.test(editor))
+
+  /* Nothing may be lost because the panel closed before the timer ran. */
+  check('what is waiting is written on the way out', /useEffect\(\(\) => \(\) => commitRef\.current\(\), \[\]\)/.test(editor))
+  check('...and when Cancel closes the panel', /const cancel = \(\) => \{\s*commitFraming\(\)/.test(editor))
+  check('...and Save flushes it, so the button does what it appears to',
+    /const save = \(\) => \{[\s\S]{0,400}commitFraming\(\)/.test(editor))
 }
 
 await prisma.$disconnect()
