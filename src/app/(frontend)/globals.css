@@ -788,6 +788,79 @@
     height: 0;
   }
 
+  /*
+    Brushed-metal scrollbar for a dark panel.
+
+    Separate from `.scrollbar-themed` rather than a change to it: that one is used by Rankings and
+    other surfaces, and this is a different look, not a correction to theirs.
+
+    The metal is the thumb's cross-gradient — dark at both edges, `--steel` through the middle —
+    which is what reads as a rounded machined bar rather than a flat grey block. The track is the
+    void with a hairline of `--line` down its inner edge, so it looks like a milled channel the
+    thumb sits in. Corners are 2px, not a pill: this interface is angular everywhere else.
+
+    Firefox gets `scrollbar-color`, which takes flat colours only — no gradient — so it is given the
+    closest solid pair rather than something that would not render.
+  */
+  .scrollbar-metal {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) var(--void);
+  }
+  .scrollbar-metal::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  .scrollbar-metal::-webkit-scrollbar-track {
+    background: var(--void);
+    border-left: 1px solid var(--line);
+  }
+  .scrollbar-metal::-webkit-scrollbar-corner {
+    background: var(--void);
+  }
+  .scrollbar-metal::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    /*
+      2px, not 3. The border is what insets the thumb inside the channel, and at 3px on a 12px bar
+      the metal itself was down to six pixels and read as a faint line rather than a bar.
+    */
+    border: 2px solid var(--void);
+    background-clip: padding-box;
+    background-image: linear-gradient(
+      to right,
+      #141a1f 0%,
+      #2b353d 28%,
+      color-mix(in srgb, var(--steel) 70%, #0b0f12) 50%,
+      #2b353d 72%,
+      #141a1f 100%
+    );
+  }
+  .scrollbar-metal::-webkit-scrollbar-thumb:hover {
+    background-image: linear-gradient(
+      to right,
+      #232b31 0%,
+      #46545f 35%,
+      color-mix(in srgb, var(--steel) 80%, #0b0f12) 50%,
+      #46545f 65%,
+      #232b31 100%
+    );
+  }
+  .scrollbar-metal::-webkit-scrollbar-thumb:active {
+    background-image: linear-gradient(
+      to right,
+      #2a343b 0%,
+      #55646f 35%,
+      var(--steel) 50%,
+      #55646f 65%,
+      #2a343b 100%
+    );
+  }
+  /* No stepper arrows: they are the loudest part of a default scrollbar and add nothing here. */
+  .scrollbar-metal::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   /* Faint grid texture for hero/section backgrounds */
   .bg-grid {
     background-image:

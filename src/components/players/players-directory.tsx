@@ -93,7 +93,7 @@ export function PlayersDirectory({ players, canEdit }: {
         them. Bounding it keeps the search and the column headings on screen while the names move,
         which is what the Rankings table already does with the same amount of data.
       */}
-      <div className="mt-4 max-h-[calc(100dvh-20rem)] min-h-[20rem] overflow-auto border border-border">
+      <div className="scrollbar-metal mt-4 max-h-[calc(100dvh-20rem)] min-h-[20rem] overflow-auto border border-border">
         <table className="w-full min-w-max text-sm">
           <caption className="sr-only">Every active player, with their CueVerse ID and preferred name.</caption>
           <thead>
