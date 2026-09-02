@@ -37,8 +37,29 @@ import { CUEVERSE_GAME, formatStreak, opponentParts, cueverseReplayUrl, resultLa
  *  visitor clicking between tabs; short enough that a game played now shows up in a minute. */
 const CACHE_SECONDS = 60
 
-/** CueVerse is a third party on somebody else's schedule. A slow reply must not hold our page. */
-const TIMEOUT_MS = 6000
+/**
+ * How long a FAILURE is reused, and why it is not the same number.
+ *
+ * A failure and an answer do not deserve the same shelf life. The cache above is Vercel's Data
+ * Cache: shared by every visitor and every instance, so one unlucky read becomes the answer the
+ * whole site gives. Holding that for a minute is how a single cold-start hiccup turned into
+ * "CueVerse is unavailable" on a live profile long after CueVerse was answering in half a second.
+ *
+ * Still worth holding briefly. If CueVerse really is down, going back on every render turns their
+ * outage into a stampede from us. Ten seconds is enough to absorb a burst of traffic on one profile
+ * and short enough that a blip heals before anyone thinks to reload.
+ */
+const NEGATIVE_CACHE_MS = 10_000
+
+/**
+ * CueVerse is a third party on somebody else's schedule. A slow reply must not hold our page.
+ *
+ * Ten seconds, not the six it was: the only read that has ever missed this deadline was a first
+ * connection from a cold instance, paying DNS and a TLS handshake before CueVerse had done any
+ * work. The card sits inside its own Suspense boundary, so a slow read delays that panel alone and
+ * never the page around it — the deadline exists to bound a hang, not to keep the page quick.
+ */
+const TIMEOUT_MS = 10_000
 
 /** The brief: always the latest 100, no picker. */
 export const GAME_LIMIT = 100
@@ -183,6 +204,25 @@ async function fetchProfile(cueverseId: string): Promise<CueverseResult> {
 
   const abort = new AbortController()
   const timer = setTimeout(() => abort.abort(), TIMEOUT_MS)
+  const started = Date.now()
+
+  /*
+    Say so in the log when this fails.
+
+    The reader is told the panel is unavailable and that is enough for them, but the returned status
+    was previously the only trace a failure left anywhere: the error was turned into a message and
+    dropped. A read that fails on the live site was therefore invisible — production logs showed the
+    request and nothing else, so the only way to explain one was to reason about it from outside.
+    The elapsed time is the useful part: it separates a genuine deadline from an instant refusal.
+  */
+  const failed = (reason: string, detail?: unknown): CueverseResult => {
+    console.error('[cueverse] profile read failed', {
+      cueverseId, ms: Date.now() - started, reason,
+      detail: detail instanceof Error ? `${detail.name}: ${detail.message}` : detail,
+    })
+    return { status: 'unavailable', reason }
+  }
+
   try {
     const res = await fetch(url, {
       signal: abort.signal,
@@ -191,20 +231,59 @@ async function fetchProfile(cueverseId: string): Promise<CueverseResult> {
       cache: 'no-store',
     })
     if (res.status === 404) return { status: 'not-found', cueverseId }
-    if (!res.ok) return { status: 'unavailable', reason: `CueVerse answered ${res.status}.` }
+    if (!res.ok) return failed(`CueVerse answered ${res.status}.`)
 
     const profile = normalizeProfile(await res.json(), cueverseId)
-    if (!profile) return { status: 'unavailable', reason: 'CueVerse sent a response we could not read.' }
+    if (!profile) return failed('CueVerse sent a response we could not read.')
     return { status: 'ok', profile, fetchedAt: new Date().toISOString() }
   } catch (e) {
-    const reason = e instanceof Error && e.name === 'AbortError'
-      ? 'CueVerse did not answer in time.'
-      : 'CueVerse could not be reached.'
-    return { status: 'unavailable', reason }
+    return failed(
+      e instanceof Error && e.name === 'AbortError'
+        ? 'CueVerse did not answer in time.'
+        : 'CueVerse could not be reached.',
+      e,
+    )
   } finally {
     clearTimeout(timer)
   }
 }
+
+/** Carries a failure out of the cached read without being stored as its answer. */
+class CueverseUnavailable extends Error {
+  constructor(readonly detail: string) {
+    super(detail)
+    this.name = 'CueverseUnavailable'
+  }
+}
+
+/**
+ * The shared read: one answer per ID per minute, across every visitor and instance.
+ *
+ * A failure leaves here as a throw rather than as a value, which is the whole point. `unstable_cache`
+ * stores what the callback RETURNS; a rejection is not written. So a real answer — including an
+ * honest 404, which is a stable fact about a player and worth keeping — is cached for the full
+ * minute, while a failure never enters the shared cache at all and cannot be served to the next
+ * visitor as though CueVerse had been asked.
+ */
+const readProfile = unstable_cache(
+  async (cueverseId: string): Promise<CueverseResult> => {
+    const result = await fetchProfile(cueverseId)
+    if (result.status === 'unavailable') throw new CueverseUnavailable(result.reason)
+    return result
+  },
+  ['cueverse-profile-v2'],
+  { revalidate: CACHE_SECONDS },
+)
+
+/**
+ * A short hold on failure, kept in this instance's memory rather than in the shared cache.
+ *
+ * This is the stampede guard the shared cache used to provide, at a tenth of the cost to everyone
+ * else: it stops one instance going back to a struggling CueVerse on every render, and it expires
+ * on its own long before a visitor would notice. It is deliberately not authoritative — an empty
+ * map after a cold start just means the next read tries CueVerse, which is the correct behaviour.
+ */
+const heldFailures = new Map<string, { until: number; result: CueverseResult }>()
 
 /**
  * A player's CueVerse profile, cached per ID.
@@ -212,19 +291,28 @@ async function fetchProfile(cueverseId: string): Promise<CueverseResult> {
  * Keyed by the ID so two visitors on the same profile share one read, and so opening the CueVerse
  * window, closing it and opening it again does not go back to CueVerse each time. One page view of
  * one profile makes at most one request; a minute of traffic on a popular profile makes one too.
- *
- * The whole result is cached, failures included, deliberately: if CueVerse is down, retrying it on
- * every render turns their outage into a stampede from us.
  */
-export const getCueverseProfile = unstable_cache(
-  async (cueverseId: string): Promise<CueverseResult> => {
-    const id = (cueverseId ?? '').trim()
-    if (!id) return { status: 'no-id' }
-    return fetchProfile(id)
-  },
-  ['cueverse-profile-v1'],
-  { revalidate: CACHE_SECONDS },
-)
+export async function getCueverseProfile(cueverseId: string): Promise<CueverseResult> {
+  const id = (cueverseId ?? '').trim()
+  if (!id) return { status: 'no-id' }
+
+  const held = heldFailures.get(id)
+  if (held && held.until > Date.now()) return held.result
+
+  try {
+    return await readProfile(id)
+  } catch (e) {
+    const result: CueverseResult = {
+      status: 'unavailable',
+      reason: e instanceof CueverseUnavailable ? e.detail : 'CueVerse could not be reached.',
+    }
+    // Prune while we are here: without this the map would keep an entry per ID seen, for ever.
+    const now = Date.now()
+    for (const [key, entry] of heldFailures) if (entry.until <= now) heldFailures.delete(key)
+    heldFailures.set(id, { until: now + NEGATIVE_CACHE_MS, result })
+    return result
+  }
+}
 
 /** The uncached path, for scripts and tests that must not depend on a Next request store. */
 export const fetchCueverseProfileUncached = fetchProfile

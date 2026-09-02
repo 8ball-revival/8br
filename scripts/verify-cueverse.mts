@@ -14,7 +14,8 @@
 import {
   CUEVERSE_ORIGIN, cueverseProfileUrl, cueverseReplayUrl, formatStreak, opponentParts, ordinal, resultLabel,
 } from '../src/lib/cueverse/links.ts'
-import { GAME_LIMIT, normalizeProfile } from '../src/lib/cueverse/profile.ts'
+import { GAME_LIMIT, getCueverseProfile, normalizeProfile } from '../src/lib/cueverse/profile.ts'
+import { readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0, skipped = 0
 const check = (label: string, ok: boolean, detail?: string) => {
@@ -215,6 +216,57 @@ section('The live endpoint still has the shape this adapter expects')
     check('an unknown player is a 404, distinguishable from an outage', missing === 404, String(missing))
   }
 }
+
+// -- Failure handling ----------------------------------------------------------------------------
+section('A failed read is held briefly, and never by the shared cache')
+{
+  /*
+    This section exists because of a live incident. A profile on 8br.gg showed "CueVerse is
+    unavailable" while CueVerse was answering in half a second, and the page rendered in 0.4s - far
+    too fast to have waited out the deadline. The message was not being produced, it was being
+    replayed: the failure had been written into the shared Data Cache with the same one-minute life
+    as a real answer, so one unlucky read became the answer the whole site gave.
+
+    These assertions are about that shape, not about CueVerse being reachable.
+  */
+  const src = readFileSync('src/lib/cueverse/profile.ts', 'utf8')
+  /* Comments explain the design; matching them would let prose pass for behaviour. */
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
+  check('a failure leaves the cached read as a throw, not as a value',
+    /throw new CueverseUnavailable/.test(code))
+  check('...so the shared cache is never asked to store one',
+    !/unstable_cache[\s\S]{0,400}status: 'unavailable'/.test(code))
+  check('an honest 404 is still cached, being a fact rather than a failure',
+    /status: 'not-found'/.test(code) && !/not-found[\s\S]{0,80}throw/.test(code))
+
+  const num = (re: RegExp) => Number(re.exec(code)?.[1]?.replace(/_/g, ''))
+  const negative = num(/NEGATIVE_CACHE_MS = ([0-9_]+)/)
+  const shared = num(/CACHE_SECONDS = ([0-9_]+)/) * 1000
+  check('a failure is held for less time than an answer', negative < shared, `${negative}ms vs ${shared}ms`)
+  check('...but is held at all, so an outage is not answered with a stampede',
+    negative >= 5_000, `${negative}ms`)
+  check('the hold is pruned, so it cannot grow one entry per ID for ever',
+    /heldFailures\.delete/.test(code))
+
+  /*
+    The cache key carries a version. Bumping it abandons whatever the old key holds, which is what
+    retires an already-poisoned entry rather than waiting for it to expire on its own.
+  */
+  check('the cache key is versioned', /'cueverse-profile-v[0-9]+'/.test(code))
+
+  /* A read that fails must leave a trace: the returned status used to be the only one. */
+  check('a failure is logged, with how long it took',
+    /console\.error\('\[cueverse\]/.test(code) && /ms: Date\.now\(\) - started/.test(code))
+
+  const timeout = num(/TIMEOUT_MS = ([0-9_]+)/)
+  check('the deadline allows for a cold first connection', timeout >= 10_000, `${timeout}ms`)
+
+  /* No ID is answered without consulting a cache or the network at all. */
+  check('an empty ID is answered directly', (await getCueverseProfile('')).status === 'no-id')
+  check('...and so is whitespace', (await getCueverseProfile('   ')).status === 'no-id')
+}
+
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed${skipped ? `, ${skipped} skipped` : ''}`)
 /*
