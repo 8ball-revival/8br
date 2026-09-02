@@ -31,7 +31,6 @@ export async function listActivePlayers(): Promise<DirectoryPlayer[]> {
   const players = await prisma.player.findMany({
     where: { active: true, managementOnly: false },
     select: { id: true, cueverseId: true, primaryName: true, linkedUserId: true },
-    orderBy: [{ cueverseId: 'asc' }, { primaryName: 'asc' }],
   })
 
   /*
@@ -45,6 +44,27 @@ export async function listActivePlayers(): Promise<DirectoryPlayer[]> {
     _count: { _all: true },
   })
   const byPlayer = new Map(counts.map((c) => [c.playerId, c._count._all]))
+
+  /*
+    Sorted here rather than by the database.
+
+    This database's collation is `C` — raw byte order — so `ORDER BY cueverseId` puts every capital
+    before every lowercase letter: DJBlaster ahead of DeadPoolPrime, GODZERO ahead of Gr4vity,
+    ImThatGood ahead of Im_Not_That_Bad. Every one of those is correct by byte value and none of
+    them is what a reader scanning an alphabetical list expects.
+
+    Postgres cannot be asked for a case-insensitive order through Prisma's `orderBy` without a
+    `lower()` or a COLLATE clause, and five hundred rows are already being read and mapped, so the
+    comparison happens here where it can simply be the right one.
+
+    `Intl.Collator` with `sensitivity: 'base'` folds case and accents together — "ArsH_" sits with
+    the A's, "José" with the J's — and `numeric` orders digits the way they are read, so player2
+    comes before player10 rather than after it.
+  */
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+  players.sort((a, b) =>
+    collator.compare(a.cueverseId ?? a.primaryName, b.cueverseId ?? b.primaryName)
+    || collator.compare(a.primaryName, b.primaryName))
 
   return players.map((p) => ({
     id: p.id,

@@ -481,6 +481,31 @@ section('The Players directory')
   }
 
   /*
+    Alphabetical to a reader, not to a byte comparator.
+
+    This database's collation is `C`, so `ORDER BY cueverseId` sorts by byte value and every capital
+    lands before every lowercase letter: DJBlaster ahead of DeadPoolPrime, ImThatGood ahead of
+    Im_Not_That_Bad. Correct by byte, wrong by every expectation somebody scanning a list has.
+  */
+  const order = rows.map((r) => r.cueverseId ?? r.preferredName)
+  const folded = [...order].sort((a, b) =>
+    new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }).compare(a, b))
+  check('the directory is in case-insensitive order', JSON.stringify(order) === JSON.stringify(folded))
+
+  const idx = (h: string) => rows.findIndex((r) => r.cueverseId === h)
+  for (const [first, second] of [['DeadPoolPrime', 'DJBlaster'], ['Im_Not_That_Bad', 'ImThatGood']]) {
+    const a = idx(first), b = idx(second)
+    if (a >= 0 && b >= 0) {
+      check(`"${first}" comes before "${second}"`, a < b, `${a} vs ${b}`)
+    }
+  }
+  const dir2 = readFileSync('src/lib/players/directory.ts', 'utf8')
+  check('...and digits read as numbers, so player2 precedes player10',
+    /numeric: true/.test(dir2))
+  check('the sort is not left to the database collation',
+    !/orderBy: \[\{ cueverseId/.test(dir2))
+
+  /*
     A refused handle must leave the record untouched.
 
     `changeCueverseId` spans the Player row and the Payload login and is atomic about it — it
