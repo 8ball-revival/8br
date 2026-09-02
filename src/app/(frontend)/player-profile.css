@@ -739,6 +739,48 @@
 }
 
 /*
+  ── Era toggle ──────────────────────────────────────────────────────────────────────────────────
+
+  Two eras of Season data behind one tile. Small and top-right, so it reads as a qualifier on the
+  figures below it rather than as a second control competing with "View All" in the header.
+*/
+.pf-era-toggle {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0;
+  margin: -0.15rem 0 0.5rem;
+}
+.pf-era-btn {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--pf-border) 90%, transparent);
+  color: var(--pf-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: color 140ms ease, border-color 140ms ease, background-color 140ms ease;
+}
+.pf-era-btn:first-child { border-radius: 2px 0 0 2px; }
+.pf-era-btn:last-child { border-radius: 0 2px 2px 0; border-left-width: 0; }
+.pf-era-btn:hover { color: var(--pf-text); }
+.pf-era-btn[aria-pressed='true'] {
+  color: var(--pf-text);
+  border-color: color-mix(in srgb, var(--pf-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--pf-accent) 14%, transparent);
+}
+
+/* Where there is only one era, it is named in the same place the switch would have been. */
+.pf-era-label {
+  margin: -0.15rem 0 0.5rem;
+  text-align: right;
+  color: var(--pf-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/*
   ── Colour presets ──────────────────────────────────────────────────────────────────────────────
 
   Each chip previews the theme it applies, drawn from that preset's OWN values rather than from the

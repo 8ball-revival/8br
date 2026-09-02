@@ -395,9 +395,13 @@ section('The Seasons tile is the CueVerse era; View All is the whole career')
     Season and names the platform on each.
   */
   const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
-  check('the tile filters out the Yahoo era', /s\.platform !== 'YAHOO'/.test(view))
-  check('...and says how many it left out, rather than hiding them',
-    /earlier Season\{/.test(view) && /in View All/.test(view))
+  check('the tile separates the two eras', /s\.platform !== 'YAHOO'/.test(view))
+  check('...and offers a switch between them', /pf-era-btn/.test(view))
+  check('...which opens on the era the player actually has',
+    /useState<'CUEVERSE' \| 'YAHOO'>\(onCueverse\.length > 0 \? 'CUEVERSE' : 'YAHOO'\)/.test(view))
+  check('...and is not drawn when there is nothing to switch to',
+    /bothEras \? \(/.test(view) && /const bothEras = onCueverse\.length > 0 && onYahoo\.length > 0/.test(view))
+  check('...naming the era instead in that case', /pf-era-label/.test(view))
   check('the window is not filtered — it is the whole career',
     !readFileSync('src/components/players/profile/seasons-window.tsx', 'utf8').includes("platform !== 'YAHOO'"))
 

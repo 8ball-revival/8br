@@ -331,10 +331,30 @@ function CareerPreview({ data }: { data: PlayerProfilePage }) {
   replaced.
 */
 function SeasonsPreview({ data }: { data: PlayerProfilePage }) {
+  /*
+    Two eras, one tile, and the player decides which one they are looking at.
+
+    Seasons run from 2005 on Yahoo through to CueVerse today, and a combined figure is swamped by
+    the archive — it read "24 Seasons" for somebody whose CueVerse career is one. Splitting them
+    without a way back would be worse, so the tile carries its own switch.
+
+    It opens on the era the player actually HAS: CueVerse for anybody playing now, Yahoo for the
+    archive-only careers that would otherwise open on "0 / 0". Where a player has only one era there
+    is nothing to switch to, so no switch is drawn — a control that cannot change anything is worse
+    than none — and the era is named instead.
+
+    View All is untouched either way: the window behind it is the whole career, both eras, with the
+    platform on every Season.
+  */
   const onCueverse = data.seasons.filter((s) => s.platform !== 'YAHOO')
-  const played = onCueverse.filter((s) => s.participation === 'verified')
-  const rostered = onCueverse.filter((s) => s.participation === 'roster-only').length
-  const earlier = data.seasons.length - onCueverse.length
+  const onYahoo = data.seasons.filter((s) => s.platform === 'YAHOO')
+  const bothEras = onCueverse.length > 0 && onYahoo.length > 0
+
+  const [era, setEra] = useState<'CUEVERSE' | 'YAHOO'>(onCueverse.length > 0 ? 'CUEVERSE' : 'YAHOO')
+  const scoped = era === 'CUEVERSE' ? onCueverse : onYahoo
+
+  const played = scoped.filter((s) => s.participation === 'verified')
+  const rostered = scoped.filter((s) => s.participation === 'roster-only').length
   const newest = played[0] ?? null
 
   /*
@@ -345,10 +365,28 @@ function SeasonsPreview({ data }: { data: PlayerProfilePage }) {
     Season row already carries `isChampion`, taken from that Season's own `championPlayerId`, which
     is both attributable and correct.
   */
-  const titles = onCueverse.filter((s) => s.isChampion).length
+  const titles = scoped.filter((s) => s.isChampion).length
 
   return (
     <div>
+      {bothEras ? (
+        <div className="pf-era-toggle" role="group" aria-label="Which era to show">
+          {(['CUEVERSE', 'YAHOO'] as const).map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => setEra(e)}
+              aria-pressed={era === e}
+              className="pf-era-btn pf-press"
+            >
+              {e === 'CUEVERSE' ? 'CueVerse' : 'Yahoo'}
+            </button>
+          ))}
+        </div>
+      ) : (
+        /* Nothing to switch to, so the era is stated rather than offered. */
+        onYahoo.length > 0 && <p className="pf-era-label">Yahoo era</p>
+      )}
       <dl className="pf-stat-row">
         <Figure label="Seasons Played" count={played.length} />
         <Figure label="Titles" count={titles} />
@@ -366,11 +404,7 @@ function SeasonsPreview({ data }: { data: PlayerProfilePage }) {
           recorded matches.
         </p>
       )}
-      {earlier > 0 && (
-        <p className="pf-note mt-1">
-          {earlier} earlier Season{earlier === 1 ? '' : 's'} on Yahoo — in View All.
-        </p>
-      )}
+
     </div>
   )
 }
