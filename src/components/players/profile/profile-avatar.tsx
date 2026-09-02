@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { avatarFit, fillRatio } from '@/lib/players/avatar-fit'
 import { avatarRadius, type AvatarShape } from '@/lib/players/avatar-shape'
 import { cn } from '@/lib/utils'
 
@@ -46,8 +47,11 @@ function usePrefersReducedMotion(): boolean {
 export interface AvatarFraming {
   focalX: number
   focalY: number
-  /** Percentage of `cover`. 100 fills the slot; higher crops further in. */
+  /** Percentage of filling the slot. 100 fills it; higher crops in; lower shows more of the picture. */
   zoom: number
+  /** The picture's own dimensions, which decide how far out it can go. Null = it cannot. */
+  width?: number | null
+  height?: number | null
   /** The frame the picture sits in. */
   shape: AvatarShape
 }
@@ -87,8 +91,18 @@ export function ProfileAvatar({
       canvas.height = side
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      // Reproduce `object-fit: cover` by hand: scale to the larger ratio and centre on the focal point.
-      const scale = Math.max(side / img.width, side / img.height) * (framing.zoom / 100)
+      /*
+        The same framing, drawn by hand.
+
+        Below 100 the picture is fitted rather than filled, exactly as the <img> path does it, or
+        asking for reduced motion would frame the same avatar differently. `min` fits, `max` fills,
+        and the zoom is relative to whichever of the two applies.
+      */
+      const cover = Math.max(side / img.width, side / img.height)
+      const contain = Math.min(side / img.width, side / img.height)
+      const scale = framing.zoom >= 100
+        ? cover * (framing.zoom / 100)
+        : contain * ((framing.zoom / 100) * fillRatio(img.width, img.height))
       const w = img.width * scale
       const h = img.height * scale
       const dx = (side - w) * (framing.focalX / 100)
@@ -100,6 +114,7 @@ export function ProfileAvatar({
     img.src = src
     return () => { cancelled = true }
   }, [reduced, src, framing.focalX, framing.focalY, framing.zoom])
+
 
   const box = size === 'xl'
     // The identity header's avatar: the largest thing on the page after the handle itself.
@@ -126,6 +141,9 @@ export function ProfileAvatar({
     the alternative is four rules each remembering to switch, which is four chances to disagree.
   */
   const shapeVar = { ['--pf-avatar-radius' as string]: avatarRadius(framing.shape) }
+
+  /* Fitted or filled, and by how much. See src/lib/players/avatar-fit.ts for why this is not one sum. */
+  const fit = avatarFit(framing.zoom, framing.width, framing.height)
 
   if (!src) {
     return (
@@ -177,6 +195,7 @@ export function ProfileAvatar({
           loading="lazy"
           decoding="async"
           style={{
+            objectFit: fit.objectFit,
             objectPosition: `${framing.focalX}% ${framing.focalY}%`,
             /*
               Zoom scales about the chosen point, not about the middle.
@@ -194,7 +213,7 @@ export function ProfileAvatar({
               path has always used for the reduced-motion still.
             */
             transformOrigin: `${framing.focalX}% ${framing.focalY}%`,
-            transform: framing.zoom !== 100 ? `scale(${framing.zoom / 100})` : undefined,
+            transform: fit.scale !== 1 ? `scale(${fit.scale})` : undefined,
           }}
         />
       )}

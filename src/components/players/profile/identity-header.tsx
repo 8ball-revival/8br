@@ -100,6 +100,8 @@ export function IdentityHeader({
               focalY: identity.avatarFocalY,
               zoom: identity.avatarZoom,
               shape: identity.avatarShape,
+              width: identity.avatarWidth,
+              height: identity.avatarHeight,
             }}
             size="xl"
           />

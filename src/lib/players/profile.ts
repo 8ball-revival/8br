@@ -51,6 +51,9 @@ export interface ProfileIdentity {
   avatarZoom: number
   /** Circle, or a square with rounded corners. The player's choice. */
   avatarShape: AvatarShape
+  /** The picture's own dimensions, which decide how far it can be zoomed out. */
+  avatarWidth: number | null
+  avatarHeight: number | null
   /** This profile's colours. The shared default when its owner has not chosen any. */
   theme: ProfileTheme
 }
@@ -239,7 +242,7 @@ export async function getProfileIdentity(param: string): Promise<ProfileIdentity
     select: {
       id: true, primaryName: true, cueverseId: true, linkedUserId: true, linkStatus: true,
       avatarFilename: true, avatarFocalX: true, avatarFocalY: true, avatarZoom: true, avatarUpdatedAt: true,
-      avatarShape: true,
+      avatarShape: true, avatarWidth: true, avatarHeight: true,
       profileTheme: true,
     },
   })
@@ -299,6 +302,8 @@ export async function getProfileIdentity(param: string): Promise<ProfileIdentity
     avatarFocalY: player.avatarFocalY,
     avatarZoom: player.avatarZoom,
     avatarShape: asAvatarShape(player.avatarShape),
+    avatarWidth: player.avatarWidth,
+    avatarHeight: player.avatarHeight,
     theme: themeFromRow(player.profileTheme),
   }
 }

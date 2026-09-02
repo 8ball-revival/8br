@@ -29,6 +29,7 @@ import { monogram } from '../src/components/players/profile/profile-avatar.tsx'
 import {
   AVATAR_SHAPES, DEFAULT_AVATAR_SHAPE, asAvatarShape, avatarRadius,
 } from '../src/lib/players/avatar-shape.ts'
+import { avatarFit, fillRatio, fitZoom } from '../src/lib/players/avatar-fit.ts'
 
 assertLocalDatabase()
 
@@ -1027,7 +1028,7 @@ section('Zoom crops the picture instead of growing its circle')
   check('...and holds its own size rather than the picture\'s', /inset:\s*0/.test(clip))
   check('the picture is inside it', /<span className="pf-avatar-clip">/.test(avatar))
   check('...and the zoom is on the picture, not on the clip',
-    /transform: framing\.zoom !== 100/.test(avatar) && !/transform/.test(clip))
+    /transform: fit\.scale !== 1/.test(avatar) && !/transform/.test(clip))
 
   /*
     The slot must stay unclipped. Setting `overflow: hidden` there would also "fix" the zoom, by
@@ -1131,6 +1132,90 @@ section('A player picks the frame their picture sits in')
   check('the column is additive and defaulted',
     /ADD COLUMN "avatarShape" TEXT NOT NULL DEFAULT 'CIRCLE'/.test(sql))
   check('...and nothing is dropped to add it', !/DROP|DELETE/i.test(sql))
+}
+
+// -- Zooming out ----------------------------------------------------------------------------------
+section('The zoom comes back far enough to show the whole picture')
+{
+  /*
+    Asked for as "it should go to 0% zoom to allow the whole picture to show". Widening the slider
+    would not have done it, and the reason is the interesting part:
+
+    `object-fit: cover` crops the picture to the frame BEFORE any transform runs. Scaling that down
+    shrinks the crop and leaves a gap around it - what cover removed was never in the element to
+    give back. So below 100 the picture is fitted instead of filled, and the zoom is expressed
+    relative to that.
+
+    The conversion is the picture's long side over its short side, which is why the dimensions are
+    stored rather than guessed.
+  */
+  check('a square picture is already whole when it fills the frame', fitZoom(1000, 1000) === 100)
+  check('...a 730x1060 one has to come back to 69%', fitZoom(730, 1060) === 69, `${fitZoom(730, 1060)}`)
+  check('...and it does not matter which way round it is', fitZoom(1060, 730) === fitZoom(730, 1060))
+  check('an unknown picture cannot be zoomed out past filling', fitZoom(null, null) === 100)
+  check('...nor an impossible one', fitZoom(0, 500) === 100 && fitZoom(-5, 5) === 100)
+
+  /* Nothing existing may move: 100 has to render exactly what it rendered before. */
+  const at100 = avatarFit(100, 730, 1060)
+  check('100% still fills the frame, exactly as it always did',
+    at100.objectFit === 'cover' && at100.scale === 1, JSON.stringify(at100))
+  const at200 = avatarFit(200, 730, 1060)
+  check('...and cropping in is unchanged too',
+    at200.objectFit === 'cover' && at200.scale === 2, JSON.stringify(at200))
+
+  /* At the floor the picture is drawn whole: fitted, and scaled by essentially nothing. */
+  const atFit = avatarFit(fitZoom(730, 1060), 730, 1060)
+  check('at Fit the picture is fitted rather than cropped', atFit.objectFit === 'contain')
+  check('...and drawn at its own size, so all of it is inside the frame',
+    Math.abs(atFit.scale - 1) < 0.01, `${atFit.scale}`)
+
+  /* Halfway down is halfway between the two, not a shrunken crop. */
+  const between = avatarFit(85, 730, 1060)
+  check('below 100 the picture is fitted, never a shrunken crop', between.objectFit === 'contain')
+  check('...and is still larger than fitting, so it fills more of the frame',
+    between.scale > 1 && between.scale < fillRatio(730, 1060), `${between.scale}`)
+
+  /* The still drawn for reduced motion has to frame it the same way. */
+  const avatar = code(readFileSync('src/components/players/profile/profile-avatar.tsx', 'utf8'))
+  check('the reduced-motion still branches the same way',
+    /framing\.zoom >= 100[\s\S]{0,160}cover \*/.test(avatar) && /contain \* \(\(framing\.zoom \/ 100\) \* fillRatio/.test(avatar))
+
+  const editor = code(readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8'))
+  check('the slider stops where the whole picture is showing',
+    /min=\{fitZoom\(framing\.width, framing\.height\)\}/.test(editor))
+  check('...and says so rather than printing a number that means less',
+    /atMinLabel="Fit"/.test(editor))
+
+  const actions = code(readFileSync('src/lib/players/appearance-actions.ts', 'utf8'))
+  check('the server clamps to the same range', /clamp\(framing\.zoom, MIN_ZOOM, MAX_ZOOM\)/.test(actions))
+  check('...and records the dimensions when a picture is stored',
+    /avatarWidth: stored\.width/.test(actions))
+
+  /*
+    Existing avatars did not need re-uploading: Payload measured every one of them when it stored
+    the file, one schema over.
+  */
+  const sql = readFileSync('prisma/migrations/20260902060000_avatar_dimensions/migration.sql', 'utf8')
+  /* The ALTER alone: the backfill below it says IS NOT NULL, which is a filter, not a constraint. */
+  const alter = /ALTER TABLE "Player"[\s\S]*?;/.exec(sql)?.[0] ?? ''
+  check('the columns are additive and nullable',
+    /ADD COLUMN "avatarWidth" INTEGER/.test(alter) && !/NOT NULL/.test(alter), alter)
+  check('...and existing pictures are backfilled from what Payload already measured',
+    /FROM payload\.media/.test(sql) && /m\.filename = p\."avatarFilename"/.test(sql))
+  check('...touching nothing else', !/DROP|DELETE/i.test(sql))
+
+  /* And the backfill actually landed, rather than only being written down. */
+  const withAvatar = await prisma.player.findFirst({
+    where: { avatarFilename: { not: null } },
+    select: { avatarWidth: true, avatarHeight: true },
+  })
+  if (withAvatar) {
+    check('a stored avatar knows its own size',
+      (withAvatar.avatarWidth ?? 0) > 0 && (withAvatar.avatarHeight ?? 0) > 0,
+      JSON.stringify(withAvatar))
+  } else {
+    console.log('  – no stored avatar in this database to check the backfill against')
+  }
 }
 
 await prisma.$disconnect()

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL, describeBytes } from '@/lib/media/limits'
+import { MAX_ZOOM, fitZoom } from '@/lib/players/avatar-fit'
 import {
   AVATAR_SHAPES, AVATAR_SHAPE_LABELS, avatarRadius, type AvatarShape,
 } from '@/lib/players/avatar-shape'
@@ -47,7 +48,10 @@ export function AppearanceEditor({
   */
   initialTheme: ProfileTheme
   initialAvatarUrl: string | null
-  initialFraming: { focalX: number; focalY: number; zoom: number; shape: AvatarShape }
+  initialFraming: {
+    focalX: number; focalY: number; zoom: number; shape: AvatarShape
+    width: number | null; height: number | null
+  }
 }) {
   const [theme, setTheme] = useState<ProfileTheme>(initialTheme)
   /** What the profile looked like when the editor opened, for Cancel. */
@@ -153,7 +157,11 @@ export function AppearanceEditor({
         if (r.error) { setMessage({ ok: false, text: r.error }); return }
         setAvatarUrl(r.url ?? null)
         // The crop starts again for the new picture; the frame is a preference and stays put.
-        setFraming((f) => ({ ...f, focalX: 50, focalY: 50, zoom: 100 }))
+        setFraming((f) => ({
+          ...f, focalX: 50, focalY: 50, zoom: 100,
+          // The new picture's own proportions, which decide how far it can be zoomed back out.
+          width: r.width ?? null, height: r.height ?? null,
+        }))
         setMessage({ ok: true, text: 'Avatar updated.' })
       } catch {
         setMessage({ ok: false, text: 'That image could not be uploaded. Try again.' })
@@ -263,9 +271,25 @@ export function AppearanceEditor({
                 onChange={(v) => saveFraming({ ...framing, focalX: v })} />
               <Slider label="Vertical" value={framing.focalY} min={0} max={100}
                 onChange={(v) => saveFraming({ ...framing, focalY: v })} />
-              <Slider label="Zoom" value={framing.zoom} min={100} max={300} suffix="%"
-                onChange={(v) => saveFraming({ ...framing, zoom: v })} />
+              {/*
+                The floor is where the whole picture is visible, which is a different number for
+                every picture: 100% for a square one, 69% for a 730x1060 one. Ending the slider
+                there means dragging it all the way left shows all of the picture and never less,
+                rather than leaving the reader to find the right number by feel.
+              */}
+              <Slider
+                label="Zoom"
+                value={framing.zoom}
+                min={fitZoom(framing.width, framing.height)}
+                max={MAX_ZOOM}
+                suffix="%"
+                atMinLabel="Fit"
+                onChange={(v) => saveFraming({ ...framing, zoom: v })}
+              />
               <p className="text-xs" style={{ color: 'var(--pf-muted)' }}>
+                {fitZoom(framing.width, framing.height) < 100
+                  ? 'At Fit the whole picture shows inside the frame; 100% fills the frame and crops what will not fit.'
+                  : 'This picture is square, so it already shows all of itself once it fills the frame.'}{' '}
                 Repositioning only changes how the picture is framed. The uploaded file is kept as
                 it is, which is what lets an animated avatar stay animated.
               </p>
@@ -370,19 +394,21 @@ export function AppearanceEditor({
   )
 }
 
-function Slider({ label, value, min, max, suffix, onChange }: {
+function Slider({ label, value, min, max, suffix, atMinLabel, onChange }: {
   label: string
   value: number
   min: number
   max: number
   suffix?: string
+  /** Shown instead of the number at the bottom of the range, where the number means less than the word. */
+  atMinLabel?: string
   onChange: (v: number) => void
 }) {
   return (
     <div>
       <label className="pf-label flex items-center justify-between">
         <span>{label}</span>
-        <span>{value}{suffix ?? '%'}</span>
+        <span>{atMinLabel && value <= min ? atMinLabel : `${value}${suffix ?? '%'}`}</span>
       </label>
       <input
         type="range"

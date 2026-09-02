@@ -7,6 +7,7 @@ import { resolveStaffAccess } from '@/lib/competition/staff-auth'
 import { decideEditRights } from './edit-rights'
 import { DEFAULT_THEME, THEME_KEYS, validateTheme, type ProfileTheme, type ThemeKey } from './theme'
 import { MediaError } from '@/lib/media/validate'
+import { MAX_ZOOM, MIN_ZOOM } from './avatar-fit'
 import { asAvatarShape, type AvatarShape } from './avatar-shape'
 
 /**
@@ -101,6 +102,9 @@ export interface AvatarResult {
   error?: string
   filename?: string | null
   url?: string | null
+  /** The stored picture's own dimensions, so the editor knows how far it can be zoomed back out. */
+  width?: number | null
+  height?: number | null
 }
 
 /**
@@ -141,6 +145,9 @@ export async function uploadAvatarAction(playerId: string, form: FormData): Prom
       data: {
         avatarFilename: stored.filename,
         avatarUpdatedAt: new Date(),
+        // Recorded now, while they are known: the frame cannot offer "show all of it" without them.
+        avatarWidth: stored.width ?? null,
+        avatarHeight: stored.height ?? null,
         // A new picture starts centred and unzoomed; the previous framing described a different image.
         // The crop starts again for a new picture; `avatarShape` is deliberately untouched, being a
       // preference about the frame rather than anything about the file inside it.
@@ -158,7 +165,10 @@ export async function uploadAvatarAction(playerId: string, form: FormData): Prom
     void previous
 
     await revalidateProfile(playerId)
-    return { ok: true, filename: stored.filename, url: stored.url }
+    return {
+      ok: true, filename: stored.filename, url: stored.url,
+      width: stored.width ?? null, height: stored.height ?? null,
+    }
   } catch (e) {
     if (e instanceof MediaError) return { error: e.message }
     console.error('[avatar] upload failed', e)
@@ -184,7 +194,9 @@ export async function setAvatarFramingAction(
     data: {
       avatarFocalX: clamp(framing.focalX, 0, 100),
       avatarFocalY: clamp(framing.focalY, 0, 100),
-      avatarZoom: clamp(framing.zoom, 100, 300),
+      // The floor is the shape of the picture, not a constant: a tall one can come back further
+      // than a square one before it has shown all of itself. MIN_ZOOM is only the backstop.
+      avatarZoom: clamp(framing.zoom, MIN_ZOOM, MAX_ZOOM),
       // Narrowed rather than trusted: this arrives from a client and ends up in a style.
       avatarShape: asAvatarShape(framing.shape),
     },
@@ -200,7 +212,11 @@ export async function removeAvatarAction(playerId: string): Promise<AvatarResult
 
   await prisma.player.update({
     where: { id: playerId },
-    data: { avatarFilename: null, avatarUpdatedAt: new Date(), avatarFocalX: 50, avatarFocalY: 50, avatarZoom: 100 },
+    data: {
+      avatarFilename: null, avatarUpdatedAt: new Date(), avatarFocalX: 50, avatarFocalY: 50, avatarZoom: 100,
+      // Cleared with the picture they described. The frame shape is a preference and stays.
+      avatarWidth: null, avatarHeight: null,
+    },
   })
   await revalidateProfile(playerId)
   return { ok: true, filename: null, url: null }
@@ -212,6 +228,8 @@ export async function getProfileAppearanceAction(playerId: string): Promise<{
   usingDefault: boolean
   avatarUrl: string | null
   shape: AvatarShape
+  width: number | null
+  height: number | null
   focalX: number
   focalY: number
   zoom: number
@@ -224,7 +242,7 @@ export async function getProfileAppearanceAction(playerId: string): Promise<{
       where: { id: playerId },
       select: {
         avatarFilename: true, avatarFocalX: true, avatarFocalY: true, avatarZoom: true,
-        avatarUpdatedAt: true, avatarShape: true,
+        avatarUpdatedAt: true, avatarShape: true, avatarWidth: true, avatarHeight: true,
       },
     }),
     prisma.playerProfileTheme.findUnique({ where: { playerId } }),
@@ -242,5 +260,7 @@ export async function getProfileAppearanceAction(playerId: string): Promise<{
     focalY: player.avatarFocalY,
     zoom: player.avatarZoom,
     shape: asAvatarShape(player.avatarShape),
+    width: player.avatarWidth,
+    height: player.avatarHeight,
   }
 }

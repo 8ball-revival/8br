@@ -247,6 +247,8 @@ export function PlayerProfileView({
                 focalY: identity.avatarFocalY,
                 zoom: identity.avatarZoom,
                 shape: identity.avatarShape,
+                width: identity.avatarWidth,
+                height: identity.avatarHeight,
               }}
             />
           )}

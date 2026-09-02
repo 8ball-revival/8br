@@ -321,6 +321,18 @@ model Player {
   avatarZoom      Int       @default(100)
   /// Kept so the served URL can be cache-busted when a player replaces their picture.
   avatarUpdatedAt DateTime?
+  /// The uploaded picture's own dimensions.
+  ///
+  /// Stored because the frame cannot be reasoned about without them. "Show the whole picture" is a
+  /// different amount of zoom for every image - a 1:1 photograph is already whole at the point it
+  /// fills a square frame, a 730x1060 one has to come back to 69% - so the slider's own floor
+  /// depends on the file. Knowing them on the server is also what avoids the picture being drawn at
+  /// one size and then jumping to another once it has loaded.
+  ///
+  /// Null for a picture uploaded before this was recorded, which simply means the frame cannot be
+  /// zoomed out past filling it.
+  avatarWidth     Int?
+  avatarHeight    Int?
   /// The frame: CIRCLE or ROUNDED. A circle crops the corners off artwork that was composed as a
   /// rectangle, and no amount of framing gets them back, so the player chooses. Survives a replaced
   /// picture, being a preference about the frame rather than anything about the file.
