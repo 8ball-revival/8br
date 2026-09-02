@@ -72,6 +72,99 @@ export const DEFAULT_THEME: ProfileTheme = {
   textMuted: '#8b97a1',
 }
 
+/**
+ * Ready-made themes, for players who want a different profile without picking seven colours.
+ *
+ * ── Why whole themes rather than accents ────────────────────────────────────────────────────────
+ * An accent alone does not make a coherent profile: a violet highlight over the red-black surfaces
+ * looks like a mistake rather than a choice. Each preset therefore sets all seven tokens, with the
+ * surfaces and the muted text nudged toward the accent's hue so the whole thing reads as one
+ * decision.
+ *
+ * ── They obey the same rules as anything typed by hand ──────────────────────────────────────────
+ * Every one of these is run through `validateTheme` by the test suite, and applying one simply fills
+ * the editor's fields — Save takes the identical server-side path, contrast check included. A preset
+ * is a shortcut, not a way around the rules.
+ *
+ * Deliberately a short list. Twenty swatches is a paint chart; these are six alternatives and the
+ * house colours, which is enough to feel like a choice without becoming a task.
+ */
+export interface ThemePreset {
+  id: string
+  name: string
+  theme: ProfileTheme
+}
+
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'house-red',
+    name: 'House Red',
+    // The site's own palette, offered here too so the default is one click away like the rest.
+    theme: DEFAULT_THEME,
+  },
+  {
+    id: 'cue-blue',
+    name: 'Cue Blue',
+    theme: {
+      accent: '#3b82f6', accentSecondary: '#60a5fa',
+      surface: '#04070d', panelSurface: '#070b14', border: '#1e2a3f',
+      textPrimary: '#eaf1fb', textMuted: '#8ba0bd',
+    },
+  },
+  {
+    id: 'chalk-cyan',
+    name: 'Chalk Cyan',
+    theme: {
+      accent: '#22d3ee', accentSecondary: '#38bdf8',
+      surface: '#04090c', panelSurface: '#070d12', border: '#1b2b33',
+      textPrimary: '#e6f4f8', textMuted: '#87a3ad',
+    },
+  },
+  {
+    id: 'trophy-gold',
+    name: 'Trophy Gold',
+    theme: {
+      accent: '#e0a92b', accentSecondary: '#f3d488',
+      surface: '#080603', panelSurface: '#0b0904', border: '#2e2717',
+      textPrimary: '#f7f2e6', textMuted: '#a89b7d',
+    },
+  },
+  {
+    id: 'neon-violet',
+    name: 'Neon Violet',
+    theme: {
+      accent: '#a855f7', accentSecondary: '#c084fc',
+      surface: '#08050d', panelSurface: '#0c0814', border: '#2c2140',
+      textPrimary: '#f1eafb', textMuted: '#9c8db5',
+    },
+  },
+  {
+    id: 'table-emerald',
+    name: 'Table Emerald',
+    theme: {
+      accent: '#2ee08a', accentSecondary: '#6ee7b7',
+      surface: '#030806', panelSurface: '#060d0a', border: '#1a3029',
+      textPrimary: '#e8f7f0', textMuted: '#87a89a',
+    },
+  },
+  {
+    id: 'ash-mono',
+    name: 'Ash Mono',
+    // No hue at all, for a profile that wants the figures to be the only colour on the page.
+    theme: {
+      accent: '#cbd5e1', accentSecondary: '#94a3b8',
+      surface: '#060708', panelSurface: '#0a0c0e', border: '#262b31',
+      textPrimary: '#f1f5f9', textMuted: '#8d959e',
+    },
+  },
+]
+
+/** Which preset a theme is, if it is exactly one of them. Used to mark the active swatch. */
+export function matchPreset(theme: ProfileTheme): string | null {
+  const same = (a: ProfileTheme, b: ProfileTheme) => THEME_KEYS.every((k) => a[k] === b[k])
+  return THEME_PRESETS.find((p) => same(p.theme, theme))?.id ?? null
+}
+
 /** Human labels and one line of purpose each, for the editor. */
 export const THEME_FIELDS: { key: ThemeKey; label: string; hint: string }[] = [
   { key: 'accent', label: 'Primary accent', hint: 'Active tab, key numbers, links and focus rings.' },

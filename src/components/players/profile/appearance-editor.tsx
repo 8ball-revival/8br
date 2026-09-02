@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { Trash2, Upload, X } from 'lucide-react'
 import {
-  DEFAULT_THEME, THEME_FIELDS, themeVars, validateTheme,
+  DEFAULT_THEME, THEME_FIELDS, THEME_PRESETS, matchPreset, themeVars, validateTheme,
   type ProfileTheme, type ThemeKey,
 } from '@/lib/players/theme'
 import {
@@ -43,6 +43,15 @@ export function AppearanceEditor({
   const [loaded, setLoaded] = useState(false)
   const [pending, start] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
+
+  /*
+    Which preset is showing, if any.
+
+    Derived from the working theme rather than remembered separately: adjusting one swatch by hand
+    should stop the preset reading as selected, and a stored theme that happens to equal a preset
+    should show it as selected even though nobody clicked it this session.
+  */
+  const activePreset = matchPreset(theme)
 
   // Load the stored appearance. The action refuses if the viewer may not edit, so a null is a no.
   useEffect(() => {
@@ -209,7 +218,43 @@ export function AppearanceEditor({
             <p className="mt-1 text-xs" style={{ color: 'var(--pf-muted)' }}>
               These apply to this profile only. Changes preview live behind this panel.
             </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+
+            {/*
+              Presets first.
+
+              Setting seven colours by hand is a job; most people want a different profile, not a
+              palette exercise. A preset simply fills the fields below, so it can then be adjusted
+              and is saved by the same path with the same server-side contrast check.
+            */}
+            <div className="mt-3">
+              <p className="pf-label">Presets</p>
+              <div role="group" aria-label="Colour presets" className="mt-1.5 flex flex-wrap gap-2">
+                {THEME_PRESETS.map((preset) => {
+                  const active = activePreset === preset.id
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setTheme(preset.theme)}
+                      aria-pressed={active}
+                      className="pf-preset pf-press"
+                      // The swatch IS the preset, so it is drawn from the preset's own values.
+                      style={{
+                        ['--sw-accent' as string]: preset.theme.accent,
+                        ['--sw-accent-2' as string]: preset.theme.accentSecondary,
+                        ['--sw-panel' as string]: preset.theme.panelSurface,
+                        ['--sw-border' as string]: preset.theme.border,
+                      }}
+                    >
+                      <span aria-hidden className="pf-preset-swatch" />
+                      {preset.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {THEME_FIELDS.map(({ key, label, hint }) => (
                 <div key={key}>
                   <label htmlFor={`theme-${key}`} className="pf-label block">{label}</label>

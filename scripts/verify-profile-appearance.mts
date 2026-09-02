@@ -20,7 +20,8 @@ import sharp from 'sharp'
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import {
-  DEFAULT_THEME, THEME_KEYS, contrast, parseHex, themeFromRow, themeVars, validateTheme,
+  DEFAULT_THEME, THEME_KEYS, THEME_PRESETS, contrast, matchPreset, parseHex, themeFromRow,
+  themeVars, validateTheme,
 } from '../src/lib/players/theme.ts'
 import { ALLOWED_TYPES, looksLikeMarkup, safeFilename, sniffImageType, validateImage } from '../src/lib/media/validate.ts'
 import { getPlayerProfilePage } from '../src/lib/players/profile.ts'
@@ -391,6 +392,66 @@ section('The utility controls are secondary, and still work')
   /* The ring rotates; the player picture must not. */
   check('the ring is a sibling, so the picture never rotates',
     avatar.includes('className="pf-avatar-ring"') && !/img[\s\S]{0,200}rotate/.test(avatar))
+}
+
+section('Every colour preset obeys the same rules as a hand-typed theme')
+{
+  /*
+    A preset is a shortcut, not a way around the rules. Each one is a whole theme and each one goes
+    through the identical validator on save, so any that could not be typed by hand has no business
+    being offered as a single click.
+  */
+  check('there are presets, and not too many',
+    THEME_PRESETS.length >= 4 && THEME_PRESETS.length <= 10, `${THEME_PRESETS.length}`)
+
+  for (const preset of THEME_PRESETS) {
+    const result = validateTheme(preset.theme)
+    check(`"${preset.name}" is readable`, result.ok === true, JSON.stringify(result.errors))
+    check(`...and every value is a normalised hex`,
+      THEME_KEYS.every((k) => /^#[0-9a-f]{6}$/.test(preset.theme[k])),
+      THEME_KEYS.filter((k) => !/^#[0-9a-f]{6}$/.test(preset.theme[k])).join(','))
+  }
+
+  check('ids are unique', new Set(THEME_PRESETS.map((p) => p.id)).size === THEME_PRESETS.length)
+  check('names are unique', new Set(THEME_PRESETS.map((p) => p.name)).size === THEME_PRESETS.length)
+
+  /*
+    They must actually differ. Seven chips that all apply near-identical colours is a paint chart
+    rather than a choice — this catches a preset added by copying another and edited only in name.
+  */
+  const accents = THEME_PRESETS.map((p) => p.theme.accent)
+  check('each preset has its own accent', new Set(accents).size === accents.length)
+  const surfaces = new Set(THEME_PRESETS.map((p) => p.theme.surface))
+  check('...and its own surface, so it is a theme rather than a highlight',
+    surfaces.size >= THEME_PRESETS.length - 1, `${surfaces.size} distinct`)
+
+  /* Every preset must be dark: this profile has one interior, and a light theme is not it. */
+  check('every preset keeps the dark interior',
+    THEME_PRESETS.every((p) => contrast(p.theme.textPrimary, p.theme.surface) > 10))
+
+  // The house palette is offered like the rest, so the default is one click away.
+  const house = THEME_PRESETS.find((p) => p.theme === DEFAULT_THEME)
+  check('the default is among them', house !== undefined, THEME_PRESETS.map((p) => p.id).join(','))
+
+  /* The active chip is derived from the working theme, not remembered separately. */
+  check('a preset is recognised when it is applied', matchPreset(DEFAULT_THEME) === house?.id)
+  check('...and a hand-edited theme matches none of them',
+    matchPreset({ ...DEFAULT_THEME, accent: '#123456' }) === null)
+
+  const editor = readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8')
+  check('the presets are offered in the editor', editor.includes('THEME_PRESETS.map'))
+  check('...and only there — never on the public profile',
+    !readFileSync('src/components/players/profile/identity-header.tsx', 'utf8').includes('THEME_PRESETS'))
+  check('choosing one fills the fields rather than saving behind the reader',
+    editor.includes('onClick={() => setTheme(preset.theme)}'))
+  check('the selected preset is announced, not just outlined', editor.includes('aria-pressed={active}'))
+  check('the active chip is derived from the working theme', editor.includes('matchPreset(theme)'))
+
+  /* A swatch has to preview the preset, which means using its values rather than the live theme. */
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+  check('a swatch is drawn from the preset it applies',
+    css.includes('.pf-preset-swatch') && css.includes('var(--sw-accent)')
+    && editor.includes("['--sw-accent' as string]: preset.theme.accent"))
 }
 
 section('The theme reaches CSS only as scoped variables')
