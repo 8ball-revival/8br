@@ -12,7 +12,7 @@ import { assertLocalDatabase } from '../src/lib/db-guard.ts'
 import { planDoubleElim } from '../src/lib/competition/bracket-de.ts'
 import {
   isDeadSeat, isLocked, isWalkover, lowerBracketView, matchName, routesByTarget, slotKey, sourceLabel,
-  strandedLowerSlots, swapLowerSlots, validateRouting, type RoutableMatch,
+  deadLowerMatches, strandedLowerSlots, swapLowerSlots, validateRouting, type RoutableMatch,
 } from '../src/lib/competition/lower-bracket-edit.ts'
 import {
   resolveStrandedLowerSlots, saveLowerBracketRouting,
@@ -412,6 +412,74 @@ try {
 
     check('running it again settles nothing', (await resolveStrandedLowerSlots(ACTOR, t2)).settled === 0)
     check('...and nothing is left stranded', strandedLowerSlots(await read(t2)).length === 0)
+    await cleanup()
+  }
+
+  // ── A losers match fed by TWO walkovers ───────────────────────────────────────────────────────
+  section('A losers match nobody can reach is settled too, and the chain behind it')
+  {
+    /*
+      Found by playing a five-entrant double elimination all the way through.
+
+      With five entrants seeds 1, 2 and 3 all get a first-round bye, so TWO of those byes feed the
+      same losers match. `strandedLowerSlots` looked for a player left waiting and there is none —
+      the match has two empty seats — so it reported nothing to settle while the bracket stayed
+      stuck. Losers R1 M2 could never be played, and Losers R2 M2 and everything behind it waited on
+      it for ever. The tournament could not be finished at all.
+    */
+    const { tid: t4 } = await buildBracket()
+    let b = await read(t4)
+
+    /* Two winners matches whose losers feed the SAME losers match, both made walkovers. */
+    const target = b.find((m) => {
+      const feeders = b.filter((f) => f.loserFeedsMatchId === m.id)
+      return m.section === 'LB' && feeders.length === 2
+    })
+    check('the fixture has a losers match fed by two winners matches', target != null)
+
+    if (target) {
+      for (const feeder of b.filter((f) => f.loserFeedsMatchId === target.id)) {
+        await prisma.playoffMatch.update({
+          where: { id: feeder.id },
+          data: { awayRegistrationId: null, awayUsername: 'Bye' },
+        })
+      }
+      b = await read(t4)
+
+      const dead = deadLowerMatches(b)
+      check('the unreachable match is found', dead.some((d) => d.matchId === target.id),
+        `${dead.length} found`)
+      check('...and says why', /both seats are fed by walkovers/i.test(dead[0]?.reason ?? ''))
+
+      /* The old detector still reports nothing here: there is nobody waiting to walk over. */
+      check('...which the stranded-seat rule alone could not see',
+        !strandedLowerSlots(b).some((x) => x.matchId === target.id))
+
+      const settled = await resolveStrandedLowerSlots(ACTOR, t4)
+      check('settling succeeds', settled.ok, settled.error ?? '')
+      check('...and settled something', settled.settled > 0, String(settled.settled))
+
+      const after = await read(t4)
+      const done = after.find((m) => m.id === target.id)!
+      check('the unreachable match is recorded as played by nobody',
+        String(done.status) === 'COMPLETED' && done.winnerRegistrationId === null)
+      check('...with both seats a Bye',
+        done.homeUsername === 'Bye' && done.awayUsername === 'Bye')
+      check('...and no fabricated score', done.homeGames === null && done.awayGames === null)
+
+      /* The emptiness passes down, rather than a player who never won anything. */
+      if (done.feedsMatchId != null) {
+        const below = after.find((m) => m.id === done.feedsMatchId)!
+        const seat = done.feedsSlot === 0 ? below.homeUsername : below.awayUsername
+        const seatReg = done.feedsSlot === 0 ? below.homeRegistrationId : below.awayRegistrationId
+        check('the seat below is dead in turn, not filled', seat === 'Bye' && seatReg === null)
+      }
+
+      check('nothing is left that cannot start',
+        deadLowerMatches(after).length === 0 && strandedLowerSlots(after).length === 0)
+      check('running it again settles nothing',
+        (await resolveStrandedLowerSlots(ACTOR, t4)).settled === 0)
+    }
     await cleanup()
   }
 

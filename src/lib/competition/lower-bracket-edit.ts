@@ -494,8 +494,8 @@ export interface StrandedSlot {
   emptySlot: number
   /** The player waiting in the other seat. */
   waiting: Occupant
-  /** The winners match whose (non-existent) loser was supposed to fill it. */
-  feederId: number
+  /** The winners match whose (non-existent) loser was supposed to fill it, when there was one. */
+  feederId: number | null
   reason: string
 }
 
@@ -530,6 +530,58 @@ export function isWalkover(m: RoutableMatch, routes: Map<string, FeedRef>): bool
   return (homeReal && isDeadSeat(m, 1, routes)) || (awayReal && isDeadSeat(m, 0, routes))
 }
 
+/** A losers match that can never be played, because neither seat can ever hold a player. */
+export interface DeadLowerMatch {
+  matchId: number
+  reason: string
+}
+
+/**
+ * Losers matches that nobody can ever reach.
+ *
+ * ── The case this exists for ────────────────────────────────────────────────────────────────────
+ * A losers seat fed by a walkover has no player coming, which `strandedLowerSlots` settles by
+ * walking the waiting opponent over. But when BOTH of a match's feeders are walkovers there IS no
+ * waiting opponent — the match has two empty seats and nothing will ever fill either.
+ *
+ * That was previously reported as nothing at all, because the repair looked for somebody to
+ * advance and found nobody. Found in a five-entrant double elimination, where seeds 1, 2 and 3 all
+ * get first-round byes: Losers R1 M2 is fed by the losers of two of those byes, so it can never be
+ * played, and it sat there blocking Losers R2 M2 and everything behind it. The tournament could not
+ * be finished at all.
+ *
+ * The repair is what the draw would have done had the byes been known: the match is recorded as
+ * played by nobody, and the seat BELOW it is marked dead in turn — which usually turns that one
+ * into an ordinary walkover for whoever is waiting there, and so on down. `resolveStrandedLowerSlots`
+ * runs the whole thing to a fixed point, so one press settles the entire chain.
+ */
+export function deadLowerMatches(matches: readonly RoutableMatch[]): DeadLowerMatch[] {
+  const byId = new Map(matches.map((m) => [m.id, m]))
+  const routes = routesByTarget(matches)
+  const out: DeadLowerMatch[] = []
+
+  /** Whether a seat can never hold a player, counting a loser that a walkover will never produce. */
+  const unfillable = (m: RoutableMatch, slot: number): boolean => {
+    const regId = slot === 0 ? m.homeRegistrationId : m.awayRegistrationId
+    if (regId !== null) return false
+    if (isDeadSeat(m, slot, routes)) return true
+    const route = routes.get(slotKey({ matchId: m.id, slot }))
+    if (!route || route.kind !== 'LOSER') return false
+    const feeder = byId.get(route.sourceMatchId)
+    return feeder !== undefined && isWalkover(feeder, routes)
+  }
+
+  for (const m of matches) {
+    if (m.section !== LOWER || isLocked(m)) continue
+    if (!unfillable(m, 0) || !unfillable(m, 1)) continue
+    out.push({
+      matchId: m.id,
+      reason: `${matchName(m)} has no players and cannot be played — both seats are fed by walkovers.`,
+    })
+  }
+  return out
+}
+
 /**
  * Every losers-bracket seat that is waiting on a loser that cannot exist.
  *
@@ -548,13 +600,32 @@ export function strandedLowerSlots(matches: readonly RoutableMatch[]): StrandedS
       const here = slot === 0
         ? { registrationId: m.homeRegistrationId, username: m.homeUsername, seed: m.homeSeed }
         : { registrationId: m.awayRegistrationId, username: m.awayUsername, seed: m.awaySeed }
-      // Only an EMPTY seat can be stranded, and a seat already marked Bye is already handled.
-      if (here.registrationId !== null || here.username === 'Bye') continue
+      if (here.registrationId !== null) continue
 
       const other = slot === 0
         ? { registrationId: m.awayRegistrationId, username: m.awayUsername, seed: m.awaySeed }
         : { registrationId: m.homeRegistrationId, username: m.homeUsername, seed: m.homeSeed }
-      if (other.registrationId === null) continue // nobody is waiting; not stranded, just empty
+      if (other.registrationId === null) continue // nobody is waiting; see `deadLowerMatches`
+
+      /*
+        A seat already marked Bye counts.
+
+        It used to be skipped as "already handled", which held only because settling writes the Bye
+        and the completion together. It stopped holding once a dead match could write a Bye into the
+        seat BELOW it: that leaves an unplayed match with one Bye and one player, which is precisely
+        a match that can never be played and therefore precisely what wants settling. The match not
+        being locked is the proof it has not been handled.
+      */
+      if (isDeadSeat(m, slot, routes)) {
+        out.push({
+          matchId: m.id,
+          emptySlot: slot,
+          waiting: other,
+          feederId: null,
+          reason: `${matchName(m)} has an empty seat that nothing can fill.`,
+        })
+        continue
+      }
 
       const route = routes.get(slotKey({ matchId: m.id, slot }))
       if (!route || route.kind !== 'LOSER') continue

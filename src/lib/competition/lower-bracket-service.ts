@@ -19,8 +19,8 @@ import type { Prisma } from '@prisma/client'
 import { recordAudit } from './audit'
 import { assertCompetitionUnlocked } from './service'
 import {
-  isLocked, lowerBracketView, matchName, strandedLowerSlots, swapLowerSlots,
-  type LowerRoundView, type RoutableMatch, type SlotRef,
+  deadLowerMatches, isLocked, lowerBracketView, matchName, strandedLowerSlots, swapLowerSlots,
+  type LowerRoundView, type RoutableMatch, type SlotRef, type StrandedSlot,
 } from './lower-bracket-edit'
 
 export interface Actor { userId: number; username: string }
@@ -208,11 +208,87 @@ export async function resolveStrandedLowerSlots(
   await assertCompetitionUnlocked(prisma, tournamentId)
 
   return prisma.$transaction(async (tx) => {
-    const before = await readBracket(tx, tournamentId)
-    const stranded = strandedLowerSlots(before)
-    if (stranded.length === 0) return { ok: true, settled: 0, detail: [] }
-
     const detail: string[] = []
+
+    /*
+      Settling changes what else is settleable, so this runs to a fixed point.
+
+      Recording a dead match marks the seat below it dead in turn, which usually turns THAT match
+      into an ordinary walkover for whoever is waiting in its other seat - and settling that one can
+      stand up the next. Each pass re-reads, so every pass reasons about what is actually stored
+      rather than about a snapshot taken before its own writes.
+
+      The bound is a backstop, not a limit: each pass settles at least one match and a bracket has
+      finitely many, so it exists only so that a routing loop cannot spin here for ever.
+    */
+    for (let pass = 0; pass < 32; pass++) {
+      const before = await readBracket(tx, tournamentId)
+      const dead = deadLowerMatches(before)
+      const stranded = strandedLowerSlots(before)
+      if (dead.length === 0 && stranded.length === 0) break
+
+      /*
+        A match nobody can reach is recorded as played by nobody.
+
+        No winner, because there is no winner: fabricating one would put a player into the next
+        round who never won anything. What passes down instead is the emptiness itself - the seat
+        below is marked a Bye - which is exactly what the draw would have contained had the byes
+        been known when it was laid out.
+      */
+      for (const d of dead) {
+        const live = await tx.playoffMatch.findUniqueOrThrow({ where: { id: d.matchId }, select: ROUTE_SELECT })
+        if (isLocked({ ...live, status: String(live.status) })) continue
+
+        await tx.playoffMatch.update({
+          where: { id: d.matchId },
+          data: {
+            homeRegistrationId: null, homeUsername: 'Bye', homeSeed: null,
+            awayRegistrationId: null, awayUsername: 'Bye', awaySeed: null,
+            status: 'COMPLETED',
+            winnerRegistrationId: null,
+            completedAt: new Date(),
+          },
+        })
+
+        const m = before.find((x) => x.id === d.matchId)!
+        if (m.feedsMatchId != null && m.feedsSlot != null) {
+          const down = await tx.playoffMatch.findUnique({ where: { id: m.feedsMatchId }, select: ROUTE_SELECT })
+          if (down && isLocked({ ...down, status: String(down.status) })) {
+            detail.push(`${matchName(m)}: recorded as unplayable, but ${matchName({ ...down, status: String(down.status) })} already has a result — the seat below was left alone.`)
+          } else {
+            const seat = m.feedsSlot === 0
+              ? { homeRegistrationId: null, homeUsername: 'Bye', homeSeed: null }
+              : { awayRegistrationId: null, awayUsername: 'Bye', awaySeed: null }
+            await tx.playoffMatch.update({ where: { id: m.feedsMatchId }, data: seat })
+          }
+        }
+        detail.push(`${matchName(m)}: ${d.reason}`)
+      }
+
+      if (stranded.length === 0) continue
+      await settlePass(tx, before, stranded, detail)
+    }
+
+    if (detail.length === 0) return { ok: true, settled: 0, detail: [] }
+    await recordAudit(actor, {
+      action: 'tournament.playoff.resolve_walkovers',
+      entity: 'tournament',
+      entityId: tournamentId,
+      newValue: { settled: detail.length, matches: detail },
+      reason: 'Losers-bracket seats that no player can reach settled as byes',
+    }, tx)
+
+    return { ok: true, settled: detail.length, detail }
+  })
+}
+
+/** One pass of walking waiting players over. Split out so the loop above can repeat it. */
+async function settlePass(
+  tx: Prisma.TransactionClient,
+  before: readonly RoutableMatch[],
+  stranded: readonly StrandedSlot[],
+  detail: string[],
+): Promise<void> {
     for (const s of stranded) {
       const m = before.find((x) => x.id === s.matchId)!
       // Re-checked inside the transaction: a result may have landed since the read above.
@@ -256,15 +332,4 @@ export async function resolveStrandedLowerSlots(
 
       detail.push(`${matchName(m)}: ${s.waiting.username ?? 'player'} advances — ${s.reason}`)
     }
-
-    await recordAudit(actor, {
-      action: 'tournament.playoff.resolve_walkovers',
-      entity: 'tournament',
-      entityId: tournamentId,
-      newValue: { settled: detail.length, matches: detail },
-      reason: 'Losers-bracket seats fed by a winners walkover settled as byes',
-    }, tx)
-
-    return { ok: true, settled: detail.length, detail }
-  })
 }

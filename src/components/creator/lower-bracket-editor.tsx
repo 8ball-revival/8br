@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { resolveWalkoversAction, saveLowerBracketAction } from '@/lib/creator/lower-bracket-actions'
 import {
-  lowerBracketView, slotKey, strandedLowerSlots, swapLowerSlots,
+  deadLowerMatches, lowerBracketView, slotKey, strandedLowerSlots, swapLowerSlots,
   type LowerSlotView, type RoutableMatch, type SlotRef,
 } from '@/lib/competition/lower-bracket-edit'
 
@@ -68,7 +68,23 @@ export function LowerBracketEditor({
     Surfaced whether or not the editor is open, because a stranded seat stops the bracket dead and
     the reader needs to know why before they start rearranging routes around it.
   */
+  /*
+    Two ways a losers match can be unplayable, and the panel has to offer both.
+
+    A seat fed by a walkover leaves somebody waiting with no opponent. But when BOTH feeders are
+    walkovers there is nobody waiting at all - the match is simply unreachable - and looking only for
+    a stranded player reported nothing while the bracket stayed stuck. Both are listed here, and the
+    one button settles the lot.
+  */
   const stranded = useMemo(() => strandedLowerSlots(matches), [matches])
+  const dead = useMemo(() => deadLowerMatches(matches), [matches])
+  const blocked = useMemo(
+    () => [
+      ...dead.map((d) => ({ key: `dead:${d.matchId}`, reason: d.reason })),
+      ...stranded.map((s) => ({ key: `${s.matchId}:${s.emptySlot}`, reason: s.reason })),
+    ],
+    [dead, stranded],
+  )
 
   const reset = () => { setSwaps([]); setPicked(null); setError(null) }
 
@@ -147,13 +163,13 @@ export function LowerBracketEditor({
         </p>
       )}
 
-      {stranded.length > 0 && (
+      {blocked.length > 0 && (
         <div className="mt-3 max-w-3xl cyber-clip border border-[var(--gold)]/40 bg-[var(--selected-surface)] px-3 py-2.5">
           <p className="text-sm font-semibold text-foreground">
-            {stranded.length} match{stranded.length === 1 ? '' : 'es'} cannot start
+            {blocked.length} match{blocked.length === 1 ? '' : 'es'} cannot start
           </p>
           <ul className="mt-1 space-y-0.5 text-sm text-muted-foreground">
-            {stranded.map((s) => <li key={`${s.matchId}:${s.emptySlot}`}>{s.reason}</li>)}
+            {blocked.map((b) => <li key={b.key}>{b.reason}</li>)}
           </ul>
           <button
             type="button"
