@@ -56,7 +56,7 @@ export function ProfileAvatar({
   name: string
   src: string | null
   framing: AvatarFraming
-  size?: 'sm' | 'lg'
+  size?: 'sm' | 'lg' | 'xl'
   className?: string
 }) {
   const reduced = usePrefersReducedMotion()
@@ -98,24 +98,35 @@ export function ProfileAvatar({
     return () => { cancelled = true }
   }, [reduced, src, framing.focalX, framing.focalY, framing.zoom])
 
-  const box = size === 'lg'
-    ? 'size-16 text-lg sm:size-20 sm:text-xl'
-    : 'size-10 text-xs'
+  const box = size === 'xl'
+    // The identity header's avatar: the largest thing on the page after the handle itself.
+    // Steps down on a phone, where a 10rem portrait would leave the handle nowhere to go.
+    ? 'size-20 text-xl sm:size-28 sm:text-3xl lg:size-40 lg:text-4xl'
+    : size === 'lg'
+      ? 'size-16 text-lg sm:size-20 sm:text-xl'
+      : 'size-10 text-xs'
+
+  /*
+    The ring is a sibling, not a border on the picture.
+
+    It rotates, and rotating the avatar itself would spin the player's own photograph — and would
+    fight an animated GIF. Drawn behind, `aria-hidden`, and stopped entirely under reduced motion by
+    the stylesheet rather than by a second code path here.
+  */
+  const ring = <span aria-hidden className="pf-avatar-ring" />
 
   if (!src) {
     return (
-      <span
-        aria-hidden
-        className={cn('pf-avatar grid place-items-center font-display font-bold', box, className)}
-        style={{ color: 'var(--pf-accent)' }}
-      >
-        {monogram(name)}
+      <span className={cn('pf-avatar pf-avatar-slot grid place-items-center font-display font-bold', box, className)}>
+        {ring}
+        <span aria-hidden style={{ color: 'var(--pf-accent)' }}>{monogram(name)}</span>
       </span>
     )
   }
 
   return (
-    <span className={cn('pf-avatar relative block', box, className)}>
+    <span className={cn('pf-avatar pf-avatar-slot relative block', box, className)}>
+      {ring}
       {reduced ? (
         <>
           {/* The still. Until it is drawn, the monogram holds the space rather than the animation. */}
@@ -127,8 +138,11 @@ export function ProfileAvatar({
           )}
         </>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element -- an animated GIF/WebP must not be
-        // passed through the image optimiser, which would return a single frame.
+        /*
+          A plain <img>, deliberately. An animated GIF or WebP put through the image optimiser comes
+          back as a single frame, which is the one thing this avatar must not do.
+        */
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
           alt={`${name}'s avatar`}

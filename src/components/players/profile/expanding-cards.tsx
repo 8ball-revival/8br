@@ -49,6 +49,18 @@ export interface ExpandingCard {
    * a rule about position that would break the moment a card was reordered.
    */
   span?: string
+  /** A small mark beside the heading, as the reference gives each section. */
+  icon?: React.ReactNode
+  /**
+   * A section that is not in the player's accent.
+   *
+   * Achievements are gold and CueVerse is CueVerse blue, both restrained. They are the two sections
+   * whose meaning is not "this player's record in this competition" — one is recognition, the other
+   * is somebody else's ladder — and a different hue is the quickest way to say so.
+   */
+  tone?: 'gold' | 'cueverse'
+  /** Entrance stagger, in milliseconds. */
+  delay?: number
 }
 
 const MOTION_QUERY = '(prefers-reduced-motion: reduce)'
@@ -223,10 +235,19 @@ export function ExpandingCards({ cards, before, className }: {
             <div
               key={card.key}
               ref={(el) => { cardRefs.current.set(card.key, el) }}
-              className={cn('pf-panel flex flex-col', card.span ?? 'md:col-span-4')}
+              className={cn(
+                'pf-panel pf-reveal flex flex-col',
+                card.tone === 'gold' && 'pf-panel-gold',
+                card.tone === 'cueverse' && 'pf-panel-cueverse',
+                card.span ?? 'md:col-span-4',
+              )}
+              style={{ ['--pf-delay' as string]: `${card.delay ?? 0}ms` }}
             >
-              <header className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="pf-heading">{card.title}</h3>
+              <header className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="pf-heading">
+                  {card.icon}
+                  {card.title}
+                </h3>
                 {!card.disabled && (
                   <button
                     type="button"
@@ -234,10 +255,10 @@ export function ExpandingCards({ cards, before, className }: {
                     onClick={() => open(card.key)}
                     aria-expanded={openKey === card.key}
                     aria-controls={`${baseId}-window`}
-                    className="pf-action inline-flex items-center gap-1 transition-colors"
+                    className="pf-action pf-press inline-flex items-center gap-1"
                   >
                     {card.actionLabel ?? 'View All'}
-                    <span aria-hidden>→</span>
+                    <span aria-hidden className="pf-arrow">→</span>
                   </button>
                 )}
               </header>
@@ -253,13 +274,18 @@ export function ExpandingCards({ cards, before, className }: {
           id={`${baseId}-window`}
           role="region"
           aria-label={active.title}
-          className="pf-panel pf-window z-30 flex flex-col overflow-hidden p-0"
+          className={cn(
+            'pf-panel pf-window z-30 flex flex-col overflow-hidden p-0',
+            active.tone === 'gold' && 'pf-panel-gold',
+            active.tone === 'cueverse' && 'pf-panel-cueverse',
+          )}
         >
           <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 pf-rule" style={{ borderBottomWidth: 1 }}>
             <h3 ref={headingRef} tabIndex={-1} className="pf-heading outline-none">
+              {active.icon}
               {active.title}
             </h3>
-            <button type="button" onClick={close} className="pf-btn inline-flex items-center gap-1.5 px-2.5 py-1.5">
+            <button type="button" onClick={close} className="pf-btn pf-press inline-flex items-center gap-1.5 px-2.5 py-1.5">
               <X className="size-3.5" aria-hidden />
               Close
             </button>

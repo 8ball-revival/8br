@@ -1,18 +1,24 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Check, ExternalLink, Pencil, RotateCcw, Share2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Check, ExternalLink, Settings2, Share2 } from 'lucide-react'
 import { ProfileAvatar } from './profile-avatar'
-import { resetProfileThemeAction } from '@/lib/players/appearance-actions'
-import { DEFAULT_THEME, themeVars } from '@/lib/players/theme'
+import { CountUp, usePointerTilt, usePrefersReducedMotion } from './motion'
 import type { ProfileIdentity } from '@/lib/players/profile'
 
 /**
- * The full-width band at the top of a profile: who this is, and the two things a visitor can do.
+ * Who this player is, and how good they are — the first two things the profile has to say.
  *
- * Laid out as one rectangle rather than a column of cards, matching the reference: the avatar and
- * name lead, the aliases sit beside them, the actions next, and the two headline figures close the
- * row against the right edge with a rule between them.
+ * ── The hierarchy, in the order the eye should take it ──────────────────────────────────────────
+ * The avatar and the handle lead at full size. The name sits under the handle and the aliases under
+ * that, each quieter than the last. Rank and rating close the row as the two headline figures.
+ *
+ * ── Why the utility controls are small ──────────────────────────────────────────────────────────
+ * CueVerse Profile, Share and Edit used to be a column of buttons in the middle of the header,
+ * which gave three rarely-used controls the most valuable space on the page and left the identity
+ * competing with them. They are now what they are: a text link and a compact control beside the
+ * aliases, and — for the owner — one small settings button in the corner. All three keep their
+ * labels, their keyboard focus and their behaviour; only their weight changed.
  */
 export function IdentityHeader({
   identity, rank, rating, shareUrl, canEdit, onEdit,
@@ -25,36 +31,15 @@ export function IdentityHeader({
   onEdit: () => void
 }) {
   const [shared, setShared] = useState<string | null>(null)
-  const [resetting, startReset] = useTransition()
-  const [resetMessage, setResetMessage] = useState<string | null>(null)
-
-  /**
-   * Put this profile back to the house colours.
-   *
-   * Offered beside Edit Profile so somebody who has customised themselves into a corner can undo it
-   * in one press, without opening the editor to find the same control. It is drawn only for people
-   * the server has already cleared to edit — a visitor never sees it — and the action re-establishes
-   * that right for itself before deleting anything.
-   *
-   * The variables are repainted here as well as on the server so the change is immediate; the row is
-   * gone either way, and the next render agrees with what is already on screen.
-   */
-  const resetColours = () => {
-    startReset(async () => {
-      const r = await resetProfileThemeAction(identity.playerId)
-      if (r.error) { setResetMessage(r.error); return }
-      const root = document.querySelector<HTMLElement>('.pf-root')
-      if (root) for (const [k, v] of Object.entries(themeVars(DEFAULT_THEME))) root.style.setProperty(k, v)
-      setResetMessage('Colours reset to the default.')
-      window.setTimeout(() => setResetMessage(null), 3200)
-    })
-  }
+  const headerRef = useRef<HTMLElement>(null)
+  const reduced = usePrefersReducedMotion()
+  usePointerTilt(headerRef, !reduced)
 
   /**
    * Share, the way the device does it.
    *
-   * `navigator.share` opens the real system sheet on a phone. Desktop browsers mostly do not
-   * implement it, so the fallback copies the canonical URL and says so — a Share button that
+   * `navigator.share` opens the real system sheet on a phone; desktop browsers mostly do not
+   * implement it, so the fallback copies the canonical URL and says so — a Share control that
    * silently does nothing is worse than none. A cancelled sheet rejects with AbortError, which is
    * somebody changing their mind rather than a failure, and must not show an error.
    */
@@ -63,7 +48,7 @@ export function IdentityHeader({
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text: `${identity.name}'s 8 Ball Registry profile`, url: shareUrl })
-        setShared('Shared.')
+        setShared('Shared')
         window.setTimeout(() => setShared(null), 3000)
         return
       } catch (e) {
@@ -72,7 +57,7 @@ export function IdentityHeader({
     }
     try {
       await navigator.clipboard.writeText(shareUrl)
-      setShared('Profile link copied')
+      setShared('Link copied')
     } catch {
       setShared(shareUrl)
     }
@@ -84,94 +69,92 @@ export function IdentityHeader({
     : null
 
   return (
-    <header className="pf-panel">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
-        {/* Identity */}
-        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+    <header ref={headerRef} className="pf-identity pf-reveal">
+      {/*
+        The accent wash. Purely decorative, drawn from the player's own accent so a customised
+        profile is recognisable at a glance, and `aria-hidden` because it says nothing.
+      */}
+      <span aria-hidden className="pf-identity-wash" />
+
+      {/* Owner-only, and deliberately the smallest control in the header. */}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="pf-icon-btn pf-press absolute right-3 top-3 z-20"
+          aria-label="Edit profile appearance"
+          title="Edit profile"
+        >
+          <Settings2 className="size-4" aria-hidden />
+        </button>
+      )}
+
+      <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-7">
+        {/* ── Identity ──────────────────────────────────────────────────────────────────────── */}
+        <div className="flex min-w-0 items-center gap-4 sm:gap-6">
           <ProfileAvatar
             name={identity.name}
             src={identity.avatarUrl}
             framing={{ focalX: identity.avatarFocalX, focalY: identity.avatarFocalY, zoom: identity.avatarZoom }}
+            size="xl"
           />
+
           <div className="min-w-0">
-            <h1 className="truncate font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl lg:text-4xl" style={{ color: 'var(--pf-text)' }}>
-              {identity.name}
-            </h1>
-            {/* The name behind the handle sits quiet beneath it, not in the accent. */}
-            {identity.displayName && (
-              <p className="truncate text-sm" style={{ color: 'var(--pf-muted)' }}>{identity.displayName}</p>
+            <h1 className="pf-handle truncate">{identity.name}</h1>
+            {identity.displayName && <p className="pf-realname truncate">{identity.displayName}</p>}
+
+            {identity.aliases.length > 0 && (
+              <div className="mt-2 max-w-md">
+                <p className="pf-label">Also known as</p>
+                <p className="pf-aliases">{identity.aliases.join(', ')}</p>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Aliases — the handles this player has been known by. */}
-        {identity.aliases.length > 0 && (
-          <div className="min-w-0 lg:max-w-[16rem] lg:border-l lg:pl-6" style={{ borderColor: 'var(--pf-border)' }}>
-            <p className="pf-label">Also known as</p>
-            <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--pf-muted)' }}>
-              {identity.aliases.join(', ')}
-            </p>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex shrink-0 flex-col gap-2 lg:border-l lg:pl-6" style={{ borderColor: 'var(--pf-border)' }}>
-          {cueverseHref && (
-            <a
-              href={cueverseHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pf-label inline-flex items-center gap-1.5 transition-colors hover:opacity-80"
-            >
-              CueVerse Profile
-              <ExternalLink className="size-3" aria-hidden />
-            </a>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={share} className="pf-btn inline-flex items-center gap-1.5 px-3 py-1.5">
-              <Share2 className="size-3.5" aria-hidden />
-              Share Profile
-            </button>
-            {/* Drawn only when the server said so; every action behind it re-checks independently. */}
-            {canEdit && (
-              <button type="button" onClick={onEdit} className="pf-btn inline-flex items-center gap-1.5 px-3 py-1.5">
-                <Pencil className="size-3.5" aria-hidden />
-                Edit Profile
+            {/*
+              The utility row: a text link and a compact control, beneath the aliases.
+              Small, adjacent, and out of the way of everything above them.
+            */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {cueverseHref && (
+                <a
+                  href={cueverseHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pf-utility pf-press"
+                >
+                  CueVerse Profile
+                  <ExternalLink className="size-3 pf-arrow" aria-hidden />
+                </a>
+              )}
+              <button type="button" onClick={share} className="pf-utility pf-press">
+                <Share2 className="size-3" aria-hidden />
+                Share Profile
               </button>
-            )}
-          </div>
-          {/* Under Edit Profile, and only for those who may edit. */}
-          {canEdit && (
-            <button
-              type="button"
-              onClick={resetColours}
-              disabled={resetting}
-              className="pf-btn inline-flex w-fit items-center gap-1.5 px-3 py-1.5 disabled:opacity-60"
-            >
-              <RotateCcw className="size-3.5" aria-hidden />
-              {resetting ? 'Resetting…' : 'Default Colours'}
-            </button>
-          )}
-          <p aria-live="polite" className="min-h-[1rem] text-[0.68rem]" style={{ color: 'var(--pf-muted)' }}>
-            {(shared || resetMessage) && (
-              <span className="inline-flex items-center gap-1">
-                <Check className="size-3" aria-hidden />
-                {shared ?? resetMessage}
+              <span aria-live="polite" className="pf-utility-note">
+                {shared && (
+                  <span className="inline-flex items-center gap-1">
+                    <Check className="size-3" aria-hidden />
+                    {shared}
+                  </span>
+                )}
               </span>
-            )}
-          </p>
+            </div>
+          </div>
         </div>
 
-        {/* The two headline figures, closing the row. */}
-        <dl className="ml-auto flex shrink-0 gap-6 lg:gap-10">
-          <div className="lg:border-l lg:pl-6" style={{ borderColor: 'var(--pf-border)' }}>
+        {/* ── The two headline figures ──────────────────────────────────────────────────────── */}
+        <dl className="ml-auto flex shrink-0 items-start gap-6 sm:gap-10">
+          <div>
             <dt className="pf-label">Current Rank</dt>
-            {/* Rank carries the accent; the rating sits plain beside it. See the note in profile-view. */}
-            <dd className="pf-figure pf-figure-accent mt-1 text-3xl lg:text-4xl">{rank != null ? `#${rank}` : '—'}</dd>
+            <dd className="pf-headline pf-headline-accent">
+              {rank != null ? <CountUp value={rank} prefix="#" /> : '—'}
+            </dd>
           </div>
-          <div className="lg:border-l lg:pl-6" style={{ borderColor: 'var(--pf-border)' }}>
+          <div className="pf-headline-divider pl-6 sm:pl-10">
             <dt className="pf-label">Current Rating</dt>
-            <dd className="pf-figure mt-1 text-3xl lg:text-4xl">{rating != null ? rating : '—'}</dd>
+            <dd className="pf-headline">
+              {rating != null ? <CountUp value={rating} /> : '—'}
+            </dd>
           </div>
         </dl>
       </div>

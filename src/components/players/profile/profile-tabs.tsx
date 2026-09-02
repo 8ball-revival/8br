@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -19,6 +19,12 @@ import { cn } from '@/lib/utils'
  * The WAI-ARIA tabs pattern: one stop in the tab order for the whole list, arrow keys move between
  * tabs, Home and End jump to the ends. Arrowing selects, because these panels are already loaded
  * and there is nothing to defer.
+ *
+ * ── The moving underline ────────────────────────────────────────────────────────────────────────
+ * One element that slides between tabs, rather than a border on each. A border cannot animate from
+ * one element to another, and eight tabs each fading their own line reads as a flicker instead of a
+ * movement. Its position is measured from the active tab and written as a transform, so the travel
+ * is compositor-only and costs no layout.
  */
 
 export interface ProfileTab {
@@ -31,6 +37,44 @@ export function ProfileTabs({ tabs, className }: { tabs: ProfileTab[]; className
   const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? '')
   const baseId = useId()
   const tabRefs = useRef(new Map<string, HTMLButtonElement | null>())
+  const listRef = useRef<HTMLDivElement>(null)
+  const inkRef = useRef<HTMLSpanElement>(null)
+
+  /*
+    Move the underline to the active tab.
+
+    Written straight to the element's style rather than held in state: this runs after every layout
+    that could have moved a tab, and putting the measurement into state would render again purely to
+    describe what had already been measured. `useLayoutEffect` so the line is in place before the
+    browser paints, rather than jumping a frame later.
+  */
+  useLayoutEffect(() => {
+    const ink = inkRef.current
+    const list = listRef.current
+    const tab = tabRefs.current.get(activeKey)
+    if (!ink || !list || !tab) return
+    const a = tab.getBoundingClientRect()
+    const b = list.getBoundingClientRect()
+    ink.style.width = `${a.width}px`
+    ink.style.transform = `translateX(${a.left - b.left}px)`
+  }, [activeKey, tabs])
+
+  /* A resize moves the tabs, so the line has to follow. One observer, disconnected on cleanup. */
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      const ink = inkRef.current
+      const tab = tabRefs.current.get(activeKey)
+      if (!ink || !tab) return
+      const a = tab.getBoundingClientRect()
+      const b = list.getBoundingClientRect()
+      ink.style.width = `${a.width}px`
+      ink.style.transform = `translateX(${a.left - b.left}px)`
+    })
+    ro.observe(list)
+    return () => ro.disconnect()
+  }, [activeKey])
 
   const index = Math.max(0, tabs.findIndex((t) => t.key === activeKey))
 
@@ -51,9 +95,10 @@ export function ProfileTabs({ tabs, className }: { tabs: ProfileTab[]; className
   return (
     <div className={className}>
       <div
+        ref={listRef}
         role="tablist"
         aria-label="Profile sections"
-        className="flex flex-wrap gap-1 border-b"
+        className="pf-tablist relative flex flex-wrap gap-1 border-b"
         style={{ borderColor: 'var(--pf-border)' }}
       >
         {tabs.map((tab) => {
@@ -75,12 +120,14 @@ export function ProfileTabs({ tabs, className }: { tabs: ProfileTab[]; className
                 brief requires a player's accent to reach, and a hard-coded gold underline ignored
                 whatever they had chosen.
               */
-              className={cn('pf-tab -mb-px px-3 py-2 transition-colors sm:px-4')}
+              className={cn('pf-tab -mb-px px-3 py-2 sm:px-4')}
             >
               {tab.label}
             </button>
           )
         })}
+        {/* The travelling underline. Decorative: the selected state is on the tabs themselves. */}
+        <span aria-hidden ref={inkRef} className="pf-tab-ink" />
       </div>
 
       {tabs.map((tab) => {
@@ -94,7 +141,12 @@ export function ProfileTabs({ tabs, className }: { tabs: ProfileTab[]; className
             // `hidden` rather than unmounted: the panel keeps its state and returns instantly.
             hidden={!selected}
             tabIndex={0}
-            className="pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            /*
+              `pf-tabpanel` fades and lifts the panel in on selection. The animation is keyed to the
+              panel becoming visible rather than to a state change, so returning to a tab replays it
+              without anything being re-created — the panels stay mounted.
+            */
+            className={cn('pf-tabpanel pt-4 focus-visible:outline-none', selected && 'pf-tabpanel-active')}
           >
             {tab.panel}
           </div>

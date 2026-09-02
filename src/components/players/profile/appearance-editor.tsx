@@ -143,7 +143,7 @@ export function AppearanceEditor({
   return (
     <section
       aria-label="Edit profile appearance"
-      className="pf-panel mb-3"
+      className="pf-panel pf-reveal mb-3"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="pf-heading">Edit Profile</h2>
@@ -240,12 +240,17 @@ export function AppearanceEditor({
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" onClick={save} disabled={pending} className="pf-btn px-3 py-1.5">
+              <button type="button" onClick={save} disabled={pending} className="pf-btn pf-press px-3 py-1.5">
                 {pending ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={cancel} className="pf-btn px-3 py-1.5">Cancel</button>
-              <button type="button" onClick={reset} disabled={pending} className="pf-btn px-3 py-1.5">
-                Reset to Default
+              <button type="button" onClick={cancel} className="pf-btn pf-press px-3 py-1.5">Cancel</button>
+              {/*
+                The one place colours can be put back. It used to be duplicated as a button on the
+                public profile beside Edit; a control that changes a saved setting belongs in the
+                editor that saves it, not in the header everyone sees.
+              */}
+              <button type="button" onClick={reset} disabled={pending} className="pf-btn pf-press px-3 py-1.5">
+                Default Colours
               </button>
             </div>
             {message && (

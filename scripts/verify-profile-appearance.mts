@@ -127,22 +127,224 @@ section('The default theme is the house palette')
   */
   const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
   check('rank carries the accent', /label="Rank"[^/]*accent/.test(view))
-  check('...and rating does not', /label="Rating" value=\{current \? String\(current\.rating\) : '—'\} \/>/.test(view))
-  const headingRule = css.slice(css.indexOf('.pf-heading {'), css.indexOf('.pf-heading {') + 200)
+  check('...and rating is not accented', /label="Rating" count=\{current\?\.rating \?\? null\} size="xl" \/>/.test(view))
+  const headingAt = css.indexOf('\n.pf-heading {')
+  const headingRule = css.slice(headingAt, headingAt + 320)
   check('section headings sit in the text colour, not the accent',
-    headingRule.includes('color: var(--pf-text)'))
+    headingAt !== -1 && headingRule.includes('color: var(--pf-text)'), headingRule.slice(0, 60))
 }
 
-section('A player can put their profile back to the default in one press')
+section('A player can put their profile back to the default')
 {
+  /*
+    This used to be a button on the public profile beside Edit. A control that changes a saved
+    setting belongs in the editor that saves it, not in the header every visitor sees — so the test
+    now checks it is in the one place and NOT in the other.
+  */
   const header = readFileSync('src/components/players/profile/identity-header.tsx', 'utf8')
-  check('the control exists', header.includes('Default Colours'))
-  check('...beneath Edit Profile, for the same people', /canEdit && \(\s*<button[\s\S]{0,400}Default Colours/.test(header))
-  check('...and calls the reset action', header.includes('resetProfileThemeAction(identity.playerId)'))
+  const editor = readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8')
+
+  check('the control exists, in the editor', editor.includes('Default Colours'))
+  check('...and calls the reset action', editor.includes('resetProfileThemeAction(playerId)'))
   check('...which re-establishes the right to do it server-side',
     readFileSync('src/lib/players/appearance-actions.ts', 'utf8')
       .includes('export async function resetProfileThemeAction'))
-  check('a visitor never sees it', !/Default Colours/.test(header.replace(/canEdit && \([\s\S]*?\)\}/g, '')))
+  check('it is not a control on the public profile', !header.includes('Default Colours'))
+  check('and the editor itself is owner-only',
+    /\{canEdit && editing && \(/.test(readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')))
+}
+
+section('The motion system is built so it cannot get expensive')
+{
+  const motion = readFileSync('src/components/players/profile/motion.tsx', 'utf8')
+  const body = code(motion)
+
+  /*
+    The rule that matters most. A pointer move fires dozens of times a second; setting React state
+    from one would re-render the whole profile on every twitch of the mouse.
+  */
+  /*
+    `setProperty` is how the cursor light is written and is exactly what this file should be doing;
+    a React setter is `setSomething(` on its own. Matching `set[A-Z]` caught the former and failed
+    the check that exists to require it.
+  */
+  const reactSetter = /\bset[A-Z]\w*\(/g
+  const handlers = [...body.matchAll(/const onMove = \([\s\S]*?\n  \}/g)].map((m) => m[0])
+  check('there are pointer handlers to check', handlers.length >= 2, `${handlers.length}`)
+  check('no React state is set from a pointer handler',
+    handlers.every((h) => (h.replace(/\.setProperty\(/g, '.__prop(').match(reactSetter) ?? []).length === 0))
+  check('pointer work is deferred to one animation frame',
+    body.includes('requestAnimationFrame(paint)') && body.includes('if (!frame)'))
+  check('...and only one frame is ever in flight', /frame = 0/.test(body))
+  check('cursor light is written as CSS custom properties, not props',
+    body.includes("setProperty('--pf-mx'") && body.includes("setProperty('--pf-my'"))
+
+  /* Every listener added must be removed by the same effect, or repeated navigation stacks them. */
+  const adds = (body.match(/addEventListener\(/g) ?? []).length
+  const removes = (body.match(/removeEventListener\(/g) ?? []).length
+  check('every listener is removed again', adds === removes, `${adds} added, ${removes} removed`)
+  check('every animation frame is cancelled on cleanup', body.includes('cancelAnimationFrame'))
+  check('the intersection observer is disconnected', body.includes('io.disconnect()'))
+
+  /* The three gates decorative motion has to pass. */
+  check('decorative motion stops when the tab is hidden', body.includes("visibilityState"))
+  check('...when the profile is off screen', body.includes('IntersectionObserver'))
+  check('...and when reduced motion is asked for', body.includes('prefers-reduced-motion'))
+  check('all three are combined in one place', /useDecorativeMotion[\s\S]{0,300}!reduced && visible && onScreen/.test(body))
+
+  /* Media queries are external state, and reading them through an effect costs a second render. */
+  check('preferences are read as an external store', body.includes('useSyncExternalStore'))
+
+  const css = code(readFileSync('src/app/(frontend)/player-profile.css', 'utf8'))
+  /*
+    Continuous animation must be transform/opacity/filter only. Animating a layout property in a
+    loop is what makes a page stutter, and it is invisible until somebody profiles it.
+  */
+  /*
+    Each keyframe body, read by balancing braces rather than by guessing at a delimiter. Splitting on
+    "}}" swallowed the rules that happened to follow a keyframe and reported them as its contents.
+  */
+  const keyframeBodies: string[] = []
+  for (let at = css.indexOf('@keyframes'); at !== -1; at = css.indexOf('@keyframes', at + 1)) {
+    let i = css.indexOf('{', at)
+    let depth = 0
+    const from = i
+    for (; i < css.length; i += 1) {
+      if (css[i] === '{') depth += 1
+      else if (css[i] === '}') { depth -= 1; if (depth === 0) break }
+    }
+    keyframeBodies.push(css.slice(from, i + 1))
+  }
+  check('there are keyframes to check', keyframeBodies.length >= 4, `${keyframeBodies.length}`)
+  const layoutProp = /(^|[;{\s])(width|height|top|left|right|bottom|margin|padding)\s*:/
+  const bad = keyframeBodies.filter((b) => layoutProp.test(b))
+  check('no keyframe animates a layout property', bad.length === 0, `${bad.length} do`)
+
+  check('the travelling rail line completes a circuit in 8-12 seconds',
+    /animation: pf-rail-travel (8|9|10|11|12)s/.test(css))
+  check('...and only runs when the frame says it may', css.includes('.pf-cushion-live::before'))
+}
+
+section('Reduced motion removes the motion, not the meaning')
+{
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+  const at = css.indexOf('@media (prefers-reduced-motion: reduce)')
+  check('the profile has its own reduced-motion block', at !== -1)
+  const block = css.slice(at, css.indexOf('\n}', css.lastIndexOf('}', css.indexOf('@media (hover: none)'))))
+
+  /* Continuous decoration is removed outright — shortening an endless loop helps nobody. */
+  for (const [what, sel] of [
+    ['the travelling rail line', '.pf-cushion-live::before'],
+    ['the avatar ring', '.pf-avatar-ring'],
+    ['the pocket glow', '.pf-pocket'],
+  ] as const) {
+    check(`${what} is switched off`, block.includes(sel))
+  }
+  check('the pointer tilt stops', block.includes('.pf-identity:hover .pf-avatar-slot { transform: none; }'))
+  check('the cursor spotlight stops', /\.pf-panel::after \{ display: none/.test(block))
+  check('entrances become immediate rather than shortened',
+    /\.pf-reveal,[\s\S]{0,120}opacity: 1;[\s\S]{0,60}transform: none;[\s\S]{0,60}transition: none;/.test(block))
+  check('the panel lift stops', /\.pf-panel:hover,[\s\S]{0,80}transform: none;/.test(block))
+
+  /*
+    ...but the profile must still say what is interactive. A reader who dislikes motion still needs
+    hover and focus to mean something.
+  */
+  check('hover and focus feedback survives', block.includes('transition: border-color'))
+
+  const motion = readFileSync('src/components/players/profile/motion.tsx', 'utf8')
+  check('the count-up does not run under reduced motion', /if \(reduced \|\| done\.current\) return/.test(motion))
+  check('...and pointer effects are not attached at all',
+    readFileSync('src/components/players/profile/profile-view.tsx', 'utf8').includes('usePointerSpotlight(rootRef, !reduced)'))
+
+  // Touch devices get no pointer effects either — a finger has no hover to leave.
+  check('touch devices are excluded by capability, not by width',
+    css.includes('@media (hover: none)') && motion.includes("matchMedia('(hover: none)')"))
+}
+
+section('A headline number is always in the DOM, whatever the animation is doing')
+{
+  const motion = readFileSync('src/components/players/profile/motion.tsx', 'utf8')
+  /*
+    The count-up writes to an aria-hidden span and keeps the true value in a visually-hidden one, so
+    a screen reader, a crawler and "view source" all see the real figure from the first paint.
+  */
+  check('the true value is rendered for assistive technology', motion.includes('className="sr-only"'))
+  check('...and the animated copy is hidden from it', /<span ref=\{spanRef\} aria-hidden>/.test(motion))
+  /*
+    The animated span is seeded with the finished value, so a reader whose JavaScript has not run —
+    or who has reduced motion on — sees the right number rather than a zero that never moves.
+  */
+  check('the animated copy starts at the real value, not at zero',
+    /const text = prefix \+ render\(value\)/.test(motion)
+    && /aria-hidden>\{text\}<\/span>/.test(motion))
+  /* A count-up that replayed on every state change would be a flicker rather than a flourish. */
+  check('it runs once and cannot restart', motion.includes('done.current = true'))
+}
+
+section('The hierarchy the revised design asks for')
+{
+  const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
+  const css = readFileSync('src/app/(frontend)/player-profile.css', 'utf8')
+
+  check('Current Performance leads, and is wider than All-Time',
+    view.includes('pf-panel-current pf-reveal md:col-span-7') && view.includes('pf-reveal md:col-span-5'))
+  check('...and carries the accent border', css.includes('.pf-panel-current {'))
+  check('rank and rating are the headline pair',
+    /label="Rank" count=\{current\?\.rank \?\? null\} prefix="#" size="xl" accent/.test(view)
+    && /label="Rating" count=\{current\?\.rating \?\? null\} size="xl"/.test(view))
+  check('Current Performance shows all six statistics',
+    ['Rank', 'Rating', 'Record', 'Win %', 'Streak', 'Longest Win Streak']
+      .every((l) => view.includes(`label="${l}"`)))
+
+  /*
+    Career shows what only Career knows. Record and win percentage sit under Current Performance a
+    few inches above; repeating them made a reader stop to check the two were the same number.
+  */
+  const careerStart = view.indexOf('function CareerPreview')
+  const career = view.slice(careerStart, view.indexOf('function SeasonsPreview'))
+  check('Career no longer repeats the record', !career.includes('recordText(c.record)'))
+  check('...nor the win percentage', !career.includes('winPct'))
+  check('...and still shows what is its own',
+    ['Matches', 'Groups', 'Playoffs', 'Longest Win Streak'].every((l) => career.includes(`label="${l}"`)))
+  // The data itself is untouched; only the overview stopped repeating it.
+  check('the underlying career figures are still computed',
+    readFileSync('src/lib/players/profile.ts', 'utf8').includes('winPct: pct(careerRecord)'))
+
+  check('Achievements is gold and CueVerse is CueVerse blue',
+    view.includes("tone: 'gold' as const") && view.includes("tone: 'cueverse' as const"))
+  check('...through one variable rather than twenty rules',
+    css.includes('.pf-panel-gold {') && css.includes('--pf-tone:'))
+}
+
+section('The utility controls are secondary, and still work')
+{
+  const header = readFileSync('src/components/players/profile/identity-header.tsx', 'utf8')
+
+  check('CueVerse Profile is a small text link', /className="pf-utility pf-press"[\s\S]{0,120}CueVerse Profile/.test(header))
+  check('Share Profile is a compact control beside it', /className="pf-utility pf-press"[\s\S]{0,120}Share Profile/.test(header))
+  check('Edit is a small owner-only control in the corner',
+    /canEdit && \([\s\S]{0,300}pf-icon-btn[\s\S]{0,200}absolute right-3 top-3/.test(header))
+  check('...and is labelled for a screen reader', header.includes('aria-label="Edit profile appearance"'))
+
+  /* None of them may have lost their behaviour in the process. */
+  check('Share still uses the device sheet with a clipboard fallback',
+    header.includes('navigator.share') && header.includes('clipboard.writeText'))
+  check('...and still ignores a cancelled share', header.includes("e.name === 'AbortError'"))
+  check('the CueVerse link is unchanged',
+    header.includes('https://cueverse.gg/profile/?name=') && header.includes('encodeURIComponent(identity.cueverseId)'))
+
+  /* Default Colours belongs to the editor now, not to the public header. */
+  check('Default Colours is not on the public profile', !header.includes('Default Colours'))
+  check('...and is inside the editor', readFileSync('src/components/players/profile/appearance-editor.tsx', 'utf8').includes('Default Colours'))
+
+  const avatar = readFileSync('src/components/players/profile/profile-avatar.tsx', 'utf8')
+  check('the avatar slot is significantly larger', avatar.includes('lg:size-40'))
+  check('an uploaded avatar is still what is shown', avatar.includes('src={src}'))
+  check('...and the monogram remains the fallback', /if \(!src\) \{/.test(avatar))
+  /* The ring rotates; the player picture must not. */
+  check('the ring is a sibling, so the picture never rotates',
+    avatar.includes('className="pf-avatar-ring"') && !/img[\s\S]{0,200}rotate/.test(avatar))
 }
 
 section('The theme reaches CSS only as scoped variables')
@@ -164,14 +366,23 @@ section('The theme reaches CSS only as scoped variables')
     own classes. A bare `body`, `:root` or element selector here would let one player's theme reach
     the rest of the site.
   */
-  const selectors = body.split('}').map((b) => b.split('{')[0].trim()).filter(Boolean)
-    .flatMap((s) => s.split(',').map((x) => x.trim()))
-    .filter((s) => s && !s.startsWith('@') && !s.startsWith('/*'))
-  const unscoped = selectors.filter((s) => !/^\.pf-/.test(s) && !/^\.pf/.test(s))
+  /*
+    Keyframe bodies are removed before the scan.
+
+    Their steps — `from`, `to`, `94%` — parse as selectors and were being reported as rules that had
+    escaped the profile. They cannot escape anything: a keyframe applies only where an animation
+    names it, and every animation here is on a `.pf-` rule.
+  */
+  const withoutKeyframes = body.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '')
+  const selectors = withoutKeyframes.split('}').map((b) => b.split('{')[0].trim()).filter(Boolean)
+    .flatMap((x) => x.split(',').map((y) => y.trim()))
+    .filter((x) => x && !x.startsWith('@') && !x.startsWith('/*'))
+  const unscoped = selectors.filter((x) => !/^\.pf-/.test(x) && !/^\.pf/.test(x))
   check('no rule escapes the profile', unscoped.length === 0, unscoped.slice(0, 5).join(' | '))
 
   const view = readFileSync('src/components/players/profile/profile-view.tsx', 'utf8')
-  check('the variables are set on the profile root only', view.includes('className="pf-root"') && view.includes('themeVars(identity.theme)'))
+  check('the variables are set on the profile root only',
+    /className=\{cn\('pf-root'/.test(view) && view.includes('themeVars(identity.theme)'))
 
   check('a profile with no stored theme gets the default', themeFromRow(null).accent === DEFAULT_THEME.accent)
   check('a stored row with a bad value falls back rather than breaking',
@@ -397,7 +608,8 @@ section('Only the owner or player-management staff may change an appearance')
   check('the editor offers Save, Cancel and Reset to Default',
     editor.includes('>Save') || editor.includes('Saving…'))
   check('...Cancel restores what was there', editor.includes('original.current'))
-  check('...Reset to Default exists', editor.includes('Reset to Default'))
+  check('...and Default Colours lives here now, not on the public header',
+    editor.includes('Default Colours'))
   check('the preview writes to the live profile root', editor.includes(".querySelector<HTMLElement>('.pf-root')"))
 
   // The public profile must carry no customisation controls.

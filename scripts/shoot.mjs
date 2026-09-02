@@ -27,6 +27,14 @@ const measure = process.argv.includes('--measure')
 const clickArg = process.argv.find((a) => a.startsWith('--click='))?.slice('--click='.length) ?? null
 /** Emulate `prefers-reduced-motion: reduce`, to check the page really does drop the animation. */
 const reducedMotion = process.argv.includes('--reduced-motion')
+/**
+ * Run one expression in the page and print what it returns.
+ *
+ * The profile's behaviour — animations running, listeners not accumulating, custom properties being
+ * written — is invisible to a screenshot, and the in-app browser panes cannot be relied on to report
+ * this app's layout. This gives the same CDP session a way to ask the page a direct question.
+ */
+const evalArg = process.argv.find((a) => a.startsWith('--eval='))?.slice('--eval='.length) ?? null
 if (!url || !out) {
   console.error('usage: node scripts/shoot.mjs <url> <out.png> [width] [height] [--measure]')
   process.exit(2)
@@ -187,6 +195,17 @@ if (measure) {
   console.log(result.value)
 }
 
+if (evalArg) {
+  const { result, exceptionDetails } = await call('Runtime.evaluate', {
+    expression: evalArg, returnByValue: true, awaitPromise: true,
+  })
+  if (exceptionDetails) console.error('eval threw:', exceptionDetails.text)
+  console.log(typeof result.value === 'string' ? result.value : JSON.stringify(result.value))
+}
+
+// A screenshot is skipped when the caller only wanted an answer.
+if (out === '-') { ws.close(); chrome.kill(); process.exitCode = 0 }
+else {
 const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
 mkdirSync(dirname(out), { recursive: true })
 writeFileSync(out, Buffer.from(shot.data, 'base64'))
@@ -195,3 +214,4 @@ console.log(`wrote ${out}`)
 ws.close()
 chrome.kill()
 process.exitCode = 0
+}

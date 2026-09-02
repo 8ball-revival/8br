@@ -1,4 +1,8 @@
+'use client'
+
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
+import { useDecorativeMotion } from './motion'
 
 /**
  * The six-pocket pool-table frame that surrounds a profile.
@@ -14,11 +18,17 @@ import { cn } from '@/lib/utils'
  * through an overlay keyed to `--pf-rail-tint`. That is why one set of files serves every player's
  * colours instead of a render per theme.
  *
- * ── Understated on purpose ──────────────────────────────────────────────────────────────────────
- * The brief asks for the frame to be present and quiet. It is thin, it is dark, its pockets are
- * small, and it never sits above the content: the whole thing is `aria-hidden` decoration behind a
- * profile whose job is to be read. No green felt anywhere — the interior stays the site's own dark
- * surface.
+ * ── Understated, and now more so ────────────────────────────────────────────────────────────────
+ * The rails were thinned and darkened and the pockets shrunk: the frame is the room the profile sits
+ * in, not the thing being looked at. A cushion line runs just inside it so the data surface reads as
+ * the bed of a table rather than a rectangle that happens to sit inside a border. No green felt
+ * anywhere — the interior stays the site's own dark surface.
+ *
+ * ── The travelling line ─────────────────────────────────────────────────────────────────────────
+ * One accent-coloured segment runs the inside of the cushion, a circuit every ten seconds. It is a
+ * single CSS animation on one element — no JavaScript per frame — and it is removed entirely when
+ * the visitor prefers reduced motion, when the tab is in the background, or when the profile has
+ * been scrolled off screen. See `useDecorativeMotion`.
  *
  * ── Narrow screens ──────────────────────────────────────────────────────────────────────────────
  * Below `lg` the pockets are dropped and the rail thins to a plain border. A pocket sized for a
@@ -27,6 +37,9 @@ import { cn } from '@/lib/utils'
  */
 
 export function TableFrame({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const animate = useDecorativeMotion(ref)
+
   return (
     /*
       The rail thickness lives in the stylesheet (`--pf-rail` on `.pf-table`), not here.
@@ -34,7 +47,7 @@ export function TableFrame({ children, className }: { children: React.ReactNode;
       It was set inline as well, which silently won over the stylesheet and left the frame at the
       first value it was ever given — a good reminder that an inline style is not a default.
     */
-    <div className={cn('pf-table relative isolate', className)}>
+    <div ref={ref} className={cn('pf-table relative isolate', className)}>
       {/*
         ── The rails ────────────────────────────────────────────────────────────────────────────
         Four explicit bars rather than one masked ring. A `mask-composite` ring is the tidier trick
@@ -72,7 +85,17 @@ export function TableFrame({ children, className }: { children: React.ReactNode;
       <div aria-hidden className="pf-sights pointer-events-none absolute inset-0 z-10 hidden lg:block" />
 
       {/* The playing surface: the profile itself, inset by the rail. */}
-      <div className="pf-bed relative z-20">{children}</div>
+      <div className="pf-bed relative z-20">
+        {/*
+          The cushion, and the line that travels it.
+
+          One element inset just inside the bed's edge. The line is a conic gradient rotating behind
+          a border-width mask — a single compositor-friendly animation, rather than anything that
+          moves an element along a path frame by frame.
+        */}
+        <span aria-hidden className={cn('pf-cushion', animate && 'pf-cushion-live')} />
+        {children}
+      </div>
     </div>
   )
 }
