@@ -65,6 +65,31 @@ export interface SeasonProgressRow {
   ladderRank: number | null
 }
 
+/**
+ * The four figures in the panel's header strip.
+ *
+ * Counted from the same rows the table is built from, so the strip cannot disagree with the list
+ * beneath it — a header saying 32 players above a table of 31 is the failure this shape prevents.
+ */
+export interface SeasonProgressStats {
+  /** Published groups. A draft group is not yet part of the competition anybody can see. */
+  groups: number
+  players: number
+  /** Resolved group matches — the ones that moved a standing. */
+  matchesPlayed: number
+  /** Every scheduled group match, so the pair reads as progress through the stage. */
+  matchesTotal: number
+  /**
+   * Entrants actually advanced to the playoffs.
+   *
+   * `SeasonEntrant.playoffIncluded`, not `SeasonStanding.qualified`. The standings flag marks the
+   * top three of every group from the first result onward, so it would read 12 on day one of a
+   * group stage and mean nothing. Advancing is a decision somebody makes at playoff setup, which is
+   * what a reader means by "qualified" — and it is honestly 0 until then.
+   */
+  qualified: number
+}
+
 export interface SeasonProgressView {
   seasonId: number
   /** The Season's own page. */
@@ -76,6 +101,7 @@ export interface SeasonProgressView {
   entrants: number
   /** Whether the competition is currently running, for the live dot. */
   live: boolean
+  stats: SeasonProgressStats
   rows: SeasonProgressRow[]
 }
 
@@ -156,7 +182,7 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
     size of the season. `getLadder` is the Rankings page's own cached service, so the rank column
     costs nothing extra once anything else on the page has already asked for it.
   */
-  const [entrants, standings, ladder] = await Promise.all([
+  const [entrants, standings, ladder, groupCount, matchCounts, qualifiedCount] = await Promise.all([
     prisma.seasonEntrant.findMany({
       where: { seasonId, status: 'APPROVED', kickedOut: false },
       select: { id: true, playerId: true, username: true, cueverseId: true },
@@ -169,6 +195,16 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
       },
     }),
     getLadder('current'),
+    prisma.seasonGroup.count({ where: { seasonId, published: true } }),
+    /*
+      One grouped query for the match figures, not two counts.
+
+      `status` is what separates a played match from a scheduled one, so grouping by it answers both
+      halves of "21 / 112" in a single round trip — and it keeps the definition of "played" in one
+      place rather than in two `where` clauses that could drift.
+    */
+    prisma.seasonMatch.groupBy({ by: ['status'], where: { seasonId }, _count: { _all: true } }),
+    prisma.seasonEntrant.count({ where: { seasonId, playoffIncluded: true, kickedOut: false } }),
   ])
 
   const playerIds = [...new Set(entrants.map((e) => e.playerId).filter((p): p is string => !!p))]
@@ -204,6 +240,19 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
 
   rows.sort(compareSeasonProgress)
 
+  /*
+    Played means resolved: a result was recorded, or the match was awarded on a forfeit.
+
+    The same two statuses `recomputeSeasonStandings` counts. NO_CONTEST and VOID are deliberately
+    NOT played — but they are still scheduled, so they stay in the denominator: a stage of 112
+    fixtures does not become a stage of 108 because four were never contested.
+  */
+  const RESOLVED = new Set(['COMPLETED', 'FORFEIT'])
+  const matchesTotal = matchCounts.reduce((n, g) => n + g._count._all, 0)
+  const matchesPlayed = matchCounts
+    .filter((g) => RESOLVED.has(g.status))
+    .reduce((n, g) => n + g._count._all, 0)
+
   const phase = PHASE[season.lifecycleState] ?? { label: 'In progress', live: true }
   return {
     seasonId: season.id,
@@ -212,6 +261,14 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
     phase: phase.label,
     entrants: rows.length,
     live: phase.live,
+    stats: {
+      groups: groupCount,
+      // The same number the table renders, not a second count of the same people.
+      players: rows.length,
+      matchesPlayed,
+      matchesTotal,
+      qualified: qualifiedCount,
+    },
     rows,
   }
 }
@@ -226,9 +283,22 @@ export const SEASON_PROGRESS_TAG = 'season-progress'
  * dropped the moment a score changes rather than expiring on a timer. A short window would only
  * mean re-running the query for nothing between edits.
  */
+/*
+  ── The version in the key is load-bearing ──────────────────────────────────────────────────────
+
+  Bumped to v2 when the header statistics were added to `SeasonProgressView`.
+
+  The entries under a key are whatever shape they had when they were written, and they outlive a
+  deploy — the cache is on disk, not in the process. So new code reading an OLD entry gets an object
+  with no `stats` at all, and the panel throws on `stats.groups` for everyone until the window
+  expires. Nothing in the type system catches it: the cached value is typed by the function that
+  WOULD have produced it, not by the one that did.
+
+  So: any change to the returned shape gets a new key. Old entries are then simply never read again.
+*/
 const cachedSeasonProgress = unstable_cache(
   async (target: SeasonProgressTarget) => computeSeasonProgress(target),
-  ['season-progress-v1'],
+  ['season-progress-v2-stats'],
   { tags: [SEASON_PROGRESS_TAG], revalidate: 300 },
 )
 

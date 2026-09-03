@@ -441,6 +441,165 @@ try {
   check('...with the never-ranked entrants last',
     firstNull === -1 || unplayedRanks.slice(firstNull).every((r) => r == null))
 
+  section('The four header figures, all derived from live season data')
+
+  const st = finalView.stats
+  const dbGroups = await prisma.seasonGroup.count({ where: { seasonId: season.id, published: true } })
+  const dbTotal = await prisma.seasonMatch.count({ where: { seasonId: season.id } })
+  const dbPlayed = await prisma.seasonMatch.count({
+    where: { seasonId: season.id, status: { in: ['COMPLETED', 'FORFEIT'] } },
+  })
+  const dbQualified = await prisma.seasonEntrant.count({
+    where: { seasonId: season.id, playoffIncluded: true, kickedOut: false },
+  })
+
+  check('GROUPS counts the published groups', st.groups === dbGroups && st.groups === 6, `${st.groups} vs ${dbGroups}`)
+  check('PLAYERS is the same figure the table renders',
+    st.players === finalView.rows.length && st.players === 32, `${st.players}`)
+  check('MATCHES counts every scheduled group match',
+    st.matchesTotal === dbTotal && dbTotal === 70, `${st.matchesTotal} vs ${dbTotal}`)
+  check('...over the resolved ones', st.matchesPlayed === dbPlayed, `${st.matchesPlayed} vs ${dbPlayed}`)
+  check('...and played never exceeds total', st.matchesPlayed <= st.matchesTotal)
+  check('QUALIFIED counts entrants advanced to the playoffs', st.qualified === dbQualified, `${st.qualified}`)
+  /*
+    Zero during a live group stage, and that is the point.
+
+    `SeasonStanding.qualified` marks the top three of every group from the first result onward, so
+    reading THAT would print eighteen here and say nothing about who has advanced. Advancing is a
+    decision taken at playoff setup, which is what a reader means by the word.
+  */
+  check('...which is 0 while the group stage is still running', st.qualified === 0, `${st.qualified}`)
+
+  /* The figures follow the data rather than being counted once and kept. */
+  const beforeStats = (await computeSeasonProgress(TARGET))!.stats
+  const oneMore = matches.find((m) => m.groupId === groupIds[2])!
+  const oneMoreVersion = await prisma.seasonMatch.findUnique({
+    where: { id: oneMore.id }, select: { version: true },
+  })
+  await saveSeasonGroupResults(ACTOR, season.id, groupIds[2], [
+    { matchId: oneMore.id, home: '7', away: '2', version: oneMoreVersion!.version },
+  ])
+  const afterStats = (await computeSeasonProgress(TARGET))!.stats
+  check('recording one more result moves MATCHES by exactly one',
+    afterStats.matchesPlayed === beforeStats.matchesPlayed + 1,
+    `${beforeStats.matchesPlayed} -> ${afterStats.matchesPlayed}`)
+  check('...and leaves the denominator alone', afterStats.matchesTotal === beforeStats.matchesTotal)
+  check('...and does not invent a qualifier', afterStats.qualified === beforeStats.qualified)
+
+  const panelSrc2 = code(readFileSync('src/components/home/season-progress.tsx', 'utf8'))
+  check('the panel renders the figures it is handed, never its own',
+    /stats\.groups/.test(panelSrc2) && /stats\.matchesPlayed/.test(panelSrc2) && !/prisma/.test(panelSrc2))
+  check('...and no header figure is a literal', !/value=\{?"(4|32|21|112)"/.test(panelSrc2))
+
+  section('First place follows the position, not the player')
+
+  /*
+    The strongest form of this check: change who is winning, and watch the treatment move.
+
+    Reading the class off row zero only proves the top row is styled. Making a DIFFERENT player top
+    and confirming the styling travelled is what proves nothing is pinned to a name.
+  */
+  const leaderBefore = finalView.rows[0]
+  check('the fixture has a leader to displace', leaderBefore.played > 0, `${leaderBefore.handle}`)
+
+  const leaderMatches = await prisma.seasonMatch.findMany({
+    where: {
+      seasonId: season.id, status: 'COMPLETED',
+      OR: [{ homeEntrantId: leaderBefore.entrantId }, { awayEntrantId: leaderBefore.entrantId }],
+    },
+    select: { id: true, groupId: true, version: true },
+  })
+  /* Cleared through the real save path, so the standings recompute exactly as they would live. */
+  await saveSeasonGroupResults(ACTOR, season.id, leaderMatches[0].groupId!,
+    leaderMatches.map((m) => ({ matchId: m.id, home: '', away: '', version: m.version })))
+
+  const moved = (await computeSeasonProgress(TARGET))!
+  check('clearing the leader results puts somebody else first',
+    moved.rows[0].handle !== leaderBefore.handle, `now ${moved.rows[0].handle}`)
+  check('...and the former leader is no longer top',
+    moved.rows.findIndex((r) => r.handle === leaderBefore.handle) > 0)
+  check('the panel decides the treatment from the row index alone',
+    /const leader = i === 0 && r\.played > 0/.test(panelSrc2))
+  check('...and no handle or id appears in that decision',
+    !/leader[^\n]*cueverseId|cueverseId[^\n]*leader/i.test(panelSrc2))
+
+  section('Decorative motion is governed, never free-running')
+
+  check('the frame is driven by the shared decorative-motion primitive',
+    /useDecorativeMotion\(panelRef\)/.test(panelSrc2))
+  check('...the profile module, not a second copy of it',
+    /from '@\/components\/players\/profile\/motion'/.test(panelSrc2))
+  check('the cursor light reuses the shared spotlight hook',
+    /usePointerSpotlight\(panelRef, animate, '\.sp-panel'\)/.test(panelSrc2))
+  check('the panel owns no animation loop of its own',
+    !/requestAnimationFrame|setInterval|setTimeout/.test(panelSrc2))
+  check('...and no React state is set from a pointer move',
+    !/onPointerMove|onMouseMove|useState/.test(panelSrc2))
+  check('every decorative layer is hidden from assistive technology',
+    (panelSrc2.match(/aria-hidden/g) ?? []).length >= 4)
+
+  const motionSrc = code(readFileSync('src/components/players/profile/motion.tsx', 'utf8'))
+  check('the shared spotlight takes a selector rather than being duplicated',
+    /selector = '\.pf-panel'/.test(motionSrc) && /closest<HTMLElement>\(selector\)/.test(motionSrc))
+  check('...and still removes its listener on cleanup',
+    /removeEventListener\('pointermove', onMove\)/.test(motionSrc))
+  check('...and cancels any frame still in flight', /cancelAnimationFrame\(frame\)/.test(motionSrc))
+  check('...with the selector in its dependencies, so a change re-binds cleanly',
+    /\}, \[ref, enabled, selector\]\)/.test(motionSrc))
+  check('the motion gate weighs reduced motion, tab visibility and being on screen',
+    /!reduced && visible && onScreen/.test(motionSrc))
+
+  const spCss = readFileSync('src/app/(frontend)/season-progress.css', 'utf8')
+  check('continuous motion is CSS driven by a class, so removing it stops everything',
+    /\.sp-frame-live::before \{[\s\S]{0,80}animation: sp-frame-travel/.test(spCss))
+  check('the sweep is a compositor transform, not a walked position',
+    /@keyframes sp-frame-travel \{\s*to \{ transform: rotate\(1turn\); \}/.test(spCss))
+  const reducedBlock = spCss.slice(spCss.indexOf('@media (prefers-reduced-motion: reduce)'))
+  check('reduced motion drops the travelling animation', /animation: none/.test(reducedBlock))
+  check('...and the cursor pool', /\.sp-spot \{ display: none/.test(reducedBlock))
+  check('...but keeps the frame itself, so the tile still looks finished',
+    !/\.sp-frame \{[^}]*display: none/.test(reducedBlock))
+  check('the base border survives between sweeps',
+    /\.sp-panel \{[\s\S]*?border: 1px solid color-mix/.test(spCss))
+  check('first place is styled by class, never by a name', /\.sp-row-leader \{/.test(spCss))
+  check('...with a rail, a wash and a glow',
+    /\.sp-row-leader \{[\s\S]*?inset 2px 0 0 var\(--hot-red\)/.test(spCss))
+  check('...and is not a solid red block',
+    !/\.sp-row-leader \{\s*background: var\(--hot-red\)/.test(spCss))
+  check('row hover changes colour and never position',
+    /\.sp-row:hover \{[^}]*background-color/.test(spCss) && !/\.sp-row:hover \{[^}]*transform/.test(spCss))
+  /*
+    Stripped, not raw. The stylesheet's own header explains that it deliberately does NOT use the
+    profile's accent variables, so searching the file as written matches the prose that promises the
+    opposite of what it says. Only the declarations can answer this.
+
+    `--pf-mx` / `--pf-my` survive the strip and are meant to: they are pointer COORDINATES written
+    by the shared hook, not a player's colour.
+  */
+  check('the tile uses its own crimson, never a player theme colour',
+    !/--pf-accent|--pf-tone/.test(code(spCss)))
+  check('the corner ticks set width and style separately, so the red is not reset',
+    /border-top-width: 1px;\s*border-top-style: solid;/.test(spCss)
+    && !/\.sp-panel::before \{[^}]*border-top: 1px solid;/.test(spCss))
+
+  section('Layout the polish must not have disturbed')
+
+  check('the points column keeps a gutter before the scrollbar',
+    /overflow-y-auto overflow-x-hidden pr-3/.test(panelSrc2))
+  check('the header sits above the scrolling region',
+    panelSrc2.indexOf('<Header') < panelSrc2.indexOf('overflow-y-auto'))
+  check('...and the footer link below it',
+    panelSrc2.indexOf('overflow-y-auto') < panelSrc2.lastIndexOf('viewAllLabel'))
+  check('only the standings body scrolls',
+    (panelSrc2.match(/overflow-y-auto/g) ?? []).length === 1)
+  check('the tile still fills its column rather than driving it',
+    /className="relative min-h-0 flex-1"/.test(panelSrc2) && /absolute inset-0 overflow-y-auto/.test(panelSrc2))
+  check('the keyboard focus ring on the scroll area is intact',
+    /focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-\[var\(--signal\)\]/.test(panelSrc2))
+  check('the scroll area is still reachable by keyboard', /tabIndex=\{0\}/.test(panelSrc2))
+  check('first place is not signalled by colour alone — the number and weight carry it too',
+    /leader \? 'font-bold'/.test(panelSrc2) && /\{i \+ 1\}/.test(panelSrc2))
+
   section('Identity: the CueVerse ID and nothing else')
 
   const names = await prisma.player.findMany({
@@ -616,6 +775,18 @@ check('...after the transaction, never inside it',
   !/invalidateSeasonProgress\(\)[\s\S]{0,40}\}\)/.test(serviceSrc))
 
 const progressSrc = code(readFileSync('src/lib/home/season-progress.ts', 'utf8'))
+/*
+  The cache key must move whenever the cached SHAPE moves.
+
+  Entries live on disk and outlive a deploy, so new code reading an old entry gets the old object.
+  Adding `stats` under the unchanged `-v1` key meant the panel read `stats.groups` off objects that
+  had no `stats` — a five-minute outage after every such deploy, and nothing in the type system
+  catches it because the cached value is typed by the function that WOULD have produced it.
+*/
+check('the cache key names the shape it holds',
+  /'season-progress-v2-stats'/.test(progressSrc), 'key not bumped for the stats field')
+check('...and the view it caches carries those stats', /stats: SeasonProgressStats/.test(progressSrc))
+
 check('the invalidation clears the DATA tag as well as the path',
   /revalidateTag\(SEASON_PROGRESS_TAG/.test(progressSrc) && /revalidatePath\('\/'\)/.test(progressSrc))
 check('...and never throws, so it cannot fail a committed write', /catch \{/.test(progressSrc))

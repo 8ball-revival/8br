@@ -109,10 +109,18 @@ export function useDecorativeMotion<T extends HTMLElement>(ref: React.RefObject<
  *
  * Touch devices never get it. `pointerdown` from a finger would leave a spotlight stuck where it was
  * last tapped, and the brief asks for pointer effects to be off there anyway.
+ *
+ * ── The `selector` argument ─────────────────────────────────────────────────────────────────────
+ * `.pf-panel` by default, which is every caller on the profile. The homepage's Season Progress tile
+ * wants the same light but is not a profile panel and must not inherit profile styling, so it
+ * passes its own class instead. A parameter rather than a second copy of this hook: the listener
+ * bookkeeping — one handler, one frame in flight, cleanup that cannot leak — is the part worth
+ * having once, and it is exactly the part a copy would eventually get wrong.
  */
 export function usePointerSpotlight<T extends HTMLElement>(
   ref: React.RefObject<T | null>,
   enabled: boolean,
+  selector = '.pf-panel',
 ): void {
   useEffect(() => {
     const root = ref.current
@@ -134,7 +142,7 @@ export function usePointerSpotlight<T extends HTMLElement>(
 
     const onMove = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null
-      const panel = target?.closest<HTMLElement>('.pf-panel')
+      const panel = target?.closest<HTMLElement>(selector)
       if (!panel) return
       const rect = panel.getBoundingClientRect()
       pending = { el: panel, x: e.clientX - rect.left, y: e.clientY - rect.top }
@@ -148,7 +156,7 @@ export function usePointerSpotlight<T extends HTMLElement>(
       if (frame) cancelAnimationFrame(frame)
       pending = null
     }
-  }, [ref, enabled])
+  }, [ref, enabled, selector])
 }
 
 /**

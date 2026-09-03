@@ -1,0 +1,294 @@
+/* ════════════════════════════════════════════════════════════════════════════════════════════════
+   SEASON PROGRESS — the homepage standings tile.
+
+   ── Why it sits beside player-profile.css rather than inside it ─────────────────────────────────
+   It borrows that file's machinery: the masked conic sweep that draws a travelling light on a
+   border, the pointer-following pool written by `motion.tsx`, and the same reduced-motion
+   discipline. Reimplementing any of those here would be how two treatments that should feel
+   identical slowly stop being identical — so the TECHNIQUES are shared and only the surface is new.
+
+   What it deliberately does NOT share is the palette. A profile is themed per account; this tile is
+   always the site's crimson, so every colour below comes from `--hot-red` rather than from
+   `--pf-accent`. A player's chosen theme must never leak onto a homepage table.
+   ════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+.sp-panel {
+  position: relative;
+  /*
+    The base border stays visible the whole time. The travelling light is an addition to it, never a
+    replacement — a frame that goes dark between sweeps reads as a rendering fault, not as motion.
+  */
+  border: 1px solid color-mix(in srgb, var(--hot-red) 22%, var(--border));
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.sp-panel:hover,
+.sp-panel:focus-within {
+  border-color: color-mix(in srgb, var(--hot-red) 42%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hot-red) 12%, transparent);
+}
+
+/*
+  The travelling light.
+
+  One overscanned conic gradient rotated by the compositor — `transform: rotate()` on a single
+  element — rather than a light walked around four edges, which would be four keyframed position
+  changes and a layout on every frame. The mask keeps only the outermost 1.5px, which is what turns
+  a rotating wedge into a line running around the frame.
+
+  The wedge is narrow, about forty degrees of three hundred and sixty, and the cycle is slow. What a
+  reader sees is one quiet pulse travelling the perimeter every twelve seconds, not a spinning
+  gradient.
+*/
+.sp-frame {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  z-index: 3;
+  padding: 1.5px;
+  overflow: hidden;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.sp-frame::before {
+  content: '';
+  position: absolute;
+  /* Overscan, so the rotating square still covers the corners of a tall rectangle. */
+  inset: -75%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 316deg,
+    color-mix(in srgb, var(--hot-red) 20%, transparent) 330deg,
+    color-mix(in srgb, var(--hot-red) 92%, white 8%) 352deg,
+    color-mix(in srgb, var(--hot-red) 30%, transparent) 358deg,
+    transparent 360deg
+  );
+}
+
+.sp-frame-live::before {
+  animation: sp-frame-travel 12s linear infinite;
+  will-change: transform;
+}
+
+@keyframes sp-frame-travel {
+  to { transform: rotate(1turn); }
+}
+
+/*
+  The ambient glow that rides with the light.
+
+  A second, much softer copy of the same sweep — blurred, and NOT masked to the edge — so the stretch
+  of frame the light is currently passing gains a faint red bloom. Low enough opacity that it reads
+  as the frame being energised rather than as a drop shadow.
+*/
+.sp-glow {
+  position: absolute;
+  inset: -14px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  overflow: hidden;
+  border-radius: 4px;
+  transition: opacity 260ms ease;
+}
+
+.sp-glow::before {
+  content: '';
+  position: absolute;
+  inset: -75%;
+  filter: blur(14px);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 320deg,
+    color-mix(in srgb, var(--hot-red) 45%, transparent) 348deg,
+    transparent 360deg
+  );
+}
+
+.sp-glow-live::before {
+  animation: sp-frame-travel 12s linear infinite;
+  will-change: transform;
+}
+
+.sp-panel:hover .sp-glow,
+.sp-panel:focus-within .sp-glow { opacity: 0.85; }
+
+/*
+  Corner ticks, matching the profile's panels.
+
+  They brighten with the border on hover, which is the whole of the "corner details" the design asks
+  for: a mark that says the tile is interactive without moving anything.
+*/
+.sp-panel::before,
+.sp-panel::after {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 220ms ease, border-color 220ms ease;
+  z-index: 4;
+  border-color: color-mix(in srgb, var(--hot-red) 70%, transparent);
+}
+/*
+  Width and style only — never the `border-top` shorthand.
+
+  The shorthand resets the colour to `currentColor`, which silently overrode the red set on the
+  shared rule above and drew both ticks in white. It looked like a colour that had not been applied;
+  it was a colour that had been applied and then reset by the next declaration.
+*/
+.sp-panel::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-left-width: 1px;
+  border-left-style: solid;
+}
+.sp-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-right-width: 1px;
+  border-right-style: solid;
+}
+.sp-panel:hover::before,
+.sp-panel:hover::after,
+.sp-panel:focus-within::before,
+.sp-panel:focus-within::after {
+  opacity: 1;
+  border-color: var(--hot-red);
+}
+
+/*
+  The cursor-following pool.
+
+  `--pf-mx` / `--pf-my` are written by `usePointerSpotlight` in `motion.tsx` — the same single
+  requestAnimationFrame the profile uses, pointed at `.sp-panel` instead of `.pf-panel`. Fully
+  transparent until the tile is hovered, so an untouched homepage paints no gradient at all.
+*/
+.sp-spot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  z-index: 1;
+  background: radial-gradient(
+    280px circle at var(--pf-mx, 50%) var(--pf-my, 50%),
+    color-mix(in srgb, var(--hot-red) 9%, transparent) 0%,
+    transparent 70%
+  );
+}
+.sp-panel:hover .sp-spot { opacity: 1; }
+
+/* Everything the reader actually reads sits above both decorative layers. */
+.sp-panel > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Rows ────────────────────────────────────────────────────────────────────────────────────── */
+
+/*
+  Row hover brightens, gains a faint red edge, and moves NOTHING.
+
+  A standings table is scanned across, so a row that lifts or shifts under the pointer costs the
+  reader their place in it. Background and one inset rule only.
+*/
+.sp-row {
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+.sp-row:hover {
+  background-color: color-mix(in srgb, var(--hot-red) 6%, transparent);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--hot-red) 45%, transparent);
+}
+
+/*
+  First place.
+
+  Applied by POSITION — the component marks whichever row is currently ranked first, never a name.
+  A rail, a wash and a glow, and deliberately not a solid red block: that would fight every other
+  surface on a dark homepage and make the row harder to read rather than easier.
+
+  The position number and the heavier weight carry the same message without colour, so the row stays
+  identifiable in greyscale and to anyone who cannot separate the hues.
+*/
+.sp-row-leader {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--hot-red) 16%, transparent) 0%,
+      color-mix(in srgb, var(--hot-red) 7%, transparent) 45%,
+      color-mix(in srgb, var(--hot-red) 3%, transparent) 100%
+    );
+  box-shadow:
+    inset 2px 0 0 var(--hot-red),
+    inset 0 0 22px -8px color-mix(in srgb, var(--hot-red) 70%, transparent);
+}
+.sp-row-leader:hover {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--hot-red) 24%, transparent) 0%,
+      color-mix(in srgb, var(--hot-red) 11%, transparent) 45%,
+      color-mix(in srgb, var(--hot-red) 5%, transparent) 100%
+    );
+  box-shadow:
+    inset 2px 0 0 var(--hot-red),
+    inset 0 0 30px -6px color-mix(in srgb, var(--hot-red) 90%, transparent);
+}
+.sp-row-leader .sp-pos {
+  color: var(--hot-red);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--hot-red) 55%, transparent);
+}
+.sp-row-leader .sp-id {
+  color: color-mix(in srgb, var(--hot-red) 88%, white 12%);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--hot-red) 40%, transparent);
+}
+
+/* ── Header statistics ───────────────────────────────────────────────────────────────────────── */
+
+/*
+  Values read brighter than their labels but stay below the title.
+
+  Mixed toward white rather than sitting at full `--hot-red`: four saturated red figures beside a
+  red phase label and a red live dot would spend the accent on furniture, and first place is what
+  the red is for on this tile.
+*/
+.sp-stat-value {
+  color: color-mix(in srgb, var(--hot-red) 50%, white 50%);
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────────────────────────── */
+
+/*
+  The polish stays; only the movement stops.
+
+  The frame keeps its light — parked at a fixed angle rather than travelling — the glow keeps its
+  bloom, first place keeps its rail and wash, and hover still says "interactive". What goes is the
+  continuous travel and the pointer pool, which is what the preference is actually about.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .sp-frame-live::before,
+  .sp-glow-live::before { animation: none; }
+  .sp-spot { display: none; }
+  .sp-panel,
+  .sp-row { transition: none; }
+}
+
+/* A finger has no hover: the pool would stick where the last tap landed. */
+@media (hover: none) {
+  .sp-spot { display: none; }
+}

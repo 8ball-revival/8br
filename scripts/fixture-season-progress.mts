@@ -10,6 +10,15 @@
  *
  *   npx tsx --tsconfig tsconfig.scripts.json scripts/fixture-season-progress.mts --up
  *   npx tsx --tsconfig tsconfig.scripts.json scripts/fixture-season-progress.mts --down
+ *
+ * ── Restart the dev server afterwards ───────────────────────────────────────────────────────────
+ * The panel is held in `unstable_cache`, and `invalidateSeasonProgress` needs a request store to
+ * clear it — which a script does not have, by design. So seeding from here changes the DATABASE and
+ * leaves a running dev server showing whatever it cached, for up to five minutes.
+ *
+ * That is not a bug to work around; it is the same guarantee that stops a script silently
+ * invalidating production caches. Restart the dev server after seeding, and the page picks the
+ * fixtures up immediately.
  */
 import { prisma } from '../src/lib/prisma.ts'
 import { assertLocalDatabase } from '../src/lib/db-guard.ts'
