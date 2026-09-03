@@ -24,25 +24,33 @@
   They were one class at first, and it made `document.querySelector('.gb-board')` return the
   overview, which has no frame inside it.
 */
+/*
+  ── Matte, not metal ────────────────────────────────────────────────────────────────────────────
+
+  The first version lit these panels from the top: a gradient running from a lightened graphite down
+  to the base colour, plus a one-pixel white inset along the top edge. Individually those are
+  ordinary depth cues; across a panel a thousand pixels wide they read as a polished steel plate,
+  which is not what a results board should look like.
+
+  What replaces them is deliberately dull. One flat near-black ground, a crisp structural border,
+  and a single soft inner shadow that darkens the extremes without ever lightening anything. No
+  directional gradient, no highlight band, no chrome edge — the only light on this page is the neon
+  red on the frame, which is the identity and stays.
+
+  ── Opacity ────────────────────────────────────────────────────────────────────────────────────
+  96%, not 100%. The site's grid sits behind everything and should still be sensed at the edges of
+  the layout, but a panel is a solid object: at the previous transparency the grid ran visibly
+  through the tables and made the surface look like glass laid over graph paper.
+*/
 .gb-board,
 .gb-panel {
   position: relative;
-  /*
-    Squared and inset, not a floating card.
-
-    A competition board is one piece of equipment. The inset shadow is what gives the dark metal its
-    depth without a border-radius or a drop shadow, both of which would make it read as a card
-    hovering over the page.
-  */
   border: 1px solid color-mix(in srgb, var(--hot-red) 20%, var(--border));
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--graphite-raised) 100%, white 2%) 0%,
-      var(--graphite) 42%);
+  background-color: color-mix(in srgb, #0a0d10 96%, transparent);
+  background-image: none;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 4%),
-    inset 0 -1px 0 rgb(0 0 0 / 55%),
-    inset 0 0 60px -30px rgb(0 0 0 / 90%);
+    inset 0 0 0 1px rgb(0 0 0 / 35%),
+    inset 0 0 70px -34px rgb(0 0 0 / 85%);
   transition: border-color 240ms ease, box-shadow 240ms ease;
 }
 
@@ -50,11 +58,12 @@
 .gb-board:focus-within,
 .gb-panel:hover,
 .gb-panel:focus-within {
+  /* Hover brightens the EDGE only. Nothing about the surface changes, because a matte surface that
+     lightens under the pointer is a metallic one again. */
   border-color: color-mix(in srgb, var(--hot-red) 38%, var(--border));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 6%),
-    inset 0 -1px 0 rgb(0 0 0 / 55%),
-    inset 0 0 60px -30px rgb(0 0 0 / 90%),
+    inset 0 0 0 1px rgb(0 0 0 / 35%),
+    inset 0 0 70px -34px rgb(0 0 0 / 85%),
     0 0 0 1px color-mix(in srgb, var(--hot-red) 10%, transparent);
 }
 
@@ -184,7 +193,12 @@
   align-items: center;
   gap: 0.35rem 0.85rem;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--void) 55%, transparent);
+  /*
+    Opaque. It was `void` at 55%, which let the page's grid run straight through the group header —
+    the single place the "glass laid over graph paper" impression was strongest, because the header
+    sits directly above a dense table and the contrast made the texture obvious.
+  */
+  background-color: #07090b;
   padding: 0.6rem 0.9rem;
 }
 .gb-head-name {
@@ -430,13 +444,89 @@
 
 /* ── Score cells ─────────────────────────────────────────────────────────────────────────────── */
 
-.gb-cell { font-variant-numeric: tabular-nums; font-family: var(--font-jetbrains), ui-monospace, monospace; }
+.gb-cell {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  /* The containing block for the full-cell surface below. */
+  position: relative;
+}
+
+/*
+  ── A recorded result fills its cell ────────────────────────────────────────────────────────────
+
+  Every resolved score sits on a dark-glass surface that runs almost gridline to gridline, inset
+  three pixels on every side. It reads as an embedded control and is nothing of the kind — no
+  button, no link, no handler, no focus, no cursor. See the note in the component.
+
+  ── Why it is positioned out of the flow ────────────────────────────────────────────────────────
+  `position: absolute` is what guarantees the row height cannot move. A padded, bordered inline box
+  would add its own height to the cell, and a matrix of forty of them would grow every row by a few
+  pixels — the one thing this pass was told not to change. Out of the flow it contributes nothing,
+  so the row is still exactly `2.5rem * zoom` and the type inside is still the cell's own.
+
+  The typography is untouched: no font-size, family, weight or line-height is set here. The flex
+  centring is the only thing the surface does to the text.
+*/
+.gb-surface {
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1px;
+  /*
+    Smoked glass: a near-black interior, barely lighter at the top than the bottom. The gradient is
+    shallow on purpose — a strong one is gloss, and gloss on forty cells is an arcade cabinet.
+  */
+  background-image: linear-gradient(180deg, #13171b 0%, #0a0d10 55%, #06080a 100%);
+  /* The outer edge is darker than the interior, so the surface is contained rather than floating. */
+  border: 1px solid #04060899;
+  /*
+    Three layers, cheapest first: the outcome hairline just inside the border, a delicate recess at
+    the foot, and nothing else. `--gb-edge` is set per outcome below.
+  */
+  box-shadow:
+    inset 0 0 0 1px var(--gb-edge, transparent),
+    inset 0 -7px 9px -8px rgb(0 0 0 / 85%);
+  pointer-events: none;
+}
+
+/*
+  The reflection: a narrow band along the inside top edge only.
+
+  A pseudo-element rather than another inset shadow, because a shadow cannot be given a gradient and
+  a flat one at this size reads as a bevel. Two pixels down from the top so it sits inside the
+  hairline rather than on it.
+*/
+.gb-surface::before {
+  content: '';
+  position: absolute;
+  inset: 1px 1px auto;
+  height: 38%;
+  border-radius: 1px 1px 0 0;
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 7%) 0%, rgb(255 255 255 / 1.5%) 45%, transparent 100%);
+  pointer-events: none;
+}
+
+/*
+  The outcome edge.
+
+  A hairline INSIDE the dark border, never a glow: the brief is explicit that the colour must define
+  the inside edge without spilling across neighbouring cells, and an outer glow on a grid this dense
+  turns into a haze.
+*/
+.gb-surface.gb-w,
+.gb-surface.gb-wf { --gb-edge: color-mix(in srgb, var(--neon-cyan) 42%, transparent); }
+.gb-surface.gb-l { --gb-edge: color-mix(in srgb, var(--steel) 26%, transparent); }
+.gb-surface.gb-d { --gb-edge: color-mix(in srgb, var(--gold) 34%, transparent); }
+.gb-surface.gb-ff { --gb-edge: color-mix(in srgb, var(--hot-red) 32%, transparent); }
 
 /* The winner's side: bright cyan with a restrained glow. */
 .gb-w {
   color: var(--neon-cyan);
   font-weight: 700;
-  text-shadow: 0 0 9px color-mix(in srgb, var(--neon-cyan) 45%, transparent);
+  /* Restrained on a contained surface: the edge already says which side won. */
+  text-shadow: 0 0 6px color-mix(in srgb, var(--neon-cyan) 30%, transparent);
 }
 /* The reciprocal side of the same result: faded, so a row reads as its own record at a glance. */
 .gb-l { color: color-mix(in srgb, var(--muted-foreground) 62%, transparent); }
@@ -447,7 +537,7 @@
 /* Played, but nobody wrote the frames down. A real state in this data, and not the same as unplayed. */
 .gb-noscore { color: color-mix(in srgb, var(--steel) 80%, transparent); font-style: italic; }
 .gb-ff { color: color-mix(in srgb, var(--hot-red) 72%, var(--steel)); font-weight: 600; }
-.gb-wf { color: var(--neon-cyan); font-weight: 700; text-shadow: 0 0 9px color-mix(in srgb, var(--neon-cyan) 45%, transparent); }
+.gb-wf { color: var(--neon-cyan); font-weight: 700; text-shadow: 0 0 6px color-mix(in srgb, var(--neon-cyan) 30%, transparent); }
 .gb-void { color: color-mix(in srgb, var(--muted-foreground) 35%, transparent); }
 
 /*
@@ -547,6 +637,8 @@
   flex-wrap: wrap;
   gap: 0.2rem 1.1rem;
   border-top: 1px solid var(--border);
+  /* A ground of its own, so the footer strip is a surface rather than a hole in one. */
+  background-color: #07090b;
   padding: 0.55rem 0.9rem;
   font-size: 0.68rem;
   color: var(--text-muted);

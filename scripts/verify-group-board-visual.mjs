@@ -108,6 +108,70 @@ const LAYOUT = `(() => {
     scoreCellsAreText: [...sc.querySelectorAll('.gb-cell')].every((c) => !c.querySelector('button,a,input')),
     identityIsLink: !!document.querySelector('.gb-id-link[href]'),
     remColumnPresent: [...sc.querySelectorAll('thead th')].some((h) => h.textContent.trim() === 'Rem'),
+
+    /* ── The score surfaces ──────────────────────────────────────────────────────────────────── */
+    surfaces: (() => {
+      const withSurface = [...sc.querySelectorAll('.gb-cell')].filter((c) => c.querySelector('.gb-surface'));
+      if (!withSurface.length) return null;
+      const cell = withSurface[0];
+      const sur = cell.querySelector('.gb-surface');
+      const cb = cell.getBoundingClientRect();
+      const sb = sur.getBoundingClientRect();
+      const cs = getComputedStyle(sur);
+      const cellCs = getComputedStyle(cell);
+      return {
+        count: withSurface.length,
+        tag: sur.tagName,
+        insetX: +((cb.width - sb.width) / 2).toFixed(1),
+        insetY: +((cb.height - sb.height) / 2).toFixed(1),
+        surfaceW: Math.round(sb.width),
+        surfaceH: Math.round(sb.height),
+        cellW: Math.round(cb.width),
+        cellH: Math.round(cb.height),
+        radius: cs.borderTopLeftRadius,
+        pointerEvents: cs.pointerEvents,
+        cursor: cs.cursor,
+        /* Typography must be the CELL's, unchanged by the surface. */
+        fontSize: cs.fontSize,
+        cellFontSize: cellCs.fontSize,
+        lineHeight: cs.lineHeight,
+        cellLineHeight: cellCs.lineHeight,
+        fontFamily: cs.fontFamily === cellCs.fontFamily,
+      };
+    })(),
+    /* Every outcome that should carry a surface, and every state that should not. */
+    surfaceByOutcome: Object.fromEntries(['gb-w', 'gb-l', 'gb-d', 'gb-ff', 'gb-wf'].map((c) => {
+      const el = sc.querySelector('.' + c);
+      return [c, el ? el.classList.contains('gb-surface') : null];
+    })),
+    flatStatesHaveNoSurface: ['gb-dash', 'gb-noscore', 'gb-void'].every((c) =>
+      [...sc.querySelectorAll('.' + c)].every((e) => !e.classList.contains('gb-surface'))),
+    diagonalHasNoSurface: [...sc.querySelectorAll('.gb-diag')].every((d) => !d.querySelector('.gb-surface')),
+    scoresAreNotControls: [...sc.querySelectorAll('.gb-surface')].every((e) =>
+      e.tagName === 'SPAN' && !e.closest('a,button') && !e.hasAttribute('tabindex') && !e.onclick),
+    /* Distinct edge colours, read as rendered rather than from source. */
+    edgeColours: ['gb-w', 'gb-l', 'gb-d', 'gb-ff'].map((c) => {
+      const el = sc.querySelector('.gb-surface.' + c);
+      return el ? getComputedStyle(el).getPropertyValue('--gb-edge').trim() : null;
+    }),
+    /* Panel opacity, as rendered. */
+    /*
+      Panel opacity, parsed without a regular expression.
+
+      This whole object is carried into the page inside a template literal, and a template literal
+      rejects invalid escape sequences. A character-class escape in a regex here therefore has to be
+      written twice over, and single-escaped it stops the entire expression parsing -- silently, so
+      every check downstream reports undefined rather than failing. Splitting the colour string needs
+      no escaping at all and cannot go wrong the same way.
+    */
+    panelAlpha: (() => {
+      const c = getComputedStyle(board).backgroundColor
+      if (!c.startsWith('rgba')) return 1
+      const parts = c.slice(c.indexOf('(') + 1, c.indexOf(')')).split(',')
+      return +Number(parts[3]).toFixed(2)
+    })(),
+    panelHasGradient: getComputedStyle(board).backgroundImage !== 'none',
+    headOpaque: !getComputedStyle(document.querySelector('.gb-head')).backgroundColor.includes('rgba'),
   });
 })()`
 
@@ -228,6 +292,57 @@ try {
     check('  the remaining-sets column is present', r.remColumnPresent)
     if (w >= 1024) check('  the matrix fits without scrolling', !r.matrixScrolls)
     else check('  the matrix scrolls inside the board', r.matrixScrolls)
+
+    /* ── The smoked-glass score surfaces ─────────────────────────────────────────────────────── */
+    const s = r.surfaces
+    check('  recorded results carry a full-cell surface', !!s && s.count > 0, s ? `${s.count}` : 'none')
+    if (s) {
+      /*
+        "Nearly gridline to gridline": a few pixels of cell showing on each side, not a badge.
+
+        Measured as a RATIO as well as an inset, because the same 3px looks very different on a
+        62px column and a 98px one, and the requirement is about how full the cell looks.
+      */
+      check('  ...inset only 2-4px on each side', s.insetX >= 2 && s.insetX <= 4.5, `${s.insetX}px`)
+      /*
+        Never a badge, at any width.
+
+        A percentage-of-cell threshold was the first attempt and it was the wrong shape: the inset is
+        a fixed three pixels, so the same surface fills 93% of a wide column and 87% of a narrow one,
+        and the check failed on the tablet purely because the column got smaller. What must be true
+        at every width is that the surface stays a panel rather than shrinking into a pill, which is
+        a floor on its actual size.
+      */
+      check('  ...and never shrinking to a badge', s.surfaceW >= 32 && s.surfaceH >= 24,
+        `${s.surfaceW}x${s.surfaceH}px (cell ${s.cellW}x${s.cellH})`)
+      check('  ...with square corners', parseFloat(s.radius) <= 2, s.radius)
+      /*
+        The typography is the cell's, not the surface's.
+
+        Compared against the cell it sits in rather than to a remembered pixel value: that is the
+        actual requirement — the surface must not change the score's type — and it stays true if the
+        table's own size ever changes.
+      */
+      check('  the score keeps the cell font size', s.fontSize === s.cellFontSize, `${s.fontSize} vs ${s.cellFontSize}`)
+      check('  ...the cell line height', s.lineHeight === s.cellLineHeight, `${s.lineHeight} vs ${s.cellLineHeight}`)
+      check('  ...and the cell font family', s.fontFamily)
+      check('  the surface cannot take a pointer', s.pointerEvents === 'none', s.pointerEvents)
+      check('  ...and shows no interactive cursor', s.cursor === 'auto' || s.cursor === 'default', s.cursor)
+    }
+    check('  wins, losses, draws and forfeits all get a surface',
+      ['gb-w', 'gb-l', 'gb-d'].every((c) => r.surfaceByOutcome[c] !== false),
+      JSON.stringify(r.surfaceByOutcome))
+    check('  ...with four distinct edge colours',
+      new Set(r.edgeColours.filter(Boolean)).size === r.edgeColours.filter(Boolean).length,
+      r.edgeColours.join(' / '))
+    check('  unplayed and unrecorded states stay flat', r.flatStatesHaveNoSurface)
+    check('  the diagonal gets no surface', r.diagonalHasNoSurface)
+    check('  no score is a button, link or focusable', r.scoresAreNotControls)
+
+    /* ── Matte, opaque panels ────────────────────────────────────────────────────────────────── */
+    check('  the panel is 94-98% opaque', r.panelAlpha >= 0.94 && r.panelAlpha <= 0.98, `${r.panelAlpha}`)
+    check('  ...with no gradient on it', !r.panelHasGradient)
+    check('  ...and an opaque group header', r.headOpaque)
   }
 
   section('Motion, and what repeated interaction costs')

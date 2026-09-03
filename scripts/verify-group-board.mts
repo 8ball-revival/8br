@@ -339,6 +339,128 @@ check('...which are the same ones the engine awards',
 
 // ── Motion ──────────────────────────────────────────────────────────────────────────────────────
 
+section('Matte surfaces, not brushed metal')
+
+/*
+  The panel rules are isolated before searching them.
+
+  The file legitimately contains directional repeating gradients elsewhere — the diagonal
+  self-match hatch and the progress rail's sheen, both of which the brief says to keep. Searching
+  the whole stylesheet for "repeating-linear-gradient" would therefore fail on the two textures that
+  are supposed to be there, which is the sort of assertion that gets deleted rather than fixed.
+*/
+const panelRule = css.slice(css.indexOf('.gb-board,\n.gb-panel {'), css.indexOf('.gb-board:hover'))
+const headRule = css.slice(css.indexOf('.gb-head {'), css.indexOf('.gb-head-name'))
+const legendRule = css.slice(css.indexOf('.gb-legend {'), css.indexOf('.gb-legend b'))
+const hoverRule = css.slice(css.indexOf('.gb-board:hover'), css.indexOf('.gb-frame {'))
+
+check('the panel ground is a flat colour, not a gradient',
+  /background-image: none/.test(panelRule) && !/linear-gradient/.test(panelRule))
+check('...with no white highlight band along its top edge',
+  !/inset 0 1px 0 rgb\(255 255 255/.test(panelRule))
+check('...and no directional streaking anywhere in the frame',
+  !/repeating-linear-gradient/.test(panelRule + headRule + legendRule))
+check('hovering brightens the edge, never the surface', !/background-image|background-color/.test(hoverRule))
+
+/* 94-98% opaque: solid enough that the page grid does not read through the tables. */
+const opacity = panelRule.match(/color-mix\(in srgb, #0a0d10 (\d+)%/)
+check('the panels are 94-98% opaque', !!opacity && Number(opacity[1]) >= 94 && Number(opacity[1]) <= 98,
+  opacity ? `${opacity[1]}%` : 'no color-mix found')
+check('the group header is fully opaque', /background-color: #07090b/.test(headRule))
+check('...as is the legend strip', /background-color: #07090b/.test(legendRule))
+check('the neon identity survives the change',
+  /border: 1px solid color-mix\(in srgb, var\(--hot-red\)/.test(panelRule)
+  && /\.gb-frame-live::before/.test(css))
+
+/* The two textures that are meant to stay. */
+check('the diagonal self-match hatch is untouched', /\.gb-diag \{[\s\S]{0,240}repeating-linear-gradient/.test(css))
+check('the alternating rows are untouched',
+  /\.gb-row-odd \{ background: var\(--void\); \}/.test(css) && /\.gb-row-even \{ background: #10151a; \}/.test(css))
+
+section('Recorded results sit on a full-cell surface')
+
+check('a scored cell carries the surface', idSrc.includes("'gb-surface gb-score'"))
+check('both halves of a forfeit carry it', /gb-surface gb-ff/.test(idSrc) && /gb-surface gb-wf/.test(idSrc))
+/*
+  The distinction the treatment exists to make: a surface means something happened.
+
+  An unplayed fixture, a pairing with no fixture, a no contest, a void and a match played without a
+  score all stay flat. Giving any of them the same furniture would make an empty cell look like a
+  result.
+*/
+for (const flat of ['gb-dash', 'gb-noscore', 'gb-void']) {
+  const uses = [...idSrc.matchAll(new RegExp(`className="([^"]*${flat}[^"]*)"`, 'g'))].map((m) => m[1])
+  check(`${flat} never gets a surface`, uses.length > 0 && uses.every((u) => !u.includes('gb-surface')),
+    uses.join(' | ') || 'not found')
+}
+check('the diagonal is its own cell with no score at all', /className="gb-diag" aria-hidden/.test(idSrc))
+
+check('each outcome gets its own hairline token',
+  ['.gb-surface.gb-w', '.gb-surface.gb-l', '.gb-surface.gb-d', '.gb-surface.gb-ff'].every((sel) => css.includes(sel)))
+const edges = ['gb-w,', 'gb-l ', 'gb-d ', 'gb-ff '].map((c) => {
+  const m = css.match(new RegExp(`\\.gb-surface\\.${c.trim()}[^{]*\\{ --gb-edge: ([^;]+);`))
+  return m ? m[1].trim() : null
+})
+check('...and the four are visually distinct', new Set(edges.filter(Boolean)).size === 4, edges.join(' / '))
+check('the winner and the forfeit winner share one cyan edge, being one outcome',
+  /\.gb-surface\.gb-w,\s*\.gb-surface\.gb-wf \{/.test(css))
+
+check('the surface is contained by a border darker than its interior', /border: 1px solid #04060899/.test(css))
+/*
+  Every use of the outcome colour in a shadow must be an INSET one.
+
+  Checked line by line rather than with a negative pattern over the whole file: the first attempt
+  used `!/0 0 \d+px var\(--gb-edge/`, which matched the inset declaration itself — `0 0 0 1px` reads
+  as "0 0" followed by "1px" if the match starts one token late. A rule about every occurrence is
+  better asked of every occurrence.
+*/
+const edgeUses = css.split(/[\r\n]+/).filter((l) => l.includes('var(--gb-edge'))
+check('...with the outcome colour INSIDE that border, not glowing outside it',
+  edgeUses.length > 0 && edgeUses.every((l) => l.trimStart().startsWith('inset')),
+  edgeUses.map((l) => l.trim()).join(' | '))
+check('the reflection is a narrow band along the inside top edge',
+  /\.gb-surface::before \{[\s\S]{0,320}height: 38%/.test(css))
+check('corners are square to within a pixel or two', /\.gb-surface \{[\s\S]{0,500}border-radius: 1px/.test(css))
+check('the inset leaves a few pixels of cell on each side', /\.gb-surface \{[\s\S]{0,200}inset: 3px/.test(css))
+
+section('The surface changes nothing about the type or the row')
+
+/*
+  The typography assertion is that the surface SETS none of it.
+
+  Checking a computed pixel size would pass while a future edit added `font-size: 1rem` to the rule,
+  as long as the two happened to agree. What must be true is that the surface declares no type at
+  all, so the score keeps whatever the cell gives it.
+*/
+const surfaceRule = css.slice(css.indexOf('.gb-surface {'), css.indexOf('.gb-surface::before'))
+check('the surface sets no font size', !/font-size/.test(surfaceRule))
+check('...no line height', !/line-height/.test(surfaceRule))
+check('...no font family or weight', !/font-family|font-weight/.test(surfaceRule))
+check('...and no padding that could grow the cell', !/padding/.test(surfaceRule))
+/*
+  Out of the flow, so the row height cannot move.
+
+  A padded inline box would add its own height to every cell in a forty-cell matrix. Absolute
+  positioning contributes nothing to layout, which is what makes "row heights unchanged" a property
+  rather than a hope.
+*/
+check('the surface is positioned out of the flow', /position: absolute/.test(surfaceRule))
+check('...inside a cell that is its containing block', /\.gb-cell \{[\s\S]{0,220}position: relative/.test(css))
+check('the score is centred both ways',
+  /align-items: center/.test(surfaceRule) && /justify-content: center/.test(surfaceRule))
+
+section('A surface that resembles a control and is not one')
+
+check('scores are spans, never buttons or links',
+  !/<button[\s\S]{0,200}gb-surface|<Link[\s\S]{0,200}gb-surface/.test(idSrc))
+check('no click handler on a score', !/gb-surface[\s\S]{0,200}onClick/.test(idSrc))
+check('no keyboard focus is added to a score', !/gb-surface[\s\S]{0,200}tabIndex/.test(idSrc))
+check('the surface cannot even receive a pointer', /\.gb-surface \{[\s\S]{0,900}pointer-events: none/.test(css))
+check('no cursor change suggests one', !/\.gb-surface[^{]*\{[^}]*cursor:/.test(css))
+check('no press, lift or hover animation on a score', !/\.gb-surface:hover|\.gb-surface:active/.test(css))
+check('the identity strip is still a link, which is the one thing that should be',
+  /gb-id-link/.test(idSrc))
+
 section('Motion reuses the profile primitives')
 
 check('the board is gated by the shared decorative-motion hook', /useDecorativeMotion\(boardRef\)/.test(idSrc))

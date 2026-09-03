@@ -292,9 +292,19 @@ function Identity({ player }: { player: BoardPlayer }) {
 /**
  * One result, from this row's point of view.
  *
- * Display only: text in a cell, no control, no affordance. Every state the data model can hold has
- * its own reading, including the two that used to share a dash — a fixture nobody has played yet,
- * and one that was played with no score written down.
+ * ── A RESOLVED result gets a surface; an unresolved one does not ────────────────────────────────
+ * A recorded score, and a forfeit either way, sit on `gb-surface` — a dark-glass panel that fills
+ * almost the whole cell and carries a hairline in the outcome's colour. Everything else stays flat:
+ * an unplayed fixture, a pairing with no fixture, a no contest, a void, and a match played with no
+ * score written down. That distinction is the point of the treatment. A surface means "this
+ * happened and here is what happened"; a bare dash means it did not, and giving the dash the same
+ * furniture would make an empty cell look like a result.
+ *
+ * ── It resembles a control and is not one ───────────────────────────────────────────────────────
+ * No button, no link, no click handler, no cursor, no focus, no hover lift. The surface even carries
+ * `pointer-events: none` in the stylesheet, so it cannot intercept the row's own click. The
+ * resemblance is deliberate and the behaviour deliberately absent — this registry has no replay to
+ * open, and a cell that invited a click would promise one.
  */
 function Score({ cell }: { cell: BoardCell | undefined }) {
   if (!cell || cell.kind === 'no-fixture') {
@@ -311,11 +321,11 @@ function Score({ cell }: { cell: BoardCell | undefined }) {
       return <span className="gb-void" title="Voided">·</span>
     case 'forfeit':
       return cell.iForfeited
-        ? <span className="gb-ff" title="Forfeited — did not play">FF</span>
-        : <span className="gb-wf" title="Won by forfeit — opponent did not play">W</span>
+        ? <span className="gb-surface gb-ff" title="Forfeited — did not play">FF</span>
+        : <span className="gb-surface gb-wf" title="Won by forfeit — opponent did not play">W</span>
     case 'score':
       return (
-        <span className={cn('gb-score', cell.tone === 'w' ? 'gb-w' : cell.tone === 'l' ? 'gb-l' : 'gb-d')}>
+        <span className={cn('gb-surface gb-score', cell.tone === 'w' ? 'gb-w' : cell.tone === 'l' ? 'gb-l' : 'gb-d')}>
           {cell.mine}–{cell.theirs}
         </span>
       )
