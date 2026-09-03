@@ -2156,6 +2156,16 @@ model Season {
   /// meets TWICE, as separate matches with their own scores, and it is set per Season rather than
   /// inferred from the fixtures so a half-entered double season is still described correctly.
   groupFormat          SeasonGroupFormat @default(SINGLE_ROUND_ROBIN)
+  /// How many players advance from each group — the gold playoff cutoff on the group board, the
+  /// target the clinch engine proves a place against, and what writes `SeasonStanding.qualified`.
+  ///
+  /// Per Season, not a module constant, because the count is a property of the season that was
+  /// played. It used to be `SEASON_QUALIFIERS_PER_GROUP = 3` shared by every Season in the
+  /// database, which meant changing it for the live competition would silently redraw the cutoff on
+  /// all 49 completed seasons — including the Yahoo archive back to 2005 — and rewrite their stored
+  /// `qualified` flags on the next recompute. Every existing Season was therefore backfilled with
+  /// the 3 it actually played; the default is 4 for seasons created from here on.
+  qualifiersPerGroup   Int               @default(4)
   /// Free-text note shown under the playoff bracket, to anyone who can see it. Optional and usually
   /// empty; it exists so a reconstructed season can say plainly where its bracket came from — e.g.
   /// that the pairings are archived but the scores are not, and have been approximated.

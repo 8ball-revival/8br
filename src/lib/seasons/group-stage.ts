@@ -4,8 +4,15 @@ import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { computeStandings, type StandingMatchInput } from '@/lib/competition/standings'
 import { invalidateSeasonProgress } from '@/lib/home/season-progress'
 import { transitionSeasonState } from './lifecycle'
+import { seasonAdvancement } from './advancement'
 
-/** Top-N of every group that advance to the playoffs. Seasons always advance the top three. */
+/**
+ * The advancement count a Season gets when it has none of its own.
+ *
+ * Kept only as the fallback behind `Season.qualifiersPerGroup` and as the value every pre-existing
+ * season was backfilled with. Nothing reads it to decide a live cutoff any more — see
+ * `advancement.ts` for why a shared constant was the wrong home for this.
+ */
 export const SEASON_QUALIFIERS_PER_GROUP = 3
 
 // ---- Standings ------------------------------------------------------------
@@ -26,8 +33,13 @@ export async function recomputeSeasonStandings(
   const groups = await prisma.seasonGroup.findMany({ where: { seasonId }, include: { players: { include: { entrant: { select: { id: true, username: true, displayName: true } } } } } })
   const matches = await prisma.seasonMatch.findMany({ where: { seasonId, status: { in: ['COMPLETED', 'FORFEIT'] } } })
   // The Season says how many times a pair meets; the standings only need it for the completion point.
-  const season = await prisma.season.findUnique({ where: { id: seasonId }, select: { groupFormat: true } })
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { groupFormat: true, qualifiersPerGroup: true },
+  })
   const meetingsPerPair = season?.groupFormat === 'DOUBLE_ROUND_ROBIN' ? 2 : 1
+  /* This season's own advancement count — never the module constant. */
+  const qualifiersPerGroup = seasonAdvancement(season?.qualifiersPerGroup).perGroup
   for (const g of groups) {
     const roster = g.players.map((p) => ({ registrationId: p.entrantId, username: p.entrant.displayName?.trim() || p.entrant.username }))
     const groupMatches: StandingMatchInput[] = matches
@@ -42,7 +54,7 @@ export async function recomputeSeasonStandings(
         awayGames: m.status === 'FORFEIT' ? 0 : m.awayGames ?? 0,
         winnerRegistrationId: m.winnerEntrantId ?? null,
       }))
-    const rows = computeStandings(roster, groupMatches, SEASON_QUALIFIERS_PER_GROUP, meetingsPerPair)
+    const rows = computeStandings(roster, groupMatches, qualifiersPerGroup, meetingsPerPair)
     await prisma.$transaction(async (tx) => {
       for (const r of rows) {
         await tx.seasonStanding.upsert({

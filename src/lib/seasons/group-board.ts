@@ -194,7 +194,7 @@ export async function getGroupBoard(
     identity strips alone.
   */
   const entrantIds = groups.flatMap((g) => g.standings.map((s) => s.entrantId))
-  const [entrants, standings] = await Promise.all([
+  const [entrants, standings, season] = await Promise.all([
     prisma.seasonEntrant.findMany({
       where: { id: { in: entrantIds } },
       select: { id: true, playerId: true, cueverseId: true, displayName: true, username: true },
@@ -203,7 +203,10 @@ export async function getGroupBoard(
       where: { seasonId },
       select: { entrantId: true, clinchedAt: true },
     }),
+    /* This season's own advancement count: the cutoff line and the clinch target both come from it. */
+    prisma.season.findUnique({ where: { id: seasonId }, select: { qualifiersPerGroup: true } }),
   ])
+  const perGroup = season?.qualifiersPerGroup ?? null
 
   const playerIds = [...new Set(entrants.map((e) => e.playerId).filter((p): p is string => !!p))]
   const players = playerIds.length
@@ -233,7 +236,7 @@ export async function getGroupBoard(
 
   const boardGroups: BoardGroup[] = groups.map((g) => {
     const size = g.standings.length
-    const advancing = advancingInGroup(size)
+    const advancing = advancingInGroup(size, perGroup)
 
     /*
       Every fixture, keyed both ways, carrying its STATUS.
@@ -408,7 +411,7 @@ export async function getGroupBoard(
       clinched: boardGroups.reduce((n, g) => n + g.clinched, 0),
     },
     gamesPerSet,
-    advancement: seasonAdvancement(),
+    advancement: seasonAdvancement(perGroup),
   }
 }
 
@@ -462,9 +465,22 @@ export async function applyClinches(
   let revoked = 0
   const now = new Date()
 
+  /*
+    The season's advancement count, read once.
+
+    A clinch is a proof about a specific target — "this place cannot now be lost" is only meaningful
+    against a stated top-N — so this must be the same number the cutoff line is drawn at. Raising it
+    makes previously-proved places unproved, which is exactly why `recomputeSeasonStandings` passes
+    `revalidateClinches` when the advancement count changes.
+  */
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId }, select: { qualifiersPerGroup: true },
+  })
+  const perGroup = season?.qualifiersPerGroup ?? null
+
   for (const g of groups) {
     const size = g.standings.length
-    const advancing = advancingInGroup(size)
+    const advancing = advancingInGroup(size, perGroup)
     const remainingBy = new Map<number, number>()
     const scheduledBy = new Map<number, number>()
     for (const m of g.matches) {

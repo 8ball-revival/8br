@@ -162,12 +162,24 @@ check('a group with no advancing places clinches nobody',
 
 section('The advancement count is configuration, not a literal')
 
-const adv = seasonAdvancement()
-check('the count comes from the season constant', adv.source === 'season-constant')
-check('...and is the same one that writes SeasonStanding.qualified', adv.perGroup === 3, `${adv.perGroup}`)
+/*
+  The count is now a per-Season column, and that distinction is the assertion.
+
+  It used to be one module constant shared by all 50 seasons, so raising it for the live
+  competition would have redrawn the cutoff on 49 COMPLETED seasons — the Yahoo archive back to
+  2005 — and rewritten their stored `qualified` flags on the next recompute. A season's advancement
+  count is a fact about how that season was played.
+*/
+const adv = seasonAdvancement(4)
+check('the count comes from the season row', adv.source === 'season-column')
+check('...and is whatever that season stores', adv.perGroup === 4, `${adv.perGroup}`)
+check('a season still on three gets three', seasonAdvancement(3).perGroup === 3)
 check('a group smaller than the count cannot advance more players than it has',
-  advancingInGroup(2) === 2 && advancingInGroup(1) === 1, `${advancingInGroup(2)}`)
-check('a normal group gets the configured count', advancingInGroup(8) === adv.perGroup)
+  advancingInGroup(2, 4) === 2 && advancingInGroup(1, 4) === 1, `${advancingInGroup(2, 4)}`)
+check('a normal group gets the configured count', advancingInGroup(8, 4) === 4)
+/* No season may be silently given a count by a caller that forgot to pass one. */
+check('a missing count falls back to the legacy constant rather than to zero',
+  seasonAdvancement(null).perGroup === 3 && seasonAdvancement(undefined).perGroup === 3)
 
 const boardSrc = code(read('src/components/seasons/season-group-board.tsx'))
 check('the cutoff is drawn from the configured count, never a row number',
@@ -175,8 +187,23 @@ check('the cutoff is drawn from the configured count, never a row number',
 check('...and "Top N advance" prints the same number', /Top \{group\.advancing\} advance/.test(boardSrc))
 
 const advSrc = read('src/lib/seasons/advancement.ts')
-check('the conflict between the three advancement answers is documented, not resolved silently',
-  /Tournament\.qualifiersPerGroup/.test(advSrc) && /enterSeasonPlayoffSetup/.test(advSrc) && /TOP 4 ADVANCE/.test(advSrc))
+check('the resolution records why a shared constant was wrong, so it is not reintroduced',
+  /2005/.test(advSrc) && /COMPLETED/.test(advSrc))
+check('...and that the playoff FIELD is still curated, not the top N',
+  /enterSeasonPlayoffSetup/.test(advSrc))
+
+/*
+  The one that actually protects the archive: the count must be read from the row, never imported
+  as a constant by the code that draws the cutoff or writes `qualified`.
+*/
+const stageSrc = code(read('src/lib/seasons/group-stage.ts'))
+check('the recompute writes qualified from the season row, not the constant',
+  /qualifiersPerGroup: true/.test(stageSrc)
+  && /computeStandings\(roster, groupMatches, qualifiersPerGroup/.test(stageSrc))
+const gbSrc = code(read('src/lib/seasons/group-board.ts'))
+check('the board reads the same column for its cutoff', /qualifiersPerGroup: true/.test(gbSrc))
+check('...and the clinch engine proves against that number too',
+  /advancingInGroup\(size, perGroup\)/.test(gbSrc))
 
 // ── The competition toggle ──────────────────────────────────────────────────────────────────────
 
