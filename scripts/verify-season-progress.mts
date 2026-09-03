@@ -449,10 +449,6 @@ try {
   const dbPlayed = await prisma.seasonMatch.count({
     where: { seasonId: season.id, status: { in: ['COMPLETED', 'FORFEIT'] } },
   })
-  const dbQualified = await prisma.seasonEntrant.count({
-    where: { seasonId: season.id, playoffIncluded: true, kickedOut: false },
-  })
-
   check('GROUPS counts the published groups', st.groups === dbGroups && st.groups === 6, `${st.groups} vs ${dbGroups}`)
   check('PLAYERS is the same figure the table renders',
     st.players === finalView.rows.length && st.players === 32, `${st.players}`)
@@ -460,15 +456,14 @@ try {
     st.matchesTotal === dbTotal && dbTotal === 70, `${st.matchesTotal} vs ${dbTotal}`)
   check('...over the resolved ones', st.matchesPlayed === dbPlayed, `${st.matchesPlayed} vs ${dbPlayed}`)
   check('...and played never exceeds total', st.matchesPlayed <= st.matchesTotal)
-  check('QUALIFIED counts entrants advanced to the playoffs', st.qualified === dbQualified, `${st.qualified}`)
   /*
-    Zero during a live group stage, and that is the point.
+    Three figures, not four. Qualified was removed from the strip and from the view.
 
-    `SeasonStanding.qualified` marks the top three of every group from the first result onward, so
-    reading THAT would print eighteen here and say nothing about who has advanced. Advancing is a
-    decision taken at playoff setup, which is what a reader means by the word.
+    Checked as an absence as well as a presence: leaving the field on `SeasonProgressStats` would
+    mean a database count on every render that nothing reads.
   */
-  check('...which is 0 while the group stage is still running', st.qualified === 0, `${st.qualified}`)
+  check('the view carries no Qualified figure any more',
+    !('qualified' in (st as unknown as Record<string, unknown>)))
 
   /* The figures follow the data rather than being counted once and kept. */
   const beforeStats = (await computeSeasonProgress(TARGET))!.stats
@@ -484,7 +479,7 @@ try {
     afterStats.matchesPlayed === beforeStats.matchesPlayed + 1,
     `${beforeStats.matchesPlayed} -> ${afterStats.matchesPlayed}`)
   check('...and leaves the denominator alone', afterStats.matchesTotal === beforeStats.matchesTotal)
-  check('...and does not invent a qualifier', afterStats.qualified === beforeStats.qualified)
+  check('...and leaves the group count alone', afterStats.groups === beforeStats.groups)
 
   const panelSrc2 = code(readFileSync('src/components/home/season-progress.tsx', 'utf8'))
   check('the panel renders the figures it is handed, never its own',
@@ -790,11 +785,13 @@ const progressSrc = code(readFileSync('src/lib/home/season-progress.ts', 'utf8')
   Entries live on disk and outlive a deploy, so new code reading an old entry gets the old object.
   Adding `stats` under the unchanged `-v1` key meant the panel read `stats.groups` off objects that
   had no `stats` — a five-minute outage after every such deploy, and nothing in the type system
-  catches it because the cached value is typed by the function that WOULD have produced it.
+  catches it because the cached value is typed by the function that WOULD have produced it. Removing
+  Qualified is the same class of change in the other direction, so the key moved again.
 */
 check('the cache key names the shape it holds',
-  /'season-progress-v2-stats'/.test(progressSrc), 'key not bumped for the stats field')
+  /'season-progress-v3-stats'/.test(progressSrc), 'key not bumped for the shape change')
 check('...and the view it caches carries those stats', /stats: SeasonProgressStats/.test(progressSrc))
+check('dropping Qualified dropped its query too', !/playoffIncluded: true/.test(progressSrc))
 
 check('the invalidation clears the DATA tag as well as the path',
   /revalidateTag\(SEASON_PROGRESS_TAG/.test(progressSrc) && /revalidatePath\('\/'\)/.test(progressSrc))

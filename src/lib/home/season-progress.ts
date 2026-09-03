@@ -79,15 +79,6 @@ export interface SeasonProgressStats {
   matchesPlayed: number
   /** Every scheduled group match, so the pair reads as progress through the stage. */
   matchesTotal: number
-  /**
-   * Entrants actually advanced to the playoffs.
-   *
-   * `SeasonEntrant.playoffIncluded`, not `SeasonStanding.qualified`. The standings flag marks the
-   * top three of every group from the first result onward, so it would read 12 on day one of a
-   * group stage and mean nothing. Advancing is a decision somebody makes at playoff setup, which is
-   * what a reader means by "qualified" — and it is honestly 0 until then.
-   */
-  qualified: number
 }
 
 export interface SeasonProgressView {
@@ -182,7 +173,7 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
     size of the season. `getLadder` is the Rankings page's own cached service, so the rank column
     costs nothing extra once anything else on the page has already asked for it.
   */
-  const [entrants, standings, ladder, groupCount, matchCounts, qualifiedCount] = await Promise.all([
+  const [entrants, standings, ladder, groupCount, matchCounts] = await Promise.all([
     prisma.seasonEntrant.findMany({
       where: { seasonId, status: 'APPROVED', kickedOut: false },
       select: { id: true, playerId: true, username: true, cueverseId: true },
@@ -204,7 +195,6 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
       place rather than in two `where` clauses that could drift.
     */
     prisma.seasonMatch.groupBy({ by: ['status'], where: { seasonId }, _count: { _all: true } }),
-    prisma.seasonEntrant.count({ where: { seasonId, playoffIncluded: true, kickedOut: false } }),
   ])
 
   const playerIds = [...new Set(entrants.map((e) => e.playerId).filter((p): p is string => !!p))]
@@ -267,7 +257,6 @@ async function computeSeasonProgress(target: SeasonProgressTarget): Promise<Seas
       players: rows.length,
       matchesPlayed,
       matchesTotal,
-      qualified: qualifiedCount,
     },
     rows,
   }
@@ -286,7 +275,7 @@ export const SEASON_PROGRESS_TAG = 'season-progress'
 /*
   ── The version in the key is load-bearing ──────────────────────────────────────────────────────
 
-  Bumped to v2 when the header statistics were added to `SeasonProgressView`.
+  Bumped to v2 when the header statistics were added, and to v3 when Qualified was dropped.
 
   The entries under a key are whatever shape they had when they were written, and they outlive a
   deploy — the cache is on disk, not in the process. So new code reading an OLD entry gets an object
@@ -298,7 +287,7 @@ export const SEASON_PROGRESS_TAG = 'season-progress'
 */
 const cachedSeasonProgress = unstable_cache(
   async (target: SeasonProgressTarget) => computeSeasonProgress(target),
-  ['season-progress-v2-stats'],
+  ['season-progress-v3-stats'],
   { tags: [SEASON_PROGRESS_TAG], revalidate: 300 },
 )
 

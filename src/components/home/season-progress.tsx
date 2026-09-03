@@ -108,7 +108,6 @@ export function SeasonProgress({
               /* Said in full for a screen reader: "18/70" is a fraction only to the eye. */
               srValue={`${stats.matchesPlayed} of ${stats.matchesTotal} played`}
             />
-            <Stat label="Qualified" value={String(stats.qualified)} />
           </dl>
         )}
       >

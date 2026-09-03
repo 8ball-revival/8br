@@ -220,7 +220,7 @@ try {
     check('  the column headings stay put while the body scrolls', r.headerStayedPut)
     check('  ...as does the footer link', r.footerStayedPut)
     check('  ...and the header statistics', r.statsStayedPut)
-    check('  the four statistics are all present', r.statLabels.join(',') === 'Groups,Players,Matches,Qualified', r.statLabels.join(','))
+    check('  the three statistics are all present', r.statLabels.join(',') === 'Groups,Players,Matches', r.statLabels.join(','))
     check('  ...and none is clipped', !r.anyStatClipped)
     /*
       Ten to sixteen pixels was the brief. Measured to the scrollbar's inner edge rather than the

@@ -264,14 +264,15 @@
 /* ── Header statistics ───────────────────────────────────────────────────────────────────────── */
 
 /*
-  Values read brighter than their labels but stay below the title.
+  The same red as the phase label and the live dot beneath them.
 
-  Mixed toward white rather than sitting at full `--hot-red`: four saturated red figures beside a
-  red phase label and a red live dot would spend the accent on furniture, and first place is what
-  the red is for on this tile.
+  They were mixed halfway to white, on the reasoning that four saturated figures would spend the
+  accent on furniture. In place that read as a third colour — neither the muted grey of the labels
+  nor the red of the status line — and made the strip look like it belonged to a different panel.
+  Matching `--signal` ties the header together as one block of live information.
 */
 .sp-stat-value {
-  color: color-mix(in srgb, var(--hot-red) 50%, white 50%);
+  color: var(--signal);
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────────────────────────── */
