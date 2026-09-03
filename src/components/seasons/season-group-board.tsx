@@ -96,7 +96,16 @@ export function SeasonGroupBoard({ group }: { group: BoardGroup }) {
         unreadable. The bar is themed so it reads as part of the board rather than as the platform's.
       */}
       <div className="gb-scroll">
-        <table className="gb-matrix" data-col={col ?? ''}>
+        {/*
+          `--gb-cols` is the one thing the stylesheet cannot work out for itself: how many opponent
+          columns this group has. With it, the table can declare a definite width, which is what
+          makes `table-layout: fixed` actually apply — see the note in `season-board.css`.
+        */}
+        <table
+          className="gb-matrix"
+          data-col={col ?? ''}
+          style={{ '--gb-cols': players.length } as React.CSSProperties}
+        >
           <caption className="sr-only">
             {group.name || `Group ${group.code}`}: head-to-head results and standings.
             Rows are players, columns are their opponents.
@@ -114,20 +123,30 @@ export function SeasonGroupBoard({ group }: { group: BoardGroup }) {
             <tr>
               <th scope="col" className="gb-corner">Pos&nbsp;&nbsp;Player</th>
               {players.map((c) => (
-                <th key={c.entrantId} scope="col" title={c.cueverseId}>
+                <th key={c.entrantId} scope="col" title={c.headerTitle}>
                   {/*
-                    The CueVerse ID alone — no preferred name, no avatar, no monogram.
+                    The preferred name, capped — one line, one size, no avatar, no monogram.
 
-                    The header says which column this is. A second line of names doubled its height
-                    to repeat what the left column already carries, and avatars in a header turned a
-                    row of identities into a row of pictures nobody could scan.
+                    A name is shorter and more familiar than a handle, which is what a column heading
+                    wants: enough to say which column this is, in as few characters as possible. The
+                    handle stays the primary identity in the left column, where there is room for
+                    both.
+
+                    `headerLabel` is resolved on the server and already handles the two cases that
+                    would make a name useless as a label: a missing one, and two players in the same
+                    group sharing one. The full identity rides along in `title` and in the accessible
+                    name, so nothing is lost to the cap.
                   */}
                   {c.slug ? (
-                    <Link href={`/players/${encodeURIComponent(c.slug)}`} className="gb-head-id">
-                      {c.cueverseId}
+                    <Link
+                      href={`/players/${encodeURIComponent(c.slug)}`}
+                      className="gb-head-id"
+                      aria-label={c.headerTitle}
+                    >
+                      {c.headerLabel}
                     </Link>
                   ) : (
-                    <span className="gb-head-id">{c.cueverseId}</span>
+                    <span className="gb-head-id" aria-label={c.headerTitle}>{c.headerLabel}</span>
                   )}
                 </th>
               ))}
@@ -181,7 +200,21 @@ export function SeasonGroupBoard({ group }: { group: BoardGroup }) {
                   </th>
 
                   {players.map((c, j) => {
-                    if (i === j) return <td key={c.entrantId} className="gb-diag" aria-hidden />
+                    /*
+                      The diagonal is a box like every other position, not a gap.
+
+                      Same outer dimensions, same inset, same border — only the interior differs: the
+                      darkest state on the board, keeping the stripe that says "no fixture here, and
+                      there never will be". Left as a bare cell it broke the run of boxes across a
+                      row, which is the rhythm the uniform geometry exists to create.
+                    */
+                    if (i === j) {
+                      return (
+                        <td key={c.entrantId} className="gb-cell" aria-hidden>
+                          <span className="gb-surface gb-diag" />
+                        </td>
+                      )
+                    }
                     const cell = r.cells[c.entrantId]
                     return (
                       <td
@@ -308,17 +341,17 @@ function Identity({ player }: { player: BoardPlayer }) {
  */
 function Score({ cell }: { cell: BoardCell | undefined }) {
   if (!cell || cell.kind === 'no-fixture') {
-    return <span className="gb-dash" title="No fixture between these players">·</span>
+    return <span className="gb-surface gb-dash" title="No fixture between these players">·</span>
   }
   switch (cell.kind) {
     case 'unplayed':
-      return <span className="gb-dash" title="Not played yet">–</span>
+      return <span className="gb-surface gb-dash" title="Not played yet">–</span>
     case 'no-score':
-      return <span className="gb-noscore" title="Played, score not recorded">?</span>
+      return <span className="gb-surface gb-noscore" title="Played, score not recorded">?</span>
     case 'no-contest':
-      return <span className="gb-void" title="No contest — closed out unplayed">·</span>
+      return <span className="gb-surface gb-void" title="No contest — closed out unplayed">·</span>
     case 'void':
-      return <span className="gb-void" title="Voided">·</span>
+      return <span className="gb-surface gb-void" title="Voided">·</span>
     case 'forfeit':
       return cell.iForfeited
         ? <span className="gb-surface gb-ff" title="Forfeited — did not play">FF</span>
@@ -330,6 +363,6 @@ function Score({ cell }: { cell: BoardCell | undefined }) {
         </span>
       )
     default:
-      return <span className="gb-dash">–</span>
+      return <span className="gb-surface gb-dash">–</span>
   }
 }

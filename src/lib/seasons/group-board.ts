@@ -58,8 +58,23 @@ export interface BoardPlayer {
   playerId: string | null
   /** The competition identity, and the only thing the opponent headers show. */
   cueverseId: string
-  /** Secondary text in the left column only. Never a header, never a score row. */
+  /** Secondary text in the left column. Also the source of the opponent header label below. */
   preferredName: string | null
+  /**
+   * What the opponent column heading shows: the preferred name, capped.
+   *
+   * A header's job is to say which column this is, in the fewest characters that still identify
+   * somebody — and a preferred name is shorter and more familiar than a handle. The full identity
+   * stays reachable in the cell's title and accessible name; only the visible text is capped.
+   *
+   * Falls back to the CueVerse ID when there is no preferred name, and ALSO when two players in the
+   * same group share one: two columns both headed "Chris" identify nothing, so both revert to the
+   * identity that is unique by construction. Resolved on the server, per group, so the component
+   * renders a decision rather than making one.
+   */
+  headerLabel: string
+  /** The full identity, for the tooltip and the accessible name behind a capped label. */
+  headerTitle: string
   slug: string | null
   kickedOut: boolean
   /** Registry avatar, already cache-busted. Null means draw the monogram. */
@@ -149,6 +164,18 @@ export function monogramOf(handle: string): string {
   return (letters[0][0] + letters[1][0]).toUpperCase()
 }
 
+/**
+ * Trim a label to a visible length, with a real ellipsis character.
+ *
+ * The character cap and the CSS one do different jobs: this stops a forty-character name reaching
+ * the DOM at all, and `text-overflow` in the stylesheet handles a name that is short in characters
+ * but wide in pixels. Either alone leaves a gap.
+ */
+function cap(text: string, max: number): string {
+  const t = text.trim()
+  return t.length <= max ? t : `${t.slice(0, max - 1)}…`
+}
+
 /** Whether a stored avatar filename is an animated format. Extension is all the row records. */
 function isAnimated(filename: string | null): boolean {
   return !!filename && /\.(gif|webp|apng)$/i.test(filename)
@@ -193,6 +220,16 @@ export async function getGroupBoard(
   const byPlayer = new Map(players.map((p) => [p.id, p]))
   const byEntrant = new Map(entrants.map((e) => [e.id, e]))
   const clinchedAtBy = new Map(standings.map((s) => [s.entrantId, s.clinchedAt]))
+
+  /**
+   * The visible cap on a header label.
+   *
+   * Twelve characters plus an ellipsis is about the widest a name can be before it starts deciding
+   * the column width instead of the column deciding it. The cap is applied in CSS as well — see
+   * `.gb-head-id` — because a name that fits the character count can still be wide in a proportional
+   * face; the two together mean neither a long name nor a wide one can push a column.
+   */
+  const HEADER_CAP = 12
 
   const boardGroups: BoardGroup[] = groups.map((g) => {
     const size = g.standings.length
@@ -274,6 +311,22 @@ export async function getGroupBoard(
     const verdictBy = new Map(verdicts.map((v) => [v.entrantId, v]))
 
     const ordered = orderRows(g.standings)
+
+    /*
+      Which players' preferred names are ambiguous inside THIS group.
+
+      Compared case-insensitively and only within the group, because that is the only place the
+      headers sit side by side — two players called Chris in different groups are never confusable
+      on screen, and forcing both of them onto their handles would cost clarity for no gain.
+    */
+    const preferredCounts = new Map<string, number>()
+    for (const s of ordered) {
+      const e = byEntrant.get(s.entrantId)
+      const p = e?.playerId ? byPlayer.get(e.playerId) : undefined
+      const name = (p?.primaryName ?? e?.displayName ?? s.preferredName ?? '').trim().toLowerCase()
+      if (name) preferredCounts.set(name, (preferredCounts.get(name) ?? 0) + 1)
+    }
+
     const boardPlayers: BoardPlayer[] = ordered.map((s) => {
       const e = byEntrant.get(s.entrantId)
       const p = e?.playerId ? byPlayer.get(e.playerId) : undefined
@@ -287,6 +340,13 @@ export async function getGroupBoard(
         cueverseId: handle,
         // Suppressed when it merely repeats the handle: printing the same string twice is noise.
         preferredName: preferred && preferred.toLowerCase() !== handle.toLowerCase() ? preferred : null,
+        headerLabel: cap(
+          preferred && (preferredCounts.get(preferred.toLowerCase()) ?? 0) < 2 ? preferred : handle,
+          HEADER_CAP,
+        ),
+        headerTitle: preferred && preferred.toLowerCase() !== handle.toLowerCase()
+          ? `${handle} (${preferred})`
+          : handle,
         slug: p?.cueverseId?.trim() || e?.playerId || s.slug,
         kickedOut: s.kickedOut,
         avatarUrl: p?.avatarFilename

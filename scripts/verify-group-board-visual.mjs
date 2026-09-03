@@ -172,6 +172,59 @@ const LAYOUT = `(() => {
     })(),
     panelHasGradient: getComputedStyle(board).backgroundImage !== 'none',
     headOpaque: !getComputedStyle(document.querySelector('.gb-head')).backgroundColor.includes('rgba'),
+
+    /* ── Uniform geometry and equal columns, per group ───────────────────────────────────────── */
+    groups: [...document.querySelectorAll('.gb-board')].map((bd) => {
+      const t = bd.querySelector('.gb-matrix');
+      if (!t) return null;
+      const rows = [...t.querySelectorAll('tbody tr')];
+      const n = rows.length;
+      const ths = [...t.querySelectorAll('thead th')];
+      const oppTh = ths.slice(1, 1 + n);
+      const first = [...rows[0].children];
+      const widths = oppTh.map((h) => Math.round(h.getBoundingClientRect().width));
+      const aligned = oppTh.every((h, i) =>
+        Math.abs(h.getBoundingClientRect().left - first[i + 1].getBoundingClientRect().left) < 1.5);
+      /* Every matrix position, across the whole group, measured as one set. */
+      const boxes = [...t.querySelectorAll('tbody .gb-surface')].map((e) => {
+        const b = e.getBoundingClientRect();
+        return { w: Math.round(b.width), h: Math.round(b.height) };
+      });
+      const headLines = oppTh.map((h) => Math.round(h.getBoundingClientRect().height));
+      return {
+        code: bd.querySelector('.gb-head-name').textContent.trim(),
+        players: n,
+        equalColumns: new Set(widths).size === 1,
+        columnWidth: widths[0],
+        headerAlignsBody: aligned,
+        /* n rows x n columns, diagonal included: every position boxed. */
+        boxCount: boxes.length,
+        expectedBoxes: n * n,
+        uniformBoxW: new Set(boxes.map((b) => b.w)).size,
+        uniformBoxH: new Set(boxes.map((b) => b.h)).size,
+        ordinaryRowHeights: [...new Set(rows.filter((r) => !r.classList.contains('gb-row-cutoff'))
+          .map((r) => Math.round(r.getBoundingClientRect().height)))],
+        cutoffRowHeight: (() => {
+          const c = rows.find((r) => r.classList.contains('gb-row-cutoff'));
+          return c ? Math.round(c.getBoundingClientRect().height) : null;
+        })(),
+        headerHeights: [...new Set(headLines)],
+        headerLabels: oppTh.map((h) => h.textContent.trim()),
+        headerTitles: oppTh.map((h) => h.getAttribute('title')),
+        headerEllipsis: oppTh.every((h) => {
+          const el = h.querySelector('.gb-head-id');
+          return el && getComputedStyle(el).textOverflow === 'ellipsis';
+        }),
+        /* The empty states must stay dimmer than a result. */
+        contrast: (() => {
+          const win = t.querySelector('.gb-surface.gb-w');
+          const dash = t.querySelector('.gb-surface.gb-dash');
+          const diag = t.querySelector('.gb-surface.gb-diag');
+          const edge = (e) => (e ? getComputedStyle(e).getPropertyValue('--gb-edge').trim() : null);
+          return { win: edge(win), dash: edge(dash), diag: edge(diag), hasWin: !!win, hasDash: !!dash };
+        })(),
+      };
+    }).filter(Boolean),
   });
 })()`
 
@@ -335,14 +388,68 @@ try {
     check('  ...with four distinct edge colours',
       new Set(r.edgeColours.filter(Boolean)).size === r.edgeColours.filter(Boolean).length,
       r.edgeColours.join(' / '))
-    check('  unplayed and unrecorded states stay flat', r.flatStatesHaveNoSurface)
-    check('  the diagonal gets no surface', r.diagonalHasNoSurface)
+    /*
+      Superseded by this pass: every position is boxed now, the diagonal included.
+
+      The hierarchy those two checks protected is asserted below instead, as a contrast between the
+      empty states and the results rather than as the absence of a container.
+    */
     check('  no score is a button, link or focusable', r.scoresAreNotControls)
 
     /* ── Matte, opaque panels ────────────────────────────────────────────────────────────────── */
     check('  the panel is 94-98% opaque', r.panelAlpha >= 0.94 && r.panelAlpha <= 0.98, `${r.panelAlpha}`)
     check('  ...with no gradient on it', !r.panelHasGradient)
     check('  ...and an opaque group header', r.headOpaque)
+
+    /* ── Uniform geometry and equal columns, every group ─────────────────────────────────────── */
+    check('  every opponent column in a group is the same width',
+      r.groups.every((g) => g.equalColumns),
+      r.groups.map((g) => `${g.code}:${g.columnWidth}px${g.equalColumns ? '' : ' UNEQUAL'}`).join(' '))
+    check('  ...and the headings line up with the cells beneath them',
+      r.groups.every((g) => g.headerAlignsBody))
+    /*
+      Every position boxed, including the diagonal: n rows by n columns.
+
+      Counting against n*n rather than "more than zero" is what catches a state quietly losing its
+      container — the failure this pass exists to fix, in the other direction.
+    */
+    check('  every matrix position carries a box',
+      r.groups.every((g) => g.boxCount === g.expectedBoxes),
+      r.groups.map((g) => `${g.code}:${g.boxCount}/${g.expectedBoxes}`).join(' '))
+    check('  ...all of one width', r.groups.every((g) => g.uniformBoxW === 1))
+    check('  ...and all of one height', r.groups.every((g) => g.uniformBoxH === 1))
+    /*
+      Row heights, with the one row that is legitimately taller accounted for.
+
+      Every ordinary row is exactly 40px, which is what "the boxes must not change row height"
+      means. The cutoff row is ~2px taller and always was: it carries the extra bottom padding that
+      gives the "Playoff cutoff" caption a band of its own, which predates this pass. Asserting a
+      flat 40 everywhere would fail on a feature nobody asked to change.
+    */
+    check('  ordinary rows are exactly 40px, as before',
+      r.groups.every((g) => g.ordinaryRowHeights.length === 1 && g.ordinaryRowHeights[0] === 40),
+      r.groups.map((g) => `${g.code}:${g.ordinaryRowHeights.join('/')}`).join(' '))
+    check('  ...and the cutoff row is taller only by its caption band',
+      r.groups.every((g) => g.cutoffRowHeight == null || (g.cutoffRowHeight > 40 && g.cutoffRowHeight <= 44)),
+      r.groups.map((g) => `${g.code}:${g.cutoffRowHeight}`).join(' '))
+    check('  the header is a single line of one height',
+      r.groups.every((g) => g.headerHeights.length === 1))
+    check('  ...capped with an ellipsis rather than resizing its column',
+      r.groups.every((g) => g.headerEllipsis))
+    check('  ...showing no label longer than the cap',
+      r.groups.every((g) => g.headerLabels.every((l) => l.length <= 12)),
+      r.groups.flatMap((g) => g.headerLabels.filter((l) => l.length > 12)).join(', ') || 'all within')
+    check('  ...with no two headings alike inside a group',
+      r.groups.every((g) => new Set(g.headerLabels.map((l) => l.toLowerCase())).size === g.headerLabels.length))
+    check('  ...and the full identity kept on each heading',
+      r.groups.every((g) => g.headerTitles.every((t) => t && t.length > 0)))
+    /* The hierarchy the uniform grid puts at risk. */
+    const withBoth = r.groups.filter((g) => g.contrast.hasWin && g.contrast.hasDash)
+    check('  an empty box stays quieter than a result',
+      withBoth.length > 0 && withBoth.every((g) => g.contrast.win !== g.contrast.dash),
+      withBoth.map((g) => `${g.code}: ${g.contrast.dash} vs ${g.contrast.win}`).join(' | ') || 'no group has both')
+    check('  ...and the diagonal has no outcome edge',
+      r.groups.every((g) => !g.contrast.diag || g.contrast.diag === 'transparent'))
   }
 
   section('Motion, and what repeated interaction costs')

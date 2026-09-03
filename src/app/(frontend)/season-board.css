@@ -230,17 +230,50 @@
   overflow-y: hidden;
 }
 
+/*
+  ── Equal opponent columns, and the bug that stopped them being equal ───────────────────────────
+
+  `table-layout: fixed` only applies when the table has a DEFINITE width. With `width: auto` — which
+  is what this was — browsers fall back to the automatic algorithm, and the automatic algorithm sizes
+  columns from their content. So a long preferred name in one heading made that column wider than its
+  neighbours, which is exactly what fixed layout was supposed to prevent. The declaration was present
+  and doing nothing.
+
+  The width below is definite, so fixed layout genuinely applies:
+
+    · the identity and statistics columns keep their own deliberate widths;
+    · the opponent columns declare NO width, so fixed layout divides whatever is left EQUALLY
+      between them — which is the requirement, expressed as the algorithm's own behaviour rather
+      than as arithmetic this file has to do;
+    · `max()` sets the floor. When the group is small the table is exactly as wide as the board and
+      the columns share the room generously; when it is large the table grows past the board and the
+      themed horizontal scroll takes over, with every opponent column still at least
+      `--gb-cell-min`. Nothing ever shrinks below readable to avoid a scrollbar.
+
+  `--gb-cols` is written on the element by the component: it is the one number CSS cannot know.
+*/
 .gb-matrix {
+  --gb-cell-min: calc(3.9rem * var(--season-zoom));
+  --gb-who-w: calc(13.5rem * var(--season-zoom));
+  /* pts 3 + w-l-d 4.6 + games 3.6 + game% 3.6 + rem 2.9 */
+  --gb-stats-w: calc(17.7rem * var(--season-zoom));
+
   table-layout: fixed;
-  width: auto;
-  min-width: 100%;
+  width: max(100%, calc(var(--gb-who-w) + var(--gb-stats-w) + var(--gb-cols, 8) * var(--gb-cell-min)));
   border-collapse: separate;
   border-spacing: 0;
   font-size: calc(0.8rem * var(--season-zoom));
 }
 
-.gb-col-who { width: calc(13.5rem * var(--season-zoom)); }
-.gb-col-cell { width: calc(3.9rem * var(--season-zoom)); }
+.gb-col-who { width: var(--gb-who-w); }
+/*
+  Deliberately unsized.
+
+  An explicit width here would be honoured exactly and the leftover would go to the fixed columns
+  instead; leaving it out is what makes the browser split the remaining space equally between these
+  columns, however many of them there are.
+*/
+.gb-col-cell { width: auto; }
 .gb-col-pts { width: calc(3rem * var(--season-zoom)); }
 .gb-col-wld { width: calc(4.6rem * var(--season-zoom)); }
 .gb-col-stat { width: calc(3.6rem * var(--season-zoom)); }
@@ -469,7 +502,23 @@
 */
 .gb-surface {
   position: absolute;
-  inset: 3px;
+  /*
+    Three pixels in from the left and right, and an EXPLICIT height.
+
+    `inset: 3px` on all four sides was the first form and it made the box a function of the cell's
+    padding box — so the cutoff row, which carries extra bottom padding for its caption band, grew
+    taller boxes than every other row. Offsetting the bottom by that padding overcorrected, because
+    the row only grows by however much the padding exceeds the cell's existing slack, which is not a
+    quantity CSS can name.
+
+    A fixed height says the requirement outright: every box on the board is the same size, whatever
+    the row around it is doing. It is the row height less the three-pixel inset top and bottom, plus
+    the one-pixel border.
+  */
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  height: calc(2.5rem * var(--season-zoom) - 7px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -521,6 +570,54 @@
 .gb-surface.gb-d { --gb-edge: color-mix(in srgb, var(--gold) 34%, transparent); }
 .gb-surface.gb-ff { --gb-edge: color-mix(in srgb, var(--hot-red) 32%, transparent); }
 
+/*
+  ── The states that did not happen ──────────────────────────────────────────────────────────────
+
+  Every position on the matrix now carries the same box, so an empty one has to be told apart by
+  CONTRAST rather than by absence. That is the whole risk of a uniform grid: box everything at the
+  same brightness and the matrix becomes a wall of edges with the results lost inside it.
+
+  So these three are deliberately quieter than anything that actually happened — a darker interior,
+  a fainter hairline, and no reflection at all. The result cells keep the top highlight, and that
+  alone separates "played" from "not played" at a glance, before any colour is read.
+*/
+.gb-surface.gb-dash,
+.gb-surface.gb-void {
+  --gb-edge: color-mix(in srgb, var(--steel) 11%, transparent);
+  /* Deeper and flatter than a result: a recessed pane rather than a lit one. */
+  background-image: linear-gradient(180deg, #0a0d10 0%, #06080a 70%, #05070900 100%);
+  border-color: #03050699;
+}
+/* Played, but unrecorded — a warning tone, because it is a gap in the record rather than an absence. */
+.gb-surface.gb-noscore {
+  --gb-edge: color-mix(in srgb, var(--gold) 16%, transparent);
+  background-image: linear-gradient(180deg, #0d0f11 0%, #07090b 70%, #05070900 100%);
+  border-color: #03050699;
+}
+/* No reflection on an empty position: the highlight is what says a cell holds a result. */
+.gb-surface.gb-dash::before,
+.gb-surface.gb-void::before,
+.gb-surface.gb-noscore::before { opacity: 0.35; }
+
+/*
+  The diagonal: the darkest state on the board, and the only one with no content at all.
+
+  Same outer geometry as every other box — that is the point of this pass — with the stripe kept
+  inside it. `background-color` rather than the gradient, so the hatch sits on flat black.
+*/
+.gb-surface.gb-diag {
+  --gb-edge: transparent;
+  background-color: #04060a;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgb(255 255 255 / 3.5%), rgb(255 255 255 / 3.5%) 5px,
+    transparent 5px, transparent 10px
+  );
+  border-color: #02040699;
+  box-shadow: none;
+}
+.gb-surface.gb-diag::before { display: none; }
+
 /* The winner's side: bright cyan with a restrained glow. */
 .gb-w {
   color: var(--neon-cyan);
@@ -551,8 +648,14 @@
 .gb-row:focus-within .gb-l,
 .gb-row-pinned .gb-l { color: var(--muted-foreground); }
 
-/* The diagonal: a player has no result against themselves. */
-.gb-diag {
+/*
+  The old bare-cell diagonal.
+
+  Kept because the Yahoo archive's own group panel still renders `.gb-diag` as a plain `<td>`; on
+  this board it is now a surface, styled above. Two selectors, one class, and neither fights the
+  other because the surface rule is more specific.
+*/
+td.gb-diag {
   background-image: repeating-linear-gradient(
     45deg,
     rgb(255 255 255 / 3%), rgb(255 255 255 / 3%) 5px,
@@ -629,6 +732,14 @@
 
 /* The cell needs to be a positioning context AND allow the tag to escape its own box. */
 .gb-row-cutoff .gb-who { overflow: visible; }
+
+/*
+  Nothing needed for the cutoff row any more.
+
+  Its caption band used to stretch that row's boxes, because the box was sized from the cell's
+  padding box. The explicit height on `.gb-surface` removes the dependency entirely, so the band and
+  the boxes no longer interact.
+*/
 
 /* ── Legend ──────────────────────────────────────────────────────────────────────────────────── */
 

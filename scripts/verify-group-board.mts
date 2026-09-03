@@ -292,9 +292,16 @@ check('an animated avatar is flagged so the table can still it',
   everyone.every((p) => typeof p.avatarAnimated === 'boolean'))
 
 const idSrc = code(read('src/components/seasons/season-group-board.tsx'))
-check('opponent headers render the CueVerse ID and nothing else',
-  /<th key=\{c\.entrantId\} scope="col" title=\{c\.cueverseId\}>/.test(idSrc)
-  && !/c\.preferredName/.test(idSrc))
+/*
+  Superseded: headers now carry the PREFERRED NAME, capped.
+
+  The CueVerse-ID-only rule was right when the header was the only place an identity appeared. Now
+  the left column carries the handle with the name beneath it, so repeating the handle across the top
+  said the same thing twice in the narrower space. The header's job is to label a column in as few
+  characters as possible, and a name does that better. The full identity is still one hover away.
+
+  The checks that replace this one live in "Opponent headers carry the preferred name" below.
+*/
 check('...no avatar or monogram in a header', !/thead[\s\S]{0,600}gb-avatar|thead[\s\S]{0,600}gb-monogram/.test(idSrc))
 check('the identity strip opens the profile', /href=\{`\/players\/\$\{encodeURIComponent\(player\.slug\)\}`\}/.test(idSrc))
 check('...with an accessible name', /aria-label=\{`\$\{player\.cueverseId\}/.test(idSrc))
@@ -303,6 +310,16 @@ check('the profile accent is used for the ring only',
   && !/color: player\.accent|background: player\.accent/.test(idSrc))
 
 const css = read('src/app/(frontend)/season-board.css')
+/*
+  Comments stripped before the rule is isolated.
+
+  The rule's own commentary explains what it does about the cell's PADDING box, so a search for
+  "padding" over the raw text matched the prose that promises there is none. Same trap as the
+  stylesheet checks elsewhere in this suite: only the declarations can answer a question about the
+  declarations.
+*/
+const cssCode = code(css)
+const surfaceRule = cssCode.slice(cssCode.indexOf('.gb-surface {'), cssCode.indexOf('.gb-surface::before'))
 check('...and the stylesheet spends it on nothing but the ring',
   /\.gb-avatar \{[\s\S]*?--gb-accent/.test(css)
   && !/\.gb-id-handle \{[^}]*--gb-accent/.test(css)
@@ -382,18 +399,13 @@ section('Recorded results sit on a full-cell surface')
 check('a scored cell carries the surface', idSrc.includes("'gb-surface gb-score'"))
 check('both halves of a forfeit carry it', /gb-surface gb-ff/.test(idSrc) && /gb-surface gb-wf/.test(idSrc))
 /*
-  The distinction the treatment exists to make: a surface means something happened.
+  Superseded: EVERY position now carries the surface, including the empty ones.
 
-  An unplayed fixture, a pairing with no fixture, a no contest, a void and a match played without a
-  score all stay flat. Giving any of them the same furniture would make an empty cell look like a
-  result.
+  Boxing only the recorded results left the empty positions reading as holes in the matrix. The
+  hierarchy that rule was protecting is preserved instead by CONTRAST — the empty states are dimmer
+  and their hairlines fainter than any result — which is asserted in "Every matchup position gets
+  the same box" below.
 */
-for (const flat of ['gb-dash', 'gb-noscore', 'gb-void']) {
-  const uses = [...idSrc.matchAll(new RegExp(`className="([^"]*${flat}[^"]*)"`, 'g'))].map((m) => m[1])
-  check(`${flat} never gets a surface`, uses.length > 0 && uses.every((u) => !u.includes('gb-surface')),
-    uses.join(' | ') || 'not found')
-}
-check('the diagonal is its own cell with no score at all', /className="gb-diag" aria-hidden/.test(idSrc))
 
 check('each outcome gets its own hairline token',
   ['.gb-surface.gb-w', '.gb-surface.gb-l', '.gb-surface.gb-d', '.gb-surface.gb-ff'].every((sel) => css.includes(sel)))
@@ -420,8 +432,115 @@ check('...with the outcome colour INSIDE that border, not glowing outside it',
   edgeUses.map((l) => l.trim()).join(' | '))
 check('the reflection is a narrow band along the inside top edge',
   /\.gb-surface::before \{[\s\S]{0,320}height: 38%/.test(css))
-check('corners are square to within a pixel or two', /\.gb-surface \{[\s\S]{0,500}border-radius: 1px/.test(css))
-check('the inset leaves a few pixels of cell on each side', /\.gb-surface \{[\s\S]{0,200}inset: 3px/.test(css))
+check('corners are square to within a pixel or two', /border-radius: 1px/.test(surfaceRule))
+check('the inset leaves a few pixels of cell on each side',
+  /left: 3px;\s*right: 3px;/.test(surfaceRule))
+/*
+  The box height is declared, not inherited from the cell.
+
+  That is what makes "every position the same size" hold on the cutoff row, whose caption band makes
+  the row itself taller — see the note in the stylesheet.
+*/
+check('...and the height is explicit, so no row can stretch a box',
+  /height: calc\(2\.5rem \* var\(--season-zoom\) - 7px\)/.test(surfaceRule))
+
+section('Opponent headers carry the preferred name')
+
+const boardsAll = []
+for (const s of seasons) {
+  const gs = await getSeasonGroupStage(s.id)
+  if (gs.length) boardsAll.push(await getGroupBoard(s.id, gs, s.groupStageGames))
+}
+const allGroups = boardsAll.flatMap((b) => b.groups)
+check('there are groups to inspect', allGroups.length > 0, `${allGroups.length}`)
+
+for (const g of allGroups) {
+  /*
+    The invariant, whether or not the data happens to contain a duplicate today.
+
+    Two columns headed "Chris" identify nothing, so the resolver falls both of them back to their
+    handles. Asserting the RESULT rather than the branch means this keeps working when a season with
+    genuine duplicates arrives.
+  */
+  const labels = g.players.map((p) => p.headerLabel.toLowerCase())
+  check(`group ${g.code}: no two headers read the same`, new Set(labels).size === labels.length,
+    labels.join(', '))
+  check(`group ${g.code}: every header is capped`, g.players.every((p) => p.headerLabel.length <= 12),
+    g.players.map((p) => `${p.headerLabel}(${p.headerLabel.length})`).join(' '))
+  check(`group ${g.code}: every header has a full identity behind it`,
+    g.players.every((p) => p.headerTitle.includes(p.cueverseId)))
+  /* A player with no preferred name falls back to the handle rather than rendering blank. */
+  check(`group ${g.code}: nobody has an empty header`, g.players.every((p) => p.headerLabel.trim().length > 0))
+  check(`group ${g.code}: a player with no preferred name uses their handle`,
+    g.players.filter((p) => !p.preferredName)
+      .every((p) => p.cueverseId.startsWith(p.headerLabel.replace('…', ''))))
+}
+
+/* The left column is unchanged: handle first, preferred name beneath. */
+check('the left column still leads with the CueVerse ID', /className="gb-id-handle">\s*\{player\.cueverseId\}/.test(idSrc))
+check('...with the preferred name beneath it',
+  /player\.preferredName && <span className="gb-id-name">\{player\.preferredName\}<\/span>/.test(idSrc))
+check('the header renders one line and one label', /\{c\.headerLabel\}/.test(idSrc) && !/c\.preferredName/.test(idSrc))
+check('...with no avatar or monogram in a heading',
+  !/<thead[\s\S]{0,900}gb-avatar/.test(idSrc) && !/<thead[\s\S]{0,900}gb-monogram/.test(idSrc))
+check('the full identity is on the heading and its link',
+  /title=\{c\.headerTitle\}/.test(idSrc) && /aria-label=\{c\.headerTitle\}/.test(idSrc))
+check('the label is capped in CSS as well as in characters',
+  /\.gb-head-id \{[\s\S]{0,400}text-overflow: ellipsis/.test(css))
+
+const boardLibSrc = code(read('src/lib/seasons/group-board.ts'))
+check('duplicate preferred names are detected case-insensitively',
+  /toLowerCase\(\)/.test(boardLibSrc) && /preferredCounts/.test(boardLibSrc))
+check('...and resolved by falling back to the handle, not by mutating a name',
+  /preferredCounts\.get\(preferred\.toLowerCase\(\)\) \?\? 0\) < 2 \? preferred : handle/.test(boardLibSrc))
+check('...with no random suffix invented', !/Math\.random|\+ index|\+ i\b/.test(boardLibSrc))
+
+section('Every matchup position gets the same box')
+
+check('a scored cell carries the surface', idSrc.includes("'gb-surface gb-score'"))
+check('both halves of a forfeit carry it', /gb-surface gb-ff/.test(idSrc) && /gb-surface gb-wf/.test(idSrc))
+for (const state of ['gb-dash', 'gb-noscore', 'gb-void']) {
+  const uses = [...idSrc.matchAll(new RegExp(`className="([^"]*${state}[^"]*)"`, 'g'))].map((m) => m[1])
+  check(`${state} now carries the surface too`, uses.length > 0 && uses.every((u) => u.includes('gb-surface')),
+    uses.join(' | ') || 'not found')
+}
+check('the diagonal is a surface rather than a bare cell',
+  /<span className="gb-surface gb-diag" \/>/.test(idSrc))
+check('...and keeps its stripe', /\.gb-surface\.gb-diag \{[\s\S]{0,400}repeating-linear-gradient/.test(css))
+check('...with no score, dash or interaction in it', /gb-surface gb-diag" \/>/.test(idSrc))
+
+/*
+  The hierarchy the uniform grid puts at risk.
+
+  Boxing everything at one brightness would turn the matrix into a wall of edges. The empty states
+  are given a fainter hairline and a dimmer interior than any result, and their reflection is
+  reduced — so "something happened here" still reads before any colour does.
+*/
+const edgeOf = (cls) => {
+  const m = css.match(new RegExp(`\\.gb-surface\\.${cls}[^{]*\\{[^}]*--gb-edge: ([^;]+);`))
+  return m ? m[1].trim() : null
+}
+const pctOfEdge = (v) => { const m = v && v.match(/(\d+)%/); return m ? Number(m[1]) : null }
+check('an unplayed box is quieter than a win',
+  (pctOfEdge(edgeOf('gb-dash')) ?? 99) < (pctOfEdge(edgeOf('gb-w,')) ?? 0),
+  `${edgeOf('gb-dash')} vs ${edgeOf('gb-w,')}`)
+check('...and quieter than a loss', (pctOfEdge(edgeOf('gb-dash')) ?? 99) < (pctOfEdge(edgeOf('gb-l')) ?? 0))
+check('the diagonal has no outcome edge at all', edgeOf('gb-diag') === 'transparent')
+check('empty positions carry a reduced reflection',
+  /\.gb-surface\.gb-dash::before[\s\S]{0,180}opacity: 0\.35/.test(css))
+
+section('One sizing token, and columns that cannot be pushed by a name')
+
+check('the opponent columns declare no width, so the browser divides the remainder equally',
+  /\.gb-col-cell \{ width: auto; \}/.test(css))
+check('the table declares a definite width, which is what makes fixed layout apply',
+  /width: max\(100%, calc\(var\(--gb-who-w\) \+ var\(--gb-stats-w\) \+ var\(--gb-cols/.test(css))
+check('...built from one shared minimum-cell token', /--gb-cell-min: calc\(3\.9rem \* var\(--season-zoom\)\)/.test(css))
+check('the column count is supplied by the component', /'--gb-cols': players\.length/.test(idSrc))
+check('the identity and statistics columns keep their own widths',
+  /\.gb-col-who \{ width: var\(--gb-who-w\); \}/.test(css) && /\.gb-col-pts \{ width: calc\(3rem/.test(css))
+check('the reason fixed layout was previously inert is recorded',
+  /only applies when the table has a DEFINITE width/.test(read('src/app/(frontend)/season-board.css')))
 
 section('The surface changes nothing about the type or the row')
 
@@ -432,7 +551,6 @@ section('The surface changes nothing about the type or the row')
   as long as the two happened to agree. What must be true is that the surface declares no type at
   all, so the score keeps whatever the cell gives it.
 */
-const surfaceRule = css.slice(css.indexOf('.gb-surface {'), css.indexOf('.gb-surface::before'))
 check('the surface sets no font size', !/font-size/.test(surfaceRule))
 check('...no line height', !/line-height/.test(surfaceRule))
 check('...no font family or weight', !/font-family|font-weight/.test(surfaceRule))
@@ -455,7 +573,7 @@ check('scores are spans, never buttons or links',
   !/<button[\s\S]{0,200}gb-surface|<Link[\s\S]{0,200}gb-surface/.test(idSrc))
 check('no click handler on a score', !/gb-surface[\s\S]{0,200}onClick/.test(idSrc))
 check('no keyboard focus is added to a score', !/gb-surface[\s\S]{0,200}tabIndex/.test(idSrc))
-check('the surface cannot even receive a pointer', /\.gb-surface \{[\s\S]{0,900}pointer-events: none/.test(css))
+check('the surface cannot even receive a pointer', /pointer-events: none/.test(surfaceRule))
 check('no cursor change suggests one', !/\.gb-surface[^{]*\{[^}]*cursor:/.test(css))
 check('no press, lift or hover animation on a score', !/\.gb-surface:hover|\.gb-surface:active/.test(css))
 check('the identity strip is still a link, which is the one thing that should be',
