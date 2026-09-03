@@ -114,8 +114,16 @@ try {
     })
     await season(inactive.id, 970004, 2094, 'REGISTRATION_OPEN')
     const refreshed = await getSeasonBrowseData(null)
-    check('a Competition with no Seasons is not offered',
-      !refreshed.competitions.some((c) => c.slug === 'zzsx-empty'))
+    /*
+      A Competition with no Seasons IS offered now, and that is the change.
+
+      The Seasons browser's competition toggle has to show WCC before its first Season exists, or a
+      competition the site is about to run would be unreachable. The rule became "runs Seasons" —
+      already has one, or has never run anything at all — so a brand-new competition qualifies and a
+      tournament-only one does not. See `getSeasonBrowseData`.
+    */
+    check('a brand-new Competition with nothing yet IS offered, so it can be opened',
+      refreshed.competitions.some((c) => c.slug === 'zzsx-empty'))
     check('an inactive Competition is not offered',
       !refreshed.competitions.some((c) => c.slug === 'zzsx-inactive'))
     // Drop the inactive fixture's Season first — the Competition cannot go while it holds one.
@@ -331,14 +339,16 @@ try {
       /Hover or tap a row/.test(files[2][1]))
 
     /*
-     * There IS a Division control now, and it is deliberate.
+     * The Division control is gone again, and so is Platform.
      *
-     * This asserted its absence back when division was an implementation detail of the archive. It is
-     * a filter the owner asked for: Division B is preserved in full and excluded from every ranking,
-     * so being able to ask for it is the only way to reach 44 Seasons of real history.
+     * Divisions are a Yahoo-era artefact — no CueVerse Season has ever had one — and this bar is now
+     * the CueVerse Seasons browser, so it was a control that never had options. The archive's own
+     * tab keeps its filters, including division, over the data that actually has them.
      */
-    check('the Division filter is offered', files[1][1].includes('f-division'))
-    check('...and names Division B as unranked', files[1][1].includes("d === 'B' ? ' — unranked' : ''"))
+    check('the Division filter is not on the CueVerse bar', !files[1][1].includes('f-division'))
+    check('...nor is the platform selector', !files[1][1].includes('f-platform'))
+    check('the competition control is a toggle over real Competition records',
+      files[1][1].includes('competitions.map') && files[1][1].includes('aria-pressed={active}'))
     check('there is no Group Order control anywhere',
       files.every(([, src]) => !/Group Order|order === ['"]archive['"]/.test(src)))
 
@@ -425,8 +435,15 @@ try {
       /state === 'COMPLETED' && \(view\.championHandle \|\| view\.championName\)/.test(page))
     check('an unfinished Season says so instead',
       mast.includes('Season In Progress') && mast.includes('STAGE_NOTE'))
-    check('the four glance cards are present',
-      ['Entrants', 'Groups', 'Games per Match', 'Total Matches'].every((l) => mast.includes(`'${l}'`)))
+    /*
+      The glance panel is gone from the masthead.
+
+      Its four figures were repeated by the Groups overview a few inches below, derived separately —
+      the duplication the redesign set out to remove. The overview owns them now, counted from the
+      same rows the tables are built from, so the page cannot state a total twice and differently.
+    */
+    check('the masthead no longer repeats the season figures',
+      !mast.includes('function Glance') && !['Games per Match', 'Total Matches'].some((l) => mast.includes(`'${l}'`)))
     check('View Playoffs switches the view in the URL', page.includes("playoffsParams.set('view', 'playoffs')"))
     check('the masthead spans the full width', page.includes('w-full max-w-none px-3'))
     check('the old centred cap is gone from the Season page', !page.includes('max-w-[120rem]'))
@@ -451,7 +468,8 @@ try {
       /<SeasonMasthead/.test(page) && !/activeView === 'groups' && \(\s*<SeasonMasthead/.test(page))
     check('the content below it keeps one consistent gap',
       page.includes('<div className="mt-6">') && !page.includes("? 'mt-6' : 'mt-0'"))
-    check('the glance figures sit in one row of four', mast.includes('grid grid-cols-4'))
+    check('...and the masthead is two panels rather than three',
+      mast.includes('lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]'))
     check('the champion is laid out sideways so the trophy keeps its size',
       mast.includes('flex h-full items-center justify-center') && !mast.includes('flex h-full flex-col items-center'))
 

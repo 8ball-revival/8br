@@ -6,13 +6,25 @@ import { ArrowLeft, ArrowRight, Minus, Plus, Plus as Search } from 'lucide-react
 
 import { cn } from '@/lib/utils'
 import { FilterField, filterControl } from '@/components/cyber/filter-bar'
-import { divisionLabel } from '@/components/platform/platform-badge'
 import { identityLines } from '@/lib/identity/display'
 import type { CompetitionOption, SeasonOption, SeasonPlayerHit } from '@/lib/seasons/browse'
 
 /**
  * The Seasons control bar: Competition | Year | Season | Player Search | Groups/Playoffs | Zoom |
  * Previous/Next, in that order, sticky under the site header.
+ *
+ * ── Two controls were removed, not hidden ───────────────────────────────────────────────────────
+ * The PLATFORM picker is gone. This area is the CueVerse Seasons browser; the Yahoo archive has its
+ * own tab, with its own filters, built around an era that ended. Offering both here meant every
+ * other picker had to be read twice — "Season 2 of what, on which platform" — and a shared link
+ * could land somebody in the wrong decade. A Yahoo Season opened directly by id still renders, and
+ * its pickers still scope to its own platform; there is simply no control that switches you there.
+ *
+ * The DIVISION picker is gone with it. Divisions are a Yahoo-era artefact — no CueVerse Season has
+ * ever had one — so on this bar it was a control that never had options.
+ *
+ * The COMPETITION dropdown became a toggle. With two competitions a select is a menu you have to
+ * open to discover it has two entries in it.
  *
  * Every choice that changes what you are looking at lives in the URL, so a Season view can be
  * refreshed, bookmarked and shared and come back identical. Zoom is the one exception — it is a
@@ -25,9 +37,6 @@ export function SeasonControls({
   competitions,
   seasons,
   years,
-  platform,
-  divisions,
-  division,
   current,
   competitionSlug,
   view,
@@ -40,12 +49,6 @@ export function SeasonControls({
   /** The Season on screen. `id` addresses it; `number` and `year` only label it. */
   current: { id: number; number: number; year: number }
   competitionSlug: string | null
-  /** Which platform this browser is scoped to. Never both. */
-  platform: 'CUEVERSE' | 'YAHOO'
-  /** Division codes present under the current scope, for the Division picker. */
-  divisions: string[]
-  /** The division currently narrowed to, or null for all of them. */
-  division: string | null
   view: 'groups' | 'playoffs'
   neighbours: { prev: number | null; next: number | null }
   searchPlayers: (q: string) => Promise<SeasonPlayerHit[]>
@@ -60,32 +63,29 @@ export function SeasonControls({
     seasonId?: number
     competition?: string | null
     view?: 'groups' | 'playoffs'
-    platform?: 'CUEVERSE' | 'YAHOO'
-    division?: string | null
   }) => {
     const next = new URLSearchParams(params.toString())
     /*
-     * Platform and division persist in the URL so a link carries the scope it was read in.
-     *
-     * Changing either sends the reader to /seasons rather than to the current Season id: the Season
-     * they are looking at may not exist in the scope they just chose, and landing on a Season from
-     * the other platform would make the filter look broken.
-     */
-    const plat = overrides.platform ?? platform
-    if (plat === 'YAHOO') next.set('platform', 'yahoo')
-    else next.delete('platform')
-    const div = overrides.division !== undefined ? overrides.division : division
-    if (div) next.set('division', div)
-    else next.delete('division')
-    if (overrides.platform !== undefined || overrides.division !== undefined) {
+      A competition change goes to /seasons, not to the current Season id.
+
+      The Season on screen belongs to the competition being switched away from, so carrying its id
+      across would show an 8BR season under a WCC filter — the toggle would appear not to work.
+      Landing on /seasons lets it resolve the newest Season of the chosen competition, or say plainly
+      that there is not one yet.
+    */
+    if (overrides.competition !== undefined) {
+      if (overrides.competition) next.set('competition', overrides.competition)
+      else next.delete('competition')
       next.set('view', overrides.view ?? view)
+      // The group selection belongs to the season being left behind.
+      next.delete('group')
       return `/seasons?${next.toString()}`
     }
-    const comp = overrides.competition !== undefined ? overrides.competition : competitionSlug
-    if (comp) next.set('competition', comp)
+    if (competitionSlug) next.set('competition', competitionSlug)
     else next.delete('competition')
     next.set('view', overrides.view ?? view)
     const seasonId = overrides.seasonId ?? current.id
+    if (overrides.seasonId !== undefined && overrides.seasonId !== current.id) next.delete('group')
     const qs = next.toString()
     return `/seasons/${seasonId}${qs ? `?${qs}` : ''}`
   }
@@ -120,62 +120,52 @@ export function SeasonControls({
         {/* Wraps on narrow screens rather than overflowing, so the bar never detaches from the
             header above it. */}
         <div className="flex flex-wrap items-end gap-2.5 py-2.5 sm:gap-3">
-          {/* Platform sits inside the filters, before Competition: it decides which archive the
-              other pickers are even describing, but the record stays the subject of the page. */}
-          <Field label="Platform" htmlFor="f-platform">
-            <select
-              id="f-platform"
-              value={platform}
-              onChange={(e) => go(urlFor({ platform: e.target.value as 'CUEVERSE' | 'YAHOO' }))}
-              className={SELECT}
-            >
-              <option value="CUEVERSE">CueVerse</option>
-              <option value="YAHOO">Yahoo</option>
-            </select>
-          </Field>
+          {/*
+            The competition toggle: the first thing on the bar, because it decides what every other
+            control is even describing.
 
-          {divisions.length > 0 && (
-            <Field label="Division" htmlFor="f-division">
-              <select
-                id="f-division"
-                value={division ?? ''}
-                onChange={(e) => go(urlFor({ division: e.target.value || null }))}
-                className={SELECT}
-              >
-                <option value="">All Divisions</option>
-                {divisions.map((d) => (
-                  <option key={d} value={d}>
-                    {/* Division B is preserved in full but ranks nothing, and the picker says so
-                        rather than leaving somebody to wonder why its players have no rating. */}
-                    {divisionLabel(d)}{d === 'B' ? ' — unranked' : ''}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
-
-          <Field label="Competition" htmlFor="f-comp">
-            <select
-              id="f-comp"
-              value={competitionSlug ?? ''}
-              onChange={(e) => go(urlFor({ competition: e.target.value || null }))}
-              className={SELECT}
-            >
-              {/* Filtering is by slug; the label is the Competition's stored short name. */}
-              <option value="">All Competitions</option>
-              {competitions.map((c) => (
-                <option key={c.slug} value={c.slug}>{c.shortName}</option>
-              ))}
-            </select>
+            Built from the Competition records themselves — the label is each competition's stored
+            short name, upper-cased for the chip — so adding a third competition that runs Seasons
+            adds a third button with no code change. It is not a pair of hardcoded slugs.
+          */}
+          <Field label="Competition">
+            <div className="inline-flex overflow-hidden rounded-none border border-input" role="group" aria-label="Competition">
+              {competitions.map((c) => {
+                const active = (competitionSlug ?? '') === c.slug
+                return (
+                  <button
+                    key={c.slug}
+                    type="button"
+                    aria-pressed={active}
+                    title={c.name}
+                    onClick={() => go(urlFor({ competition: c.slug }))}
+                    className={cn(
+                      'px-3.5 py-1.5 text-sm font-bold uppercase tracking-[0.06em] transition-colors',
+                      active
+                        ? 'bg-[var(--nav-foreground)] text-[var(--nav-bg)]'
+                        : 'text-[var(--nav-inactive)] hover:bg-[color-mix(in_oklab,var(--nav-foreground)_12%,transparent)] hover:text-[var(--nav-foreground)]',
+                    )}
+                  >
+                    {c.shortName}
+                  </button>
+                )
+              })}
+            </div>
           </Field>
 
           <Field label="Year" htmlFor="f-year">
+            {/*
+              Years come from the Seasons on offer under the current competition, so the picker can
+              never point at a year that competition did not run.
+            */}
             <select
               id="f-year"
               value={current.year}
+              disabled={years.length <= 1}
               onChange={(e) => go(urlFor({ seasonId: newestIn(Number(e.target.value)) }))}
               className={SELECT}
             >
+              {years.length === 0 && <option value={current.year}>{current.year}</option>}
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </Field>
@@ -184,9 +174,11 @@ export function SeasonControls({
             <select
               id="f-season"
               value={current.id}
+              disabled={seasonsForYear.length <= 1}
               onChange={(e) => go(urlFor({ seasonId: Number(e.target.value) }))}
               className={SELECT}
             >
+              {seasonsForYear.length === 0 && <option value={current.id}>Season {current.number}</option>}
               {seasonsForYear.map((s) => (
                 <option key={s.id} value={s.id}>{s.title}</option>
               ))}
@@ -448,7 +440,7 @@ function PlayerSearch({ searchPlayers }: { searchPlayers: (q: string) => Promise
             id="f-player"
             type="search"
             value={q}
-            placeholder="CueVerse ID or name…"
+            placeholder="Search CueVerse ID…"
             autoComplete="off"
             spellCheck={false}
             onChange={(e) => load(e.target.value)}

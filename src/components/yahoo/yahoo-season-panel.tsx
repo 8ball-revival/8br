@@ -3,7 +3,7 @@ import { getSeasonView } from '@/lib/seasons/service'
 import { getSeasonGroupStage } from '@/lib/seasons/views'
 import { seasonPlayoffRounds } from '@/lib/seasons/playoffs'
 import {
-  getSeasonGlance, hasPublicPlayoffBracket, seasonPlayoffParticipants,
+  hasPublicPlayoffBracket,
 } from '@/lib/seasons/browse'
 import { CommandDeck } from '@/components/command-deck'
 import { SeasonMasthead } from '@/components/seasons/season-masthead'
@@ -39,11 +39,9 @@ export async function YahooSeasonPanel({
     return <Missing>That season is not part of this archive.</Missing>
   }
 
-  const [groups, qualified, bracketPublic, glance] = await Promise.all([
+  const [groups, bracketPublic] = await Promise.all([
     getSeasonGroupStage(season.id),
-    seasonPlayoffParticipants(season.id),
     hasPublicPlayoffBracket(season.id, season.lifecycleState),
-    getSeasonGlance(season.id, season.format.groupStageGames),
   ])
 
   const champion = season.lifecycleState === 'COMPLETED' && (season.championHandle || season.championName)
@@ -65,7 +63,6 @@ export async function YahooSeasonPanel({
         year={season.year}
         subtitle={season.subtitle}
         state={season.lifecycleState}
-        glance={glance}
         platform={season.platform}
         division={season.division}
         ranked={season.ranked}
@@ -87,9 +84,9 @@ export async function YahooSeasonPanel({
       <div className="mt-6 min-w-0">
         {view === 'groups' ? (
           <SeasonGroupsView
+            seasonId={season.id}
             groups={group ? preferGroup(groups, group) : groups}
             groupStageGames={season.format.groupStageGames}
-            qualified={qualified}
             state={season.lifecycleState}
           />
         ) : (

@@ -1,9 +1,9 @@
 import { Trophy } from 'lucide-react'
 
-import { type SeasonState } from '@/lib/seasons/shared'
-import { SeasonStandingsMatrix } from '@/components/seasons/season-standings-matrix'
+import { type SeasonState, SEASON_STATE_LABEL } from '@/lib/seasons/shared'
+import { GroupBoards } from '@/components/seasons/season-groups-view'
+import { getGroupBoard } from '@/lib/seasons/group-board'
 import type { StageGroup } from '@/lib/seasons/views'
-import { CommandDeck } from '@/components/command-deck'
 
 /**
  * The body of a Season: the group matrices, or the playoff bracket's stand-in when there is not one
@@ -15,17 +15,20 @@ import { CommandDeck } from '@/components/command-deck'
  * Season with a champion.
  */
 
-/** The Groups view: one matrix per published group, stacked full width. */
-export function SeasonGroupsView({
+/** The Groups view: the season overview, the group navigation, and one board per published group. */
+export async function SeasonGroupsView({
+  seasonId,
   groups,
   groupStageGames,
-  qualified,
   state,
+  group,
 }: {
+  seasonId: number
   groups: StageGroup[]
   groupStageGames: number
-  qualified: Set<number>
   state: SeasonState
+  /** `?group=` from the URL, validated below. Absent or unknown means every group. */
+  group?: string | null
 }) {
   if (groups.length === 0) {
     return (
@@ -53,42 +56,48 @@ export function SeasonGroupsView({
       />
     )
   }
+
   /*
-   * The readout above the tables.
+   * Every figure the view shows, derived once on the server.
    *
-   * Every one of these numbers was already on the page, spread across eight tables — how far the
-   * stage has got could only be worked out by scrolling and counting. Hoisting them into the deck
-   * answers "where is this up to" before any table is read, and it is the same readout the bracket
-   * and the ladder use, so the answer is always in the same place.
+   * The component below is a client one — it owns the group navigation and the board motion — and
+   * it renders what it is handed. Nothing about a standing, a percentage or a clinch is decided in
+   * the browser.
    */
-  const matches = groups.flatMap((g) => g.matches)
-  const played = matches.filter((m) => m.status !== 'SCHEDULED').length
-  const players = groups.reduce((n, g) => n + g.standings.length, 0)
+  const board = await getGroupBoard(seasonId, groups, groupStageGames)
+
+  /* Validated against the groups that actually exist, so `?group=Z` cannot produce an empty page. */
+  const initialGroup = group && board.groups.some((g) => g.code === group) ? group : 'all'
 
   return (
-    <>
-      <CommandDeck
-        eyebrow="Group Stage"
-        title="Groups"
-        stats={[
-          { label: 'Groups', value: groups.length },
-          { label: 'Players', value: players },
-          { label: 'Matches', value: `${played}/${matches.length}` },
-          { label: 'Qualified', value: qualified.size },
-        ]}
-      />
-      <div className="flex flex-col gap-7">
-        {groups.map((g) => (
-          <SeasonStandingsMatrix
-            key={g.id}
-            group={g}
-            groupStageGames={groupStageGames}
-            qualified={qualified}
-          />
-        ))}
-      </div>
-    </>
+    <GroupBoards
+      board={board}
+      initialGroup={initialGroup}
+      status={{
+        label: SEASON_STATE_LABEL[state] ?? 'In progress',
+        note: STAGE_NOTE[state] ?? 'Group matches are being played and results appear as they are entered.',
+        live: LIVE_STATES.has(state),
+      }}
+    />
   )
+}
+
+/** Whether the stage is currently running, for the status badge's colour. */
+const LIVE_STATES = new Set<SeasonState>([
+  'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'GROUP_SETUP', 'GROUP_STAGE_LIVE', 'GROUPS_CLOSED', 'PLAYOFF_SETUP', 'PLAYOFFS_LIVE',
+])
+
+/** A sentence for each stage, so the overview explains the badge beside it rather than repeating it. */
+const STAGE_NOTE: Partial<Record<SeasonState, string>> = {
+  REGISTRATION_SCHEDULED: 'Registration has not opened yet. Groups appear once the field is drawn.',
+  REGISTRATION_OPEN: 'Registration is open. Group tables appear as soon as the groups are published.',
+  REGISTRATION_CLOSED: 'The field is settled and the draw is being made.',
+  GROUP_SETUP: 'The groups are being arranged and will be published shortly.',
+  GROUP_STAGE_LIVE: 'Group matches are being played and results appear as they are entered. A champion appears here once the final is decided.',
+  GROUPS_CLOSED: 'The group stage is complete. The playoff bracket follows shortly.',
+  PLAYOFF_SETUP: 'The playoff field is being confirmed.',
+  PLAYOFFS_LIVE: 'The playoffs are under way. These are the group tables they were seeded from.',
+  COMPLETED: 'This Season is complete. These are its final group tables.',
 }
 
 /**

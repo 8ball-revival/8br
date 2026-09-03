@@ -68,11 +68,6 @@ export interface SeasonBrowseData {
   years: number[]
 }
 
-/** A Competition qualifies for the picker only if it is active AND actually has a Season in it. */
-function activeWithSeasons() {
-  return { active: true, seasons: { some: {} } }
-}
-
 /**
  * The Competition options, the Seasons under the current filter, and the years those Seasons fall
  * in. `competitionSlug` of null (or an unknown slug) means All Competitions.
@@ -88,11 +83,23 @@ export async function getSeasonBrowseData(
   /** A division code to narrow to, or null for every division under this platform. */
   division: string | null = null,
 ): Promise<SeasonBrowseData> {
-  const comps = await prisma.competitionSeries.findMany({
-    where: activeWithSeasons(),
+  const allActive = await prisma.competitionSeries.findMany({
+    where: { active: true },
     orderBy: { name: 'asc' },
-    select: { id: true, slug: true, shortName: true, name: true },
+    select: {
+      id: true, slug: true, shortName: true, name: true,
+      _count: { select: { seasons: true, tournaments: true } },
+    },
   })
+  const onPlatform = await prisma.season.groupBy({
+    by: ['competitionSeriesId'],
+    where: { platform },
+    _count: { _all: true },
+  })
+  const withSeasonsHere = new Set(onPlatform.map((r) => r.competitionSeriesId))
+  const comps = allActive
+    .filter((c) => withSeasonsHere.has(c.id) || (c._count.seasons === 0 && c._count.tournaments === 0))
+    .map(({ _count, ...c }) => c)
   const known = new Set(comps.map((c) => c.slug))
   const filter = competitionSlug && known.has(competitionSlug) ? competitionSlug : null
 

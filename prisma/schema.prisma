@@ -2339,6 +2339,16 @@ model SeasonStanding {
   points    Int      @default(0)
   rank      Int      @default(0)
   qualified Boolean  @default(false)
+  /// When this player was first proved MATHEMATICALLY certain of a top-N finish in their group.
+  ///
+  /// Distinct from `qualified`, which `computeStandings` sets for whoever is currently in the top N
+  /// and rewrites on every recompute. This is a one-way fact about arithmetic: once no sequence of
+  /// remaining results can put a player out, entering those results must not take the marker away.
+  ///
+  /// So the recompute only ever SETS it. Clearing is deliberate and separate — see
+  /// `revalidateSeasonClinches`, which runs when history is edited rather than extended: a completed
+  /// result changed or cleared, an entrant removed, the advancement count altered.
+  clinchedAt DateTime?
   updatedAt DateTime @updatedAt
 
   season Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)

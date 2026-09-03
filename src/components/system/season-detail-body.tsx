@@ -20,7 +20,6 @@ import { CommandDeck } from '@/components/command-deck'
 import { seasonPlayoffRounds } from '@/lib/seasons/playoffs'
 import {
   getSeasonBrowseData, seasonNeighbours, seasonPlayoffParticipants, hasPublicPlayoffBracket,
-  getSeasonGlance,
 } from '@/lib/seasons/browse'
 import { searchSeasonEntrantsAction } from '@/lib/seasons/actions'
 import { SeasonControls } from '@/components/seasons/season-controls'
@@ -58,7 +57,7 @@ export async function SeasonDetailBody({
   params, searchParams,
 }: {
   params: Promise<{ seasonId: string }>
-  searchParams: Promise<{ view?: string; competition?: string; division?: string; platform?: string }>
+  searchParams: Promise<{ view?: string; competition?: string; division?: string; platform?: string; group?: string }>
 }) {
   const { seasonId } = await params
   const sp = await searchParams
@@ -106,7 +105,7 @@ export async function SeasonDetailBody({
   const memberRegistrationOpen = await publicRegistrationOpen({ lifecycleState: state })
   // A division narrowing, when the reader has asked for one. Null means every division.
   const divisionFilter = (typeof sp.division === 'string' ? sp.division : null) || null
-  const [browse, neighbours, groups, qualified, bracketPublic, glance] = await Promise.all([
+  const [browse, neighbours, groups, , bracketPublic] = await Promise.all([
     /*
      * The browser is scoped to the platform of the Season on screen, not to a URL parameter.
      *
@@ -119,7 +118,6 @@ export async function SeasonDetailBody({
     getSeasonGroupStage(view.id),
     seasonPlayoffParticipants(view.id),
     hasPublicPlayoffBracket(view.id, state),
-    getSeasonGlance(view.id, view.format.groupStageGames),
   ])
 
   /*
@@ -148,9 +146,6 @@ export async function SeasonDetailBody({
         years={browse.years}
         current={{ id, number, year: view.year }}
         competitionSlug={competition}
-        platform={view.platform}
-        divisions={browse.divisions}
-        division={divisionFilter}
         view={activeView}
         neighbours={neighbours}
         searchPlayers={async (q: string) => {
@@ -171,7 +166,6 @@ export async function SeasonDetailBody({
           year={view.year}
           subtitle={view.subtitle}
           state={state}
-          glance={glance}
           platform={view.platform}
           division={view.division}
           ranked={view.ranked}
@@ -206,9 +200,10 @@ export async function SeasonDetailBody({
                * Group management is Creator's now; this page reports.
                */
               <SeasonGroupsView
+                seasonId={view.id}
                 groups={groups}
+                group={typeof sp.group === 'string' ? sp.group : null}
                 groupStageGames={view.format.groupStageGames}
-                qualified={qualified}
                 state={state}
               />
             )

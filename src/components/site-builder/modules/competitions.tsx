@@ -346,9 +346,9 @@ registerModule({
           here -- this module decides WHERE the tables appear, never what is in them.
         */}
         <SeasonGroupsView
+          seasonId={id}
           groups={groups}
           groupStageGames={view?.format.groupStageGames ?? 0}
-          qualified={qualified}
           state={(view?.lifecycleState ?? 'COMPLETED') as never}
         />
       </section>

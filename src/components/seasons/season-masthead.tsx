@@ -1,11 +1,10 @@
 import Link from 'next/link'
 import { PlatformBadge, divisionLabel, UnrankedBadge } from '@/components/platform/platform-badge'
-import { Trophy, Users, LayoutGrid, Swords, Target, ArrowRight } from 'lucide-react'
+import { Trophy, ArrowRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { identityLines } from '@/lib/identity/display'
 import { SEASON_STATE_LABEL, type SeasonState } from '@/lib/seasons/shared'
-import type { SeasonGlance } from '@/lib/seasons/browse'
 
 /**
  * The Season masthead: identity, champion, and the Season at a glance, across the full page width.
@@ -27,7 +26,6 @@ export function SeasonMasthead({
   year,
   subtitle,
   state,
-  glance,
   champion,
   playoffsHref,
   platform,
@@ -44,7 +42,6 @@ export function SeasonMasthead({
   year: number
   subtitle: string | null
   state: SeasonState
-  glance: SeasonGlance
   /** Present only once the Season is closed and a champion is recorded. */
   champion: {
     cueverseId: string | null
@@ -61,7 +58,16 @@ export function SeasonMasthead({
       aria-label={`${competitionName} Season ${number}, ${year}`}
       className="dl-surface cyber-clip w-full overflow-hidden border border-[var(--line-strong)] bg-[var(--graphite)]"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)_minmax(0,1.45fr)]">
+      {/*
+        Two panels, not three.
+
+        "Season at a Glance" used to sit here with Entrants, Groups, Games per Match and Total
+        Matches — every one of which the Groups view's own overview now states, from the same
+        derivation the tables beneath it use. Two panels counting the same season a few inches apart
+        is how the page came to disagree with itself, so the figures live in one place and the
+        masthead keeps what only it can say: which Season this is, and who won it.
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <Identity
           competitionShortName={competitionShortName}
           number={number}
@@ -71,8 +77,6 @@ export function SeasonMasthead({
           platform={platform}
           division={division}
           ranked={ranked}
-          entrants={glance.entrants}
-          groups={glance.groups}
           playoffsHref={playoffsHref}
         />
 
@@ -80,10 +84,6 @@ export function SeasonMasthead({
             the sections are stacked, a left border once they sit side by side. */}
         <div className="border-t border-border lg:border-l lg:border-t-0">
           {champion ? <Champion {...champion} /> : <InProgress state={state} />}
-        </div>
-
-        <div className="border-t border-border lg:border-l lg:border-t-0">
-          <Glance glance={glance} />
         </div>
       </div>
     </section>
@@ -93,7 +93,7 @@ export function SeasonMasthead({
 /* ---------------------------------------------------------------- left: identity */
 
 function Identity({
-  competitionShortName, number, year, subtitle, state, entrants, groups, playoffsHref,
+  competitionShortName, number, year, subtitle, state, playoffsHref,
   platform, division, ranked,
 }: {
   platform: 'CUEVERSE' | 'YAHOO'
@@ -104,8 +104,6 @@ function Identity({
   year: number
   subtitle: string | null
   state: SeasonState
-  entrants: number
-  groups: number
   playoffsHref: string
 }) {
   return (
@@ -122,8 +120,14 @@ function Identity({
 
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone={state === 'COMPLETED' ? 'gold' : 'live'}>{SEASON_STATE_LABEL[state]}</Pill>
-        <Pill>{entrants} entrant{entrants === 1 ? '' : 's'}</Pill>
-        <Pill>{groups} group{groups === 1 ? '' : 's'}</Pill>
+        {/*
+          Entrants and groups are NOT repeated here.
+
+          They are two of the four figures the Groups overview states directly beneath this
+          masthead, derived from the same rows the tables use. A second copy a few inches away is
+          the duplication the redesign set out to remove — and it was the copy most likely to be
+          stale, because it came from a different service than the tables did.
+        */}
         {division && <Pill>{divisionLabel(division)}</Pill>}
         {/*
           Unranked is stated rather than left to be inferred. Without it, the only clue that a
@@ -282,40 +286,3 @@ function InProgress({ state }: { state: SeasonState }) {
   )
 }
 
-/* ---------------------------------------------------------------- right: at a glance */
-
-function Glance({ glance }: { glance: SeasonGlance }) {
-  const cards = [
-    { label: 'Entrants', value: glance.entrants, Icon: Users },
-    { label: 'Groups', value: glance.groups, Icon: LayoutGrid },
-    { label: 'Games per Match', value: glance.gamesPerMatch, Icon: Target },
-    { label: 'Total Matches', value: glance.totalMatches, Icon: Swords },
-  ]
-  return (
-    <div className="flex h-full flex-col justify-center gap-2 px-4 py-3.5">
-      <p className="text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
-        Season at a Glance
-      </p>
-      {/* One row of four equal cells. A 2x2 grid was most of the masthead's height and made no
-          figure easier to read than a single row does. */}
-      <div className="grid grid-cols-4 gap-2">
-        {cards.map(({ label, value, Icon }) => (
-          <div
-            key={label}
-            className="flex min-w-0 flex-col gap-1 rounded-none border border-border bg-surface px-2.5 py-2"
-          >
-            <span className="flex items-center gap-1.5 text-[0.66rem] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
-              <Icon className="size-3.5 shrink-0 text-[var(--gold-dim)]" aria-hidden />
-              {/* The label wraps to a second line rather than truncating: "Games per Match" is not
-                  guessable from "Games per…", and the tile has the height to spare. */}
-              <span className="min-w-0">{label}</span>
-            </span>
-            <span className="tabular font-display text-2xl font-bold leading-none text-foreground">
-              {value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}

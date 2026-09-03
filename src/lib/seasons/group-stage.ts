@@ -12,7 +12,17 @@ export const SEASON_QUALIFIERS_PER_GROUP = 3
 
 /** Recompute + persist standings for every group from resolved (COMPLETED/FORFEIT) matches only.
  *  Persists `draws` (unlike the Tournament standings). VOID/NO_CONTEST/SCHEDULED are excluded. */
-export async function recomputeSeasonStandings(seasonId: number): Promise<void> {
+export async function recomputeSeasonStandings(
+  seasonId: number,
+  /**
+   * `revalidateClinches` lets a caller say "history changed, not just extended".
+   *
+   * Entering the next result can never invalidate a proof that a place was already safe, so the
+   * default only ever ADDS markers. A corrected score, a cleared match, a removed entrant or an
+   * altered advancement count genuinely can, and those callers pass true. See `applyClinches`.
+   */
+  opts: { revalidateClinches?: boolean } = {},
+): Promise<void> {
   const groups = await prisma.seasonGroup.findMany({ where: { seasonId }, include: { players: { include: { entrant: { select: { id: true, username: true, displayName: true } } } } } })
   const matches = await prisma.seasonMatch.findMany({ where: { seasonId, status: { in: ['COMPLETED', 'FORFEIT'] } } })
   // The Season says how many times a pair meets; the standings only need it for the completion point.
@@ -43,6 +53,18 @@ export async function recomputeSeasonStandings(seasonId: number): Promise<void> 
       }
     })
   }
+
+  /*
+    Clinch markers, after the standings they are computed from.
+
+    Reads the groups back rather than reusing the loop above, because `applyClinches` needs the
+    PERSISTED standings — the rows it is about to judge are the ones that were just written, and
+    reading them is what guarantees it judges what the page will show rather than what this function
+    happened to have in memory.
+  */
+  const { getSeasonGroupStage } = await import('./views')
+  const { applyClinches } = await import('./group-board')
+  await applyClinches(seasonId, await getSeasonGroupStage(seasonId), { allowRevoke: opts.revalidateClinches })
 
   /*
     The homepage's Season Progress panel reads these rows through its own cache.
@@ -167,6 +189,15 @@ export async function saveSeasonGroupResults(
     plan.push({ match: m, interp })
   }
 
+  /*
+    Was any of this an EDIT rather than a first entry?
+
+    A match that already carried a resolved status is history being changed, which is the only kind
+    of save allowed to revoke a clinch marker. Computed here, from the rows as they were read, before
+    the transaction rewrites them.
+  */
+  const editedHistory = plan.some(({ match: m }) => m.status === 'COMPLETED' || m.status === 'FORFEIT')
+
   if (ffPending.length && !opts.confirmFF) return { ok: false, needConfirmFF: ffPending }
   if (koVictims.size && (!opts.confirmKO || !opts.koReason?.trim())) {
     return { ok: false, needConfirmKO: [...koVictims].map(([entrantId, name]) => ({ entrantId, name })) }
@@ -197,7 +228,14 @@ export async function saveSeasonGroupResults(
     }
     await recordAudit(actor, { action: 'season.group.save', entity: 'Season', entityId: seasonId, newValue: { groupId, changed: plan.length } }, tx)
   })
-  await recomputeSeasonStandings(seasonId)
+  /*
+    A save can EDIT history as well as extend it.
+
+    `editedHistory` is true when any match in this batch already had a resolved status before the
+    save — a corrected score, a cleared result, a forfeit reversed. Those can invalidate a clinch
+    proof, so they alone permit a marker to be revoked. A first-time entry cannot, and does not.
+  */
+  await recomputeSeasonStandings(seasonId, { revalidateClinches: editedHistory })
   return { ok: true }
 }
 
@@ -277,7 +315,8 @@ export async function clearSeasonMatch(actor: Actor, seasonId: number, matchId: 
       oldValue: { matchId, matchup: `${m.homeUsername} v ${m.awayUsername}`, status: m.status },
     }, tx)
   })
-  await recomputeSeasonStandings(seasonId)
+  // Clearing a recorded result is the definition of editing history, so proofs are rechecked.
+  await recomputeSeasonStandings(seasonId, { revalidateClinches: true })
   return { ok: true }
 }
 
@@ -325,7 +364,8 @@ export async function reopenSeasonGroups(
     const t = await transitionSeasonState(actor, seasonId, 'GROUP_STAGE_LIVE', { tx })
     if (!t.ok) throw new Error(t.error)
   })
-  await recomputeSeasonStandings(seasonId)
+  // Reopening turns settled no-contests back into fixtures, which can undo a proof.
+  await recomputeSeasonStandings(seasonId, { revalidateClinches: true })
   return { ok: true, discardedDraftMatches }
 }
 

@@ -1,5 +1,28 @@
 /** Pure standings computation from group results (deterministic, tiebroken). */
 
+/*
+  ── The scoring scale, named once ────────────────────────────────────────────────────────────────
+
+  These were literals inside the points expression below. They are exported now because three other
+  places need to agree with them and previously restated them in prose or in their own arithmetic:
+
+    · the group board's legend, which tells a reader what a win is worth;
+    · the clinch engine, which has to know a rival's best case;
+    · the Season page's scoring note.
+
+  A legend that says "Win 3" beside an engine that awards 2 is the kind of disagreement nobody
+  notices until somebody counts. Reading the same constants makes that impossible rather than
+  unlikely.
+
+  A win was worth 2 until 2026-08-31; the note in `computeStandings` records why it changed and what
+  it means for seasons closed under the old scale.
+*/
+export const WIN_POINTS = 3
+export const DRAW_POINTS = 1
+export const LOSS_POINTS = 0
+/** Awarded once for completing every scheduled set in the group. */
+export const COMPLETION_BONUS = 1
+
 export interface StandingMatchInput {
   homeRegistrationId: number
   awayRegistrationId: number
@@ -140,7 +163,8 @@ export function computeStandings(
       the rule was when they were computed, so a season closed under the old scale keeps its old
       totals until something recomputes it - see the note in the release for which seasons that is.
     */
-    points: r.wins * 3 + r.draws + (fullSlate > 0 && r.played >= fullSlate ? 1 : 0),
+    points: r.wins * WIN_POINTS + r.draws * DRAW_POINTS + r.losses * LOSS_POINTS
+      + (fullSlate > 0 && r.played >= fullSlate ? COMPLETION_BONUS : 0),
     rank: 0,
     qualified: false,
   }))
