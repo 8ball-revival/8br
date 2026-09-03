@@ -561,11 +561,20 @@ try {
     !/\.sp-frame \{[^}]*display: none/.test(reducedBlock))
   check('the base border survives between sweeps',
     /\.sp-panel \{[\s\S]*?border: 1px solid color-mix/.test(spCss))
-  check('first place is styled by class, never by a name', /\.sp-row-leader \{/.test(spCss))
-  check('...with a rail, a wash and a glow',
-    /\.sp-row-leader \{[\s\S]*?inset 2px 0 0 var\(--hot-red\)/.test(spCss))
-  check('...and is not a solid red block',
-    !/\.sp-row-leader \{\s*background: var\(--hot-red\)/.test(spCss))
+  check('first place is styled by class, never by a name', /\.sp-row-leader /.test(spCss))
+  /*
+    The signal is the two identifying cells, not a surface.
+
+    The rail, the wash and the boundary glow were removed: together they drew a box, and a box
+    inside a table reads as a different kind of row rather than as the top one. So first place is
+    now a neon position number and a neon handle, and the row is otherwise ordinary.
+  */
+  check('...as a glowing position number', /\.sp-row-leader \.sp-pos \{[\s\S]*?text-shadow/.test(spCss))
+  check('...and a glowing CueVerse ID', /\.sp-row-leader \.sp-id \{[\s\S]*?text-shadow/.test(spCss))
+  check('...with no rail on the row', !/\.sp-row-leader \{[\s\S]{0,400}?inset 2px 0 0/.test(spCss))
+  check('...and no background wash', !/\.sp-row-leader \{[\s\S]{0,400}?background:/.test(spCss))
+  check('...so it is certainly not a solid red block',
+    !/\.sp-row-leader[^.]*\{\s*background: var\(--hot-red\)/.test(spCss))
   check('row hover changes colour and never position',
     /\.sp-row:hover \{[^}]*background-color/.test(spCss) && !/\.sp-row:hover \{[^}]*transform/.test(spCss))
   /*

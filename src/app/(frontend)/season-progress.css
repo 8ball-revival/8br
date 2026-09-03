@@ -219,43 +219,46 @@
   First place.
 
   Applied by POSITION — the component marks whichever row is currently ranked first, never a name.
-  A rail, a wash and a glow, and deliberately not a solid red block: that would fight every other
-  surface on a dark homepage and make the row harder to read rather than easier.
 
-  The position number and the heavier weight carry the same message without colour, so the row stays
-  identifiable in greyscale and to anyone who cannot separate the hues.
+  ── Why there is no rail and no wash ────────────────────────────────────────────────────────────
+  There were: a red left rail, a dark-red gradient across the row, and a glow around its boundary.
+  Together they drew a box, and a box inside a table reads as a different KIND of row rather than as
+  the top one — it competed with the tile's own frame and made the leader look like a callout that
+  had been pasted over the standings.
+
+  So the signal is the two cells that identify the player: the position number and the CueVerse ID,
+  in neon red with a soft bloom. Nothing else about the row changes, which is what lets first place
+  read as first place rather than as a separate component.
+
+  The number and the heavier weight still carry it without colour, so the row remains identifiable
+  in greyscale and to anyone who cannot separate the hues.
 */
-.sp-row-leader {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--hot-red) 16%, transparent) 0%,
-      color-mix(in srgb, var(--hot-red) 7%, transparent) 45%,
-      color-mix(in srgb, var(--hot-red) 3%, transparent) 100%
-    );
-  box-shadow:
-    inset 2px 0 0 var(--hot-red),
-    inset 0 0 22px -8px color-mix(in srgb, var(--hot-red) 70%, transparent);
-}
-.sp-row-leader:hover {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--hot-red) 24%, transparent) 0%,
-      color-mix(in srgb, var(--hot-red) 11%, transparent) 45%,
-      color-mix(in srgb, var(--hot-red) 5%, transparent) 100%
-    );
-  box-shadow:
-    inset 2px 0 0 var(--hot-red),
-    inset 0 0 30px -6px color-mix(in srgb, var(--hot-red) 90%, transparent);
-}
 .sp-row-leader .sp-pos {
   color: var(--hot-red);
-  text-shadow: 0 0 10px color-mix(in srgb, var(--hot-red) 55%, transparent);
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--hot-red) 85%, transparent),
+    0 0 15px color-mix(in srgb, var(--hot-red) 50%, transparent);
 }
 .sp-row-leader .sp-id {
-  color: color-mix(in srgb, var(--hot-red) 88%, white 12%);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--hot-red) 40%, transparent);
+  /* A touch of white so the handle stays legible at this size; the bloom supplies the neon. */
+  color: color-mix(in srgb, var(--hot-red) 82%, white 18%);
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--hot-red) 75%, transparent),
+    0 0 16px color-mix(in srgb, var(--hot-red) 45%, transparent);
+}
+
+/* Hover intensifies the bloom rather than adding a surface, for the same reason as above. */
+.sp-row-leader .sp-pos,
+.sp-row-leader .sp-id { transition: text-shadow 160ms ease; }
+.sp-row-leader:hover .sp-pos {
+  text-shadow:
+    0 0 7px var(--hot-red),
+    0 0 20px color-mix(in srgb, var(--hot-red) 70%, transparent);
+}
+.sp-row-leader:hover .sp-id {
+  text-shadow:
+    0 0 7px color-mix(in srgb, var(--hot-red) 90%, transparent),
+    0 0 22px color-mix(in srgb, var(--hot-red) 60%, transparent);
 }
 
 /* ── Header statistics ───────────────────────────────────────────────────────────────────────── */

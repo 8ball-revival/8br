@@ -227,8 +227,8 @@ export function SeasonProgress({
                       key={r.entrantId}
                       className={[
                         'sp-row border-b border-border/40 last:border-0',
-                        // Banding is a wash, not a stripe, and never under first place.
-                        !leader && i % 2 === 1 ? 'bg-white/[0.015]' : '',
+                        // Banding is a wash, not a stripe. First place shares it like any other row.
+                        i % 2 === 1 ? 'bg-white/[0.015]' : '',
                         leader ? 'sp-row-leader' : '',
                       ].join(' ')}
                     >

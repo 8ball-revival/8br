@@ -185,7 +185,9 @@ const MOTION = `(async () => {
     frameIsMoving: before !== after,
     frameStillPainted: getComputedStyle(frame, '::before').backgroundImage !== 'none',
     spotDisplay: getComputedStyle(p.querySelector('.sp-spot')).display,
-    leaderStillStyled: getComputedStyle(p.querySelector('.sp-row-leader')).boxShadow.includes('inset'),
+    /* First place is a glowing number and handle now, not a surface — so that is what to look for. */
+    leaderStillStyled: getComputedStyle(p.querySelector('.sp-row-leader .sp-pos')).textShadow !== 'none',
+    leaderHasNoSurface: getComputedStyle(p.querySelector('.sp-row-leader')).boxShadow === 'none',
     pointerEvents: 300,
     framesForBurst,
     spotWritten,
@@ -275,7 +277,8 @@ try {
   check('the travelling classes are removed', !rm.frameHasLiveClass && !rm.glowHasLiveClass)
   check('...and the CSS animation with them', rm.frameAnimationName === 'none', rm.frameAnimationName)
   check('the frame is nonetheless still drawn', rm.frameStillPainted)
-  check('first place keeps its treatment', rm.leaderStillStyled)
+  check('first place keeps its neon glow', rm.leaderStillStyled)
+  check('...and still draws no bar or wash behind the row', rm.leaderHasNoSurface)
   check('the cursor pool is switched off entirely', rm.spotDisplay === 'none', rm.spotDisplay)
 } finally {
   rmSync(shots, { recursive: true, force: true })
