@@ -448,8 +448,8 @@
    * One definition, in the file that owns what the controls mean.
    */
 
-  /* The scanline and grid overlays read against the ground, so they travel with the theme. */
-  /* --scan-line and --grid-line likewise: they are dials, and display.css scales them. */
+  /* The grid overlay reads against the ground, so it travels with the theme. */
+  /* --grid-line likewise: it is a dial, and display.css scales it. */
   --chrome-edge: color-mix(in oklab, var(--clean-white) 9%, transparent);
 
   --chart-1: var(--acid);
@@ -620,22 +620,17 @@
   }
 
   /*
-   * The scanline film, over everything and catching nothing.
+   * The scanline film used to live here, and it is why the whole site looked brushed.
    *
-   * A single fixed pseudo-element on <body> rather than a wrapper div: it needs to cover the whole
-   * viewport including anything portalled outside the React tree, and `pointer-events: none` keeps
-   * it out of every click. The animation is three pixels of travel, which reads as a slow crawl
-   * rather than a scroll.
+   * It was a fixed pseudo-element on <body> at `z-index: 9999` painting a 1px cyan line every 3px
+   * across the ENTIRE viewport — which means it sat ON TOP of every card, table, score cell and
+   * button rather than behind them. No amount of panel opacity could hide it, because the panels
+   * were never what it was drawn on. Every framed surface inherited the same fine horizontal
+   * ribbing and read as horizontally brushed steel.
+   *
+   * There is no replacement. Depth on this site now comes from the ground colour, the border and
+   * the inset shadow in `glass.css`, which is a finish rather than a texture laid over one.
    */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    background: repeating-linear-gradient(180deg, var(--scan-line) 0 1px, transparent 1px 3px);
-    animation: scan-drift 8s linear infinite;
-  }
 
   @media (prefers-reduced-motion: reduce) {
     body,

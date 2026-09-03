@@ -98,13 +98,8 @@ function Thumbnail({ art }: { art: ArticleArt | null }) {
   if (!art) {
     return (
       <span aria-hidden className={cn(box, 'bg-[var(--surface-inset)]')} style={ratio}>
-        <span
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(125deg, color-mix(in oklab, var(--steel-dim) 22%, transparent) 0 1px, transparent 1px 9px)',
-          }}
-        />
+        {/* The diagonal ribbing that filled this placeholder is gone: a flat inset reads as a
+            missing image, whereas fine repeating lines read as a machined surface. */}
         <span className="absolute inset-0 flex items-center justify-center font-condensed text-[0.66rem] font-bold uppercase tracking-[0.22em] text-[var(--steel)]">
           8BR
         </span>

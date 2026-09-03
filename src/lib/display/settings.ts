@@ -64,7 +64,6 @@ export interface DisplaySettings {
   panelLight: number  // 0–200 %, interior lighting and depth
   linework: number    // 0–200 %, corner brackets and technical rules
   gridStrength: number    // 0–200 %
-  scanStrength: number    // 0–200 %
   pulse: number       // 0–200 %, highlight and live pulses
 
   /*
@@ -145,7 +144,6 @@ export const DISPLAY_DEFAULTS: DisplaySettings = {
   panelLight: 100,
   linework: 100,
   gridStrength: 100,
-  scanStrength: 100,
   pulse: 100,
   grainStrength: 100,
   aberrationStrength: 0,
@@ -194,7 +192,7 @@ export const DISPLAY_DEFAULTS: DisplaySettings = {
 /** The seven values a preset controls. Everything else stays exactly where the visitor left it. */
 export type IntensityValues = Pick<
   DisplaySettings,
-  'glow' | 'bloom' | 'panelLight' | 'linework' | 'gridStrength' | 'scanStrength' | 'pulse'
+  'glow' | 'bloom' | 'panelLight' | 'linework' | 'gridStrength' | 'pulse'
   | 'textureStrength' | 'grainStrength' | 'aberrationStrength' | 'flickerStrength'
 >
 
@@ -208,13 +206,13 @@ export type IntensityValues = Pick<
  * with four names.
  */
 export const INTENSITY_FIELDS: (keyof IntensityValues)[] = [
-  'glow', 'bloom', 'panelLight', 'linework', 'gridStrength', 'scanStrength', 'pulse',
+  'glow', 'bloom', 'panelLight', 'linework', 'gridStrength', 'pulse',
   'textureStrength', 'grainStrength', 'aberrationStrength', 'flickerStrength',
 ]
 
 /** The lighting core, which every preset must differ on. See `verify-display-lab`. */
 export const INTENSITY_CORE_FIELDS: (keyof IntensityValues)[] = [
-  'glow', 'bloom', 'panelLight', 'linework', 'gridStrength', 'scanStrength', 'pulse', 'textureStrength',
+  'glow', 'bloom', 'panelLight', 'linework', 'gridStrength', 'pulse', 'textureStrength',
 ]
 
 /**
@@ -235,19 +233,19 @@ export const INTENSITY_PRESETS: Record<Exclude<Intensity, 'custom'>, IntensityVa
    */
   off: {
     glow: 0, bloom: 0, panelLight: 0, linework: 20,
-    gridStrength: 0, scanStrength: 0, pulse: 0,
+    gridStrength: 0, pulse: 0,
     textureStrength: 0, grainStrength: 0, aberrationStrength: 0, flickerStrength: 0,
   },
   /* Present but quiet. Everything on, nothing loud. */
   subtle: {
     glow: 45, bloom: 40, panelLight: 50, linework: 60,
-    gridStrength: 55, scanStrength: 50, pulse: 35,
+    gridStrength: 55, pulse: 35,
     textureStrength: 12, grainStrength: 60, aberrationStrength: 0, flickerStrength: 0,
   },
   /* The site as designed. Every value at 100 means "as authored" - see DISPLAY_DEFAULTS. */
   standard: {
     glow: 100, bloom: 100, panelLight: 100, linework: 100,
-    gridStrength: 100, scanStrength: 100, pulse: 100,
+    gridStrength: 100, pulse: 100,
     textureStrength: 20, grainStrength: 100, aberrationStrength: 0, flickerStrength: 0,
   },
   /*
@@ -257,7 +255,7 @@ export const INTENSITY_PRESETS: Record<Exclude<Intensity, 'custom'>, IntensityVa
    */
   overdrive: {
     glow: 180, bloom: 195, panelLight: 165, linework: 155,
-    gridStrength: 150, scanStrength: 140, pulse: 185,
+    gridStrength: 150, pulse: 185,
     textureStrength: 45, grainStrength: 150, aberrationStrength: 55, flickerStrength: 35,
   },
 }
@@ -301,7 +299,7 @@ const CHOICES = {
 /** Numeric fields and the range each is clamped to. */
 const RANGES = {
   glow: [0, 200], bloom: [0, 200], panelLight: [0, 200], linework: [0, 200],
-  gridStrength: [0, 200], scanStrength: [0, 200], pulse: [0, 200], depth: [0, 200],
+  gridStrength: [0, 200], pulse: [0, 200], depth: [0, 200],
   grainStrength: [0, 200], aberrationStrength: [0, 100], flickerStrength: [0, 100],
   textureStrength: [0, 100], textureScale: [50, 200],
   bgOpacity: [0, 100], bgBlur: [0, 40], bgDarken: [0, 90],
@@ -423,11 +421,12 @@ export function migrateLegacyHud(raw: string | null | undefined): Partial<Displa
   if (typeof old.corners === 'string' && CHOICES.corners.includes(old.corners as Corners)) next.corners = old.corners as Corners
   if (typeof old.motion === 'string' && CHOICES.motion.includes(old.motion as Motion)) next.motion = old.motion as Motion
   /*
-   * The old switches become strengths: off is zero, on is the designed amount. A reader who had
-   * turned scanlines off keeps them off; one who had them on gets them at the strength the preset
-   * would have given them, which is what they were already looking at.
+   * The old switches become strengths: off is zero, on is the designed amount.
+   *
+   * `old.scan` is deliberately not carried across. The scanline film it controlled was removed —
+   * it was the reason every panel on the site looked brushed — so there is no longer a setting for
+   * it to restore, and silently writing a dead field would only make stored settings lie.
    */
-  if (typeof old.scan === 'boolean') next.scanStrength = old.scan ? 100 : 0
   if (typeof old.grid === 'boolean') next.gridStrength = old.grid ? 100 : 0
   if (typeof old.noise === 'boolean') next.grainStrength = old.noise ? 100 : 0
   if (typeof old.aberration === 'boolean') next.aberrationStrength = old.aberration ? 50 : 0
@@ -476,7 +475,6 @@ export const DOM_SPEC = {
    * cannot disagree, because there is only one of them.
    */
   onWhenPositive: {
-    dlScan: 'scanStrength',
     dlGrid: 'gridStrength',
     dlGrain: 'grainStrength',
     dlAberration: 'aberrationStrength',
@@ -489,7 +487,6 @@ export const DOM_SPEC = {
     '--dl-panel-light': ['panelLight', 100],
     '--dl-linework': ['linework', 100],
     '--dl-grid': ['gridStrength', 100],
-    '--dl-scan': ['scanStrength', 100],
     '--dl-pulse': ['pulse', 100],
     '--dl-depth': ['depth', 100],
     '--dl-texture-strength': ['textureStrength', 100],
@@ -543,8 +540,8 @@ export interface DisplayDom {
  * Turn settings into the attributes and variables a stylesheet reads.
  *
  * Pure, and scope-agnostic: the same output is written to <html> for the real page and to a single
- * container for the live preview. Nothing here knows what a scanline looks like — it sets
- * `data-dl-scan="off"` and the stylesheet decides, which is what keeps this a preferences model
+ * container for the live preview. Nothing here knows what a grain field looks like — it sets
+ * `data-dl-grain="off"` and the stylesheet decides, which is what keeps this a preferences model
  * rather than a second copy of the design.
  */
 export function displayDom(s: DisplaySettings): DisplayDom {

@@ -35,6 +35,17 @@ const reducedMotion = process.argv.includes('--reduced-motion')
  * this app's layout. This gives the same CDP session a way to ask the page a direct question.
  */
 const evalArg = process.argv.find((a) => a.startsWith('--eval='))?.slice('--eval='.length) ?? null
+/*
+ * Capture one region at a magnification, for inspecting a surface rather than a layout.
+ *
+ * A repeating 1px-every-3px texture is invisible in a downscaled full-page shot — the very
+ * downscaling that makes the page fit averages the lines away, which is how a brushed finish
+ * survived a screenshot review. `--clip=x,y,w,h` with `--scale=N` renders those CSS pixels at N
+ * device pixels each, so a hairline that is really there is unmistakable and one that is gone
+ * cannot be imagined back.
+ */
+const clipArg = process.argv.find((a) => a.startsWith('--clip='))?.slice('--clip='.length) ?? null
+const scaleArg = Number(process.argv.find((a) => a.startsWith('--scale='))?.slice('--scale='.length) ?? '0')
 if (!url || !out) {
   console.error('usage: node scripts/shoot.mjs <url> <out.png> [width] [height] [--measure]')
   process.exit(2)
@@ -113,7 +124,7 @@ await call('Runtime.enable')
   `max-width` media query resolve the way it does on a phone rather than on a narrow desktop window.
 */
 await call('Emulation.setDeviceMetricsOverride', {
-  width, height, deviceScaleFactor: mobile ? 2 : 1, mobile,
+  width, height, deviceScaleFactor: scaleArg || (mobile ? 2 : 1), mobile,
 })
 
 if (reducedMotion) {
@@ -206,7 +217,12 @@ if (evalArg) {
 // A screenshot is skipped when the caller only wanted an answer.
 if (out === '-') { ws.close(); chrome.kill(); process.exitCode = 0 }
 else {
-const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
+const clipRect = clipArg
+  ? (([x, y, w, h]) => ({ x, y, width: w, height: h, scale: scaleArg || 1 }))(clipArg.split(',').map(Number))
+  : undefined
+const shot = await call('Page.captureScreenshot', {
+  format: 'png', captureBeyondViewport: true, ...(clipRect ? { clip: clipRect } : {}),
+})
 mkdirSync(dirname(out), { recursive: true })
 writeFileSync(out, Buffer.from(shot.data, 'base64'))
 console.log(`wrote ${out}`)

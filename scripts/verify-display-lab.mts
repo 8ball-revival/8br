@@ -65,8 +65,17 @@ section('The default appearance is the official one')
    * The effects that were already on stay on, and the ones that were off stay off - now expressed as
    * strengths, where 0 IS off. The pair of controls this replaces could disagree with each other.
    */
-  check('scanlines, grid and grain start at full strength, as they rendered before',
-    DISPLAY_DEFAULTS.scanStrength === 100 && DISPLAY_DEFAULTS.gridStrength === 100 && DISPLAY_DEFAULTS.grainStrength === 100)
+  check('grid and grain start at full strength, as they rendered before',
+    DISPLAY_DEFAULTS.gridStrength === 100 && DISPLAY_DEFAULTS.grainStrength === 100)
+  /*
+    Scanlines are gone, not merely defaulted to zero.
+
+    The film this controlled painted a 1px line every 3px over the entire viewport, above every
+    panel, and it was the reason the site read as brushed metal. A slider that can put it back is a
+    slider that can undo the fix, so the setting was removed with the effect.
+  */
+  check('...and there is no scanline strength left to turn back up',
+    !('scanStrength' in DISPLAY_DEFAULTS))
   check('aberration and CRT flicker start at zero, as they were off',
     DISPLAY_DEFAULTS.aberrationStrength === 0 && DISPLAY_DEFAULTS.flickerStrength === 0)
   check('vignette and border pulse start off, as they were',
@@ -505,7 +514,9 @@ section('Persistence, migration and corruption')
   check('...the red accent kept as a custom colour rather than dropped',
     legacy?.accentMode === 'custom' && legacy?.accentHex === '#ff2a2a')
   check('...and the old switches became strengths',
-    legacy?.scanStrength === 0 && legacy?.grainStrength === 0 && (legacy?.aberrationStrength ?? 0) > 0)
+    legacy?.grainStrength === 0 && (legacy?.aberrationStrength ?? 0) > 0)
+  check('...while the retired scanline switch is dropped rather than migrated to a dead field',
+    !('scanStrength' in (legacy ?? {})))
   check('...including CRT flicker, which Display Lab dropped and this restores',
     (legacy?.flickerStrength ?? 0) > 0)
   check('migration runs only when nothing new is stored', STORE.includes('if (localStorage.getItem(DISPLAY_KEY)) return'))

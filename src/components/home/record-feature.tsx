@@ -83,20 +83,23 @@ export function RecordFeature({
       )}
     >
       {/*
-        The grid and the scanlines.
+        The grid, without the scanlines that used to sit on top of it.
 
-        Two stacked repeating gradients at very low opacity — a technical surface rather than a
-        texture. `pointer-events-none` so nothing here can intercept the play button beneath it.
+        The 1px-every-3px horizontal layer that was here is gone: at that period it is not a
+        technical surface, it is ribbing, and it made this tile's interior read as brushed metal
+        like the rest of the site. What remains is the 44px grid — the same large-scale motif as
+        the page background, which is a framing device rather than a texture.
+
+        `pointer-events-none` so nothing here can intercept the play button beneath it.
       */}
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(0deg, color-mix(in oklab, var(--steel-dim) 26%, transparent) 0 1px, transparent 1px 3px),'
-            + 'linear-gradient(color-mix(in oklab, var(--steel-dim) 14%, transparent) 1px, transparent 1px),'
+            'linear-gradient(color-mix(in oklab, var(--steel-dim) 14%, transparent) 1px, transparent 1px),'
             + 'linear-gradient(90deg, color-mix(in oklab, var(--steel-dim) 14%, transparent) 1px, transparent 1px)',
-          backgroundSize: '100% 3px, 44px 44px, 44px 44px',
+          backgroundSize: '44px 44px, 44px 44px',
         }}
       />
 

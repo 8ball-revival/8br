@@ -379,10 +379,20 @@ check('...and no directional streaking anywhere in the frame',
   !/repeating-linear-gradient/.test(panelRule + headRule + legendRule))
 check('hovering brightens the edge, never the surface', !/background-image|background-color/.test(hoverRule))
 
-/* 94-98% opaque: solid enough that the page grid does not read through the tables. */
-const opacity = panelRule.match(/color-mix\(in srgb, #0a0d10 (\d+)%/)
-check('the panels are 94-98% opaque', !!opacity && Number(opacity[1]) >= 94 && Number(opacity[1]) <= 98,
-  opacity ? `${opacity[1]}%` : 'no color-mix found')
+/*
+  Opaque enough that the page grid does not read through the tables — and opaque by TOKEN.
+
+  This used to assert a literal `#0a0d10 96%` in this one rule, which is precisely how the finish
+  drifted: the shared value moved to 98% and this panel kept its own 96% because nothing connected
+  them. So the assertion is now that the rule defers to `--glass-alpha`, and the numeric range is
+  checked once, at the token itself.
+*/
+check('the panels take their opacity from the shared glass token',
+  /background-color: color-mix\(in srgb, var\(--glass\) calc\(var\(--glass-alpha\)/.test(panelRule),
+  panelRule.match(/background-color:[^;]*/)?.[0] ?? 'none')
+const glassAlpha = Number(
+  read('src/app/(frontend)/glass.css').match(/--glass-alpha: ([\d.]+)/)?.[1] ?? '0')
+check('...and that token is 97-99% opaque', glassAlpha >= 0.97 && glassAlpha <= 0.99, `${glassAlpha}`)
 check('the group header is fully opaque', /background-color: #07090b/.test(headRule))
 check('...as is the legend strip', /background-color: #07090b/.test(legendRule))
 check('the neon identity survives the change',

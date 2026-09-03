@@ -70,7 +70,6 @@
   --dl-panel-light: 1;
   --dl-linework: 1;
   --dl-grid: 1;
-  --dl-scan: 1;
   --dl-pulse: 1;
   --dl-depth: 1;
   --dl-grain: 1;
@@ -90,7 +89,6 @@
     0 0 calc(12px * var(--dl-glow-curve)) color-mix(in oklab, var(--cyan) calc(16% * var(--dl-glow-curve)), transparent);
 
   /* The overlays read their own strength, so Grid and Scanlines are dials and not only switches. */
-  --scan-line: color-mix(in oklab, var(--cyan) calc(5% * var(--dl-scan)), transparent);
   --grid-line: color-mix(in oklab, var(--cyan) calc(6% * var(--dl-grid)), transparent);
 }
 
@@ -633,11 +631,6 @@
 [data-dl-bg='custom'][data-dl-bg-pos='bottom-right'] { --dl-bg-pos: right bottom; }
 
 /* ════════════════════════════════════════════════════════════════ overlays ════════════════════ */
-
-[data-dl-scan='off'] body::before,
-[data-dl-scan='off'] .scanlines::after {
-  display: none;
-}
 
 [data-dl-grid='off'] body {
   background-image:

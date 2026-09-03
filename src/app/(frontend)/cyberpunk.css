@@ -83,19 +83,6 @@
 
   /* ───────────────────────────────────────────────────────────── overlays ─────────────────────── */
 
-  /*
-   * Scanlines. Two pixels on, two off, drifting slowly downward. Kept under 5% opacity because the
-   * tables underneath are dense numeric data and a heavier overlay makes digits shimmer.
-   */
-  .scanlines::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(180deg, var(--scan-line) 0 1px, transparent 1px 3px);
-    animation: scan-drift 8s linear infinite;
-  }
-
   /* The perspective grid behind the hero. Fades out upward so it never fights the text. */
   .cyber-grid {
     background-image:
@@ -185,11 +172,6 @@
 }
 
 /* ───────────────────────────────────────────────────────────────── keyframes ──────────────────── */
-
-@keyframes scan-drift {
-  from { background-position-y: 0; }
-  to { background-position-y: 3px; }
-}
 
 @keyframes grid-drift {
   from { background-position: 0 0, 0 0; }

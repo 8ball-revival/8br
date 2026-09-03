@@ -172,7 +172,40 @@ const AUDIT = `(() => {
     const [hi, lo] = fg > bg ? [fg, bg] : [bg, fg];
     return { ratio: +((hi + 0.05) / (lo + 0.05)).toFixed(2), color: getComputedStyle(el).color };
   }).filter((r) => r != null && Number.isFinite(r.ratio));
+  /*
+    Repeating line textures, measured in the RENDERED page rather than searched for in CSS.
+
+    This is the check the first pass needed and did not have. The site's brushed look came from a
+    repeating linear gradient painting a 1px line every 3px, from a fixed body::before at
+    z-index 9999 — a layer no CSS search for the word "brushed" would ever have found, and one that
+    sat above every panel, so no surface colour could hide it.
+
+    So: walk every element and pseudo-element, find each repeating gradient actually being painted,
+    and read its period out of the computed value. Anything repeating inside ~14px is texture. The
+    one legitimate exception is the group board's 45deg hatch, which is semantic — it marks a cell
+    where no fixture can exist — and the user asked for it to stay.
+  */
+  const linePattern = [];
+  for (const el of document.querySelectorAll('*')) {
+    for (const p of [null, '::before', '::after']) {
+      const cs = getComputedStyle(el, p);
+      const bgi = cs.backgroundImage;
+      if (!bgi || bgi === 'none' || !bgi.includes('repeating-linear-gradient')) continue;
+      const seg = bgi.slice(bgi.indexOf('repeating-linear-gradient'));
+      const stops = [...seg.matchAll(/([0-9.]+)px/g)].map((m) => Number(m[1])).slice(0, 6);
+      const period = stops.length ? Math.max(...stops) : 999;
+      const cls = String(el.className || '');
+      /* The semantic self-match hatch, explicitly kept. */
+      if (cls.includes('gb-diag')) continue;
+      if (period <= 14) {
+        linePattern.push({ cls: cls.slice(0, 44), pseudo: p || 'element', periodPx: period,
+                           z: cs.zIndex, pos: cs.position });
+      }
+    }
+  }
   return JSON.stringify({
+    lineCount: linePattern.length,
+    lines: linePattern.slice(0, 5),
     metalCount: metal.length,
     metal: metal.slice(0, 5),
     allowedCount: (metal.allowed || []).length,
@@ -210,6 +243,8 @@ try {
     for (const route of ROUTES) {
       const r = await evaluate(route, width, 1400, AUDIT)
       const label = `  ${route}`
+      check(`${label}: nothing paints a repeating line texture`, r.lineCount === 0,
+        r.lineCount ? JSON.stringify(r.lines) : 'none')
       check(`${label}: no brushed, streaked or machined surface`, r.metalCount === 0,
         r.metal.map((m) => `${m.cls || m.tag}${m.pseudo === 'element' ? '' : m.pseudo}`).join(', '))
       /*
@@ -225,7 +260,9 @@ try {
         content sitting on it, which is the readability half of this change.
       */
       if (r.panels > 0) {
-        check(`${label}: its ${r.panels} panels stay substantially opaque`, r.minAlpha >= 0.9, `${r.minAlpha}`)
+        /* 0.97 is the floor at which the page grid stops being legible through a panel interior. */
+        check(`${label}: its ${r.panels} panels stay opaque enough to hide the grid`,
+          r.minAlpha >= 0.97, `${r.minAlpha}`)
       }
       /*
         WCAG AA for body text is 4.5:1, sampled from the real rendered colours.

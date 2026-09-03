@@ -12,6 +12,16 @@
    the bottom. Nothing streaks, nothing runs across the surface, and no light appears to come from a
    particular corner.
 
+   ── The line texture, and where it actually came from ───────────────────────────────────────────
+   The first pass at this finish missed the real cause. A fixed pseudo-element on <body> at
+   `z-index: 9999` painted a 1px cyan line every 3px across the whole viewport, ON TOP of every
+   card, table, score cell and button. Because it was drawn over the panels rather than by them, no
+   panel colour or opacity could ever hide it, and every framed surface on the site inherited the
+   same fine horizontal ribbing — brushed steel. It has been deleted outright.
+
+   Depth here is therefore a property of the SURFACE — ground, border, inset shadow — and never a
+   layer laid across it. Anything that repeats every few pixels inside a panel is the bug.
+
    ── Why tokens rather than a class ──────────────────────────────────────────────────────────────
    Both. `.glass-surface` is for new work, but most of the surfaces on this site already have their
    own class with their own borders and spacing, and rewriting all of them to share one class would
@@ -34,8 +44,14 @@
   --glass-raised: #0d1116;
   --glass-inset-bg: #06080a;
 
-  /* How solid a glass surface is. 0.96 keeps the grid a hint at the edges and nothing more. */
-  --glass-alpha: 0.96;
+  /*
+    How solid a glass surface is.
+
+    0.98, not lower. The page background grid must not be legible THROUGH a panel — a grid read
+    faintly through a table is itself a repeating texture on the interior, which is the whole
+    problem this finish exists to solve. The grid belongs around components, not inside them.
+  */
+  --glass-alpha: 0.98;
 
   /* ── Edges ───────────────────────────────────────────────────────────────────────────────────
      The outer border is darker than the interior, so a surface is contained rather than floating. */

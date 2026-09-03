@@ -128,10 +128,10 @@ export function AchievementsCarousel({ achievements, surface = 'acid' }: {
           className="pointer-events-none absolute inset-0 opacity-[0.16]"
           style={{
             backgroundImage:
-              'repeating-linear-gradient(0deg, rgba(0,229,255,0.10) 0 1px, transparent 1px 3px),'
-              + 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),'
+              /* The 1px-every-3px scanline that led this list is gone; it ribbed the card interior. */
+              'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),'
               + 'linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-            backgroundSize: '100% 3px, 44px 44px, 44px 44px',
+            backgroundSize: '44px 44px, 44px 44px',
           }}
         />
       )}

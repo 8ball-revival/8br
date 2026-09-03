@@ -343,7 +343,7 @@ function PresetsTab({ settings, save, edit }: {
   return (
     <div className="space-y-3">
       <p className="text-[0.72rem] leading-snug text-muted-foreground">
-        Each preset sets the whole atmosphere at once — glow, texture, scanlines, grid, grain and
+        Each preset sets the whole atmosphere at once — glow, texture, grid, grain and
         aberration together — so they are four genuinely different rooms rather than four brightness
         levels.
       </p>
@@ -593,7 +593,6 @@ function EffectsTab({ settings, edit }: {
           always does — the old pairing of a checkbox and a separate amount could disagree, and when
           it did the amount silently lost.
         */}
-        <Slider label="Scanlines" value={settings.scanStrength} onChange={(v) => edit({ scanStrength: v })} />
         <Slider label="Grid" value={settings.gridStrength} onChange={(v) => edit({ gridStrength: v })} />
         <Slider label="Film grain" value={settings.grainStrength} onChange={(v) => edit({ grainStrength: v })} />
         <Slider
