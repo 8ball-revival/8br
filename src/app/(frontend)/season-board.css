@@ -804,9 +804,16 @@ td.gb-diag {
   content: '';
   position: absolute;
   inset: 0;
+  /*
+    Softened from 32% to 16%.
+
+    A bright band crossing a surface is how a polished one catches a moving light, and at a third of
+    white this read as a metal sheen rather than as progress. Halved, it still marks the pass over
+    the completed portion without the material changing under it.
+  */
   background: linear-gradient(90deg,
     transparent 0%,
-    rgb(255 255 255 / 32%) 50%,
+    rgb(255 255 255 / 16%) 50%,
     transparent 100%);
   transform: translateX(-100%);
 }

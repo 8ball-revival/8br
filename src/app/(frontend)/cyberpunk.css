@@ -331,9 +331,16 @@
     box-shadow: 0 0 0 1px var(--neon-line), 0 0 40px color-mix(in oklab, var(--cyan) 12%, transparent), 0 24px 60px oklch(0 0 0 / 0.6);
   }
 
-  /* A skeleton reads as a signal still resolving rather than a grey box. */
+  /*
+    A skeleton reads as a signal still resolving rather than a grey box.
+
+    The sweep was a bright band travelling across a mid-grey ground, which is how a polished surface
+    catches a light — the loading state was the one place the metal look survived a page having no
+    content on it yet. Darker tones and a narrower band keep the "still arriving" reading without
+    the sheen.
+  */
   [data-slot='skeleton'] {
-    background: linear-gradient(90deg, var(--muted) 25%, var(--line) 50%, var(--muted) 75%);
+    background: linear-gradient(90deg, var(--glass) 30%, var(--glass-raised) 50%, var(--glass) 70%);
     background-size: 200% 100%;
     animation: skeleton-scan 1.4s ease-in-out infinite;
     border-radius: 0;

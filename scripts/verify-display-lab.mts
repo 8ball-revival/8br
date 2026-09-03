@@ -359,12 +359,25 @@ section('Frames, corners, textures and backgrounds all exist')
   }
   check('...chamfer is the site default and needs no override', !CSS.includes("[data-dl-corners='chamfer']"))
 
-  for (const texture of ['carbon', 'brushed', 'frosted', 'hex', 'circuit', 'grid', 'holo']) {
+  for (const texture of ['carbon', 'frosted', 'hex', 'circuit', 'grid', 'holo']) {
     const body = new RegExp(`\\[data-dl-texture='${texture}'\\]\\s*\\{([\\s\\S]*?)\\n\\}`).exec(CSS)?.[1] ?? ''
     check(`the ${texture} texture draws something`, body.includes('gradient('))
     check(`...and answers the scale control`, body.includes('var(--dl-texture-scale)'))
   }
   check('flat is the absence of a texture, not a pattern', !CSS.includes("[data-dl-texture='flat']"))
+
+  /*
+    Brushed is gone, on purpose.
+
+    It used to be one of the seven textures here, and the assertions above once covered it. It was
+    removed site-wide because a directional metal sheen is the one finish this site is not to have,
+    so this asserts its ABSENCE from all three places it lived — the stylesheet, the settings type
+    and the picker — rather than quietly dropping the checks that used to prove it worked.
+  */
+  check('the brushed texture no longer exists in CSS', !CSS.includes("data-dl-texture='brushed'"))
+  check('...nor as a selectable setting',
+    !readFileSync('src/lib/display/settings.ts', 'utf8').includes("'brushed'"))
+  check('...nor in the texture picker', !LAB.includes("'brushed'"))
 
   /*
    * Every layer list is as long as the image list it describes.
@@ -396,7 +409,7 @@ section('Frames, corners, textures and backgrounds all exist')
 
   for (const [kind, names, prefix] of [
     ['frame', ['minimal', 'rails', 'beveled', 'neon', 'broadcast', 'glass'], '--dl-fr-mark'],
-    ['texture', ['carbon', 'brushed', 'frosted', 'hex', 'circuit', 'grid', 'holo'], '--dl-texture'],
+    ['texture', ['carbon', 'frosted', 'hex', 'circuit', 'grid', 'holo'], '--dl-texture'],
   ] as const) {
     for (const name of names) {
       const attr = kind === 'frame' ? 'data-dl-frame' : 'data-dl-texture'

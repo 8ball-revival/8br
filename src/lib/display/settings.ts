@@ -36,7 +36,12 @@ export type Intensity = 'off' | 'subtle' | 'standard' | 'overdrive' | 'custom'
 export type FontChoice = 'default' | 'grotesk' | 'inter' | 'mono'
 export type Frame = 'minimal' | 'rails' | 'beveled' | 'neon' | 'broadcast' | 'glass'
 export type Corners = 'chamfer' | 'square' | 'round'
-export type Texture = 'flat' | 'carbon' | 'brushed' | 'frosted' | 'hex' | 'circuit' | 'grid' | 'holo'
+/*
+ * `brushed` was removed: a repeating 90-degree gradient is directional streaking, and the site's
+ * finish is smoked glass rather than metal. A stored setting still naming it simply falls through to
+ * no texture, which is the right outcome for a value that no longer exists.
+ */
+export type Texture = 'flat' | 'carbon' | 'frosted' | 'hex' | 'circuit' | 'grid' | 'holo'
 export type SurfaceTone = 'dark' | 'light' | 'auto'
 export type Background = 'none' | 'void-grid' | 'carbon-weave' | 'data-stream' | 'red-circuit' | 'holographic' | 'custom'
 export type BackgroundFit = 'cover' | 'contain' | 'tile'
@@ -284,7 +289,7 @@ const CHOICES = {
   accentMode: ['default', 'custom'],
   frame: ['minimal', 'rails', 'beveled', 'neon', 'broadcast', 'glass'],
   corners: ['chamfer', 'square', 'round'],
-  texture: ['flat', 'carbon', 'brushed', 'frosted', 'hex', 'circuit', 'grid', 'holo'],
+  texture: ['flat', 'carbon', 'frosted', 'hex', 'circuit', 'grid', 'holo'],
   surfaceTone: ['dark', 'light', 'auto'],
   background: ['none', 'void-grid', 'carbon-weave', 'data-stream', 'red-circuit', 'holographic', 'custom'],
   bgFit: ['cover', 'contain', 'tile'],

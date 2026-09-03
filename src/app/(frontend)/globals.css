@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './glass.css';
 @import './cyberpunk.css';
 @import './display.css';
 @import './player-profile.css';
@@ -823,38 +824,35 @@
     border-radius: 2px;
     /*
       2px, not 3. The border is what insets the thumb inside the channel, and at 3px on a 12px bar
-      the metal itself was down to six pixels and read as a faint line rather than a bar.
+      the thumb itself was down to six pixels and read as a faint line rather than a bar.
     */
     border: 2px solid var(--void);
     background-clip: padding-box;
+    /*
+      ── Glass, not a machined bar ─────────────────────────────────────────────────────────────
+
+      This was a five-stop gradient running ACROSS the thumb, light in the middle and dark at both
+      edges: the standard way to draw a turned metal rod, and the most literal piece of brushed
+      metal on the site. It is now a vertical near-black gradient with a highlight at the lip,
+      matching every other glass surface.
+
+      The class keeps its name because it is the name eleven other rules and one component already
+      use, and a rename is a bigger change than a refinish. Its meaning is now "the neutral
+      scrollbar" as opposed to the crimson one on the live panels.
+    */
     background-image: linear-gradient(
-      to right,
-      #141a1f 0%,
-      #2b353d 28%,
-      color-mix(in srgb, var(--steel) 70%, #0b0f12) 50%,
-      #2b353d 72%,
-      #141a1f 100%
+      180deg,
+      #171d23 0%,
+      #10151a 45%,
+      #0a0e12 100%
     );
+    box-shadow: var(--glass-highlight-soft);
   }
   .scrollbar-metal::-webkit-scrollbar-thumb:hover {
-    background-image: linear-gradient(
-      to right,
-      #232b31 0%,
-      #46545f 35%,
-      color-mix(in srgb, var(--steel) 80%, #0b0f12) 50%,
-      #46545f 65%,
-      #232b31 100%
-    );
+    background-image: linear-gradient(180deg, #222a31 0%, #182027 45%, #10161b 100%);
   }
   .scrollbar-metal::-webkit-scrollbar-thumb:active {
-    background-image: linear-gradient(
-      to right,
-      #2a343b 0%,
-      #55646f 35%,
-      var(--steel) 50%,
-      #55646f 65%,
-      #2a343b 100%
-    );
+    background-image: linear-gradient(180deg, #2a333b 0%, #1e262d 45%, #141a20 100%);
   }
   /* No stepper arrows: they are the loudest part of a default scrollbar and add nothing here. */
   .scrollbar-metal::-webkit-scrollbar-button {

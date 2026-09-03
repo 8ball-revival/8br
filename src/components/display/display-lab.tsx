@@ -73,7 +73,7 @@ const FRAMES: readonly (readonly [Frame, string])[] = [
 ]
 
 const TEXTURES: readonly (readonly [Texture, string])[] = [
-  ['flat', 'Flat'], ['carbon', 'Carbon'], ['brushed', 'Brushed'], ['frosted', 'Frosted'],
+  ['flat', 'Flat'], ['carbon', 'Carbon'], ['frosted', 'Frosted'],
   ['hex', 'Hex Mesh'], ['circuit', 'Circuit'], ['grid', 'Fine Grid'], ['holo', 'Holographic'],
 ]
 

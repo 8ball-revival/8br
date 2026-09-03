@@ -188,12 +188,24 @@
     0 calc(6px * var(--dl-depth)) calc(16px * var(--dl-depth))
     color-mix(in oklab, black calc(42% * var(--dl-depth)), transparent);
 
-  /* Interior lighting: a wash from the top-left, so a flat rectangle has a light source. */
+  /*
+    Interior lighting: a highlight along the UPPER EDGE, not a wash across the face.
+
+    This was a white radial from the top-left corner, which gives a flat rectangle a light source —
+    and on a page of wide rectangles gives every one of them the same directional sheen. That is the
+    single largest contributor to the brushed-metal impression the site had: not a texture, but a
+    consistent raking light.
+
+    A linear gradient confined to the first few pixels reads as glass catching the light at its lip
+    and leaves the rest of the surface flat. It costs the same, applies to exactly the same
+    elements, and respects `--dl-panel-light` as before, so the Display Lab's panel-light control
+    still does what it says.
+  */
   --dl-wash:
-    radial-gradient(
-      120% 100% at 0% 0%,
-      color-mix(in oklab, white calc(5% * var(--dl-panel-light) * var(--dl-tone-lift, 1)), transparent),
-      transparent 62%
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, white calc(4% * var(--dl-panel-light) * var(--dl-tone-lift, 1)), transparent) 0,
+      transparent 6px
     );
 }
 
@@ -386,13 +398,14 @@
   --dl-texture-repeat: repeat, repeat;
 }
 
-[data-dl-texture='brushed'] {
-  --dl-texture-image:
-    repeating-linear-gradient(90deg, var(--dl-tex) 0 1px, transparent 1px 2px, var(--dl-tex) 2px 3px, transparent 3px 7px);
-  --dl-texture-size: calc(7px * var(--dl-texture-scale)) 100%;
-  --dl-texture-pos: top left;
-  --dl-texture-repeat: repeat;
-}
+/*
+  Brushed is gone.
+
+  It was a repeating 90-degree gradient — literal directional streaking, the exact material this
+  site is not meant to be made of. It stays removed from the texture list in `lib/display/settings`
+  as well, so it cannot be selected; a stored setting naming it falls through to no texture at all,
+  which is the correct outcome rather than an error.
+*/
 
 [data-dl-texture='frosted'] {
   --dl-texture-image:

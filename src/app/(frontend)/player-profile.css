@@ -66,44 +66,50 @@
 */
 .pf-rail { position: absolute; }
 
+/*
+  ── The rails, refinished ───────────────────────────────────────────────────────────────────────
+
+  These were a photographed moulding: a raster file for the long rails and a twelve-stop gradient
+  reproducing its profile for the short ones — dark edge, bright highlight, dark trough, lighter
+  lip. Read at speed that is a machined metal bar, and it was the most literal piece of brushed
+  metal left on the site.
+
+  What has changed is the MATERIAL, not the furniture. Every dimension is untouched: same rail
+  width, same bed inset, same corners, same tint layer, same pockets. The frame still reads as a
+  table around a bed — it is simply made of the same dark glass as everything else, with one
+  restrained highlight along its inner lip instead of a polished face.
+
+  Dropping the image also drops two network requests per profile and the `saturate(0)` filter that
+  existed only to neutralise whatever colour the file happened to carry.
+*/
 .pf-rail-top,
 .pf-rail-bottom {
   left: 0;
   right: 0;
   height: var(--pf-rail);
-  background-image: image-set(
-    url('/assets/table/rail.webp') type('image/webp'),
-    url('/assets/table/rail.png') type('image/png')
+  background-image: linear-gradient(
+    180deg,
+    #12171b 0%,
+    #0c1014 42%,
+    #080b0e 100%
   );
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  /* Neutral, whatever the file contains — the tint below is the only source of colour. */
-  filter: saturate(0) brightness(0.9);
 }
-.pf-rail-top { top: 0; }
-.pf-rail-bottom { bottom: 0; transform: scaleY(-1); }
+/* The inner lip catches the light; the face does not. */
+.pf-rail-top { top: 0; box-shadow: inset 0 -1px 0 rgb(255 255 255 / 4%); }
+.pf-rail-bottom { bottom: 0; transform: scaleY(-1); box-shadow: inset 0 -1px 0 rgb(255 255 255 / 4%); }
 
 .pf-rail-left,
 .pf-rail-right {
   top: 0;
   bottom: 0;
   width: var(--pf-rail);
-  /* The rail artwork's own profile, read across its height: dark edge, bright highlight, dark
-     trough, lighter lip. Reproduced sideways so a corner joins without a step. */
+  /* The same three tones as the long rails, turned through ninety degrees so a corner still joins
+     without a step. No highlight band, no trough — the ribbing was the metal. */
   background-image: linear-gradient(
     90deg,
-    #0b0d0e 0%,
-    #292c2e 9%,
-    #666c70 18%,
-    #383c40 27%,
-    #222626 36%,
-    #181c1b 45%,
-    #121516 55%,
-    #121314 64%,
-    #1f2120 73%,
-    #363637 82%,
-    #393a3a 91%,
-    #0b0d0e 100%
+    #12171b 0%,
+    #0c1014 42%,
+    #080b0e 100%
   );
 }
 .pf-rail-left { left: 0; }
@@ -210,9 +216,10 @@
 .pf-table:has(.pf-cushion-live) .pf-pocket-top { animation-delay: -8.75s; }
 .pf-table:has(.pf-cushion-live) .pf-pocket-bottom { animation-delay: -3.75s; }
 
+/* Kept in step with the resting filter above, or the sweep would flash the pocket back to chrome. */
 @keyframes pf-pocket-glow {
-  0%, 88%, 100% { filter: saturate(0) brightness(0.82) contrast(1.02); }
-  94% { filter: saturate(0) brightness(1.25) contrast(1.02); }
+  0%, 88%, 100% { filter: saturate(0) brightness(0.34) contrast(1.15); }
+  94% { filter: saturate(0) brightness(0.62) contrast(1.15); }
 }
 
 /* ── Pockets ─────────────────────────────────────────────────────────────────────────────────── */
@@ -227,10 +234,18 @@
     and the brightness keeps the pocket from out-shouting the data it frames.
   */
   /*
-    The artwork ships neutral grey; `saturate(0)` guarantees it stays that way whatever a future file
-    contains, so the rail tint above is the only thing giving the frame its colour.
+    Darkened to sit with the glass rails rather than against them.
+
+    The artwork is a photographed metal moulding, and beside a flat dark rail it was the last thing
+    on the profile still reading as polished chrome. It cannot be redrawn from CSS — it is a shaped
+    pocket mouth, not a rectangle — so it is taken down to roughly a third of its brightness and
+    given a little more contrast, which keeps the moulded FORM (the thing worth having) and loses
+    the sheen.
+
+    `saturate(0)` stays for the original reason: whatever colour a future file carries, the rail
+    tint above remains the only source of hue on the frame.
   */
-  filter: saturate(0) brightness(0.82) contrast(1.02);
+  filter: saturate(0) brightness(0.34) contrast(1.15);
   opacity: 0.85;
 }
 
@@ -316,14 +331,19 @@
   position: relative;
   border: 1px solid var(--pf-panel-edge, var(--pf-border));
   border-radius: 3px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--pf-panel) 100%, white 3%) 0%,
-      var(--pf-panel) 45%);
+  /*
+    Flat, not top-lit.
+
+    This was a gradient from a lightened panel colour down to the base — the same raking light that
+    made the rest of the site read as brushed metal. The highlight the design wants is the one along
+    the upper EDGE, which the box-shadow below provides from the shared glass token; the face itself
+    stays even.
+  */
+  background-color: var(--pf-panel);
   padding: clamp(0.85rem, 1.05vw, 1.25rem);
   min-width: 0;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 4%),
+    var(--glass-highlight),
     inset 0 -1px 0 rgb(0 0 0 / 45%);
   transition:
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -376,7 +396,7 @@
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--pf-tone, var(--pf-accent)) 45%, var(--pf-border));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 6%),
+    var(--glass-highlight),
     inset 0 -1px 0 rgb(0 0 0 / 45%),
     0 0 0 1px color-mix(in srgb, var(--pf-tone, var(--pf-accent)) 14%, transparent);
 }
@@ -399,7 +419,7 @@
 .pf-panel-current {
   border-color: color-mix(in srgb, var(--pf-accent) 55%, var(--pf-border));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 5%),
+    var(--glass-highlight),
     inset 0 -1px 0 rgb(0 0 0 / 45%),
     0 0 22px -12px color-mix(in srgb, var(--pf-accent) 70%, transparent);
 }
@@ -448,7 +468,7 @@
 .pf-panel-cueverse:focus-within {
   border-color: color-mix(in srgb, #3b82f6 65%, var(--pf-border));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 6%),
+    var(--glass-highlight),
     0 0 0 1px color-mix(in srgb, #3b82f6 22%, transparent);
 }
 

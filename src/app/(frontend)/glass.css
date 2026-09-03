@@ -1,0 +1,124 @@
+/* ════════════════════════════════════════════════════════════════════════════════════════════════
+   SMOKED GLASS — the site's one surface finish.
+
+   ── What this replaces ──────────────────────────────────────────────────────────────────────────
+   Panels used to be lit like metal: a white radial wash from the top-left corner (`--dl-wash`) on
+   every `.dl-surface` and `.cyber-panel`, and a one-pixel white highlight along the top of several
+   profile and board panels. Individually those are ordinary depth cues. Together, across a page of
+   wide rectangles, they read as brushed steel — a directional sheen with a bright edge.
+
+   The finish here is the opposite of directional. A near-black ground, a dark outer border, one
+   restrained highlight along the UPPER EDGE only, and a soft inset that darkens the interior toward
+   the bottom. Nothing streaks, nothing runs across the surface, and no light appears to come from a
+   particular corner.
+
+   ── Why tokens rather than a class ──────────────────────────────────────────────────────────────
+   Both. `.glass-surface` is for new work, but most of the surfaces on this site already have their
+   own class with their own borders and spacing, and rewriting all of them to share one class would
+   be a redesign rather than a refinish. So the VALUES live here as custom properties and the
+   existing rules consume them, which is what makes the finish consistent without moving anything.
+
+   ── Opacity ─────────────────────────────────────────────────────────────────────────────────────
+   Substantially opaque, deliberately. The site's background grid should be sensed at the edges of a
+   layout, not read through a table. `--glass-alpha` is the one number that decides that, and it is
+   high enough that text contrast is a property of the token rather than of whatever sits behind a
+   given panel.
+   ════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Grounds ─────────────────────────────────────────────────────────────────────────────────
+     Three depths, all near-black. `deep` is the page-most surface, `raised` sits on top of it, and
+     `inset` is for a recess — a score cell, a well, a disabled control. */
+  --glass-deep: #07090b;
+  --glass: #0a0d10;
+  --glass-raised: #0d1116;
+  --glass-inset-bg: #06080a;
+
+  /* How solid a glass surface is. 0.96 keeps the grid a hint at the edges and nothing more. */
+  --glass-alpha: 0.96;
+
+  /* ── Edges ───────────────────────────────────────────────────────────────────────────────────
+     The outer border is darker than the interior, so a surface is contained rather than floating. */
+  --glass-border: color-mix(in srgb, #04060a 88%, transparent);
+  --glass-border-strong: #04060a;
+
+  /*
+    The one highlight, along the upper edge.
+
+    Two percent of white, one pixel, and nothing below it. That is the whole difference between
+    "this is a pane of dark glass" and "this is a sheet of metal": metal carries the light down the
+    face, glass catches it only at the lip.
+  */
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 3.5%);
+  --glass-highlight-soft: inset 0 1px 0 rgb(255 255 255 / 2%);
+
+  /* Depth: a soft darkening toward the foot of the surface. Never a directional sheen. */
+  --glass-depth: inset 0 -10px 16px -14px rgb(0 0 0 / 85%);
+  --glass-depth-deep: inset 0 0 70px -34px rgb(0 0 0 / 85%);
+
+  /* The complete finish, for a rule that just wants "make this glass". */
+  --glass-shadow: var(--glass-highlight), var(--glass-depth);
+
+  /*
+    Blur is opt-in and small.
+
+    A backdrop filter is expensive and, on a surface this opaque, nearly invisible — so it is here
+    for the few places where a panel genuinely floats over content, and unused everywhere else.
+  */
+  --glass-blur: 6px;
+}
+
+/* ── The utility ─────────────────────────────────────────────────────────────────────────────── */
+
+.glass-surface {
+  background-color: color-mix(in srgb, var(--glass) calc(var(--glass-alpha) * 100%), transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-surface-raised {
+  background-color: color-mix(in srgb, var(--glass-raised) calc(var(--glass-alpha) * 100%), transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* A recess: a score cell, a well, an inset control. Darker than its surroundings, not lighter. */
+.glass-inset {
+  background-color: var(--glass-inset-bg);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--glass-highlight-soft), inset 0 -7px 9px -8px rgb(0 0 0 / 85%);
+}
+
+/*
+  Blur, where a surface genuinely floats.
+
+  ── The fallback is the point ──────────────────────────────────────────────────────────────────
+  `backdrop-filter` is unsupported in a few engines and disabled outright in some privacy modes, and
+  a panel designed around it becomes unreadable when it is missing. So the ORDER matters: the opaque
+  background above is the real design, and blur is added only where it is supported — which means
+  the fallback is not a degraded version, it is the same panel without one refinement.
+*/
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass-blur {
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    /* Slightly less opaque only where the blur can actually do something with what is behind. */
+    background-color: color-mix(in srgb, var(--glass) 88%, transparent);
+  }
+}
+
+/*
+  Reduced transparency, honoured.
+
+  Somebody who has asked their system for less transparency has asked for exactly the thing this
+  finish trades in, so they get the solid ground and no blur at all.
+*/
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface,
+  .glass-surface-raised,
+  .glass-blur {
+    background-color: var(--glass);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
