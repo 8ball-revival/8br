@@ -861,6 +861,59 @@
     height: 0;
   }
 
+  /*
+    Dark track, crimson thumb — for the Season Progress standings.
+
+    A sibling of `.scrollbar-metal` rather than a variant of it, because the two say different
+    things. Metal is furniture: it belongs on the players directory, where the scrollbar is a way
+    to move through a list. Crimson is the signal colour, and here the scroll IS the panel's
+    content — thirty-two competitors in a tile that shows fifteen — so the bar is part of a live
+    results surface and reads as one.
+
+    The thumb is a vertical gradient, unlike the metal bar's horizontal one: this scrollbar is only
+    ever vertical, and a cross-gradient across a 8px-wide thumb renders as a flat smear.
+  */
+  .scrollbar-crimson {
+    scrollbar-width: thin;
+    scrollbar-color: var(--hot-red-dim) var(--void);
+  }
+  .scrollbar-crimson::-webkit-scrollbar {
+    width: 10px;
+  }
+  .scrollbar-crimson::-webkit-scrollbar-track {
+    background: var(--void);
+    border-left: 1px solid var(--line);
+  }
+  .scrollbar-crimson::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    /* 2px of track showing either side, so the thumb reads as a bar inside a channel. */
+    border: 2px solid var(--void);
+    background-clip: padding-box;
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--hot-red) 55%, #16090b) 0%,
+      var(--hot-red-dim) 50%,
+      color-mix(in srgb, var(--hot-red) 55%, #16090b) 100%
+    );
+  }
+  .scrollbar-crimson::-webkit-scrollbar-thumb:hover {
+    background-image: linear-gradient(
+      to bottom,
+      var(--hot-red-dim) 0%,
+      var(--hot-red) 50%,
+      var(--hot-red-dim) 100%
+    );
+  }
+  .scrollbar-crimson::-webkit-scrollbar-thumb:active {
+    background-image: linear-gradient(to bottom, var(--hot-red), var(--hot-red));
+  }
+  /* No stepper arrows, for the same reason as the metal bar. */
+  .scrollbar-crimson::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   /* Faint grid texture for hero/section backgrounds */
   .bg-grid {
     background-image:

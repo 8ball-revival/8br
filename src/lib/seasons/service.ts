@@ -3,6 +3,7 @@ import type { Prisma, SeasonLifecycleState, CompetitionPlatform } from '@prisma/
 import { prisma } from '@/lib/prisma'
 import { SEASON_ORDER, currentCompetitionYear, parseCompetitionYear } from '@/lib/competition/competition-year'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
+import { invalidateSeasonProgress } from '@/lib/home/season-progress'
 import {
   parseSeasonNumber, suggestSeasonNumber, isSeasonNumberTaken, conflictFor, isSeasonNumberCollision,
 } from './numbering'
@@ -381,6 +382,15 @@ export async function addSeasonEntrant(actor: Actor, seasonId: number, playerId:
     await recordAudit(actor, { action: 'season.entrant.add', entity: 'Season', entityId: seasonId, newValue: { playerId, name: player.primaryName } }, tx)
     await refreshEntrantCount(tx, seasonId)
   })
+  /*
+    The Season Progress panel's population changed, so its cached rows are stale.
+
+    After the transaction, never inside it: `revalidateTag` is a cache hint, and firing one before
+    the write commits leaves a window where a request can re-cache exactly the rows the hint was
+    meant to drop. `refreshEntrantCount` would be the tidier single place for this, but it runs
+    inside the transaction, which is the one place it must not.
+  */
+  invalidateSeasonProgress()
   return { ok: true }
 }
 
@@ -394,6 +404,15 @@ export async function removeSeasonEntrant(actor: Actor, seasonId: number, entran
     await recordAudit(actor, { action: 'season.entrant.remove', entity: 'Season', entityId: seasonId, oldValue: { entrantId, name: e.displayName || e.username } }, tx)
     await refreshEntrantCount(tx, seasonId)
   })
+  /*
+    The Season Progress panel's population changed, so its cached rows are stale.
+
+    After the transaction, never inside it: `revalidateTag` is a cache hint, and firing one before
+    the write commits leaves a window where a request can re-cache exactly the rows the hint was
+    meant to drop. `refreshEntrantCount` would be the tidier single place for this, but it runs
+    inside the transaction, which is the one place it must not.
+  */
+  invalidateSeasonProgress()
   return { ok: true }
 }
 
@@ -437,6 +456,8 @@ export async function registerSelf(
     await recordAudit({ userId, username: identity.name }, { action: 'season.entrant.selfRegister', entity: 'Season', entityId: s.id, newValue: { name: identity.name } }, tx)
     await refreshEntrantCount(tx, s.id)
   })
+  // A self-registration is a population change too — see the note on the admin path above.
+  invalidateSeasonProgress()
   return { ok: true }
 }
 

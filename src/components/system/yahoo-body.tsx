@@ -12,15 +12,14 @@ import 'server-only'
 
 
 import { Wide } from '@/components/primitives'
-import { getExplorer, getFacets } from '@/lib/stats/ladder-explorer'
-import { aggregateFilters, decodeRankingsState } from '@/lib/stats/rankings-columns'
+import { getFacets } from '@/lib/stats/ladder-explorer'
+import { decodeYahooRankingsState, getYahooLadder } from '@/lib/yahoo/ladder'
 import {
-  getYahooSeasonOrder, getYahooSummary, getYahooYearBounds, isYahooSeason, yahooNeighbours,
+  getYahooSeasonOrder, getYahooSummary, isYahooSeason, yahooNeighbours,
 } from '@/lib/yahoo/archive'
 import { getSeasonResults } from '@/lib/home/season-results'
 import { SeasonResults } from '@/components/home/season-results'
 import { YahooWorkspace, type YahooView } from '@/components/yahoo/yahoo-workspace'
-import { YAHOO_PARAM_PREFIX } from '@/lib/yahoo/params'
 import { YahooSummary } from '@/components/yahoo/yahoo-summary'
 import { YahooSeasonPanel } from '@/components/yahoo/yahoo-season-panel'
 
@@ -90,11 +89,12 @@ export async function YahooBody({
    *
    * One small aggregate, awaited before the rest: everything below depends on the decoded state.
    */
-  const archiveYears = await getYahooYearBounds()
-  const state = decodeRankingsState(params, new Date(), YAHOO_PARAM_PREFIX, {
-    profile: 'archive',
-    years: { min: archiveYears.min ?? undefined, max: archiveYears.max ?? undefined },
-  })
+  /*
+   * Decoded by the shared archive-ladder module, which also carries the year bounds this state
+   * needs. See `lib/yahoo/ladder.ts` for why they matter and why the homepage tile reads the same
+   * two functions rather than describing this ladder a second time.
+   */
+  const state = await decodeYahooRankingsState(params)
 
   const [summary, order, results, facets, rows] = await Promise.all([
     getYahooSummary(),
@@ -106,7 +106,7 @@ export async function YahooBody({
      * reader has filtered. A narrowed period is REPLAYED from the standard initial rating rather
      * than carried in from earlier years — see `isPeriodScoped` in the ladder engine.
      */
-    getExplorer('all-time', 'overall', { ...aggregateFilters(state), platform: 'YAHOO' }),
+    getYahooLadder(state),
   ])
 
   const { previous, next } = seasonId != null

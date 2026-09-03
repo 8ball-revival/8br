@@ -2,6 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { recordAudit, type Actor } from '@/lib/competition/audit'
 import { computeStandings, type StandingMatchInput } from '@/lib/competition/standings'
+import { invalidateSeasonProgress } from '@/lib/home/season-progress'
 import { transitionSeasonState } from './lifecycle'
 
 /** Top-N of every group that advance to the playoffs. Seasons always advance the top three. */
@@ -42,6 +43,20 @@ export async function recomputeSeasonStandings(seasonId: number): Promise<void> 
       }
     })
   }
+
+  /*
+    The homepage's Season Progress panel reads these rows through its own cache.
+
+    Invalidated HERE rather than in each caller, because this function is the one place every
+    mutation path converges on — a saved score, an edited score, a cleared match, a forfeit, a draw,
+    closing the groups and reopening them all end with a recompute. A new path that changes a result
+    without coming through here would not have updated the standings either, so there is no way to
+    add one that forgets this.
+
+    It never throws: see `invalidateSeasonProgress`, which is a cache hint about a write that has
+    already committed by the time it runs.
+  */
+  invalidateSeasonProgress()
 }
 
 // ---- Flexible score / FF / KO parsing (pure) ------------------------------

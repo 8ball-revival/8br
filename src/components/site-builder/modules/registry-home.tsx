@@ -27,12 +27,16 @@ import { getRegistryStats } from '@/lib/stats/registry-stats'
 import { artFor, pictureFor, DEFAULT_ARTICLE_ART, type ArticleArt } from '@/lib/home/article-art'
 import { latestBreakPosts, type HomePost } from '@/lib/home/break-news'
 import { championImageDecision } from '@/lib/home/champion-image'
+import { getSeasonProgress } from '@/lib/home/season-progress'
+import { getYahooTopPlayers } from '@/lib/yahoo/ladder'
 
 import { ChampionHero } from '@/components/home/champion-hero'
 import { RankingsRail } from '@/components/home/rankings-rail'
 import { NewsPlaques } from '@/components/home/news-plaques'
 import { AchievementPlaques } from '@/components/home/achievement-plaques'
 import { RegistryStatsBar } from '@/components/home/registry-stats-bar'
+import { SeasonProgress } from '@/components/home/season-progress'
+import { YahooArchives } from '@/components/home/yahoo-archives'
 
 /**
  * The three articles the homepage shows, in the order it shows them.
@@ -395,6 +399,118 @@ registerModule({
         tagline={config.tagline}
         liveLabel={config.liveLabel}
         liveState={config.liveState}
+      />
+    )
+  } as never,
+})
+
+// ── Season Progress ─────────────────────────────────────────────────────────────────────────────
+
+registerModule({
+  type: 'seasons.progress',
+  name: 'Season progress',
+  category: 'seasons',
+  icon: 'ListOrdered',
+  description: 'One Season’s group stage as a single live standings table, across every group.',
+  configVersion: 1,
+  dataDriven: true,
+  // A long table inside a bounded tile — the builder needs to know the scroll is intentional.
+  ownsScroll: true,
+  a11y: { landmark: true, headingLevel: 2 },
+  layoutDefaults: { span: 12 },
+  fields: {
+    heading: { kind: 'text', label: 'Panel heading', default: 'Season progress', maxLength: 40 },
+    /*
+      ── Which Season, and why it takes four fields to say ──────────────────────────────────────
+
+      An Owner can pin an id, and an id is unambiguous. But leaving the id at zero is the more
+      useful setting: the competition slug, the season number and the year identify "8BRCAM Season
+      2" through the RELATION rather than through a name, so the panel keeps working when the
+      season is retitled and it cannot accidentally match Season 2 of 2013.
+
+      A single "season title" field would have been one control instead of four, and it would break
+      the first time somebody edited the title it matched on — silently, by showing nothing.
+    */
+    seasonId: {
+      kind: 'number', label: 'Season id', group: 'Which season', default: 0, min: 0, max: 999999,
+      help: 'Zero resolves the Season from the competition, number and year below. Set an id only to pin one exact Season.',
+    },
+    seriesSlug: { kind: 'text', label: 'Competition slug', group: 'Which season', default: '8brcam', maxLength: 60 },
+    number: { kind: 'number', label: 'Season number', group: 'Which season', default: 2, min: 0, max: 999 },
+    year: { kind: 'number', label: 'Competition year', group: 'Which season', default: 2026, min: 0, max: 2999, help: 'Zero takes the most recent running of that season number.' },
+    viewAllLabel: { kind: 'text', label: 'Footer link label', default: 'View full season', maxLength: 40 },
+    emptyText: {
+      kind: 'text', label: 'When there is nothing to show',
+      default: 'This Season has no entrants yet.', maxLength: 200,
+    },
+  },
+  Render: async function SeasonProgressModule({ config }: ModuleRenderProps<{
+    heading: string; seasonId: number; seriesSlug: string; number: number; year: number
+    viewAllLabel: string; emptyText: string
+  }>) {
+    const view = await getSeasonProgress({
+      seasonId: config.seasonId || undefined,
+      seriesSlug: config.seriesSlug || undefined,
+      number: config.number || undefined,
+      year: config.year || undefined,
+    })
+    return (
+      <SeasonProgress
+        view={view}
+        heading={config.heading}
+        emptyText={config.emptyText}
+        viewAllLabel={config.viewAllLabel}
+      />
+    )
+  } as never,
+})
+
+// ── Yahoo Archives ──────────────────────────────────────────────────────────────────────────────
+
+registerModule({
+  type: 'rankings.yahooArchives',
+  name: 'Yahoo archives',
+  category: 'rankings',
+  icon: 'Library',
+  description: 'A doorway into the Yahoo era, with the top five of the archive ladder.',
+  configVersion: 1,
+  dataDriven: true,
+  a11y: { landmark: true, headingLevel: 2 },
+  layoutDefaults: { span: 12 },
+  fields: {
+    eyebrow: { kind: 'text', label: 'Eyebrow', default: 'Yahoo archives', maxLength: 40 },
+    heading: { kind: 'text', label: 'Heading', default: 'The original era', maxLength: 60 },
+    blurb: {
+      kind: 'text', label: 'Blurb',
+      default: 'Explore the complete record of competitive 8-ball from the Yahoo era—seasons, champions, matches, records and lasting legacies.',
+      maxLength: 240,
+    },
+    listLabel: { kind: 'text', label: 'List label', default: 'All-time top 5', maxLength: 40 },
+    /*
+      How many, but never WHO.
+
+      There is no field here that could name a player or type a rating. The five rows are the top of
+      the archive ladder as `/yahoo` computes it, so when the archive ranking changes this tile
+      changes with it — which is the entire reason it is a data module rather than five text fields.
+    */
+    limit: { kind: 'number', label: 'How many players', default: 5, min: 1, max: 10 },
+    ctaLabel: { kind: 'text', label: 'Footer link label', default: 'Explore Yahoo archives', maxLength: 40 },
+    href: { kind: 'url', label: 'Link destination', default: '/yahoo', internalOnly: true },
+  },
+  Render: async function YahooArchivesModule({ config }: ModuleRenderProps<{
+    eyebrow: string; heading: string; blurb: string; listLabel: string
+    limit: number; ctaLabel: string; href: string
+  }>) {
+    const rows = await getYahooTopPlayers(config.limit)
+    return (
+      <YahooArchives
+        rows={rows}
+        eyebrow={config.eyebrow}
+        heading={config.heading}
+        blurb={config.blurb}
+        listLabel={config.listLabel}
+        ctaLabel={config.ctaLabel}
+        href={config.href}
       />
     )
   } as never,

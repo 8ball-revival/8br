@@ -75,11 +75,11 @@ function homepage(): LayoutDocument {
       /*
         Row 3 — 68/32. Everything below the rail, in two columns.
 
-        The marquee, the record and the article are one reading column; the news and the
-        achievements are the other. They are ONE section rather than two stacked rows because the
-        approved composition runs the narrow column alongside the marquee as well as alongside the
-        record — which is also what makes the two columns end on the same line instead of leaving a
-        third of a screen of empty page under whichever one is shorter.
+        The marquee, the Yahoo doorway and the record are one column; the Season standings are the
+        other. They are ONE section rather than two stacked rows because the approved composition
+        runs the narrow column alongside the marquee as well as alongside the record — which is also
+        what makes the two columns end on the same line instead of leaving a third of a screen of
+        empty page under whichever one is shorter, and what gives the standings table its height.
       */
       section('home-body', 'Marquee, record & reading column', [68, 32], [
         {
@@ -128,13 +128,21 @@ function homepage(): LayoutDocument {
             }),
             {
               /*
-                The record and the article, side by side.
+                The archive doorway and the record, side by side.
 
-                Two thirds to the record because it holds a 16:9 video AND the figure beside it; one
-                third to the article, which is the narrow measure a headline reads best in.
+                ── Why the narrow column is on the LEFT ────────────────────────────────────────
+                It was on the right, holding the latest Break article. The ratio flipped from 66/34
+                to 34/66 and the two children swapped places; NEITHER footprint changed. The record
+                keeps the two thirds it needs for a 16:9 video and the figure beside it, and the
+                narrow column keeps the one third a short measure reads best in — the Yahoo tile
+                simply inherits the column the article had.
+
+                The article itself is not gone from the site: The Break is still a full section, a
+                nav entry and a homepage module. What changed is which panel occupies this one slot.
               */
-              ...mod('home-record-row', 'layout.columns', { ratio: '66-34', gap: 3, align: 'stretch', stackBelow: 'lg' }),
+              ...mod('home-record-row', 'layout.columns', { ratio: '34-66', gap: 3, align: 'stretch', stackBelow: 'lg' }),
               children: [
+                mod('home-yahoo-archives', 'rankings.yahooArchives'),
                 // The play label names the holder and the time: "Play" alone tells a screen-reader
                 // user that something will play and nothing whatsoever about what.
                 mod('home-record-feature', 'competitions.recordFeature', {
@@ -144,18 +152,24 @@ function homepage(): LayoutDocument {
                   posterFocal: '62% 50%',
                   scoreboard: '8 Ball Registry',
                 }),
-                mod('home-break', 'editorial.breakFeature', { variant: 'card' }),
               ],
             },
           ],
         },
-        {
-          ...mod('home-column-stack', 'layout.stack', { gap: 3 }),
-          children: [
-            mod('home-news-plaques', 'editorial.newsPlaques'),
-            mod('home-achievement-plaques', 'rankings.achievementPlaques'),
-          ],
-        },
+        /*
+          The narrow column: one live standings table, full height.
+
+          It held a news panel stacked above an achievements panel. Both still exist as modules and
+          both still have their own pages — what changed is that this column now runs the current
+          Season, which is the thing on the homepage most likely to be different from one visit to
+          the next.
+
+          Placed DIRECTLY in the column rather than inside a `layout.stack`, because a stack sizes
+          itself to its children and the panel needs the column's full height to be worth having:
+          the section grid is `items-stretch`, so a module placed here stretches beside the marquee
+          and the record together, and the table gets the room for fifteen rows.
+        */
+        mod('home-season-progress', 'seasons.progress'),
       ]),
       // Row 5 — full width. The totals, in the register of a status line rather than an award.
       section('home-stats', 'Registry totals', [1], [
