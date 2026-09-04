@@ -17,19 +17,41 @@ export const dynamic = 'force-dynamic'
  * stated here as well as in the response header, so the instruction survives being viewed, saved or
  * proxied without the header.
  */
+/*
+  The bare title: the root layout appends the site name through a `%s · 8 Ball Registry` template.
+
+  Written out in full here first, which produced "Competition History · 8 Ball Registry · 8 Ball
+  Registry" in the tab. The Open Graph and Twitter titles do NOT go through that template, so they
+  carry the full form below.
+*/
+const DOOR_TITLE = 'Competition History'
+const DOOR_SOCIAL_TITLE = 'Competition History · 8 Ball Registry'
+/* The same sentence the page shows, so the tab, the preview and the heading agree. */
+const DOOR_DESCRIPTION =
+  'Explore seasons, tournaments, champions, and results from across the competitive 8-ball community.'
+
 export const metadata: Metadata = {
-  title: 'Private Access · 8 Ball Registry',
-  description: '8 Ball Registry is private. Sign in to continue.',
+  title: DOOR_TITLE,
+  description: DOOR_DESCRIPTION,
+  /*
+    `noindex` is the privacy control here, not the wording.
+
+    The description used to be deliberately vague — "8 Ball Registry is private" — to avoid telling a
+    preview crawler what was behind the wall. It now repeats the line the page itself displays to
+    everyone who opens it, which gives away nothing a visitor cannot already read, and stops the tab
+    saying one thing while the heading says another. What actually keeps this page out of an index is
+    below, and in the `X-Robots-Tag` the proxy sets on every response.
+  */
   robots: { index: false, follow: false, nocache: true, noarchive: true, nosnippet: true },
   /*
-    Overridden, not inherited.
+    Stated, not inherited.
 
-    The root layout's Open Graph block describes the competition — brackets, standings, rankings —
-    and it would otherwise be attached to the one page a stranger can fetch, handing a preview
-    crawler a description of everything behind the wall.
+    The root layout's Open Graph block describes the competition in terms of brackets and standings —
+    a description of everything BEHIND the wall — and it would otherwise be attached to the one page
+    a stranger can fetch. These override it with the door's own words.
   */
-  openGraph: { title: 'Private Access · 8 Ball Registry', description: '8 Ball Registry is private.', url: '/private-access' },
-  twitter: { card: 'summary', title: 'Private Access · 8 Ball Registry', description: '8 Ball Registry is private.' },
+  openGraph: { title: DOOR_SOCIAL_TITLE, description: DOOR_DESCRIPTION, url: '/private-access' },
+  twitter: { card: 'summary', title: DOOR_SOCIAL_TITLE, description: DOOR_DESCRIPTION },
 }
 
 export default async function PrivateAccessPage(

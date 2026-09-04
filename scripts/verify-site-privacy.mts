@@ -244,8 +244,9 @@ async function main() {
     raw markup reports it as a leak and teaches whoever sees the failure to loosen the check. The
     visible text is the thing the requirement is actually about.
 
-    It also matters for the heading: the page <title> still reads "Private Access", so a check
-    against the whole document would pass no matter what the heading said.
+    It also matters for the heading: the <title> and the description now carry the same words as
+    the heading, so a check against the whole document would pass on the metadata alone even if the
+    visible heading were removed entirely.
   */
   const doorText = door.body
     .replace(/<script[\s\S]*?<\/script>/g, ' ')
@@ -282,9 +283,18 @@ async function main() {
     and a check that fails on a token name is a check somebody will delete.
   */
   const descriptions = (door.body.match(/<meta[^>]+(?:name|property)="[^"]*description"[^>]*>/gi) ?? []).join(' ')
-  check('...and its social preview describes the door, not the site',
+  check("...and its social preview carries the door's own words, not the layout's",
     descriptions.length > 0
-    && !/bracket|standing|climb the rankings|tournament/i.test(descriptions),
+    /*
+      "tournaments" is no longer forbidden here — the door's own sentence contains it.
+
+      What must not appear is the ROOT layout's description, which talks about following live
+      brackets and standings and climbing the rankings: that describes what is behind the wall, to a
+      crawler that cannot get there. The door's line describes the door, and it is the same sentence
+      the page shows to anyone who opens it.
+    */
+    && /Explore seasons, tournaments, champions, and results/.test(descriptions)
+    && !/bracket|standing|climb the rankings/i.test(descriptions),
     descriptions.slice(0, 200))
   check('it does not advertise account creation', !/Create an account/i.test(door.body))
   check('the existing sign-in page still opens', (await get('/login')).status === 200)
