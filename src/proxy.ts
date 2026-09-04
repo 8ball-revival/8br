@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
 import { readSessionStanding } from '@/lib/auth/account-standing'
+import { isSitePrivate } from '@/lib/auth/site-visibility'
 
 import {
   PATHNAME_HEADER,
@@ -12,7 +13,11 @@ import {
 } from '@/lib/auth/site-privacy'
 
 /**
- * The privacy wall.
+ * The privacy wall, when it is switched on.
+ *
+ * Whether it is on at all is `siteVisibility` in `site_setting`, read at the top of `proxy()`. When
+ * the site is public this file does nothing but forward the request. Everything described below
+ * applies while it is private.
  *
  * Next 16 calls this file `proxy.ts` — the former `middleware.ts` — and it always runs on the
  * Node.js runtime, which is what makes the database check below possible at all. A `runtime` segment
@@ -136,6 +141,20 @@ export async function proxy(request: NextRequest) {
   forward.set(PATHNAME_HEADER, pathname)
   /* The query as well, so the layout can read `returnTo` when it sends a signed-in visitor onward. */
   forward.set(SEARCH_HEADER, search)
+
+  /*
+    The wall is a setting now, not a fact of this file.
+
+    When the site is public this returns before any of the work below: no session check, no database
+    read for standing, and none of the privacy headers — a public site should be indexable and
+    cacheable, and leaving `noindex` on it would quietly keep it out of search results long after
+    somebody thought they had opened it up.
+
+    Everything after this point is unchanged and still runs whenever the site is private.
+  */
+  if (!(await isSitePrivate())) {
+    return NextResponse.next({ request: { headers: forward } })
+  }
 
   if (isPublicPath(pathname, { dev })) {
     /* Public, but still not indexable and still not cacheable by anything shared. */

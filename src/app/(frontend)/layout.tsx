@@ -14,6 +14,7 @@ import { getTheme } from '@/lib/site-builder/globals'
 import { PATHNAME_HEADER, PRIVATE_ACCESS_PATH, SEARCH_HEADER, isPublicPath, privateAccessTarget } from '@/lib/auth/site-privacy'
 import { safeReturnTo } from '@/lib/account/return-to'
 import { hasSiteAccess } from '@/lib/auth/require-viewer'
+import { isSitePrivate } from '@/lib/auth/site-visibility'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
@@ -183,11 +184,13 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   */
   const requestHeaders = await nextHeaders()
   const pathname = requestHeaders.get(PATHNAME_HEADER) ?? ''
-  const isPublic = isPublicPath(pathname, { dev: process.env.NODE_ENV !== 'production' })
+  /* Read once, and the same setting the proxy read, so the two layers cannot disagree. */
+  const sitePrivate = await isSitePrivate()
+  const isPublic = !sitePrivate || isPublicPath(pathname, { dev: process.env.NODE_ENV !== 'production' })
   /* The door renders without the site's own chrome — see the note beside <SiteHeader />. */
   const bare = pathname === PRIVATE_ACCESS_PATH
 
-  if (bare) {
+  if (bare && sitePrivate) {
     /*
       Somebody who is already signed in has no business on the door.
 

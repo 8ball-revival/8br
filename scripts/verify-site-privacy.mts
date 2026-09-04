@@ -35,6 +35,22 @@ import { safeReturnTo } from '../src/lib/account/return-to'
 
 const BASE = process.env.PRIVACY_BASE_URL ?? 'http://localhost:3000'
 const SESSION_PREFIX = 'privacy-suite-'
+/*
+  The proxy caches the visibility setting for ten seconds, so a flip is not visible to the next
+  request. Waiting slightly longer than the window is the honest way to test a cached setting: the
+  alternative is reaching into the running server to clear it, which would test a path no real
+  toggle takes.
+*/
+const VISIBILITY_CACHE_MS = 11_000
+
+async function setVisibility(value: 'PUBLIC' | 'PRIVATE'): Promise<void> {
+  await prisma.siteSetting.upsert({
+    where: { key: 'siteVisibility' },
+    create: { key: 'siteVisibility', value },
+    update: { value },
+  })
+  await new Promise((r) => setTimeout(r, VISIBILITY_CACHE_MS))
+}
 const prisma = new PrismaClient()
 
 /** The schedules Vercel actually calls, so the allowlist cannot drift away from them. */
@@ -111,7 +127,20 @@ function redirectsToDoor(r: Res): boolean {
   return (r.location ?? '').includes(PRIVATE_ACCESS_PATH)
 }
 
+/** What the site was set to before this run, so it can be put back exactly. */
+let originalVisibility: string | null = null
+
 async function main() {
+  /*
+    The wall is a setting now, so this suite states which mode it is testing rather than assuming.
+
+    Everything from here to the public-mode section below describes a PRIVATE site. Running these
+    checks against a public one would report a wide-open site as a pile of failures and tell nobody
+    anything, so the mode is set deliberately and restored in `finally`.
+  */
+  originalVisibility = (await prisma.siteSetting.findUnique({ where: { key: 'siteVisibility' } }))?.value ?? null
+  await setVisibility('PRIVATE')
+
   /* ── The allowlist itself, with no server involved ──────────────────────────────────────────── */
   section('The allowlist is narrow, and everything else is protected')
 
@@ -530,6 +559,54 @@ async function main() {
   check('...while a wrong password stays generic before authentication',
     /Invalid CueVerse ID\/email or password\./.test(actions))
 
+  section('Switched to public, the wall is gone — completely')
+  /*
+    The other half of a toggle.
+
+    A switch that closes a site is only half-tested if nobody checks that it opens it again, and the
+    failure mode there is quiet: a site that still sends `noindex`, or still refuses crawlers, looks
+    open to the owner and stays invisible to everyone else for weeks.
+  */
+  await setVisibility('PUBLIC')
+
+  for (const path of ['/', '/rankings', '/seasons/16427', '/players/sixohtwo', '/yahoo']) {
+    const r = await get(path)
+    check(`public: ${path} is served without a session`, r.status === 200, `${r.status}`)
+  }
+  const publicApi = await get('/api/users')
+  check('public: the API answers rather than refusing', publicApi.status === 200, `${publicApi.status}`)
+
+  const publicRobots = await get('/robots.txt')
+  check('public: robots.txt allows crawling again',
+    /Allow:\s*\//.test(publicRobots.body) && !/^Disallow:\s*\/\s*$/m.test(publicRobots.body),
+    publicRobots.body.slice(0, 120))
+  const publicSitemap = await get('/sitemap.xml')
+  check('public: the sitemap is served and has entries',
+    publicSitemap.status === 200 && publicSitemap.body.includes('<url>'), `${publicSitemap.status}`)
+
+  /*
+    The headers have to come off too.
+
+    `noindex` and `no-store` are set by the proxy while the site is private. If the switch left them
+    behind, a public site would still be excluded from search results and still be uncacheable —
+    open in principle and invisible in practice.
+  */
+  const publicHome = await get('/')
+  check('public: nothing is marked noindex any more',
+    !(publicHome.headers.get('x-robots-tag') ?? '').includes('noindex'),
+    String(publicHome.headers.get('x-robots-tag')))
+  check('public: responses are cacheable again',
+    !/no-store/.test(publicHome.headers.get('cache-control') ?? ''),
+    String(publicHome.headers.get('cache-control')))
+
+  section('And switching back closes it again')
+  await setVisibility('PRIVATE')
+  const reclosed = await get('/rankings')
+  check('private again: the wall is back', redirectsToDoor(reclosed), `${reclosed.status}`)
+  check('private again: the API refuses', (await get('/api/users')).status === 401)
+  check('private again: robots.txt disallows everything',
+    /Disallow:\s*\/\s*$/m.test((await get('/robots.txt')).body))
+
   section('The allowlist is exactly what is reported')
   check('nothing has been added to it unnoticed',
     PUBLIC_ALLOWLIST.exact.length === 7
@@ -559,6 +636,26 @@ try {
     .catch(() => 0)
   const cleared = await prisma.memberModeration.deleteMany({ where: { userId: 2 } })
     .then((r) => r.count).catch(() => 0)
+  /*
+    Put the site back exactly as it was found, including "no row at all".
+
+    This suite flips the site private to test it. Leaving it that way because a run died half-way
+    would take the whole site down, which is a far worse outcome than a failed test.
+  */
+  try {
+    if (originalVisibility == null) {
+      await prisma.siteSetting.deleteMany({ where: { key: 'siteVisibility' } })
+    } else {
+      await prisma.siteSetting.upsert({
+        where: { key: 'siteVisibility' },
+        create: { key: 'siteVisibility', value: originalVisibility },
+        update: { value: originalVisibility },
+      })
+    }
+    console.log(`visibility restored to ${originalVisibility ?? '(unset → public)'}`)
+  } catch {
+    console.log('WARNING: could not restore siteVisibility — check Site Settings')
+  }
   console.log(`\ncleanup: removed ${removed} test session(s), ${cleared} moderation row(s)`)
   await prisma.$disconnect()
   console.log(`RESULT: ${passed} passed, ${failed} failed`)
