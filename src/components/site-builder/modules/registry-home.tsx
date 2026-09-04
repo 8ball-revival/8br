@@ -90,8 +90,6 @@ registerModule({
     newsLabel: { kind: 'text', label: 'Headlines label', group: 'Headlines', default: 'Latest news', maxLength: 40 },
     newsHref: { kind: 'url', label: 'Article base path', group: 'Headlines', default: '/news', internalOnly: true },
 
-    championLabel: { kind: 'text', label: 'Champion label', group: 'The champion', default: 'Current champion', maxLength: 40 },
-    ratingLabel: { kind: 'text', label: 'Rating label', group: 'The champion', default: 'Rating', maxLength: 40 },
 
     /*
       ── The photograph, and who it is of ────────────────────────────────────────────────────────
@@ -132,22 +130,20 @@ registerModule({
   },
   Render: async function ChampionHeroModule({ config }: ModuleRenderProps<{
     eyebrow: string; heading: string; body: string; tagline: string; ctaLabel: string; ctaHref: string
-    newsLabel: string; newsHref: string; championLabel: string; ratingLabel: string
+    newsLabel: string; newsHref: string
     championHandle: string; imageDesktop: string; imageMobile: string; imageAlt: string
     focalDesktop: string; focalMobile: string; overlay: number
   }>) {
+    /*
+      The leaderboard is still read, for the photograph rather than for a name.
+
+      The champion panel this module used to render was removed, but `championHandle` below still
+      needs to know who is actually top so a photograph of the PREVIOUS champion is dropped rather
+      than left captioning nobody. One row is enough for that; the five are what the module already
+      asked for and the query is shared.
+    */
     const [board, articles] = await Promise.all([getHomeLeaderboard(5), homeArticles()])
     const leader = board.rows[0] ?? null
-
-    const champion = leader
-      ? {
-        rank: leader.rank,
-        handle: leader.cueverseId,
-        name: leader.preferredName,
-        rating: leader.rating,
-        href: leader.slug ? `/players/${encodeURIComponent(leader.slug)}` : null,
-      }
-      : null
 
     // Does this photograph still belong beside this name? See `lib/home/champion-image.ts`.
     const decision = championImageDecision({
@@ -167,9 +163,6 @@ registerModule({
         newsLabel={config.newsLabel}
         newsHref={config.newsHref}
         articles={articles}
-        championLabel={config.championLabel}
-        champion={champion}
-        ratingLabel={config.ratingLabel}
         image={decision.use
           ? {
             desktop: config.imageDesktop,

@@ -38,7 +38,6 @@ export interface ChampionHeroPlayer {
 export function ChampionHero({
   eyebrow, heading, body, tagline, ctaLabel, ctaHref,
   newsLabel, articles, newsHref,
-  championLabel, champion, ratingLabel,
   image,
 }: {
   eyebrow: string
@@ -50,9 +49,6 @@ export function ChampionHero({
   newsLabel: string
   articles: HomeArticle[]
   newsHref: string
-  championLabel: string
-  champion: ChampionHeroPlayer | null
-  ratingLabel: string
   /**
    * The photograph, or null for the branded ground.
    *
@@ -214,88 +210,16 @@ export function ChampionHero({
           )}
         </div>
 
-        {/* ── Who is top, right now ───────────────────────────────────────────────────────────── */}
-        <div className="min-w-0 lg:justify-self-end lg:text-right">
-          {champion ? (
-            <>
-              <p className="inline-flex items-center border border-[var(--accent-on-media)] px-3 py-1 font-condensed text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[var(--accent-on-media)]">
-                {championLabel}
-              </p>
-              <div className="mt-4 flex items-start gap-3 lg:justify-end">
-                <span
-                  aria-hidden
-                  className="font-condensed font-extrabold leading-[0.8] text-[var(--accent-on-media)]"
-                  style={{ fontSize: 'clamp(2.75rem, 5vw, 4.75rem)' }}
-                >
-                  {champion.rank}
-                </span>
-                <div className="min-w-0">
-                  {/*
-                    The handle leads and the real name follows, which is the site-wide identity rule.
-                    `break-words` rather than truncation: a long CueVerse ID is somebody's name, and
-                    the one place it should never be cut off is the panel announcing they are first.
-                  */}
-                  <ChampionName champion={champion} />
-                </div>
-              </div>
+        {/*
+          The third grid track is deliberately empty.
 
-              <div className="mt-5 lg:flex lg:flex-col lg:items-end">
-                <p className="flex items-center gap-3 font-condensed text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-[var(--text-on-media-dim)]">
-                  <span aria-hidden className="hidden h-px w-10 bg-[color-mix(in_oklab,var(--steel-dim)_75%,transparent)] lg:block" />
-                  {ratingLabel}
-                </p>
-                <p
-                  className="mt-1 font-condensed font-bold leading-none text-[var(--text-on-media)] [font-variant-numeric:tabular-nums]"
-                  style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4rem)' }}
-                >
-                  {champion.rating != null ? champion.rating.toLocaleString() : '—'}
-                </p>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-[var(--text-on-media-dim)]">No rated players yet.</p>
-          )}
-        </div>
+          It used to carry the current champion — rank, handle, real name and rating — over the
+          right of the photograph. That was removed at the owner's request. The track itself stays
+          so the heading and the news list keep the exact widths they had, and so the right of the
+          photograph is left clear rather than having text run across the subject.
+        */}
       </div>
     </section>
-  )
-}
-
-/**
- * The champion's two lines, linked when there is a profile to link to.
- *
- * Split out because the link and the plain form have to render identically — a champion without a
- * CueVerse ID has no profile page, and the difference between those two cases should be whether the
- * name is clickable, not how it is set.
- */
-function ChampionName({ champion }: { champion: ChampionHeroPlayer }) {
-  const primary = champion.handle ?? champion.name
-  const secondary = champion.handle ? champion.name : null
-
-  const lines = (
-    <>
-      <span
-        className="block font-condensed font-extrabold uppercase leading-[0.9] tracking-[-0.005em] text-[var(--text-on-media)]"
-        style={{ fontSize: 'clamp(2rem, 3.6vw, 3.4rem)', overflowWrap: 'anywhere' }}
-      >
-        {primary}
-      </span>
-      {secondary && (
-        <span className="mt-1 block font-condensed text-xl font-medium italic leading-tight text-[var(--text-on-media-dim)] sm:text-2xl">
-          {secondary}
-        </span>
-      )}
-    </>
-  )
-
-  if (!champion.href) return <span className="block min-w-0">{lines}</span>
-  return (
-    <Link
-      href={champion.href}
-      className="block min-w-0 underline-offset-[6px] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-    >
-      {lines}
-    </Link>
   )
 }
 

@@ -73,8 +73,13 @@ const PROBE = `(function () {
       naturalW: heroImg ? heroImg.naturalWidth : 0,
       champion: (function () {
         var t = heroEl.innerText;
+        /*
+          The rating is matched by SHAPE, so a changed number cannot fake a pass; the badge is
+          matched by its exact label, because the hero body copy contains the word "champions" and
+          a looser test reports that sentence as a surviving panel.
+        */
         return { handle: t.indexOf('SIXOHTWO') >= 0, name: t.indexOf('Kevin') >= 0,
-                 rating: t.indexOf('1,866') >= 0, rank: t.indexOf('CURRENT CHAMPION') >= 0 };
+                 rating: /[0-9],[0-9]{3}/.test(t), rank: t.indexOf('CURRENT CHAMPION') >= 0 };
       })(),
       headlines: [].slice.call(heroEl.querySelectorAll('ul li a')).map(function (a) { return a.textContent.trim() })
     } : null,
@@ -276,8 +281,18 @@ try {
   check('the hero image is prioritised, being above the fold', p.hero.fetchPriority === 'high', String(p.hero.fetchPriority))
   check('it describes itself', String(p.hero.alt || '').length > 10, String(p.hero.alt))
   eq('the desktop focal point is applied', p.hero.objectPosition, '72% 50%')
-  check('the champion comes from the database, not the mockup',
-    p.hero.champion.handle && p.hero.champion.name && p.hero.champion.rating && p.hero.champion.rank,
+  /*
+    The champion panel is gone, and its absence is the assertion.
+
+    This used to check that the rank, handle, real name and rating came from the database rather
+    than the mockup. The panel was removed from the hero at the owner's request, so the check is
+    inverted rather than deleted: none of those four may reappear over the photograph.
+
+    The rail below still carries the leaderboard, and is checked separately — removing the hero
+    panel was not meant to remove the standings from the page.
+  */
+  check('no champion panel is drawn over the photograph',
+    !p.hero.champion.handle && !p.hero.champion.name && !p.hero.champion.rating && !p.hero.champion.rank,
     JSON.stringify(p.hero.champion))
   eq('the hero lists three headlines', p.hero.headlines.length, 3)
 
