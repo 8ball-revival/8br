@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
+import { readSessionStanding } from '@/lib/auth/account-standing'
+
 import {
   PATHNAME_HEADER,
   SEARCH_HEADER,
@@ -12,6 +14,10 @@ import {
 /**
  * The privacy wall.
  *
+ * Next 16 calls this file `proxy.ts` — the former `middleware.ts` — and it always runs on the
+ * Node.js runtime, which is what makes the database check below possible at all. A `runtime` segment
+ * config is rejected here for that reason: there is nothing to choose.
+ *
  * The whole site is private. This runs before any route is matched, so a protected page is never
  * rendered, never streamed, and never briefly visible — there is no client-side redirect and no
  * hidden component anywhere in this design. A logged-out visitor's request is answered here or not
@@ -22,15 +28,22 @@ import {
  * deployment. That is everything that can be decided without a database, and it is enough to answer
  * the request.
  *
- * It does NOT decide whether the account behind a valid token is banned, deleted or disabled —
- * that needs a query, and the edge runtime has no database. `requireViewer()` in the frontend
- * layout does it, on the server, before the page renders. So the two layers are:
+ * It then asks the database two questions that a signature cannot answer: is the session named in
+ * the token still there, and is the account behind it still allowed in?
  *
- *   this file  — is there a real, current session at all?  (every request, cheap, no I/O)
- *   requireViewer — is the account behind it allowed in?   (protected documents, authoritative)
+ * ── Why that check lives HERE and not only in the layout ─────────────────────────────────────────
+ * It used to be in the frontend layout alone, which meant it only ran when a PAGE rendered. A direct
+ * request to `/api/…` never passes through a layout — so a member banned a minute ago, or one whose
+ * session had been revoked, still held a valid token and could read straight out of Payload's REST
+ * and GraphQL endpoints. Payload's own access rules did not cover it either: `media` and both
+ * globals are `read: () => true`.
  *
- * Neither is decorative. Strip the layout guard and a banned member keeps browsing until their
- * token expires; strip this and every protected route has to remember to guard itself.
+ * So the account check moved to the one place every protected request passes through, whatever it
+ * is — page, Server Action, route handler, REST, GraphQL, export, feed. It needs the database, and
+ * a proxy file has one.
+ *
+ * The layout guard stays as defence in depth. It is no longer the only thing standing between a
+ * banned account and the data.
  *
  * ── Why the token is verified rather than merely present ─────────────────────────────────────────
  * Checking that a cookie called `payload-token` exists is not a check. Anyone can set that cookie
@@ -71,9 +84,21 @@ async function hasValidSession(request: NextRequest): Promise<boolean> {
   */
   if (!secret) return false
   try {
-    /* `jwtVerify` checks the signature AND `exp`, so an expired session fails here, not later. */
-    await jwtVerify(token, await signingKey(secret), { algorithms: ['HS256'] })
-    return true
+    /* `jwtVerify` checks the signature AND `exp`, so an expired token fails here, not later. */
+    const { payload: claims } = await jwtVerify(token, await signingKey(secret), { algorithms: ['HS256'] })
+
+    /*
+      A correct signature proves the token was issued here. It proves nothing about NOW.
+
+      The session may have been revoked and the account may have been banned since it was signed,
+      and both must take effect immediately rather than when the token happens to expire. `sid` is
+      the session Payload itself looks up on every request; checking the same row means a revoked
+      session stops working here exactly when it stops working there.
+    */
+    const userId = Number(claims.id)
+    const sid = typeof claims.sid === 'string' ? claims.sid : ''
+    const standing = await readSessionStanding(userId, sid)
+    return standing.ok
   } catch {
     return false
   }
@@ -95,7 +120,7 @@ function applyPrivacyHeaders(response: NextResponse): NextResponse {
   return response
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   const dev = process.env.NODE_ENV !== 'production'
 

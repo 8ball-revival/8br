@@ -18,6 +18,7 @@
  * Requires the dev server on :3000 and DATABASE_URL/PAYLOAD_SECRET in the environment.
  */
 import { createHash, randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 
 import { PrismaClient } from '@prisma/client'
 import { SignJWT } from 'jose'
@@ -35,6 +36,10 @@ import { safeReturnTo } from '../src/lib/account/return-to'
 const BASE = process.env.PRIVACY_BASE_URL ?? 'http://localhost:3000'
 const SESSION_PREFIX = 'privacy-suite-'
 const prisma = new PrismaClient()
+
+/** The schedules Vercel actually calls, so the allowlist cannot drift away from them. */
+const VERCEL_CRON_PATHS: string[] = (JSON.parse(readFileSync('vercel.json', 'utf8')).crons ?? [])
+  .map((c: { path: string }) => c.path)
 
 let passed = 0
 let failed = 0
@@ -116,7 +121,17 @@ async function main() {
   check('build assets are public', isPublicPath('/_next/static/chunk.js'))
   check('robots.txt is public, because a crawler has no session', isPublicPath('/robots.txt'))
   check("Payload's own login endpoint is public", isPublicPath('/api/users/login'))
-  check('scheduled jobs are public to the wall, carrying their own secret', isPublicPath('/api/cron/cueverse'))
+  check('the two audited cron routes are public to the wall', isPublicPath('/api/cron/cueverse')
+    && isPublicPath('/api/cron/site-builder-schedule'))
+  /*
+    Named exactly, not by prefix.
+
+    A prefix would hand a blanket exemption to any cron route added later — including one whose
+    author forgot to check a secret. That is deny-by-default failing inside the allowlist, which is
+    the one place nobody would look for it.
+  */
+  check('...but an unaudited one under the same prefix is not',
+    !isPublicPath('/api/cron/anything-added-later') && !isPublicPath('/api/cron'))
 
   /*
     Deny by default.
@@ -368,10 +383,134 @@ async function main() {
   check('robots.txt disallows everything', /Disallow:\s*\/\s*$/m.test(robots.body), robots.body.slice(0, 120))
   check('...and no longer advertises a sitemap', !/sitemap/i.test(robots.body))
 
+  section('A revoked or moderated account is refused EVERYWHERE, not only on pages')
+  /*
+    The hole this closes, and why the layout was not enough.
+
+    The account check used to live only in the frontend layout, so it only ran when a page rendered.
+    A direct request to /api/... never passes through a layout - and Payload's own access rules did
+    not cover it either: `media` and both globals are `read: () => true`, so a banned account with a
+    valid token really did read documents straight out of REST. Measured before the fix: /api/media
+    returned 3345 bytes of documents.
+
+    Each path below is a different way out of the database - Payload REST, a Payload global, a CSV
+    export, an RSS feed, a page - and each is checked under each way an account stops being allowed.
+  */
+  const EXITS = ['/api/users/me', '/api/media', '/api/globals/site-branding',
+    '/rankings/export', '/news/feed.xml', '/']
+  const moderated = await mintSession(2)
+
+  /* First prove these paths DO serve a good session, or the refusals below prove nothing. */
+  let served = 0
+  for (const path of EXITS) {
+    const r = await get(path, moderated.cookie)
+    if (r.status === 200 && r.body.length > 20) served += 1
+  }
+  check('a good session is served by every one of these exits', served === EXITS.length, `${served}/${EXITS.length}`)
+
+  for (const status of ['BANNED', 'DELETED'] as const) {
+    await prisma.memberModeration.upsert({
+      where: { userId: moderated.userId },
+      create: { userId: moderated.userId, status, bannedAt: new Date() },
+      update: { status, bannedAt: new Date(), timeoutUntil: null },
+    })
+    for (const path of EXITS) {
+      const r = await get(path, moderated.cookie)
+      check(`${status}: ${path} is refused`,
+        (r.status === 401 || redirectsToDoor(r)) && r.status !== 200,
+        `${r.status} ${r.body.slice(0, 60)}`)
+    }
+  }
+  await prisma.memberModeration.deleteMany({ where: { userId: moderated.userId } })
+
+  /* Revocation: the token stays cryptographically perfect and unexpired; the session row goes. */
+  await prisma.$executeRaw`DELETE FROM payload.users_sessions WHERE id = ${moderated.sid}`
+  for (const path of EXITS) {
+    const r = await get(path, moderated.cookie)
+    check(`REVOKED: ${path} is refused`, r.status === 401 || redirectsToDoor(r), `${r.status}`)
+  }
+
+  section('Scheduled jobs refuse without their secret, and do no work')
+  for (const path of VERCEL_CRON_PATHS) {
+    const anon = await get(path)
+    check(`${path} refuses an unauthenticated caller`, anon.status === 404 || anon.status === 401, `${anon.status}`)
+    check('...returning no data', anon.body.length < 40 && !/docs|entries|revision/i.test(anon.body),
+      anon.body.slice(0, 60))
+  }
+  /*
+    Each handler is read as well, because a status code cannot show ORDER.
+
+    What matters is that the secret is checked before the job reads anything or does anything - a
+    route that refuses after starting work has already done the work.
+  */
+  for (const file of ['src/app/api/cron/cueverse/route.ts',
+    'src/app/api/cron/site-builder-schedule/route.ts']) {
+    const src = readFileSync(file, 'utf8')
+    const name = file.split('/').slice(-2)[0]
+    check(`${name}: compares the secret in constant time`, src.includes('timingSafeEqual'))
+    check(`${name}: fails closed when the secret is unset`, /if \(!secret\) return false/.test(src))
+    const guardAt = src.indexOf('!authorised(request)')
+    const workAt = Math.max(src.indexOf('await runDueSchedules('), src.indexOf('await refreshCueVerseLeaderboard('))
+    check(`${name}: refuses before doing any work`, guardAt > 0 && workAt > guardAt,
+      `guard@${guardAt} work@${workAt}`)
+  }
+
+  section('Authentication answers do not reveal whether an account exists')
+  /*
+    Compared byte for byte, deliberately.
+
+    An enumeration oracle is rarely a different MESSAGE; it is usually a different status, a
+    different shape, or one stray field. Comparing whole bodies catches all three.
+  */
+  const postJson = async (path: string, body: unknown) => {
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    return { status: res.status, body: await res.text() }
+  }
+  const realEmail = 'stepatdis@gmail.com'
+  const fakeEmail = 'definitely-not-a-user@nowhere.invalid'
+
+  const loginReal = await postJson('/api/users/login', { email: realEmail, password: 'wrong-password-xyz' })
+  const loginFake = await postJson('/api/users/login', { email: fakeEmail, password: 'wrong-password-xyz' })
+  check('a failed login answers identically for a real and an unknown account',
+    loginReal.status === loginFake.status && loginReal.body === loginFake.body,
+    `${loginReal.status}:${loginReal.body.slice(0, 50)} vs ${loginFake.status}:${loginFake.body.slice(0, 50)}`)
+  check('...and names neither the account nor the reason',
+    !/no such|not found|unknown user|no account/i.test(loginReal.body), loginReal.body.slice(0, 80))
+
+  const forgotReal = await postJson('/api/users/forgot-password', { email: realEmail })
+  const forgotFake = await postJson('/api/users/forgot-password', { email: fakeEmail })
+  check('a password-reset request answers identically either way',
+    forgotReal.status === forgotFake.status && forgotReal.body === forgotFake.body,
+    `${forgotReal.status}:${forgotReal.body.slice(0, 40)} vs ${forgotFake.status}:${forgotFake.body.slice(0, 40)}`)
+
+  const actions = readFileSync('src/lib/account/actions.ts', 'utf8')
+  check("the site's own reset action succeeds whether or not the account exists",
+    /never reveal whether the account exists/.test(actions) && /return \{ ok: true \}/.test(actions))
+  /*
+    The site's sign-in DOES say "banned" or "deleted", and that is not a leak.
+
+    Those branches are reached only after `payload.login` has accepted the password, so the caller
+    has already proved the account is theirs. Telling somebody why their own account will not open is
+    the right answer; the PRE-authentication branch stays generic, and that is the one an enumerator
+    can reach.
+  */
+  check('...while a wrong password stays generic before authentication',
+    /Invalid CueVerse ID\/email or password\./.test(actions))
+
   section('The allowlist is exactly what is reported')
   check('nothing has been added to it unnoticed',
-    PUBLIC_ALLOWLIST.exact.length === 7 && PUBLIC_ALLOWLIST.prefixes.length === 7,
-    `${PUBLIC_ALLOWLIST.exact.length} exact, ${PUBLIC_ALLOWLIST.prefixes.length} prefixes`)
+    PUBLIC_ALLOWLIST.exact.length === 7
+    && PUBLIC_ALLOWLIST.prefixes.length === 6
+    && PUBLIC_ALLOWLIST.cron.length === 2,
+    `${PUBLIC_ALLOWLIST.exact.length} exact, ${PUBLIC_ALLOWLIST.prefixes.length} prefixes, ${PUBLIC_ALLOWLIST.cron.length} cron`)
+  check('...and every cron entry it names is one vercel.json actually schedules',
+    PUBLIC_ALLOWLIST.cron.every((c) => VERCEL_CRON_PATHS.includes(c)),
+    PUBLIC_ALLOWLIST.cron.join(', '))
 }
 
 try {
@@ -380,11 +519,19 @@ try {
   failed++
   console.log(`\n  FAIL suite threw -- ${(err as Error).message}`)
 } finally {
-  /* Every session this run created, whether it finished or not. Nothing else is touched. */
+  /*
+    Every session AND every moderation row this run wrote, whether it finished or not.
+
+    The moderation cleanup is here rather than inline for a reason worth recording: an earlier
+    version of this check crashed between banning an account and restoring it, and left the Owner
+    banned on the replica. A restore that only runs on the happy path is not a restore.
+  */
   const removed = await prisma.$executeRaw`
     DELETE FROM payload.users_sessions WHERE id LIKE ${`${SESSION_PREFIX}%`}`
     .catch(() => 0)
-  console.log(`\ncleanup: removed ${removed} test session(s)`)
+  const cleared = await prisma.memberModeration.deleteMany({ where: { userId: 2 } })
+    .then((r) => r.count).catch(() => 0)
+  console.log(`\ncleanup: removed ${removed} test session(s), ${cleared} moderation row(s)`)
   await prisma.$disconnect()
   console.log(`RESULT: ${passed} passed, ${failed} failed`)
   process.exit(failed === 0 ? 0 : 1)

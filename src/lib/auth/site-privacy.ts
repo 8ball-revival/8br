@@ -72,14 +72,27 @@ const PUBLIC_PREFIXES: string[] = [
   '/api/users/forgot-password',
   '/api/users/reset-password',
 
-  /*
-    Scheduled jobs, which carry their own bearer secret and never a session cookie.
+]
 
-    Left open to the wall, not to the world: each handler refuses without its secret, and refuses
-    outright when the secret is unset. Putting them behind a session would simply stop the crons,
-    because Vercel does not have one.
-  */
-  '/api/cron',
+/**
+ * Scheduled jobs, named one by one rather than by prefix.
+ *
+ * These carry their own bearer secret and never a session cookie, so putting them behind the wall
+ * would simply stop the crons — Vercel does not have a session. They are open to the WALL, not to
+ * the world: each handler validates a dedicated secret in constant time as the first statement of
+ * the handler, before it reads anything or does any work, and refuses outright when the secret is
+ * unset. Both were audited against exactly that.
+ *
+ * Listed exactly, and this is the point. `/api/cron` as a prefix would hand a blanket exemption to
+ * any cron route added later, including one whose author forgot to check a secret — which is the
+ * deny-by-default rule failing inside the allowlist, the one place it would not be noticed. A new
+ * job has to be added here, and adding it means someone looked at it.
+ *
+ * These two are the entries in `vercel.json`. If a schedule is added there, it belongs here too.
+ */
+const CRON_EXACT: string[] = [
+  '/api/cron/cueverse',
+  '/api/cron/site-builder-schedule',
 ]
 
 /**
@@ -131,6 +144,7 @@ export function isPublicPath(pathname: string, opts: { dev?: boolean } = {}): bo
   const path = normalisePath(pathname)
   if (path == null) return false
   if (PUBLIC_EXACT.has(path)) return true
+  if (CRON_EXACT.includes(path)) return true
   if (PUBLIC_PREFIXES.some((p) => underPrefix(path, p))) return true
   if (opts.dev && DEV_ONLY_PREFIXES.some((p) => underPrefix(path, p))) return true
   return false
@@ -164,6 +178,7 @@ export function privateAccessTarget(pathname: string, search = ''): string {
 /** The allowlist, for the test suite and for the report. Order is presentation only. */
 export const PUBLIC_ALLOWLIST = {
   exact: [...PUBLIC_EXACT].sort(),
+  cron: [...CRON_EXACT].sort(),
   prefixes: [...PUBLIC_PREFIXES].sort(),
   devOnlyPrefixes: [...DEV_ONLY_PREFIXES],
 } as const
