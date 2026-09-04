@@ -105,6 +105,15 @@ export interface SeasonEntry {
   /** Champion / Runner-up / a round name, when the records say. Null when they do not. */
   placement: string | null
   isChampion: boolean
+  /**
+   * Whether this Season's results count — `Season.countsTowardRankings`.
+   *
+   * Carried on the entry so the one rule travels with the row. A title from a Season switched off
+   * is still SHOWN on that row, because it was still won, but it is not totalled into any Titles
+   * figure; the era tabs and the career total both read this rather than each deciding for
+   * themselves. The Season carries an UNRANKED badge, which is what explains the difference.
+   */
+  ranked: boolean
   isRunnerUp: boolean
   /* Every figure below is null for a roster-only season. */
   record: StageRecord | null
@@ -458,7 +467,7 @@ export async function getPlayerProfilePage(
         where: { id: { in: allSeasonIds } },
         select: {
           id: true, number: true, competitionYear: true, lifecycleState: true, subtitle: true,
-          division: true, platform: true, championPlayerId: true,
+          division: true, platform: true, championPlayerId: true, countsTowardRankings: true,
           competitionSeries: { select: { name: true } },
         },
       })
@@ -547,6 +556,7 @@ export async function getPlayerProfilePage(
       platform: s?.platform ?? 'CUEVERSE',
       href: `/seasons/${id}`,
       isChampion,
+      ranked: s?.countsTowardRankings ?? true,
       isRunnerUp: false,
     }
 
@@ -707,8 +717,19 @@ export async function getPlayerProfilePage(
       it returned none — and it carries no Season on each entry, so it cannot be attributed or
       scoped either. `isChampion` comes from that Season's own `championPlayerId`, which is the
       record of who actually won it.
+
+      ── Why a Season switched off no longer counts ────────────────────────────────────────────────
+      A Season with Counts Toward Rankings off is excluded from the ladder, and its title is now
+      excluded from this figure too. Tournament titles already behaved this way without anyone
+      arranging it — they are read from the ladder's trophy list, which is built from the ledger, and
+      the ledger only ever contains eligible records. Season titles were read straight from the
+      Season row instead, so they were the one statistic an exclusion did not reach.
+
+      The season's own row keeps its Champion placement, and so does the Season page: excluding a
+      record from the standings is not the same as denying it was won, and the UNRANKED badge on
+      that Season is what explains the difference to a reader.
     */
-    seasonTitles: seasons.filter((s) => s.isChampion).length,
+    seasonTitles: seasons.filter((s) => s.isChampion && s.ranked).length,
     tournamentTitles: (allTime?.trophies ?? []).length,
     // The ladder already computes these over the same rows; recomputing would risk a second answer.
     currentStreak: current?.streak ?? allTime?.streak ?? 0,

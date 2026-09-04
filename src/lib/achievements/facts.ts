@@ -64,7 +64,15 @@ export interface AchievementFacts {
  */
 export async function loadAchievementFacts(platform: CompetitionPlatform = 'YAHOO'): Promise<AchievementFacts> {
   const seasonRows = await prisma.season.findMany({
-    where: { platform, lifecycleState: 'COMPLETED' },
+    /*
+      Eligible Seasons only.
+
+      `countsTowardRankings` is the owner's switch for a record whose results should not count —
+      an exhibition, or a reconstruction. Every award here is derived from champions and results,
+      so a Season excluded from the ladder must be excluded from the awards built on it, or the
+      switch means one thing on the Rankings page and another on this one.
+    */
+    where: { platform, lifecycleState: 'COMPLETED', countsTowardRankings: true },
     select: {
       id: true, number: true, competitionYear: true, championPlayerId: true, entrantsCount: true,
     },

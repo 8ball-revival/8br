@@ -164,6 +164,8 @@ async function championships(scope: CareerScope): Promise<Map<string, number>> {
       where: {
         lifecycleState: 'COMPLETED',
         championPlayerId: { not: null },
+        /* A Season switched off does not award a title here either. See `players/profile.ts`. */
+        countsTowardRankings: true,
         ...(scope.kind === 'competition' ? { competitionSeriesId: scope.competitionSeriesId } : {}),
       },
       select: { championPlayerId: true },
@@ -183,7 +185,7 @@ async function championships(scope: CareerScope): Promise<Map<string, number>> {
     // player through the ledger's stored name. A champion who never appears in the ledger cannot be
     // attributed to a player id and is left out rather than guessed at.
     const tournaments = await prisma.tournament.findMany({
-      where: { status: 'COMPLETED', championName: { not: null } },
+      where: { status: 'COMPLETED', championName: { not: null }, countsTowardRankings: true },
       select: { championName: true },
     })
     const names = tournaments.map((t) => (t.championName ?? '').trim().toLowerCase()).filter(Boolean)

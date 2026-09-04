@@ -364,8 +364,12 @@ function SeasonsPreview({ data }: { data: PlayerProfilePage }) {
     it is also wrong: it reads 0 for every archive champion, including one known to hold four. Each
     Season row already carries `isChampion`, taken from that Season's own `championPlayerId`, which
     is both attributable and correct.
+
+    `ranked` excludes a Season the owner has switched off. The row still shows Champion — it was
+    still won — but an excluded Season contributes to no Titles figure, here or in the career total,
+    which reads the same field so the two cannot disagree.
   */
-  const titles = scoped.filter((s) => s.isChampion).length
+  const titles = scoped.filter((s) => s.isChampion && s.ranked).length
 
   return (
     <div>
