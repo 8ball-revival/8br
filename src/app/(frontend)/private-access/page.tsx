@@ -68,10 +68,12 @@ export default async function PrivateAccessPage(
       <section className="pa-panel" aria-labelledby="pa-title">
         <p className="pa-eyebrow">8 Ball Registry</p>
 
-        <h1 id="pa-title" className="pa-title">Private Access</h1>
+        <h1 id="pa-title" className="pa-title">Competition History</h1>
 
-        <p className="pa-lede">8 Ball Registry is currently private.</p>
-        <p className="pa-body">You must log in to access the website and its data.</p>
+        <p className="pa-lede">
+          Explore seasons, tournaments, champions, and results from across the competitive
+          8-ball community.
+        </p>
 
         <div className="pa-rule" aria-hidden />
 

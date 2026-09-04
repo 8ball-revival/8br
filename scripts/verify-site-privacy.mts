@@ -236,10 +236,6 @@ async function main() {
   section('The door, and only the door, opens')
   const door = await get(PRIVATE_ACCESS_PATH)
   check('the private-access page is reachable', door.status === 200, String(door.status))
-  check('it says what it must', /Private Access/i.test(door.body)
-    && /currently private/i.test(door.body)
-    && /must log in to access the website and its data/i.test(door.body))
-  check('it offers a way in', /Sign in/i.test(door.body))
   /*
     Judged on what a reader can SEE, not on the raw HTML.
 
@@ -247,6 +243,9 @@ async function main() {
     "rankings" appears in a `<script src>` on every page. That is a filename, not data — testing the
     raw markup reports it as a leak and teaches whoever sees the failure to loosen the check. The
     visible text is the thing the requirement is actually about.
+
+    It also matters for the heading: the page <title> still reads "Private Access", so a check
+    against the whole document would pass no matter what the heading said.
   */
   const doorText = door.body
     .replace(/<script[\s\S]*?<\/script>/g, ' ')
@@ -254,6 +253,25 @@ async function main() {
     .replace(/<head[\s\S]*?<\/head>/g, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
+
+  /*
+    The door names the site and what is behind the wall.
+
+    It no longer announces that the site is private; the sign-in form below it is what makes that
+    plain. The wall itself is unchanged and is asserted by every other section in this file — this
+    check is only about the words on the page.
+  */
+  check('it names the site and what is behind the wall',
+    /Competition History/.test(doorText)
+    && /Explore seasons, tournaments, champions, and results/.test(doorText),
+    doorText.slice(0, 160))
+  check('it offers a way in', /Sign in/i.test(door.body))
+  /*
+    No DATABASE content, which is not the same as no mention of the site's subjects.
+
+    The copy names seasons and tournaments as categories; what must never appear is a row out of the
+    database — a handle, a real name, a rating.
+  */
   check('it shows no site data', !/sixohtwo|Starkiller|deep\.cerebro|Season Progress|\d,\d{3}/i.test(doorText),
     doorText.slice(0, 160))
   /*

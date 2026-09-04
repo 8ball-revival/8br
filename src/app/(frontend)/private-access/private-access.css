@@ -66,31 +66,32 @@
   color: var(--hot-red);
 }
 
+/*
+  The heading, in the display face rather than the condensed one.
+
+  It used to be "PRIVATE ACCESS" set huge in Barlow Condensed, which is the treatment the site gives
+  a scoreboard. "Competition History" is a title, not a shout: title case, the ordinary display
+  weight, and a size that sits above the sentence beneath it instead of dominating the panel.
+*/
 .pa-title {
   margin-top: 0.85rem;
-  font-family: var(--font-barlow-condensed), var(--font-space-grotesk), system-ui, sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  line-height: 0.9;
-  letter-spacing: -0.01em;
+  font-family: var(--font-space-grotesk), var(--font-inter), system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
   /* Scales from a phone to a wide desktop without a breakpoint of its own. */
-  font-size: clamp(2.25rem, 7vw, 3.25rem);
+  font-size: clamp(1.55rem, 5vw, 2rem);
   color: var(--text-on-media, #f4f6f8);
 }
 
+/* One sentence saying what the site is, set close under the title rather than as a lede. */
 .pa-lede {
-  margin-top: 1.15rem;
-  font-size: 1.02rem;
-  font-weight: 500;
-  line-height: 1.5;
+  margin-top: 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.55;
   color: var(--foreground, #e6eaee);
-}
-
-.pa-body {
-  margin-top: 0.4rem;
-  font-size: 0.94rem;
-  line-height: 1.6;
-  color: var(--muted-foreground, #9aa4ad);
+  text-wrap: pretty;
 }
 
 /* A hairline divider, not a texture: one line, once. */
