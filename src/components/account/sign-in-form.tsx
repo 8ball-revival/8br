@@ -9,9 +9,17 @@ import { Input } from '@/components/ui/input'
 
 const initial: FormResult = {}
 
-/** Sign in with CueVerse ID (or email) + password, with an inline forgot-password flow.
- *  `returnTo` (a safe local path) sends the user back where they started after signing in. */
-export function SignInForm({ returnTo = '/account' }: { returnTo?: string }) {
+/**
+ * Sign in with CueVerse ID (or email) + password, with an inline forgot-password flow.
+ *
+ * `returnTo` (a safe local path) sends the user back where they started after signing in.
+ *
+ * `showRegister` is off on the private-access page. Registration is behind the privacy wall like
+ * everything else, so the link would only bounce a visitor back to the page they are already on —
+ * and, worse, an invitation to "Create an account" on the door of a private site reads as an offer
+ * of public signup, which is exactly what this site does not have.
+ */
+export function SignInForm({ returnTo = '/account', showRegister = true }: { returnTo?: string; showRegister?: boolean }) {
   const [state, action, pending] = useActionState(signIn, initial)
   const registerHref = returnTo && returnTo !== '/account' ? `/register?returnTo=${encodeURIComponent(returnTo)}` : '/register'
   // Panel opens automatically after a failed sign-in; `null` follows the error, a boolean is
@@ -69,12 +77,14 @@ export function SignInForm({ returnTo = '/account' }: { returnTo?: string }) {
           {pending ? 'Signing in…' : 'Sign in'}
         </Button>
 
-        <p className="text-center text-sm text-muted-foreground">
-          New to 8 Ball Registry?{' '}
-          <Link href={registerHref} className="font-medium text-brand hover:text-brand-soft">
-            Create an account
-          </Link>
-        </p>
+        {showRegister && (
+          <p className="text-center text-sm text-muted-foreground">
+            New to 8 Ball Registry?{' '}
+            <Link href={registerHref} className="font-medium text-brand hover:text-brand-soft">
+              Create an account
+            </Link>
+          </p>
+        )}
       </form>
 
       {showReset && <ForgotPasswordPanel onClose={() => setManualOpen(false)} />}

@@ -133,6 +133,27 @@ if (reducedMotion) {
   })
 }
 
+/*
+  The session, if one was supplied.
+
+  The site is private, so an anonymous capture photographs the private-access page rather than the
+  page that was asked for — silently, and it looks like a layout regression. `scripts/with-dev-session.mjs`
+  mints a real session and passes it in this variable; without it this stays an anonymous visitor,
+  which is exactly what a suite checking the wall itself wants.
+*/
+if (process.env.PRIVACY_COOKIE) {
+  const [name, ...rest] = process.env.PRIVACY_COOKIE.split('=')
+  await call('Network.enable')
+  await call('Network.setCookie', {
+    name: name.trim(),
+    value: rest.join('=').trim(),
+    domain: new URL(url).hostname,
+    path: '/',
+    httpOnly: true,
+    sameSite: 'Lax',
+  })
+}
+
 await call('Page.navigate', { url })
 // Settle: the profile streams, and the CueVerse panel arrives a moment after the record does.
 await sleep(4500)

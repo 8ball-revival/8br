@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk, JetBrains_Mono, Barlow_Condensed } from 'next/font/google'
+import { headers as nextHeaders } from 'next/headers'
+import { redirect } from 'next/navigation'
 import React from 'react'
 
 import { DisplayRuntime } from '@/components/display/display-runtime'
@@ -9,6 +11,9 @@ import { SiteFooter } from '@/components/site-footer'
 import { SITE_NAME, SITE_TITLE_DEFAULT, SITE_DESCRIPTION, SITE_URL } from '@/lib/site'
 import { DISPLAY_DEFAULTS, DISPLAY_KEY, DOM_SPEC } from '@/lib/display/settings'
 import { getTheme } from '@/lib/site-builder/globals'
+import { PATHNAME_HEADER, PRIVATE_ACCESS_PATH, SEARCH_HEADER, isPublicPath, privateAccessTarget } from '@/lib/auth/site-privacy'
+import { safeReturnTo } from '@/lib/account/return-to'
+import { hasSiteAccess } from '@/lib/auth/require-viewer'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
@@ -47,6 +52,16 @@ const barlowCondensed = Barlow_Condensed({
 })
 
 export const metadata: Metadata = {
+  /*
+    Every page in this tree is private, so none of it may be indexed.
+
+    Set at the root so a page added later inherits it without anyone remembering to. Individual
+    pages that already pass `index: false` through `pageMetadata()` keep doing so; this is the floor,
+    not a replacement. The same instruction is sent as an `X-Robots-Tag` header by the middleware,
+    because a header reaches a crawler that never parses the document — and a redirect to the door
+    has no <head> for a meta tag to live in.
+  */
+  robots: { index: false, follow: false, nocache: true, noarchive: true, nosnippet: true },
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE_DEFAULT,
@@ -150,6 +165,47 @@ if(v('accentMode')==='custom'){e.style.setProperty('--dl-accent',String(v('accen
  * unreadable. That is the whole reason the two layouts stay separate.
  */
 export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
+  /*
+    ── The second half of the privacy wall ────────────────────────────────────────────────────────
+
+    The middleware has already refused this request unless it carried a real, unexpired session
+    token. What it could not check is whether the ACCOUNT behind that token is still allowed in — a
+    member banned a minute ago holds a token that is cryptographically perfect. That is a database
+    question, so it is answered here, in the layout, BEFORE any page in this tree renders. There is
+    no client-side redirect and no hidden content: a visitor without access never receives the
+    markup at all.
+
+    The path comes from the header the middleware set from `request.nextUrl`, never from an incoming
+    header — a client that could name its own path could name an allowlisted one.
+
+    Public paths are skipped, which is what stops the loop: the private-access page lives in this
+    same layout, and guarding it would redirect it to itself.
+  */
+  const requestHeaders = await nextHeaders()
+  const pathname = requestHeaders.get(PATHNAME_HEADER) ?? ''
+  const isPublic = isPublicPath(pathname, { dev: process.env.NODE_ENV !== 'production' })
+  /* The door renders without the site's own chrome — see the note beside <SiteHeader />. */
+  const bare = pathname === PRIVATE_ACCESS_PATH
+
+  if (bare) {
+    /*
+      Somebody who is already signed in has no business on the door.
+
+      Sent onward from HERE rather than from the middleware, and that is the whole point: the
+      middleware can only see that a token is valid, so it would also bounce a BANNED member off the
+      door and into the site — where this same guard would bounce them straight back. That is an
+      infinite loop, and it is avoided by making the decision only where the account's standing is
+      actually known.
+
+      A layout redirect is also a real 307, because it happens before the response is flushed.
+    */
+    if (await hasSiteAccess()) {
+      redirect(safeReturnTo(new URLSearchParams(requestHeaders.get(SEARCH_HEADER) ?? '').get('returnTo'), '/'))
+    }
+  } else if (!isPublic && !(await hasSiteAccess())) {
+    redirect(privateAccessTarget(pathname))
+  }
+
   // Never throws and never blocks: an unreadable theme is no theme, and the site renders as built.
   const theme = await getTheme().catch(() => ({ vars: {}, fontDisplay: 'space-grotesk' }))
 
@@ -194,9 +250,22 @@ export default async function FrontendLayout({ children }: { children: React.Rea
       </head>
       <body className="flex min-h-screen flex-col bg-transparent text-foreground antialiased">
         <DialogProvider>
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
+          {/*
+            The private-access page renders without header or footer.
+
+            Both are navigation into pages a logged-out visitor cannot open, so every link would
+            bounce straight back to the door — and the header also resolves the current account,
+            which is a query the door has no use for.
+          */}
+          {bare ? (
+            <main className="flex-1">{children}</main>
+          ) : (
+            <>
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+              <SiteFooter />
+            </>
+          )}
           {/*
             The decorative layers: background, film grain and vignette.
 

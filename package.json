@@ -31,6 +31,8 @@
     "archive:review-packet": "node scripts/archive/packets.mjs",
     "archive:review-test": "node scripts/archive/test-decisions.mjs",
     "archive:import": "node scripts/archive/import.mjs",
+    "test:privacy": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-privacy.mts",
+    "verify:authed": "node scripts/with-dev-session.mjs",
     "test:site-builder": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder.mts",
     "test:site-builder:db": "tsx --tsconfig tsconfig.scripts.json scripts/verify-site-builder-db.mts",
     "site-builder:bootstrap": "tsx --tsconfig tsconfig.scripts.json scripts/site-builder-bootstrap.mts",

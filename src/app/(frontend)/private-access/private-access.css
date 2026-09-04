@@ -1,0 +1,117 @@
+/* ════════════════════════════════════════════════════════════════════════════════════════════════
+   PRIVATE ACCESS — the one page a stranger can reach.
+
+   Built from the shared glass tokens (`glass.css`) rather than from values of its own, so the door
+   is finished like the rooms. Smooth near-black ground, a dark containing border, one restrained
+   highlight along the upper edge, a soft inset toward the foot — and no repeating texture of any
+   kind: no scanline film, no hairlines, no brushed or machined surface. The site background grid
+   shows AROUND the panel and never through it.
+   ════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+.pa-root {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Generous on a desktop, honest on a phone: the panel must never touch the viewport edge. */
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.pa-panel {
+  width: 100%;
+  max-width: 30rem;
+  padding: clamp(1.5rem, 4.5vw, 2.75rem);
+  border-radius: 2px;
+
+  /* The shared finish. Opaque enough that the page grid is not legible through the panel. */
+  background-color: color-mix(in srgb, var(--glass) calc(var(--glass-alpha) * 100%), transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-depth-deep),
+    /* A wide, very soft drop, so the panel sits above the ground rather than being cut into it. */
+    0 24px 70px -40px rgb(0 0 0 / 90%);
+  position: relative;
+}
+
+/*
+  The accent: a single red rule along the top edge.
+
+  The site's identity in one stroke rather than a decorated frame — it is the same restrained red
+  used for status and emphasis everywhere else. Drawn as a pseudo-element so it cannot affect the
+  panel's box, and faded at both ends so it reads as light on an edge and not as a border.
+*/
+.pa-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--hot-red) 70%, transparent) 22%,
+    var(--hot-red) 50%,
+    color-mix(in oklab, var(--hot-red) 70%, transparent) 78%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.pa-eyebrow {
+  font-family: var(--font-barlow-condensed), var(--font-space-grotesk), system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--hot-red);
+}
+
+.pa-title {
+  margin-top: 0.85rem;
+  font-family: var(--font-barlow-condensed), var(--font-space-grotesk), system-ui, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  /* Scales from a phone to a wide desktop without a breakpoint of its own. */
+  font-size: clamp(2.25rem, 7vw, 3.25rem);
+  color: var(--text-on-media, #f4f6f8);
+}
+
+.pa-lede {
+  margin-top: 1.15rem;
+  font-size: 1.02rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--foreground, #e6eaee);
+}
+
+.pa-body {
+  margin-top: 0.4rem;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--muted-foreground, #9aa4ad);
+}
+
+/* A hairline divider, not a texture: one line, once. */
+.pa-rule {
+  margin: 1.6rem 0 1.4rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-border-strong), transparent);
+}
+
+/*
+  The form keeps its own component styling.
+
+  Only the spacing is set here — restyling the inputs would fork the sign-in form's appearance from
+  every other place it is used, and this page is meant to look like the site, not like a variant.
+*/
+.pa-form {
+  margin-top: 0.25rem;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .pa-panel {
+    background-color: var(--glass);
+  }
+}
