@@ -275,7 +275,16 @@ try {
   ])
 
   section('The hero, and whose photograph it is')
-  eq('the desktop crop is the one downloaded', p.hero.currentSrc, '/assets/homepage/homepage-champion-sixohtwo-desktop.webp')
+  /*
+    The hero art is configuration, so this asserts the SHAPE rather than one filename.
+
+    It named `homepage-champion-sixohtwo-desktop.webp` and would have failed the moment the Owner
+    changed the picture — reporting an ordinary content edit as a layout regression. What the design
+    fixes is that the desktop crop is the one the browser chose; which image it is belongs to
+    whoever is editing the page.
+  */
+  check('the desktop crop is the one downloaded',
+    /^\/assets\/homepage\/.+-desktop\.webp$/.test(p.hero.currentSrc ?? ''), String(p.hero.currentSrc))
   check('the photograph actually decoded', p.hero.naturalW > 1000, `naturalWidth ${p.hero.naturalW}`)
   eq('the mobile source is behind a media query', p.hero.sourceMedia, '(max-width: 767px)')
   check('the hero image is prioritised, being above the fold', p.hero.fetchPriority === 'high', String(p.hero.fetchPriority))
@@ -442,12 +451,16 @@ try {
 
     // The hero swaps crop at the declared breakpoint, and only one file is fetched.
     const wantMobile = w < 768
-    eq(`${tag}: the ${wantMobile ? 'upright' : 'wide'} crop is the one used`, v.hero.currentSrc,
-      wantMobile
-        ? '/assets/homepage/homepage-champion-sixohtwo-mobile.webp'
-        : '/assets/homepage/homepage-champion-sixohtwo-desktop.webp')
-    check(`${tag}: the champion is still named from the database`,
-      v.hero.champion.handle && v.hero.champion.rating, JSON.stringify(v.hero.champion))
+    /* Which crop, not which picture — the image itself is the Owner's to change. */
+    check(`${tag}: the ${wantMobile ? 'upright' : 'wide'} crop is the one used`,
+      (wantMobile ? /-mobile\.webp$/ : /-desktop\.webp$/).test(v.hero.currentSrc ?? ''),
+      String(v.hero.currentSrc))
+    /*
+      The champion panel was removed from the hero, so its absence is what is checked here now.
+      The ranking rail below still names who is first, and is asserted separately.
+    */
+    check(`${tag}: no champion panel is drawn over the photograph`,
+      !v.hero.champion.handle && !v.hero.champion.rating, JSON.stringify(v.hero.champion))
 
     // Touch targets, where a finger is the pointer.
     if (mobile) {
